@@ -30,6 +30,11 @@ import PlanningTimeline from './PlanningTimeline';
 import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 import PlanningApplyPreview from './PlanningApplyPreview';
 import { computeApplyDiff, type ApplyDiff } from '@/utils/applyPreview';
+import {
+  captureApplyableFields,
+  type ApplySnapshot,
+  type ApplySnapshotEntry,
+} from '@/utils/applySnapshot';
 
 export interface PlanningEditorProps {
   /** Game ids picked in the previous page; the editor mutates each on Apply. */
@@ -39,8 +44,15 @@ export interface PlanningEditorProps {
   /** Master roster — used as the player universe when Apply is wired. */
   roster: Player[];
   onBack: () => void;
-  /** Called once Apply finishes so the parent can transition out of the editor. */
-  onApplied: () => void;
+  /**
+   * Called once Apply finishes so the parent can transition out of
+   * the editor. When the apply mutated at least one game (full
+   * success), the snapshot of the pre-apply state is passed so the
+   * parent can render a post-apply undo banner. Partial-success and
+   * warning paths don't carry a snapshot — the editor stays open with
+   * the existing warning banner there.
+   */
+  onApplied: (snapshot?: ApplySnapshot) => void;
   /** Persists one game's lineup; called once per `gameIds` entry on Apply. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 
@@ -613,6 +625,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     let gamesWithUnreachableSubs = 0;
     let gamesNotFound = 0;
     let savedCount = 0;
+    // Per-game pre-apply snapshots, only for games actually mutated.
+    // Used by the modal-level undo banner after a clean full-success
+    // apply; partial-success / warning paths don't carry a snapshot.
+    const snapshots: ApplySnapshotEntry[] = [];
     try {
       for (const id of applyGameIds) {
         const game = savedGames[id];
@@ -639,11 +655,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           game.availablePlayers,
           perGameDurationSec,
         );
+        // Capture before the mutation so a mid-loop throw leaves the
+        // snapshots array consistent with savedCount.
+        const beforeFields = captureApplyableFields(game);
         await applyToGame(id, {
           playersOnField: result.playersOnField,
           selectedPlayerIds: result.selectedPlayerIds,
           scheduledSubs: result.scheduledSubs,
         });
+        snapshots.push({ gameId: id, before: beforeFields });
         savedCount++;
         // Count drops only on the success path so a throw doesn't claim
         // the failed game had partial saves.
@@ -704,7 +724,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         setApplyWarning(parts.join(' '));
         return;
       }
-      onApplied();
+      onApplied(
+        snapshots.length > 0
+          ? { appliedAt: Date.now(), games: snapshots }
+          : undefined,
+      );
     } catch (err) {
       logger.error('[PlanningEditor] Apply failed', err);
       // Translated fallback only — raw error text never reaches the user.
@@ -1030,7 +1054,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           <div className="flex justify-end mt-2">
             <button
               type="button"
-              onClick={onApplied}
+              // No snapshot from the warning path — partial-success and
+              // skipped games stay in the editor's existing warning
+              // banner, not the modal-level undo banner.
+              onClick={() => onApplied()}
               data-testid="planning-editor-warning-done"
               className="rounded-md bg-amber-500/90 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-amber-400"
             >

@@ -26,6 +26,9 @@ import PlanningGamePicker, {
   type PlanningGamePickerGame,
 } from './PlanningGamePicker';
 import PlanningEditor from './PlanningEditor';
+import PlanningUndoBanner from './PlanningUndoBanner';
+import type { ApplySnapshot } from '@/utils/applySnapshot';
+import logger from '@/utils/logger';
 import {
   useDeletePlanningSessionMutation,
   usePlanningSessionsQuery,
@@ -34,7 +37,7 @@ import {
 } from '@/hooks/usePlanningSessionQueries';
 import type { PlanDraft } from '@/utils/planSwapEngine';
 
-type PlanningPage = 'list' | 'picker' | 'editor';
+type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
 
 // Guard against missing / malformed updatedAt; `new Date(<bad>)` would render as "Invalid Date".
 const formatSessionDate = (
@@ -115,6 +118,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [listErrorMessage, setListErrorMessage] = useState<string | null>(
     null,
   );
+  // Post-apply undo state. Snapshot held for the UNDO_WINDOW_MS span;
+  // banner is rendered when page === 'undoBanner'. Cleared on undo
+  // success, dismiss, expire, or modal close.
+  const [undoSnapshot, setUndoSnapshot] = useState<ApplySnapshot | null>(null);
+  const [isUndoing, setIsUndoing] = useState(false);
+  const [undoError, setUndoError] = useState<string | null>(null);
 
   // Saved sessions are scoped to the active team. The query is gated on
   // (isOpen && page === 'list') so it doesn't fetch while the modal is
@@ -165,6 +174,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setListErrorMessage(null);
     setRenamingSessionId(null);
     setRenameDraft('');
+    setUndoSnapshot(null);
+    setUndoError(null);
+    setIsUndoing(false);
   };
 
   const handleClose = () => {
@@ -420,14 +432,73 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage(editorEntryPage);
   };
 
-  const handleEditorApplied = () => {
+  const handleEditorApplied = (snapshot?: ApplySnapshot) => {
     // The modal stays mounted across opens (`isOpen={false}` early-returns
     // null but doesn't unmount), so explicit resets are required to
     // prevent stale banners / editingSession from leaking into the next
     // open. Shared with handleClose via resetEditorState.
+    if (snapshot && snapshot.games.length > 0) {
+      // Full-success apply with at least one game mutated — switch the
+      // modal into undo-banner mode instead of closing. The editor's
+      // own state is reset so re-open from this page is clean.
+      setEditorGameIds([]);
+      setEditingSession(null);
+      setListErrorMessage(null);
+      setRenamingSessionId(null);
+      setRenameDraft('');
+      setUndoSnapshot(snapshot);
+      setUndoError(null);
+      setIsUndoing(false);
+      setPage('undoBanner');
+      return;
+    }
+    // No snapshot (warning path that still closed the editor — unlikely
+    // since the warning path returns early without onApplied — but
+    // defensive). Fall back to the original close behavior.
     resetEditorState();
     setPage('list');
     onClose();
+  };
+
+  const handleUndoDismiss = () => {
+    resetEditorState();
+    setPage('list');
+    onClose();
+  };
+
+  const handleUndoExpire = () => {
+    // Same effect as Dismiss: close the modal and forget the snapshot.
+    // Kept as a separate name so the test suite can assert which path
+    // fired (timeout vs. user click).
+    resetEditorState();
+    setPage('list');
+    onClose();
+  };
+
+  const handleUndoConfirm = async () => {
+    if (!undoSnapshot || isUndoing) return;
+    setIsUndoing(true);
+    setUndoError(null);
+    try {
+      // Sequential restores so a mid-loop failure leaves the user with
+      // a partial-undo state but a clear error — same shape as the
+      // forward apply path.
+      for (const entry of undoSnapshot.games) {
+        await applyToGame(entry.gameId, entry.before);
+      }
+      resetEditorState();
+      setPage('list');
+      onClose();
+    } catch (err) {
+      logger.error('[PlanningModal] Undo failed', err);
+      setUndoError(
+        t(
+          'planningUndoBanner.undoFailed',
+          'Could not undo the apply. Please try again.',
+        ),
+      );
+      setIsUndoing(false);
+    }
   };
 
   const handleImportClick = () => {
@@ -932,6 +1003,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   teamFilterName={currentTeamName}
                   onBack={goToList}
                   onContinue={handlePickerContinue}
+                />
+              )}
+
+              {page === 'undoBanner' && undoSnapshot && (
+                <PlanningUndoBanner
+                  gameCount={undoSnapshot.games.length}
+                  appliedAt={undoSnapshot.appliedAt}
+                  isUndoing={isUndoing}
+                  undoError={undoError}
+                  onUndo={() => void handleUndoConfirm()}
+                  onDismiss={handleUndoDismiss}
+                  onExpire={handleUndoExpire}
                 />
               )}
 

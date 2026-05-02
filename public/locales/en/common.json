@@ -1721,6 +1721,15 @@
     "selectedCount": "{{count}} selected",
     "continueButton": "Continue"
   },
+  "planningUndoBanner": {
+    "title_one": "Plan applied to {{count}} game.",
+    "title_other": "Plan applied to {{count}} games.",
+    "countdown": "Undo available for {{seconds}}s.",
+    "undo": "Undo",
+    "undoing": "Undoing…",
+    "dismiss": "Dismiss",
+    "undoFailed": "Could not undo the apply. Please try again."
+  },
   "planningApplyPreview": {
     "title": "Review changes before applying",
     "gameSelectedCount_one": "{{checked}} of 1 game selected",
