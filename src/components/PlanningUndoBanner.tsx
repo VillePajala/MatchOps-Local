@@ -80,7 +80,6 @@ const PlanningUndoBanner: React.FC<PlanningUndoBannerProps> = ({
   return (
     <div
       role="status"
-      aria-live="polite"
       data-testid="planning-undo-banner"
       className="space-y-2 rounded-md border border-emerald-700/40 bg-emerald-900/20 p-4"
     >
@@ -90,22 +89,29 @@ const PlanningUndoBanner: React.FC<PlanningUndoBannerProps> = ({
           className="h-5 w-5 mt-0.5 flex-shrink-0 text-emerald-300"
         />
         <div className="flex-1">
+          {/* Finnish title_one and title_other are intentionally
+              identical — "Suunnitelma sovellettu N peliin." uses the
+              illative case which doesn't change form between counts.
+              The English variants differ ("game"/"games") and the
+              ternary fallback below stays grammatical when the
+              namespace fails to load. */}
           <p className="text-sm font-medium text-emerald-100">
             {t(
               'planningUndoBanner.title',
-              // The fallback fires when the namespace fails to load
-              // (test stubs, network error). i18next picks the right
-              // resource key (_one/_other) when available, but the
-              // literal default has to be grammatically correct on
-              // its own — hence the inline ternary.
               gameCount === 1
                 ? 'Plan applied to {{count}} game.'
                 : 'Plan applied to {{count}} games.',
               { count: gameCount },
             )}
           </p>
+          {/* aria-hidden on the countdown so the per-second
+              re-renders don't re-announce the entire banner via the
+              outer role="status". The visual countdown is still
+              there; AT users get the initial banner announcement
+              once and the static title + Undo button.  */}
           <p
             className="text-xs text-emerald-200/80 mt-0.5"
+            aria-hidden="true"
             data-testid="planning-undo-banner-countdown"
           >
             {t(

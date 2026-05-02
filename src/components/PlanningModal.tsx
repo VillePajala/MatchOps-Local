@@ -520,7 +520,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           : 'planningUndoBanner.undoFailed';
       const messageDefault =
         cursor > 0
-          ? 'Restored {{done}} of {{total}} games. Retry to continue.'
+          ? 'Restored {{done}} of {{total}} games. Click Undo to finish.'
           : 'Could not undo the apply. Please try again.';
       setUndoError(
         t(messageKey, messageDefault, {

@@ -1607,10 +1607,18 @@ describe('PlanningEditor', () => {
       });
       // applyToGame never fired (gx wasn't in savedGames), the
       // warning banner shows, and onApplied is NOT invoked from the
-      // warning path — the user clicks Done to exit, which calls
-      // onApplied() with no arg.
+      // warning path itself — the user has to click Done to exit.
       expect(applyToGame).not.toHaveBeenCalled();
       expect(onApplied).not.toHaveBeenCalled();
+      // Click Done: must call onApplied() with NO snapshot arg. This
+      // is the regression guard for the onClick={() => onApplied()}
+      // wrapping — passing onApplied directly would forward the
+      // SyntheticEvent as a snapshot.
+      fireEvent.click(screen.getByTestId('planning-editor-warning-done'));
+      expect(onApplied).toHaveBeenCalledTimes(1);
+      expect(onApplied).toHaveBeenCalledWith();
+      // First positional arg is undefined (no snapshot passed).
+      expect(onApplied.mock.calls[0][0]).toBeUndefined();
     });
 
     it('preview Cancel returns to edit mode without applying', () => {
