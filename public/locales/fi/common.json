@@ -1721,6 +1721,12 @@
     "selectedCount": "{{count}} valittu",
     "continueButton": "Jatka"
   },
+  "planningMinutesDashboard": {
+    "title": "Suunnitelman peliminuutit",
+    "fairShare": "Reilu osuus: {{mmss}}",
+    "empty": "Valitse vähintään yksi peli ja aseta avauskokoonpano nähdäksesi peliminuutit.",
+    "entryAria": "{{player}}: {{mmss}}, {{pct}} prosenttia reilusta osuudesta"
+  },
   "planningUndoBanner": {
     "title_one": "Suunnitelma sovellettu {{count}} peliin.",
     "title_other": "Suunnitelma sovellettu {{count}} peliin.",
