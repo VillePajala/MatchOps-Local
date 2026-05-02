@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineArrowLeft,
@@ -80,10 +80,8 @@ export interface PlanningEditorProps {
   }) => Promise<void>;
 
   /**
-   * When true (PlanningModal sets this in PR 8b), Apply opens a
-   * per-game diff preview the user must confirm before persistence.
-   * When false (default — preserves the existing test suite's flow
-   * and any caller that doesn't opt in), Apply runs immediately.
+   * When true, Apply opens a per-game diff preview the user must
+   * confirm before persistence. When false, Apply runs immediately.
    */
   enableApplyPreview?: boolean;
 }
@@ -182,9 +180,20 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applyWarning, setApplyWarning] = useState<string | null>(null);
-  // Apply preview (PR 8b). When non-null, the preview is shown and the
-  // pitch/Apply button are gated behind it. Null = direct edit mode.
+  // When non-null, the preview is shown and the pitch/Apply button
+  // are gated behind it. Null = direct edit mode.
   const [previewDiffs, setPreviewDiffs] = useState<ApplyDiff[] | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  // The preview is appended below the editor's content; on tall plans
+  // the user would otherwise have to scroll to see the confirmation
+  // step appear after clicking Apply. The function check skips JSDOM
+  // (no scrollIntoView impl) and any non-DOM environment.
+  useEffect(() => {
+    const node = previewRef.current;
+    if (previewDiffs !== null && typeof node?.scrollIntoView === 'function') {
+      node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [previewDiffs]);
   // Save form state. Null = form hidden; otherwise the string is the
   // draft name the user is typing.
   const [savePlanName, setSavePlanName] = useState<string | null>(null);
@@ -542,9 +551,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   // Compute per-game diffs against the saved games and switch the
   // editor into preview mode. The preview's Confirm runs handleApply
   // with only the checked game ids; Cancel returns to edit mode.
-  // When enableApplyPreview is false, this falls through to the direct
-  // apply path (preserves the editor's pre-PR-8b behavior for callers
-  // that haven't opted in).
+  // When enableApplyPreview is false, this falls through to the
+  // direct apply path so callers that don't opt in are unaffected.
   const handleStartApply = () => {
     if (!enableApplyPreview) {
       void handleApply();
@@ -1111,21 +1119,22 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         </button>
       </div>
 
-      {/* Apply preview (PR 8b). When the user clicks Apply, the editor
-          computes per-game diffs and renders this preview so they can
-          review what will change and opt individual games out before
-          committing the persistence step. */}
+      {/* When the user clicks Apply, the editor computes per-game
+          diffs and renders this preview so they can review what will
+          change and opt individual games out before committing. */}
       {previewDiffs !== null && (
-        <PlanningApplyPreview
-          diffs={previewDiffs}
-          savedGames={savedGames}
-          roster={roster}
-          isApplying={isApplying}
-          onConfirm={(checkedGameIds) => {
-            void handleApply(checkedGameIds);
-          }}
-          onCancel={handleCancelPreview}
-        />
+        <div ref={previewRef}>
+          <PlanningApplyPreview
+            diffs={previewDiffs}
+            savedGames={savedGames}
+            roster={roster}
+            isApplying={isApplying}
+            onConfirm={(checkedGameIds) => {
+              void handleApply(checkedGameIds);
+            }}
+            onCancel={handleCancelPreview}
+          />
+        </div>
       )}
     </div>
   );

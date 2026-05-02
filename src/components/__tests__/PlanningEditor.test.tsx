@@ -1481,8 +1481,7 @@ describe('PlanningEditor', () => {
     });
   });
 
-  // ── PR 8b: Apply preview gating ─────────────────────────────────────
-  describe('Apply preview (PR 8b)', () => {
+  describe('Apply preview gating', () => {
     it('with enableApplyPreview=false (default), Apply runs immediately', async () => {
       const applyToGame = jest.fn().mockResolvedValue(undefined);
       const onApplied = jest.fn();

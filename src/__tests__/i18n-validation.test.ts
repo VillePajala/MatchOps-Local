@@ -315,7 +315,12 @@ describe('Translation File Validation', () => {
       // Planner Phase 4b (PR 8b): +18 planningApplyPreview keys for
       //   the per-game diff preview component (title, change copy,
       //   confirm/cancel labels, plural variants).
-      expect(enKeys.length).toBe(2548);
+      // Planner Phase 4b review pass: +2 net for review fixes
+      //   (split gameSelectedCount into _one/_other, dropped
+      //   lineupRemovedOffFormation + offFormation in favor of a
+      //   single lineupRemovedNoRole, added subRemovedWithOut +
+      //   subRefWithOut so out-player surfaces in cancel/modify).
+      expect(enKeys.length).toBe(2550);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -336,7 +341,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
       // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
       // Planner Phase 4b (PR 8b): +18 planningApplyPreview keys.
-      expect(fiKeys.length).toBe(2548);
+      // Planner Phase 4b review pass: +2 net for review fixes (see EN block).
+      expect(fiKeys.length).toBe(2550);
     });
   });
 });

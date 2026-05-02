@@ -25,6 +25,9 @@ const roster: Player[] = [
   { id: 'p2', name: 'Bob', nickname: 'Bobby' },
 ] as Player[];
 
+// Only the fields the preview reads (opponentName, gameDate) are
+// populated. The double cast suppresses the missing-AppState fields
+// (gameEvents, scheduledSubs, etc.) — fine for a UI-only test.
 const baseGame = (overrides: Partial<AppState> = {}): AppState => ({
   teamId: 't1',
   teamName: 'Pepo',
@@ -225,7 +228,31 @@ describe('PlanningApplyPreview', () => {
     });
     // 10:00 / 20:00 / 15:00 — formatTime renders mm:ss.
     expect(screen.getByText(/Schedule sub at 10:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/Cancel sub at 20:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/Update sub:/i)).toBeInTheDocument();
+    // outPlayer must surface in the cancellation copy so the coach
+    // sees who was scheduled to come off.
+    expect(
+      screen.getByText(/Cancel sub at 20:00.*on for Bobby/i),
+    ).toBeInTheDocument();
+    // The "before" half of the modified sub also has outPlayer; the
+    // "after" half does not (DraftScheduledSub omits it).
+    expect(screen.getByText(/Update sub:.*Alice↔Bobby.*→/i)).toBeInTheDocument();
+  });
+
+  it('renders the gameMissing fallback when savedGames lacks the gameId', () => {
+    renderPreview({
+      diffs: [
+        makeDiff({
+          gameId: 'missing-id',
+          lineupAdded: [{ playerId: 'p1', role: 'GK' }],
+        }),
+      ],
+      // savedGames intentionally omits 'missing-id' to exercise the
+      // fallback path (cloud-sync race / IndexedDB eviction).
+      savedGames: {} as SavedGamesCollection,
+    });
+    expect(
+      screen.getByTestId('planning-apply-preview-card-missing-id'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Game \(missing-id\)|Peli \(missing-id\)/)).toBeInTheDocument();
   });
 });

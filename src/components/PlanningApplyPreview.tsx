@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import type { Player } from '@/types';
@@ -76,10 +76,11 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
   };
 
   const visibleDiffs = diffs.filter((d) => !d.isEmpty);
-  const checkedCount = checked.size;
-
-  const renderRoleLabel = (role: string | undefined): string =>
-    role ?? t('planningApplyPreview.offFormation', 'off-formation');
+  // Derive from visibleDiffs rather than checked.size so the header
+  // count can't drift if a future caller pre-checks ids that aren't
+  // in the visible set.
+  const checkedCount = visibleDiffs.filter((d) => checked.has(d.gameId)).length;
+  const titleId = useId();
 
   const renderLineupAdded = (c: LineupAddChange): string =>
     t('planningApplyPreview.lineupAdded', 'Add {{player}} at {{role}}', {
@@ -95,12 +96,9 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
           { player: playerLabel(c.playerId), role: c.role },
         )
       : t(
-          'planningApplyPreview.lineupRemovedOffFormation',
-          'Remove {{player}} ({{role}})',
-          {
-            player: playerLabel(c.playerId),
-            role: renderRoleLabel(undefined),
-          },
+          'planningApplyPreview.lineupRemovedNoRole',
+          'Remove {{player}} (off-formation)',
+          { player: playerLabel(c.playerId) },
         );
 
   const renderLineupMoved = (c: LineupMoveChange): string =>
@@ -114,6 +112,9 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
       },
     );
 
+  // outPlayer is omitted from the draft side at the type level
+  // (DraftScheduledSub doesn't compute who comes off — the swap engine
+  // does that lazily at apply time), so subAdded can't surface it.
   const renderSubAdded = (s: Omit<SubDiffEntry, 'outPlayer'>): string =>
     t(
       'planningApplyPreview.subAdded',
@@ -126,22 +127,40 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
     );
 
   const renderSubRemoved = (s: SubDiffEntry): string =>
-    t(
-      'planningApplyPreview.subRemoved',
-      'Cancel sub at {{time}}: {{player}} on at {{role}}',
-      {
-        time: formatTime(s.timeSeconds),
-        player: playerLabel(s.inPlayer),
-        role: s.positionRole,
-      },
-    );
+    s.outPlayer
+      ? t(
+          'planningApplyPreview.subRemovedWithOut',
+          'Cancel sub at {{time}}: {{player}} on for {{outPlayer}} at {{role}}',
+          {
+            time: formatTime(s.timeSeconds),
+            player: playerLabel(s.inPlayer),
+            outPlayer: playerLabel(s.outPlayer),
+            role: s.positionRole,
+          },
+        )
+      : t(
+          'planningApplyPreview.subRemoved',
+          'Cancel sub at {{time}}: {{player}} on at {{role}}',
+          {
+            time: formatTime(s.timeSeconds),
+            player: playerLabel(s.inPlayer),
+            role: s.positionRole,
+          },
+        );
 
-  const renderSubModified = (m: SubModifyChange): string =>
-    t(
-      'planningApplyPreview.subModified',
-      'Update sub: {{before}} → {{after}}',
-      {
-        before: t(
+  const renderSubModified = (m: SubModifyChange): string => {
+    const beforeStr = m.before.outPlayer
+      ? t(
+          'planningApplyPreview.subRefWithOut',
+          '{{time}} {{player}}↔{{outPlayer}} {{role}}',
+          {
+            time: formatTime(m.before.timeSeconds),
+            player: playerLabel(m.before.inPlayer),
+            outPlayer: playerLabel(m.before.outPlayer),
+            role: m.before.positionRole,
+          },
+        )
+      : t(
           'planningApplyPreview.subRef',
           '{{time}} {{player}} {{role}}',
           {
@@ -149,18 +168,22 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
             player: playerLabel(m.before.inPlayer),
             role: m.before.positionRole,
           },
-        ),
-        after: t(
-          'planningApplyPreview.subRef',
-          '{{time}} {{player}} {{role}}',
-          {
-            time: formatTime(m.after.timeSeconds),
-            player: playerLabel(m.after.inPlayer),
-            role: m.after.positionRole,
-          },
-        ),
+        );
+    const afterStr = t(
+      'planningApplyPreview.subRef',
+      '{{time}} {{player}} {{role}}',
+      {
+        time: formatTime(m.after.timeSeconds),
+        player: playerLabel(m.after.inPlayer),
+        role: m.after.positionRole,
       },
     );
+    return t(
+      'planningApplyPreview.subModified',
+      'Update sub: {{before}} → {{after}}',
+      { before: beforeStr, after: afterStr },
+    );
+  };
 
   const gameLabel = (gameId: string): string => {
     const game: AppState | undefined = savedGames[gameId];
@@ -181,14 +204,12 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
     <div
       className="space-y-3 rounded-md border border-slate-700 bg-slate-900/70 p-4"
       data-testid="planning-apply-preview"
-      role="dialog"
-      aria-label={t(
-        'planningApplyPreview.title',
-        'Review changes before applying',
-      )}
+      role="region"
+      aria-labelledby={titleId}
+      aria-live="polite"
     >
       <header className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold text-slate-100">
+        <h3 id={titleId} className="text-base font-semibold text-slate-100">
           {t(
             'planningApplyPreview.title',
             'Review changes before applying',
@@ -197,8 +218,11 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
         <span className="text-xs text-slate-400">
           {t(
             'planningApplyPreview.gameSelectedCount',
-            '{{checked}} of {{total}} games selected',
-            { checked: checkedCount, total: visibleDiffs.length },
+            '{{checked}} of {{count}} games selected',
+            {
+              checked: checkedCount,
+              count: visibleDiffs.length,
+            },
           )}
         </span>
       </header>

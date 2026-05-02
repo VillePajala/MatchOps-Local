@@ -60,8 +60,8 @@ export interface SubDiffEntry {
 /**
  * The `after` half of a sub modification comes from a DraftScheduledSub,
  * which never carries `outPlayer` (it's recomputed lazily at apply time).
- * Encoding that asymmetry in the type prevents the preview UI in PR 8b
- * from rendering an undefined outPlayer as if it were a real value.
+ * Encoding that asymmetry in the type prevents the preview UI from
+ * rendering an undefined outPlayer as if it were a real value.
  */
 export interface SubModifyChange {
   before: SubDiffEntry;
@@ -176,10 +176,9 @@ export function computeApplyDiff(
 
   // Players in the draft: either added (no recognized current role —
   // either not on field, or off-formation) or moved (different role).
-  // TODO(PR 8b): The off-formation→role case currently surfaces as
-  // `lineupAdded`. Preview UI should disambiguate: "Assigned to LB
-  // (was off-formation)" rather than "Added at LB" when the player is
-  // already on the field with drifted coords.
+  // TODO: disambiguate the off-formation→role case as "Assigned to
+  // LB (was off-formation)" rather than "Added at LB" when the player
+  // is already on the field with drifted coords.
   for (const [role, pid] of draftByRole) {
     const currentRole = currentRolesByPlayer.get(pid);
     if (!currentRole) {
