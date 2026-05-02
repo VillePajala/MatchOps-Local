@@ -34,6 +34,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
+  const [isPriority, setIsPriority] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
 
   // Initialize form when player changes or modal opens
@@ -41,7 +42,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
     if (isOpen) {
       setNameError(null);
       if (mode === 'create') {
-        // Reset form for create mode
+        // Reset form for create mode. isPriority is skipped because
+        // the toggle is edit-mode only; init below covers re-opens.
         setName('');
         setNickname('');
         setJerseyNumber('');
@@ -52,6 +54,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         setNickname(player.nickname || '');
         setJerseyNumber(player.jerseyNumber || '');
         setNotes(player.notes || '');
+        setIsPriority(player.isPriority ?? false);
       }
     }
   }, [mode, player, isOpen]);
@@ -96,6 +99,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         if (trimmedNickname !== (player.nickname || '')) updates.nickname = trimmedNickname;
         if (jerseyNumber !== (player.jerseyNumber || '')) updates.jerseyNumber = jerseyNumber;
         if (notes !== (player.notes || '')) updates.notes = notes;
+        if (isPriority !== (player.isPriority ?? false)) updates.isPriority = isPriority;
 
         if (Object.keys(updates).length > 0) {
           await onUpdatePlayer(player.id, updates);
@@ -206,6 +210,40 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
+
+              {/* Edit-mode only — the create-flow signature doesn't
+                  carry this field, so coaches mark priority on an
+                  existing player via a follow-up edit. */}
+              {mode === 'edit' && (
+                <div>
+                  <label
+                    htmlFor="player-details-modal-priority-input"
+                    className="flex items-center gap-2 text-sm font-medium text-slate-300 cursor-pointer"
+                  >
+                    <input
+                      id="player-details-modal-priority-input"
+                      type="checkbox"
+                      checked={isPriority}
+                      onChange={(e) => setIsPriority(e.target.checked)}
+                      aria-describedby="player-details-modal-priority-hint"
+                      className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
+                      data-testid="player-details-modal-priority-toggle"
+                    />
+                    <span>
+                      {t('playerDetailsModal.priorityLabel', 'Priority player ★')}
+                    </span>
+                  </label>
+                  <p
+                    id="player-details-modal-priority-hint"
+                    className="mt-1 ml-6 text-xs text-slate-400"
+                  >
+                    {t(
+                      'playerDetailsModal.priorityHint',
+                      'Marks this player as a priority on the roster.',
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

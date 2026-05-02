@@ -329,7 +329,9 @@ describe('Translation File Validation', () => {
       // Planner Phase 5b: +5 planningChipGrid keys for the per-game
       //   chip-grid view (title, empty, clearHighlight, chipAria,
       //   gameMissing).
-      expect(enKeys.length).toBe(2570);
+      // Planner Phase 5e: +2 playerDetailsModal keys (priorityLabel,
+      //   priorityHint) for the roster-level priority toggle.
+      expect(enKeys.length).toBe(2572);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -353,7 +355,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 4c: +8 planningUndoBanner keys (see EN block).
       // Planner Phase 5a: +4 planningMinutesDashboard keys.
       // Planner Phase 5b: +5 planningChipGrid keys.
-      expect(fiKeys.length).toBe(2570);
+      // Planner Phase 5e: +2 playerDetailsModal priority keys.
+      expect(fiKeys.length).toBe(2572);
     });
   });
 });

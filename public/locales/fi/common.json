@@ -984,6 +984,8 @@
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Valinnaiset muistiinpanot pelaajasta",
     "goalieLabel": "Maalivahti",
+    "priorityLabel": "Tärkeä pelaaja ★",
+    "priorityHint": "Merkitsee pelaajan tärkeäksi roolinvalinnoissa.",
     "duplicateNameError": "Samanniminen pelaaja on jo olemassa"
   },
   "personnelDetailsModal": {

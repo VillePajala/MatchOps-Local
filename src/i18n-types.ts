@@ -1575,6 +1575,8 @@ export type TranslationKey =
   | 'playerDetailsModal.nicknamePlaceholder'
   | 'playerDetailsModal.notesLabel'
   | 'playerDetailsModal.notesPlaceholder'
+  | 'playerDetailsModal.priorityHint'
+  | 'playerDetailsModal.priorityLabel'
   | 'playerStats.addExternalStats'
   | 'playerStats.adjustmentsInfo'
   | 'playerStats.allPeriods'
