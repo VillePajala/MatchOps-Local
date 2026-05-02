@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineXMark } from 'react-icons/hi2';
 import type { Player } from '@/types';
@@ -38,15 +38,22 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
 
   // Multi-select highlight set. Click a chip → toggle that player.
   // Clear button resets the whole set. Empty set = no focus mode.
+  // PlanningEditor remounts this component on preset change via a
+  // key prop, so the set never holds players whose roles have
+  // disappeared from the formation.
   const [highlighted, setHighlighted] = useState<Set<PlayerId>>(new Set());
-  const togglePlayer = (id: PlayerId) =>
+  // Stable callback identity so each chip's onClick prop doesn't
+  // change every render — keeps React's chip re-render scope tight
+  // when the parent re-renders for unrelated reasons.
+  const togglePlayer = useCallback((id: PlayerId) => {
     setHighlighted((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  const clearHighlight = () => setHighlighted(new Set());
+  }, []);
+  const clearHighlight = useCallback(() => setHighlighted(new Set()), []);
 
   const anyActive = highlighted.size > 0;
 

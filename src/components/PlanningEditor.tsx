@@ -1040,6 +1040,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       />
 
       <PlanningChipGrid
+        // Force a remount on preset change so the chip grid's local
+        // highlight set drops players whose roles no longer exist in
+        // the new formation. Without this, "Clear highlight (1)"
+        // would surface for an invisible selection.
+        key={presetId}
         draft={draft}
         preset={preset}
         gameIds={gameIds}

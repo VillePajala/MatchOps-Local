@@ -13,6 +13,9 @@ const buildPreset = (): FormationPreset =>
     id: '5v5-1-2-1',
     name: '1-2-1',
     labelKey: 'p.5v5_1_2_1',
+    // FieldSize is a discriminated-union literal type; the surrounding
+    // outer `as unknown as FormationPreset` already narrows the whole
+    // object, but TS still flags this property in isolation.
     fieldSize: '5v5' as never,
     playerCount: 5,
     positions: [],

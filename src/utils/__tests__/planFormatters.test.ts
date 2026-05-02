@@ -41,25 +41,26 @@ describe('gameDurationSec', () => {
   });
 
   it('clamps negative results to 0 (not currently reachable but defensive)', () => {
-    // Math.max guard. Negative periods or minutes shouldn't ship from
-    // any sane code path, but the clamp keeps callers safe.
-    expect(
-      gameDurationSec(
-        game({ numberOfPeriods: -1, periodDurationMinutes: 10 }),
-      ),
-    ).toBe(0);
+    // Math.max guard. AppState's numberOfPeriods is typed `1 | 2`, so
+    // a negative value can't ship from any sane code path; cast
+    // around the type to exercise the runtime clamp explicitly.
+    const corrupt = {
+      numberOfPeriods: -1,
+      periodDurationMinutes: 10,
+    } as unknown as AppState;
+    expect(gameDurationSec(corrupt)).toBe(0);
   });
 
   it('returns 0 when either field is 0', () => {
-    expect(
-      gameDurationSec(
-        game({ numberOfPeriods: 0, periodDurationMinutes: 10 }),
-      ),
-    ).toBe(0);
-    expect(
-      gameDurationSec(
-        game({ numberOfPeriods: 2, periodDurationMinutes: 0 }),
-      ),
-    ).toBe(0);
+    const zeroPeriods = {
+      numberOfPeriods: 0,
+      periodDurationMinutes: 10,
+    } as unknown as AppState;
+    const zeroMinutes = {
+      numberOfPeriods: 2,
+      periodDurationMinutes: 0,
+    } as unknown as AppState;
+    expect(gameDurationSec(zeroPeriods)).toBe(0);
+    expect(gameDurationSec(zeroMinutes)).toBe(0);
   });
 });
