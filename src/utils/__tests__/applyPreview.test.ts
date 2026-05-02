@@ -398,6 +398,28 @@ describe('computeApplyDiff', () => {
     ]);
   });
 
+  it('empty draft.startingXI surfaces every on-field player as removed', () => {
+    // The all-clear draft is a real path (user clears the lineup before
+    // saving a "blank slate" plan). Without this test the implicit
+    // "every onFieldPlayerIds entry → lineupRemoved" contract has no
+    // direct coverage — only via the combined add/remove/move test.
+    const game = gameWith({ GK: 'p1', LB: 'p2', RB: 'p3' });
+    const draft: PlanDraft = {
+      startingXI: {},
+      bench: ['p1', 'p2', 'p3'],
+      scheduledSubs: [],
+    };
+    const diff = computeApplyDiff('g1', game, draft, preset5v5);
+    expect(diff.lineupRemoved).toEqual([
+      { playerId: 'p1', role: 'GK' },
+      { playerId: 'p2', role: 'LB' },
+      { playerId: 'p3', role: 'RB' },
+    ]);
+    expect(diff.lineupAdded).toEqual([]);
+    expect(diff.lineupMoved).toEqual([]);
+    expect(diff.isEmpty).toBe(false);
+  });
+
   it('countDiffChanges sums every category', () => {
     const diff: ApplyDiff = {
       gameId: 'g1',

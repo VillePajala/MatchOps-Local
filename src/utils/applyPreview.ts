@@ -86,7 +86,9 @@ export interface ApplyDiff {
   subsModified: SubModifyChange[];
 }
 
-const subDiffFromDraft = (s: DraftScheduledSub): SubDiffEntry => ({
+const subDiffFromDraft = (
+  s: DraftScheduledSub,
+): Omit<SubDiffEntry, 'outPlayer'> => ({
   id: s.id,
   timeSeconds: s.timeSeconds,
   positionRole: s.positionRole,
@@ -174,6 +176,10 @@ export function computeApplyDiff(
 
   // Players in the draft: either added (no recognized current role —
   // either not on field, or off-formation) or moved (different role).
+  // TODO(PR 8b): The off-formation→role case currently surfaces as
+  // `lineupAdded`. Preview UI should disambiguate: "Assigned to LB
+  // (was off-formation)" rather than "Added at LB" when the player is
+  // already on the field with drifted coords.
   for (const [role, pid] of draftByRole) {
     const currentRole = currentRolesByPlayer.get(pid);
     if (!currentRole) {
