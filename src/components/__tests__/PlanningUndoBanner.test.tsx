@@ -43,14 +43,26 @@ describe('PlanningUndoBanner', () => {
   it('renders the title with the game count and an enabled Undo button', () => {
     renderBanner({ gameCount: 5 });
     expect(screen.getByTestId('planning-undo-banner')).toBeInTheDocument();
-    // Plural pair isn't loaded in the test i18n stub, so the default
-    // string ("Plan applied to {{count}} games.") fires.
+    // Plural pair isn't loaded in the test i18n stub, so the inline
+    // ternary in the t() default fires. count !== 1 → plural form.
     expect(
-      screen.getByText(/Plan applied to 5 game|Suunnitelma sovellettu 5/i),
+      screen.getByText(/Plan applied to 5 games\.|Suunnitelma sovellettu 5/i),
     ).toBeInTheDocument();
     expect(
       screen.getByTestId('planning-undo-banner-undo'),
     ).not.toBeDisabled();
+  });
+
+  it('renders singular title copy when gameCount === 1', () => {
+    // Regression for the all-plural fallback bug: when the namespace
+    // fails to load, the default string must still respect grammar.
+    renderBanner({ gameCount: 1 });
+    expect(
+      screen.getByText(/Plan applied to 1 game\.|Suunnitelma sovellettu 1/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Plan applied to 1 games/i),
+    ).not.toBeInTheDocument();
   });
 
   it('Undo button calls onUndo', () => {
@@ -112,12 +124,11 @@ describe('PlanningUndoBanner', () => {
   });
 
   it('does not re-fire onExpire when an unstable onExpire reference re-renders the banner', () => {
-    // Regression for the race Claude flagged on PR #396: handlers
-    // declared inline on PlanningModal recreate on every render, so
-    // setIsUndoing(true) → re-render → effect cleanup + restart →
-    // expiredRef.current = false → next tick fires onExpire again.
-    // Fix is the onExpireRef wrapper inside the banner that decouples
-    // the timer effect from the onExpire callback identity.
+    // Regression for the race where parent handlers declared inline
+    // recreate on every render: setIsUndoing(true) → re-render →
+    // effect cleanup + restart → expiredRef.current = false → next
+    // tick fires onExpire again. The onExpireRef wrapper inside the
+    // banner decouples the timer effect from the onExpire identity.
     const onExpire = jest.fn();
     const appliedAt = Date.now();
     const { rerender } = render(

@@ -1729,7 +1729,7 @@
     "undoing": "Peruutetaan…",
     "dismiss": "Sulje",
     "undoFailed": "Soveltamista ei voitu peruuttaa. Yritä uudelleen.",
-    "undoFailedPartial": "Peruutettu {{done}}/{{total}} peliä. Yritä uudelleen jatkaaksesi."
+    "undoFailedPartial": "Peruutettu {{done}}/{{total}} peliä. Napsauta Peruuta jatkaaksesi."
   },
   "planningApplyPreview": {
     "title": "Tarkista muutokset ennen soveltamista",

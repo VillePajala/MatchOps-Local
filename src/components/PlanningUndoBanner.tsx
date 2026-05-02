@@ -54,8 +54,7 @@ const PlanningUndoBanner: React.FC<PlanningUndoBannerProps> = ({
   // to depend on it. Without this, the effect cleanup + restart fires
   // on every parent re-render (e.g. setIsUndoing(true) flips the
   // parent), which resets `expiredRef` to false and lets the timer
-  // re-fire onExpire after the user already clicked Undo. The race
-  // is narrow but real (Claude PR #396 review).
+  // re-fire onExpire after the user already clicked Undo.
   const onExpireRef = useRef(onExpire);
   useEffect(() => {
     onExpireRef.current = onExpire;
@@ -94,7 +93,14 @@ const PlanningUndoBanner: React.FC<PlanningUndoBannerProps> = ({
           <p className="text-sm font-medium text-emerald-100">
             {t(
               'planningUndoBanner.title',
-              'Plan applied to {{count}} games.',
+              // The fallback fires when the namespace fails to load
+              // (test stubs, network error). i18next picks the right
+              // resource key (_one/_other) when available, but the
+              // literal default has to be grammatically correct on
+              // its own — hence the inline ternary.
+              gameCount === 1
+                ? 'Plan applied to {{count}} game.'
+                : 'Plan applied to {{count}} games.',
               { count: gameCount },
             )}
           </p>

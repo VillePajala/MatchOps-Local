@@ -1567,14 +1567,17 @@ describe('PlanningEditor', () => {
       expect(snapshot).toBeDefined();
       expect(snapshot.games).toHaveLength(1);
       expect(snapshot.games[0].gameId).toBe('g1');
-      expect(snapshot.games[0].before.playersOnField).toEqual(
+      // The snapshot preserves undefined fields verbatim (not
+      // normalized to []) so a legacy game whose scheduledSubs was
+      // never set restores losslessly.
+      expect(snapshot.games[0].before.playersOnField).toBe(
         game1.playersOnField,
       );
-      expect(snapshot.games[0].before.selectedPlayerIds).toEqual(
+      expect(snapshot.games[0].before.selectedPlayerIds).toBe(
         game1.selectedPlayerIds,
       );
-      expect(snapshot.games[0].before.scheduledSubs).toEqual(
-        game1.scheduledSubs ?? [],
+      expect(snapshot.games[0].before.scheduledSubs).toBe(
+        game1.scheduledSubs,
       );
       expect(typeof snapshot.appliedAt).toBe('number');
     });

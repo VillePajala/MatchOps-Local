@@ -13,11 +13,19 @@
 import type { Player } from '@/types';
 import type { AppState, ScheduledSub } from '@/types/game';
 
-/** The three fields handleApply mutates; restoring them undoes the apply. */
+/**
+ * The three fields handleApply mutates; restoring them undoes the
+ * apply. All fields are optional so a snapshot can preserve
+ * `undefined` from a legacy game that had never set them — this
+ * matters because some load paths (`gameData?.playersOnField ||
+ * initialState.playersOnField`) treat `[]` and `undefined`
+ * differently, and capturing `[]` would silently change behavior on
+ * undo.
+ */
 export interface ApplyableFields {
-  playersOnField: Player[];
-  selectedPlayerIds: string[];
-  scheduledSubs: ScheduledSub[];
+  playersOnField?: Player[];
+  selectedPlayerIds?: string[];
+  scheduledSubs?: ScheduledSub[];
 }
 
 export interface ApplySnapshotEntry {
@@ -33,14 +41,16 @@ export interface ApplySnapshot {
 }
 
 /**
- * Extracts the three undoable fields from a saved game. Defaults make
- * the returned object safe to pass straight to applyToGame even when
- * the source game omitted any of the optional arrays.
+ * Extracts the three undoable fields from a saved game without
+ * normalizing missing values — `undefined` is preserved so undo can
+ * be lossless. The forward apply path always writes concrete arrays
+ * (built by applyDraftToGame), so the snapshot only ever holds
+ * `undefined` for legacy games whose original state had it.
  */
 export const captureApplyableFields = (game: AppState): ApplyableFields => ({
-  playersOnField: game.playersOnField ?? [],
-  selectedPlayerIds: game.selectedPlayerIds ?? [],
-  scheduledSubs: game.scheduledSubs ?? [],
+  playersOnField: game.playersOnField,
+  selectedPlayerIds: game.selectedPlayerIds,
+  scheduledSubs: game.scheduledSubs,
 });
 
 /** Default undo window for the post-apply banner (ms). */

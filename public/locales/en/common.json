@@ -1729,7 +1729,7 @@
     "undoing": "Undoing…",
     "dismiss": "Dismiss",
     "undoFailed": "Could not undo the apply. Please try again.",
-    "undoFailedPartial": "Restored {{done}} of {{total}} games. Retry to continue."
+    "undoFailedPartial": "Restored {{done}} of {{total}} games. Click Undo to finish."
   },
   "planningApplyPreview": {
     "title": "Review changes before applying",
