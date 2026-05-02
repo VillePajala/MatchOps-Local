@@ -334,7 +334,11 @@ describe('Translation File Validation', () => {
       // Planner Phase 5f: +2 priority-aware aria-label keys for the
       //   ★ rendering on chips (planningChipGrid.chipAriaPriority)
       //   and dashboard pills (planningMinutesDashboard.entryAriaPriority).
-      expect(enKeys.length).toBe(2574);
+      // Planner Phase 5g: +4 import handoff keys (importNextStep,
+      //   useImportedPlan, importedPlanDefaultName,
+      //   importNoGamesError) for the standalone JSON →
+      //   PlanningSession importer flow.
+      expect(enKeys.length).toBe(2578);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -360,7 +364,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 5b: +5 planningChipGrid keys.
       // Planner Phase 5e: +2 playerDetailsModal priority keys.
       // Planner Phase 5f: +2 priority-aware aria keys (chip + pill).
-      expect(fiKeys.length).toBe(2574);
+      // Planner Phase 5g: +4 import handoff keys (see EN block).
+      expect(fiKeys.length).toBe(2578);
     });
   });
 });

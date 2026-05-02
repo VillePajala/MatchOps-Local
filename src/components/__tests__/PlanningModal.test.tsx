@@ -236,6 +236,45 @@ describe('PlanningModal', () => {
     expect(screen.getByText(/8v8-2-1-2-1-1/)).toBeInTheDocument();
   });
 
+  it('"Use this plan" hands off to the picker and clears the import banner', async () => {
+    // Phase 5g — import → picker → editor → save creates a
+    // PlanningSession via the existing handleSavePlan flow. This test
+    // pins the picker handoff: button click navigates to the picker,
+    // import success card is gone, and the picker is rendering.
+    renderModal({
+      savedGames: {
+        g1: asSavedGame({
+          teamId: 'team_a',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+      },
+    });
+    const file = fileFromText(
+      'plan.json',
+      JSON.stringify(validEnvelope()),
+    );
+    const input = screen.getByTestId(
+      'planning-modal-file-input',
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+      ).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId('planning-modal-import-use'));
+    // Picker is up.
+    expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+    // Import success card is gone.
+    expect(
+      screen.queryByText(/Plan imported|Suunnitelma tuotu/i),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows an error message and field path on invalid envelope', async () => {
     renderModal();
     const bad = JSON.stringify({ ...validEnvelope(), formatVersion: 2 });
