@@ -1721,6 +1721,16 @@
     "selectedCount": "{{count}} valittu",
     "continueButton": "Jatka"
   },
+  "planningUndoBanner": {
+    "title_one": "Suunnitelma sovellettu {{count}} peliin.",
+    "title_other": "Suunnitelma sovellettu {{count}} peliin.",
+    "countdown": "Peruutus käytettävissä {{seconds}} s.",
+    "undo": "Peruuta",
+    "undoing": "Peruutetaan…",
+    "dismiss": "Sulje",
+    "undoFailed": "Soveltamista ei voitu peruuttaa. Yritä uudelleen.",
+    "undoFailedPartial": "Peruutettu {{done}}/{{total}} peliä. Napsauta Peruuta jatkaaksesi."
+  },
   "planningApplyPreview": {
     "title": "Tarkista muutokset ennen soveltamista",
     "gameSelectedCount_one": "{{checked}}/1 peli valittu",

@@ -1560,6 +1560,74 @@ describe('PlanningEditor', () => {
       });
       expect(applyToGame).toHaveBeenCalledTimes(1);
       expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+      // onApplied receives a snapshot containing only the checked
+      // game (g1) with its pre-apply fields — drives the undo banner.
+      expect(onApplied).toHaveBeenCalledTimes(1);
+      const snapshot = onApplied.mock.calls[0][0];
+      expect(snapshot).toBeDefined();
+      expect(snapshot.games).toHaveLength(1);
+      expect(snapshot.games[0].gameId).toBe('g1');
+      // The snapshot preserves undefined fields verbatim (not
+      // normalized to []) so a legacy game whose scheduledSubs was
+      // never set restores losslessly. Arrays are shallow-cloned at
+      // capture time so future in-place mutations on the live game
+      // can't retroactively corrupt the snapshot — assert equal
+      // contents but NOT the same reference.
+      expect(snapshot.games[0].before.playersOnField).toEqual(
+        game1.playersOnField,
+      );
+      expect(snapshot.games[0].before.playersOnField).not.toBe(
+        game1.playersOnField,
+      );
+      expect(snapshot.games[0].before.selectedPlayerIds).toEqual(
+        game1.selectedPlayerIds,
+      );
+      expect(snapshot.games[0].before.selectedPlayerIds).not.toBe(
+        game1.selectedPlayerIds,
+      );
+      // scheduledSubs was undefined on game1 — undefined stays
+      // undefined (not promoted to []) so undo is lossless.
+      expect(snapshot.games[0].before.scheduledSubs).toBeUndefined();
+      expect(typeof snapshot.appliedAt).toBe('number');
+    });
+
+    it('warning path (missing-only) does NOT pass a snapshot to onApplied', async () => {
+      // The warning path returns early without calling onApplied at
+      // all, but defensive: even if a future change calls onApplied
+      // from the warning branch, no snapshot should ride along since
+      // nothing was actually mutated.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['gx'],
+        savedGames: {} as SavedGamesCollection, // missing → warning
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      // applyToGame never fired (gx wasn't in savedGames), the
+      // warning banner shows, and onApplied is NOT invoked from the
+      // warning path itself — the user has to click Done to exit.
+      expect(applyToGame).not.toHaveBeenCalled();
+      expect(onApplied).not.toHaveBeenCalled();
+      // Click Done: must call onApplied() with NO snapshot arg. This
+      // is the regression guard for the onClick={() => onApplied()}
+      // wrapping — passing onApplied directly would forward the
+      // SyntheticEvent as a snapshot.
+      fireEvent.click(screen.getByTestId('planning-editor-warning-done'));
+      expect(onApplied).toHaveBeenCalledTimes(1);
+      expect(onApplied).toHaveBeenCalledWith();
+      // First positional arg is undefined (no snapshot passed).
+      expect(onApplied.mock.calls[0][0]).toBeUndefined();
     });
 
     it('preview Cancel returns to edit mode without applying', () => {

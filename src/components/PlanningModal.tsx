@@ -26,6 +26,9 @@ import PlanningGamePicker, {
   type PlanningGamePickerGame,
 } from './PlanningGamePicker';
 import PlanningEditor from './PlanningEditor';
+import PlanningUndoBanner from './PlanningUndoBanner';
+import type { ApplySnapshot } from '@/utils/applySnapshot';
+import logger from '@/utils/logger';
 import {
   useDeletePlanningSessionMutation,
   usePlanningSessionsQuery,
@@ -34,7 +37,7 @@ import {
 } from '@/hooks/usePlanningSessionQueries';
 import type { PlanDraft } from '@/utils/planSwapEngine';
 
-type PlanningPage = 'list' | 'picker' | 'editor';
+type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
 
 // Guard against missing / malformed updatedAt; `new Date(<bad>)` would render as "Invalid Date".
 const formatSessionDate = (
@@ -115,6 +118,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [listErrorMessage, setListErrorMessage] = useState<string | null>(
     null,
   );
+  // Post-apply undo state. Snapshot held for the UNDO_WINDOW_MS span;
+  // banner is rendered when page === 'undoBanner'. Cleared on undo
+  // success, dismiss, expire, or modal close.
+  const [undoSnapshot, setUndoSnapshot] = useState<ApplySnapshot | null>(null);
+  const [isUndoing, setIsUndoing] = useState(false);
+  // Mirror of isUndoing kept in a ref for synchronous reads from the
+  // banner's 1s timer. The setState happens before applyToGame is
+  // awaited, but the closure-captured `isUndoing` in handleUndoExpire
+  // wouldn't observe the update until after the paint commit — a
+  // narrow window where the timer firing in between would close the
+  // modal mid-restore. The ref closes that window.
+  const isUndoingRef = useRef(false);
+  const [undoError, setUndoError] = useState<string | null>(null);
+  // Index of the next snapshot entry to restore. Advances on each
+  // successful applyToGame so a mid-loop failure doesn't redo the
+  // already-restored games on retry.
+  const [undoCursor, setUndoCursor] = useState(0);
 
   // Saved sessions are scoped to the active team. The query is gated on
   // (isOpen && page === 'list') so it doesn't fetch while the modal is
@@ -165,6 +185,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setListErrorMessage(null);
     setRenamingSessionId(null);
     setRenameDraft('');
+    setUndoSnapshot(null);
+    setUndoError(null);
+    setIsUndoing(false);
+    isUndoingRef.current = false;
+    setUndoCursor(0);
   };
 
   const handleClose = () => {
@@ -420,14 +445,92 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage(editorEntryPage);
   };
 
-  const handleEditorApplied = () => {
+  const handleEditorApplied = (snapshot?: ApplySnapshot) => {
     // The modal stays mounted across opens (`isOpen={false}` early-returns
     // null but doesn't unmount), so explicit resets are required to
     // prevent stale banners / editingSession from leaking into the next
     // open. Shared with handleClose via resetEditorState.
+    if (snapshot && snapshot.games.length > 0) {
+      // Full-success apply with at least one game mutated — switch the
+      // modal into undo-banner mode instead of closing. Calling
+      // resetEditorState first keeps this path in sync with future
+      // additions there; React batches the override below into the
+      // same commit so the user never sees a flash of empty state.
+      resetEditorState();
+      setUndoSnapshot(snapshot);
+      setPage('undoBanner');
+      return;
+    }
+    // No snapshot (warning path that still closed the editor — unlikely
+    // since the warning path returns early without onApplied — but
+    // defensive). Fall back to the original close behavior.
     resetEditorState();
     setPage('list');
     onClose();
+  };
+
+  const handleUndoDismiss = () => {
+    resetEditorState();
+    setPage('list');
+    onClose();
+  };
+
+  const handleUndoExpire = () => {
+    // Don't tear down the modal while an undo is in flight; the
+    // applyToGame loop will resolve and either close cleanly on
+    // success or surface undoError on the still-mounted banner for
+    // retry. The ref read closes a sub-paint stale-closure window
+    // that the state-only check would otherwise miss.
+    if (isUndoingRef.current) return;
+    // Same effect as Dismiss: close the modal and forget the snapshot.
+    // Kept as a separate name so the test suite can assert which path
+    // fired (timeout vs. user click).
+    resetEditorState();
+    setPage('list');
+    onClose();
+  };
+
+  const handleUndoConfirm = async () => {
+    if (!undoSnapshot || isUndoing) return;
+    isUndoingRef.current = true;
+    setIsUndoing(true);
+    setUndoError(null);
+    // Resume from undoCursor so a retry after a mid-loop failure
+    // doesn't re-restore the games that already succeeded — those
+    // are already at their pre-apply state.
+    let cursor = undoCursor;
+    try {
+      while (cursor < undoSnapshot.games.length) {
+        const entry = undoSnapshot.games[cursor];
+        await applyToGame(entry.gameId, entry.before);
+        cursor++;
+      }
+      resetEditorState();
+      setPage('list');
+      onClose();
+    } catch (err) {
+      logger.error('[PlanningModal] Undo failed', err);
+      setUndoCursor(cursor);
+      // Different copy when at least one game has been restored
+      // already so the user knows where the retry will pick up,
+      // versus the all-or-nothing first-game failure.
+      const messageKey =
+        cursor > 0
+          ? 'planningUndoBanner.undoFailedPartial'
+          : 'planningUndoBanner.undoFailed';
+      const messageDefault =
+        cursor > 0
+          ? 'Restored {{done}} of {{total}} games. Click Undo to finish.'
+          : 'Could not undo the apply. Please try again.';
+      setUndoError(
+        t(messageKey, messageDefault, {
+          done: cursor,
+          total: undoSnapshot.games.length,
+        }),
+      );
+      setIsUndoing(false);
+      isUndoingRef.current = false;
+    }
   };
 
   const handleImportClick = () => {
@@ -935,6 +1038,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                 />
               )}
 
+              {page === 'undoBanner' && undoSnapshot && (
+                <PlanningUndoBanner
+                  gameCount={undoSnapshot.games.length}
+                  appliedAt={undoSnapshot.appliedAt}
+                  isUndoing={isUndoing}
+                  undoError={undoError}
+                  onUndo={() => void handleUndoConfirm()}
+                  onDismiss={handleUndoDismiss}
+                  onExpire={handleUndoExpire}
+                />
+              )}
+
               {page === 'editor' && (
                 <PlanningEditor
                   gameIds={editorGameIds}
@@ -970,7 +1085,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           </div>
 
           <ModalFooter>
-            <button type="button" onClick={handleClose} className={primaryButtonStyle}>
+            <button
+              type="button"
+              onClick={handleClose}
+              className={primaryButtonStyle}
+              data-testid="planning-modal-done"
+            >
               {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>
