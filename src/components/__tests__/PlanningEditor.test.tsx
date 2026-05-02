@@ -18,6 +18,18 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
+// Mock kept module-loaded so individual tests can override
+// computeApplyDiff (used by the error-path test below). The default
+// implementation forwards to the real export.
+jest.mock('@/utils/applyPreview', () => {
+  const actual = jest.requireActual('@/utils/applyPreview');
+  return {
+    __esModule: true,
+    ...actual,
+    computeApplyDiff: jest.fn(actual.computeApplyDiff),
+  };
+});
+
 // 8v8-3-3-1 is the editor's heuristic default for an 8-player lineup
 // (the first 8v8 preset by id), so the test fixture and the editor
 // agree on which preset to render.
@@ -1617,6 +1629,41 @@ describe('PlanningEditor', () => {
           screen.getByText(/1 selected game.*were skipped|1 .*ei.*ohitettiin/i),
         ).toBeInTheDocument();
       });
+    });
+
+    it('handleStartApply surfaces applyError when computeApplyDiff throws', async () => {
+      // computeApplyDiff is pure today but a malformed game state (or a
+      // future regression) could make it throw. The catch in
+      // handleStartApply prevents the click from being silently swallowed.
+      const { computeApplyDiff } = jest.requireMock(
+        '@/utils/applyPreview',
+      ) as { computeApplyDiff: jest.Mock };
+      computeApplyDiff.mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
+      renderEditor({
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      // The error banner is the same applyError surfaced by the
+      // direct apply path: "Could not apply plan. Please try again."
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Could not apply plan|Suunnitelman.*ei voitu/i),
+        ).toBeInTheDocument();
+      });
+      // Restore default behavior so later tests aren't affected.
+      computeApplyDiff.mockImplementation(
+        jest.requireActual('@/utils/applyPreview').computeApplyDiff,
+      );
     });
 
     it('Apply button is disabled while the preview is open', () => {

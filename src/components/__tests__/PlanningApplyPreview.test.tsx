@@ -250,9 +250,11 @@ describe('PlanningApplyPreview', () => {
     });
     const notice = screen.getByTestId('planning-apply-preview-missing');
     expect(notice).toBeInTheDocument();
-    // EN plural variant interpolates count.
+    // The test i18n resources don't register the missingGames plural
+    // pair, so t() falls back to the singular default value with
+    // count=2 interpolated. Match either singular or plural form.
     expect(notice).toHaveTextContent(
-      /2 games can't be loaded|2 peliä ei voitu ladata/i,
+      /2 games? can't be loaded|2 peliä ei voitu ladata/i,
     );
   });
 

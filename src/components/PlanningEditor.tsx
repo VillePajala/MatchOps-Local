@@ -188,6 +188,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   // inline notice and the post-apply warning still fires when the
   // user confirms.
   const [missingGameIds, setMissingGameIds] = useState<string[]>([]);
+  // Increments on every preview open so the child can be keyed off it.
+  // Forces a fresh mount per session even if the rendering structure
+  // around PlanningApplyPreview is later refactored away from the
+  // null-conditional.
+  const [previewOpenCount, setPreviewOpenCount] = useState(0);
   const previewRef = useRef<HTMLDivElement>(null);
   // The preview is appended below the editor's content; on tall plans
   // the user would otherwise have to scroll to see the confirmation
@@ -579,6 +584,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       }
       setPreviewDiffs(diffs);
       setMissingGameIds(missing);
+      setPreviewOpenCount((n) => n + 1);
     } catch (err) {
       // computeApplyDiff is pure but malformed game state could still
       // throw; the sync handler would otherwise swallow the click
@@ -1143,7 +1149,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           change and opt individual games out before committing. */}
       {previewDiffs !== null && (
         <div ref={previewRef}>
+          {/* `key` derived from previewOpenCount forces a fresh mount
+              every time the preview opens, so the component's
+              `useState(initialChecked)` cannot leak a stale checked
+              set from a prior session — even if a future maintainer
+              removes the surrounding null-conditional. */}
           <PlanningApplyPreview
+            key={previewOpenCount}
             diffs={previewDiffs}
             savedGames={savedGames}
             roster={roster}
