@@ -312,7 +312,10 @@ describe('Translation File Validation', () => {
       //   renameFailed, duplicateAriaLabel, duplicateNameSuffix,
       //   duplicateFailed, activateAriaLabel, deactivateAriaLabel,
       //   activeToggleFailed.
-      expect(enKeys.length).toBe(2530);
+      // Planner Phase 4b (PR 8b): +18 planningApplyPreview keys for
+      //   the per-game diff preview component (title, change copy,
+      //   confirm/cancel labels, plural variants).
+      expect(enKeys.length).toBe(2548);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -332,7 +335,8 @@ describe('Translation File Validation', () => {
       // Planner Phase 3b: planningModal saved-sessions list +9.
       // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
       // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
-      expect(fiKeys.length).toBe(2530);
+      // Planner Phase 4b (PR 8b): +18 planningApplyPreview keys.
+      expect(fiKeys.length).toBe(2548);
     });
   });
 });

@@ -960,6 +960,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   onSavePlan={
                     currentTeamId ? handleSavePlan : undefined
                   }
+                  // PR 8b: gate Apply behind a per-game diff preview so
+                  // the coach can see (and selectively skip) what's
+                  // about to change.
+                  enableApplyPreview
                 />
               )}
             </div>

@@ -28,6 +28,8 @@ import {
 import logger from '@/utils/logger';
 import PlanningTimeline from './PlanningTimeline';
 import type { DraftScheduledSub } from '@/utils/planSwapEngine';
+import PlanningApplyPreview from './PlanningApplyPreview';
+import { computeApplyDiff, type ApplyDiff } from '@/utils/applyPreview';
 
 export interface PlanningEditorProps {
   /** Game ids picked in the previous page; the editor mutates each on Apply. */
@@ -76,6 +78,14 @@ export interface PlanningEditorProps {
     draft: PlanDraft;
     gameIds: string[];
   }) => Promise<void>;
+
+  /**
+   * When true (PlanningModal sets this in PR 8b), Apply opens a
+   * per-game diff preview the user must confirm before persistence.
+   * When false (default — preserves the existing test suite's flow
+   * and any caller that doesn't opt in), Apply runs immediately.
+   */
+  enableApplyPreview?: boolean;
 }
 
 // TODO(PR 5e+): include roster members not in selectedPlayerIds.
@@ -134,6 +144,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   initialName,
   editingSessionId,
   onSavePlan,
+  enableApplyPreview = false,
 }) => {
   const { t } = useTranslation();
   // Picker guarantees ≥1 game; firstGame is undefined-tolerant regardless.
@@ -171,6 +182,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applyWarning, setApplyWarning] = useState<string | null>(null);
+  // Apply preview (PR 8b). When non-null, the preview is shown and the
+  // pitch/Apply button are gated behind it. Null = direct edit mode.
+  const [previewDiffs, setPreviewDiffs] = useState<ApplyDiff[] | null>(null);
   // Save form state. Null = form hidden; otherwise the string is the
   // draft name the user is typing.
   const [savePlanName, setSavePlanName] = useState<string | null>(null);
@@ -525,7 +539,46 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     }
   };
 
-  const handleApply = async () => {
+  // Compute per-game diffs against the saved games and switch the
+  // editor into preview mode. The preview's Confirm runs handleApply
+  // with only the checked game ids; Cancel returns to edit mode.
+  // When enableApplyPreview is false, this falls through to the direct
+  // apply path (preserves the editor's pre-PR-8b behavior for callers
+  // that haven't opted in).
+  const handleStartApply = () => {
+    if (!enableApplyPreview) {
+      void handleApply();
+      return;
+    }
+    setApplyError(null);
+    setApplyWarning(null);
+    const diffs: ApplyDiff[] = gameIds.map((id) => {
+      const game = savedGames[id];
+      if (!game) {
+        // Surface the missing game as an empty diff with the gameId so
+        // the preview can hide it (the existing Apply path already
+        // handles missing games as warnings).
+        return {
+          gameId: id,
+          isEmpty: true,
+          lineupAdded: [],
+          lineupRemoved: [],
+          lineupMoved: [],
+          subsAdded: [],
+          subsRemoved: [],
+          subsModified: [],
+        };
+      }
+      return computeApplyDiff(id, game, draft, preset);
+    });
+    setPreviewDiffs(diffs);
+  };
+
+  const handleCancelPreview = () => {
+    setPreviewDiffs(null);
+  };
+
+  const handleApply = async (applyGameIds: string[] = gameIds) => {
     setIsApplying(true);
     setApplyError(null);
     setApplyWarning(null);
@@ -535,7 +588,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     let gamesNotFound = 0;
     let savedCount = 0;
     try {
-      for (const id of gameIds) {
+      for (const id of applyGameIds) {
         const game = savedGames[id];
         if (!game) {
           // Picked id no longer resolves (cloud sync, multi-tab race,
@@ -583,7 +636,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           t(
             'planningEditor.applySavedSummary',
             'Saved {{saved}} of {{total}} games.',
-            { saved: savedCount, total: gameIds.length },
+            { saved: savedCount, total: applyGameIds.length },
           ),
         ];
         if (gamesNotFound > 0) {
@@ -636,7 +689,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           ? t(
               'planningEditor.applyFailedPartial',
               'Saved {{saved}} of {{total}} games before the error. Please try again.',
-              { saved: savedCount, total: gameIds.length },
+              { saved: savedCount, total: applyGameIds.length },
             )
           : t('planningEditor.applyFailed', 'Apply failed; please try again.'),
       ];
@@ -679,6 +732,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       setApplyError(errorParts.join(' '));
     } finally {
       setIsApplying(false);
+      // Always clear the preview after the apply attempt, regardless of
+      // outcome — leaving it open would let the user re-confirm against
+      // already-applied state.
+      setPreviewDiffs(null);
     }
   };
 
@@ -1040,7 +1097,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         )}
         <button
           type="button"
-          onClick={handleApply}
+          onClick={handleStartApply}
           disabled={isApplying || gameIds.length === 0}
           data-testid="planning-editor-apply"
           className="inline-flex items-center gap-2 rounded-md bg-amber-500/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1053,6 +1110,23 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               })}
         </button>
       </div>
+
+      {/* Apply preview (PR 8b). When the user clicks Apply, the editor
+          computes per-game diffs and renders this preview so they can
+          review what will change and opt individual games out before
+          committing the persistence step. */}
+      {previewDiffs !== null && (
+        <PlanningApplyPreview
+          diffs={previewDiffs}
+          savedGames={savedGames}
+          roster={roster}
+          isApplying={isApplying}
+          onConfirm={(checkedGameIds) => {
+            void handleApply(checkedGameIds);
+          }}
+          onCancel={handleCancelPreview}
+        />
+      )}
     </div>
   );
 };

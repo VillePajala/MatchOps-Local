@@ -1480,4 +1480,94 @@ describe('PlanningEditor', () => {
       expect(call.draft.presetId).toBe('11v11-4-3-3');
     });
   });
+
+  // ── PR 8b: Apply preview gating ─────────────────────────────────────
+  describe('Apply preview (PR 8b)', () => {
+    it('with enableApplyPreview=false (default), Apply runs immediately', async () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      // Build a draft different from the saved game so apply has work
+      // to do; even so, no preview should appear because the flag is off.
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({ applyToGame, onApplied, roster, savedGames: { g1: game } });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      });
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+    });
+
+    it('with enableApplyPreview=true, Apply opens the preview instead', () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      // Force a non-matching draft so the preview has at least one card
+      // (otherwise the empty-state would render and confirm would be
+      // disabled — but the preview itself would still be present).
+      renderEditor({
+        applyToGame,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p1' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      expect(
+        screen.getByTestId('planning-apply-preview'),
+      ).toBeInTheDocument();
+      // Apply has NOT yet been called — the user must confirm.
+      expect(applyToGame).not.toHaveBeenCalled();
+    });
+
+    it('preview Confirm runs apply for only the checked games', async () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster);
+      const game2 = makeGameWithLineup(roster);
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        savedGames: { g1: game1, g2: game2 },
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' }, // not present in either game
+          bench: [],
+          scheduledSubs: [],
+        },
+        roster,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Uncheck g2 — only g1 will be applied.
+      fireEvent.click(screen.getByTestId('planning-apply-preview-toggle-g2'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+      expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+    });
+
+    it('preview Cancel returns to edit mode without applying', () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        applyToGame,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      fireEvent.click(screen.getByTestId('planning-apply-preview-cancel'));
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      expect(applyToGame).not.toHaveBeenCalled();
+    });
+  });
 });
