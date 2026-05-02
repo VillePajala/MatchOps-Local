@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
@@ -42,14 +42,19 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
     () => new Map(roster.map((p) => [p.id, p])),
     [roster],
   );
-  const playerLabel = (id: string): string => {
-    const p = playerMap.get(id);
-    // `||` (not `??`) so an empty-string nickname falls through to
-    // `name` rather than rendering an empty pill.
-    return p?.nickname || p?.name || id;
-  };
-  const isPriorityPlayer = (id: string): boolean =>
-    playerMap.get(id)?.isPriority === true;
+  const playerLabel = useCallback(
+    (id: string): string => {
+      const p = playerMap.get(id);
+      // `||` (not `??`) so an empty-string nickname falls through to
+      // `name` rather than rendering an empty pill.
+      return p?.nickname || p?.name || id;
+    },
+    [playerMap],
+  );
+  const isPriorityPlayer = useCallback(
+    (id: string): boolean => playerMap.get(id)?.isPriority === true,
+    [playerMap],
+  );
 
   const aggregate = useMemo(
     () => aggregatePlanMinutes(draft, gameIds, savedGames),
@@ -151,7 +156,11 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
               title={ariaLabel}
               className={`flex items-center justify-between rounded-md border px-2 py-1 ${bandClass[band]}`}
             >
-              <span className="flex items-center gap-1 truncate">
+              {/* min-w-0 lets the flex container shrink below its
+                  intrinsic content width so the inner truncate can
+                  fire — `truncate` (overflow-hidden + ellipsis) on
+                  the outer is dead code in flex without it. */}
+              <span className="flex min-w-0 items-center gap-1">
                 {isPriority && (
                   <span aria-hidden="true" className="text-amber-300">
                     ★

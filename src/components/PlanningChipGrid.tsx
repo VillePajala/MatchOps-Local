@@ -239,13 +239,10 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                             data-priority={isPriority ? 'true' : 'false'}
                             data-highlighted={isHighlighted ? 'true' : 'false'}
                             data-testid={`planning-chip-grid-chip-${gid}-${role.name}-${seg.playerId}`}
-                            className={`rounded-md border px-2 py-0.5 font-medium transition-colors ${chipClass}`}
+                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-medium transition-colors ${chipClass}`}
                           >
                             {isPriority && (
-                              <span
-                                aria-hidden="true"
-                                className="mr-0.5 text-amber-300"
-                              >
+                              <span aria-hidden="true" className="text-amber-300">
                                 ★
                               </span>
                             )}
