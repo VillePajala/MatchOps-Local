@@ -258,6 +258,29 @@ describe('PlanningApplyPreview', () => {
     );
   });
 
+  it('hides the noChanges empty-state when missing-games notice is showing', () => {
+    // Otherwise the user sees both "2 games can't be loaded" AND
+    // "every selected game already matches the plan" simultaneously,
+    // which contradict each other.
+    renderPreview({
+      missingGameIds: ['gx', 'gy'],
+      diffs: [
+        makeDiff({ gameId: 'g1', isEmpty: true }),
+        makeDiff({ gameId: 'g2', isEmpty: true }),
+      ],
+      savedGames: {
+        g1: baseGame(),
+        g2: baseGame(),
+      } as SavedGamesCollection,
+    });
+    expect(
+      screen.getByTestId('planning-apply-preview-missing'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('planning-apply-preview-empty'),
+    ).not.toBeInTheDocument();
+  });
+
   it('hides the missing-games notice when missingGameIds is empty', () => {
     renderPreview({
       diffs: [

@@ -1416,6 +1416,7 @@ export type TranslationKey =
   | 'planningApplyPreview.changeCount_one'
   | 'planningApplyPreview.changeCount_other'
   | 'planningApplyPreview.confirm'
+  | 'planningApplyPreview.confirmMissingOnly'
   | 'planningApplyPreview.confirm_one'
   | 'planningApplyPreview.confirm_other'
   | 'planningApplyPreview.gameMissing'

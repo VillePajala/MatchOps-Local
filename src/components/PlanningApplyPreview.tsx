@@ -209,9 +209,15 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
       });
     }
     const opp = game.opponentName || '';
-    const date = game.gameDate
-      ? new Date(game.gameDate).toLocaleDateString(i18n.language)
-      : '';
+    // Guard against malformed gameDate strings (e.g. legacy migration
+    // edge cases) so we don't render the literal "Invalid Date".
+    let date = '';
+    if (game.gameDate) {
+      const parsed = new Date(game.gameDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        date = parsed.toLocaleDateString(i18n.language);
+      }
+    }
     if (opp && date) return `${opp} · ${date}`;
     return opp || date || gameId;
   };
@@ -231,7 +237,10 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
           )}
         </h3>
         {/* Live region scoped to the dynamic count text — wider scope
-            would announce every checkbox toggle and card reflow. */}
+            would announce every checkbox toggle and card reflow.
+            Note: gameSelectedCount_one hardcodes "1" rather than
+            interpolating {{count}}, so when count===1 the param is
+            unused; the i18next plural rule still selects on it. */}
         <span className="text-xs text-slate-400" aria-live="polite">
           {t(
             'planningApplyPreview.gameSelectedCount',
@@ -261,7 +270,10 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
         </div>
       )}
 
-      {visibleDiffs.length === 0 ? (
+      {/* "No changes to apply" only makes sense when nothing is being
+          skipped either — otherwise it contradicts the missing notice
+          ("nothing to apply" while also "2 games can't be loaded"). */}
+      {visibleDiffs.length === 0 && missingGameIds.length === 0 ? (
         <p
           className="text-sm text-slate-300 py-2"
           data-testid="planning-apply-preview-empty"
@@ -407,11 +419,20 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
         >
           {isApplying
             ? t('planningEditor.applying', 'Applying…')
-            : t(
-                'planningApplyPreview.confirm',
-                'Apply to {{count}} games',
-                { count: checkedCount },
-              )}
+            : checkedCount === 0 && missingGameIds.length > 0
+              ? // All games are missing — Confirm is enabled so the
+                // post-apply applyWarnMissing banner can fire, but
+                // "Apply to 0 games" would be misleading. Use a
+                // neutral "Continue" label instead.
+                t('planningApplyPreview.confirmMissingOnly', 'Continue')
+              : // FI's confirm_one and confirm_other are intentionally
+                // identical — the elative case "{{count}} peliin"
+                // covers both singular and plural in this construction.
+                t(
+                  'planningApplyPreview.confirm',
+                  'Apply to {{count}} games',
+                  { count: checkedCount },
+                )}
         </button>
       </div>
     </div>

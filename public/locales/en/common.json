@@ -1743,6 +1743,7 @@
     "missingGames_other": "{{count}} games can't be loaded and will be skipped.",
     "confirm_one": "Apply to {{count}} game",
     "confirm_other": "Apply to {{count}} games",
+    "confirmMissingOnly": "Continue",
     "gameMissing": "Game ({{id}})"
   },
   "planningEditor": {

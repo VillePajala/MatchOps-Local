@@ -1657,16 +1657,26 @@ describe('PlanningEditor', () => {
       expect(
         screen.getByTestId('planning-apply-preview-missing'),
       ).toBeInTheDocument();
-      // No game cards (all empty/missing); empty-state copy renders.
+      // No game cards. The "noChanges" empty-state must NOT render —
+      // it would contradict the missing-games notice ("nothing to
+      // apply" alongside "2 games can't be loaded").
       expect(
-        screen.getByTestId('planning-apply-preview-empty'),
-      ).toBeInTheDocument();
+        screen.queryByTestId('planning-apply-preview-empty'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('planning-apply-preview-card-g1'),
+      ).not.toBeInTheDocument();
       const confirm = screen.getByTestId(
         'planning-apply-preview-confirm',
       ) as HTMLButtonElement;
       // Critical: Confirm must be enabled so the user can trigger the
       // post-apply warning instead of being trapped at Cancel.
       expect(confirm).not.toBeDisabled();
+      // Label must not say "Apply to 0 games" — that's misleading
+      // when the user has nothing to actually apply. Use the
+      // neutral "Continue" / "Jatka" copy instead.
+      expect(confirm).toHaveTextContent(/Continue|Jatka/i);
+      expect(confirm).not.toHaveTextContent(/Apply to 0|Sovella 0/i);
       await act(async () => {
         fireEvent.click(confirm);
       });

@@ -1743,6 +1743,7 @@
     "missingGames_other": "{{count}} peliä ei voitu ladata, ja ne ohitetaan.",
     "confirm_one": "Sovella {{count}} peliin",
     "confirm_other": "Sovella {{count}} peliin",
+    "confirmMissingOnly": "Jatka",
     "gameMissing": "Peli ({{id}})"
   },
   "planningEditor": {
