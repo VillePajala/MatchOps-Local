@@ -18,6 +18,18 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
+// Mock kept module-loaded so individual tests can override
+// computeApplyDiff (used by the error-path test below). The default
+// implementation forwards to the real export.
+jest.mock('@/utils/applyPreview', () => {
+  const actual = jest.requireActual('@/utils/applyPreview');
+  return {
+    __esModule: true,
+    ...actual,
+    computeApplyDiff: jest.fn(actual.computeApplyDiff),
+  };
+});
+
 // 8v8-3-3-1 is the editor's heuristic default for an 8-player lineup
 // (the first 8v8 preset by id), so the test fixture and the editor
 // agree on which preset to render.
@@ -1478,6 +1490,261 @@ describe('PlanningEditor', () => {
       });
       const call = onSavePlan.mock.calls[0][0];
       expect(call.draft.presetId).toBe('11v11-4-3-3');
+    });
+  });
+
+  describe('Apply preview gating', () => {
+    it('with enableApplyPreview=false (default), Apply runs immediately', async () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      // Build a draft different from the saved game so apply has work
+      // to do; even so, no preview should appear because the flag is off.
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({ applyToGame, onApplied, roster, savedGames: { g1: game } });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      });
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+    });
+
+    it('with enableApplyPreview=true, Apply opens the preview instead', () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      // Force a non-matching draft so the preview has at least one card
+      // (otherwise the empty-state would render and confirm would be
+      // disabled — but the preview itself would still be present).
+      renderEditor({
+        applyToGame,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p1' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      expect(
+        screen.getByTestId('planning-apply-preview'),
+      ).toBeInTheDocument();
+      // Apply has NOT yet been called — the user must confirm.
+      expect(applyToGame).not.toHaveBeenCalled();
+    });
+
+    it('preview Confirm runs apply for only the checked games', async () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster);
+      const game2 = makeGameWithLineup(roster);
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        savedGames: { g1: game1, g2: game2 },
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' }, // not present in either game
+          bench: [],
+          scheduledSubs: [],
+        },
+        roster,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Uncheck g2 — only g1 will be applied.
+      fireEvent.click(screen.getByTestId('planning-apply-preview-toggle-g2'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+      expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+    });
+
+    it('preview Cancel returns to edit mode without applying', () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        applyToGame,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      fireEvent.click(screen.getByTestId('planning-apply-preview-cancel'));
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      expect(applyToGame).not.toHaveBeenCalled();
+    });
+
+    it('preview surfaces missing-game notice and routes the id through Confirm so the post-apply warning fires', async () => {
+      // Cloud-sync race / IndexedDB eviction: gameIds includes 'g2'
+      // but savedGames lacks it. Pre-PR 8b, handleApply(gameIds) hit
+      // the !game guard on g2 and surfaced applyWarnMissing. The
+      // preview must not silently drop g2 — it should appear in the
+      // inline notice AND be re-included on confirm so the warning
+      // banner fires.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster);
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        // g2 intentionally absent.
+        savedGames: { g1: game1 },
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+        roster,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Inline notice for the missing g2.
+      expect(
+        screen.getByTestId('planning-apply-preview-missing'),
+      ).toBeInTheDocument();
+      // g2 doesn't get its own card (no diff was computed).
+      expect(
+        screen.queryByTestId('planning-apply-preview-card-g2'),
+      ).not.toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      // applyToGame fired only for g1 (the only resolved game).
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+      expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+      // The post-apply warning surfaces the missing-game count via the
+      // existing applyWarnMissing path: "N selected game(s) were no
+      // longer available and were skipped."
+      await waitFor(() => {
+        expect(
+          screen.getByText(/1 selected game.*were skipped|1 .*ei.*ohitettiin/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('preview enables Confirm and surfaces the warning when ALL games are missing', async () => {
+      // Cloud-sync wipe edge case: every gameId in the plan is absent
+      // from savedGames. Without the special-case, visibleDiffs is
+      // empty AND checkedCount is 0, so the original
+      // `disabled={checkedCount === 0}` gate would lock the user out
+      // of triggering the post-apply applyWarnMissing banner — a
+      // regression vs. the pre-PR direct-apply path.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        savedGames: {} as SavedGamesCollection,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Both ids surface in the inline notice.
+      expect(
+        screen.getByTestId('planning-apply-preview-missing'),
+      ).toBeInTheDocument();
+      // No game cards. The "noChanges" empty-state must NOT render —
+      // it would contradict the missing-games notice ("nothing to
+      // apply" alongside "2 games can't be loaded").
+      expect(
+        screen.queryByTestId('planning-apply-preview-empty'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('planning-apply-preview-card-g1'),
+      ).not.toBeInTheDocument();
+      const confirm = screen.getByTestId(
+        'planning-apply-preview-confirm',
+      ) as HTMLButtonElement;
+      // Critical: Confirm must be enabled so the user can trigger the
+      // post-apply warning instead of being trapped at Cancel.
+      expect(confirm).not.toBeDisabled();
+      // Label must not say "Apply to 0 games" — that's misleading
+      // when the user has nothing to actually apply. Use the
+      // neutral "Continue" / "Jatka" copy instead.
+      expect(confirm).toHaveTextContent(/Continue|Jatka/i);
+      expect(confirm).not.toHaveTextContent(/Apply to 0|Sovella 0/i);
+      await act(async () => {
+        fireEvent.click(confirm);
+      });
+      // applyToGame never fires (no real games to save) but the
+      // warning banner does — and the !game branch in handleApply
+      // increments gamesNotFound for both g1 and g2.
+      expect(applyToGame).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(
+          screen.getByText(/2 selected game.*were skipped|2 .*ei.*ohitettiin/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('handleStartApply surfaces applyError when computeApplyDiff throws', async () => {
+      // computeApplyDiff is pure today but a malformed game state (or a
+      // future regression) could make it throw. The catch in
+      // handleStartApply prevents the click from being silently swallowed.
+      const { computeApplyDiff } = jest.requireMock(
+        '@/utils/applyPreview',
+      ) as { computeApplyDiff: jest.Mock };
+      computeApplyDiff.mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
+      renderEditor({
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      // The error banner is the same applyError surfaced by the
+      // direct apply path: "Could not apply plan. Please try again."
+      // mockImplementationOnce auto-restores after the call, so no
+      // manual teardown is needed.
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Could not apply plan|Suunnitelman.*ei voitu/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('Apply button is disabled while the preview is open', () => {
+      // Without this guard a second click would reset previewDiffs but
+      // the existing preview instance keeps its checked state, so the
+      // user could confirm against stale toggles.
+      renderEditor({
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      const applyBtn = screen.getByTestId(
+        'planning-editor-apply',
+      ) as HTMLButtonElement;
+      expect(applyBtn).not.toBeDisabled();
+      fireEvent.click(applyBtn);
+      expect(
+        screen.getByTestId('planning-apply-preview'),
+      ).toBeInTheDocument();
+      expect(applyBtn).toBeDisabled();
     });
   });
 });
