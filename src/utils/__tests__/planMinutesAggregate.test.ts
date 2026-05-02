@@ -25,9 +25,10 @@ describe('aggregatePlanMinutes', () => {
     expect(out.perPlayer).toEqual([]);
     expect(out.fairShareSeconds).toBe(0);
     expect(out.totalFieldSeconds).toBe(0);
-    // referencedPlayerIds still surfaces — useful for the empty-state
-    // render path that wants to show "no games picked yet".
-    expect(out.referencedPlayerIds).toHaveLength(3);
+    // No games → nobody played → empty referenced set. Distinguishes
+    // "denominator includes you because you'd play" (old) from
+    // "denominator includes you because you actually played" (new).
+    expect(out.referencedPlayerIds).toEqual([]);
   });
 
   it('returns an empty result when the draft has no starting XI or subs', () => {
@@ -104,6 +105,28 @@ describe('aggregatePlanMinutes', () => {
     // p3 shareRatio = 900/900 = 1. p1 shareRatio = 300/900 ≈ 0.333.
     expect(byId.get('p3')?.shareRatio).toBeCloseTo(1, 5);
     expect(byId.get('p1')?.shareRatio).toBeCloseTo(1 / 3, 5);
+  });
+
+  it('excludes inPlayers of unreachable subs from the fair-share denominator', () => {
+    // p3 is the inPlayer of a sub scheduled at 25:00 in a 20:00 game
+    // — unreachable. computePlayerSeconds clamps the sub time and p3
+    // contributes 0s. p3 must NOT count toward the denominator —
+    // otherwise active players would appear over their share.
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+      bench: ['p3'],
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 1500, inPlayer: 'p3', positionRole: 'LB' },
+      ],
+    };
+    const out = aggregatePlanMinutes(draft, ['g1'], { g1: game(10) });
+    // 3 active players, 1200s each = 3600s total. Fair share = 3600 / 3
+    // = 1200s, NOT 3600 / 4 = 900s.
+    expect(out.fairShareSeconds).toBe(1200);
+    expect(out.referencedPlayerIds.sort()).toEqual(['p0', 'p1', 'p2']);
+    expect(out.referencedPlayerIds).not.toContain('p3');
+    // Active players are at exactly fair share.
+    for (const entry of out.perPlayer) expect(entry.shareRatio).toBe(1);
   });
 
   it('handles 0-duration games without dividing by zero', () => {

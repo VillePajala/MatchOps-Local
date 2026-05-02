@@ -29,37 +29,35 @@ const gameDurationSec = (game: AppState): number => {
   return Math.max(0, periods * minutes * 60);
 };
 
-// "Referenced" matches standalone semantics: a player counts toward
-// fair-share only if the plan actually puts them on the field at some
-// point. Pure-bench squad members are excluded so a 14-player squad
-// with a 5-player rotation doesn't inflate the denominator.
-const collectReferenced = (draft: PlanDraft): Set<PlayerId> => {
-  const ref = new Set<PlayerId>(Object.values(draft.startingXI));
-  for (const s of draft.scheduledSubs) ref.add(s.inPlayer);
-  return ref;
-};
-
 /**
  * Aggregates per-player minutes across every game in the plan and
  * computes the fair-share target. The same draft applies to every
  * game, so per-player seconds scale with each game's duration.
  *
+ * The fair-share denominator counts only players who actually take
+ * the field for some non-zero time across the plan — matches the
+ * post-apply behavior of `applyDraftToGame`, which drops unreachable
+ * subs (e.g. sub time beyond game duration). Without this, a
+ * legacy/imported draft with stale subs could inflate the
+ * denominator and make every active player look over their share.
+ *
  * Returns { perPlayer: [], referencedPlayerIds: [], ... } for empty
- * input rather than throwing — callers can render the dashboard
- * empty-state without checking.
+ * input rather than throwing.
  */
 export const aggregatePlanMinutes = (
   draft: PlanDraft,
   gameIds: string[],
   savedGames: Record<string, AppState | undefined>,
 ): PlanMinutesAggregate => {
-  const referencedPlayerIds = [...collectReferenced(draft)];
-  if (referencedPlayerIds.length === 0 || gameIds.length === 0) {
+  if (
+    Object.keys(draft.startingXI).length === 0 ||
+    gameIds.length === 0
+  ) {
     return {
       perPlayer: [],
       fairShareSeconds: 0,
       totalFieldSeconds: 0,
-      referencedPlayerIds,
+      referencedPlayerIds: [],
     };
   }
   const startingXISize = Object.keys(draft.startingXI).length;
@@ -71,18 +69,22 @@ export const aggregatePlanMinutes = (
     const dur = gameDurationSec(game);
     if (dur === 0) continue;
     totalFieldSeconds += dur * startingXISize;
+    // computePlayerSeconds clamps subs to [0, dur] internally, so a
+    // sub scheduled past the end contributes nothing to the inPlayer's
+    // total — matches the apply path.
     const perPlayer = computePlayerSeconds(draft, dur);
     for (const [pid, secs] of perPlayer) {
-      totals.set(pid, (totals.get(pid) ?? 0) + secs);
+      if (secs > 0) totals.set(pid, (totals.get(pid) ?? 0) + secs);
     }
   }
+  // Referenced = players who actually played for > 0s across the
+  // plan. Pure-bench squad members and inPlayers of unreachable subs
+  // are excluded, so the denominator reflects who's on the field.
+  const referencedPlayerIds = [...totals.keys()];
   const fairShareSeconds =
     referencedPlayerIds.length > 0
       ? totalFieldSeconds / referencedPlayerIds.length
       : 0;
-  // referencedPlayerIds drives row order so a player who gets 0 secs
-  // (e.g. only listed as sub.inPlayer for an unreachable role) still
-  // shows up — otherwise the dashboard would silently hide them.
   const perPlayer: PlanMinutesEntry[] = referencedPlayerIds.map((pid) => {
     const totalSeconds = totals.get(pid) ?? 0;
     const shareRatio =
