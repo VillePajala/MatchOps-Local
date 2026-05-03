@@ -53,8 +53,16 @@ export interface PlanningEditorProps {
    * parent can render a post-apply undo banner. Partial-success and
    * warning paths don't carry a snapshot — the editor stays open with
    * the existing warning banner there.
+   *
+   * The `appliedDraft` argument carries the in-memory PlanDraft that
+   * was just written to games. The parent persists it onto the saved
+   * session row alongside `appliedAt`, so a coach who edits a saved
+   * session and clicks Apply (without explicit Save) still ends up
+   * with the session row matching what was applied. Without this, the
+   * session metadata would lie ("applied at X" pointing at the
+   * pre-edit draft).
    */
-  onApplied: (snapshot?: ApplySnapshot) => void;
+  onApplied: (snapshot?: ApplySnapshot, appliedDraft?: PlanDraft) => void;
   /** Persists one game's lineup; called once per `gameIds` entry on Apply. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 
@@ -732,6 +740,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         snapshots.length > 0
           ? { appliedAt: Date.now(), games: snapshots }
           : undefined,
+        // Pass the draft that was just applied so the parent can
+        // persist it on the session row — Apply implicitly commits.
+        draft,
       );
     } catch (err) {
       logger.error('[PlanningEditor] Apply failed', err);

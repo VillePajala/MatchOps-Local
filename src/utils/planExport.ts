@@ -164,6 +164,18 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
       if (!isNonEmptyString(role)) {
         return fail(`${at}.startingXI has an empty role key`, `${at}.startingXI`);
       }
+      // Reject magic keys that would mutate downstream object prototypes.
+      // V8 invokes [[SetPrototypeOf]] on plain `obj.__proto__ = x` so an
+      // imported envelope with such a key silently corrupts the draft
+      // (own keys go missing). Same defense for `constructor` / `prototype`
+      // even though they're benign for plain objects today — easier to
+      // reject the whole class than reason about JS engine quirks.
+      if (role === '__proto__' || role === 'constructor' || role === 'prototype') {
+        return fail(
+          `${at}.startingXI uses reserved role key "${role}"`,
+          `${at}.startingXI`,
+        );
+      }
       if (!isNonEmptyString(v)) {
         return fail(
           `${at}.startingXI.${role} must be a non-empty string player id`,

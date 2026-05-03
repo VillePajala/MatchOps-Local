@@ -79,7 +79,7 @@ export const useSavePlanningSessionMutation = () => {
 
 export const useDeletePlanningSessionMutation = () => {
   const queryClient = useQueryClient();
-  const { userId, getStore } = useDataStore();
+  const { getStore } = useDataStore();
 
   return useMutation<boolean, Error, string>({
     mutationFn: async (sessionId) => {

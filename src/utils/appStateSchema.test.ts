@@ -38,4 +38,59 @@ describe('appStateSchema', () => {
   it('fails for invalid data', () => {
     expect(() => appStateSchema.parse({ ...valid, homeScore: 'bad' })).toThrow();
   });
+
+  describe('scheduledSubs strictness (mirrors validateScheduledSubs)', () => {
+    const subValid = {
+      id: 's1',
+      timeSeconds: 600,
+      outPlayer: 'p1',
+      inPlayer: 'p2',
+      positionRole: 'LB',
+      status: 'pending' as const,
+    };
+
+    it('accepts a valid scheduled sub array', () => {
+      const result = appStateSchema.parse({
+        ...valid,
+        scheduledSubs: [subValid],
+      });
+      expect(result.scheduledSubs).toHaveLength(1);
+    });
+
+    it('rejects empty positionRole', () => {
+      expect(() =>
+        appStateSchema.parse({
+          ...valid,
+          scheduledSubs: [{ ...subValid, positionRole: '' }],
+        }),
+      ).toThrow();
+    });
+
+    it('rejects self-substitution (outPlayer === inPlayer)', () => {
+      expect(() =>
+        appStateSchema.parse({
+          ...valid,
+          scheduledSubs: [{ ...subValid, inPlayer: 'p1' }],
+        }),
+      ).toThrow();
+    });
+
+    it('rejects duplicate scheduled-sub ids', () => {
+      expect(() =>
+        appStateSchema.parse({
+          ...valid,
+          scheduledSubs: [subValid, { ...subValid, inPlayer: 'p3' }],
+        }),
+      ).toThrow();
+    });
+
+    it('rejects fractional timeSeconds (mirrors integer-only DataStore)', () => {
+      expect(() =>
+        appStateSchema.parse({
+          ...valid,
+          scheduledSubs: [{ ...subValid, timeSeconds: 1.5 }],
+        }),
+      ).toThrow();
+    });
+  });
 });

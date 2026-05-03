@@ -218,6 +218,49 @@ const parseTeamPlacements = (value: Json | null): Record<string, TeamPlacementIn
 };
 
 /**
+ * Per-item validation for game.scheduled_subs JSONB on read. Mirrors
+ * the planning-session boundary defense added in pass 3: a partial
+ * cloud-write or out-of-band edit could put malformed entries in the
+ * column that would survive the JSONB cast and surface as runtime
+ * crashes deep in applyDraftToGame or the live-banner timer. Drop
+ * invalid entries with a logged warning; the DataStore.saveGame path
+ * still validates the array on write.
+ */
+const validateScheduledSubsFromDb = (
+  value: unknown,
+  gameId: string,
+): ScheduledSub[] => {
+  if (!Array.isArray(value)) return [];
+  const valid: ScheduledSub[] = [];
+  const seenIds = new Set<string>();
+  for (let i = 0; i < value.length; i++) {
+    const candidate = value[i] as Partial<ScheduledSub> | null;
+    if (!candidate || typeof candidate !== 'object') continue;
+    if (
+      typeof candidate.id !== 'string' || candidate.id.length === 0 ||
+      seenIds.has(candidate.id) ||
+      typeof candidate.timeSeconds !== 'number' ||
+      !Number.isInteger(candidate.timeSeconds) ||
+      candidate.timeSeconds < 0 ||
+      typeof candidate.outPlayer !== 'string' || candidate.outPlayer.length === 0 ||
+      typeof candidate.inPlayer !== 'string' || candidate.inPlayer.length === 0 ||
+      candidate.outPlayer === candidate.inPlayer ||
+      typeof candidate.positionRole !== 'string' || candidate.positionRole.length === 0 ||
+      (candidate.status !== 'pending' && candidate.status !== 'fired' && candidate.status !== 'skipped')
+    ) {
+      logger.warn(
+        '[SupabaseDataStore] Dropping invalid scheduled_sub entry on game read',
+        { gameId, index: i, subId: candidate.id },
+      );
+      continue;
+    }
+    seenIds.add(candidate.id);
+    valid.push(candidate as ScheduledSub);
+  }
+  return valid;
+};
+
+/**
  * Normalize a numeric rating to the DB constraint range (1-10).
  * Returns null for invalid/unknown values to avoid constraint violations.
  * Used in forward transform (App → DB).
@@ -3191,7 +3234,13 @@ export class SupabaseDataStore implements DataStore {
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
       formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,
-      scheduledSubs: Array.isArray(game.scheduled_subs) ? game.scheduled_subs as unknown as ScheduledSub[] : [],
+      // Validate each scheduled sub at the boundary. The JSONB column
+      // is server-trusted but a partial cloud-write or external edit
+      // could leave malformed rows that would surface as runtime
+      // crashes deep in the live-banner timer or applyDraftToGame.
+      // Mirror the per-item validation pattern used for planning
+      // sessions in getPlanningSessions.
+      scheduledSubs: validateScheduledSubsFromDb(game.scheduled_subs, game.id),
       // === Timer restoration ===
       timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
       // === Player arrays ===
@@ -4308,8 +4357,16 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
+    // Belt-and-suspenders: RLS already enforces user isolation, but every
+    // other read in this file pairs the policy with an explicit
+    // .eq('user_id', userId). If a future migration accidentally relaxes
+    // the planning_sessions policy, this filter caps the blast radius.
+    const userId = await this.getUserId();
     const result = await this.withRetry(async () => {
-      let query = this.getClient().from('planning_sessions').select('*');
+      let query = this.getClient()
+        .from('planning_sessions')
+        .select('*')
+        .eq('user_id', userId);
       if (teamId) {
         query = query.eq('team_id', teamId);
       }

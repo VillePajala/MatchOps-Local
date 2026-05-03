@@ -1339,6 +1339,69 @@ describe("importFullBackup", () => {
       expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
       alertMock.mockRestore();
     });
+
+    it("rejects backup with malformed planning session BEFORE clearing data", async () => {
+      // Regression: validateBackupData previously didn't check
+      // PLANNING_SESSIONS_KEY. A malformed session would slip past
+      // preflight, the import would clearAllUserData, then fail late
+      // on upsertPlanningSession — leaving the user with cleared
+      // local data and a half-restored cloud copy.
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [PLANNING_SESSIONS_KEY]: [
+            {
+              // Missing required fields — gameIds not an array, draft missing.
+              id: "planningSession_1",
+              teamId: "t1",
+              name: "Bad",
+              gameIds: "not-an-array",
+              isActive: false,
+            },
+          ],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Backup validation failed"),
+      );
+      // The critical invariant: clearAllUserData must NOT have been called.
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("rejects backup with duplicate planning session ids BEFORE clearing data", async () => {
+      const session = {
+        id: "planningSession_1",
+        teamId: "t1",
+        name: "A",
+        gameIds: ["g1"],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+        createdAt: "2026-04-30T12:00:00.000Z",
+        updatedAt: "2026-04-30T12:00:00.000Z",
+      };
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [PLANNING_SESSIONS_KEY]: [session, { ...session, name: "B" }],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Duplicate planning session id"),
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
   });
 
   describe("Runtime Errors", () => {

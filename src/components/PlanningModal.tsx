@@ -567,26 +567,45 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage(editorEntryPage);
   };
 
-  const handleEditorApplied = (snapshot?: ApplySnapshot) => {
+  const handleEditorApplied = (snapshot?: ApplySnapshot, appliedDraft?: PlanDraft) => {
     // The modal stays mounted across opens (`isOpen={false}` early-returns
     // null but doesn't unmount), so explicit resets are required to
     // prevent stale banners / editingSession from leaking into the next
     // open. Shared with handleClose via resetEditorState.
 
-    // Stamp appliedAt on the session so the metadata reflects when the
-    // plan was last applied. Fire-and-forget — Apply has already
-    // succeeded against the games (the snapshot proves it), so a
-    // failure to update this metadata mustn't block the undo banner.
-    // Captured before resetEditorState() clears editingSession.
+    // Stamp appliedAt + the just-applied draft on the session so the
+    // metadata reflects what was actually applied. Apply implicitly
+    // commits: a coach who edits a saved session and clicks Apply
+    // (without an explicit Save) still ends up with the session row
+    // matching the games' new state. Fire-and-forget — Apply already
+    // succeeded against the games (snapshot proves it); a failed
+    // metadata stamp must not block the undo banner.
+    // Only stamps when we have a real snapshot (the warning-path Done
+    // calls onApplied() with no args).
     const sessionToStamp = editingSession;
-    if (sessionToStamp) {
+    if (sessionToStamp && snapshot && snapshot.games.length > 0) {
+      // Replicate the in-memory draft across every gameId — same shape
+      // the editor produces from handleSavePlan.
+      const replicatedDraft = appliedDraft
+        ? Object.fromEntries(
+            sessionToStamp.gameIds.map((gid) => [
+              gid,
+              {
+                ...appliedDraft,
+                startingXI: { ...appliedDraft.startingXI },
+                bench: [...appliedDraft.bench],
+                scheduledSubs: appliedDraft.scheduledSubs.map((s) => ({ ...s })),
+              },
+            ]),
+          )
+        : sessionToStamp.draft;
       saveSession
         .mutateAsync({
           id: sessionToStamp.id,
           teamId: sessionToStamp.teamId,
           name: sessionToStamp.name,
           gameIds: sessionToStamp.gameIds,
-          draft: sessionToStamp.draft,
+          draft: replicatedDraft,
           isActive: sessionToStamp.isActive,
           appliedAt: new Date().toISOString(),
           createdAt: sessionToStamp.createdAt,
@@ -882,7 +901,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                         <span className="rounded-full bg-emerald-700/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
                                           {t(
                                             'planningModal.activeBadge',
-                                            'Active',
+                                            'Default',
                                           )}
                                         </span>
                                       )}

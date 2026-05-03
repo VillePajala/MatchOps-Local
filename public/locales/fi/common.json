@@ -1777,7 +1777,7 @@
     "gameMissing": "Peli ({{id}})"
   },
   "planningEditor": {
-    "subtitle": "Aseta kokoonpano. Käytä kirjoittaa sen jokaiseen suunnitelman peliin.",
+    "subtitle": "Aseta kokoonpano. Sovella-painike kirjoittaa sen jokaiseen suunnitelman peliin.",
     "formation": "Pelisysteemi",
     "gameCount_one": "{{count}} peli",
     "gameCount_other": "{{count}} peliä",

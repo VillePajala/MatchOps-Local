@@ -38,12 +38,12 @@ jest.mock('@/utils/logger', () => ({
 // state machine in PlanningModal from the editor's apply machinery
 // (which has its own dedicated tests).
 let lastEditorOnApplied:
-  | ((snapshot?: ApplySnapshot) => void)
+  | ((snapshot?: ApplySnapshot, appliedDraft?: unknown) => void)
   | null = null;
 jest.mock('../PlanningEditor', () => ({
   __esModule: true,
   default: (props: {
-    onApplied: (snapshot?: ApplySnapshot) => void;
+    onApplied: (snapshot?: ApplySnapshot, appliedDraft?: unknown) => void;
     onBack: () => void;
   }) => {
     lastEditorOnApplied = props.onApplied;

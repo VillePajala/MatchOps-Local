@@ -120,6 +120,37 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  test('LOAD_STATE_FROM_HISTORY restores scheduledSubs (undo/redo regression)', () => {
+    // Regression: useGameSessionWithHistory marks ADD/UPDATE/DELETE/SKIP/
+    // APPLY_SCHEDULED_SUB as history-saving, but the slice + restore
+    // payload previously omitted scheduledSubs entirely. Undo/redo
+    // therefore left scheduled-sub state changes stuck in the current
+    // state, contradicting the action categorization.
+    const sub = {
+      id: 'sub_1',
+      timeSeconds: 600,
+      outPlayer: 'p1',
+      inPlayer: 'p2',
+      positionRole: 'LB',
+      status: 'pending' as const,
+    };
+    const stateWithSubs = {
+      ...baseState,
+      scheduledSubs: [sub],
+    };
+    const restored = gameSessionReducer(stateWithSubs, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: { scheduledSubs: [] },
+    });
+    expect(restored.scheduledSubs).toEqual([]);
+
+    const reAdded = gameSessionReducer(restored, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: { scheduledSubs: [sub] },
+    });
+    expect(reAdded.scheduledSubs).toEqual([sub]);
+  });
+
   /**
    * CRITICAL REGRESSION TEST: Validates teamId persists through save/load cycle
    *

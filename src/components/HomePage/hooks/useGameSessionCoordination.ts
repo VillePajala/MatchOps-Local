@@ -295,6 +295,10 @@ export function useGameSessionCoordination({
       gameLocation: state.gameLocation,
       gameTime: state.gameTime,
       gameEvents: state.gameEvents,
+      // scheduledSubs is in HISTORY_SAVING_ACTIONS for ADD/UPDATE/DELETE/
+      // SKIP/APPLY — undo/redo must restore the array or those actions
+      // are non-undoable despite being marked otherwise.
+      scheduledSubs: state.scheduledSubs,
       demandFactor: state.demandFactor,
       subIntervalMinutes: state.subIntervalMinutes,
       completedIntervalDurations: state.completedIntervalDurations,
@@ -517,6 +521,9 @@ export function useGameSessionCoordination({
         gameLocation: state.gameLocation,
         gameTime: state.gameTime,
         gameEvents: state.gameEvents,
+        // Pair with the slice above so undo/redo restores scheduled-sub
+        // ADD/UPDATE/DELETE/SKIP/APPLY state changes.
+        scheduledSubs: state.scheduledSubs ?? [],
         gamePersonnel: state.gamePersonnel ?? [],
         teamId: state.teamId,
         subIntervalMinutes: state.subIntervalMinutes ?? 5,

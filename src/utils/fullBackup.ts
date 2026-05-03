@@ -26,6 +26,7 @@ import type { AppSettings } from '@/types/settings';
 import type { PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { processImportedGames } from './gameImportHelper';
+import { validatePlanningSession } from '@/datastore/validation';
 import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
 import { retryWithBackoff, countPushFailures } from '@/utils/retry';
 import type { PushAllToCloudResult } from '@/datastore/SyncedDataStore';
@@ -183,6 +184,43 @@ function validateBackupData(backupData: FullBackupData): BackupValidationResult 
   if (adjustments !== null && adjustments !== undefined) {
     if (typeof adjustments !== 'object' || Array.isArray(adjustments)) {
       errors.push('Player adjustments must be an object (not array)');
+    }
+  }
+
+  // Validate planning sessions array. Without this gate, a malformed
+  // session in the backup would slip past preflight, the import would
+  // call clearAllUserData, then fail on upsertPlanningSession — leaving
+  // the user with cleared local data and a half-restored cloud copy.
+  const planningSessions = localStorage[PLANNING_SESSIONS_KEY];
+  if (planningSessions !== null && planningSessions !== undefined) {
+    if (!Array.isArray(planningSessions)) {
+      errors.push('Planning sessions must be an array');
+    } else {
+      const sessionIds = new Set<string>();
+      planningSessions.forEach((session, idx) => {
+        if (!session || typeof session !== 'object' || Array.isArray(session)) {
+          errors.push(`Planning session at index ${idx} is not a valid object`);
+          return;
+        }
+        try {
+          validatePlanningSession(session as Partial<PlanningSession>, `at index ${idx}`);
+        } catch (err) {
+          errors.push(
+            err instanceof Error
+              ? `Planning session at index ${idx}: ${err.message}`
+              : `Planning session at index ${idx} failed validation`,
+          );
+          return;
+        }
+        const id = (session as { id?: string }).id;
+        if (id) {
+          if (sessionIds.has(id)) {
+            errors.push(`Duplicate planning session id: ${id}`);
+          } else {
+            sessionIds.add(id);
+          }
+        }
+      });
     }
   }
 
