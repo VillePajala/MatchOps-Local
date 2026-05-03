@@ -340,7 +340,18 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     const next = getPresetById(id);
     if (!next) return;
     setPresetId(id);
-    setDraft(draftFromGame(firstGame, next));
+    // Reset EVERY tab's draft, not just the active one. Role names
+    // differ across presets (LM/RM vs LB/RB), so leaving non-active
+    // tabs with stale role names would silently drop their field
+    // players via unknownRoles when Apply runs. setDrafts directly
+    // (not the adapter) so all tabs re-seed in one commit.
+    setDrafts(() => {
+      const reset: Record<string, PlanDraft> = {};
+      for (const gid of gameIds) {
+        reset[gid] = draftFromGame(savedGames[gid], next);
+      }
+      return reset;
+    });
     setSelected(null);
     setPendingPresetId(null);
     setApplyError(null);
@@ -351,36 +362,38 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const handlePresetChange = (id: string) => {
     if (id === presetId) return;
     if (!getPresetById(id)) return;
-    const baseline = draftFromGame(firstGame, preset);
-    const baselineKeys = Object.keys(baseline.startingXI);
-    const draftKeys = Object.keys(draft.startingXI);
-    // When lengths match, a value-mismatch on any baseline key already
-    // covers a different draft key set (the missing key reads as
-    // undefined and never equals the baseline's player id).
-    // Also count any draft-side sub change as divergence — add,
-    // remove, or in-place edit (time / role / inPlayer). The id
-    // survives an edit, so a length+ids check would miss it; check
-    // each field by id-keyed lookup instead.
-    const baselineSubsById = new Map(
-      baseline.scheduledSubs.map((s) => [s.id, s] as const),
-    );
-    const subsDiverged =
-      draft.scheduledSubs.length !== baseline.scheduledSubs.length ||
-      draft.scheduledSubs.some((s) => {
-        const b = baselineSubsById.get(s.id);
-        return (
-          !b ||
-          b.timeSeconds !== s.timeSeconds ||
-          b.positionRole !== s.positionRole ||
-          b.inPlayer !== s.inPlayer
-        );
-      });
-    const diverged =
-      baselineKeys.length !== draftKeys.length ||
-      baselineKeys.some(
-        (k) => baseline.startingXI[k] !== draft.startingXI[k],
-      ) ||
-      subsDiverged;
+    // Check every tab's draft against its own per-game baseline.
+    // Without this, a coach who diverged on game 2 but not game 1
+    // would skip the confirm banner and silently lose game 2's edits
+    // when applyPresetChange re-seeds all tabs.
+    const checkOneTab = (gid: string): boolean => {
+      const baseline = draftFromGame(savedGames[gid], preset);
+      const tabDraft = drafts[gid] ?? baseline;
+      const baselineKeys = Object.keys(baseline.startingXI);
+      const tabKeys = Object.keys(tabDraft.startingXI);
+      const baselineSubsById = new Map(
+        baseline.scheduledSubs.map((s) => [s.id, s] as const),
+      );
+      const subsDiverged =
+        tabDraft.scheduledSubs.length !== baseline.scheduledSubs.length ||
+        tabDraft.scheduledSubs.some((s) => {
+          const b = baselineSubsById.get(s.id);
+          return (
+            !b ||
+            b.timeSeconds !== s.timeSeconds ||
+            b.positionRole !== s.positionRole ||
+            b.inPlayer !== s.inPlayer
+          );
+        });
+      return (
+        baselineKeys.length !== tabKeys.length ||
+        baselineKeys.some(
+          (k) => baseline.startingXI[k] !== tabDraft.startingXI[k],
+        ) ||
+        subsDiverged
+      );
+    };
+    const diverged = gameIds.some(checkOneTab);
     if (diverged) {
       setPendingPresetId(id);
       return;

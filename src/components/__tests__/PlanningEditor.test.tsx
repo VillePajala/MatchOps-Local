@@ -1032,6 +1032,48 @@ describe('PlanningEditor', () => {
     });
   });
 
+  it('formation change resets EVERY tab, not just the active one (PR-A regression)', async () => {
+    // Pass-11 review caught: applyPresetChange used to call setDraft
+    // (the active-tab adapter), so non-active tabs kept stale role
+    // names from the old preset. On Apply those tabs would silently
+    // drop their field players via unknownRoles. This test pins the
+    // multi-game fix: switching formation re-seeds drafts for every
+    // gameId, so the second tab also surfaces the new role grid
+    // (queryable via subsequent applyToGame.scheduledSubs[].positionRole
+    // not containing the old ST role on Apply).
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    // Switch to 5v5-2-2 (no ST role).
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    // Pristine drafts → no confirm banner, switch happens immediately.
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+    // Apply both games. Neither should produce an unknownRoles
+    // warning, which would fire if a tab's draft still carried an
+    // ST role from 8v8-3-3-1.
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(applyToGame).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      screen.queryByTestId('planning-editor-warning'),
+    ).not.toBeInTheDocument();
+  });
+
   it('switching formation shows inline banner only when the draft diverged from the loaded snap', async () => {
     renderEditor();
     const select = screen.getByRole('combobox');
