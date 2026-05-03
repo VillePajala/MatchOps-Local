@@ -2376,7 +2376,12 @@ export class LocalDataStore implements DataStore {
         teamId: session.teamId,
         name: session.name.trim(),
         gameIds: [...session.gameIds],
-        draft: { ...session.draft },
+        // Deep-clone the draft map so a caller that retains the input
+        // session and mutates draft[gameId].bench / scheduledSubs after
+        // save can't silently corrupt the stored value. The shape is
+        // pure data (Records, arrays of primitives), so structuredClone
+        // is the right tool.
+        draft: structuredClone(session.draft),
         isActive: session.isActive,
         appliedAt: session.appliedAt,
         createdAt:
@@ -2789,7 +2794,33 @@ export class LocalDataStore implements DataStore {
         return [];
       }
       const parsed = JSON.parse(json);
-      return Array.isArray(parsed) ? (parsed as PlanningSession[]) : [];
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      // Per-item validation guards against schema drift: a session
+      // saved before a required field was added would otherwise load
+      // as a malformed PlanningSession and surface as a runtime crash
+      // deep in applyPlanToGame. Filter and log instead — match the
+      // pattern used by other loaders for corrupt entries.
+      const valid: PlanningSession[] = [];
+      for (const candidate of parsed) {
+        try {
+          validatePlanningSession(candidate as Partial<PlanningSession>);
+          valid.push(candidate as PlanningSession);
+        } catch (validationError) {
+          logger.warn(
+            '[LocalDataStore] Dropping invalid planning session on load',
+            {
+              sessionId: (candidate as { id?: string } | null)?.id,
+              error:
+                validationError instanceof Error
+                  ? validationError.message
+                  : String(validationError),
+            },
+          );
+        }
+      }
+      return valid;
     } catch (error) {
       logger.error('[LocalDataStore] Failed to load planning sessions', error);
       return [];

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineArrowUpTray,
@@ -140,12 +140,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [undoSnapshot, setUndoSnapshot] = useState<ApplySnapshot | null>(null);
   const [isUndoing, setIsUndoing] = useState(false);
   // Mirror of isUndoing kept in a ref for synchronous reads from the
-  // banner's 1s timer. The setState happens before applyToGame is
-  // awaited, but the closure-captured `isUndoing` in handleUndoExpire
-  // wouldn't observe the update until after the paint commit — a
-  // narrow window where the timer firing in between would close the
-  // modal mid-restore. The ref closes that window.
+  // banner's 1s timer and from handleClose. The setState happens before
+  // applyToGame is awaited, but the closure-captured `isUndoing` in
+  // handleUndoExpire wouldn't observe the update until after the paint
+  // commit — a narrow window where the timer firing in between would
+  // close the modal mid-restore. Two layers protect this:
+  //   1. Existing call sites set the ref synchronously *before*
+  //      setIsUndoing, closing the race within the same tick.
+  //   2. The useEffect below re-syncs after every commit so a future
+  //      setIsUndoing call that forgets the manual write still ends
+  //      up consistent on the next render.
   const isUndoingRef = useRef(false);
+  useEffect(() => {
+    isUndoingRef.current = isUndoing;
+  }, [isUndoing]);
   const [undoError, setUndoError] = useState<string | null>(null);
   // Index of the next snapshot entry to restore. Advances on each
   // successful applyToGame so a mid-loop failure doesn't redo the

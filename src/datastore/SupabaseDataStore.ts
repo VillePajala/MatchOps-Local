@@ -4323,7 +4323,30 @@ export class SupabaseDataStore implements DataStore {
     }
 
     const rows = (result.data || []) as PlanningSessionRow[];
-    return rows.map((row) => this.transformPlanningSessionFromDb(row));
+    // Per-item validation at the boundary: the DB JSONB cast in
+    // transformPlanningSessionFromDb trusts cloud rows completely. Drop
+    // and log malformed rows here so a partial cloud-write doesn't
+    // surface as a crash in applyPlanToGame downstream.
+    const valid: PlanningSession[] = [];
+    for (const row of rows) {
+      const session = this.transformPlanningSessionFromDb(row);
+      try {
+        validatePlanningSession(session);
+        valid.push(session);
+      } catch (validationError) {
+        logger.warn(
+          '[SupabaseDataStore] Dropping invalid planning session from cloud read',
+          {
+            sessionId: session.id,
+            error:
+              validationError instanceof Error
+                ? validationError.message
+                : String(validationError),
+          },
+        );
+      }
+    }
+    return valid;
   }
 
   async savePlanningSession(
@@ -4376,7 +4399,10 @@ export class SupabaseDataStore implements DataStore {
       teamId: session.teamId,
       name: session.name.trim(),
       gameIds: [...session.gameIds],
-      draft: { ...session.draft },
+      // Deep-clone — same rationale as LocalDataStore.savePlanningSession:
+      // a caller retaining the input and mutating draft[gameId].bench
+      // after save would otherwise silently corrupt the stored value.
+      draft: structuredClone(session.draft),
       isActive: session.isActive,
       appliedAt: session.appliedAt,
       createdAt: resolvedCreatedAt,

@@ -1032,6 +1032,9 @@ export class SyncedDataStore implements DataStore {
     // tightening this would require a dedicated sync executor path that
     // routes 'planningSession activate' updates through the RPC, which
     // is out of scope for the cutover.
+    // TODO(planner): add a dedicated SyncOpType for setActiveSession that
+    // executes via the set_active_planning_session RPC, eliminating the
+    // transient-double-active window even under offline-then-sync flows.
     const before = await this.localStore.getPlanningSessions(teamId);
     const result = await this.localStore.setActiveSession(
       sessionId,
@@ -1307,6 +1310,22 @@ export class SyncedDataStore implements DataStore {
             adjustments[i] = adj;
             await this.localStore.updatePlayerAdjustment(playerId, adj.id, adj);
           }
+        }
+      }
+
+      // Planning sessions: surface orphan game_ids to logs but do not
+      // strip them — sessions store soft references and the editor
+      // already handles missing-game warnings on open. Logging matches
+      // the debuggability pattern used for every other entity above.
+      const gameIdsSet = new Set(Object.keys(games));
+      for (const session of planningSessions) {
+        const orphanGameIds = session.gameIds.filter(
+          (gid) => !gameIdsSet.has(gid),
+        );
+        if (orphanGameIds.length > 0) {
+          orphanWarnings.push(
+            `Planning session "${session.name}" references ${orphanGameIds.length} missing game(s): ${orphanGameIds.join(', ')}`,
+          );
         }
       }
 

@@ -83,7 +83,20 @@ const fail = (message: string, path?: string): PlanImportResult => ({
  * PR 5 alongside the `FormationPreset.roles?` map. For PR 4 the only role
  * check is "non-empty string."
  */
+/**
+ * Self-defense size cap. The PlanningModal file picker already gates at
+ * 1 MB, but parsePlanExport is a public utility — a future caller (QR,
+ * paste, drag-drop) could bypass that guard. 2 MB leaves headroom over
+ * the 1 MB UI cap while still bounding memory before JSON.parse runs.
+ */
+const PARSE_PLAN_EXPORT_MAX_BYTES = 2 * 1024 * 1024;
+
 export const parsePlanExport = (raw: string): PlanImportResult => {
+  if (raw.length > PARSE_PLAN_EXPORT_MAX_BYTES) {
+    return fail(
+      `Envelope is too large (over ${PARSE_PLAN_EXPORT_MAX_BYTES / 1024 / 1024} MB)`,
+    );
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

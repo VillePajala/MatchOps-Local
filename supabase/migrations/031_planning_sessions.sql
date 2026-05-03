@@ -25,7 +25,12 @@
 --                active plan per (team, gameIds-set) at a time, enforced by
 --                the app handler in setActiveSession (no DB-level uniqueness
 --                because gameIds-set membership is a sorted-array equality
---                check that doesn't fit a unique index cleanly).
+--                check that doesn't fit a unique index cleanly). A weaker
+--                unique on (user_id, team_id) WHERE is_active = true was
+--                considered as a backstop, but rejected: a coach legitimately
+--                holds multiple active plans for the same team across
+--                different game-sets (e.g. tournament A and tournament B),
+--                so the partial unique would reject valid state.
 --   applied_at — null until first Apply; updated by the handler each Apply.
 --
 -- RLS mirrors every other user-scoped table: a session is visible only to
