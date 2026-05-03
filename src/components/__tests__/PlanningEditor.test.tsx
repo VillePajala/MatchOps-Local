@@ -1637,7 +1637,10 @@ describe('PlanningEditor', () => {
       // The warning path returns early without calling onApplied at
       // all, but defensive: even if a future change calls onApplied
       // from the warning branch, no snapshot should ride along since
-      // nothing was actually mutated.
+      // nothing was actually mutated. Note: pass-9 added partial-success
+      // snapshot capture for warnings that fire AFTER some games saved;
+      // this scenario has 0 saves (gx missing entirely), so the snapshot
+      // remains undefined.
       const applyToGame = jest.fn().mockResolvedValue(undefined);
       const onApplied = jest.fn();
       renderEditor({
@@ -1661,14 +1664,15 @@ describe('PlanningEditor', () => {
       // warning path itself — the user has to click Done to exit.
       expect(applyToGame).not.toHaveBeenCalled();
       expect(onApplied).not.toHaveBeenCalled();
-      // Click Done: must call onApplied() with NO snapshot arg. This
-      // is the regression guard for the onClick={() => onApplied()}
-      // wrapping — passing onApplied directly would forward the
-      // SyntheticEvent as a snapshot.
+      // Click Done: snapshot arg must be undefined since no games were
+      // mutated. The wrapping arrow keeps the SyntheticEvent from
+      // sneaking in as the first positional. Pass-9 wired the in-memory
+      // draft as the second positional so handleEditorApplied can stamp
+      // appliedAt + persist it; that's a no-op when snapshot is absent
+      // (handleEditorApplied gates on snapshot.games.length > 0).
       fireEvent.click(screen.getByTestId('planning-editor-warning-done'));
       expect(onApplied).toHaveBeenCalledTimes(1);
-      expect(onApplied).toHaveBeenCalledWith();
-      // First positional arg is undefined (no snapshot passed).
+      // First positional (snapshot) is undefined — the regression guard.
       expect(onApplied.mock.calls[0][0]).toBeUndefined();
     });
 
