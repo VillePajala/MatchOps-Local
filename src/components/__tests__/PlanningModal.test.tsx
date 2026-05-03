@@ -219,11 +219,13 @@ describe('PlanningModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('calls onClose when Done is clicked', () => {
+  it('calls onClose when Done is clicked', async () => {
     const { props } = renderModal();
-    fireEvent.click(
-      screen.getByRole('button', { name: /^Done$|^Valmis$/i }),
-    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /^Done$|^Valmis$/i }),
+      );
+    });
     expect(props.onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -519,25 +521,29 @@ describe('PlanningModal', () => {
     ).toBeInTheDocument();
   });
 
-  it('navigates to the picker when New plan is clicked, and back to the list on Back', () => {
+  it('navigates to the picker when New plan is clicked, and back to the list on Back', async () => {
     renderModal({ savedGames: {} });
-    fireEvent.click(
-      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
-    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+      );
+    });
     expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
     // Picker shows empty state when no games are available.
     expect(
       screen.getByText(/No games available|Aktiiviselle joukkueelle ei ole pelejä/i),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /back|takaisin/i })[0]);
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: /back|takaisin/i })[0]);
+    });
     // Back on the list — New plan button visible again.
     expect(
       screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
     ).toBeInTheDocument();
   });
 
-  it('navigates to the editor when Continue is pressed in the picker', () => {
+  it('navigates to the editor when Continue is pressed in the picker', async () => {
     // Continue in the picker hands off the selected ids to the editor;
     // the modal stays open until Apply (or the editor's Back goes back
     // to the picker).
@@ -563,18 +569,24 @@ describe('PlanningModal', () => {
         />
       </I18nextProvider>,
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
-    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+      );
+    });
     expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
-    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    });
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByTestId('planning-editor')).toBeInTheDocument();
     expect(screen.queryByTestId('planning-game-picker')).not.toBeInTheDocument();
   });
 
-  it('Back from the editor returns to the picker', () => {
+  it('Back from the editor returns to the picker', async () => {
     render(
       <I18nextProvider i18n={i18n}>
         <PlanningModal
@@ -596,17 +608,25 @@ describe('PlanningModal', () => {
         />
       </I18nextProvider>,
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
-    );
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
-    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    });
     expect(screen.getByTestId('planning-editor')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /back|takaisin/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /back|takaisin/i }));
+    });
     expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
   });
 
-  it('passes the active team id to the picker so it filters to that team', () => {
+  it('passes the active team id to the picker so it filters to that team', async () => {
     renderModal({
       currentTeamId: 'team_a',
       savedGames: {
@@ -628,14 +648,16 @@ describe('PlanningModal', () => {
         }),
       },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
-    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+      );
+    });
     // Only g1 is eligible (team_a); g2 is filtered out.
     expect(screen.getAllByRole('checkbox')).toHaveLength(1);
   });
 
-  it('passes currentTeamName to the picker so legacy games match by name', () => {
+  it('passes currentTeamName to the picker so legacy games match by name', async () => {
     // Legacy games saved before the teamId column was assigned still
     // need to be selectable when their teamName matches the active team.
     renderModal({
@@ -660,9 +682,11 @@ describe('PlanningModal', () => {
         }),
       },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
-    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+      );
+    });
     // Both modern and legacy match — the legacy game would otherwise
     // be silently excluded.
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
@@ -679,7 +703,9 @@ describe('PlanningModal', () => {
       expect(screen.getByText(/Plan imported|Suunnitelma tuotu/i)).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^Done$|^Valmis$/i }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^Done$|^Valmis$/i }));
+    });
     expect(props.onClose).toHaveBeenCalled();
 
     // Re-render: empty state again

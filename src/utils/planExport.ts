@@ -278,6 +278,12 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
         `${at}.halfTimeMin`,
       );
     }
+    if (g.halfTimeMin >= g.durationMin) {
+      return fail(
+        `${at}.halfTimeMin (${g.halfTimeMin}) must be less than durationMin (${g.durationMin})`,
+        `${at}.halfTimeMin`,
+      );
+    }
     if (!isNonEmptyString(g.opponent)) {
       return fail(`${at}.opponent must be a non-empty string`, `${at}.opponent`);
     }

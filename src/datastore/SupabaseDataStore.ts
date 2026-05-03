@@ -4503,7 +4503,10 @@ export class SupabaseDataStore implements DataStore {
       ...session,
       name: session.name.trim(),
       gameIds: [...session.gameIds],
-      draft: { ...session.draft },
+      // Deep-clone matches savePlanningSession; SyncedDataStore's sync
+      // path passes the same session into both stores, so mutations
+      // by the caller after either upsert must not bleed across.
+      draft: JSON.parse(JSON.stringify(session.draft)),
     };
 
     const { error } = await this.withRetry(async () => {

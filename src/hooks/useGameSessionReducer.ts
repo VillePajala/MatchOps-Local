@@ -556,6 +556,12 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, scheduledSubs: next, activeScheduledSubPrompt: undefined };
     }
     case 'APPLY_SCHEDULED_SUB': {
+      // playersOnField is intentionally NOT updated here. Scheduled
+      // subs are coach reminders — the actual on-pitch swap happens
+      // when the coach drags the player on the field. This reducer
+      // case only marks the sub as 'fired' and appends the resulting
+      // off+on GameEvents (built by the coordination hook with both
+      // entityIds so future stat aggregators see both halves).
       const { subId, gameEvents } = action.payload;
       const next = (state.scheduledSubs ?? []).map((s) =>
         s.id === subId ? { ...s, status: 'fired' as const } : s,

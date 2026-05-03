@@ -225,6 +225,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setIsUndoing(false);
     isUndoingRef.current = false;
     setUndoCursor(0);
+    // Reset editorEntryPage to 'list' so a future caller that forgets
+    // to set it explicitly gets a sensible default — current callers
+    // all set it before entering the editor, but this defends against
+    // future drift.
+    setEditorEntryPage('list');
     resetPendingImport();
   };
 

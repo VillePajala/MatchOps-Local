@@ -2500,7 +2500,11 @@ export class LocalDataStore implements DataStore {
         ...session,
         name: session.name.trim(),
         gameIds: [...session.gameIds],
-        draft: { ...session.draft },
+        // Deep-clone matches savePlanningSession; the SyncedDataStore
+        // sync path passes locally-stored sessions straight into
+        // remoteStore.upsertPlanningSession, so a caller that mutates
+        // the input afterwards must not corrupt either store's copy.
+        draft: JSON.parse(JSON.stringify(session.draft)),
         createdAt:
           session.createdAt ??
           (existingIndex !== -1 ? current[existingIndex].createdAt : now),
