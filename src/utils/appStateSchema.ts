@@ -40,7 +40,10 @@ export const gameEventSchema = z.object({
 
 export const scheduledSubSchema = z.object({
   id: z.string().min(1),
-  timeSeconds: z.number().min(0),
+  // Integer constraint matches validateScheduledSubs (validation.ts):
+  // a backup with fractional timeSeconds would pass this schema but
+  // fail the next DataStore save, leaving the restored game unsavable.
+  timeSeconds: z.number().int().min(0),
   outPlayer: z.string().min(1),
   inPlayer: z.string().min(1),
   positionRole: z.string(),

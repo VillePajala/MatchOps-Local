@@ -60,6 +60,10 @@ export const aggregatePlanMinutes = (
       referencedPlayerIds: [],
     };
   }
+  // Sampled once: the editor replicates one PlanDraft across every game
+  // in a session at handleEditorSave, so startingXI size is stable
+  // across gameIds. If per-game drafts ever land, this needs to move
+  // into the gameIds loop and read each game's draft individually.
   const startingXISize = Object.keys(draft.startingXI).length;
   const totals = new Map<PlayerId, number>();
   let totalFieldSeconds = 0;

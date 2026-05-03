@@ -1035,6 +1035,13 @@ export class SyncedDataStore implements DataStore {
     // TODO(planner): add a dedicated SyncOpType for setActiveSession that
     // executes via the set_active_planning_session RPC, eliminating the
     // transient-double-active window even under offline-then-sync flows.
+    //
+    // Separately: the `before` read below is outside LocalDataStore's
+    // PLANNING_SESSIONS_KEY lock. A concurrent savePlanningSession
+    // between `before` and the setActiveSession call could produce a
+    // stale-diff entry in the sync queue. Single-user-single-tab usage
+    // makes this race effectively unreachable; documenting rather than
+    // restructuring LocalDataStore.setActiveSession to return the diff.
     const before = await this.localStore.getPlanningSessions(teamId);
     const result = await this.localStore.setActiveSession(
       sessionId,

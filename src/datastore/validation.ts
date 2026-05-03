@@ -239,6 +239,14 @@ export const validatePlanningSession = (
     );
   }
 
+  if (typeof session.isActive !== 'boolean') {
+    throw new ValidationError(
+      `${prefix}isActive must be a boolean`,
+      'isActive',
+      session.isActive,
+    );
+  }
+
   if (!Array.isArray(session.gameIds) || session.gameIds.length === 0) {
     throw new ValidationError(
       `${prefix}gameIds must be a non-empty array`,

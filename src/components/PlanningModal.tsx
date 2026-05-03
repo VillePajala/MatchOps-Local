@@ -572,6 +572,33 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // null but doesn't unmount), so explicit resets are required to
     // prevent stale banners / editingSession from leaking into the next
     // open. Shared with handleClose via resetEditorState.
+
+    // Stamp appliedAt on the session so the metadata reflects when the
+    // plan was last applied. Fire-and-forget — Apply has already
+    // succeeded against the games (the snapshot proves it), so a
+    // failure to update this metadata mustn't block the undo banner.
+    // Captured before resetEditorState() clears editingSession.
+    const sessionToStamp = editingSession;
+    if (sessionToStamp) {
+      saveSession
+        .mutateAsync({
+          id: sessionToStamp.id,
+          teamId: sessionToStamp.teamId,
+          name: sessionToStamp.name,
+          gameIds: sessionToStamp.gameIds,
+          draft: sessionToStamp.draft,
+          isActive: sessionToStamp.isActive,
+          appliedAt: new Date().toISOString(),
+          createdAt: sessionToStamp.createdAt,
+        })
+        .catch((err) => {
+          logger.warn(
+            '[PlanningModal] Failed to stamp appliedAt — Apply succeeded but metadata is stale',
+            err,
+          );
+        });
+    }
+
     if (snapshot && snapshot.games.length > 0) {
       // Full-success apply with at least one game mutated — switch the
       // modal into undo-banner mode instead of closing. Calling
