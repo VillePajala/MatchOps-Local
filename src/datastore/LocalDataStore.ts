@@ -2435,8 +2435,22 @@ export class LocalDataStore implements DataStore {
         { teamId, gameIds },
       );
     }
+    if (gameIds.length > 100) {
+      // Mirror migration 036's RPC cap: an unbounded gameIds array is a
+      // perf footgun (O(n*m) scope matching per session) and there's no
+      // realistic plan that needs >100 games. Enforce the same ceiling
+      // in both DataStores so the contract matches across modes.
+      throw new ValidationError(
+        'setActiveSession received too many gameIds (max 100)',
+        'gameIds',
+        { count: gameIds.length },
+      );
+    }
 
-    const targetKey = sortedGameIdsKey(gameIds);
+    // sortedGameIdsKey already sorts; the Set dedupes so callers passing
+    // duplicates (e.g. `[a, b, b]`) match the same scope as `[a, b]` —
+    // matches the canonical_game_ids handling in migration 036's RPC.
+    const targetKey = sortedGameIdsKey([...new Set(gameIds)]);
 
     return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
       const current = await this.loadPlanningSessions();
