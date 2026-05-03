@@ -204,6 +204,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [isApplying, setIsApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applyWarning, setApplyWarning] = useState<string | null>(null);
+  // When the warning path fires AFTER at least one game was successfully
+  // saved, the games are already mutated. Hold the snapshot here so the
+  // warning Done can hand it to the parent's undo flow — without it,
+  // partial successes have no rollback affordance.
+  const [warningSnapshot, setWarningSnapshot] = useState<ApplySnapshot | null>(null);
   // When non-null, the preview is shown and the pitch/Apply button
   // are gated behind it. Null = direct edit mode.
   const [previewDiffs, setPreviewDiffs] = useState<ApplyDiff[] | null>(null);
@@ -263,6 +268,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setPendingPresetId(null);
     setApplyError(null);
     setApplyWarning(null);
+    setWarningSnapshot(null);
   };
 
   const handlePresetChange = (id: string) => {
@@ -595,6 +601,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     }
     setApplyError(null);
     setApplyWarning(null);
+    setWarningSnapshot(null);
     try {
       const diffs: ApplyDiff[] = [];
       const missing: string[] = [];
@@ -632,6 +639,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setIsApplying(true);
     setApplyError(null);
     setApplyWarning(null);
+    setWarningSnapshot(null);
     let gamesWithUnknownPlayers = 0;
     let gamesWithUnknownRoles = 0;
     let gamesWithUnreachableSubs = 0;
@@ -734,6 +742,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           );
         }
         setApplyWarning(parts.join(' '));
+        // Capture the partial-success snapshot so the warning Done can
+        // hand it to the parent's undo flow. Without this, a warning
+        // that fires after some games already wrote leaves the coach
+        // with no rollback path.
+        if (snapshots.length > 0) {
+          setWarningSnapshot({ appliedAt: Date.now(), games: snapshots });
+        }
         return;
       }
       onApplied(
@@ -1089,11 +1104,12 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           <div className="flex justify-end mt-2">
             <button
               type="button"
-              // Warning-path Done: exits the warning view with no
-              // snapshot. The wrapping arrow is required so the click
-              // event isn't passed where onApplied expects an
-              // ApplySnapshot.
-              onClick={() => onApplied()}
+              // Warning-path Done: exits the warning view, handing
+              // any captured partial-success snapshot to the parent so
+              // the undo banner can offer rollback for the games that
+              // did write. Wrapping arrow keeps the click event from
+              // being passed where onApplied expects an ApplySnapshot.
+              onClick={() => onApplied(warningSnapshot ?? undefined, draft)}
               data-testid="planning-editor-warning-done"
               className="rounded-md bg-amber-500/90 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-amber-400"
             >

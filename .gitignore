@@ -99,3 +99,9 @@ local.properties
 
 # Supabase CLI local config
 supabase/.temp/
+
+# Preview-tinted PWA icons — regenerated on every preview build by
+# scripts/generate-manifest.mjs from the canonical icons; never needed
+# in master builds.
+/public/icons/icon-preview-192x192.png
+/public/icons/icon-preview-512x512.png

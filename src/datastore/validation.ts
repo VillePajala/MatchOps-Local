@@ -410,6 +410,37 @@ export const validatePlanningSession = (
       }
     });
 
+    // Per-draft uniqueness: a player must appear at most once across
+    // startingXI ∪ bench. applyDraftToGame intentionally does not
+    // dedupe playersOnField (planApply.ts contract), relying on the
+    // editor preventing this at write time. Backup / sync / direct
+    // upsert paths bypass the editor — without this check, a duplicate
+    // would silently produce two Player entries with the same id in
+    // playersOnField (Rule 3 violation downstream).
+    const xiIds = Object.values(pd.startingXI as Record<string, unknown>) as string[];
+    const benchIds = pd.bench as string[];
+    const seenPlayerIds = new Set<string>();
+    for (const id of xiIds) {
+      if (seenPlayerIds.has(id)) {
+        throw new ValidationError(
+          `${prefix}${draftPath}.startingXI duplicates playerId "${id}"`,
+          `${draftPath}.startingXI`,
+          id,
+        );
+      }
+      seenPlayerIds.add(id);
+    }
+    for (const id of benchIds) {
+      if (seenPlayerIds.has(id)) {
+        throw new ValidationError(
+          `${prefix}${draftPath} player "${id}" appears in both startingXI and bench`,
+          `${draftPath}.bench`,
+          id,
+        );
+      }
+      seenPlayerIds.add(id);
+    }
+
     if (!Array.isArray(pd.scheduledSubs)) {
       throw new ValidationError(
         `${prefix}${draftPath}.scheduledSubs must be an array`,

@@ -734,6 +734,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       // "Applied on X" badge for a plan that was effectively undone.
       // Fire-and-forget: the field is metadata-only, and the games are
       // already restored.
+      //
+      // Product semantic (decided in Finding 4 review): Apply *implicitly
+      // commits* the in-memory draft to the session row. Undo therefore
+      // reverts the games + clears appliedAt, but KEEPS the new draft —
+      // the user's edits are theirs to keep. If they want to revert the
+      // draft too, they navigate to a different session or close without
+      // saving (but Apply already saved). This means an "undone" session
+      // shows the new draft + no appliedAt; the next Apply re-stamps.
       const stamped = stampedSessionRef.current;
       if (stamped) {
         saveSession

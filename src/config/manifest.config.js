@@ -1,13 +1,20 @@
 // src/config/manifest.config.ts
 
 // Using 'export const' to ensure it can be imported by the build script.
-/** @type {Object.<string, {appName: string, shortName: string, iconPath: string, themeColor: string, displayMode: string}>} */
+//
+// `iconVariant` controls which icons the manifest references:
+//   - 'master'  → /icons/icon-{size}.png (the canonical production icon)
+//   - 'preview' → /icons/icon-preview-{size}.png (generated at build time
+//                 by generate-manifest.mjs from the master icons via a
+//                 hue rotation, so a coach with both versions installed
+//                 can tell them apart at a glance on the home screen)
+/** @type {Object.<string, {appName: string, shortName: string, iconVariant: 'master'|'preview', themeColor: string, displayMode: string}>} */
 export const manifestConfig = {
   // Config for the 'development' branch
   development: {
     appName: "MatchOps Local (Dev)",
     shortName: "MatchOps Dev",
-    iconPath: "/icons/icon-512x512.png", // New MatchOps icon
+    iconVariant: "preview",
     themeColor: "#4f46e5", // A distinct purple for dev
     displayMode: "standalone", // Match installed PWA manifest for update detection
   },
@@ -15,7 +22,7 @@ export const manifestConfig = {
   master: {
     appName: "MatchOps Local",
     shortName: "MatchOps Local",
-    iconPath: "/icons/icon-512x512.png",
+    iconVariant: "master",
     themeColor: "#1e293b", // Slate-800 to match top bar
     displayMode: "standalone", // Match installed PWA manifest for update detection
   },
@@ -23,8 +30,8 @@ export const manifestConfig = {
   default: {
     appName: "MatchOps Local (Preview)",
     shortName: "MatchOps Preview",
-    iconPath: "/icons/icon-512x512.png",
-    themeColor: "#1e293b", // Same as production for consistent appearance (preview indicator shown in Settings)
+    iconVariant: "preview",
+    themeColor: "#a855f7", // Purple to match the preview-tinted icon
     displayMode: "standalone", // Match installed PWA manifest for update detection
   },
 };

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 
 // This is a workaround to import from a TypeScript file in a Node script.
 // We are assuming the compiled output will be in a 'dist' or similar folder,
@@ -12,6 +13,41 @@ async function importManifestConfig() {
   return manifestConfig;
 }
 
+/**
+ * Generate hue-rotated copies of the master icons for preview branches.
+ * The output is identical in shape to the master icons but visibly
+ * different in color, so a coach with both production and preview PWAs
+ * installed can tell them apart at a glance.
+ *
+ * Files written: public/icons/icon-preview-192x192.png and
+ *                public/icons/icon-preview-512x512.png.
+ * These are git-ignored — regenerated on every preview build, never
+ * needed in master builds.
+ */
+async function generatePreviewIcons() {
+  const baseDir = path.join(process.cwd(), 'public', 'icons');
+  const sources = [
+    { in: 'icon-192x192.png', out: 'icon-preview-192x192.png' },
+    { in: 'icon-512x512.png', out: 'icon-preview-512x512.png' },
+  ];
+  for (const src of sources) {
+    const inPath = path.join(baseDir, src.in);
+    const outPath = path.join(baseDir, src.out);
+    if (!fs.existsSync(inPath)) {
+      console.warn(`  ⚠ Source icon ${src.in} missing; skipping preview variant`);
+      continue;
+    }
+    // 180° hue rotation flips the master icon's blue-leaning palette
+    // toward orange — a strong, monitor-independent signal that you're
+    // looking at a non-production install. modulate() preserves
+    // luminance and saturation, so detail and shape stay intact.
+    await sharp(inPath)
+      .modulate({ hue: 180 })
+      .toFile(outPath);
+    console.log(`  ✓ Generated ${src.out}`);
+  }
+}
+
 async function generateManifest() {
   const manifestConfig = await importManifestConfig();
   const branch = process.env.VERCEL_GIT_COMMIT_REF || 'development'; // Vercel's env var, fallback for local
@@ -20,6 +56,19 @@ async function generateManifest() {
 
   // Determine which configuration to use
   const config = manifestConfig[branch] || manifestConfig.default;
+
+  // Generate preview-tinted icons when this build is for a preview
+  // variant. Master builds use the canonical icons unchanged.
+  if (config.iconVariant === 'preview') {
+    console.log('Preview icon variant — generating tinted icons…');
+    await generatePreviewIcons();
+  }
+
+  // Branch-aware icon URLs. Preview builds reference the tinted PNGs
+  // produced above; master builds reference the canonical icons.
+  const iconBaseName = config.iconVariant === 'preview' ? 'icon-preview' : 'icon';
+  const icon192 = `/icons/${iconBaseName}-192x192.png`;
+  const icon512 = `/icons/${iconBaseName}-512x512.png`;
 
   const manifest = {
     "name": config.appName,
@@ -44,25 +93,25 @@ async function generateManifest() {
         "purpose": "any"
       },
       {
-        "src": "/icons/icon-192x192.png",
+        "src": icon192,
         "sizes": "192x192",
         "type": "image/png",
         "purpose": "any"
       },
       {
-        "src": "/icons/icon-192x192.png",
+        "src": icon192,
         "sizes": "192x192",
         "type": "image/png",
         "purpose": "maskable"
       },
       {
-        "src": "/icons/icon-512x512.png",
+        "src": icon512,
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "any"
       },
       {
-        "src": "/icons/icon-512x512.png",
+        "src": icon512,
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "maskable"
@@ -83,21 +132,21 @@ async function generateManifest() {
         "short_name": "Uusi",
         "description": "Aloita uusi peli",
         "url": "/?action=newGame",
-        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+        "icons": [{ "src": icon192, "sizes": "192x192" }]
       },
       {
         "name": "Pelaajatilastot",
         "short_name": "Tilastot",
         "description": "Näytä pelaajatilastot",
         "url": "/?action=stats",
-        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+        "icons": [{ "src": icon192, "sizes": "192x192" }]
       },
       {
         "name": "Kokoonpano",
         "short_name": "Pelaajat",
         "description": "Hallitse pelaajalistaa",
         "url": "/?action=roster",
-        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+        "icons": [{ "src": icon192, "sizes": "192x192" }]
       }
     ]
   };

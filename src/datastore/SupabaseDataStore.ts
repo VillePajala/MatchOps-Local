@@ -25,7 +25,7 @@ import type {
   PlayerStatAdjustment,
   PlanningSession,
 } from '@/types';
-import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog, ScheduledSub } from '@/types/game';
+import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
 import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
