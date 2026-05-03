@@ -1021,6 +1021,17 @@ export class SyncedDataStore implements DataStore {
     // the same state. We don't queue for sessions that didn't change
     // (handler is idempotent: sessions already in the desired isActive
     // state are returned as-is by LocalDataStore).
+    //
+    // Note: queued sync uses upsertPlanningSession (a direct row upsert),
+    // not the set_active_planning_session RPC (migration 033) that
+    // enforces single-active atomically server-side. If two activations
+    // happen offline and queue, the cloud briefly holds two is_active=true
+    // rows between queue entries before converging. Local-first semantics
+    // mean the user never sees this transient cloud state, and queue
+    // ordering produces the correct final state. Accepted trade-off:
+    // tightening this would require a dedicated sync executor path that
+    // routes 'planningSession activate' updates through the RPC, which
+    // is out of scope for the cutover.
     const before = await this.localStore.getPlanningSessions(teamId);
     const result = await this.localStore.setActiveSession(
       sessionId,

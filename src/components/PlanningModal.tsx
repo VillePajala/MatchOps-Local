@@ -221,6 +221,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const handleClose = () => {
+    // Mid-undo guard: if handleUndoConfirm's applyToGame loop is in
+    // flight, its closure-captured handlers will run after we'd reset.
+    // Letting close fall through here causes a double resetEditorState
+    // + double onClose. Mirror handleUndoExpire's guard.
+    if (isUndoingRef.current) return;
     resetImportState();
     resetEditorState();
     setPage('list');
@@ -240,6 +245,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       session.gameIds.length > 0
         ? session.draft[session.gameIds[0]]
         : undefined;
+    // Heterogeneous-draft detection: handleSavePlan replicates one draft
+    // across every gameId, so a session whose entries diverge can only
+    // come from external manipulation or a future per-game-divergence
+    // feature. Surface the inconsistency to logs rather than silently
+    // dropping the non-first drafts on reopen.
+    if (firstDraft && session.gameIds.length > 1) {
+      const refKey = JSON.stringify(firstDraft);
+      const heterogeneous = session.gameIds.slice(1).some(
+        (gid) => JSON.stringify(session.draft[gid]) !== refKey,
+      );
+      if (heterogeneous) {
+        logger.warn(
+          '[PlanningModal] Reopened session has heterogeneous per-game drafts; only the first will be loaded into the editor.',
+          { sessionId: session.id, gameIds: session.gameIds },
+        );
+      }
+    }
     if (!firstDraft) {
       // Surface the failure rather than silently no-op'ing — a missing
       // draft entry indicates a corrupt session that the user should know
@@ -442,7 +464,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           setListErrorMessage(
             t(
               'planningModal.activeToggleFailed',
-              'Could not change the active plan. Please try again.',
+              'Could not change the default plan. Please try again.',
             ),
           );
         },

@@ -25,6 +25,14 @@ export interface ApplySnapshot {
 // Shallow-clone existing arrays so future in-place mutations on the
 // live game can't retroactively corrupt the snapshot. undefined stays
 // undefined so undo is lossless.
+//
+// Caveat: only the *array* is cloned. Each Player inside playersOnField
+// is shared by reference with the live game state, including the relX /
+// relY coordinates that applyDraftToGame overwrites. React immutability
+// conventions in this codebase produce new Player objects rather than
+// mutating in place, so the snapshot stays correct. If a future caller
+// mutates a Player directly, captureApplyableFields needs to deep-clone
+// the array entries.
 export const captureApplyableFields = (game: AppState): ApplyableFields => ({
   playersOnField: game.playersOnField ? [...game.playersOnField] : undefined,
   selectedPlayerIds: game.selectedPlayerIds
