@@ -778,39 +778,45 @@ describe('PlanningEditor', () => {
     await waitFor(() => {
       expect(onApplied).toHaveBeenCalledTimes(1);
     });
-    // Both games receive the same scheduledSubs entry. outPlayer must
-    // resolve to role1's pre-sub occupant (p1 from makeGameWithLineup),
-    // proving the lazy outPlayer derivation in applyDraftToGame works
-    // through the full UI → engine → persist path.
+    // PR-A contract: per-game drafts. The sub was added on the active
+    // tab (g1) only — the timeline lives on g1's draft. g1 receives
+    // the sub; g2's draft is the game-derived default, so g2 receives
+    // an empty scheduledSubs. outPlayer on g1's sub must resolve to
+    // role1's pre-sub occupant (p1 from makeGameWithLineup), proving
+    // the lazy outPlayer derivation in applyDraftToGame works through
+    // the full UI → engine → persist path.
+    const callsByGameId = new Map<string, Partial<AppState>>();
     for (const call of applyToGame.mock.calls) {
-      const subs = call[1].scheduledSubs;
-      expect(subs).toHaveLength(1);
-      expect(subs[0]).toMatchObject({
-        timeSeconds: 480,
-        positionRole: role1,
-        inPlayer: 'p8',
-        outPlayer: 'p1',
-        status: 'pending',
-      });
+      callsByGameId.set(call[0] as string, call[1] as Partial<AppState>);
     }
+    expect(callsByGameId.get('g1')?.scheduledSubs).toHaveLength(1);
+    expect(callsByGameId.get('g1')?.scheduledSubs?.[0]).toMatchObject({
+      timeSeconds: 480,
+      positionRole: role1,
+      inPlayer: 'p8',
+      outPlayer: 'p1',
+      status: 'pending',
+    });
+    expect(callsByGameId.get('g2')?.scheduledSubs).toHaveLength(0);
   });
 
   it('Apply warning banner reports unreachable subs (sub past per-game end)', async () => {
-    // g1 is 40 min, g2 is 10 min. A sub at 14:00 reaches g1 but is
-    // past g2's end. We inject the sub directly via game1.scheduledSubs
-    // (hydrated into the draft) so the form-level min-duration guard
-    // doesn't block it; applyDraftToGame's per-game filter siphons it
-    // into g2's unreachableSubs and the banner surfaces the count.
+    // PR-A contract: per-game drafts. The unreachable-sub case fires
+    // when a SCHEDULED SUB inside a tab's own draft is past the
+    // tab's own game duration. We hydrate game1's draft from a
+    // saved game that has a 14:00 sub but only 10 minutes of total
+    // play time — applyDraftToGame's per-game filter siphons that
+    // sub into unreachableSubs and the banner surfaces the count.
     const roster = makeRoster(11);
     const role1 = (PRESET.roles ?? [])[1].name;
     const game1: AppState = {
       ...makeGameWithLineup(roster, ['p8']),
       numberOfPeriods: 2,
-      periodDurationMinutes: 20, // 40 min total
+      periodDurationMinutes: 5, // 10 min total — sub at 14:00 unreachable
       scheduledSubs: [
         {
           id: 's_far',
-          timeSeconds: 840, // 14:00 — reachable in g1 only
+          timeSeconds: 840, // 14:00 — past game1's 600s end
           outPlayer: 'p1',
           inPlayer: 'p8',
           positionRole: role1,
@@ -818,16 +824,11 @@ describe('PlanningEditor', () => {
         },
       ],
     } as AppState;
-    const game2: AppState = {
-      ...makeGameWithLineup(roster, ['p8']),
-      numberOfPeriods: 2,
-      periodDurationMinutes: 5, // 10 min total
-    } as AppState;
     const applyToGame = jest.fn().mockResolvedValue(undefined);
     const onApplied = jest.fn();
     renderEditor({
-      gameIds: ['g1', 'g2'],
-      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
       roster,
       applyToGame,
       onApplied,
@@ -840,9 +841,9 @@ describe('PlanningEditor', () => {
       screen.getByTestId('planning-editor-warning').textContent,
     ).toMatch(/could not be applied|joita ei voitu soveltaa/i);
     expect(onApplied).not.toHaveBeenCalled();
-    // Apply still ran for both games — the dropped sub doesn't
-    // prevent persistence of the lineup.
-    expect(applyToGame).toHaveBeenCalledTimes(2);
+    // Apply still ran — the dropped sub doesn't prevent persistence
+    // of the lineup itself.
+    expect(applyToGame).toHaveBeenCalledTimes(1);
   });
 
   it('Apply shows the warning banner and does not call onApplied when a game drops players or roles', async () => {
@@ -1412,7 +1413,12 @@ describe('PlanningEditor', () => {
       expect(call.sessionId).toBe('planningSession_existing');
       expect(call.name).toBe('My Plan');
       expect(call.gameIds).toEqual(['g1', 'g2']);
-      expect(call.draft).toBeDefined();
+      // PR-A: drafts is a per-game Record now (was `draft` single).
+      expect(call.drafts).toBeDefined();
+      expect(typeof call.drafts).toBe('object');
+      // includedGameIds carries the include-flag state (undefined =
+      // "all included", which is the default for a fresh session).
+      expect(call.includedGameIds).toBeUndefined();
       // Form closes on success.
       await waitFor(() => {
         expect(
@@ -1531,7 +1537,11 @@ describe('PlanningEditor', () => {
         fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
       });
       const call = onSavePlan.mock.calls[0][0];
-      expect(call.draft.presetId).toBe('11v11-4-3-3');
+      // PR-A: per-game drafts. Each tab's draft carries the active
+      // presetId so reopen renders the same role grid. With a single
+      // gameId, drafts has one entry keyed by that gameId.
+      const firstGid = call.gameIds[0];
+      expect(call.drafts[firstGid].presetId).toBe('11v11-4-3-3');
     });
   });
 

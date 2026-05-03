@@ -338,7 +338,7 @@ describe('Translation File Validation', () => {
       //   useImportedPlan, importedPlanDefaultName,
       //   importNoGamesError; removed obsolete importNoApply that
       //   was replaced by importNextStep in the success card).
-      expect(enKeys.length).toBe(2598);
+      expect(enKeys.length).toBe(2581);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -365,7 +365,7 @@ describe('Translation File Validation', () => {
       // Planner Phase 5e: +2 playerDetailsModal priority keys.
       // Planner Phase 5f: +2 priority-aware aria keys (chip + pill).
       // Planner Phase 5g: +3 net import handoff keys (see EN block).
-      expect(fiKeys.length).toBe(2598);
+      expect(fiKeys.length).toBe(2581);
     });
   });
 });

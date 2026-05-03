@@ -1485,30 +1485,39 @@ describe('PlanningModal', () => {
       ).toBeInTheDocument();
     });
 
-    it('shows an inline error when Open targets a corrupt session (no draft for first gameId)', () => {
-      // Synthesize a corrupt session: gameIds references "g1" but the
-      // draft map is empty. Without the inline-error fallback, Open
-      // would silently no-op and the user would think the click failed.
-      const corrupt = buildSession({
+    it('Open with empty draft map seeds tabs from game-derived defaults (per-game drafts contract)', () => {
+      // PR-A made per-game drafts the contract: a missing draft entry
+      // for a gameId is no longer "corrupt" — the editor seeds that
+      // tab from draftFromGame(savedGames[gid], preset) instead. Only
+      // empty `gameIds` is treated as corrupt (separate test below).
+      // This test pins the new permissive behavior so a future
+      // refactor doesn't regress and silently no-op the open.
+      const session = buildSession({
         id: 's1',
-        name: 'Corrupt session',
+        name: 'Empty draft map',
         gameIds: ['g1'],
         draft: {},
       });
-      setSessions([corrupt]);
-      renderModal();
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      setSessions([session]);
+      renderModal({ currentTeamId: 't1', savedGames });
 
       fireEvent.click(screen.getByTestId('planning-session-open-s1'));
 
-      // List error banner appears with the corrupt-open copy.
-      const banner = screen.getByTestId('planning-modal-list-error');
-      expect(banner).toHaveTextContent(
-        /Could not open this plan|Tämän suunnitelman avaaminen epäonnistui/i,
-      );
-      // Editor did NOT mount — saved-session list still rendered.
+      // Editor mounts (no list-error banner).
+      expect(screen.getByTestId('planning-editor')).toBeInTheDocument();
       expect(
-        screen.getByTestId('planning-modal-session-list'),
-      ).toBeInTheDocument();
+        screen.queryByTestId('planning-modal-list-error'),
+      ).not.toBeInTheDocument();
     });
 
     it('shows an inline error when the delete mutation rejects (PR 7c)', async () => {
