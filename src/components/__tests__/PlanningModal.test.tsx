@@ -310,35 +310,30 @@ describe('PlanningModal', () => {
         currentVersionName: null,
       },
     });
-    {
-      renderModal();
-      const file = fileFromText('plan.json', '{}'); // body irrelevant; spy intercepts
-      const input = screen.getByTestId(
-        'planning-modal-file-input',
-      ) as HTMLInputElement;
-      fireEvent.change(input, { target: { files: [file] } });
-      await waitFor(() => {
-        expect(
-          screen.getByText(/Plan imported|Suunnitelma tuotu/i),
-        ).toBeInTheDocument();
-      });
-      await act(async () => {
-        fireEvent.click(screen.getByTestId('planning-modal-import-use'));
-      });
-      // Inline role="alert" element renders next to the button.
-      const err = screen.getByTestId(
-        'planning-modal-import-handoff-error',
-      );
-      expect(err).toBeInTheDocument();
-      expect(err).toHaveAttribute('role', 'alert');
-      expect(err).toHaveTextContent(
-        /Imported plan has no games|Tuodussa suunnitelmassa ei ole pelejä/i,
-      );
-      // Picker is NOT entered — the handoff was rejected.
+    renderModal();
+    const file = fileFromText('plan.json', '{}'); // body irrelevant; mock intercepts
+    const input = screen.getByTestId(
+      'planning-modal-file-input',
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
       expect(
-        screen.queryByTestId('planning-game-picker'),
-      ).not.toBeInTheDocument();
-    }
+        screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+      ).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-modal-import-use'));
+    });
+    const err = screen.getByTestId('planning-modal-import-handoff-error');
+    expect(err).toBeInTheDocument();
+    expect(err).toHaveAttribute('role', 'alert');
+    expect(err).toHaveTextContent(
+      /Imported plan has no games|Tuodussa suunnitelmassa ei ole pelejä/i,
+    );
+    // Picker is NOT entered — the handoff was rejected.
+    expect(
+      screen.queryByTestId('planning-game-picker'),
+    ).not.toBeInTheDocument();
   });
 
   it('import → picker → Back → New Plan does not leak the import draft into the next flow', async () => {
@@ -383,25 +378,39 @@ describe('PlanningModal', () => {
       expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
     });
     // Back from picker → list.
-    fireEvent.click(screen.getByRole('button', { name: /back|takaisin/i }));
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /back|takaisin/i }),
+      );
+    });
     // Click New Plan to re-enter the picker (this is the path that
     // had been carrying pendingImport state into a fresh flow).
-    fireEvent.click(
-      screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
-    );
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+      );
+    });
     await waitFor(() => {
       expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
     });
     // Pick the saved game and continue into the editor.
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
-    fireEvent.click(screen.getByRole('button', { name: /continue|jatka/i }));
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /continue|jatka/i }),
+      );
+    });
     await waitFor(() => {
       expect(screen.getByTestId('planning-editor')).toBeInTheDocument();
     });
     // The Save form's name input would be pre-filled with
     // "Imported plan" if pendingImportName had leaked. Open the
     // form and assert it's empty.
-    fireEvent.click(screen.getByTestId('planning-editor-save'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+    });
     const nameInput = screen.getByTestId(
       'planning-editor-save-name',
     ) as HTMLInputElement;

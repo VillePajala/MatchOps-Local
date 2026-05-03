@@ -119,27 +119,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [listErrorMessage, setListErrorMessage] = useState<string | null>(
     null,
   );
-  // Pending standalone-import handoff. When the user clicks "Use this
-  // plan" on the import success card, the imported draft + preset +
-  // suggested name are stashed here and surfaced to the editor as
-  // initialDraft / initialPresetId / initialName once the user picks
-  // saved games via the picker. Cleared by resetEditorState (apply,
-  // dismiss, expire, close) — after a save, the state is shadowed
-  // by sessionFirstDraft taking priority and cleared on the next
-  // editor exit.
-  // All three use `undefined` (not `null`) as the empty value so they
-  // can flow straight into the editor's `PlanDraft | undefined` /
-  // `string | undefined` props with no coercion at the call site.
+  // Standalone-import handoff stash; cleared by resetPendingImport.
+  // `undefined` (not `null`) so values flow into the editor's
+  // `... | undefined` props with no coercion.
   const [pendingImportDraft, setPendingImportDraft] =
     useState<PlanDraft | undefined>(undefined);
   const [pendingImportPresetId, setPendingImportPresetId] =
     useState<string | undefined>(undefined);
   const [pendingImportName, setPendingImportName] =
     useState<string | undefined>(undefined);
-  // Inline error displayed within the import success card when
-  // handleUseImportedPlan rejects the envelope (e.g. zero games).
-  // Distinct from listErrorMessage — that banner sits on the list
-  // page and the user wouldn't see it from inside the import card.
+  // Inline alert beside the "Use this plan" button — distinct from
+  // listErrorMessage which sits on the list page.
   const [importHandoffError, setImportHandoffError] = useState<string | null>(
     null,
   );
@@ -523,10 +513,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       : undefined;
     setPendingImportDraft(draft);
     setPendingImportPresetId(presetMatch?.id);
-    // currentVersionName falls back to a generic "Imported plan" so
-    // the Save form has something predictable to render even when the
-    // standalone export omitted the version name.
     setPendingImportName(
+      // `||` (not `??`) intentional: an empty-string version name is
+      // as unusable as null for a plan, so both should fall through
+      // to the default.
       importedPlan.currentVersionName ||
         t('planningModal.importedPlanDefaultName', 'Imported plan'),
     );
