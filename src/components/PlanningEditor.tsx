@@ -707,7 +707,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           missing.push(id);
           continue;
         }
-        diffs.push(computeApplyDiff(id, game, draft, preset));
+        // Per-game draft for the diff. Pre-PR-A this used `draft`
+        // (the active-tab adapter), so the preview showed the active
+        // tab's diff for every game — misleading once tabs diverged.
+        // The actual Apply at handleApply already iterates per-game;
+        // align the preview here so the user sees what they'll get.
+        const draftForGame = drafts[id] ?? draftFromGame(game, preset);
+        diffs.push(computeApplyDiff(id, game, draftForGame, preset));
       }
       setPreviewDiffs(diffs);
       setMissingGameIds(missing);

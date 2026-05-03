@@ -1912,5 +1912,50 @@ describe('PlanningEditor', () => {
       ).toBeInTheDocument();
       expect(applyBtn).toBeDisabled();
     });
+
+    it('preview shows independent per-game diffs (PR-A regression)', async () => {
+      // Pass-12 review caught: handleStartApply's diff loop used `draft`
+      // (the active-tab adapter), so the preview rendered the active
+      // tab's diff for every game card. The actual Apply already used
+      // drafts[id] correctly. This test pins the preview fix.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster, ['p8']);
+      const game2 = makeGameWithLineup(roster, ['p9']);
+      const role1 = (PRESET.roles ?? [])[1].name;
+      const role2 = (PRESET.roles ?? [])[2].name;
+      // Build two clearly different drafts: g1 puts p8 at role1, g2
+      // puts p8 at role2. The preview cards should reflect each
+      // tab's own draft, not a shared one.
+      const drafts = {
+        g1: {
+          startingXI: { [role1]: 'p8' },
+          bench: [],
+          scheduledSubs: [],
+        },
+        g2: {
+          startingXI: { [role2]: 'p8' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      };
+      renderEditor({
+        applyToGame,
+        gameIds: ['g1', 'g2'],
+        savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+        roster,
+        enableApplyPreview: true,
+        initialDrafts: drafts,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      const card1 = screen.getByTestId('planning-apply-preview-card-g1');
+      const card2 = screen.getByTestId('planning-apply-preview-card-g2');
+      // Each card mentions ITS OWN role, not the other's. Pre-fix
+      // both cards would show whichever role the active tab carried.
+      expect(card1.textContent).toContain(role1);
+      expect(card1.textContent).not.toContain(role2);
+      expect(card2.textContent).toContain(role2);
+      expect(card2.textContent).not.toContain(role1);
+    });
   });
 });
