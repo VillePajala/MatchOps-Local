@@ -1950,12 +1950,15 @@ describe('PlanningEditor', () => {
       fireEvent.click(screen.getByTestId('planning-editor-apply'));
       const card1 = screen.getByTestId('planning-apply-preview-card-g1');
       const card2 = screen.getByTestId('planning-apply-preview-card-g2');
-      // Each card mentions ITS OWN role, not the other's. Pre-fix
-      // both cards would show whichever role the active tab carried.
-      expect(card1.textContent).toContain(role1);
-      expect(card1.textContent).not.toContain(role2);
-      expect(card2.textContent).toContain(role2);
-      expect(card2.textContent).not.toContain(role1);
+      // Each card adds p8 at ITS OWN role: g1 adds at role1, g2
+      // adds at role2. Pre-fix both cards would have shown the same
+      // "Add" entry (whichever role the active tab carried).
+      // Removals from each game's pre-state can mention the other
+      // role, so we anchor on the Add direction only.
+      expect(card1.textContent).toContain(`Add P8 at ${role1}`);
+      expect(card1.textContent).not.toContain(`Add P8 at ${role2}`);
+      expect(card2.textContent).toContain(`Add P8 at ${role2}`);
+      expect(card2.textContent).not.toContain(`Add P8 at ${role1}`);
     });
   });
 });
