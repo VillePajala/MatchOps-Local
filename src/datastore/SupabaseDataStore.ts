@@ -4471,7 +4471,11 @@ export class SupabaseDataStore implements DataStore {
         .from('planning_sessions')
         .upsert(
           this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
-          { onConflict: 'id' },
+          // Composite PK after migration 035 — no unique constraint on
+          // `id` alone after that migration runs, so onConflict must
+          // name both columns. Matches every other upsert in this file
+          // (Rule from migration 013: composite PK = composite onConflict).
+          { onConflict: 'user_id,id' },
         );
       throwIfTransient(result);
       return result;
@@ -4571,7 +4575,11 @@ export class SupabaseDataStore implements DataStore {
         .from('planning_sessions')
         .upsert(
           this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
-          { onConflict: 'id' },
+          // Composite PK after migration 035 — no unique constraint on
+          // `id` alone after that migration runs, so onConflict must
+          // name both columns. Matches every other upsert in this file
+          // (Rule from migration 013: composite PK = composite onConflict).
+          { onConflict: 'user_id,id' },
         );
       throwIfTransient(result);
       return result;

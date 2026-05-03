@@ -41,6 +41,26 @@ import { getPresetById } from '@/config/formationPresets';
 
 type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
 
+/**
+ * JSON.stringify with sorted keys at every object level. Used by the
+ * heterogeneous-draft detection in handleOpenSession: V8 preserves
+ * insertion order, but Postgres JSONB normalizes keys on write — so
+ * two structurally identical drafts can emit different strings after a
+ * cloud round-trip. Sorting before stringify makes the comparison
+ * structural, not insertion-order-dependent.
+ */
+const stableStringify = (value: unknown): string => {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys
+    .map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`)
+    .join(',')}}`;
+};
+
 // Guard against missing / malformed updatedAt; `new Date(<bad>)` would render as "Invalid Date".
 const formatSessionDate = (
   iso: string | undefined,
@@ -263,10 +283,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // come from external manipulation or a future per-game-divergence
     // feature. Surface the inconsistency to logs rather than silently
     // dropping the non-first drafts on reopen.
+    //
+    // Use a stable canonicalization (sort keys recursively) so a cloud
+    // round-trip that re-orders JSONB keys doesn't produce a false
+    // positive — V8's JSON.stringify preserves insertion order, but
+    // Postgres JSONB normalizes keys, so two structurally identical
+    // drafts may emit different strings without canonicalization.
     if (firstDraft && session.gameIds.length > 1) {
-      const refKey = JSON.stringify(firstDraft);
+      const refKey = stableStringify(firstDraft);
       const heterogeneous = session.gameIds.slice(1).some(
-        (gid) => JSON.stringify(session.draft[gid]) !== refKey,
+        (gid) => stableStringify(session.draft[gid]) !== refKey,
       );
       if (heterogeneous) {
         logger.warn(

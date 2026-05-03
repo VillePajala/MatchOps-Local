@@ -76,7 +76,11 @@ export function planDraftFromImport(
   const scheduledSubs = imported.scheduledSubs
     .map(({ id, timeSeconds, inPlayer, positionRole }) => ({
       id,
-      timeSeconds,
+      // Snap to whole seconds at the import boundary. validateScheduledSubs
+      // rejects fractional values at save time; clamping here surfaces
+      // the mismatch as a clean import rather than a confusing later
+      // save error. Math.max(0, ...) defends against negative drift.
+      timeSeconds: Math.max(0, Math.round(timeSeconds)),
       inPlayer,
       positionRole,
     }))
