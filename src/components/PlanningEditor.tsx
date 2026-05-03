@@ -147,7 +147,17 @@ function draftFromGame(
   if (!game) return { startingXI, bench: [], scheduledSubs: [] };
 
   for (const p of game.playersOnField ?? []) {
-    const role = roleForCoord(preset, p.relX ?? 0.5, p.relY ?? 0.5);
+    // A player with null/undefined coords has no anchored field
+    // position — falling back to (0.5, 0.5) would snap them to centre
+    // pitch and let `roleForCoord` assign whatever role lives there
+    // (typically a midfielder), silently misclassifying. Treat
+    // missing coords as bench instead; coaches can drag onto the
+    // pitch from the bench tray to confirm placement.
+    if (p.relX == null || p.relY == null) {
+      benchSet.add(p.id);
+      continue;
+    }
+    const role = roleForCoord(preset, p.relX, p.relY);
     if (role && !startingXI[role.name]) {
       startingXI[role.name] = p.id;
     } else {

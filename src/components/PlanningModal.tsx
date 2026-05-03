@@ -455,6 +455,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         // SupabaseDataStore.transformPlanningSessionToDb maps this to
         // SQL NULL, so the round-trip is preserved across both backends.
         appliedAt: undefined,
+        // includedGameIds intentionally omitted → resolves to NULL ("all
+        // included") on the duplicate. A coach duplicating a plan is
+        // typically branching to try a variant; carrying over per-game
+        // exclude flags from the source would be surprising. The user
+        // can re-apply excludes inside the editor.
+        includedGameIds: undefined,
       });
     } catch {
       setListErrorMessage(

@@ -22,19 +22,19 @@ export interface ApplySnapshot {
   games: ApplySnapshotEntry[];
 }
 
-// Shallow-clone existing arrays so future in-place mutations on the
+// Clone arrays + each Player object so future in-place mutations on the
 // live game can't retroactively corrupt the snapshot. undefined stays
 // undefined so undo is lossless.
 //
-// Caveat: only the *array* is cloned. Each Player inside playersOnField
-// is shared by reference with the live game state, including the relX /
-// relY coordinates that applyDraftToGame overwrites. React immutability
-// conventions in this codebase produce new Player objects rather than
-// mutating in place, so the snapshot stays correct. If a future caller
-// mutates a Player directly, captureApplyableFields needs to deep-clone
-// the array entries.
+// Each Player gets a shallow object clone — applyDraftToGame already
+// produces new Player objects today (via `{ ...player, relX, relY }`),
+// but a future caller mutating Player.relX/relY in place would otherwise
+// silently break undo without any test failure pointing at this file.
+// Cost is ~22 player objects per Apply, immeasurable.
 export const captureApplyableFields = (game: AppState): ApplyableFields => ({
-  playersOnField: game.playersOnField ? [...game.playersOnField] : undefined,
+  playersOnField: game.playersOnField
+    ? game.playersOnField.map((p) => ({ ...p }))
+    : undefined,
   selectedPlayerIds: game.selectedPlayerIds
     ? [...game.selectedPlayerIds]
     : undefined,

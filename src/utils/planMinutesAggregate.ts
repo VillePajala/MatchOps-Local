@@ -31,8 +31,14 @@ export interface PlanMinutesAggregate {
 
 /**
  * Aggregates per-player minutes across every game in the plan and
- * computes the fair-share target. The same draft applies to every
- * game, so per-player seconds scale with each game's duration.
+ * computes the fair-share target.
+ *
+ * Two call shapes via overload:
+ * 1. `(draft, gameIds, savedGames)` — single PlanDraft applies to
+ *    every game (legacy); per-player seconds scale with each game's
+ *    duration.
+ * 2. `(drafts, gameIds, savedGames)` — per-game Record<gameId, PlanDraft>;
+ *    each game uses its own draft (rebuild path).
  *
  * The fair-share denominator counts only players who actually take
  * the field for some non-zero time across the plan — matches the
@@ -44,11 +50,21 @@ export interface PlanMinutesAggregate {
  * Returns { perPlayer: [], referencedPlayerIds: [], ... } for empty
  * input rather than throwing.
  */
-export const aggregatePlanMinutes = (
+export function aggregatePlanMinutes(
+  draft: PlanDraft,
+  gameIds: string[],
+  savedGames: Record<string, AppState | undefined>,
+): PlanMinutesAggregate;
+export function aggregatePlanMinutes(
+  drafts: Record<string, PlanDraft>,
+  gameIds: string[],
+  savedGames: Record<string, AppState | undefined>,
+): PlanMinutesAggregate;
+export function aggregatePlanMinutes(
   draftOrDrafts: PlanDraft | Record<string, PlanDraft>,
   gameIds: string[],
   savedGames: Record<string, AppState | undefined>,
-): PlanMinutesAggregate => {
+): PlanMinutesAggregate {
   // Discriminator: a single PlanDraft has `startingXI`, `bench`,
   // `scheduledSubs` keys at the top level; a per-game Record has
   // gameId keys. The two can't collide because PlanDraft properties
@@ -126,7 +142,7 @@ export const aggregatePlanMinutes = (
     totalFieldSeconds,
     referencedPlayerIds,
   };
-};
+}
 
 /**
  * Maps a fair-share ratio to a discrete band. Color mapping is the

@@ -4425,6 +4425,14 @@ export class SupabaseDataStore implements DataStore {
       // a caller retaining the input and mutating draft[gameId].bench
       // after save would otherwise silently corrupt the stored value.
       draft: JSON.parse(JSON.stringify(session.draft)),
+      // Preserve undefined explicitly: transformPlanningSessionToDb only
+      // emits included_game_ids when defined, so undefined → NULL ("all
+      // included" semantic). Dropping this field would silently discard
+      // per-game include flags on every cloud save.
+      includedGameIds:
+        session.includedGameIds === undefined
+          ? undefined
+          : [...session.includedGameIds],
       isActive: session.isActive,
       appliedAt: session.appliedAt,
       createdAt: resolvedCreatedAt,
@@ -4533,6 +4541,14 @@ export class SupabaseDataStore implements DataStore {
       // path passes the same session into both stores, so mutations
       // by the caller after either upsert must not bleed across.
       draft: JSON.parse(JSON.stringify(session.draft)),
+      // Explicit clone parallels savePlanningSession + LocalDataStore.
+      // The shallow `...session` spread above would share the array
+      // reference, so a caller mutating session.includedGameIds after
+      // upsert could corrupt either store's view.
+      includedGameIds:
+        session.includedGameIds === undefined
+          ? undefined
+          : [...session.includedGameIds],
     };
 
     const { error } = await this.withRetry(async () => {
