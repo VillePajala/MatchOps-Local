@@ -296,7 +296,7 @@ describe('PlanningModal', () => {
     // handler's `if (!firstGame)` guard is defense-in-depth. To
     // exercise the inline alert path, stub the parser to return a
     // synthetic empty-games plan and drive the handoff click.
-    (parsePlanExport as jest.Mock).mockReturnValueOnce({
+    jest.mocked(parsePlanExport).mockReturnValueOnce({
       ok: true,
       plan: {
         formatVersion: PLAN_FORMAT_VERSION,
@@ -337,13 +337,12 @@ describe('PlanningModal', () => {
   });
 
   it('import → picker → Back → New Plan does not leak the import draft into the next flow', async () => {
-    // Regression for the handleNewPlan leak Claude flagged in
-    // pass 1: the pendingImport* fields must be cleared when a
-    // new flow is initiated. Drives import → "Use this plan" →
-    // picker → Back (to list) → "New plan" (to picker), then
-    // continues into the editor for a totally separate game and
-    // asserts the editor is open without the imported draft
-    // surfaced via initialName.
+    // Regression: pendingImport* must be cleared when a new flow
+    // is initiated, or the stale draft leaks into the next editor
+    // session. Drives import → "Use this plan" → picker → Back →
+    // "New plan" → picker → editor and asserts the Save form's
+    // name input is empty (would be pre-filled with "Imported
+    // plan" if pendingImportName had survived).
     renderModal({
       currentTeamId: 'team_a',
       savedGames: {
