@@ -1778,6 +1778,10 @@
   },
   "planningEditor": {
     "subtitle": "Aseta kokoonpano. Sovella-painike kirjoittaa sen jokaiseen suunnitelman peliin.",
+    "subtitlePerGame": "Suunnittele jokainen peli omalla välilehdellään. Sovella kirjoittaa kunkin välilehden omaan peliinsä.",
+    "tabsLabel": "Pelivälilehdet",
+    "tabGameLabel": "Peli {{n}}",
+    "tabIncludeLabel": "Sisällytä tämä peli yhteenlaskuihin",
     "formation": "Pelisysteemi",
     "gameCount_one": "{{count}} peli",
     "gameCount_other": "{{count}} peliä",

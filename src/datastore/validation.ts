@@ -15,6 +15,11 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 import logger from '@/utils/logger';
 
 const PLANNING_SESSION_NAME_MAX = 200;
+// Mirrors the cap enforced by LocalDataStore.setActiveSession AND
+// migration 036's RPC. Without this the validator silently accepts
+// sessions that fail at activation time, leaving the user with no
+// signal that the save itself was the problem.
+const PLANNING_SESSION_GAME_IDS_MAX = 100;
 
 const SCHEDULED_SUB_STATUSES: readonly ScheduledSubStatus[] = ['pending', 'fired', 'skipped'];
 
@@ -303,6 +308,13 @@ export const validatePlanningSession = (
       session.gameIds,
     );
   }
+  if (session.gameIds.length > PLANNING_SESSION_GAME_IDS_MAX) {
+    throw new ValidationError(
+      `${prefix}gameIds cannot exceed ${PLANNING_SESSION_GAME_IDS_MAX} entries (got ${session.gameIds.length})`,
+      'gameIds',
+      session.gameIds.length,
+    );
+  }
   const seenGameIds = new Set<string>();
   session.gameIds.forEach((gid, idx) => {
     if (!isNonEmptyString(gid)) {
@@ -321,6 +333,45 @@ export const validatePlanningSession = (
     }
     seenGameIds.add(gid);
   });
+
+  // includedGameIds: optional. When present, must be an array whose
+  // entries are a subset of gameIds. Empty array is allowed and means
+  // "no games included" — coach explicitly wants the dashboard to zero
+  // out. NULL/undefined means "all included" (resolveIncludedGameIds).
+  if (session.includedGameIds !== undefined) {
+    if (!Array.isArray(session.includedGameIds)) {
+      throw new ValidationError(
+        `${prefix}includedGameIds must be an array when present`,
+        'includedGameIds',
+        session.includedGameIds,
+      );
+    }
+    const seenIncluded = new Set<string>();
+    session.includedGameIds.forEach((gid, idx) => {
+      if (!isNonEmptyString(gid)) {
+        throw new ValidationError(
+          `${prefix}includedGameIds[${idx}] must be a non-empty string`,
+          `includedGameIds[${idx}]`,
+          gid,
+        );
+      }
+      if (!seenGameIds.has(gid)) {
+        throw new ValidationError(
+          `${prefix}includedGameIds[${idx}] "${gid}" is not in gameIds`,
+          `includedGameIds[${idx}]`,
+          gid,
+        );
+      }
+      if (seenIncluded.has(gid)) {
+        throw new ValidationError(
+          `${prefix}includedGameIds contains duplicate id "${gid}"`,
+          `includedGameIds[${idx}]`,
+          gid,
+        );
+      }
+      seenIncluded.add(gid);
+    });
+  }
 
   if (
     !session.draft ||

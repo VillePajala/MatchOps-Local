@@ -45,13 +45,35 @@ export interface PlanMinutesAggregate {
  * input rather than throwing.
  */
 export const aggregatePlanMinutes = (
-  draft: PlanDraft,
+  draftOrDrafts: PlanDraft | Record<string, PlanDraft>,
   gameIds: string[],
   savedGames: Record<string, AppState | undefined>,
 ): PlanMinutesAggregate => {
+  // Discriminator: a single PlanDraft has `startingXI`, `bench`,
+  // `scheduledSubs` keys at the top level; a per-game Record has
+  // gameId keys. The two can't collide because PlanDraft properties
+  // would be invalid gameIds (saved-game ids are timestamp-rand
+  // patterns, never lowercase property names like `startingXI`).
+  const isSingleDraft =
+    typeof (draftOrDrafts as PlanDraft).startingXI === 'object' &&
+    (draftOrDrafts as PlanDraft).startingXI !== null;
+  const draftFor = (gid: string): PlanDraft | undefined =>
+    isSingleDraft
+      ? (draftOrDrafts as PlanDraft)
+      : (draftOrDrafts as Record<string, PlanDraft>)[gid];
+
+  // Empty inputs short-circuit.
+  if (gameIds.length === 0) {
+    return {
+      perPlayer: [],
+      fairShareSeconds: 0,
+      totalFieldSeconds: 0,
+      referencedPlayerIds: [],
+    };
+  }
   if (
-    Object.keys(draft.startingXI).length === 0 ||
-    gameIds.length === 0
+    isSingleDraft &&
+    Object.keys((draftOrDrafts as PlanDraft).startingXI).length === 0
   ) {
     return {
       perPlayer: [],
@@ -60,11 +82,7 @@ export const aggregatePlanMinutes = (
       referencedPlayerIds: [],
     };
   }
-  // Sampled once: the editor replicates one PlanDraft across every game
-  // in a session at handleEditorSave, so startingXI size is stable
-  // across gameIds. If per-game drafts ever land, this needs to move
-  // into the gameIds loop and read each game's draft individually.
-  const startingXISize = Object.keys(draft.startingXI).length;
+
   const totals = new Map<PlayerId, number>();
   let totalFieldSeconds = 0;
   for (const gid of gameIds) {
@@ -72,6 +90,10 @@ export const aggregatePlanMinutes = (
     if (!game) continue;
     const dur = gameDurationSec(game);
     if (dur === 0) continue;
+    const draft = draftFor(gid);
+    if (!draft) continue;
+    const startingXISize = Object.keys(draft.startingXI).length;
+    if (startingXISize === 0) continue;
     totalFieldSeconds += dur * startingXISize;
     // computePlayerSeconds clamps subs to [0, dur] internally and
     // only inserts a player when they accumulate positive time, so a

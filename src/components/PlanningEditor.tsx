@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineArrowLeft,
@@ -54,28 +54,58 @@ export interface PlanningEditorProps {
    * warning paths don't carry a snapshot — the editor stays open with
    * the existing warning banner there.
    *
-   * The `appliedDraft` argument carries the in-memory PlanDraft that
-   * was just written to games. The parent persists it onto the saved
-   * session row alongside `appliedAt`, so a coach who edits a saved
-   * session and clicks Apply (without explicit Save) still ends up
-   * with the session row matching what was applied. Without this, the
-   * session metadata would lie ("applied at X" pointing at the
-   * pre-edit draft).
+   * The `appliedDrafts` argument carries the in-memory per-game
+   * PlanDraft Record that was just written to games — exactly what
+   * the editor had on the active tabs at Apply time. The parent
+   * persists it onto the saved session row alongside `appliedAt`, so
+   * a coach who edits a saved session and clicks Apply (without an
+   * explicit Save) still ends up with the session row matching what
+   * was applied to the games. Without this, the session metadata
+   * would lie about which drafts ran. `includedGameIds` carries the
+   * include-flag state for the same reason — apply implicitly commits
+   * the entire editor state, not just the lineup.
    */
-  onApplied: (snapshot?: ApplySnapshot, appliedDraft?: PlanDraft) => void;
+  onApplied: (
+    snapshot?: ApplySnapshot,
+    appliedDrafts?: Record<string, PlanDraft>,
+    includedGameIds?: string[],
+  ) => void;
   /** Persists one game's lineup; called once per `gameIds` entry on Apply. */
   applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
 
   // ── Reopen / Save flow ───────────────────────────────────────────────
   // When the editor is opened from a saved PlanningSession, the parent
   // hydrates these props so the user picks up where they left off.
-  /** Pre-existing draft (from a saved session). Overrides the game-derived default. */
+  /**
+   * Per-game pre-existing drafts (from a saved session) keyed by gameId.
+   * When supplied, the editor seeds each tab's draft from this map; any
+   * gameId NOT in the map falls back to draftFromGame(savedGames[gid]).
+   * Per-game divergence is the design intent — tabs are independent.
+   */
+  initialDrafts?: Record<string, PlanDraft>;
+  /**
+   * Back-compat: a single PlanDraft seeded onto every tab. Use only
+   * when the caller has one canonical lineup that should apply across
+   * games (e.g., legacy callers, the standalone-import handoff before
+   * gameIds[0] is selected). Prefer `initialDrafts` for per-game
+   * intent. If both are supplied, `initialDrafts` wins per-key and
+   * `initialDraft` fills in the remaining keys.
+   */
   initialDraft?: PlanDraft;
   /**
-   * Formation preset the draft was authored against. When provided,
+   * Per-game include-in-totals flags. `undefined` means "all included"
+   * (the default for new + legacy sessions). When non-undefined,
+   * gameIds not in the array are excluded from minutes aggregation.
+   */
+  initialIncludedGameIds?: string[];
+  /**
+   * Formation preset the drafts were authored against. When provided,
    * overrides the game-derived default — without this, reopening a
    * session can mis-render against a different preset and drop role
    * assignments whose role names don't exist in the new preset.
+   *
+   * Note: a single preset applies to all tabs in the current rebuild
+   * (Phase 1 of per-game-drafts). Per-tab presets is a future PR.
    */
   initialPresetId?: string;
   /** Pre-fills the Save form's name input; also displayed in the editor header. */
@@ -85,20 +115,19 @@ export interface PlanningEditorProps {
   /**
    * Save handler — called when the user submits the inline name form.
    * Implementations call `savePlanningSession` and either create or
-   * update based on whether `sessionId` is provided. The draft carries
-   * `presetId` so reopen can rehydrate the same role grid the user
-   * authored under.
+   * update based on whether `sessionId` is provided. `drafts` is the
+   * full per-game map exactly as the editor produced it; `includedGameIds`
+   * is the include-flag array (or undefined for "all included").
    *
    * Must return a Promise: the editor `await`s it to drive the
-   * isSaving spinner + close-on-success behavior, and a synchronous
-   * implementation could close the form before the persistence call
-   * settled.
+   * isSaving spinner + close-on-success behavior.
    */
   onSavePlan?: (data: {
     sessionId: string | undefined;
     name: string;
-    draft: PlanDraft;
+    drafts: Record<string, PlanDraft>;
     gameIds: string[];
+    includedGameIds: string[] | undefined;
   }) => Promise<void>;
 
   /**
@@ -161,7 +190,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   onBack,
   onApplied,
   applyToGame,
+  initialDrafts,
   initialDraft,
+  initialIncludedGameIds,
   initialPresetId,
   initialName,
   editingSessionId,
@@ -184,21 +215,67 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     );
   }, [firstGame]);
 
-  // Reopen path: explicit `initialPresetId` wins; the draft's own
-  // `presetId` annotation is the secondary source; the game-derived
-  // default is the fallback. If the saved id no longer exists in the
-  // registry (preset removed/renamed), fall through to the default.
+  // Reopen path: explicit `initialPresetId` wins; the first non-empty
+  // draft's own `presetId` annotation is the secondary source; the
+  // game-derived default is the fallback. If the saved id no longer
+  // exists in the registry (preset removed/renamed), fall through to
+  // the default.
   const [presetId, setPresetId] = useState<string>(() => {
-    const candidate = initialPresetId ?? initialDraft?.presetId;
+    const fromDraft = gameIds
+      .map((g) => initialDrafts?.[g]?.presetId)
+      .find((id): id is string => Boolean(id));
+    const candidate =
+      initialPresetId ?? fromDraft ?? initialDraft?.presetId;
     if (candidate && getPresetById(candidate)) return candidate;
     return defaultPreset.id;
   });
   const preset = getPresetById(presetId) ?? defaultPreset;
 
-  // Reopened sessions hydrate from the saved draft; fresh plans derive
-  // the starting XI from the first picked game's existing lineup.
-  const [draft, setDraft] = useState<PlanDraft>(
-    () => initialDraft ?? draftFromGame(firstGame, preset),
+  // Per-game drafts. Each picked gameId gets its own independent
+  // PlanDraft — the design intent of the planner is N-game tournaments
+  // where each game has its own lineup. Tabs (below) switch which
+  // game's draft is active for editing; `draft` and `setDraft` are
+  // adapters that read/write `drafts[selectedGameId]` so the rest of
+  // the editor logic continues to think it's editing one draft.
+  //
+  // Seed precedence per gameId:
+  //   1. initialDrafts[gid] (per-game session record on reopen)
+  //   2. initialDraft (back-compat single seed; same lineup on every tab)
+  //   3. draftFromGame(savedGames[gid], preset) (game-derived default)
+  const [drafts, setDrafts] = useState<Record<string, PlanDraft>>(() => {
+    const seeded: Record<string, PlanDraft> = {};
+    for (const gid of gameIds) {
+      seeded[gid] =
+        initialDrafts?.[gid] ??
+        initialDraft ??
+        draftFromGame(savedGames[gid], preset);
+    }
+    return seeded;
+  });
+  const [selectedGameId, setSelectedGameId] = useState<string>(
+    () => gameIds[0] ?? '',
+  );
+  // Per-game include-in-totals flags. `undefined` keeps the
+  // "all-included" default for new + legacy sessions; toggling the
+  // checkbox materializes the array.
+  const [includedGameIds, setIncludedGameIds] = useState<
+    string[] | undefined
+  >(initialIncludedGameIds);
+  // Adapter: existing logic that reads `draft` / writes via `setDraft`
+  // continues to work; the adapter routes the read/write to the active
+  // tab's slot in the drafts Record.
+  const draft = drafts[selectedGameId] ?? draftFromGame(savedGames[selectedGameId], preset);
+  const setDraft = useCallback(
+    (next: PlanDraft | ((prev: PlanDraft) => PlanDraft)) => {
+      setDrafts((prev) => {
+        const current =
+          prev[selectedGameId] ??
+          draftFromGame(savedGames[selectedGameId], preset);
+        const value = typeof next === 'function' ? (next as (p: PlanDraft) => PlanDraft)(current) : next;
+        return { ...prev, [selectedGameId]: value };
+      });
+    },
+    [selectedGameId, savedGames, preset],
   );
   const [selected, setSelected] = useState<SelectedSlot | null>(null);
   const [isApplying, setIsApplying] = useState(false);
@@ -565,14 +642,20 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setIsSaving(true);
     setSaveError(null);
     try {
-      // Stamp the current preset onto the draft so reopen restores the
-      // same role grid; role keys differ across presets (LM/RM vs LB/RB)
-      // and a mismatched preset would drop assignments.
+      // Stamp the current preset onto every per-game draft so reopen
+      // restores the same role grid; role keys differ across presets
+      // (LM/RM vs LB/RB) and a mismatched preset would drop assignments.
+      const stampedDrafts: Record<string, PlanDraft> = {};
+      for (const gid of gameIds) {
+        const d = drafts[gid] ?? draftFromGame(savedGames[gid], preset);
+        stampedDrafts[gid] = { ...d, presetId };
+      }
       await onSavePlan({
         sessionId: editingSessionId,
         name: trimmed,
-        draft: { ...draft, presetId },
+        drafts: stampedDrafts,
         gameIds,
+        includedGameIds,
       });
       setSavePlanName(null);
     } catch (err) {
@@ -669,8 +752,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             (game.periodDurationMinutes ?? 10) *
             60,
         );
+        // Per-game draft: each tab has its own. Falls back to the
+        // game-derived default for any gameId the editor never seeded
+        // (defensive — every gameId in `gameIds` is seeded at mount).
+        const draftForGame =
+          drafts[id] ?? draftFromGame(game, preset);
         const result = applyDraftToGame(
-          draft,
+          draftForGame,
           preset,
           game.availablePlayers,
           perGameDurationSec,
@@ -755,9 +843,12 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         snapshots.length > 0
           ? { appliedAt: Date.now(), games: snapshots }
           : undefined,
-        // Pass the draft that was just applied so the parent can
-        // persist it on the session row — Apply implicitly commits.
-        draft,
+        // Pass the per-game drafts that were just applied so the
+        // parent can persist them on the session row — Apply implicitly
+        // commits the editor state. Pass includedGameIds for the same
+        // reason: include flags are part of the editor state.
+        drafts,
+        includedGameIds,
       );
     } catch (err) {
       logger.error('[PlanningEditor] Apply failed', err);
@@ -824,6 +915,26 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const fieldPlayerCount = Object.keys(draft.startingXI).length;
   const targetPlayerCount = (preset.roles ?? []).length;
 
+  // Resolve included flags. `undefined` means "all included" (legacy
+  // semantic preserved on read; toggling materializes the array).
+  const isGameIncluded = useCallback(
+    (gid: string) =>
+      includedGameIds === undefined ? true : includedGameIds.includes(gid),
+    [includedGameIds],
+  );
+  const toggleGameIncluded = useCallback(
+    (gid: string) => {
+      setIncludedGameIds((prev) => {
+        const current = prev ?? [...gameIds];
+        const has = current.includes(gid);
+        const next = has ? current.filter((g) => g !== gid) : [...current, gid];
+        // Re-sort to match gameIds order so the array shape is stable.
+        return gameIds.filter((g) => next.includes(g));
+      });
+    },
+    [gameIds],
+  );
+
   return (
     <div className="space-y-4" data-testid="planning-editor">
       <div className="space-y-2">
@@ -837,12 +948,75 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           {t('common.backButton', 'Back')}
         </button>
         <p className="text-xs text-slate-400">
-          {t(
-            'planningEditor.subtitle',
-            'Set the lineup. Apply writes it to every game in the plan.',
-          )}
+          {gameIds.length > 1
+            ? t(
+                'planningEditor.subtitlePerGame',
+                'Plan each game on its own tab. Apply writes each tab to its game.',
+              )
+            : t(
+                'planningEditor.subtitle',
+                'Set the lineup. Apply writes it to every game in the plan.',
+              )}
         </p>
       </div>
+
+      {gameIds.length > 1 ? (
+        <div
+          className="flex flex-wrap items-center gap-1 overflow-x-auto"
+          role="tablist"
+          aria-label={t('planningEditor.tabsLabel', 'Game tabs')}
+          data-testid="planning-editor-game-tabs"
+        >
+          {gameIds.map((gid, idx) => {
+            const game = savedGames[gid];
+            const opponent = game?.opponentName ?? gid;
+            const included = isGameIncluded(gid);
+            const isActive = gid === selectedGameId;
+            return (
+              <div
+                key={gid}
+                className={[
+                  'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs select-none transition-opacity',
+                  isActive
+                    ? 'bg-emerald-700/60 border-emerald-500/60 text-emerald-50'
+                    : 'bg-slate-700/60 border-slate-600/60 text-slate-200 hover:bg-slate-700',
+                  included ? '' : 'opacity-55',
+                ].join(' ')}
+                data-testid={`planning-editor-game-tab-${gid}`}
+                data-active={isActive ? 'true' : 'false'}
+                data-included={included ? 'true' : 'false'}
+              >
+                <input
+                  type="checkbox"
+                  checked={included}
+                  onChange={() => toggleGameIncluded(gid)}
+                  className="h-3.5 w-3.5 cursor-pointer accent-emerald-500"
+                  title={t(
+                    'planningEditor.tabIncludeLabel',
+                    'Include this game in totals',
+                  )}
+                  data-testid={`planning-editor-game-tab-include-${gid}`}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSelectedGameId(gid)}
+                  className="flex flex-col items-start text-left leading-tight"
+                  role="tab"
+                  aria-selected={isActive}
+                >
+                  <span className="font-semibold">
+                    {t('planningEditor.tabGameLabel', 'Game {{n}}', { n: idx + 1 })}
+                  </span>
+                  <span className="text-[10px] opacity-80 truncate max-w-[140px]">
+                    {opponent}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <label className="flex items-center gap-2 text-slate-300">
@@ -1061,8 +1235,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       />
 
       <PlanningMinutesDashboard
-        draft={draft}
-        gameIds={gameIds}
+        draft={drafts}
+        gameIds={gameIds.filter(isGameIncluded)}
         savedGames={savedGames}
         roster={roster}
       />
@@ -1109,7 +1283,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               // the undo banner can offer rollback for the games that
               // did write. Wrapping arrow keeps the click event from
               // being passed where onApplied expects an ApplySnapshot.
-              onClick={() => onApplied(warningSnapshot ?? undefined, draft)}
+              onClick={() =>
+                onApplied(warningSnapshot ?? undefined, drafts, includedGameIds)
+              }
               data-testid="planning-editor-warning-done"
               className="rounded-md bg-amber-500/90 px-3 py-1 text-xs font-semibold text-slate-900 hover:bg-amber-400"
             >

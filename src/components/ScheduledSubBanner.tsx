@@ -39,7 +39,12 @@ const ScheduledSubBanner: React.FC<ScheduledSubBannerProps> = ({
         top: "12px",
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 9999,
+        // Sits one layer above modals (PlanningModal backdrop is z-[60]).
+        // Live-game banner is the highest-priority interruption; it must
+        // be visible even if a coach has the planner or stats modal
+        // open. 70 is the next conventional bucket above 60; the prior
+        // 9999 was disproportionate for a UI that sits one tier above.
+        zIndex: 70,
         width: "min(860px, calc(100vw - 24px))",
         pointerEvents: "auto",
         animation: "fadeSlideIn 0.3s ease-out",

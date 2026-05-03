@@ -172,11 +172,11 @@ export function applyDraftToGame(
       continue;
     }
     if (
-      // Production callers always pass Math.max(1, …) so 0 never
-      // reaches here; the `> 0` guard lets legacy / defensive
-      // callers signal "no duration check" by passing 0 or a
-      // negative value the same way `undefined` does.
-      typeof gameDurationSec === 'number' &&
+      // `> 0` lets callers signal "no duration check" by passing 0,
+      // a negative value, or `undefined` — all skip the unreachable
+      // gate. Production paths use `Math.max(1, …)` so legitimate
+      // games are bounded ≥ 1.
+      gameDurationSec != null &&
       gameDurationSec > 0 &&
       s.timeSeconds >= gameDurationSec
     ) {

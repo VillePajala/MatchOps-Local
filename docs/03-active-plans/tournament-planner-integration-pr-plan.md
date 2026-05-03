@@ -345,16 +345,28 @@ May fold into a later UX polish pass if not needed in MVP.
 - [ ] Manual smoke test on staging: Planning menu opens → game picker → editor → Apply → games updated. PlanningSession saves and reloads.
 - [ ] Manual smoke test on staging: live-match scheduled-sub banner fires.
 - [ ] Local mode parity confirmed (cloud features absent gracefully when in local mode).
-- [ ] All migrations 029, 030, ... applied to staging without error.
+- [ ] All nine migrations (028, 029, 030, 031, 032, 033, 034, 035, 036) applied to staging without error.
 - [ ] Standalone JSON envelope still imports correctly.
 
 ### Cutover steps (production)
 
+> **CRITICAL ORDERING:** Migration 035 promotes `planning_sessions` from `PRIMARY KEY (id)` to `(user_id, id)`, and the app code uses `{ onConflict: 'user_id,id' }` on every cloud save. Without 035 applied, the first cloud save throws a PostgREST constraint error. Apply migrations BEFORE letting cloud users reach the Planning feature, OR keep the modal gated behind a feature flag until verified.
+
 1. Merge `feature/planner-integration` → `master` (user, manual).
-2. Vercel auto-deploys to prod. Feature available, but new schema columns are still `null` (no migration applied yet).
-3. Apply migrations 029, 030, ... to prod via MCP `apply_migration` against `aybjmnxxtgspqesdiqxd`, in version order.
-4. Verify: a clean prod login → Planning menu → empty session list → import standalone export → save → reload → session reappears.
-5. Announce to coaches; deprecate the standalone Vercel URL ~2 weeks later.
+2. Vercel auto-deploys to prod. Feature available, but new schema columns are still `null` (no migration applied yet) — DO NOT let coaches open the Planning modal in cloud mode until step 3 completes.
+3. Apply migrations to prod via MCP `apply_migration` against `aybjmnxxtgspqesdiqxd`, in this order:
+   - 028 `fix_consent_rpc_ordering` (already on prod, will be idempotent no-op)
+   - 029 `scheduled_subs`
+   - 030 `save_game_rpc_scheduled_subs`
+   - 031 `planning_sessions`
+   - 032 `clear_user_data_include_planning_sessions`
+   - 033 `set_active_planning_session`
+   - 034 `add_player_is_priority`
+   - 035 `planning_sessions_composite_pk`
+   - 036 `set_active_planning_session_hardening`
+4. Run each verification SQL (`__tests__/*.verification.sql`) and confirm all assertions pass.
+5. Verify: a clean prod login → Planning menu → empty session list → import standalone export → save → reload → session reappears.
+6. Announce to coaches; deprecate the standalone Vercel URL ~2 weeks later.
 
 ---
 

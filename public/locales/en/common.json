@@ -1778,6 +1778,10 @@
   },
   "planningEditor": {
     "subtitle": "Set the lineup. Apply writes it to every game in the plan.",
+    "subtitlePerGame": "Plan each game on its own tab. Apply writes each tab to its game.",
+    "tabsLabel": "Game tabs",
+    "tabGameLabel": "Game {{n}}",
+    "tabIncludeLabel": "Include this game in totals",
     "formation": "Formation",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",

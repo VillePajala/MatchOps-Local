@@ -4559,6 +4559,13 @@ export class SupabaseDataStore implements DataStore {
 
   // Planning session transforms
   private transformPlanningSessionFromDb(row: PlanningSessionRow): PlanningSession {
+    // Cast row to unknown then to a shape that includes optional
+    // included_game_ids — column added in migration 037, so older
+    // generated DB types may not include it; older rows naturally have
+    // NULL which we read as undefined ("all included" semantics).
+    const rowWithIncluded = row as unknown as PlanningSessionRow & {
+      included_game_ids?: string[] | null;
+    };
     return {
       id: row.id,
       teamId: row.team_id,
@@ -4570,6 +4577,9 @@ export class SupabaseDataStore implements DataStore {
           : {},
       isActive: row.is_active ?? false,
       appliedAt: row.applied_at ?? undefined,
+      includedGameIds: Array.isArray(rowWithIncluded.included_game_ids)
+        ? [...rowWithIncluded.included_game_ids]
+        : undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -4588,9 +4598,17 @@ export class SupabaseDataStore implements DataStore {
       draft: session.draft as unknown as Json,
       is_active: session.isActive,
       applied_at: session.appliedAt ?? null,
+      // Pass through the include-flags array; NULL on the DB side means
+      // "all gameIds included" (resolveIncludedGameIds), so omit the
+      // column entirely when undefined rather than writing []. Cast
+      // through unknown for the same generated-types reason as the read
+      // path.
+      ...(session.includedGameIds !== undefined
+        ? { included_game_ids: [...session.includedGameIds] }
+        : {}),
       created_at: session.createdAt,
       updated_at: session.updatedAt,
-    };
+    } as unknown as PlanningSessionInsert;
   }
 
   // ==========================================================================

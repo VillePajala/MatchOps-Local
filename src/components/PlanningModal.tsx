@@ -41,26 +41,6 @@ import { getPresetById } from '@/config/formationPresets';
 
 type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
 
-/**
- * JSON.stringify with sorted keys at every object level. Used by the
- * heterogeneous-draft detection in handleOpenSession: V8 preserves
- * insertion order, but Postgres JSONB normalizes keys on write — so
- * two structurally identical drafts can emit different strings after a
- * cloud round-trip. Sorting before stringify makes the comparison
- * structural, not insertion-order-dependent.
- */
-const stableStringify = (value: unknown): string => {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(',')}]`;
-  }
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  return `{${keys
-    .map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`)
-    .join(',')}}`;
-};
-
 // Guard against missing / malformed updatedAt; `new Date(<bad>)` would render as "Invalid Date".
 const formatSessionDate = (
   iso: string | undefined,
@@ -188,6 +168,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     name: string;
     gameIds: string[];
     draft: PlanningSession['draft'];
+    includedGameIds: string[] | undefined;
     isActive: boolean;
     createdAt: string;
   } | null>(null);
@@ -209,12 +190,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // The editor pulls draft + presetId off this; deriving once keeps the
   // JSX clean. Mirrors the length-guard from handleOpenSession so a
   // malformed session (empty gameIds returned from a partial backend
-  // write into setEditingSession(saved)) silently hydrates with
-  // undefined rather than reading session.draft[undefined].
-  const sessionFirstDraft =
-    editingSession && editingSession.gameIds.length > 0
-      ? editingSession.draft[editingSession.gameIds[0]]
-      : undefined;
+  // Per-game drafts source for the editor: a reopened saved session
+  // hands the entire draft Record so each tab seeds from its own
+  // entry. A standalone-import handoff goes through `initialDraft`
+  // instead — back-compat path that seeds every tab with the single
+  // imported lineup, since the standalone exports one shared lineup
+  // and the user can per-tab divergence the result by hand.
+  const sessionDrafts: Record<string, PlanDraft> | undefined =
+    editingSession?.draft;
+  // First non-empty draft's presetId — used as the preset hint when
+  // none is explicit. Falls back to the import's preset when no
+  // session is loaded.
+  const sessionFirstDraft = sessionDrafts
+    ? Object.values(sessionDrafts).find((d): d is PlanDraft => Boolean(d))
+    : undefined;
 
   // Convert SavedGamesCollection to the picker's input shape.
   const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
@@ -291,42 +280,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // the first gameId's draft. PR 7d may relax this if per-game divergence
   // becomes a real product need.
   const handleOpenSession = (session: PlanningSession) => {
-    // Empty gameIds is corrupt-session territory — treat it the same as
-    // missing draft so the user gets explicit feedback rather than an
-    // empty editor.
-    const firstDraft: PlanDraft | undefined =
-      session.gameIds.length > 0
-        ? session.draft[session.gameIds[0]]
-        : undefined;
-    // Heterogeneous-draft detection: handleSavePlan replicates one draft
-    // across every gameId, so a session whose entries diverge can only
-    // come from external manipulation or a future per-game-divergence
-    // feature. Surface the inconsistency to logs rather than silently
-    // dropping the non-first drafts on reopen.
-    //
-    // Use a stable canonicalization (sort keys recursively) so a cloud
-    // round-trip that re-orders JSONB keys doesn't produce a false
-    // positive — V8's JSON.stringify preserves insertion order, but
-    // Postgres JSONB normalizes keys, so two structurally identical
-    // drafts may emit different strings without canonicalization.
-    if (firstDraft && session.gameIds.length > 1) {
-      const refKey = stableStringify(firstDraft);
-      const heterogeneous = session.gameIds.slice(1).some(
-        (gid) => stableStringify(session.draft[gid]) !== refKey,
-      );
-      if (heterogeneous) {
-        logger.warn(
-          '[PlanningModal] Reopened session has heterogeneous per-game drafts; only the first will be loaded into the editor.',
-          { sessionId: session.id, gameIds: session.gameIds },
-        );
-      }
-    }
-    if (!firstDraft) {
-      // Surface the failure rather than silently no-op'ing — a missing
-      // draft entry indicates a corrupt session that the user should know
-      // about so they can delete it and start over. Also clear any
-      // editingSession from a prior valid Open so stale state doesn't
-      // linger behind the error banner.
+    // Empty gameIds is corrupt-session territory — surface as a list
+    // error rather than silently opening an empty editor.
+    if (session.gameIds.length === 0) {
       setEditingSession(null);
       setListErrorMessage(
         t(
@@ -336,6 +292,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       );
       return;
     }
+    // Per-game drafts are the contract now. The editor seeds each
+    // tab from session.draft[gameId] (falling back to a game-derived
+    // default if a particular gameId is missing), so we don't need to
+    // pre-validate that gameIds[0] has an entry — the editor handles
+    // missing entries by deriving from savedGames[gid].
     resetImportState();
     // Clear any pending standalone-import handoff — otherwise an
     // import whose picker the user backed out of would leak its
@@ -365,8 +326,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const handleSavePlan = async (data: {
     sessionId: string | undefined;
     name: string;
-    draft: PlanDraft;
+    drafts: Record<string, PlanDraft>;
     gameIds: string[];
+    includedGameIds: string[] | undefined;
   }) => {
     // currentTeamId is gated upstream (onSavePlan is only wired when
     // it exists). If the gate is bypassed somehow (rapid sign-out
@@ -376,19 +338,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     if (!currentTeamId) {
       throw new Error('Cannot save planning session without a team scope');
     }
-    // The editor produces ONE PlanDraft applied to all picked games; the
-    // session entity stores draft per gameId. Deep-copy each entry so
-    // future per-game divergence won't accidentally mutate shared
-    // references. Shallow-copy at each layer is sufficient because
-    // DraftScheduledSub fields are all primitives — if a nested object
-    // ever gets added, this needs to recurse one level deeper.
-    const replicated: Record<string, PlanDraft> = {};
+    // Per-game drafts: each gameId persists its own PlanDraft. Deep-
+    // clone each entry so a caller that retains the input drafts and
+    // mutates after save can't corrupt the stored value (DataStores
+    // also clone defensively, but cloning at this layer keeps the
+    // contract obvious).
+    const cloned: Record<string, PlanDraft> = {};
     for (const gid of data.gameIds) {
-      replicated[gid] = {
-        ...data.draft,
-        startingXI: { ...data.draft.startingXI },
-        bench: [...data.draft.bench],
-        scheduledSubs: data.draft.scheduledSubs.map((s) => ({ ...s })),
+      const d = data.drafts[gid];
+      if (!d) continue;
+      cloned[gid] = {
+        ...d,
+        startingXI: { ...d.startingXI },
+        bench: [...d.bench],
+        scheduledSubs: d.scheduledSubs.map((s) => ({ ...s })),
       };
     }
     const saved = await saveSession.mutateAsync({
@@ -396,7 +359,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       teamId: currentTeamId,
       name: data.name,
       gameIds: [...data.gameIds],
-      draft: replicated,
+      draft: cloned,
+      includedGameIds: data.includedGameIds,
       isActive: editingSession?.isActive ?? false,
       appliedAt: editingSession?.appliedAt,
       createdAt: editingSession?.createdAt,
@@ -613,36 +577,47 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage(editorEntryPage);
   };
 
-  const handleEditorApplied = (snapshot?: ApplySnapshot, appliedDraft?: PlanDraft) => {
+  const handleEditorApplied = (
+    snapshot?: ApplySnapshot,
+    appliedDrafts?: Record<string, PlanDraft>,
+    appliedIncludedGameIds?: string[],
+  ) => {
     // The modal stays mounted across opens (`isOpen={false}` early-returns
     // null but doesn't unmount), so explicit resets are required to
     // prevent stale banners / editingSession from leaking into the next
     // open. Shared with handleClose via resetEditorState.
 
-    // Stamp appliedAt + the just-applied draft on the session so the
-    // metadata reflects what was actually applied. Apply implicitly
-    // commits: a coach who edits a saved session and clicks Apply
-    // (without an explicit Save) still ends up with the session row
-    // matching the games' new state. Fire-and-forget — Apply already
-    // succeeded against the games (snapshot proves it); a failed
-    // metadata stamp must not block the undo banner.
+    // Stamp appliedAt + the just-applied per-game drafts on the session
+    // so the metadata reflects what was actually applied. Apply
+    // implicitly commits: a coach who edits a saved session and clicks
+    // Apply (without an explicit Save) still ends up with the session
+    // row matching the games' new state. Fire-and-forget — Apply
+    // already succeeded against the games (snapshot proves it); a
+    // failed metadata stamp must not block the undo banner.
     // Only stamps when we have a real snapshot (the warning-path Done
     // calls onApplied() with no args).
     const sessionToStamp = editingSession;
     if (sessionToStamp && snapshot && snapshot.games.length > 0) {
-      // Replicate the in-memory draft across every gameId — same shape
-      // the editor produces from handleSavePlan.
-      const replicatedDraft = appliedDraft
+      // Per-game drafts: clone each entry so a caller mutating after
+      // save can't corrupt the stored value. If onApplied didn't pass
+      // drafts (defensive — shouldn't happen with current editor),
+      // fall through with the existing session.draft.
+      const cloned: Record<string, PlanDraft> = appliedDrafts
         ? Object.fromEntries(
-            sessionToStamp.gameIds.map((gid) => [
-              gid,
-              {
-                ...appliedDraft,
-                startingXI: { ...appliedDraft.startingXI },
-                bench: [...appliedDraft.bench],
-                scheduledSubs: appliedDraft.scheduledSubs.map((s) => ({ ...s })),
-              },
-            ]),
+            sessionToStamp.gameIds
+              .filter((gid) => appliedDrafts[gid] !== undefined)
+              .map((gid) => {
+                const d = appliedDrafts[gid];
+                return [
+                  gid,
+                  {
+                    ...d,
+                    startingXI: { ...d.startingXI },
+                    bench: [...d.bench],
+                    scheduledSubs: d.scheduledSubs.map((s) => ({ ...s })),
+                  },
+                ];
+              }),
           )
         : sessionToStamp.draft;
       // Capture so the Undo path can clear appliedAt on full rollback.
@@ -651,7 +626,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         teamId: sessionToStamp.teamId,
         name: sessionToStamp.name,
         gameIds: sessionToStamp.gameIds,
-        draft: replicatedDraft,
+        draft: cloned,
+        includedGameIds:
+          appliedIncludedGameIds ?? sessionToStamp.includedGameIds,
         isActive: sessionToStamp.isActive,
         createdAt: sessionToStamp.createdAt,
       };
@@ -661,7 +638,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           teamId: sessionToStamp.teamId,
           name: sessionToStamp.name,
           gameIds: sessionToStamp.gameIds,
-          draft: replicatedDraft,
+          draft: cloned,
+          includedGameIds:
+            appliedIncludedGameIds ?? sessionToStamp.includedGameIds,
           isActive: sessionToStamp.isActive,
           appliedAt: new Date().toISOString(),
           createdAt: sessionToStamp.createdAt,
@@ -1332,10 +1311,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   onBack={handleEditorBack}
                   onApplied={handleEditorApplied}
                   applyToGame={applyToGame}
-                  // Three initial-state sources, checked in priority
-                  // order: reopen of an existing session, then the
-                  // standalone-import handoff, then game-derived default.
-                  initialDraft={sessionFirstDraft ?? pendingImportDraft}
+                  // Per-game initial drafts come from a reopened session
+                  // (full Record). For an import handoff (single
+                  // imported lineup applied across every tab), use
+                  // the back-compat `initialDraft` prop — the editor
+                  // seeds every tab with that draft, and the coach can
+                  // diverge per-tab from there.
+                  initialDrafts={sessionDrafts}
+                  initialDraft={
+                    sessionDrafts ? undefined : pendingImportDraft
+                  }
+                  initialIncludedGameIds={editingSession?.includedGameIds}
                   // Preset is stored on the draft so reopen renders the
                   // SAME role grid the user authored under — role keys
                   // differ across presets (LM/RM vs LB/RB), so a

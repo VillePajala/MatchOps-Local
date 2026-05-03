@@ -13,7 +13,13 @@ import {
 import { formatMMSS } from '@/utils/planFormatters';
 
 export interface PlanningMinutesDashboardProps {
-  draft: PlanDraft;
+  /**
+   * Either a single PlanDraft (legacy: same lineup across every gameId)
+   * or a per-game Record (rebuild: each game has its own draft).
+   * `aggregatePlanMinutes` discriminates internally and reads the
+   * right entry per gameId.
+   */
+  draft: PlanDraft | Record<string, PlanDraft>;
   gameIds: string[];
   savedGames: SavedGamesCollection;
   roster: Player[];

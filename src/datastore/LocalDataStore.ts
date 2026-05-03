@@ -2385,6 +2385,12 @@ export class LocalDataStore implements DataStore {
         draft: JSON.parse(JSON.stringify(session.draft)),
         isActive: session.isActive,
         appliedAt: session.appliedAt,
+        // Preserve undefined as undefined ("all gameIds included" per
+        // resolveIncludedGameIds); otherwise clone the array.
+        includedGameIds:
+          session.includedGameIds === undefined
+            ? undefined
+            : [...session.includedGameIds],
         createdAt:
           session.createdAt ??
           (existingIndex !== -1 ? current[existingIndex].createdAt : now),
@@ -2519,6 +2525,10 @@ export class LocalDataStore implements DataStore {
         // remoteStore.upsertPlanningSession, so a caller that mutates
         // the input afterwards must not corrupt either store's copy.
         draft: JSON.parse(JSON.stringify(session.draft)),
+        includedGameIds:
+          session.includedGameIds === undefined
+            ? undefined
+            : [...session.includedGameIds],
         createdAt:
           session.createdAt ??
           (existingIndex !== -1 ? current[existingIndex].createdAt : now),

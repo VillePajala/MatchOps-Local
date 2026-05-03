@@ -54,6 +54,33 @@ export interface PlanningSession {
   isActive: boolean;
   /** ISO timestamp of the most recent Apply, or undefined if never applied. */
   appliedAt?: string;
+  /**
+   * Per-game include-in-totals flags. Drives which games the minutes
+   * dashboard aggregates over.
+   *
+   * - `undefined` (default for legacy sessions and brand-new sessions) is
+   *   read as "all gameIds included" — the most-permissive interpretation.
+   * - An array enumerates the included subset; gameIds not in the array
+   *   are excluded from minutes/fairness calculations but still saved
+   *   and applyable.
+   *
+   * Schema: nullable `text[]` column added in migration 037; absent on
+   * cloud rows that predate 037.
+   */
+  includedGameIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Default include-resolution: NULL/undefined means "all gameIds".
+ * Centralised so every aggregator agrees on the legacy semantic.
+ */
+export const resolveIncludedGameIds = (
+  session: Pick<PlanningSession, 'gameIds' | 'includedGameIds'>,
+): string[] => {
+  if (session.includedGameIds === undefined) return [...session.gameIds];
+  // Filter to gameIds actually on the session — guards against drift.
+  const set = new Set(session.includedGameIds);
+  return session.gameIds.filter((g) => set.has(g));
+};
