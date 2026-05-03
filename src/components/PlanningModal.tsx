@@ -36,6 +36,7 @@ import {
   useSetActiveSessionMutation,
 } from '@/hooks/usePlanningSessionQueries';
 import type { PlanDraft } from '@/utils/planSwapEngine';
+import { getPresetById } from '@/config/formationPresets';
 
 type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
 
@@ -118,6 +119,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [listErrorMessage, setListErrorMessage] = useState<string | null>(
     null,
   );
+  // Standalone-import handoff stash; cleared by resetPendingImport.
+  // `undefined` (not `null`) so values flow into the editor's
+  // `... | undefined` props with no coercion.
+  const [pendingImportDraft, setPendingImportDraft] =
+    useState<PlanDraft | undefined>(undefined);
+  const [pendingImportPresetId, setPendingImportPresetId] =
+    useState<string | undefined>(undefined);
+  const [pendingImportName, setPendingImportName] =
+    useState<string | undefined>(undefined);
+  // Inline alert beside the "Use this plan" button — distinct from
+  // listErrorMessage which sits on the list page.
+  const [importHandoffError, setImportHandoffError] = useState<string | null>(
+    null,
+  );
   // Post-apply undo state. Snapshot held for the UNDO_WINDOW_MS span;
   // banner is rendered when page === 'undoBanner'. Cleared on undo
   // success, dismiss, expire, or modal close.
@@ -178,6 +193,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // Shared reset for every path that returns the modal to the list page.
   // Extracted so adding new state to the modal can't drift between
   // handleClose / handleEditorApplied / similar callers.
+  // Centralized clear for the standalone-import handoff state. Shared
+  // by resetEditorState (full editor exits) and the open-existing-
+  // session path (which needs to drop pending-import remnants without
+  // touching unrelated editor state like undo snapshots).
+  const resetPendingImport = () => {
+    setPendingImportDraft(undefined);
+    setPendingImportPresetId(undefined);
+    setPendingImportName(undefined);
+    setImportHandoffError(null);
+  };
+
   const resetEditorState = () => {
     setEditorGameIds([]);
     setPendingDeleteId(null);
@@ -190,6 +216,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setIsUndoing(false);
     isUndoingRef.current = false;
     setUndoCursor(0);
+    resetPendingImport();
   };
 
   const handleClose = () => {
@@ -228,6 +255,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       return;
     }
     resetImportState();
+    // Clear any pending standalone-import handoff — otherwise an
+    // import whose picker the user backed out of would leak its
+    // pendingImportPresetId into the reopen path, and a session
+    // whose draft has no presetId would silently render against
+    // the import's preset (the second `??` in the editor's
+    // initialPresetId chain wins when sessionFirstDraft.presetId
+    // is undefined).
+    resetPendingImport();
     setListErrorMessage(null);
     // Clear any half-confirmed delete from the list — without this, a
     // user who clicks Delete on session A, then Open on session B,
@@ -416,11 +451,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   const handleNewPlan = () => {
     resetImportState();
-    setEditingSession(null);
-    // Clear the list-error banner so a stale "could not delete" or
-    // "could not open" doesn't follow the user into the picker → editor
-    // flow and reappear when they navigate back.
-    setListErrorMessage(null);
+    // resetEditorState clears every editor-adjacent state field
+    // (editingSession, listErrorMessage, pendingImport*, undo*).
+    // Without it, an import whose picker the user backed out of
+    // would leak pendingImportDraft into the next New Plan flow
+    // and inject the stale draft into a brand-new editor session.
+    resetEditorState();
     setPage('picker');
   };
 
@@ -431,6 +467,64 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setEditorGameIds(gameIds);
     setEditorEntryPage('picker');
     setPage('editor');
+  };
+
+  // Hands an imported standalone plan off to the editor: derive a
+  // PlanDraft from the first imported game's startingXI + scheduledSubs
+  // (the editor uses one shared draft across the picked games), stash
+  // the suggested name + preset, then route to the picker so the user
+  // binds the imported plan to actual saved games. Save creates the
+  // PlanningSession via the existing handleSavePlan flow.
+  const handleUseImportedPlan = () => {
+    if (!importedPlan) return;
+    setImportHandoffError(null);
+    const firstGame = importedPlan.games[0];
+    if (!firstGame) {
+      // parsePlanExport already rejects zero-game envelopes, so this
+      // is defense-in-depth. Inline to the success card so the user
+      // sees the failure next to the button they just pressed.
+      setImportHandoffError(
+        t(
+          'planningModal.importNoGamesError',
+          'Imported plan has no games. Pick a different file.',
+        ),
+      );
+      return;
+    }
+    const draft: PlanDraft = {
+      startingXI: { ...firstGame.startingXI },
+      // Bench is empty — the editor derives it from each saved game's
+      // selectedPlayerIds at open time. The map below projects the
+      // imported ScheduledSub down to DraftScheduledSub, dropping
+      // outPlayer (computed lazily by the swap engine at apply time)
+      // and status (defaults to 'pending').
+      bench: [],
+      scheduledSubs: firstGame.scheduledSubs.map((s) => ({
+        id: s.id,
+        timeSeconds: s.timeSeconds,
+        inPlayer: s.inPlayer,
+        positionRole: s.positionRole,
+      })),
+    };
+    // Only carry the formationId if it resolves to a known preset; an
+    // unknown id would fail the editor's preset lookup silently.
+    const presetMatch = importedPlan.formationId
+      ? getPresetById(importedPlan.formationId)
+      : undefined;
+    setPendingImportDraft(draft);
+    setPendingImportPresetId(presetMatch?.id);
+    setPendingImportName(
+      // `||` (not `??`) intentional: an empty-string version name is
+      // as unusable as null for a plan, so both should fall through
+      // to the default.
+      importedPlan.currentVersionName ||
+        t('planningModal.importedPlanDefaultName', 'Imported plan'),
+    );
+    // Clear the import banner so the user sees the picker, not a
+    // stale success card from the previous step.
+    resetImportState();
+    setPage('picker');
+    setEditorEntryPage('picker');
   };
 
   const handleEditorBack = () => {
@@ -967,10 +1061,32 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                       </ul>
                       <p className="text-xs text-emerald-200/80 pt-2">
                         {t(
-                          'planningModal.importNoApply',
-                          'Apply-to-games lands in a later phase. The plan is currently in memory only.',
+                          'planningModal.importNextStep',
+                          'Pick the saved games to bind this plan to, then Save to create a planning session.',
                         )}
                       </p>
+                      {importHandoffError && (
+                        <p
+                          role="alert"
+                          className="text-xs text-rose-200"
+                          data-testid="planning-modal-import-handoff-error"
+                        >
+                          {importHandoffError}
+                        </p>
+                      )}
+                      <div className="flex justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={handleUseImportedPlan}
+                          data-testid="planning-modal-import-use"
+                          className="rounded-md bg-emerald-500/90 px-3 py-1.5 text-sm font-semibold text-slate-900 shadow hover:bg-emerald-400"
+                        >
+                          {t(
+                            'planningModal.useImportedPlan',
+                            'Use this plan →',
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -1058,16 +1174,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   onBack={handleEditorBack}
                   onApplied={handleEditorApplied}
                   applyToGame={applyToGame}
-                  // When the user picked an existing session via Open,
-                  // hydrate the editor; otherwise these are undefined and
-                  // the editor falls back to its game-derived initial state.
-                  initialDraft={sessionFirstDraft}
+                  // Three initial-state sources, checked in priority
+                  // order: reopen of an existing session, then the
+                  // standalone-import handoff, then game-derived default.
+                  initialDraft={sessionFirstDraft ?? pendingImportDraft}
                   // Preset is stored on the draft so reopen renders the
                   // SAME role grid the user authored under — role keys
                   // differ across presets (LM/RM vs LB/RB), so a
                   // mismatched preset would drop assignments.
-                  initialPresetId={sessionFirstDraft?.presetId}
-                  initialName={editingSession?.name}
+                  initialPresetId={
+                    sessionFirstDraft?.presetId ?? pendingImportPresetId
+                  }
+                  initialName={editingSession?.name ?? pendingImportName}
                   editingSessionId={editingSession?.id}
                   // currentTeamId required for Save (the entity is
                   // team-scoped). When absent, Save button is hidden —

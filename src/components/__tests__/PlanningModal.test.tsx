@@ -4,9 +4,21 @@ import '@testing-library/jest-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../i18n.test';
 import PlanningModal from '../PlanningModal';
+// Mock parsePlanExport with a jest.fn that delegates to the real
+// implementation by default; individual tests can mockReturnValueOnce
+// to bypass validation and exercise downstream defense-in-depth
+// guards (e.g. an empty-games envelope).
+jest.mock('@/utils/planExport', () => {
+  const actual = jest.requireActual('@/utils/planExport');
+  return {
+    ...actual,
+    parsePlanExport: jest.fn(actual.parsePlanExport),
+  };
+});
 import {
   PLAN_FORMAT_VERSION,
   PLAN_EXPORT_KIND,
+  parsePlanExport,
 } from '@/utils/planExport';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { PlanningSession } from '@/types';
@@ -234,6 +246,174 @@ describe('PlanningModal', () => {
     });
     expect(screen.getByText(/Pepo U10/)).toBeInTheDocument();
     expect(screen.getByText(/8v8-2-1-2-1-1/)).toBeInTheDocument();
+  });
+
+  it('"Use this plan" hands off to the picker and clears the import banner', async () => {
+    // Phase 5g — import → picker → editor → save creates a
+    // PlanningSession via the existing handleSavePlan flow. This test
+    // pins the picker handoff: button click navigates to the picker,
+    // import success card is gone, and the picker is rendering.
+    renderModal({
+      savedGames: {
+        g1: asSavedGame({
+          teamId: 'team_a',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+      },
+    });
+    const file = fileFromText(
+      'plan.json',
+      JSON.stringify(validEnvelope()),
+    );
+    const input = screen.getByTestId(
+      'planning-modal-file-input',
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+      ).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-modal-import-use'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('planning-game-picker'),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(/Plan imported|Suunnitelma tuotu/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('"Use this plan" with a 0-game envelope renders the inline handoff error', async () => {
+    // parsePlanExport rejects 0-game envelopes upfront, so the
+    // handler's `if (!firstGame)` guard is defense-in-depth. To
+    // exercise the inline alert path, stub the parser to return a
+    // synthetic empty-games plan and drive the handoff click.
+    jest.mocked(parsePlanExport).mockReturnValueOnce({
+      ok: true,
+      plan: {
+        formatVersion: PLAN_FORMAT_VERSION,
+        kind: PLAN_EXPORT_KIND,
+        savedAt: '2026-04-28T12:00:00.000Z',
+        teamName: 'Pepo U10',
+        formationId: '8v8-2-1-2-1-1',
+        rosterSize: 11,
+        games: [],
+        included: [],
+        currentVersionName: null,
+      },
+    });
+    renderModal();
+    const file = fileFromText('plan.json', '{}'); // body irrelevant; mock intercepts
+    const input = screen.getByTestId(
+      'planning-modal-file-input',
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+      ).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-modal-import-use'));
+    });
+    const err = screen.getByTestId('planning-modal-import-handoff-error');
+    expect(err).toBeInTheDocument();
+    expect(err).toHaveAttribute('role', 'alert');
+    expect(err).toHaveTextContent(
+      /Imported plan has no games|Tuodussa suunnitelmassa ei ole pelejä/i,
+    );
+    // Picker is NOT entered — the handoff was rejected.
+    expect(
+      screen.queryByTestId('planning-game-picker'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('import → picker → Back → New Plan does not leak the import draft into the next flow', async () => {
+    // Regression: pendingImport* must be cleared when a new flow
+    // is initiated, or the stale draft leaks into the next editor
+    // session. Drives import → "Use this plan" → picker → Back →
+    // "New plan" → picker → editor and asserts the Save form's
+    // name input is empty (would be pre-filled with "Imported
+    // plan" if pendingImportName had survived).
+    renderModal({
+      currentTeamId: 'team_a',
+      savedGames: {
+        g1: asSavedGame({
+          teamId: 'team_a',
+          teamName: 'Pepo',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 25,
+        }),
+      },
+    });
+    const file = fileFromText(
+      'plan.json',
+      JSON.stringify(validEnvelope()),
+    );
+    const input = screen.getByTestId(
+      'planning-modal-file-input',
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+      ).toBeInTheDocument();
+    });
+    // Drive import → picker.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-modal-import-use'));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+    });
+    // Back from picker → list.
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /back|takaisin/i }),
+      );
+    });
+    // Click New Plan to re-enter the picker (this is the path that
+    // had been carrying pendingImport state into a fresh flow).
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /New plan|Uusi suunnitelma/i }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+    });
+    // Pick the saved game and continue into the editor.
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('checkbox')[0]);
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /continue|jatka/i }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor')).toBeInTheDocument();
+    });
+    // The Save form's name input would be pre-filled with
+    // "Imported plan" if pendingImportName had leaked. Open the
+    // form and assert it's empty.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+    });
+    const nameInput = screen.getByTestId(
+      'planning-editor-save-name',
+    ) as HTMLInputElement;
+    expect(nameInput.value).toBe('');
   });
 
   it('shows an error message and field path on invalid envelope', async () => {
