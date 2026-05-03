@@ -2871,19 +2871,22 @@ describe('LocalDataStore', () => {
 
       it('does not deactivate sessions outside the (teamId, gameIds-set) scope', async () => {
         savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
-          // Same team but different game set — must remain active.
-          baseSession({ id: 'other_set', gameIds: ['g3'], isActive: true }),
+          // Same team but different game set — must remain active. Draft
+          // map must match gameIds (parity check enforced on load).
+          baseSession({
+            id: 'other_set',
+            gameIds: ['g3'],
+            draft: {
+              g3: { startingXI: {}, bench: [], scheduledSubs: [] },
+            },
+            isActive: true,
+          }),
           baseSession({
             id: 'target_off',
             gameIds: ['g1', 'g2'],
             isActive: false,
           }),
         ]);
-        const draft = { g1: { startingXI: {}, bench: [], scheduledSubs: [] }, g2: { startingXI: {}, bench: [], scheduledSubs: [] } };
-        // target needs draft entries to validate — but setActiveSession itself
-        // doesn't validate, so we don't need to pre-set draft. The test reads
-        // sessions back through getPlanningSessions which doesn't validate either.
-        void draft;
 
         await dataStore.setActiveSession('target_off', 'team_1', ['g1', 'g2']);
         const all = await dataStore.getPlanningSessions();
