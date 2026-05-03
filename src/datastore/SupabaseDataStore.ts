@@ -4402,7 +4402,7 @@ export class SupabaseDataStore implements DataStore {
       // Deep-clone — same rationale as LocalDataStore.savePlanningSession:
       // a caller retaining the input and mutating draft[gameId].bench
       // after save would otherwise silently corrupt the stored value.
-      draft: structuredClone(session.draft),
+      draft: JSON.parse(JSON.stringify(session.draft)),
       isActive: session.isActive,
       appliedAt: session.appliedAt,
       createdAt: resolvedCreatedAt,

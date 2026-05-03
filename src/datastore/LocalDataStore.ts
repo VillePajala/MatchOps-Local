@@ -2379,9 +2379,10 @@ export class LocalDataStore implements DataStore {
         // Deep-clone the draft map so a caller that retains the input
         // session and mutates draft[gameId].bench / scheduledSubs after
         // save can't silently corrupt the stored value. The shape is
-        // pure data (Records, arrays of primitives), so structuredClone
-        // is the right tool.
-        draft: structuredClone(session.draft),
+        // pure data (Records, arrays of primitives), so the JSON round-
+        // trip is exact and works in every environment (structuredClone
+        // is missing from some test runtimes).
+        draft: JSON.parse(JSON.stringify(session.draft)),
         isActive: session.isActive,
         appliedAt: session.appliedAt,
         createdAt:
