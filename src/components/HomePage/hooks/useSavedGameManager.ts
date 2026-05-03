@@ -170,6 +170,7 @@ export function useSavedGameManager({
             lastSubConfirmationTimeSeconds: gameData.lastSubConfirmationTimeSeconds,
             showPlayerNames: gameData.showPlayerNames,
             timeElapsedInSeconds: gameData.timeElapsedInSeconds,
+            scheduledSubs: gameData.scheduledSubs ?? [],
           },
         });
       } else {

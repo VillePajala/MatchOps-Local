@@ -38,6 +38,15 @@ export const gameEventSchema = z.object({
   entityId: z.string().optional(),
 });
 
+export const scheduledSubSchema = z.object({
+  id: z.string().min(1),
+  timeSeconds: z.number().min(0),
+  outPlayer: z.string().min(1),
+  inPlayer: z.string().min(1),
+  positionRole: z.string(),
+  status: z.enum(['pending', 'fired', 'skipped']),
+});
+
 export const intervalLogSchema = z.object({
   period: z.number(),
   duration: z.number(),
@@ -96,6 +105,7 @@ export const appStateSchema = z.object({
     .int('Current period must be an integer'),
   gameStatus: z.enum(['notStarted', 'inProgress', 'periodEnd', 'gameEnd']),
   selectedPlayerIds: z.array(z.string()),
+  scheduledSubs: z.array(scheduledSubSchema).optional(),
   assessments: z.record(z.string(), playerAssessmentSchema).optional(),
   seasonId: z.string(),
   tournamentId: z.string(),

@@ -468,10 +468,16 @@ describe('gameSessionReducer', () => {
       expect(result.activeScheduledSubPrompt).toBeUndefined();
     });
 
-    it('APPLY_SCHEDULED_SUB sets status=fired, appends event, clears the prompt', () => {
+    it('APPLY_SCHEDULED_SUB sets status=fired, appends both off+on events, clears the prompt', () => {
       const sub = wellFormedSub();
-      const event = {
-        id: 'evt_1',
+      const eventOff = {
+        id: 'evt_off',
+        type: 'substitution' as const,
+        time: 605,
+        entityId: 'p1',
+      };
+      const eventOn = {
+        id: 'evt_on',
         type: 'substitution' as const,
         time: 605,
         entityId: 'p2',
@@ -483,10 +489,11 @@ describe('gameSessionReducer', () => {
       };
       const result = gameSessionReducer(start, {
         type: 'APPLY_SCHEDULED_SUB',
-        payload: { subId: sub.id, gameEvent: event },
+        payload: { subId: sub.id, gameEvents: [eventOff, eventOn] },
       });
       expect(result.scheduledSubs?.[0].status).toBe('fired');
-      expect(result.gameEvents).toContainEqual(event);
+      expect(result.gameEvents).toContainEqual(eventOff);
+      expect(result.gameEvents).toContainEqual(eventOn);
       expect(result.activeScheduledSubPrompt).toBeUndefined();
     });
 

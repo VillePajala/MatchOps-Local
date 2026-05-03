@@ -1429,7 +1429,7 @@ describe('PlanningModal', () => {
         expect(
           screen.getByTestId('planning-modal-list-error'),
         ).toHaveTextContent(
-          /Could not change the active plan|Aktiivisen suunnitelman vaihto epäonnistui/i,
+          /Could not change the default plan|Oletussuunnitelman vaihto epäonnistui/i,
         );
       });
     });

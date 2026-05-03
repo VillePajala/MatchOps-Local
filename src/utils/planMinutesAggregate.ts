@@ -110,22 +110,17 @@ export const aggregatePlanMinutes = (
  *
  * The bounds use mixed `<` / `<=` so each integer ratio falls into
  * exactly one band: 0.7 → low, 0.9 → fair, 1.1 → fair (still in
- * the ±10% window), 1.3 → over.
- *
- * Float precision: `fairShareSeconds = totalFieldSeconds /
- * referencedPlayerIds.length` is non-integer for any squad size that
- * doesn't divide totalFieldSeconds (not just odd numbers — any
- * non-divisible count). The downstream `shareRatio` can then land
- * at e.g. 1.10000000000000009, fail the `<= 1.1` guard, and be
- * classified as `over` instead of `fair`. The visual impact is one
- * tile of color drift, not a correctness break.
+ * the ±10% window), 1.3 → over. Ratios are rounded to 4 decimal
+ * places before classification so a divide producing 1.10000000000000009
+ * doesn't land in 'over' due to IEEE-754 drift.
  */
 export type FairShareBand = 'under' | 'low' | 'fair' | 'over' | 'heavy-over';
 
 export const fairShareBand = (ratio: number): FairShareBand => {
-  if (ratio < 0.7) return 'under';
-  if (ratio < 0.9) return 'low';
-  if (ratio <= 1.1) return 'fair';
-  if (ratio <= 1.3) return 'over';
+  const r = Math.round(ratio * 10000) / 10000;
+  if (r < 0.7) return 'under';
+  if (r < 0.9) return 'low';
+  if (r <= 1.1) return 'fair';
+  if (r <= 1.3) return 'over';
   return 'heavy-over';
 };

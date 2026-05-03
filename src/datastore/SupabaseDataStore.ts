@@ -4346,6 +4346,10 @@ export class SupabaseDataStore implements DataStore {
     // one — matches the LocalDataStore contract and prevents every edit from
     // rewriting the original creation timestamp. Only one extra round-trip,
     // and only when both id is present and createdAt is missing.
+    // Follow-up: a COALESCE on the DB side (RPC with ON CONFLICT … DO UPDATE
+    // SET created_at = COALESCE(planning_sessions.created_at, EXCLUDED.created_at))
+    // would eliminate this fetch entirely — kept as a fast-follow rather than
+    // expanding migration scope here.
     let resolvedCreatedAt: string;
     if (session.createdAt) {
       resolvedCreatedAt = session.createdAt;

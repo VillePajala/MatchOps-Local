@@ -1697,7 +1697,7 @@
     "fileTooLarge": "File is too large (over 1 MB). Plans should be a few KB; please check the file.",
     "sessionsLoading": "Loading saved plans…",
     "savedSessionsHeading": "Saved plans",
-    "activeBadge": "Active",
+    "activeBadge": "Default",
     "gameCountLabel_one": "{{count}} game",
     "gameCountLabel_other": "{{count}} games",
     "updatedAtLabel": "updated {{date}}",
@@ -1715,9 +1715,9 @@
     "duplicateAriaLabel": "Duplicate {{name}}",
     "duplicateNameSuffix": "{{name}} (copy)",
     "duplicateFailed": "Could not duplicate the plan. Please try again.",
-    "activateAriaLabel": "Activate {{name}}",
-    "deactivateAriaLabel": "Deactivate {{name}}",
-    "activeToggleFailed": "Could not change the active plan. Please try again."
+    "activateAriaLabel": "Set {{name}} as default",
+    "deactivateAriaLabel": "Unset {{name}} as default",
+    "activeToggleFailed": "Could not change the default plan. Please try again."
   },
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",

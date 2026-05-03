@@ -277,6 +277,20 @@ export const validatePlanningSession = (
     );
   }
 
+  // Parity check: every gameId must have a draft entry. Without this a
+  // partial cloud-write could produce a session that loads silently
+  // empty for the missing gameIds instead of surfacing the inconsistency.
+  const draftKeys = new Set(Object.keys(session.draft));
+  for (const gid of seenGameIds) {
+    if (!draftKeys.has(gid)) {
+      throw new ValidationError(
+        `${prefix}draft is missing entry for gameId "${gid}" listed in gameIds`,
+        `draft.${gid}`,
+        gid,
+      );
+    }
+  }
+
   for (const gameId of Object.keys(session.draft)) {
     if (!seenGameIds.has(gameId)) {
       // A draft entry for a game outside gameIds is dead weight that would

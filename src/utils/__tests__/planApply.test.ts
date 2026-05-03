@@ -64,6 +64,27 @@ describe('applyDraftToGame — typical Apply path', () => {
     expect(r.selectedPlayerIds.sort()).toEqual(['p1', 'p2', 'p3', 'p4', 'p5']);
   });
 
+  it('selectedPlayerIds includes scheduled-sub inPlayer ids not in startingXI/bench', () => {
+    // Regression: the timeline allows the coach to bring in any roster
+    // player not on field elsewhere, not just startingXI ∪ bench. If the
+    // selected-set is built only from startingXI ∪ bench, the incoming
+    // sub lands in scheduled_subs but is missing from selectedPlayerIds.
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p1', LB: 'p2' },
+      bench: ['p3'],
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 600,
+          inPlayer: 'p4',
+          positionRole: 'LB',
+        },
+      ],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster);
+    expect(r.selectedPlayerIds).toContain('p4');
+  });
+
   it('preserves Rule 3: playersOnField ⊆ selectedPlayerIds', () => {
     const draft: PlanDraft = {
       scheduledSubs: [],

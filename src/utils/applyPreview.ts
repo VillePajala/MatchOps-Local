@@ -176,9 +176,9 @@ export function computeApplyDiff(
 
   // Players in the draft: either added (no recognized current role —
   // either not on field, or off-formation) or moved (different role).
-  // TODO: disambiguate the off-formation→role case as "Assigned to
-  // LB (was off-formation)" rather than "Added at LB" when the player
-  // is already on the field with drifted coords.
+  // The off-formation→role case currently surfaces as "Added at LB";
+  // a richer "Assigned to LB (was off-formation)" variant would require
+  // tracking off-formation membership separately and is out of scope.
   for (const [role, pid] of draftByRole) {
     const currentRole = currentRolesByPlayer.get(pid);
     if (!currentRole) {

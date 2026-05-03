@@ -162,7 +162,7 @@ export type GameSessionAction =
   | { type: 'UPDATE_SCHEDULED_SUB'; payload: ScheduledSub }
   | { type: 'DELETE_SCHEDULED_SUB'; payload: string } // sub id
   | { type: 'SKIP_SCHEDULED_SUB'; payload: string } // sub id — sets status='skipped', clears prompt
-  | { type: 'APPLY_SCHEDULED_SUB'; payload: { subId: string; gameEvent: GameEvent } }; // sets status='fired', appends event, clears prompt
+  | { type: 'APPLY_SCHEDULED_SUB'; payload: { subId: string; gameEvents: GameEvent[] } }; // sets status='fired', appends events, clears prompt
 
 // --- Reducer Function ---
 export const gameSessionReducer = (state: GameSessionState, action: GameSessionAction): GameSessionState => {
@@ -556,14 +556,14 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, scheduledSubs: next, activeScheduledSubPrompt: undefined };
     }
     case 'APPLY_SCHEDULED_SUB': {
-      const { subId, gameEvent } = action.payload;
+      const { subId, gameEvents } = action.payload;
       const next = (state.scheduledSubs ?? []).map((s) =>
         s.id === subId ? { ...s, status: 'fired' as const } : s,
       );
       return {
         ...state,
         scheduledSubs: next,
-        gameEvents: [...state.gameEvents, gameEvent],
+        gameEvents: [...state.gameEvents, ...gameEvents],
         activeScheduledSubPrompt: undefined,
       };
     }

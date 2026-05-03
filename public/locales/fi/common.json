@@ -1697,7 +1697,7 @@
     "fileTooLarge": "Tiedosto on liian suuri (yli 1 MB). Suunnitelmien pitäisi olla muutaman KB kokoisia; tarkista tiedosto.",
     "sessionsLoading": "Ladataan tallennettuja suunnitelmia…",
     "savedSessionsHeading": "Tallennetut suunnitelmat",
-    "activeBadge": "Aktiivinen",
+    "activeBadge": "Oletus",
     "gameCountLabel_one": "{{count}} peli",
     "gameCountLabel_other": "{{count}} peliä",
     "updatedAtLabel": "päivitetty {{date}}",
@@ -1715,9 +1715,9 @@
     "duplicateAriaLabel": "Monista {{name}}",
     "duplicateNameSuffix": "{{name}} (kopio)",
     "duplicateFailed": "Suunnitelman monistaminen epäonnistui. Yritä uudelleen.",
-    "activateAriaLabel": "Aktivoi {{name}}",
-    "deactivateAriaLabel": "Poista käytöstä {{name}}",
-    "activeToggleFailed": "Aktiivisen suunnitelman vaihto epäonnistui. Yritä uudelleen."
+    "activateAriaLabel": "Aseta {{name}} oletukseksi",
+    "deactivateAriaLabel": "Poista oletus {{name}}",
+    "activeToggleFailed": "Oletussuunnitelman vaihto epäonnistui. Yritä uudelleen."
   },
   "planningGamePicker": {
     "subtitle": "Valitse tämän suunnitelman pelit. Niiden tulee jakaa sama joukkue, jaksomäärä ja jakson kesto.",

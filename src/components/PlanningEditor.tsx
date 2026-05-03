@@ -123,11 +123,13 @@ function draftFromGame(
       benchSet.add(id);
     }
   }
-  // Hydrate scheduledSubs from the game record. Status is dropped
-  // (the draft has no concept of fired/skipped) and outPlayer is
-  // dropped (it's recomputed lazily — storing it would go stale on
-  // every pitch swap).
+  // Hydrate scheduledSubs from the game record. Filter out fired/skipped
+  // entries — the draft represents the editable future, and a re-Apply
+  // would otherwise resurrect historical events as new pending subs.
+  // outPlayer is dropped (recomputed lazily by the swap engine; storing
+  // it would go stale on every pitch swap).
   const scheduledSubs = (game.scheduledSubs ?? [])
+    .filter((s) => s.status !== 'fired' && s.status !== 'skipped')
     .map(({ id, timeSeconds, inPlayer, positionRole }) => ({
       id,
       timeSeconds,

@@ -130,10 +130,15 @@ export function applyDraftToGame(
     }
   }
 
-  // 3. selectedPlayerIds = startingXI ∪ bench, filtered to roster members.
+  // 3. selectedPlayerIds = startingXI ∪ bench ∪ scheduled-sub inPlayers,
+  //    filtered to roster members. Scheduled-sub inPlayer ids are included
+  //    because the timeline allows the coach to bring in any non-on-field
+  //    roster player; without this they would land in scheduled_subs but
+  //    be missing from the game's selected participant set.
   const idsInDraft = new Set<PlayerId>([
     ...Object.values(draft.startingXI),
     ...draft.bench,
+    ...draft.scheduledSubs.map((s) => s.inPlayer),
   ]);
   const selectedPlayerIds: PlayerId[] = [];
   for (const id of idsInDraft) {

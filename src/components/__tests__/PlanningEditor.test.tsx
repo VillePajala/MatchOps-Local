@@ -1191,6 +1191,48 @@ describe('PlanningEditor', () => {
     ).toBeInTheDocument();
   });
 
+  it('reopen filters fired/skipped subs out of the editable draft', async () => {
+    const role = (PRESET.roles ?? [])[1].name;
+    const roster = makeRoster(11);
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8', 'p9', 'p10']),
+      scheduledSubs: [
+        {
+          id: 's_pending',
+          timeSeconds: 600,
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role,
+          status: 'pending',
+        },
+        {
+          id: 's_fired',
+          timeSeconds: 300,
+          outPlayer: 'p2',
+          inPlayer: 'p9',
+          positionRole: role,
+          status: 'fired',
+        },
+        {
+          id: 's_skipped',
+          timeSeconds: 480,
+          outPlayer: 'p3',
+          inPlayer: 'p10',
+          positionRole: role,
+          status: 'skipped',
+        },
+      ],
+    } as AppState;
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+    });
+    expect(screen.getByTestId('planning-timeline-sub-edit-s_pending')).toBeInTheDocument();
+    expect(screen.queryByTestId('planning-timeline-sub-edit-s_fired')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('planning-timeline-sub-edit-s_skipped')).not.toBeInTheDocument();
+  });
+
   it('confirming the formation-change banner switches the preset', async () => {
     renderEditor();
     const select = screen.getByRole('combobox');

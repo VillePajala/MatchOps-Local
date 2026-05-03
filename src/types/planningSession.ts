@@ -41,8 +41,15 @@ export interface PlanningSession {
    */
   draft: Record<string, PlanDraft>;
   /**
-   * When true, scheduled subs from this session's drafts fire as live
-   * banners during play. At most one active session per (team, gameIds-set).
+   * Marks this session as the team's "default" / current contingency for
+   * the editor. At most one active session per (team, gameIds-set);
+   * activating one deactivates the others atomically (RPC 033).
+   *
+   * Live banner behavior is **not** driven by this flag — banners fire
+   * from `Game.scheduledSubs`, which is populated by the explicit Apply
+   * action. Future enhancement: hook the active session into the live
+   * timer so flipping contingencies changes runtime behavior without
+   * re-Applying.
    */
   isActive: boolean;
   /** ISO timestamp of the most recent Apply, or undefined if never applied. */

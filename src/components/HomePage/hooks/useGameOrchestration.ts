@@ -968,6 +968,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         tournamentSeriesId: gameData.tournamentSeriesId,
         wentToOvertime: gameData.wentToOvertime,
         wentToPenalties: gameData.wentToPenalties,
+        scheduledSubs: gameData.scheduledSubs ?? [],
       };
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
     } else {

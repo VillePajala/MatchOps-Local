@@ -240,6 +240,16 @@ describe('validatePlanningSession', () => {
     );
   });
 
+  it('rejects a session that lists a gameId without a matching draft entry', () => {
+    // Parity check: every gameId must have a draft entry, otherwise a
+    // partial cloud-write loads silently empty.
+    const session = baseSession();
+    delete (session.draft as Record<string, unknown>).g2;
+    expect(() => validatePlanningSession(session)).toThrow(
+      /draft is missing entry for gameId "g2" listed in gameIds/,
+    );
+  });
+
   it('rejects a non-object draft value', () => {
     expect(() =>
       validatePlanningSession({

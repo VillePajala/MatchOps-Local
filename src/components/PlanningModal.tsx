@@ -36,6 +36,7 @@ import {
   useSetActiveSessionMutation,
 } from '@/hooks/usePlanningSessionQueries';
 import type { PlanDraft } from '@/utils/planSwapEngine';
+import { planDraftFromImport } from '@/utils/planFromImport';
 import { getPresetById } from '@/config/formationPresets';
 
 type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
@@ -491,21 +492,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       );
       return;
     }
-    const draft: PlanDraft = {
-      startingXI: { ...firstGame.startingXI },
-      // Bench is empty — the editor derives it from each saved game's
-      // selectedPlayerIds at open time. The map below projects the
-      // imported ScheduledSub down to DraftScheduledSub, dropping
-      // outPlayer (computed lazily by the swap engine at apply time)
-      // and status (defaults to 'pending').
-      bench: [],
-      scheduledSubs: firstGame.scheduledSubs.map((s) => ({
-        id: s.id,
-        timeSeconds: s.timeSeconds,
-        inPlayer: s.inPlayer,
-        positionRole: s.positionRole,
-      })),
-    };
+    // Route the imported envelope through the shared normalizer so
+    // empty role slots, duplicate role assignments, and players outside
+    // the team roster are handled identically to the rest of the
+    // import surface area. Bench is derived from the team roster minus
+    // assigned starters; the editor uses this draft as-is when the
+    // user lands on it via the picker handoff.
+    const { draft } = planDraftFromImport(firstGame, roster);
     // Only carry the formationId if it resolves to a known preset; an
     // unknown id would fail the editor's preset lookup silently.
     const presetMatch = importedPlan.formationId

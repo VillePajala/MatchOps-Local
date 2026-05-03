@@ -151,9 +151,9 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
       if (!isNonEmptyString(role)) {
         return fail(`${at}.startingXI has an empty role key`, `${at}.startingXI`);
       }
-      if (typeof v !== 'string') {
+      if (!isNonEmptyString(v)) {
         return fail(
-          `${at}.startingXI.${role} must be a string player id (got ${typeof v})`,
+          `${at}.startingXI.${role} must be a non-empty string player id`,
           `${at}.startingXI.${role}`,
         );
       }

@@ -166,6 +166,7 @@ export interface PushFailures {
   games: string[];
   rosters: string[];
   adjustments: string[];
+  planningSessions: string[];
   settings: boolean;
   warmupPlan: boolean;
 }
@@ -199,6 +200,7 @@ export function countPushFailures(failures: PushFailures): number {
     failures.games,
     failures.rosters,
     failures.adjustments,
+    failures.planningSessions,
   ].reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
   const booleanFailures =

@@ -76,6 +76,8 @@ export interface PushAllToCloudResult {
   personnel: number;
   /** Number of successfully pushed games */
   games: number;
+  /** Number of successfully pushed planning sessions */
+  planningSessions: number;
   /** Whether settings were successfully pushed */
   settings: boolean;
   /** Whether warmup plan was successfully pushed */
@@ -98,6 +100,8 @@ export interface PushAllToCloudResult {
     rosters: string[];
     /** IDs of adjustments that failed to push */
     adjustments: string[];
+    /** IDs of planning sessions that failed to push */
+    planningSessions: string[];
     /** Whether settings failed to push */
     settings: boolean;
     /** Whether warmup plan failed to push */
@@ -1118,6 +1122,7 @@ export class SyncedDataStore implements DataStore {
       tournaments: 0,
       personnel: 0,
       games: 0,
+      planningSessions: 0,
       settings: false,
       warmupPlan: false,
       failures: {
@@ -1129,6 +1134,7 @@ export class SyncedDataStore implements DataStore {
         games: [] as string[],
         rosters: [] as string[],
         adjustments: [] as string[],
+        planningSessions: [] as string[],
         settings: false,
         warmupPlan: false,
       },
@@ -1158,6 +1164,7 @@ export class SyncedDataStore implements DataStore {
         settings,
         warmupPlan,
         adjustmentsMap,
+        planningSessions,
       ] = await Promise.all([
         this.localStore.getPlayers(),
         this.localStore.getTeams(true),
@@ -1169,6 +1176,7 @@ export class SyncedDataStore implements DataStore {
         this.localStore.getSettings(),
         this.localStore.getWarmupPlan(),
         this.localStore.getAllPlayerAdjustments(),
+        this.localStore.getPlanningSessions(),
       ]);
 
       // ========================================================================
@@ -1455,7 +1463,31 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
-      // 8. Settings (single item, just retry)
+      // 8. Planning sessions (reference saved games; push after games so
+      //    the soft game_ids references resolve on the server side).
+      logger.info(`[SyncedDataStore] Pushing ${planningSessions.length} planning sessions to cloud...`);
+      const planningChunks = chunkArray(planningSessions, BULK_PUSH_CHUNK_SIZE);
+      for (const chunk of planningChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(session =>
+            retryWithBackoff(
+              () => remoteStore.upsertPlanningSession(session),
+              { operationName: `upsertPlanningSession(${session.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.planningSessions++;
+          } else {
+            summary.failures.planningSessions.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed planning session ${chunk[i].id} after retries:`,
+              getSafeErrorMessage((results[i] as PromiseRejectedResult).reason));
+          }
+        }
+      }
+
+      // 9. Settings (single item, just retry)
       logger.info('[SyncedDataStore] Pushing settings to cloud...');
       try {
         await retryWithBackoff(

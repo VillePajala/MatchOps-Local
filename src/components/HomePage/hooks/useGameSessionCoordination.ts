@@ -27,6 +27,7 @@ import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSession
 import type { AppState } from '@/types';
 import type { ScheduledSub } from '@/types/game';
 import logger from '@/utils/logger';
+import { generateId } from '@/utils/idGenerator';
 
 /**
  * Parameters for useGameSessionCoordination hook
@@ -582,15 +583,27 @@ export function useGameSessionCoordination({
     (subId: string) => {
       const sub = scheduledSubsRef.current?.find((s) => s.id === subId);
       if (!sub) return;
-      const gameEvent = {
-        id: `evt_sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        type: 'substitution' as const,
-        time: timeElapsedRef.current,
-        entityId: sub.inPlayer,
-      };
+      // Emit one event per affected player so future stat aggregators
+      // (subs-per-player, time-on-pitch from event log) see both halves.
+      // Order: off first, on second — matches the on-pitch transition.
+      const time = timeElapsedRef.current;
+      const gameEvents = [
+        {
+          id: generateId('evt_sub_off'),
+          type: 'substitution' as const,
+          time,
+          entityId: sub.outPlayer,
+        },
+        {
+          id: generateId('evt_sub_on'),
+          type: 'substitution' as const,
+          time,
+          entityId: sub.inPlayer,
+        },
+      ];
       dispatchGameSession({
         type: 'APPLY_SCHEDULED_SUB',
-        payload: { subId, gameEvent },
+        payload: { subId, gameEvents },
       });
     },
     [dispatchGameSession],
