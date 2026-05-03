@@ -750,7 +750,7 @@ describe('PlanningModal', () => {
       ]);
       renderModal();
 
-      const badges = screen.getAllByText(/^Active$|^Aktiivinen$/i);
+      const badges = screen.getAllByText(/^Default$|^Oletus$/i);
       expect(badges).toHaveLength(1);
     });
 
