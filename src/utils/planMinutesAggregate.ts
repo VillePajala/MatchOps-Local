@@ -60,6 +60,15 @@ export function aggregatePlanMinutes(
   gameIds: string[],
   savedGames: Record<string, AppState | undefined>,
 ): PlanMinutesAggregate;
+// Union-accepting overload for polymorphic callers (e.g.
+// PlanningMinutesDashboard receives `PlanDraft | Record` from the
+// editor and can't easily narrow at the boundary). The two specific
+// overloads above remain as primary documentation.
+export function aggregatePlanMinutes(
+  draftOrDrafts: PlanDraft | Record<string, PlanDraft>,
+  gameIds: string[],
+  savedGames: Record<string, AppState | undefined>,
+): PlanMinutesAggregate;
 export function aggregatePlanMinutes(
   draftOrDrafts: PlanDraft | Record<string, PlanDraft>,
   gameIds: string[],
