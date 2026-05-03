@@ -12,6 +12,7 @@ import type { PlanningSession } from '@/types';
 import { ValidationError } from '@/interfaces/DataStoreErrors';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import logger from '@/utils/logger';
 
 const PLANNING_SESSION_NAME_MAX = 200;
 
@@ -125,6 +126,54 @@ export const normalizeOptionalString = (value?: string): string | undefined => {
   if (value === undefined) return undefined;
   const trimmed = value.trim();
   return trimmed === '' ? undefined : trimmed;
+};
+
+/**
+ * Boundary-safe ScheduledSub validation for cloud + local read paths.
+ * `validateScheduledSubs` throws on the first invalid entry, which is
+ * the right semantics for write-time validation but wrong for read-
+ * time: a single malformed entry from a partial cloud-write or
+ * tampered IndexedDB blob would otherwise crash every subsequent
+ * planner call. This filter+log variant keeps the rest of the array
+ * usable while surfacing the bad entry in logs.
+ *
+ * Used by SupabaseDataStore.transformGameFromDb and
+ * LocalDataStore.loadSavedGames so the two stores behave the same
+ * way on corrupt data.
+ */
+export const validateScheduledSubsFromDb = (
+  value: unknown,
+  source: string,
+  contextId: string,
+): ScheduledSub[] => {
+  if (!Array.isArray(value)) return [];
+  const valid: ScheduledSub[] = [];
+  const seenIds = new Set<string>();
+  for (let i = 0; i < value.length; i++) {
+    const candidate = value[i] as Partial<ScheduledSub> | null;
+    if (!candidate || typeof candidate !== 'object') continue;
+    if (
+      typeof candidate.id !== 'string' || candidate.id.length === 0 ||
+      seenIds.has(candidate.id) ||
+      typeof candidate.timeSeconds !== 'number' ||
+      !Number.isInteger(candidate.timeSeconds) ||
+      candidate.timeSeconds < 0 ||
+      typeof candidate.outPlayer !== 'string' || candidate.outPlayer.length === 0 ||
+      typeof candidate.inPlayer !== 'string' || candidate.inPlayer.length === 0 ||
+      candidate.outPlayer === candidate.inPlayer ||
+      typeof candidate.positionRole !== 'string' || candidate.positionRole.length === 0 ||
+      (candidate.status !== 'pending' && candidate.status !== 'fired' && candidate.status !== 'skipped')
+    ) {
+      logger.warn(
+        `[${source}] Dropping invalid scheduled_sub entry on read`,
+        { contextId, index: i, subId: candidate.id },
+      );
+      continue;
+    }
+    seenIds.add(candidate.id);
+    valid.push(candidate as ScheduledSub);
+  }
+  return valid;
 };
 
 export const validateGame = (game: AppState, context?: string): void => {
@@ -325,6 +374,16 @@ export const validatePlanningSession = (
     for (const [role, pid] of Object.entries(
       pd.startingXI as Record<string, unknown>,
     )) {
+      // Mirrors the guard in parsePlanExport: a session arriving via
+      // sync, upsert, or direct DB read bypasses planExport entirely,
+      // so the same prototype-pollution defense has to live here too.
+      if (role === '__proto__' || role === 'constructor' || role === 'prototype') {
+        throw new ValidationError(
+          `${prefix}${draftPath}.startingXI uses reserved role key "${role}"`,
+          `${draftPath}.startingXI`,
+          role,
+        );
+      }
       if (!isNonEmptyString(pid)) {
         throw new ValidationError(
           `${prefix}${draftPath}.startingXI[${role}] must be a non-empty playerId`,

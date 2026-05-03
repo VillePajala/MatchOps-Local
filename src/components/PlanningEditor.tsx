@@ -1193,7 +1193,14 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           // PlanningApplyPreview instance keeps its checked state, so
           // the user could confirm against stale toggles.
           disabled={
-            isApplying || gameIds.length === 0 || previewDiffs !== null
+            isApplying ||
+            gameIds.length === 0 ||
+            previewDiffs !== null ||
+            // Empty startingXI would resolve playersOnField to [] in
+            // applyDraftToGame and silently wipe every field player on
+            // each picked game. The amber field-count counter is a
+            // hint; this gate is the hard stop.
+            fieldPlayerCount === 0
           }
           data-testid="planning-editor-apply"
           className="inline-flex items-center gap-2 rounded-md bg-amber-500/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"

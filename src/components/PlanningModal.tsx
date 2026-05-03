@@ -179,6 +179,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // successful applyToGame so a mid-loop failure doesn't redo the
   // already-restored games on retry.
   const [undoCursor, setUndoCursor] = useState(0);
+  // Captured at appliedAt-stamp time so the Undo path can clear the
+  // stamp on full rollback. resetEditorState clears editingSession
+  // before the undo banner mounts, so we can't read it from there.
+  const stampedSessionRef = useRef<{
+    id: string;
+    teamId: string;
+    name: string;
+    gameIds: string[];
+    draft: PlanningSession['draft'];
+    isActive: boolean;
+    createdAt: string;
+  } | null>(null);
 
   // Saved sessions are scoped to the active team. The query is gated on
   // (isOpen && page === 'list') so it doesn't fetch while the modal is
@@ -216,6 +228,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   };
 
   const goToList = () => {
+    // Defensive reset: every other exit path to 'list' calls
+    // resetEditorState. goToList is only wired to the picker's Back
+    // today (no editor state to clear), but a future caller mounting
+    // it from the editor would otherwise leak draft/undo state.
+    resetEditorState();
     setPage('list');
   };
 
@@ -245,6 +262,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setIsUndoing(false);
     isUndoingRef.current = false;
     setUndoCursor(0);
+    // Drop the stamped-session pointer so a stale entry from the
+    // previous Apply can't leak into the next undo/dismiss cycle.
+    stampedSessionRef.current = null;
     // Reset editorEntryPage to 'list' so a future caller that forgets
     // to set it explicitly gets a sensible default — current callers
     // all set it before entering the editor, but this defends against
@@ -625,6 +645,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
             ]),
           )
         : sessionToStamp.draft;
+      // Capture so the Undo path can clear appliedAt on full rollback.
+      stampedSessionRef.current = {
+        id: sessionToStamp.id,
+        teamId: sessionToStamp.teamId,
+        name: sessionToStamp.name,
+        gameIds: sessionToStamp.gameIds,
+        draft: replicatedDraft,
+        isActive: sessionToStamp.isActive,
+        createdAt: sessionToStamp.createdAt,
+      };
       saveSession
         .mutateAsync({
           id: sessionToStamp.id,
@@ -698,6 +728,26 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         const entry = undoSnapshot.games[cursor];
         await applyToGame(entry.gameId, entry.before);
         cursor++;
+      }
+      // Full rollback succeeded — clear the appliedAt stamp on the
+      // session that was Apply'd, so the list doesn't show a stale
+      // "Applied on X" badge for a plan that was effectively undone.
+      // Fire-and-forget: the field is metadata-only, and the games are
+      // already restored.
+      const stamped = stampedSessionRef.current;
+      if (stamped) {
+        saveSession
+          .mutateAsync({
+            ...stamped,
+            appliedAt: undefined,
+          })
+          .catch((err) => {
+            logger.warn(
+              '[PlanningModal] Failed to clear appliedAt after Undo — list may show stale badge',
+              err,
+            );
+          });
+        stampedSessionRef.current = null;
       }
       resetEditorState();
       setPage('list');

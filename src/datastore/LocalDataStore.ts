@@ -27,7 +27,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey, validateScheduledSubsFromDb } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { validateUserId } from '@/datastore/userDatabase';
 import {
@@ -2877,7 +2877,26 @@ export class LocalDataStore implements DataStore {
         return {};
       }
 
-      return parsed as SavedGamesCollection;
+      // Boundary-validate scheduled_subs per game so a corrupted
+      // IndexedDB blob (partial write, manual edit, schema drift)
+      // can't crash ScheduledSubBanner / applyDraftToGame downstream.
+      // Same defense the cloud read path uses in
+      // SupabaseDataStore.transformGameFromDb.
+      const games = parsed as SavedGamesCollection;
+      for (const gameId of Object.keys(games)) {
+        const game = games[gameId];
+        if (game && Array.isArray(game.scheduledSubs)) {
+          games[gameId] = {
+            ...game,
+            scheduledSubs: validateScheduledSubsFromDb(
+              game.scheduledSubs,
+              'LocalDataStore',
+              gameId,
+            ),
+          };
+        }
+      }
+      return games;
     } catch (error) {
       logger.error('[LocalDataStore] Failed to load saved games', error);
       return {};

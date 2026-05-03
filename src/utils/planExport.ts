@@ -86,15 +86,28 @@ const fail = (message: string, path?: string): PlanImportResult => ({
 /**
  * Self-defense size cap. The PlanningModal file picker already gates at
  * 1 MB, but parsePlanExport is a public utility — a future caller (QR,
- * paste, drag-drop) could bypass that guard. 2 MB leaves headroom over
- * the 1 MB UI cap while still bounding memory before JSON.parse runs.
+ * paste, drag-drop) could bypass that guard. 2 MB-equivalent worth of
+ * UTF-16 code units leaves headroom over the 1 MB UI cap while still
+ * bounding memory before JSON.parse runs. (Counts characters, not
+ * bytes; for ASCII JSON these are equivalent. The constant name calls
+ * out the unit to avoid future confusion.)
  */
-const PARSE_PLAN_EXPORT_MAX_BYTES = 2 * 1024 * 1024;
+const PARSE_PLAN_EXPORT_MAX_CHARS = 2 * 1024 * 1024;
+
+/**
+ * Anti-DoS upper bounds. parsePlanExport already rejects negative /
+ * zero values via existing checks; these are the *too-large* limits.
+ * No realistic plan envelope reaches them — even a tournament covering
+ * a season tops out around 30 games and 30-player rosters.
+ */
+const PARSE_PLAN_EXPORT_MAX_GAMES = 50;
+const PARSE_PLAN_EXPORT_MAX_ROSTER_SIZE = 100;
+const PARSE_PLAN_EXPORT_MAX_STARTING_XI_KEYS = 30;
 
 export const parsePlanExport = (raw: string): PlanImportResult => {
-  if (raw.length > PARSE_PLAN_EXPORT_MAX_BYTES) {
+  if (raw.length > PARSE_PLAN_EXPORT_MAX_CHARS) {
     return fail(
-      `Envelope is too large (over ${PARSE_PLAN_EXPORT_MAX_BYTES / 1024 / 1024} MB)`,
+      `Envelope is too large (over ${PARSE_PLAN_EXPORT_MAX_CHARS / 1024 / 1024} MB)`,
     );
   }
   let parsed: unknown;
@@ -141,10 +154,22 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
       'tournament.rosterSize',
     );
   }
+  if (tournament.rosterSize > PARSE_PLAN_EXPORT_MAX_ROSTER_SIZE) {
+    return fail(
+      `\`tournament.rosterSize\` exceeds maximum (${PARSE_PLAN_EXPORT_MAX_ROSTER_SIZE})`,
+      'tournament.rosterSize',
+    );
+  }
 
   if (!Array.isArray(tournament.games) || tournament.games.length === 0) {
     return fail(
       '`tournament.games` must be a non-empty array',
+      'tournament.games',
+    );
+  }
+  if (tournament.games.length > PARSE_PLAN_EXPORT_MAX_GAMES) {
+    return fail(
+      `\`tournament.games\` exceeds maximum (${PARSE_PLAN_EXPORT_MAX_GAMES})`,
       'tournament.games',
     );
   }
@@ -159,7 +184,14 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
     if (!isObject(g.startingXI)) {
       return fail(`${at}.startingXI must be an object`, `${at}.startingXI`);
     }
-    for (const role of Object.keys(g.startingXI)) {
+    const startingXIKeys = Object.keys(g.startingXI);
+    if (startingXIKeys.length > PARSE_PLAN_EXPORT_MAX_STARTING_XI_KEYS) {
+      return fail(
+        `${at}.startingXI exceeds maximum (${PARSE_PLAN_EXPORT_MAX_STARTING_XI_KEYS} role keys)`,
+        `${at}.startingXI`,
+      );
+    }
+    for (const role of startingXIKeys) {
       const v = (g.startingXI as Record<string, unknown>)[role];
       if (!isNonEmptyString(role)) {
         return fail(`${at}.startingXI has an empty role key`, `${at}.startingXI`);

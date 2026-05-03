@@ -43,7 +43,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, validatePlanningSession, normalizeOptionalString } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, validateScheduledSubsFromDb } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -217,48 +217,9 @@ const parseTeamPlacements = (value: Json | null): Record<string, TeamPlacementIn
   return Object.keys(record).length > 0 ? record : undefined;
 };
 
-/**
- * Per-item validation for game.scheduled_subs JSONB on read. Mirrors
- * the planning-session boundary defense added in pass 3: a partial
- * cloud-write or out-of-band edit could put malformed entries in the
- * column that would survive the JSONB cast and surface as runtime
- * crashes deep in applyDraftToGame or the live-banner timer. Drop
- * invalid entries with a logged warning; the DataStore.saveGame path
- * still validates the array on write.
- */
-const validateScheduledSubsFromDb = (
-  value: unknown,
-  gameId: string,
-): ScheduledSub[] => {
-  if (!Array.isArray(value)) return [];
-  const valid: ScheduledSub[] = [];
-  const seenIds = new Set<string>();
-  for (let i = 0; i < value.length; i++) {
-    const candidate = value[i] as Partial<ScheduledSub> | null;
-    if (!candidate || typeof candidate !== 'object') continue;
-    if (
-      typeof candidate.id !== 'string' || candidate.id.length === 0 ||
-      seenIds.has(candidate.id) ||
-      typeof candidate.timeSeconds !== 'number' ||
-      !Number.isInteger(candidate.timeSeconds) ||
-      candidate.timeSeconds < 0 ||
-      typeof candidate.outPlayer !== 'string' || candidate.outPlayer.length === 0 ||
-      typeof candidate.inPlayer !== 'string' || candidate.inPlayer.length === 0 ||
-      candidate.outPlayer === candidate.inPlayer ||
-      typeof candidate.positionRole !== 'string' || candidate.positionRole.length === 0 ||
-      (candidate.status !== 'pending' && candidate.status !== 'fired' && candidate.status !== 'skipped')
-    ) {
-      logger.warn(
-        '[SupabaseDataStore] Dropping invalid scheduled_sub entry on game read',
-        { gameId, index: i, subId: candidate.id },
-      );
-      continue;
-    }
-    seenIds.add(candidate.id);
-    valid.push(candidate as ScheduledSub);
-  }
-  return valid;
-};
+// scheduled_subs JSONB read-time validation moved to validation.ts
+// (validateScheduledSubsFromDb) so LocalDataStore can use the same
+// boundary defense from its loadSavedGames path.
 
 /**
  * Normalize a numeric rating to the DB constraint range (1-10).
@@ -3240,7 +3201,11 @@ export class SupabaseDataStore implements DataStore {
       // crashes deep in the live-banner timer or applyDraftToGame.
       // Mirror the per-item validation pattern used for planning
       // sessions in getPlanningSessions.
-      scheduledSubs: validateScheduledSubsFromDb(game.scheduled_subs, game.id),
+      scheduledSubs: validateScheduledSubsFromDb(
+        game.scheduled_subs,
+        'SupabaseDataStore',
+        game.id,
+      ),
       // === Timer restoration ===
       timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
       // === Player arrays ===
