@@ -52,10 +52,16 @@ export interface PlanTotalsMatrix {
   rows: PlayerTotalsRow[];
   /**
    * Fair-share target seconds across the included games — used by
-   * the table cells' color rules. Mirrors planMinutesAggregate's
-   * `fairShareSeconds`; recomputed here from `includedGameIds` so
-   * the dashboard and the table stay consistent without dependency
-   * coupling between callers.
+   * the table cells' color rules.
+   *
+   * Formula parity with `planMinutesAggregate.fairShareSeconds`:
+   *   numerator   = Σ over included games (gameDurationSec × startingXI size)
+   *   denominator = count of players who accumulated positive seconds
+   *                 across the same set
+   * Both utils compute this the same way, so the dashboard pill colour
+   * and the table total colour agree for any plan. The dashboard's
+   * caller pre-filters `gameIds` to the included subset, which is the
+   * same effective input we use here when `includedGameIds` is set.
    */
   fairShareSeconds: number;
 }
@@ -120,20 +126,20 @@ export function computePlanTotals(
     const gkStart = draft.startingXI[GOALKEEPER_ROLE];
     const gkOccupants = new Set<PlayerId>();
     if (gkStart) gkOccupants.add(gkStart);
-    let lastGk: PlayerId | undefined = gkStart;
     for (const sub of gkRoleSubs) {
       // Only count subs that fire within the game window — beyond
       // dur they're unreachable.
       if (sub.timeSeconds < dur) {
         gkOccupants.add(sub.inPlayer);
-        lastGk = sub.inPlayer;
       }
     }
     const gkMap = new Map<PlayerId, GkPresence>();
     if (gkStart) {
+      // 'full' iff no firing GK sub: the starting GK was at the role
+      // the entire game. Any firing sub means rotation, so every GK
+      // occupant becomes 'partial'.
       const fullGame =
-        gkRoleSubs.filter((s) => s.timeSeconds < dur).length === 0 &&
-        lastGk === gkStart;
+        gkRoleSubs.filter((s) => s.timeSeconds < dur).length === 0;
       for (const pid of gkOccupants) {
         gkMap.set(pid, fullGame && pid === gkStart ? 'full' : 'partial');
       }

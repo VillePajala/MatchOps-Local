@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { AppState } from '@/types/game';
@@ -79,8 +79,13 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
     () => (includedGameIds === undefined ? null : new Set(includedGameIds)),
     [includedGameIds],
   );
-  const isIncluded = (gid: string) =>
-    includedSet === null ? true : includedSet.has(gid);
+  // useCallback aligns with the playerLabel / matrix memoisation pattern
+  // — the column-header map below recomputes each render and a stable
+  // reference avoids retriggering memos in any future child consumer.
+  const isIncluded = useCallback(
+    (gid: string) => (includedSet === null ? true : includedSet.has(gid)),
+    [includedSet],
+  );
 
   const playerLabel = useMemo(() => {
     const map = new Map<string, Player>();
@@ -140,7 +145,7 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
           <tr className="border-y border-slate-700 text-slate-400">
             <th
               scope="col"
-              className="sticky left-0 z-10 bg-slate-900/95 px-2 py-1 text-left font-medium"
+              className="sticky left-0 z-10 bg-slate-900 px-2 py-1 text-left font-medium"
             >
               {t('planningTotalsTable.colPlayer', 'Player')}
             </th>
@@ -176,6 +181,7 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
             })}
             <th
               scope="col"
+              aria-sort="ascending"
               className="px-2 py-1 text-center font-medium"
             >
               {t('planningTotalsTable.colTotal', 'Total')}
@@ -194,7 +200,7 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
               >
                 <th
                   scope="row"
-                  className="sticky left-0 z-10 truncate bg-slate-900/95 px-2 py-1 text-left font-normal text-slate-100"
+                  className="sticky left-0 z-10 truncate bg-slate-900 px-2 py-1 text-left font-normal text-slate-100"
                 >
                   {playerLabel(row.playerId)}
                 </th>

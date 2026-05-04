@@ -338,6 +338,11 @@ describe('Translation File Validation', () => {
       //   useImportedPlan, importedPlanDefaultName,
       //   importNoGamesError; removed obsolete importNoApply that
       //   was replaced by importNextStep in the success card).
+      // Planner PR-B-2: +7 keys for planningTotalsTable.
+      // Note: this counts JSON leaf nodes from the translation files
+      // (getAllKeys()). i18n-types.ts uses a slightly different
+      // counter that includes synthesised plural bases — see the
+      // i18n-types.ts assertion below for that distinct number.
       expect(enKeys.length).toBe(2588);
     });
 

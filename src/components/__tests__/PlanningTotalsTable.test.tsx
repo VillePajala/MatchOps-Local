@@ -63,8 +63,10 @@ describe('PlanningTotalsTable', () => {
   });
 
   it('renders one row per referenced player, sorted by total ascending', () => {
-    // p1 plays only 5min in g1 (subbed off at 300s) and 0 in g2 → low total.
-    // p0/p2 play full both games → high total. Verify p1 first.
+    // p1 plays only 5min in g1 (subbed off at 300s) and 0 in g2 → 300s.
+    // p3 came on at 300s in g1 only → 900s.
+    // p0/p2 play full both games → 2400s each.
+    // Tie-break by playerId (p0 before p2) for stability.
     renderTable({
       drafts: {
         g1: {
@@ -82,8 +84,10 @@ describe('PlanningTotalsTable', () => {
       .map((r) =>
         r.getAttribute('data-testid')?.replace('planning-totals-row-', ''),
       );
-    // p1 = 5min total → first.
-    expect(rows[0]).toBe('p1');
+    // Full order asserts the tie-break rule: identical totals stay
+    // in playerId-ascending order so the rendering is deterministic
+    // across renders.
+    expect(rows).toEqual(['p1', 'p3', 'p0', 'p2']);
   });
 
   it('renders an opponent-name column header when available, fallback to G{N}', () => {
