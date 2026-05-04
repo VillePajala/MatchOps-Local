@@ -1961,4 +1961,90 @@ describe('PlanningEditor', () => {
       expect(card2.textContent).not.toContain(`Add P8 at ${role1}`);
     });
   });
+
+  describe('Cross-component player highlight (lifted state)', () => {
+    // The fixture's makeGameWithLineup walks PRESET.roles and assigns
+    // p0, p1, p2, ... to each role in order. So the GK role (first in
+    // 8v8-3-3-1) holds p0, and the second role (LB by preset
+    // definition) holds p1, etc. We anchor on that mapping.
+    const gkPlayerId = 'p0';
+    const secondRolePlayerId = 'p1';
+    const gkRole = PRESET.roles![0].name;
+    const secondRole = PRESET.roles![1].name;
+
+    it('clicking a chip lights up the same player on a dashboard pill', () => {
+      renderEditor();
+      // Click the GK chip on the active tab — the dashboard pill for
+      // the same player should reflect the highlight too.
+      const chip = screen.getByTestId(
+        `planning-chip-grid-chip-g1-${gkRole}-${gkPlayerId}`,
+      );
+      act(() => {
+        fireEvent.click(chip);
+      });
+      const pill = screen.getByTestId(
+        `planning-minutes-dashboard-entry-${gkPlayerId}`,
+      );
+      expect(pill).toHaveAttribute('data-highlighted', 'true');
+      // Another dashboard pill stays at data-highlighted="false" so
+      // the cross-component contract is symmetric.
+      const otherPill = screen.getByTestId(
+        `planning-minutes-dashboard-entry-${secondRolePlayerId}`,
+      );
+      expect(otherPill).toHaveAttribute('data-highlighted', 'false');
+    });
+
+    it('clicking a totals-table row name lights up the same player on chips', () => {
+      renderEditor();
+      // Click the player-name button in the totals table → chip on
+      // the active tab also highlights.
+      const toggle = screen.getByTestId(
+        `planning-totals-row-toggle-${secondRolePlayerId}`,
+      );
+      act(() => {
+        fireEvent.click(toggle);
+      });
+      const chip = screen.getByTestId(
+        `planning-chip-grid-chip-g1-${secondRole}-${secondRolePlayerId}`,
+      );
+      expect(chip).toHaveAttribute('data-highlighted', 'true');
+    });
+
+    it('Clear highlight resets every component simultaneously', () => {
+      renderEditor();
+      // Highlight two players from different surfaces.
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId(
+            `planning-chip-grid-chip-g1-${gkRole}-${gkPlayerId}`,
+          ),
+        );
+        fireEvent.click(
+          screen
+            .getByTestId(
+              `planning-minutes-dashboard-entry-${secondRolePlayerId}`,
+            )
+            .querySelector('button')!,
+        );
+      });
+      const clear = screen.getByTestId('planning-chip-grid-clear');
+      act(() => {
+        fireEvent.click(clear);
+      });
+      // Chip + dashboard pills both return to non-highlighted.
+      expect(
+        screen.getByTestId(
+          `planning-chip-grid-chip-g1-${gkRole}-${gkPlayerId}`,
+        ),
+      ).toHaveAttribute('data-highlighted', 'false');
+      expect(
+        screen.getByTestId(
+          `planning-minutes-dashboard-entry-${secondRolePlayerId}`,
+        ),
+      ).toHaveAttribute('data-highlighted', 'false');
+      expect(
+        screen.queryByTestId('planning-chip-grid-clear'),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

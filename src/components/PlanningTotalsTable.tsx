@@ -28,6 +28,10 @@ export interface PlanningTotalsTableProps {
    * columns get strikethrough styling + are dropped from the row total.
    */
   includedGameIds?: string[];
+  /** Lifted highlight set shared with chip grid + minutes dashboard. */
+  highlightedPlayerIds?: Set<string>;
+  /** Click-to-toggle a single player. Optional (read-only contexts). */
+  onToggleHighlight?: (playerId: string) => void;
 }
 
 // Tailwind classes per band. Aligned with the rest of the planner
@@ -72,6 +76,8 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
   savedGames,
   roster,
   includedGameIds,
+  highlightedPlayerIds,
+  onToggleHighlight,
 }) => {
   const { t } = useTranslation();
 
@@ -191,18 +197,46 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
         <tbody>
           {sortedRows.map((row) => {
             const band = totalBand(row.totalSeconds, matrix.fairShareSeconds);
+            const isHighlighted =
+              highlightedPlayerIds?.has(row.playerId) ?? false;
+            const anyActive = (highlightedPlayerIds?.size ?? 0) > 0;
+            const isDimmed = anyActive && !isHighlighted;
+            // Click on player-name cell toggles highlight when wired;
+            // the rest of the row remains a passive numeric grid so
+            // a stray cell click doesn't accidentally toggle. The
+            // <button> sits inside the <th scope="row"> so list/table
+            // semantics stay intact.
             return (
               <tr
                 key={row.playerId}
                 data-testid={`planning-totals-row-${row.playerId}`}
                 data-band={band ?? 'on-track'}
-                className="border-t border-slate-800 hover:bg-slate-800/40"
+                data-highlighted={isHighlighted ? 'true' : 'false'}
+                className={`border-t border-slate-800 transition-opacity hover:bg-slate-800/40 ${
+                  isHighlighted
+                    ? 'bg-emerald-900/20'
+                    : isDimmed
+                      ? 'opacity-40'
+                      : ''
+                }`}
               >
                 <th
                   scope="row"
                   className="sticky left-0 z-10 truncate bg-slate-900 px-2 py-1 text-left font-normal text-slate-100"
                 >
-                  {playerLabel(row.playerId)}
+                  {onToggleHighlight ? (
+                    <button
+                      type="button"
+                      onClick={() => onToggleHighlight(row.playerId)}
+                      aria-pressed={isHighlighted}
+                      data-testid={`planning-totals-row-toggle-${row.playerId}`}
+                      className="cursor-pointer text-left hover:underline"
+                    >
+                      {playerLabel(row.playerId)}
+                    </button>
+                  ) : (
+                    playerLabel(row.playerId)
+                  )}
                 </th>
                 {row.perGame.map((cell, i) => {
                   const gid = gameIds[i];

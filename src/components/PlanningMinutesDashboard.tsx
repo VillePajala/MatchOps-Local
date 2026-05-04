@@ -23,6 +23,15 @@ export interface PlanningMinutesDashboardProps {
   gameIds: string[];
   savedGames: SavedGamesCollection;
   roster: Player[];
+  /**
+   * Lifted highlight set shared with PlanningChipGrid + PlanningTotalsTable.
+   * Optional so the dashboard can be used standalone (e.g. in tests
+   * or future read-only contexts) without forcing the host to thread
+   * the state through.
+   */
+  highlightedPlayerIds?: Set<string>;
+  /** Click-to-toggle a single player. Optional (paired with highlightedPlayerIds). */
+  onToggleHighlight?: (playerId: string) => void;
 }
 
 // Continuous-gradient pill style. Mirrors the standalone planner's
@@ -54,6 +63,8 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
   gameIds,
   savedGames,
   roster,
+  highlightedPlayerIds,
+  onToggleHighlight,
 }) => {
   const { t } = useTranslation();
 
@@ -167,17 +178,21 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
                   pct,
                 },
               );
-          return (
-            <li
-              key={entry.playerId}
-              data-testid={`planning-minutes-dashboard-entry-${entry.playerId}`}
-              data-band={band}
-              data-priority={isPriority ? 'true' : 'false'}
-              aria-label={ariaLabel}
-              title={ariaLabel}
-              style={pillStyleForRatio(entry.shareRatio)}
-              className="flex items-center justify-between rounded-md border px-2 py-1"
-            >
+          // Highlight integration: when any player is highlighted, the
+          // pill either glows (highlighted) or dims to ~40% opacity
+          // (non-highlighted). Empty highlighted set = no focus mode,
+          // every pill renders at full opacity.
+          const isHighlighted =
+            highlightedPlayerIds?.has(entry.playerId) ?? false;
+          const anyActive = (highlightedPlayerIds?.size ?? 0) > 0;
+          const isDimmed = anyActive && !isHighlighted;
+          // Inner button wraps the pill content so list semantics
+          // stay intact (<button> inside <ul> would break "list of N
+          // items" announcement). The <li> remains a passive
+          // structural item; the <button> carries the click handler
+          // and aria-pressed when toggle is wired.
+          const content = (
+            <>
               {/* min-w-0 lets the flex container shrink below its
                   intrinsic content width so the inner truncate can
                   fire — `truncate` (overflow-hidden + ellipsis) on
@@ -193,6 +208,50 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
               <span className="font-mono text-[11px] tabular-nums">
                 {formatMMSS(entry.totalSeconds)} ({pct}%)
               </span>
+            </>
+          );
+          const className = `flex items-center justify-between rounded-md border px-2 py-1 transition-opacity ${
+            isHighlighted
+              ? 'ring-2 ring-emerald-300/70'
+              : isDimmed
+                ? 'opacity-40'
+                : ''
+          } ${onToggleHighlight ? 'cursor-pointer text-left w-full' : ''}`;
+          // aria-label + style are duplicated on the outer <li> AND
+          // the inner interactive element so:
+          //   1. AT reading the list item still gets the player+mmss+pct
+          //      announcement (matches pre-PR-B-3 behaviour).
+          //   2. The inner <button> inherits the same label as its
+          //      accessible name when the toggle is wired (interactive
+          //      label = content label).
+          //   3. Tests that query the outer <li> for style/aria-label
+          //      don't need to reach into the inner element.
+          // Browsers/AT dedupe duplicate labels in announcement, so the
+          // duplication is invisible to users.
+          return (
+            <li
+              key={entry.playerId}
+              data-testid={`planning-minutes-dashboard-entry-${entry.playerId}`}
+              data-band={band}
+              data-priority={isPriority ? 'true' : 'false'}
+              data-highlighted={isHighlighted ? 'true' : 'false'}
+              aria-label={ariaLabel}
+              title={ariaLabel}
+              style={pillStyleForRatio(entry.shareRatio)}
+            >
+              {onToggleHighlight ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleHighlight(entry.playerId)}
+                  aria-pressed={isHighlighted}
+                  aria-label={ariaLabel}
+                  className={className}
+                >
+                  {content}
+                </button>
+              ) : (
+                <div className={className}>{content}</div>
+              )}
             </li>
           );
         })}

@@ -59,8 +59,8 @@
 ### PR-B — Cross-game player tracking + continuous-gradient pills + totals table
 **Status:** ⏳ in flight (PR-B-1 ✅ merged, PR-B-2 ⏳ open as #406, PR-B-3 pending)
 - [x] **PR-B-1 (continuous-gradient pills)** ✅ MERGED via PR #405 (squash `ed28b19b`) — `fairShareHue(ratio)` red→yellow→green ramp; PlanningMinutesDashboard pills now use inline HSL styles; sort flipped to ASC; pills show `mm:ss (NN%)`; 5 hue unit tests + 2 dashboard tests
-- [x] **PR-B-2 (totals table component)** ⏳ in flight — sub-PR opening as `planner/pr-b2-totals-table`. `computePlanTotals` util (rows × games matrix with GK presence detection); `totalBand` color rule helper; `PlanningTotalsTable` component wired below MinutesDashboard in PlanningEditor. 14 util tests + 10 component tests; 7 i18n keys EN+FI; types regenerated (2598 → 2605).
-- [ ] PR-B-3 (cross-game player highlight multi-select) — pending
+- [x] **PR-B-2 (totals table component)** ✅ MERGED via PR #406 — `computePlanTotals` util, `totalBand` helper, `PlanningTotalsTable` component below MinutesDashboard; 14 util tests + 10 component tests; pass-2 review silent
+- [x] **PR-B-3 (cross-game player highlight)** ⏳ in flight — sub-PR opening as `planner/pr-b3-cross-game-highlight`. Lifted highlight state from `PlanningChipGrid` to `PlanningEditor`; ChipGrid converted to controlled (now reads `drafts: Record` not `draft`, fixes pre-existing per-game cards bug); MinutesDashboard pill is now click-to-toggle with dim/glow; TotalsTable row name button toggles highlight; useEffect prunes stale highlights on draft changes. 3 cross-component integration tests, all existing tests updated for new prop shape.
 
 ### PR-C through PR-F — NOT STARTED
 - [ ] PR-C — named versions (parent_session_id + migration 038)
