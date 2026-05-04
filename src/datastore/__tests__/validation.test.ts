@@ -312,6 +312,46 @@ describe('validatePlanningSession', () => {
     expect(session.draft.g1.scheduledSubs[0]).not.toHaveProperty('outPlayer');
     expect(() => validatePlanningSession(session)).not.toThrow();
   });
+
+  // Pass-17 Minor 3: includedGameIds entries that don't have a draft
+  // entry would silently produce empty minutes (aggregatePlanMinutes
+  // skips gameIds with no draft). Catch at the save boundary so a
+  // programmatic caller (sync replay, future import) can't land an
+  // inconsistent session.
+  it('rejects includedGameIds entries that have no draft entry', () => {
+    const session = baseSession({
+      // includedGameIds references g2, but draft only has g1.
+      includedGameIds: ['g2'],
+      draft: {
+        g1: {
+          startingXI: { GK: 'p1' },
+          bench: ['p2'],
+          scheduledSubs: [],
+        },
+      },
+    });
+    expect(() => validatePlanningSession(session)).toThrow(
+      /has no entry in draft/,
+    );
+  });
+
+  it('accepts includedGameIds === undefined ("all included") even with sparse draft', () => {
+    // Legacy sessions can have sparse drafts (lazy-seeded at load time
+    // by the editor). undefined includedGameIds means "all included" —
+    // missing draft entries contribute nothing but don't break.
+    const session = baseSession({
+      includedGameIds: undefined,
+      gameIds: ['g1', 'g2'],
+      draft: {
+        g1: {
+          startingXI: { GK: 'p1' },
+          bench: ['p2'],
+          scheduledSubs: [],
+        },
+      },
+    });
+    expect(() => validatePlanningSession(session)).not.toThrow();
+  });
 });
 
 describe('sortedGameIdsKey', () => {
@@ -339,5 +379,16 @@ describe('sortedGameIdsKey', () => {
     expect(sortedGameIdsKey(['a b'])).not.toBe(sortedGameIdsKey(['a', 'b']));
     expect(sortedGameIdsKey(['a,b'])).not.toBe(sortedGameIdsKey(['a', 'b']));
     expect(sortedGameIdsKey(['a|b'])).not.toBe(sortedGameIdsKey(['a', 'b']));
+  });
+
+  // pass-17 Issue 4: parity with migration 036's
+  //   `WHERE g IS NOT NULL AND g <> ''`
+  // canonicalization. Validator rejects empties under the normal save
+  // path, so this is purely defensive — locks LocalDataStore vs SQL
+  // canonical-key agreement against a future bug routing around
+  // validation.
+  it('filters empty strings to match SQL canonicalization (migration 036)', () => {
+    expect(sortedGameIdsKey(['a', '', 'b'])).toBe(sortedGameIdsKey(['a', 'b']));
+    expect(sortedGameIdsKey([''])).toBe('');
   });
 });

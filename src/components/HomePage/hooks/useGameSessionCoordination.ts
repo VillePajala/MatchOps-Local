@@ -548,7 +548,11 @@ export function useGameSessionCoordination({
   // pattern used elsewhere in the coordination layer for game entities.
   const handleAddScheduledSub = useCallback(
     (sub: Omit<ScheduledSub, 'id' | 'status'>) => {
-      const id = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      // Use the shared generateId utility (same one the sub-fired event
+      // ids below use). The previous inline `sub_${Date.now()}_…`
+      // string was indistinguishable from generateId('sub') output but
+      // bypassed the utility, breaking the file's stated invariant.
+      const id = generateId('sub');
       dispatchGameSession({
         type: 'ADD_SCHEDULED_SUB',
         payload: { ...sub, id, status: 'pending' },

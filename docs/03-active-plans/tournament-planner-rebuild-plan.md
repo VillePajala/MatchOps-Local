@@ -37,18 +37,19 @@
 - [x] Pass-13 fixes: cloud `savePlanningSession` `includedGameIds` (Bug 1), `applySnapshot` Player object clones (Issue 1), `aggregatePlanMinutes` overloads (Issue 3), `handleDuplicate` doc + `includedGameIds: undefined` (Minor 1), `draftFromGame` null-coord → bench (Minor 2), `upsertPlanningSession` clone (Minor 3)
 - [x] Pass-14 fixes (committed `e74a1aea`): NUL separator, presetId import threading, planApply JSDoc, exported cap, scheduledSubs deep-clone
 - [x] Pass-15 fixes (committed `26822434`): PR body migration checklist (028→037), per-game Record overload tests, prototype-pollution guard tests, durationMin/halfTimeMin reserved JSDoc
-- [x] **Pass-16 fixes (in progress, uncommitted):**
-  - [x] **Bug (planApply.ts:213):** `?? ''` → `undefined` AND chain advance gated on sub firing. Imported drafts with multi-sub chains on empty-XI roles previously gave sub-2 a phantom outPlayer (sub-1's inPlayer, who never went on the field). Regression test added.
-  - [x] Issue (PlanningModal.tsx:821): `role="dialog"` + `aria-modal="true"` + `aria-label` added for screen-reader visibility (parity with GameSettingsModal)
-  - [x] Issue (sync gap): SyncedDataStore TODO already documented — accepted trade-off, no action
-  - [x] Issue (PR body migration count): pass-16 reviewer (sonnet) flagged "7 migrations" — false positive; PR body was already updated to 10 migrations in pass-15
-  - [x] Minor 1 (planMinutesAggregate): discriminator now checks ALL THREE structural properties (`startingXI` object + `bench` array + `scheduledSubs` array) — defensive against future ID-format changes
-  - [x] Minor 2 (PlanningApplyPreview): `toggleGame` wrapped in `useCallback` to prevent per-row re-renders on parent prop churn
-  - [ ] Nit 1 (ErrorBoundary in PlanningModal): deferred — large scope, low risk per reviewer
-  - [ ] Nit 2 (Migration 028 prod-apply confirmation): needs Ville's input
-  - [ ] Nit 3 (applySnapshot ternary→?.map): SKIPPED — reviewer's premise was wrong (all three properties use ternary, not optional chaining; switching just one would create inconsistency)
-  - [ ] **Pending:** commit + push pass-16 fixes (next step)
-  - [ ] **Pending:** wait on pass-17 review
+- [x] Pass-16 fixes (committed `161fe2d1`): planApply outPlayer chain bug, modal a11y, discriminator robustification, useCallback on toggleGame
+- [x] **Pass-17 fixes (in progress, uncommitted):**
+  - [x] **Bug 1 (useGameSessionCoordination.ts:551):** `handleAddScheduledSub` now uses `generateId('sub')` instead of inline `sub_${Date.now()}_${Math.random()…}`. The file's stated invariant ("ID generation lives here so components don't mint their own") was violated by ad-hoc generation while `generateId` was imported and used two lines later for the fired-sub events.
+  - [x] Bug 2 (sync gap): SyncedDataStore TODO already documented — accepted trade-off, no action
+  - [x] Issue 3 (extra SELECT round-trip): already documented TODO in code, fast-follow OK
+  - [x] Issue 4 (validation.ts:583): `sortedGameIdsKey` now defensively filters empty/non-string entries to match migration 036's `WHERE g IS NOT NULL AND g <> ''` SQL canonicalization. Test added.
+  - [x] Issue 5 (PlanningModal reset functions): consolidated into 3 layers (resetPendingImport ⊂ resetImportState ⊂ resetAllModalState). `handleClose` now uses single `resetAllModalState()` instead of manual pairing. `resetEditorState` kept as alias for back-compat.
+  - [x] Minor 2 (SupabaseDataStore double-cast): added `TODO(post-cutover)` comment pointing to Supabase types regen as the cleanup path
+  - [x] Minor 3 (validation): now flags `includedGameIds` entries that reference a gameId with no draft entry. Catches programmatic-caller bugs (sync replay, bulk import) that would otherwise produce silently-empty minutes aggregations. Two new tests cover the reject path and the "undefined = all included" lenient path.
+  - [ ] Minor 1 (PlanningPage 'undoBanner' overlay vs page): SKIPPED — semantic, current naming is defensible
+  - [ ] Nits 1-3: deferred (discriminator already strengthened in pass-16; deep-clone DRY refactor is no-premature-abstraction; z-index dependencies are pre-existing)
+  - [ ] **Pending:** commit + push pass-17 fixes (next step)
+  - [ ] **Pending:** wait on pass-18 review
 
 **Deferred to fast-follow (per pass-14 reviewer "fast-follow OK"):**
 - Pass-14 Minor 2: `aggregatePlanMinutes` discriminator → branded type / `kind: 'single' | 'per-game'` discriminant

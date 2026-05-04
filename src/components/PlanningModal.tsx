@@ -211,27 +211,24 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     return Object.entries(savedGames).map(([id, game]) => ({ id, game }));
   }, [savedGames]);
 
-  const resetImportState = () => {
-    setImportedPlan(null);
-    setImportError(null);
-  };
-
-  const goToList = () => {
-    // Defensive reset: every other exit path to 'list' calls
-    // resetEditorState. goToList is only wired to the picker's Back
-    // today (no editor state to clear), but a future caller mounting
-    // it from the editor would otherwise leak draft/undo state.
-    resetEditorState();
-    setPage('list');
-  };
-
-  // Shared reset for every path that returns the modal to the list page.
-  // Extracted so adding new state to the modal can't drift between
-  // handleClose / handleEditorApplied / similar callers.
-  // Centralized clear for the standalone-import handoff state. Shared
-  // by resetEditorState (full editor exits) and the open-existing-
-  // session path (which needs to drop pending-import remnants without
-  // touching unrelated editor state like undo snapshots).
+  // Three reset levels, smallest to largest:
+  //
+  // 1. resetPendingImport — clears the standalone-import handoff stash
+  //    only. Used by the open-existing-session path: drops half-imported
+  //    state without touching unrelated editor state (undo snapshots,
+  //    rename drafts, etc.).
+  //
+  // 2. resetImportState — clears the file-picked imported plan + error.
+  //    Used by import re-entry (load a different file mid-flow).
+  //
+  // 3. resetAllModalState — full reset before returning to 'list' or
+  //    closing the modal. Calls 1 + 2 + every other editor-adjacent
+  //    setter. THIS IS THE ONE handleClose / goToList / "back to list"
+  //    callers want; calling only resetEditorState (legacy name) would
+  //    leak importedPlan/importError into the next open. Renamed from
+  //    resetEditorState + manual resetImportState pairing per pass-17
+  //    Issue 5 — the partial-vs-full split was non-obvious and a future
+  //    caller forgetting the import-state half would silently leak.
   const resetPendingImport = () => {
     setPendingImportDraft(undefined);
     setPendingImportPresetId(undefined);
@@ -239,7 +236,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setImportHandoffError(null);
   };
 
-  const resetEditorState = () => {
+  const resetImportState = () => {
+    setImportedPlan(null);
+    setImportError(null);
+  };
+
+  const resetAllModalState = () => {
+    resetImportState();
     setEditorGameIds([]);
     setPendingDeleteId(null);
     setEditingSession(null);
@@ -262,14 +265,34 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     resetPendingImport();
   };
 
+  // Back-compat alias — call sites that just need editor state cleared
+  // (no import state) can use this; everything else should call
+  // resetAllModalState. Both reset paths converge to the same set of
+  // setters in the new shape, so this is a no-op rename for editor-only
+  // callers but a fix for handleClose / "return to list" callers that
+  // previously needed the manual resetImportState() + resetEditorState()
+  // pairing.
+  const resetEditorState = resetAllModalState;
+
+  const goToList = () => {
+    // Full reset: a future contributor mounting goToList from the editor
+    // would otherwise leak draft/undo state — the partial split between
+    // import vs editor reset was the trap pass-17 flagged.
+    resetAllModalState();
+    setPage('list');
+  };
+
   const handleClose = () => {
     // Mid-undo guard: if handleUndoConfirm's applyToGame loop is in
     // flight, its closure-captured handlers will run after we'd reset.
-    // Letting close fall through here causes a double resetEditorState
-    // + double onClose. Mirror handleUndoExpire's guard.
+    // Letting close fall through here causes a double reset + double
+    // onClose. Mirror handleUndoExpire's guard.
     if (isUndoingRef.current) return;
-    resetImportState();
-    resetEditorState();
+    // Single full reset: resetAllModalState is the documented
+    // close-the-modal-completely entry point. The previous code had to
+    // pair resetImportState() + resetEditorState() manually; pass-17
+    // Issue 5 flagged that as a future-drift hazard.
+    resetAllModalState();
     setPage('list');
     onClose();
   };

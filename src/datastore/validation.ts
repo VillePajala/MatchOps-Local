@@ -371,6 +371,31 @@ export const validatePlanningSession = (
       }
       seenIncluded.add(gid);
     });
+    // Pass-17 Minor 3: a session with includedGameIds = ['g2'] but
+    // draft = { g1: {…} } would silently produce empty minutes
+    // aggregations because aggregatePlanMinutes skips gameIds with no
+    // draft entry. The editor always saves drafts for every tab, so
+    // this state should be unreachable through the UI; flag at the
+    // save boundary so a programmatic caller (sync replay, future
+    // bulk-import) can't land an inconsistent session that looks
+    // valid but produces no totals.
+    if (
+      session.draft &&
+      typeof session.draft === 'object' &&
+      !Array.isArray(session.draft)
+    ) {
+      const draftGameIds = new Set(Object.keys(session.draft));
+      for (let i = 0; i < session.includedGameIds.length; i++) {
+        const gid = session.includedGameIds[i];
+        if (!draftGameIds.has(gid)) {
+          throw new ValidationError(
+            `${prefix}includedGameIds[${i}] "${gid}" has no entry in draft — including a game with no lineup would produce empty minutes`,
+            `includedGameIds[${i}]`,
+            gid,
+          );
+        }
+      }
+    }
   }
 
   if (
@@ -587,8 +612,18 @@ const GAME_IDS_KEY_SEPARATOR = '\x00';
  * other sessions covering the *same* games regardless of array order.
  * Sorting before joining means [a, b] and [b, a] hash identically.
  *
+ * Empty/whitespace strings are filtered to match the SQL canonicalization
+ * in migration 036 (`WHERE g IS NOT NULL AND g <> ''`). validatePlanningSession
+ * rejects empties before they ever reach this function under the normal
+ * save path, so this is purely defensive against an unvalidated caller —
+ * keeps LocalDataStore and SupabaseDataStore canonical-key parity even
+ * if a future bug routes around validation.
+ *
  * Exported here (not in a dedicated utility) because it pairs with the
  * planning-session validator and lives at the same conceptual layer.
  */
 export const sortedGameIdsKey = (gameIds: readonly string[]): string =>
-  [...gameIds].sort().join(GAME_IDS_KEY_SEPARATOR);
+  [...gameIds]
+    .filter((id) => typeof id === 'string' && id !== '')
+    .sort()
+    .join(GAME_IDS_KEY_SEPARATOR);

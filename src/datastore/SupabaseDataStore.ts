@@ -4579,6 +4579,11 @@ export class SupabaseDataStore implements DataStore {
     // included_game_ids — column added in migration 037, so older
     // generated DB types may not include it; older rows naturally have
     // NULL which we read as undefined ("all included" semantics).
+    //
+    // TODO(post-cutover): regenerate Supabase types after 037 lands in
+    // prod (`supabase gen types typescript`) and drop this double-cast
+    // — `PlanningSessionRow` will then carry `included_game_ids` natively
+    // and the structural widening is no longer needed.
     const rowWithIncluded = row as unknown as PlanningSessionRow & {
       included_game_ids?: string[] | null;
     };
