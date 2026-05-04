@@ -1500,8 +1500,14 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
-      // 8. Planning sessions (reference saved games; push after games so
-      //    the soft game_ids references resolve on the server side).
+      // 8. Planning sessions (reference saved games via game_ids[]).
+      //    Pushed after games to maintain dependency order: game_ids is
+      //    a soft reference (no SQL FK constraint, see migration 031),
+      //    validated at the app layer rather than server-side. Pushing
+      //    in this order means a fresh client reading planning sessions
+      //    immediately after a sync sees a consistent view (games it
+      //    references already exist in the cloud), even though the DB
+      //    itself wouldn't reject an out-of-order push.
       logger.info(`[SyncedDataStore] Pushing ${planningSessions.length} planning sessions to cloud...`);
       const planningChunks = chunkArray(planningSessions, BULK_PUSH_CHUNK_SIZE);
       for (const chunk of planningChunks) {

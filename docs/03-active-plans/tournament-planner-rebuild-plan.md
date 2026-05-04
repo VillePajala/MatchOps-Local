@@ -38,18 +38,20 @@
 - [x] Pass-14 fixes (committed `e74a1aea`): NUL separator, presetId import threading, planApply JSDoc, exported cap, scheduledSubs deep-clone
 - [x] Pass-15 fixes (committed `26822434`): PR body migration checklist (028→037), per-game Record overload tests, prototype-pollution guard tests, durationMin/halfTimeMin reserved JSDoc
 - [x] Pass-16 fixes (committed `161fe2d1`): planApply outPlayer chain bug, modal a11y, discriminator robustification, useCallback on toggleGame
-- [x] **Pass-17 fixes (in progress, uncommitted):**
-  - [x] **Bug 1 (useGameSessionCoordination.ts:551):** `handleAddScheduledSub` now uses `generateId('sub')` instead of inline `sub_${Date.now()}_${Math.random()…}`. The file's stated invariant ("ID generation lives here so components don't mint their own") was violated by ad-hoc generation while `generateId` was imported and used two lines later for the fired-sub events.
-  - [x] Bug 2 (sync gap): SyncedDataStore TODO already documented — accepted trade-off, no action
-  - [x] Issue 3 (extra SELECT round-trip): already documented TODO in code, fast-follow OK
-  - [x] Issue 4 (validation.ts:583): `sortedGameIdsKey` now defensively filters empty/non-string entries to match migration 036's `WHERE g IS NOT NULL AND g <> ''` SQL canonicalization. Test added.
-  - [x] Issue 5 (PlanningModal reset functions): consolidated into 3 layers (resetPendingImport ⊂ resetImportState ⊂ resetAllModalState). `handleClose` now uses single `resetAllModalState()` instead of manual pairing. `resetEditorState` kept as alias for back-compat.
-  - [x] Minor 2 (SupabaseDataStore double-cast): added `TODO(post-cutover)` comment pointing to Supabase types regen as the cleanup path
-  - [x] Minor 3 (validation): now flags `includedGameIds` entries that reference a gameId with no draft entry. Catches programmatic-caller bugs (sync replay, bulk import) that would otherwise produce silently-empty minutes aggregations. Two new tests cover the reject path and the "undefined = all included" lenient path.
-  - [ ] Minor 1 (PlanningPage 'undoBanner' overlay vs page): SKIPPED — semantic, current naming is defensible
-  - [ ] Nits 1-3: deferred (discriminator already strengthened in pass-16; deep-clone DRY refactor is no-premature-abstraction; z-index dependencies are pre-existing)
-  - [ ] **Pending:** commit + push pass-17 fixes (next step)
-  - [ ] **Pending:** wait on pass-18 review
+- [x] Pass-17 fixes (committed `3e8fdc32` + follow-up `4da2cb99`): generateId for scheduled subs, sortedGameIdsKey defensive empty-string filter, PlanningModal reset consolidation, transformPlanningSessionFromDb post-cutover TODO, validation flag for includedGameIds with no draft entry; follow-up fixed two new tests broken by my mis-modeling
+- [x] **Pass-18 fixes (in progress, uncommitted) — pass-18 verdict was ✅ Approve, addressing actionable Issue + cheap minors/nits to clear "only minors and nits" bar:**
+  - [x] Issue 1 (usePlanningSessionQueries.ts:80): `useDeletePlanningSessionMutation` now scopes invalidation to `(teamId, userId)` matching save/setActive pattern. Mutation signature changed from `string → DeletePlanningSessionVariables`. Caller in PlanningModal.tsx updated; existing hook test updated.
+  - [x] Issue 2 (extra SELECT round-trip): documented TODO, accepted trade-off — reviewer rated as fast-follow
+  - [x] Issue 3 (lock window): documented TODO, accepted trade-off — reviewer rated as fast-follow
+  - [x] Minor 1 (planMinutesAggregate empty-Record short-circuit): symmetric short-circuit added for `Object.keys(drafts).length === 0` matching the single-draft empty-startingXI path. Both paths now return the same `emptyResult` constant.
+  - [x] Minor 2 (ScheduledSub type JSDoc): added "Note for stats consumers" explaining APPLY_SCHEDULED_SUB doesn't update `playersOnField` — stat aggregators reading `gameEvents` shouldn't cross-reference against `playersOnField` snapshots.
+  - [x] Minor 3 (SyncedDataStore push-order comment): clarified that `game_ids` is a soft reference validated at the app layer (no SQL FK), and that the order keeps the cloud view consistent for fresh clients reading planning sessions post-sync.
+  - [x] Nit 3 (GAME_IDS_KEY_SEPARATOR export): now exported so test/debug tooling can inspect the separator character.
+  - [ ] Nit 1 (isActive JSDoc placement on data shape vs DataStore.setActiveSession): SKIPPED — semantic, the cross-reference makes the field self-documenting in isolation.
+  - [ ] Nit 2 (extract isPlanDraft predicate): SKIPPED — discriminator was already strengthened in pass-16 and 17 with structural multi-property checking + tests. Predicate extraction would be cosmetic.
+  - [ ] Nit 4 (zIndex 70 magic number): SKIPPED — pre-existing pattern across the codebase, broader cleanup not scoped here.
+  - [ ] **Pending:** commit + push pass-18 fixes (next step)
+  - [ ] **Pending:** wait on pass-19 review (or merge-readiness verdict)
 
 **Deferred to fast-follow (per pass-14 reviewer "fast-follow OK"):**
 - Pass-14 Minor 2: `aggregatePlanMinutes` discriminator → branded type / `kind: 'single' | 'per-game'` discriminant

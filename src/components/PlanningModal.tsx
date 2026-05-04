@@ -1033,7 +1033,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       // mutate (not mutateAsync) so React Query absorbs rejections; isPending blocks double-submit.
                                       onClick={() => {
                                         setListErrorMessage(null);
-                                        deleteSession.mutate(session.id, {
+                                        deleteSession.mutate({
+                                          sessionId: session.id,
+                                          teamId: session.teamId,
+                                        }, {
                                           onSettled: (
                                             _data,
                                             err,

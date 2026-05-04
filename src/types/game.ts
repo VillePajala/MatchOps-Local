@@ -92,6 +92,18 @@ export type ScheduledSubStatus = 'pending' | 'fired' | 'skipped';
  *
  * Field names match the standalone planner's JSON envelope so the bridge
  * (PR 4) round-trips without an extra transform layer.
+ *
+ * **Note for stats consumers:** `APPLY_SCHEDULED_SUB` deliberately does
+ * NOT update `playersOnField` — it only marks the sub `'fired'` and
+ * appends `substitution` `GameEvent`s. The actual on-pitch swap happens
+ * when the coach drags the player on the field. As a result, a
+ * `substitution` event whose `entityId`s came from `outPlayer` /
+ * `inPlayer` may not be consistent with the `playersOnField` snapshot
+ * captured at the same `timeSeconds` (e.g. if the coach forgot to drag
+ * after tapping Apply). Stat aggregators reading `gameEvents` should
+ * trust the events as the source of truth, not cross-reference against
+ * `playersOnField`. The banner is a coach-side reminder; it is not a
+ * source-of-truth declaration of who is on the pitch.
  */
 export interface ScheduledSub {
   id: string;

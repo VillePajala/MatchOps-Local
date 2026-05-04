@@ -77,20 +77,32 @@ export const useSavePlanningSessionMutation = () => {
   });
 };
 
+export interface DeletePlanningSessionVariables {
+  sessionId: string;
+  teamId: string | undefined;
+}
+
 export const useDeletePlanningSessionMutation = () => {
   const queryClient = useQueryClient();
-  const { getStore } = useDataStore();
+  const { userId, getStore } = useDataStore();
 
-  return useMutation<boolean, Error, string>({
-    mutationFn: async (sessionId) => {
+  return useMutation<boolean, Error, DeletePlanningSessionVariables>({
+    mutationFn: async ({ sessionId }) => {
       const store = await getStore();
       return store.deletePlanningSession(sessionId);
     },
-    onSuccess: (deleted) => {
+    onSuccess: (deleted, { teamId }) => {
       if (!deleted) return;
-      // Bare root key prefix-matches every live planning-session query (segment-by-segment match); user isolation is enforced at the DataStore layer.
+      // Scope invalidation to (teamId, userId) so an auth-switch
+      // mid-mount can't leak a delete across user accounts. Matches
+      // useSavePlanningSessionMutation + useSetActiveSessionMutation.
+      // Also invalidate the global "all teams" key — landing pages
+      // that read sessions across every team need a refresh too.
       queryClient.invalidateQueries({
-        queryKey: queryKeys.planningSessions,
+        queryKey: [...queryKeys.planningSessionsByTeam(teamId), userId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.planningSessionsByTeam(undefined), userId],
       });
     },
   });

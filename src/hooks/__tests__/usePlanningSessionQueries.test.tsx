@@ -182,7 +182,10 @@ describe('useDeletePlanningSessionMutation', () => {
     });
 
     await act(async () => {
-      const ok = await result.current.mutateAsync('planningSession_x');
+      const ok = await result.current.mutateAsync({
+        sessionId: 'planningSession_x',
+        teamId: 'team_1',
+      });
       expect(ok).toBe(true);
     });
 
@@ -202,7 +205,10 @@ describe('useDeletePlanningSessionMutation', () => {
     });
 
     await act(async () => {
-      const ok = await result.current.mutateAsync('does_not_exist');
+      const ok = await result.current.mutateAsync({
+        sessionId: 'does_not_exist',
+        teamId: 'team_1',
+      });
       expect(ok).toBe(false);
     });
 

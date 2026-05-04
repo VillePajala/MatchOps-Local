@@ -605,7 +605,7 @@ export { PLANNING_SESSION_NAME_MAX, PLANNING_SESSION_GAME_IDS_MAX };
  * format cannot contain NUL, and JS strings are NUL-safe (the byte
  * is just a code point, not a terminator).
  */
-const GAME_IDS_KEY_SEPARATOR = '\x00';
+export const GAME_IDS_KEY_SEPARATOR = '\x00';
 
 /**
  * Stable string key for a gameIds-set, used by `setActiveSession` to find

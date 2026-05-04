@@ -95,24 +95,29 @@ export function aggregatePlanMinutes(
       : (draftOrDrafts as Record<string, PlanDraft>)[gid];
 
   // Empty inputs short-circuit.
-  if (gameIds.length === 0) {
-    return {
-      perPlayer: [],
-      fairShareSeconds: 0,
-      totalFieldSeconds: 0,
-      referencedPlayerIds: [],
-    };
-  }
+  const emptyResult: PlanMinutesAggregate = {
+    perPlayer: [],
+    fairShareSeconds: 0,
+    totalFieldSeconds: 0,
+    referencedPlayerIds: [],
+  };
+  if (gameIds.length === 0) return emptyResult;
   if (
     isSingleDraft &&
     Object.keys((draftOrDrafts as PlanDraft).startingXI).length === 0
   ) {
-    return {
-      perPlayer: [],
-      fairShareSeconds: 0,
-      totalFieldSeconds: 0,
-      referencedPlayerIds: [],
-    };
+    return emptyResult;
+  }
+  // Per-game Record path: short-circuit symmetric to the single-draft
+  // case above. An empty Record (`{}`) means every gameId would miss
+  // its draft entry — the loop would still produce the same empty
+  // result, but iterating gameIds is wasted work and the asymmetry
+  // hid the equivalence.
+  if (
+    !isSingleDraft &&
+    Object.keys(draftOrDrafts as Record<string, PlanDraft>).length === 0
+  ) {
+    return emptyResult;
   }
 
   const totals = new Map<PlayerId, number>();
