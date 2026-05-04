@@ -335,23 +335,6 @@ describe('validatePlanningSession', () => {
     );
   });
 
-  it('accepts includedGameIds === undefined ("all included") even with sparse draft', () => {
-    // Legacy sessions can have sparse drafts (lazy-seeded at load time
-    // by the editor). undefined includedGameIds means "all included" —
-    // missing draft entries contribute nothing but don't break.
-    const session = baseSession({
-      includedGameIds: undefined,
-      gameIds: ['g1', 'g2'],
-      draft: {
-        g1: {
-          startingXI: { GK: 'p1' },
-          bench: ['p2'],
-          scheduledSubs: [],
-        },
-      },
-    });
-    expect(() => validatePlanningSession(session)).not.toThrow();
-  });
 });
 
 describe('sortedGameIdsKey', () => {

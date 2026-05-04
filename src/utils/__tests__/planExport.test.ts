@@ -241,33 +241,46 @@ describe('parsePlanExport', () => {
     it.each(['__proto__', 'constructor', 'prototype'])(
       'rejects role key "%s"',
       (key) => {
-        // JSON parsing preserves __proto__ as an own key when it's
-        // emitted via JSON.stringify of a plain object; we have to use
-        // a hand-built JSON string to get the parser to surface it.
-        const json = `{
-          "formatVersion": "${PLAN_FORMAT_VERSION}",
-          "kind": "${PLAN_EXPORT_KIND}",
-          "tournament": {
-            "teamName": "X",
-            "formationId": "f",
-            "rosterSize": 1,
-            "games": [{
-              "id": "g1",
-              "label": "Game 1",
-              "time": "14:00",
-              "field": "F",
-              "opponent": "O",
-              "numberOfPeriods": 2,
-              "periodDurationMinutes": 12.5,
-              "durationMin": 25,
-              "halfTimeMin": 12.5,
-              "startingXI": { "${key}": "p0" },
-              "scheduledSubs": []
-            }]
+        // formatVersion + numberOfPeriods + numbers must stay JSON numbers,
+        // not string literals — quoting them flips the parser to "wrong
+        // formatVersion" before the magic-key check runs. Build the
+        // envelope as an object first and inject the magic key via
+        // bracket notation so JSON.stringify emits it verbatim.
+        const game: Record<string, unknown> = {
+          id: 'g1',
+          label: 'Game 1',
+          time: '14:00',
+          field: 'F',
+          opponent: 'O',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12.5,
+          durationMin: 25,
+          halfTimeMin: 12.5,
+          startingXI: {},
+          scheduledSubs: [],
+        };
+        // Assigning to .__proto__ does NOT create an own key (V8
+        // invokes [[SetPrototypeOf]]), so use Object.defineProperty
+        // to force the magic key to be an own data property the JSON
+        // serialiser will emit.
+        Object.defineProperty(game.startingXI, key, {
+          value: 'p0',
+          enumerable: true,
+          configurable: true,
+          writable: true,
+        });
+        const json = JSON.stringify({
+          formatVersion: PLAN_FORMAT_VERSION,
+          kind: PLAN_EXPORT_KIND,
+          tournament: {
+            teamName: 'X',
+            formationId: 'f',
+            rosterSize: 1,
+            games: [game],
           },
-          "included": [true],
-          "currentVersionName": null
-        }`;
+          included: [true],
+          currentVersionName: null,
+        });
         const result = parsePlanExport(json);
         expect(result.ok).toBe(false);
         if (result.ok) return;
