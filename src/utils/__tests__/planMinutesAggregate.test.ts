@@ -258,9 +258,9 @@ describe('fairShareBand', () => {
 });
 
 describe('fairShareHue (continuous gradient)', () => {
-  // PR-B: continuous red→yellow→green hue ramp matching the standalone
-  // planner. Anchors at the saturation cap, the on-target ratio, and
-  // a few interior points to lock the formula.
+  // Continuous red→yellow→green hue ramp matching the standalone
+  // planner. Anchors at the saturation cap, the on-target ratio,
+  // and a few interior points to lock the formula.
   it('clamps below-range ratios to red (hue 0)', () => {
     expect(fairShareHue(0)).toBe(0);
     expect(fairShareHue(0.2)).toBe(0);

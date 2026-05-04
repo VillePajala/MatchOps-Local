@@ -191,9 +191,9 @@ export const fairShareBand = (ratio: number): FairShareBand => {
 /**
  * Continuous hue mapping for the fair-share ratio. Returns a CSS HSL
  * hue (0–150, integer) where:
- *   - 0   = red    (severely under-played)
- *   - 100 = yellow-green ("on target", ratio ≈ 1.0)
- *   - 150 = green  (severely over-played — clamped at ratio = 1.5)
+ *   - 0   = red          (severely under-played, clamped at ratio ≤ 0.4)
+ *   - 82  = yellow-green ("on target", ratio = 1.0)
+ *   - 150 = green        (severely over-played, clamped at ratio ≥ 1.5)
  *
  * The clamp range [0.4, 1.5] matches the standalone planner's
  * `hueForRatio` so coaches see the same color a player would have in

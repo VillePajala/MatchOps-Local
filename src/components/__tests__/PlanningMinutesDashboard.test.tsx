@@ -194,10 +194,10 @@ describe('PlanningMinutesDashboard', () => {
   });
 
   it('sorts entries by total seconds ascending (needs-attention first)', () => {
-    // PR-B: ordering is now ascending — under-played players surface
-    // FIRST so the coach sees who needs more time when glancing at
-    // the dashboard. Mirrors the standalone planner's "needs
-    // attention at the top" arrangement. Was previously desc.
+    // Ascending ordering: under-played players surface FIRST so the
+    // coach sees who needs more time when glancing at the dashboard.
+    // Mirrors the standalone planner's "needs attention at the top"
+    // arrangement.
     renderDashboard({
       draft: {
         startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
@@ -221,7 +221,7 @@ describe('PlanningMinutesDashboard', () => {
     expect(ids).toEqual(['p1', 'p3', 'p0', 'p2']);
   });
 
-  it('applies an inline color style to each pill (PR-B continuous gradient)', () => {
+  it('applies an inline HSL color style to each pill', () => {
     // Locks the visual contract: pills no longer use discrete
     // tailwind classes; backgroundColor + borderColor + color are
     // assigned as inline HSL styles computed from fairShareHue(ratio).
@@ -243,8 +243,8 @@ describe('PlanningMinutesDashboard', () => {
   });
 
   it('renders the percentage suffix next to the mm:ss total', () => {
-    // PR-B: pills now show "mm:ss (NN%)" so the coach reads the
-    // exact share at a glance without hover/AT.
+    // Pills render "mm:ss (NN%)" so the coach reads the exact share
+    // at a glance without needing hover/AT.
     renderDashboard();
     const rows = screen
       .getByTestId('planning-minutes-dashboard-grid')
