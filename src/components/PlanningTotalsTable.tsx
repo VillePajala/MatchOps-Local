@@ -215,13 +215,13 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
                 data-testid={`planning-totals-row-${row.playerId}`}
                 data-band={band ?? 'on-track'}
                 data-highlighted={isHighlighted ? 'true' : 'false'}
-                className={`border-t border-slate-800 transition-opacity hover:bg-slate-800/40 ${
-                  isHighlighted
-                    ? 'bg-emerald-900/20'
-                    : isDimmed
-                      ? 'opacity-40'
-                      : ''
-                }`}
+                className={[
+                  'border-t border-slate-800 transition-opacity hover:bg-slate-800/40',
+                  isHighlighted ? 'bg-emerald-900/20' : null,
+                  !isHighlighted && isDimmed ? 'opacity-40' : null,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               >
                 <th
                   scope="row"
