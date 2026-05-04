@@ -326,4 +326,18 @@ describe('sortedGameIdsKey', () => {
   it('handles a single-element array', () => {
     expect(sortedGameIdsKey(['only'])).toBe('only');
   });
+
+  // Locks in the no-collision contract: a separator that could appear
+  // inside any plausible gameId would let `sortedGameIdsKey(['a b'])`
+  // and `sortedGameIdsKey(['a', 'b'])` collide. The current
+  // `game_{ts}_{rand}` format excludes spaces, but the validator
+  // accepts non-empty strings without rejecting whitespace, so the
+  // separator must be non-collidable on its own. NUL byte (\x00) was
+  // chosen because JS strings can hold it but no game ID format can
+  // produce it.
+  it('does not collide when gameIds contain spaces or printable separators', () => {
+    expect(sortedGameIdsKey(['a b'])).not.toBe(sortedGameIdsKey(['a', 'b']));
+    expect(sortedGameIdsKey(['a,b'])).not.toBe(sortedGameIdsKey(['a', 'b']));
+    expect(sortedGameIdsKey(['a|b'])).not.toBe(sortedGameIdsKey(['a', 'b']));
+  });
 });

@@ -135,6 +135,14 @@ export function applyDraftToGame(
   //    because the timeline allows the coach to bring in any non-on-field
   //    roster player; without this they would land in scheduled_subs but
   //    be missing from the game's selected participant set.
+  //    Reachability note: this set spans ALL sub inPlayers, including
+  //    those whose timeSeconds exceeds gameDurationSec and get filtered
+  //    into `unreachableSubs` in step 4. A coach who scheduled a sub
+  //    that won't fire still meant to dress that player; keeping them
+  //    in the participant list (jersey, post-game stats roster) preserves
+  //    that intent. The user signal for unreachability is the
+  //    `unreachableSubs` array surfaced by the apply preview, not roster
+  //    membership.
   const idsInDraft = new Set<PlayerId>([
     ...Object.values(draft.startingXI),
     ...draft.bench,

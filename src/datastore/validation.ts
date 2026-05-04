@@ -570,7 +570,17 @@ export const validatePlanningSession = (
   }
 };
 
-export { PLANNING_SESSION_NAME_MAX };
+export { PLANNING_SESSION_NAME_MAX, PLANNING_SESSION_GAME_IDS_MAX };
+
+/**
+ * Separator for sortedGameIdsKey. NUL byte was chosen over space so
+ * the key is collision-proof regardless of the gameId format —
+ * sortedGameIdsKey(['a b']) and sortedGameIdsKey(['a', 'b']) would
+ * collide under a space separator. The current `game_{ts}_{rand}`
+ * format cannot contain NUL, and JS strings are NUL-safe (the byte
+ * is just a code point, not a terminator).
+ */
+const GAME_IDS_KEY_SEPARATOR = '\x00';
 
 /**
  * Stable string key for a gameIds-set, used by `setActiveSession` to find
@@ -581,4 +591,4 @@ export { PLANNING_SESSION_NAME_MAX };
  * planning-session validator and lives at the same conceptual layer.
  */
 export const sortedGameIdsKey = (gameIds: readonly string[]): string =>
-  [...gameIds].sort().join(' ');
+  [...gameIds].sort().join(GAME_IDS_KEY_SEPARATOR);

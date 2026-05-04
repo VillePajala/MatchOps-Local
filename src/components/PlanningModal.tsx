@@ -549,12 +549,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // import surface area. Bench is derived from the team roster minus
     // assigned starters; the editor uses this draft as-is when the
     // user lands on it via the picker handoff.
-    const { draft } = planDraftFromImport(firstGame, roster);
     // Only carry the formationId if it resolves to a known preset; an
     // unknown id would fail the editor's preset lookup silently.
     const presetMatch = importedPlan.formationId
       ? getPresetById(importedPlan.formationId)
       : undefined;
+    // Pass the resolved preset id into the importer so it lands on
+    // draft.presetId. Without that, saving + reopening this imported
+    // plan would fall back to whatever preset is active later and
+    // silently drop role-name-mismatched startingXI entries.
+    const { draft } = planDraftFromImport(firstGame, roster, presetMatch?.id);
     setPendingImportDraft(draft);
     setPendingImportPresetId(presetMatch?.id);
     setPendingImportName(

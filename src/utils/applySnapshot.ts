@@ -38,7 +38,14 @@ export const captureApplyableFields = (game: AppState): ApplyableFields => ({
   selectedPlayerIds: game.selectedPlayerIds
     ? [...game.selectedPlayerIds]
     : undefined,
-  scheduledSubs: game.scheduledSubs ? [...game.scheduledSubs] : undefined,
+  // Each ScheduledSub is shallow-cloned for parity with playersOnField
+  // — all fields are primitives today, so the array-only clone was
+  // correct, but a future engineer adding an object property to
+  // ScheduledSub would otherwise silently break undo. Cost is ~5
+  // sub-entries per snapshot, immeasurable.
+  scheduledSubs: game.scheduledSubs
+    ? game.scheduledSubs.map((s) => ({ ...s }))
+    : undefined,
 });
 
 export const UNDO_WINDOW_MS = 30_000;

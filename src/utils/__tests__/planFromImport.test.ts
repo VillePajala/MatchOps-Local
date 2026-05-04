@@ -80,4 +80,24 @@ describe('planDraftFromImport', () => {
     expect(r.draft.startingXI).toEqual({});
     expect(r.draft.bench).toEqual(['p1', 'p2', 'p3', 'p4']);
   });
+
+  // pass-14 Issue 3: presetId must round-trip through import so a saved
+  // imported plan reopened later renders against the original formation
+  // rather than silently dropping role-name-mismatched startingXI entries.
+  it('stamps the supplied presetId onto the draft', () => {
+    const r = planDraftFromImport(
+      { scheduledSubs: [], startingXI: { GK: 'p1' } },
+      roster,
+      'formation-4-3-3',
+    );
+    expect(r.draft.presetId).toBe('formation-4-3-3');
+  });
+
+  it('leaves presetId undefined when no formation id is supplied', () => {
+    const r = planDraftFromImport(
+      { scheduledSubs: [], startingXI: { GK: 'p1' } },
+      roster,
+    );
+    expect(r.draft.presetId).toBeUndefined();
+  });
 });

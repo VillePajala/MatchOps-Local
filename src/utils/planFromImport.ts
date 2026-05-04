@@ -40,10 +40,20 @@ export interface PlanFromImportResult {
  *   — that happens on Apply (applyDraftToGame filters via
  *   unknownPlayerIds + unknownRoles). The editor opens with stale-id
  *   subs visible so the user can clean them up before Apply.
+ *
+ * - `presetId` is stamped onto the draft when the caller supplies a
+ *   pre-validated formation id. Without it, a saved imported plan
+ *   reopened later falls back to whatever preset is active at that
+ *   time, silently dropping startingXI entries whose role names don't
+ *   exist in the new preset (e.g. "LM" → 4-3-3 with "LB"). The caller
+ *   is responsible for resolving `ImportedPlan.formationId` against
+ *   the preset registry before passing it through, so an unknown id
+ *   never lands on the saved draft.
  */
 export function planDraftFromImport(
   imported: Pick<ImportedPlanGame, 'startingXI' | 'scheduledSubs'>,
   roster: readonly Player[],
+  presetId?: string,
 ): PlanFromImportResult {
   const rosterIds = new Set(roster.map((p) => p.id));
   const startingXI: Record<string, PlayerId> = {};
@@ -86,7 +96,7 @@ export function planDraftFromImport(
     }))
     .sort((a, b) => a.timeSeconds - b.timeSeconds);
   return {
-    draft: { startingXI, bench, scheduledSubs },
+    draft: { startingXI, bench, scheduledSubs, presetId },
     unknownPlayerIds,
     duplicateRoleAssignments,
   };

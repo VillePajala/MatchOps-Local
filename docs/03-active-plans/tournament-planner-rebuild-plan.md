@@ -1,9 +1,66 @@
 # Tournament Planner — Rebuild Plan (parity with standalone)
 
-**Status:** active design doc — not yet started
+**Status:** PR-A in flight (review converging) — PRs B–F not yet started
 **Author:** drafted after the pass-10 review of PR #404 surfaced the divergence
 **Source of truth for the target UX:** `tournament-planner/planner.html` (1450-line standalone HTML+JS app, the planner Ville built and uses today)
 **Companion doc:** `tournament-planner-integration-pr-plan.md` (the original integration plan that produced PR #404, which now needs rebuilding)
+
+---
+
+## Live progress tracker (updated 2026-05-04)
+
+> Single source of truth for cross-session/post-compact context. Update **as work happens** — don't wait until end of PR.
+
+### PR-A — Per-game drafts foundation
+**Branch:** `feature/planner-integration` (direct commits — no separate sub-PR; reviewed via umbrella PR #404)
+**Status:** ⏳ converging — pass-14 verdict was "Approved with minor notes", but Ville's bar is "only minors and nists" → 2 Issues + 3 Minors + 2 Nits being addressed in pass-15 work on top of `426eafd8`.
+
+**Done (committed on branch):**
+- [x] `PlanningEditor` state migrated to `Record<gameId, PlanDraft>` + adapter `setDraft` routes writes to active tab
+- [x] Tab strip rendered when `gameIds.length > 1` (subtitle, tabsLabel, includeLabel i18n keys added EN+FI)
+- [x] `includedGameIds?: string[]` added to `PlanningSession` type + `resolveIncludedGameIds` helper (NULL = "all")
+- [x] Migration 037 (`included_game_ids text[]`) — applied to staging
+- [x] Migration 035 (composite PK `user_id, id`) — applied to staging
+- [x] Migration 036 (setActiveSession hardening: 100-cap, dedupe, `FOR UPDATE` lock) — applied to staging
+- [x] `validatePlanningSession` extended: `includedGameIds` ⊆ `gameIds`, dedupe, `__proto__/constructor/prototype` guard, per-draft player uniqueness, `PLANNING_SESSION_GAME_IDS_MAX = 100`
+- [x] `validateScheduledSubsFromDb` boundary helper added (filter+log invalid entries on read)
+- [x] `aggregatePlanMinutes` accepts `PlanDraft | Record` — three overloads (single, per-game, union)
+- [x] `applyDraftToGame` per-tab iteration (drafts[id] ?? draftFromGame fallback)
+- [x] Apply preview computes per-game diffs (was mistakenly active-tab only)
+- [x] `applyPresetChange` resets EVERY tab; `handlePresetChange` divergence check iterates all tabs
+- [x] `handleSavePlan` saves drafts as-is (no replication); Apply gate at `fieldPlayerCount === 0`
+- [x] `handleEditorApplied` stamps `appliedDrafts` + `includedGameIds` per game
+- [x] `LocalDataStore.savePlanningSession` + `upsertPlanningSession` deep-clone draft + preserve undefined `includedGameIds`
+- [x] `SupabaseDataStore` transforms `included_game_ids` ↔ `includedGameIds`; per-item validation in `getPlanningSessions` + `transformGameFromDb`
+- [x] `SyncedDataStore.setActiveSession` cap at 100 + dedupe via Set; sync-race TODO documented
+- [x] Preview branch PWA icon (sharp `modulate({hue:180})`) so PWA installs are visually distinct from master
+- [x] Pass-13 fixes: cloud `savePlanningSession` `includedGameIds` (Bug 1), `applySnapshot` Player object clones (Issue 1), `aggregatePlanMinutes` overloads (Issue 3), `handleDuplicate` doc + `includedGameIds: undefined` (Minor 1), `draftFromGame` null-coord → bench (Minor 2), `upsertPlanningSession` clone (Minor 3)
+- [x] **Pass-14 fixes (in progress, uncommitted):**
+  - [x] Issue 5: `sortedGameIdsKey` separator → NUL byte (`\x00`); test added asserting no-collision contract for space/comma/pipe inputs
+  - [x] Issue 3: `planDraftFromImport` accepts validated `presetId`, stamps it onto `draft.presetId`; `PlanningModal` caller threads `presetMatch?.id` through; tests added
+  - [x] Minor 1 (planApply): JSDoc note explaining unreachable sub inPlayers stay in selectedPlayerIds (intentional — coach intent preserved)
+  - [x] Minor 6: `PLANNING_SESSION_GAME_IDS_MAX` exported
+  - [x] Nit 4: `applySnapshot` shallow-clones each `ScheduledSub` for parity with playersOnField
+  - [ ] **Pending:** commit + push pass-14 fixes (next step)
+  - [ ] **Pending:** wait on pass-15 review
+
+**Deferred to fast-follow (per pass-14 reviewer "fast-follow OK"):**
+- Pass-14 Minor 2: `aggregatePlanMinutes` discriminator → branded type / `kind: 'single' | 'per-game'` discriminant
+- Pass-14 Nit 7: two-step PK correction (031 + 035) — historical, not actionable
+- Pass-14 perf nit: GIN index on `planning_sessions.game_ids` for containment queries — only matters at >>100 sessions/user
+
+### PR-B through PR-F — NOT STARTED
+- [ ] PR-B — cross-game player highlight, continuous-gradient pills, totals table
+- [ ] PR-C — named versions (parent_session_id + migration 038)
+- [ ] PR-D — H1/H2 split shortcut buttons on scheduledSubs
+- [ ] PR-E — visual parity polish + show-benches + auto-save indicator + reset
+- [ ] PR-F — bundle import/export
+
+**PR target convention:** PR-B onwards should be opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
+
+### Master cutover
+- PR #404 is held — base is master, but body is feature/planner-integration. Will merge to master only after all 6 sub-PRs converge.
+- Migrations 028–037 already applied to staging; production migration is part of cutover checklist.
 
 ---
 
