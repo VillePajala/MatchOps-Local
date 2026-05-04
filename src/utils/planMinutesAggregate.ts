@@ -187,3 +187,24 @@ export const fairShareBand = (ratio: number): FairShareBand => {
   if (r <= 1.3) return 'over';
   return 'heavy-over';
 };
+
+/**
+ * Continuous hue mapping for the fair-share ratio. Returns a CSS HSL
+ * hue (0–150, integer) where:
+ *   - 0   = red          (severely under-played, clamped at ratio ≤ 0.4)
+ *   - 82  = yellow-green ("on target", ratio = 1.0)
+ *   - 150 = green        (severely over-played, clamped at ratio ≥ 1.5)
+ *
+ * The clamp range [0.4, 1.5] matches the standalone planner's
+ * `hueForRatio` so coaches see the same color a player would have in
+ * the standalone tool. Below 0.4 saturates to red; above 1.5 saturates
+ * to green. The band-classification (`fairShareBand`) is the discrete
+ * accessibility/test view; the gradient is the visual continuum.
+ *
+ * Pure / deterministic — co-located with `fairShareBand` so a
+ * future cap/range tweak ripples to both.
+ */
+export const fairShareHue = (ratio: number): number => {
+  const r = Math.max(0.4, Math.min(1.5, ratio));
+  return Math.round(((r - 0.4) / 1.1) * 150);
+};

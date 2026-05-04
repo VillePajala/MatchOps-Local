@@ -8,7 +8,7 @@ import type { PlanDraft } from '@/utils/planSwapEngine';
 import {
   aggregatePlanMinutes,
   fairShareBand,
-  type FairShareBand,
+  fairShareHue,
 } from '@/utils/planMinutesAggregate';
 import { formatMMSS } from '@/utils/planFormatters';
 
@@ -25,16 +25,29 @@ export interface PlanningMinutesDashboardProps {
   roster: Player[];
 }
 
-// Tailwind classes per band — matched to the existing emerald (success)
-// / amber (info) / rose (warn) palette used elsewhere in the planner so
-// the dashboard reads consistently with PlanningApplyPreview / Banner.
-const bandClass: Record<FairShareBand, string> = {
-  under: 'bg-rose-900/30 border-rose-700/50 text-rose-100',
-  low: 'bg-amber-900/30 border-amber-700/50 text-amber-100',
-  fair: 'bg-emerald-900/30 border-emerald-700/50 text-emerald-100',
-  over: 'bg-amber-900/30 border-amber-700/50 text-amber-100',
-  'heavy-over': 'bg-rose-900/30 border-rose-700/50 text-rose-100',
+// Continuous-gradient pill style. Mirrors the standalone planner's
+// red→yellow→green hue ramp (see fairShareHue) so coaches reading the
+// in-app dashboard see the same color a player would have in the
+// standalone tool. Saturation/lightness tuned for the dark theme:
+//   - bg:     30% lightness, 50% saturation → readable but muted
+//   - border: 42% lightness, 65% saturation → strong-enough rim
+//   - text:   95% lightness                  → near-white, AAA contrast
+// Dark-theme inversion vs. the standalone (which uses 92% bg lightness
+// because it runs on white) is intentional — the planner modal is
+// dark-themed everywhere else, swapping to a light pill would clash.
+const pillStyleForRatio = (ratio: number): React.CSSProperties => {
+  const hue = fairShareHue(ratio);
+  return {
+    backgroundColor: `hsl(${hue}, 50%, 30%)`,
+    borderColor: `hsl(${hue}, 65%, 42%)`,
+    color: `hsl(${hue}, 30%, 95%)`,
+  };
 };
+
+// Note: the discrete `data-band` attribute on each <li> stays as the
+// machine-readable classification (used by existing tests and AT
+// consumers). The visual rendering is the gradient above; the band
+// continues to back any future per-band CSS rules or filters.
 
 const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
   draft,
@@ -67,14 +80,16 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
     [draft, gameIds, savedGames],
   );
 
-  // Sort by total seconds desc so over-played players cluster at the
-  // top, under-played at the bottom — answers "who's getting too
-  // much/little time?" at a glance. Memoised on aggregate so a
-  // parent re-render doesn't re-sort.
+  // Sort ascending by minutes — needs-attention-first. Mirrors the
+  // standalone's "needs attention at the top" ordering so coaches see
+  // the under-played player first when they glance at the dashboard.
+  // Was previously desc (over-played at top); the gradient + ascending
+  // ordering gives the same information at a glance with the more
+  // actionable player visible without scrolling.
   const sorted = useMemo(
     () =>
       [...aggregate.perPlayer].sort(
-        (a, b) => b.totalSeconds - a.totalSeconds,
+        (a, b) => a.totalSeconds - b.totalSeconds,
       ),
     [aggregate],
   );
@@ -160,7 +175,8 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
               data-priority={isPriority ? 'true' : 'false'}
               aria-label={ariaLabel}
               title={ariaLabel}
-              className={`flex items-center justify-between rounded-md border px-2 py-1 ${bandClass[band]}`}
+              style={pillStyleForRatio(entry.shareRatio)}
+              className="flex items-center justify-between rounded-md border px-2 py-1"
             >
               {/* min-w-0 lets the flex container shrink below its
                   intrinsic content width so the inner truncate can
@@ -175,7 +191,7 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
                 <span className="truncate">{playerLabel(entry.playerId)}</span>
               </span>
               <span className="font-mono text-[11px] tabular-nums">
-                {formatMMSS(entry.totalSeconds)}
+                {formatMMSS(entry.totalSeconds)} ({pct}%)
               </span>
             </li>
           );

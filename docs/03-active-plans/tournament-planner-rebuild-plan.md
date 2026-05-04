@@ -56,14 +56,20 @@
 - Pass-14 Nit 7: two-step PK correction (031 + 035) — historical, not actionable
 - Pass-14 perf nit: GIN index on `planning_sessions.game_ids` for containment queries — only matters at >>100 sessions/user
 
-### PR-B through PR-F — NOT STARTED
-- [ ] PR-B — cross-game player highlight, continuous-gradient pills, totals table
+### PR-B — Cross-game player tracking + continuous-gradient pills + totals table
+**Branch:** `planner/pr-b-cross-game-tracking` → `feature/planner-integration`
+**Status:** ⏳ in flight
+- [x] **PR-B-1 (continuous-gradient pills)** — added `fairShareHue(ratio)` to planMinutesAggregate (red→yellow→green hue ramp matching standalone planner's clamp 0.4↔1.5). PlanningMinutesDashboard pills now use inline HSL `backgroundColor`/`borderColor`/`color` instead of discrete tailwind band classes; sort flipped from desc to ASC (needs-attention first); each pill shows `mm:ss (NN%)` so the share is readable without hover. `data-band` attribute retained for AT/tests. 5 new fairShareHue unit tests + 2 dashboard tests; existing band/sort tests updated.
+- [ ] PR-B-2 (totals table component) — pending
+- [ ] PR-B-3 (cross-game player highlight multi-select) — pending
+
+### PR-C through PR-F — NOT STARTED
 - [ ] PR-C — named versions (parent_session_id + migration 038)
 - [ ] PR-D — H1/H2 split shortcut buttons on scheduledSubs
 - [ ] PR-E — visual parity polish + show-benches + auto-save indicator + reset
 - [ ] PR-F — bundle import/export
 
-**PR target convention:** PR-B onwards should be opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
+**PR target convention:** PR-B onwards opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
 
 ### Master cutover
 - PR #404 is held — base is master, but body is feature/planner-integration. Will merge to master only after all 6 sub-PRs converge.
