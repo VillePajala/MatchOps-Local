@@ -1741,6 +1741,15 @@
     "entryAria": "{{player}}: {{mmss}}, {{pct}} prosenttia reilusta osuudesta",
     "entryAriaPriority": "Tärkeä pelaaja {{player}}: {{mmss}}, {{pct}} prosenttia reilusta osuudesta"
   },
+  "planningTotalsTable": {
+    "title": "Peliminuutit pelikohtaisesti",
+    "empty": "Valitse vähintään yksi peli ja aseta pelaajat nähdäksesi pelikohtaiset minuutit.",
+    "colPlayer": "Pelaaja",
+    "colGame": "P{{n}}",
+    "colTotal": "Yht.",
+    "colGameExcludedTitle": "{{label}} (ei mukana yhteenlaskussa)",
+    "gkFull": "Maalivahti"
+  },
   "planningUndoBanner": {
     "title_one": "Suunnitelma sovellettu {{count}} peliin.",
     "title_other": "Suunnitelma sovellettu {{count}} peliin.",

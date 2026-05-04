@@ -338,7 +338,12 @@ describe('Translation File Validation', () => {
       //   useImportedPlan, importedPlanDefaultName,
       //   importNoGamesError; removed obsolete importNoApply that
       //   was replaced by importNextStep in the success card).
-      expect(enKeys.length).toBe(2581);
+      // Planner PR-B-2: +7 keys for planningTotalsTable.
+      // Note: this counts JSON leaf nodes from the translation files
+      // (getAllKeys()). i18n-types.ts uses a slightly different
+      // counter that includes synthesised plural bases — see the
+      // i18n-types.ts assertion below for that distinct number.
+      expect(enKeys.length).toBe(2588);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -365,7 +370,7 @@ describe('Translation File Validation', () => {
       // Planner Phase 5e: +2 playerDetailsModal priority keys.
       // Planner Phase 5f: +2 priority-aware aria keys (chip + pill).
       // Planner Phase 5g: +3 net import handoff keys (see EN block).
-      expect(fiKeys.length).toBe(2581);
+      expect(fiKeys.length).toBe(2588);
     });
   });
 });
