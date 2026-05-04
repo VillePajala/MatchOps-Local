@@ -160,7 +160,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // already-restored games on retry.
   const [undoCursor, setUndoCursor] = useState(0);
   // Captured at appliedAt-stamp time so the Undo path can clear the
-  // stamp on full rollback. resetEditorState clears editingSession
+  // stamp on full rollback. resetAllModalState clears editingSession
   // before the undo banner mounts, so we can't read it from there.
   const stampedSessionRef = useRef<{
     id: string;
@@ -224,11 +224,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // 3. resetAllModalState — full reset before returning to 'list' or
   //    closing the modal. Calls 1 + 2 + every other editor-adjacent
   //    setter. THIS IS THE ONE handleClose / goToList / "back to list"
-  //    callers want; calling only resetEditorState (legacy name) would
-  //    leak importedPlan/importError into the next open. Renamed from
-  //    resetEditorState + manual resetImportState pairing per pass-17
-  //    Issue 5 — the partial-vs-full split was non-obvious and a future
-  //    caller forgetting the import-state half would silently leak.
+  //    callers want; the previous code paired resetImportState() +
+  //    resetEditorState() manually, which a future caller forgetting
+  //    the import-state half could silently leak. Pass-17 Issue 5
+  //    consolidated to this single function.
   const resetPendingImport = () => {
     setPendingImportDraft(undefined);
     setPendingImportPresetId(undefined);
@@ -265,15 +264,6 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     resetPendingImport();
   };
 
-  // Back-compat alias — call sites that just need editor state cleared
-  // (no import state) can use this; everything else should call
-  // resetAllModalState. Both reset paths converge to the same set of
-  // setters in the new shape, so this is a no-op rename for editor-only
-  // callers but a fix for handleClose / "return to list" callers that
-  // previously needed the manual resetImportState() + resetEditorState()
-  // pairing.
-  const resetEditorState = resetAllModalState;
-
   const goToList = () => {
     // Full reset: a future contributor mounting goToList from the editor
     // would otherwise leak draft/undo state — the partial split between
@@ -290,7 +280,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     if (isUndoingRef.current) return;
     // Single full reset: resetAllModalState is the documented
     // close-the-modal-completely entry point. The previous code had to
-    // pair resetImportState() + resetEditorState() manually; pass-17
+    // pair resetImportState() + resetAllModalState() manually; pass-17
     // Issue 5 flagged that as a future-drift hazard.
     resetAllModalState();
     setPage('list');
@@ -526,12 +516,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   const handleNewPlan = () => {
     resetImportState();
-    // resetEditorState clears every editor-adjacent state field
+    // resetAllModalState clears every editor-adjacent state field
     // (editingSession, listErrorMessage, pendingImport*, undo*).
     // Without it, an import whose picker the user backed out of
     // would leak pendingImportDraft into the next New Plan flow
     // and inject the stale draft into a brand-new editor session.
-    resetEditorState();
+    resetAllModalState();
     setPage('picker');
   };
 
@@ -618,7 +608,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // The modal stays mounted across opens (`isOpen={false}` early-returns
     // null but doesn't unmount), so explicit resets are required to
     // prevent stale banners / editingSession from leaking into the next
-    // open. Shared with handleClose via resetEditorState.
+    // open. Shared with handleClose via resetAllModalState.
 
     // Stamp appliedAt + the just-applied per-game drafts on the session
     // so the metadata reflects what was actually applied. Apply
@@ -689,10 +679,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     if (snapshot && snapshot.games.length > 0) {
       // Full-success apply with at least one game mutated — switch the
       // modal into undo-banner mode instead of closing. Calling
-      // resetEditorState first keeps this path in sync with future
+      // resetAllModalState first keeps this path in sync with future
       // additions there; React batches the override below into the
       // same commit so the user never sees a flash of empty state.
-      resetEditorState();
+      resetAllModalState();
       setUndoSnapshot(snapshot);
       setPage('undoBanner');
       return;
@@ -700,13 +690,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // No snapshot (warning path that still closed the editor — unlikely
     // since the warning path returns early without onApplied — but
     // defensive). Fall back to the original close behavior.
-    resetEditorState();
+    resetAllModalState();
     setPage('list');
     onClose();
   };
 
   const handleUndoDismiss = () => {
-    resetEditorState();
+    resetAllModalState();
     setPage('list');
     onClose();
   };
@@ -721,7 +711,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // Same effect as Dismiss: close the modal and forget the snapshot.
     // Kept as a separate name so the test suite can assert which path
     // fired (timeout vs. user click).
-    resetEditorState();
+    resetAllModalState();
     setPage('list');
     onClose();
   };
@@ -769,7 +759,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           });
         stampedSessionRef.current = null;
       }
-      resetEditorState();
+      resetAllModalState();
       setPage('list');
       onClose();
     } catch (err) {

@@ -39,19 +39,18 @@
 - [x] Pass-15 fixes (committed `26822434`): PR body migration checklist (028→037), per-game Record overload tests, prototype-pollution guard tests, durationMin/halfTimeMin reserved JSDoc
 - [x] Pass-16 fixes (committed `161fe2d1`): planApply outPlayer chain bug, modal a11y, discriminator robustification, useCallback on toggleGame
 - [x] Pass-17 fixes (committed `3e8fdc32` + follow-up `4da2cb99`): generateId for scheduled subs, sortedGameIdsKey defensive empty-string filter, PlanningModal reset consolidation, transformPlanningSessionFromDb post-cutover TODO, validation flag for includedGameIds with no draft entry; follow-up fixed two new tests broken by my mis-modeling
-- [x] **Pass-18 fixes (in progress, uncommitted) — pass-18 verdict was ✅ Approve, addressing actionable Issue + cheap minors/nits to clear "only minors and nits" bar:**
-  - [x] Issue 1 (usePlanningSessionQueries.ts:80): `useDeletePlanningSessionMutation` now scopes invalidation to `(teamId, userId)` matching save/setActive pattern. Mutation signature changed from `string → DeletePlanningSessionVariables`. Caller in PlanningModal.tsx updated; existing hook test updated.
-  - [x] Issue 2 (extra SELECT round-trip): documented TODO, accepted trade-off — reviewer rated as fast-follow
-  - [x] Issue 3 (lock window): documented TODO, accepted trade-off — reviewer rated as fast-follow
-  - [x] Minor 1 (planMinutesAggregate empty-Record short-circuit): symmetric short-circuit added for `Object.keys(drafts).length === 0` matching the single-draft empty-startingXI path. Both paths now return the same `emptyResult` constant.
-  - [x] Minor 2 (ScheduledSub type JSDoc): added "Note for stats consumers" explaining APPLY_SCHEDULED_SUB doesn't update `playersOnField` — stat aggregators reading `gameEvents` shouldn't cross-reference against `playersOnField` snapshots.
-  - [x] Minor 3 (SyncedDataStore push-order comment): clarified that `game_ids` is a soft reference validated at the app layer (no SQL FK), and that the order keeps the cloud view consistent for fresh clients reading planning sessions post-sync.
-  - [x] Nit 3 (GAME_IDS_KEY_SEPARATOR export): now exported so test/debug tooling can inspect the separator character.
-  - [ ] Nit 1 (isActive JSDoc placement on data shape vs DataStore.setActiveSession): SKIPPED — semantic, the cross-reference makes the field self-documenting in isolation.
-  - [ ] Nit 2 (extract isPlanDraft predicate): SKIPPED — discriminator was already strengthened in pass-16 and 17 with structural multi-property checking + tests. Predicate extraction would be cosmetic.
-  - [ ] Nit 4 (zIndex 70 magic number): SKIPPED — pre-existing pattern across the codebase, broader cleanup not scoped here.
-  - [ ] **Pending:** commit + push pass-18 fixes (next step)
-  - [ ] **Pending:** wait on pass-19 review (or merge-readiness verdict)
+- [x] Pass-18 fixes (committed `fa520e85` + follow-up `256de49d`): useDeletePlanningSessionMutation scoped invalidation, planMinutesAggregate empty-Record short-circuit, ScheduledSub stat-consumer JSDoc, push-order comment fix, GAME_IDS_KEY_SEPARATOR exported; follow-up updated PlanningModal test for new mutation signature
+- [x] **Pass-19 fixes (in progress, uncommitted) — pass-19 verdict said "Fix Issues 1 and 2 before merging":**
+  - [x] Issue 1 (SupabaseDataStore.setActiveSession): added 100-entry cap parity with LocalDataStore + migration 036's RPC cap. Without it, an oversized gameIds array surfaces as a raw Postgres exception instead of the consistent ValidationError. Now uses `PLANNING_SESSION_GAME_IDS_MAX` constant.
+  - [x] Issue 2 (migration 037 verification SQL): created `supabase/migrations/__tests__/037_planning_sessions_included_game_ids.verification.sql` with 5 DO-block assertions: column exists as nullable text[], element type is text, NULL default round-trip, explicit subset round-trip, info on non-NULL row count.
+  - [x] Minor 1 (LocalDataStore.setActiveSession): replaced hardcoded `100` with `PLANNING_SESSION_GAME_IDS_MAX` import; cap now changes via single source.
+  - [x] Minor 2 (validation.ts double JSDoc): the misplaced JSDoc for validateGame at line 115 was sitting before normalizeOptionalString, making it read as that function's docs. Moved to validateGame's actual location.
+  - [x] Minor 3 (parsePlanExport "MB" message): now says "characters (approx. N MB)" — the constant counts UTF-16 code units, and the file's own comment documented the distinction. ASCII JSON is unchanged; emoji-laden payloads no longer get misleading byte counts.
+  - [x] Nit 1 (planFromImport outPlayer drop): added comment explaining why outPlayer is intentionally dropped at import — DraftScheduledSub recomputes it lazily at Apply time so any stored value would go stale.
+  - [x] Nit 2 (resetEditorState alias): dropped the alias entirely. All 14 call sites renamed to `resetAllModalState`. Removed the alias-rationale block + the trailing-comment "(legacy name)" reference.
+  - [ ] Nit 3 (post-cutover Supabase types regen): deferred to post-cutover task per reviewer
+  - [ ] **Pending:** commit + push pass-19 fixes (next step)
+  - [ ] **Pending:** wait on pass-20 review
 
 **Deferred to fast-follow (per pass-14 reviewer "fast-follow OK"):**
 - Pass-14 Minor 2: `aggregatePlanMinutes` discriminator → branded type / `kind: 'single' | 'per-game'` discriminant

@@ -27,7 +27,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey, validateScheduledSubsFromDb } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey, validateScheduledSubsFromDb, PLANNING_SESSION_GAME_IDS_MAX } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { validateUserId } from '@/datastore/userDatabase';
 import {
@@ -2441,13 +2441,13 @@ export class LocalDataStore implements DataStore {
         { teamId, gameIds },
       );
     }
-    if (gameIds.length > 100) {
+    if (gameIds.length > PLANNING_SESSION_GAME_IDS_MAX) {
       // Mirror migration 036's RPC cap: an unbounded gameIds array is a
       // perf footgun (O(n*m) scope matching per session) and there's no
       // realistic plan that needs >100 games. Enforce the same ceiling
       // in both DataStores so the contract matches across modes.
       throw new ValidationError(
-        'setActiveSession received too many gameIds (max 100)',
+        `setActiveSession received too many gameIds (max ${PLANNING_SESSION_GAME_IDS_MAX})`,
         'gameIds',
         { count: gameIds.length },
       );

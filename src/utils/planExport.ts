@@ -118,8 +118,14 @@ const PARSE_PLAN_EXPORT_MAX_STARTING_XI_KEYS = 30;
 
 export const parsePlanExport = (raw: string): PlanImportResult => {
   if (raw.length > PARSE_PLAN_EXPORT_MAX_CHARS) {
+    // PARSE_PLAN_EXPORT_MAX_CHARS counts UTF-16 code units, not bytes —
+    // for ASCII JSON the two are equal, but a doc-only "MB" message
+    // would lie for emoji-laden payloads. Phrase as characters with
+    // an approximate-MB hint for operator readability.
     return fail(
-      `Envelope is too large (over ${PARSE_PLAN_EXPORT_MAX_CHARS / 1024 / 1024} MB)`,
+      `Envelope is too large (over ${PARSE_PLAN_EXPORT_MAX_CHARS} characters, approx. ${
+        PARSE_PLAN_EXPORT_MAX_CHARS / 1024 / 1024
+      } MB)`,
     );
   }
   let parsed: unknown;

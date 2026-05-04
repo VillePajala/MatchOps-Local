@@ -43,7 +43,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, validatePlanningSession, normalizeOptionalString, validateScheduledSubsFromDb } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, validateScheduledSubsFromDb, PLANNING_SESSION_GAME_IDS_MAX } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -4495,6 +4495,18 @@ export class SupabaseDataStore implements DataStore {
         'setActiveSession requires teamId and a non-empty gameIds[]',
         'teamId',
         { teamId, gameIds },
+      );
+    }
+    if (gameIds.length > PLANNING_SESSION_GAME_IDS_MAX) {
+      // Parity with LocalDataStore + migration 036's RPC cap. Without
+      // this, a 101+ gameIds array hits the RPC and surfaces as a raw
+      // Postgres "too many game_ids (max 100)" exception rather than
+      // the consistent ValidationError both DataStores throw on
+      // bounds violations. See migration 036 for the SQL-side guard.
+      throw new ValidationError(
+        `setActiveSession received too many gameIds (max ${PLANNING_SESSION_GAME_IDS_MAX})`,
+        'gameIds',
+        { count: gameIds.length },
       );
     }
 

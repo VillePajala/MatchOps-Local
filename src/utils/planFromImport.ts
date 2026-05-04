@@ -84,6 +84,12 @@ export function planDraftFromImport(
   // by timeSeconds so the timeline editor can treat the array as
   // monotonic without an additional sort step.
   const scheduledSubs = imported.scheduledSubs
+    // outPlayer is intentionally dropped here even though parsePlanExport
+    // validated it as non-empty. DraftScheduledSub doesn't carry
+    // outPlayer — it's recomputed lazily at Apply time from the live
+    // pre-sub segment (whoever was at the role just before this sub),
+    // so any stored value would go stale on every pitch swap. See
+    // planSwapEngine.DraftScheduledSub for the type-level contract.
     .map(({ id, timeSeconds, inPlayer, positionRole }) => ({
       id,
       // Snap to whole seconds at the import boundary. validateScheduledSubs

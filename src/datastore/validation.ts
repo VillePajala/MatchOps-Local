@@ -113,17 +113,6 @@ const validateScheduledSubs = (
 };
 
 /**
- * Validate a game's required and optional fields.
- * Throws ValidationError if validation fails.
- *
- * Used by both LocalDataStore and SupabaseDataStore for consistent validation.
- * This ensures games saved to either backend meet the same requirements.
- *
- * @param game - The game state to validate
- * @param context - Optional context for error messages (e.g., gameId for batch operations)
- * @throws ValidationError if validation fails
- */
-/**
  * Normalize optional string: trim whitespace, convert empty to undefined.
  * Used by both LocalDataStore and SupabaseDataStore for consistent field normalization.
  */
@@ -181,6 +170,17 @@ export const validateScheduledSubsFromDb = (
   return valid;
 };
 
+/**
+ * Validate a game's required and optional fields.
+ * Throws ValidationError if validation fails.
+ *
+ * Used by both LocalDataStore and SupabaseDataStore for consistent validation.
+ * This ensures games saved to either backend meet the same requirements.
+ *
+ * @param game - The game state to validate
+ * @param context - Optional context for error messages (e.g., gameId for batch operations)
+ * @throws ValidationError if validation fails
+ */
 export const validateGame = (game: AppState, context?: string): void => {
   const prefix = context ? `Game ${context}: ` : '';
 
