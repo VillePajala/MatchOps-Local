@@ -111,6 +111,10 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
   // Sort rows by total ascending so under-played players surface
   // first (consistent with the dashboard's needs-attention-first
   // ordering). Tie-broken by playerId for stability.
+  // Hoisted out of the per-row map so it's a single comparison per
+  // render rather than O(n) computations of the same boolean.
+  const anyHighlightActive = (highlightedPlayerIds?.size ?? 0) > 0;
+
   const sortedRows = useMemo(() => {
     return [...matrix.rows].sort((a, b) => {
       if (a.totalSeconds !== b.totalSeconds) {
@@ -199,8 +203,7 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
             const band = totalBand(row.totalSeconds, matrix.fairShareSeconds);
             const isHighlighted =
               highlightedPlayerIds?.has(row.playerId) ?? false;
-            const anyActive = (highlightedPlayerIds?.size ?? 0) > 0;
-            const isDimmed = anyActive && !isHighlighted;
+            const isDimmed = anyHighlightActive && !isHighlighted;
             // Click on player-name cell toggles highlight when wired;
             // the rest of the row remains a passive numeric grid so
             // a stray cell click doesn't accidentally toggle. The

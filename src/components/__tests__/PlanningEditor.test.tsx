@@ -2020,11 +2020,9 @@ describe('PlanningEditor', () => {
           ),
         );
         fireEvent.click(
-          screen
-            .getByTestId(
-              `planning-minutes-dashboard-entry-${secondRolePlayerId}`,
-            )
-            .querySelector('button')!,
+          screen.getByTestId(
+            `planning-minutes-dashboard-pill-toggle-${secondRolePlayerId}`,
+          ),
         );
       });
       const clear = screen.getByTestId('planning-chip-grid-clear');

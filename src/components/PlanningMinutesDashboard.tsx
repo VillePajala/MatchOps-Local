@@ -105,6 +105,10 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
     [aggregate],
   );
 
+  // Hoisted out of the per-row map so it's a single comparison per
+  // render rather than O(n) computations of the same boolean.
+  const anyHighlightActive = (highlightedPlayerIds?.size ?? 0) > 0;
+
   // perPlayer === [] also covers the gameIds: [] case via
   // aggregatePlanMinutes' early exit, so a single check captures
   // both empty-input paths.
@@ -181,11 +185,12 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
           // Highlight integration: when any player is highlighted, the
           // pill either glows (highlighted) or dims to ~40% opacity
           // (non-highlighted). Empty highlighted set = no focus mode,
-          // every pill renders at full opacity.
+          // every pill renders at full opacity. `anyActive` is hoisted
+          // above the map so it's a single comparison per render
+          // instead of one per row.
           const isHighlighted =
             highlightedPlayerIds?.has(entry.playerId) ?? false;
-          const anyActive = (highlightedPlayerIds?.size ?? 0) > 0;
-          const isDimmed = anyActive && !isHighlighted;
+          const isDimmed = anyHighlightActive && !isHighlighted;
           // Inner button wraps the pill content so list semantics
           // stay intact (<button> inside <ul> would break "list of N
           // items" announcement). The <li> remains a passive
@@ -210,13 +215,18 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
               </span>
             </>
           );
-          const className = `flex items-center justify-between rounded-md border px-2 py-1 transition-opacity ${
-            isHighlighted
-              ? 'ring-2 ring-emerald-300/70'
-              : isDimmed
-                ? 'opacity-40'
-                : ''
-          } ${onToggleHighlight ? 'cursor-pointer text-left w-full' : ''}`;
+          // Compose className from filtered tokens to avoid the
+          // double-space artifact a template literal produces when
+          // an interpolation slot resolves to ''. Browsers ignore it,
+          // but `class` strings should be tidy regardless.
+          const className = [
+            'flex items-center justify-between rounded-md border px-2 py-1 transition-opacity',
+            isHighlighted ? 'ring-2 ring-emerald-300/70' : null,
+            !isHighlighted && isDimmed ? 'opacity-40' : null,
+            onToggleHighlight ? 'cursor-pointer text-left w-full' : null,
+          ]
+            .filter(Boolean)
+            .join(' ');
           // aria-label + style are duplicated on the outer <li> AND
           // the inner interactive element so:
           //   1. AT reading the list item still gets the player+mmss+pct
@@ -245,6 +255,7 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
                   onClick={() => onToggleHighlight(entry.playerId)}
                   aria-pressed={isHighlighted}
                   aria-label={ariaLabel}
+                  data-testid={`planning-minutes-dashboard-pill-toggle-${entry.playerId}`}
                   className={className}
                 >
                   {content}

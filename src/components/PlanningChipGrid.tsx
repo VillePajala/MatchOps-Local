@@ -6,7 +6,11 @@ import { HiOutlineXMark } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { FormationPreset } from '@/config/formationPresets';
-import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
+import type {
+  DraftScheduledSub,
+  PlanDraft,
+  PlayerId,
+} from '@/utils/planSwapEngine';
 import { getRoleSegments } from '@/utils/planFairness';
 import { formatMMSS, gameDurationSec } from '@/utils/planFormatters';
 
@@ -30,11 +34,14 @@ export interface PlanningChipGridProps {
   onClearHighlight: () => void;
 }
 
-const EMPTY_DRAFT: PlanDraft = {
-  startingXI: {},
-  bench: [],
-  scheduledSubs: [],
-};
+// Frozen so a future caller mutating the fallback draft can't silently
+// corrupt every render that hits the sparse-draft branch. getRoleSegments
+// only reads these arrays today, but the freeze locks the contract.
+const EMPTY_DRAFT: PlanDraft = Object.freeze({
+  startingXI: Object.freeze({}) as Record<string, PlayerId>,
+  bench: Object.freeze([]) as readonly PlayerId[] as PlayerId[],
+  scheduledSubs: Object.freeze([]) as readonly DraftScheduledSub[] as DraftScheduledSub[],
+}) as PlanDraft;
 
 const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
   drafts,
