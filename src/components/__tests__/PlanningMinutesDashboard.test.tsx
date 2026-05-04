@@ -193,9 +193,11 @@ describe('PlanningMinutesDashboard', () => {
     ).toHaveTextContent('60:00');
   });
 
-  it('sorts entries by total seconds descending', () => {
-    // p1 plays only 5 min; p0 + p2 play the full 20 min. p1 should
-    // render last in the grid.
+  it('sorts entries by total seconds ascending (needs-attention first)', () => {
+    // PR-B: ordering is now ascending — under-played players surface
+    // FIRST so the coach sees who needs more time when glancing at
+    // the dashboard. Mirrors the standalone planner's "needs
+    // attention at the top" arrangement. Was previously desc.
     renderDashboard({
       draft: {
         startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
@@ -214,11 +216,45 @@ describe('PlanningMinutesDashboard', () => {
         '',
       ),
     );
-    // p3 plays 15m, p0 & p2 play 20m, p1 plays 5m. The two 20-minute
-    // entries (p0, p2) tie for first; their relative order depends on
-    // referencedPlayerIds insertion order (now sorted by id, so p0
-    // before p2). Then p3 (15m), then p1 (5m).
-    expect(ids).toEqual(['p0', 'p2', 'p3', 'p1']);
+    // p1 plays 5m → first; p3 plays 15m; p0 + p2 play 20m and tie
+    // (relative order: id-asc per referencedPlayerIds sort).
+    expect(ids).toEqual(['p1', 'p3', 'p0', 'p2']);
+  });
+
+  it('applies an inline color style to each pill (PR-B continuous gradient)', () => {
+    // Locks the visual contract: pills no longer use discrete
+    // tailwind classes; backgroundColor + borderColor + color are
+    // assigned as inline HSL styles computed from fairShareHue(ratio).
+    // jsdom resolves CSS color values to rgb() form, so we just check
+    // that EACH pill has a non-empty inline backgroundColor (i.e. the
+    // gradient ran). The exact hue formula is locked by fairShareHue's
+    // unit tests in planMinutesAggregate.test.ts.
+    renderDashboard();
+    const rows = screen
+      .getByTestId('planning-minutes-dashboard-grid')
+      .querySelectorAll('li');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      const el = row as HTMLElement;
+      expect(el.style.backgroundColor).not.toBe('');
+      expect(el.style.borderColor).not.toBe('');
+      expect(el.style.color).not.toBe('');
+    }
+  });
+
+  it('renders the percentage suffix next to the mm:ss total', () => {
+    // PR-B: pills now show "mm:ss (NN%)" so the coach reads the
+    // exact share at a glance without hover/AT.
+    renderDashboard();
+    const rows = screen
+      .getByTestId('planning-minutes-dashboard-grid')
+      .querySelectorAll('li');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      // Percentage text rendered with `(NN%)` literal so even the
+      // 0% / 100% boundaries match.
+      expect(row.textContent ?? '').toMatch(/\(\d+%\)/);
+    }
   });
 
   it('renders a ★ glyph + "Priority" aria-label prefix for priority players', () => {

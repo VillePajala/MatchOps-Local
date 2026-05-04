@@ -1,6 +1,7 @@
 import {
   aggregatePlanMinutes,
   fairShareBand,
+  fairShareHue,
 } from '../planMinutesAggregate';
 import type { PlanDraft } from '../planSwapEngine';
 import type { AppState } from '@/types/game';
@@ -253,5 +254,47 @@ describe('fairShareBand', () => {
     [2.0, 'heavy-over'],
   ])('ratio %f → %s', (ratio, expected) => {
     expect(fairShareBand(ratio)).toBe(expected);
+  });
+});
+
+describe('fairShareHue (continuous gradient)', () => {
+  // PR-B: continuous red→yellow→green hue ramp matching the standalone
+  // planner. Anchors at the saturation cap, the on-target ratio, and
+  // a few interior points to lock the formula.
+  it('clamps below-range ratios to red (hue 0)', () => {
+    expect(fairShareHue(0)).toBe(0);
+    expect(fairShareHue(0.2)).toBe(0);
+    expect(fairShareHue(0.4)).toBe(0);
+  });
+
+  it('clamps above-range ratios to green (hue 150)', () => {
+    expect(fairShareHue(1.5)).toBe(150);
+    expect(fairShareHue(2)).toBe(150);
+    expect(fairShareHue(10)).toBe(150);
+  });
+
+  it('maps ratio 1.0 ("on target") near yellow-green (hue ~82)', () => {
+    // (1.0 - 0.4) / 1.1 * 150 = 81.81... → rounds to 82.
+    expect(fairShareHue(1.0)).toBe(82);
+  });
+
+  it('produces a monotonically non-decreasing ramp across the range', () => {
+    // Critical for the visual contract: a slightly-better ratio must
+    // never produce a worse-looking pill (e.g. ratio 0.85 yellower
+    // than 0.95). Locks the formula's monotonicity.
+    const samples = [0.4, 0.5, 0.7, 0.9, 1.0, 1.1, 1.3, 1.5];
+    let prev = -1;
+    for (const r of samples) {
+      const h = fairShareHue(r);
+      expect(h).toBeGreaterThanOrEqual(prev);
+      prev = h;
+    }
+  });
+
+  it('returns an integer hue (CSS hsl(N, …) expects integer)', () => {
+    for (const r of [0.4, 0.55, 0.7, 0.85, 1.0, 1.15, 1.3, 1.5]) {
+      const h = fairShareHue(r);
+      expect(Number.isInteger(h)).toBe(true);
+    }
   });
 });
