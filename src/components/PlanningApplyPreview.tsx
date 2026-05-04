@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useMemo, useState } from 'react';
+import React, { useCallback, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineExclamationTriangle,
@@ -82,14 +82,18 @@ const PlanningApplyPreview: React.FC<PlanningApplyPreviewProps> = ({
   // instance, derive checked from props instead.
   const [checked, setChecked] = useState<Set<string>>(initialChecked);
 
-  const toggleGame = (gameId: string) => {
+  // Memoised so the per-game row callbacks don't reattach on every
+  // parent re-render (the diffs/savedGames/roster props can churn while
+  // the user reads the preview, and the row checkboxes shouldn't
+  // re-render for that). setChecked is stable so `[]` deps are correct.
+  const toggleGame = useCallback((gameId: string) => {
     setChecked((prev) => {
       const next = new Set(prev);
       if (next.has(gameId)) next.delete(gameId);
       else next.add(gameId);
       return next;
     });
-  };
+  }, []);
 
   const visibleDiffs = diffs.filter((d) => !d.isEmpty);
   // Derive from visibleDiffs rather than checked.size so the header

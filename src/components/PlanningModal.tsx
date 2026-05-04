@@ -819,6 +819,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('planningModal.title', 'Planning')}
       className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
       data-testid="planning-modal"
     >

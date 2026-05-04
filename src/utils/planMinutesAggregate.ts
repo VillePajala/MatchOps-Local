@@ -74,14 +74,21 @@ export function aggregatePlanMinutes(
   gameIds: string[],
   savedGames: Record<string, AppState | undefined>,
 ): PlanMinutesAggregate {
-  // Discriminator: a single PlanDraft has `startingXI`, `bench`,
-  // `scheduledSubs` keys at the top level; a per-game Record has
-  // gameId keys. The two can't collide because PlanDraft properties
-  // would be invalid gameIds (saved-game ids are timestamp-rand
-  // patterns, never lowercase property names like `startingXI`).
+  // Discriminator: a single PlanDraft carries ALL THREE of `startingXI`
+  // (object), `bench` (array), `scheduledSubs` (array) at the top level;
+  // a per-game Record has gameId keys whose values are PlanDraft.
+  // Checking all three structural properties (instead of just
+  // startingXI) defends against a hypothetical Record keyed with a
+  // string named "startingXI" pointing at an object — gameIds today
+  // are `game_{ts}_{rand}` so this is unreachable, but explicit
+  // multi-property checking makes the contract self-documenting and
+  // robust to future ID-format changes.
+  const obj = draftOrDrafts as Partial<PlanDraft>;
   const isSingleDraft =
-    typeof (draftOrDrafts as PlanDraft).startingXI === 'object' &&
-    (draftOrDrafts as PlanDraft).startingXI !== null;
+    typeof obj.startingXI === 'object' &&
+    obj.startingXI !== null &&
+    Array.isArray(obj.bench) &&
+    Array.isArray(obj.scheduledSubs);
   const draftFor = (gid: string): PlanDraft | undefined =>
     isSingleDraft
       ? (draftOrDrafts as PlanDraft)

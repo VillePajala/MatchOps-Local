@@ -210,10 +210,30 @@ export function applyDraftToGame(
   for (const [role, list] of subsByRoleMap) {
     // list is already chronological — validForOutPlayer was sorted
     // upstream, and per-role appends preserved that order.
-    let curPlayer: PlayerId = draft.startingXI[role] ?? '';
+    //
+    // Two-state walk over the chain:
+    //   `curPlayer === undefined` → role is empty at this point in
+    //   time. A sub at an empty role can't fire (no outPlayer), so
+    //   the sub goes to unreachableSubs at the `if (!outPlayer)`
+    //   guard below AND `curPlayer` stays undefined for the next
+    //   sub in the same role — the chain stays broken until some
+    //   external event puts a player at the role (no such event
+    //   exists in the current model, so all subsequent subs at this
+    //   role are unreachable too).
+    //
+    //   The bug fixed here: previously `curPlayer = '' → curPlayer
+    //   = s.inPlayer` ran unconditionally, so an imported draft
+    //   with two subs at an empty-XI role gave sub-2 an outPlayer of
+    //   sub-1's inPlayer — a player who was never on the pitch.
+    //   The "sub off <ghost>" banner would fire mid-game.
+    let curPlayer: PlayerId | undefined = draft.startingXI[role];
     for (const s of list) {
-      if (curPlayer) outPlayers.set(s.id, curPlayer);
-      curPlayer = s.inPlayer;
+      if (curPlayer !== undefined) {
+        outPlayers.set(s.id, curPlayer);
+        curPlayer = s.inPlayer;
+      }
+      // else: chain stays broken; subsequent subs in this role also
+      // hit `outPlayers.get(s.id) === undefined` → unreachableSubs.
     }
   }
   for (const s of validForOutPlayer) {

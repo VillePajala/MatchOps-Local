@@ -345,6 +345,27 @@ describe('applyDraftToGame — outPlayer derived from current draft state', () =
     expect(r.scheduledSubs).toHaveLength(0);
     expect(r.unknownRoles).toEqual([]);
   });
+
+  // pass-16 Bug: an imported draft with two subs at an empty-XI role
+  // used to give sub-2 an outPlayer of sub-1.inPlayer (a player who
+  // was never on the field, since sub-1 was unreachable). This locks
+  // the chain-stays-broken contract: BOTH subs go to unreachableSubs;
+  // sub-2 must NOT inherit a phantom outPlayer.
+  it('multi-sub chain at an empty-XI role: ALL subs land in unreachableSubs (no phantom outPlayer)', () => {
+    const draft: PlanDraft = {
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 100, inPlayer: 'p4', positionRole: 'RB' },
+        { id: 's2', timeSeconds: 200, inPlayer: 'p5', positionRole: 'RB' },
+      ],
+      // RB intentionally absent from startingXI — role starts empty.
+      startingXI: { GK: 'p1', LB: 'p2' },
+      bench: ['p3', 'p4', 'p5'],
+    };
+    const r = applyDraftToGame(draft, preset5v5_2_2, roster, 600);
+    // Neither sub fires — no phantom "p4 → p5" entry in scheduledSubs.
+    expect(r.scheduledSubs).toHaveLength(0);
+    expect(r.unknownRoles).toEqual([]);
+  });
 });
 
 describe('applyDraftToGame — 8v8 sanity check', () => {
