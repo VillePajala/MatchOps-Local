@@ -4631,14 +4631,18 @@ export class SupabaseDataStore implements DataStore {
       draft: session.draft as unknown as Json,
       is_active: session.isActive,
       applied_at: session.appliedAt ?? null,
-      // Pass through the include-flags array; NULL on the DB side means
-      // "all gameIds included" (resolveIncludedGameIds), so omit the
-      // column entirely when undefined rather than writing []. Cast
-      // through unknown for the same generated-types reason as the read
-      // path.
-      ...(session.includedGameIds !== undefined
-        ? { included_game_ids: [...session.includedGameIds] }
-        : {}),
+      // Explicit `?? null` (not key-omission) so an upsert that brings
+      // includedGameIds back to undefined ("all gameIds included") clears
+      // the column to NULL on the DB side. Spreading `{}` would leave
+      // the column out of the SET list entirely, so an existing row's
+      // stale `included_game_ids = ['g1']` would survive the supposed
+      // "clear" — the round-trip with LocalDataStore (which always
+      // writes undefined verbatim) would then diverge. NULL = "all
+      // included" semantic per resolveIncludedGameIds.
+      included_game_ids:
+        session.includedGameIds === undefined
+          ? null
+          : [...session.includedGameIds],
       created_at: session.createdAt,
       updated_at: session.updatedAt,
     } as unknown as PlanningSessionInsert;

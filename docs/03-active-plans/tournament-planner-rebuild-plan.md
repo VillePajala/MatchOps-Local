@@ -41,16 +41,15 @@
 - [x] Pass-17 fixes (committed `3e8fdc32` + follow-up `4da2cb99`): generateId for scheduled subs, sortedGameIdsKey defensive empty-string filter, PlanningModal reset consolidation, transformPlanningSessionFromDb post-cutover TODO, validation flag for includedGameIds with no draft entry; follow-up fixed two new tests broken by my mis-modeling
 - [x] Pass-18 fixes (committed `fa520e85` + follow-up `256de49d`): useDeletePlanningSessionMutation scoped invalidation, planMinutesAggregate empty-Record short-circuit, ScheduledSub stat-consumer JSDoc, push-order comment fix, GAME_IDS_KEY_SEPARATOR exported; follow-up updated PlanningModal test for new mutation signature
 - [x] **Pass-19 fixes (in progress, uncommitted) — pass-19 verdict said "Fix Issues 1 and 2 before merging":**
-  - [x] Issue 1 (SupabaseDataStore.setActiveSession): added 100-entry cap parity with LocalDataStore + migration 036's RPC cap. Without it, an oversized gameIds array surfaces as a raw Postgres exception instead of the consistent ValidationError. Now uses `PLANNING_SESSION_GAME_IDS_MAX` constant.
-  - [x] Issue 2 (migration 037 verification SQL): created `supabase/migrations/__tests__/037_planning_sessions_included_game_ids.verification.sql` with 5 DO-block assertions: column exists as nullable text[], element type is text, NULL default round-trip, explicit subset round-trip, info on non-NULL row count.
-  - [x] Minor 1 (LocalDataStore.setActiveSession): replaced hardcoded `100` with `PLANNING_SESSION_GAME_IDS_MAX` import; cap now changes via single source.
-  - [x] Minor 2 (validation.ts double JSDoc): the misplaced JSDoc for validateGame at line 115 was sitting before normalizeOptionalString, making it read as that function's docs. Moved to validateGame's actual location.
-  - [x] Minor 3 (parsePlanExport "MB" message): now says "characters (approx. N MB)" — the constant counts UTF-16 code units, and the file's own comment documented the distinction. ASCII JSON is unchanged; emoji-laden payloads no longer get misleading byte counts.
-  - [x] Nit 1 (planFromImport outPlayer drop): added comment explaining why outPlayer is intentionally dropped at import — DraftScheduledSub recomputes it lazily at Apply time so any stored value would go stale.
-  - [x] Nit 2 (resetEditorState alias): dropped the alias entirely. All 14 call sites renamed to `resetAllModalState`. Removed the alias-rationale block + the trailing-comment "(legacy name)" reference.
-  - [ ] Nit 3 (post-cutover Supabase types regen): deferred to post-cutover task per reviewer
-  - [ ] **Pending:** commit + push pass-19 fixes (next step)
-  - [ ] **Pending:** wait on pass-20 review
+  - [x] Pass-19 fixes committed `f6b5bf7d`: SupabaseDataStore.setActiveSession 100-cap parity, migration 037 verification SQL, LocalDataStore uses constant, validation.ts double-JSDoc fix, parsePlanExport units fix, planFromImport outPlayer comment, resetEditorState alias removed
+- [x] **Pass-20 fixes (in progress, uncommitted) — pass-20 verdict was ✅ "Approved with minor follow-ups", 0 bugs/issues, only Minors+Nits — convergence bar reached:**
+  - [x] Minor 1 (transformPlanningSessionToDb NULL-clearing): explicit `?? null` instead of key-omission. Without this, an upsert that brings includedGameIds back to undefined ("all included") would leave the existing array in place — LocalDataStore writes undefined verbatim, so the round-trip would diverge. Fix locks lossless cloud↔local parity for a future "clear all" UX.
+  - [x] Minor 2 (migration 037 verification SQL): already addressed in pass-19 — file exists at `supabase/migrations/__tests__/037_planning_sessions_included_game_ids.verification.sql`. Pass-20 reviewer was on a stale snapshot.
+  - [x] Minor 3 (savePlanningSession 'create' label): now distinguishes create vs update via `session.id` presence. Functionally safe today (cloud executor routes both to upsert), but the labelling fix prevents future conflict-resolution logic from seeing every overwrite as a create.
+  - [x] Nit 1 (planDraftFromImport JSDoc): added precondition documenting that callers must validate via parsePlanExport (which rejects reserved role keys); bracket-notation assignment is also safe by construction in modern JS.
+  - [ ] Nit 2 (post-cutover types regen): deferred per reviewer to the post-merge task list
+  - [ ] **Pending:** commit + push pass-20 fixes (next step)
+  - [ ] **Pending:** ASK Ville about merge readiness — pass-20 already approved, pass-21 should be clean
 
 **Deferred to fast-follow (per pass-14 reviewer "fast-follow OK"):**
 - Pass-14 Minor 2: `aggregatePlanMinutes` discriminator → branded type / `kind: 'single' | 'per-game'` discriminant

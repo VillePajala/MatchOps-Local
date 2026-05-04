@@ -999,7 +999,15 @@ export class SyncedDataStore implements DataStore {
     },
   ): Promise<PlanningSession> {
     const saved = await this.localStore.savePlanningSession(session);
-    await this.queueSync('planningSession', saved.id, 'create', saved);
+    // Distinguish create vs update for the sync queue's op-type:
+    // input.id present → caller is overwriting an existing row;
+    // absent → new row, LocalDataStore generated saved.id. The cloud
+    // executor routes both to upsertPlanningSession so this is purely
+    // a labelling fix, but future conflict-resolution logic that
+    // treats create vs update differently would otherwise see every
+    // overwrite as a "create".
+    const op = session.id !== undefined ? 'update' : 'create';
+    await this.queueSync('planningSession', saved.id, op, saved);
     return saved;
   }
 

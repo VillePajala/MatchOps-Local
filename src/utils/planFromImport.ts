@@ -27,6 +27,16 @@ export interface PlanFromImportResult {
  * Build a draft from an imported game's `startingXI` map and the current
  * team roster.
  *
+ * **Precondition:** Callers must validate `imported` through
+ * `parsePlanExport` before passing it here. That validator rejects
+ * reserved role keys (`__proto__`, `constructor`, `prototype`), so
+ * the bracket-notation assignment `startingXI[role] = playerId` below
+ * is safe — the input is structurally trusted by this function.
+ * Bracket-notation assignment in modern JS doesn't invoke
+ * `[[SetPrototypeOf]]` either, so even if a caller routes around
+ * `parsePlanExport` the immediate call is not exploitable, but the
+ * precondition keeps the boundary discipline explicit.
+ *
  * - `startingXI` is filtered to roster members (unknown ids are stripped
  *   and surfaced via `unknownPlayerIds`).
  * - The same player cannot occupy two roles. First role wins; later
