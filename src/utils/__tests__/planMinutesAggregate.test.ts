@@ -262,6 +262,10 @@ describe('fairShareHue (continuous gradient)', () => {
   // planner. Anchors at the saturation cap, the on-target ratio,
   // and a few interior points to lock the formula.
   it('clamps below-range ratios to red (hue 0)', () => {
+    // ratio = 0 is the value aggregatePlanMinutes emits for a
+    // zero-minutes player (when fairShareSeconds > 0 the divide
+    // gives 0; when fairShareSeconds === 0 the explicit fallback is
+    // 0 too). Locks the zero-minutes → red-pill contract.
     expect(fairShareHue(0)).toBe(0);
     expect(fairShareHue(0.2)).toBe(0);
     expect(fairShareHue(0.4)).toBe(0);
@@ -291,7 +295,7 @@ describe('fairShareHue (continuous gradient)', () => {
     }
   });
 
-  it('returns an integer hue (CSS hsl(N, …) expects integer)', () => {
+  it('returns an integer hue (avoids fractional CSS hue strings)', () => {
     for (const r of [0.4, 0.55, 0.7, 0.85, 1.0, 1.15, 1.3, 1.5]) {
       const h = fairShareHue(r);
       expect(Number.isInteger(h)).toBe(true);
