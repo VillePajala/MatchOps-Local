@@ -1576,8 +1576,11 @@ describe('PlanningModal', () => {
       await waitFor(() => {
         // mutate(id, { onSettled }) — second arg is the options object the
         // component passes so the row's pendingDeleteId resets either way.
+        // Pass-18 Issue 1: delete mutation now takes
+        // { sessionId, teamId } so cache invalidation can scope to
+        // (teamId, userId) like save/setActive.
         expect(mockDeleteMutate).toHaveBeenCalledWith(
-          's1',
+          { sessionId: 's1', teamId: 't1' },
           expect.objectContaining({ onSettled: expect.any(Function) }),
         );
       });
@@ -1638,8 +1641,11 @@ describe('PlanningModal', () => {
       fireEvent.click(confirm);
 
       await waitFor(() => {
+        // Pass-18 Issue 1: delete mutation now takes
+        // { sessionId, teamId } so cache invalidation can scope to
+        // (teamId, userId) like save/setActive.
         expect(mockDeleteMutate).toHaveBeenCalledWith(
-          's1',
+          { sessionId: 's1', teamId: 't1' },
           expect.objectContaining({ onSettled: expect.any(Function) }),
         );
       });
