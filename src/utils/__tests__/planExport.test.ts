@@ -232,6 +232,50 @@ describe('parsePlanExport', () => {
     if (!result.ok) return;
     expect(result.plan.included).toEqual([false, true]);
   });
+
+  // pass-15 Issue: prototype-pollution defense had no test. A refactor
+  // dropping the magic-key guard could silently regress and let
+  // imported envelopes corrupt downstream draft objects' prototypes.
+  // Lock all three reserved keys so the contract can't drift.
+  describe('rejects reserved magic keys in startingXI (prototype-pollution guard)', () => {
+    it.each(['__proto__', 'constructor', 'prototype'])(
+      'rejects role key "%s"',
+      (key) => {
+        // JSON parsing preserves __proto__ as an own key when it's
+        // emitted via JSON.stringify of a plain object; we have to use
+        // a hand-built JSON string to get the parser to surface it.
+        const json = `{
+          "formatVersion": "${PLAN_FORMAT_VERSION}",
+          "kind": "${PLAN_EXPORT_KIND}",
+          "tournament": {
+            "teamName": "X",
+            "formationId": "f",
+            "rosterSize": 1,
+            "games": [{
+              "id": "g1",
+              "label": "Game 1",
+              "time": "14:00",
+              "field": "F",
+              "opponent": "O",
+              "numberOfPeriods": 2,
+              "periodDurationMinutes": 12.5,
+              "durationMin": 25,
+              "halfTimeMin": 12.5,
+              "startingXI": { "${key}": "p0" },
+              "scheduledSubs": []
+            }]
+          },
+          "included": [true],
+          "currentVersionName": null
+        }`;
+        const result = parsePlanExport(json);
+        expect(result.ok).toBe(false);
+        if (result.ok) return;
+        expect(result.error.message).toMatch(/reserved role key/);
+        expect(result.error.path).toMatch(/startingXI/);
+      },
+    );
+  });
 });
 
 describe('serializePlanExport', () => {

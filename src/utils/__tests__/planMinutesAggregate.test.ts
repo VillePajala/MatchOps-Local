@@ -158,6 +158,83 @@ describe('aggregatePlanMinutes', () => {
       expect(entry.shareRatio).toBe(1);
     }
   });
+
+  // pass-15 Issue: per-game Record overload was the primary production
+  // path (PlanningEditor → Dashboard) but had zero direct coverage.
+  // These lock the discriminator: each gameId reads its own draft
+  // independently, so per-player seconds reflect per-game lineups.
+  describe('per-game Record<string, PlanDraft> overload', () => {
+    it('each game uses its own draft (different starters across tabs)', () => {
+      // p0 starts only in g1, p1 starts only in g2 — both should land
+      // at 1200s (one full 20-min game each), not 2400s.
+      const drafts: Record<string, PlanDraft> = {
+        g1: { startingXI: { GK: 'p0' }, bench: ['p1'], scheduledSubs: [] },
+        g2: { startingXI: { GK: 'p1' }, bench: ['p0'], scheduledSubs: [] },
+      };
+      const out = aggregatePlanMinutes(drafts, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+      expect(byId.get('p0')?.totalSeconds).toBe(1200);
+      expect(byId.get('p1')?.totalSeconds).toBe(1200);
+      // Total field seconds = 1200 * 1 starter * 2 games = 2400.
+      expect(out.totalFieldSeconds).toBe(2400);
+      // Fair share = 2400 / 2 referenced = 1200; both at target.
+      expect(out.fairShareSeconds).toBe(1200);
+    });
+
+    it('a missing gameId entry in the Record is treated like an empty draft (no contribution)', () => {
+      // g2 has no draft entry; the loop must skip it without throwing
+      // and without inflating totalFieldSeconds.
+      const drafts: Record<string, PlanDraft> = {
+        g1: { startingXI: { GK: 'p0' }, bench: [], scheduledSubs: [] },
+        // g2 deliberately absent
+      };
+      const out = aggregatePlanMinutes(drafts, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      // Only g1 contributes: 1200s for p0.
+      const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+      expect(byId.get('p0')?.totalSeconds).toBe(1200);
+      expect(out.totalFieldSeconds).toBe(1200);
+      expect(out.referencedPlayerIds).toEqual(['p0']);
+    });
+
+    it('empty Record produces empty result (per-game equivalent of empty draft)', () => {
+      const out = aggregatePlanMinutes({}, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      expect(out.perPlayer).toEqual([]);
+      expect(out.totalFieldSeconds).toBe(0);
+      expect(out.referencedPlayerIds).toEqual([]);
+    });
+
+    it('respects per-game gameDuration when each draft has its own scheduledSubs', () => {
+      // g1: p0 starts and stays — full 1200s.
+      // g2: p1 starts, p2 subs in at 600s → p1 gets 600s, p2 gets 600s.
+      const drafts: Record<string, PlanDraft> = {
+        g1: { startingXI: { GK: 'p0' }, bench: [], scheduledSubs: [] },
+        g2: {
+          startingXI: { GK: 'p1' },
+          bench: ['p2'],
+          scheduledSubs: [
+            { id: 's1', timeSeconds: 600, inPlayer: 'p2', positionRole: 'GK' },
+          ],
+        },
+      };
+      const out = aggregatePlanMinutes(drafts, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+      expect(byId.get('p0')?.totalSeconds).toBe(1200);
+      expect(byId.get('p1')?.totalSeconds).toBe(600);
+      expect(byId.get('p2')?.totalSeconds).toBe(600);
+    });
+  });
 });
 
 describe('fairShareBand', () => {

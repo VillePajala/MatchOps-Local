@@ -35,14 +35,14 @@
 - [x] `SyncedDataStore.setActiveSession` cap at 100 + dedupe via Set; sync-race TODO documented
 - [x] Preview branch PWA icon (sharp `modulate({hue:180})`) so PWA installs are visually distinct from master
 - [x] Pass-13 fixes: cloud `savePlanningSession` `includedGameIds` (Bug 1), `applySnapshot` Player object clones (Issue 1), `aggregatePlanMinutes` overloads (Issue 3), `handleDuplicate` doc + `includedGameIds: undefined` (Minor 1), `draftFromGame` null-coord → bench (Minor 2), `upsertPlanningSession` clone (Minor 3)
-- [x] **Pass-14 fixes (in progress, uncommitted):**
-  - [x] Issue 5: `sortedGameIdsKey` separator → NUL byte (`\x00`); test added asserting no-collision contract for space/comma/pipe inputs
-  - [x] Issue 3: `planDraftFromImport` accepts validated `presetId`, stamps it onto `draft.presetId`; `PlanningModal` caller threads `presetMatch?.id` through; tests added
-  - [x] Minor 1 (planApply): JSDoc note explaining unreachable sub inPlayers stay in selectedPlayerIds (intentional — coach intent preserved)
-  - [x] Minor 6: `PLANNING_SESSION_GAME_IDS_MAX` exported
-  - [x] Nit 4: `applySnapshot` shallow-clones each `ScheduledSub` for parity with playersOnField
-  - [ ] **Pending:** commit + push pass-14 fixes (next step)
-  - [ ] **Pending:** wait on pass-15 review
+- [x] Pass-14 fixes (committed `e74a1aea`): NUL separator, presetId import threading, planApply JSDoc, exported cap, scheduledSubs deep-clone
+- [x] **Pass-15 fixes (in progress, uncommitted):**
+  - [x] **Blocking (doc-only):** PR #404 body checklist updated to reference migrations 028–037 (was 028–034) — pass-15 reviewer caught that 035/036/037 are mandatory for cloud and the body did not list them
+  - [x] Issue (test gap): `aggregatePlanMinutes` per-game `Record<string, PlanDraft>` overload — 4 new tests covering each-game-own-draft, missing-Record-entry skip, empty-Record empty-result, and per-game scheduledSubs respected
+  - [x] Issue (test gap): `parsePlanExport` prototype-pollution guard — new `it.each` covering all three reserved role keys (`__proto__`, `constructor`, `prototype`)
+  - [x] Minor 4: `durationMin`/`halfTimeMin` JSDoc explains they're reserved for future import-time duration-mismatch warning, not currently consumed downstream
+  - [ ] **Pending:** commit + push pass-15 fixes (next step)
+  - [ ] **Pending:** wait on pass-16 review
 
 **Deferred to fast-follow (per pass-14 reviewer "fast-follow OK"):**
 - Pass-14 Minor 2: `aggregatePlanMinutes` discriminator → branded type / `kind: 'single' | 'per-game'` discriminant

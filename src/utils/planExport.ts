@@ -28,7 +28,19 @@ export interface ImportedPlanGame {
   opponent: string;
   numberOfPeriods: 1 | 2;
   periodDurationMinutes: number;
+  /**
+   * Carried from the standalone for round-trip parity (`halfTimeMin <
+   * durationMin` is validated at parse time). Not yet consumed
+   * downstream — `PlanningEditor` clamps sub times against
+   * `gameDurationSec(savedGame)` from the live game record. Reserved
+   * for the future "import-time game-duration mismatch warning" UX
+   * (e.g. standalone exported a 25-min game but the matched in-app
+   * game is 20 min — coach should see the divergence before subs are
+   * silently truncated). Removing the field now would drop info we'd
+   * have to re-introduce.
+   */
   durationMin: number;
+  /** See `durationMin`. */
   halfTimeMin: number;
   /** Role name → player id (raw — formation roles validated tightly in PR 5). */
   startingXI: Record<string, string>;
