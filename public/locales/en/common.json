@@ -1741,6 +1741,15 @@
     "entryAria": "{{player}}: {{mmss}}, {{pct}} percent of fair share",
     "entryAriaPriority": "Priority {{player}}: {{mmss}}, {{pct}} percent of fair share"
   },
+  "planningTotalsTable": {
+    "title": "Per-game minutes",
+    "empty": "Pick at least one game and assign players to see the per-game minutes.",
+    "colPlayer": "Player",
+    "colGame": "G{{n}}",
+    "colTotal": "Total",
+    "colGameExcludedTitle": "{{label}} (excluded from totals)",
+    "gkFull": "Goalkeeper"
+  },
   "planningUndoBanner": {
     "title_one": "Plan applied to {{count}} game.",
     "title_other": "Plan applied to {{count}} games.",

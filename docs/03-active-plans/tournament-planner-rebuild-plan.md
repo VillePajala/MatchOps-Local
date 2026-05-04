@@ -57,10 +57,9 @@
 - Pass-14 perf nit: GIN index on `planning_sessions.game_ids` for containment queries — only matters at >>100 sessions/user
 
 ### PR-B — Cross-game player tracking + continuous-gradient pills + totals table
-**Branch:** `planner/pr-b-cross-game-tracking` → `feature/planner-integration`
-**Status:** ⏳ in flight
-- [x] **PR-B-1 (continuous-gradient pills)** — added `fairShareHue(ratio)` to planMinutesAggregate (red→yellow→green hue ramp matching standalone planner's clamp 0.4↔1.5). PlanningMinutesDashboard pills now use inline HSL `backgroundColor`/`borderColor`/`color` instead of discrete tailwind band classes; sort flipped from desc to ASC (needs-attention first); each pill shows `mm:ss (NN%)` so the share is readable without hover. `data-band` attribute retained for AT/tests. 5 new fairShareHue unit tests + 2 dashboard tests; existing band/sort tests updated.
-- [ ] PR-B-2 (totals table component) — pending
+**Status:** ⏳ in flight (PR-B-1 ✅ merged, PR-B-2 ⏳ open as #406, PR-B-3 pending)
+- [x] **PR-B-1 (continuous-gradient pills)** ✅ MERGED via PR #405 (squash `ed28b19b`) — `fairShareHue(ratio)` red→yellow→green ramp; PlanningMinutesDashboard pills now use inline HSL styles; sort flipped to ASC; pills show `mm:ss (NN%)`; 5 hue unit tests + 2 dashboard tests
+- [x] **PR-B-2 (totals table component)** ⏳ in flight — sub-PR opening as `planner/pr-b2-totals-table`. `computePlanTotals` util (rows × games matrix with GK presence detection); `totalBand` color rule helper; `PlanningTotalsTable` component wired below MinutesDashboard in PlanningEditor. 14 util tests + 10 component tests; 7 i18n keys EN+FI; types regenerated (2598 → 2605).
 - [ ] PR-B-3 (cross-game player highlight multi-select) — pending
 
 ### PR-C through PR-F — NOT STARTED
