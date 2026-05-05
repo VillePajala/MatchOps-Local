@@ -1023,6 +1023,7 @@ export class SyncedDataStore implements DataStore {
     sessionId: string | null,
     teamId: string,
     gameIds: string[],
+    parentSessionId?: string | null,
   ): Promise<PlanningSession | null> {
     // Toggle activation locally so the UI reflects the change immediately;
     // queue a single sync per affected session so the cloud catches up to
@@ -1050,11 +1051,18 @@ export class SyncedDataStore implements DataStore {
     // stale-diff entry in the sync queue. Single-user-single-tab usage
     // makes this race effectively unreachable; documenting rather than
     // restructuring LocalDataStore.setActiveSession to return the diff.
+    // parentSessionId is just forwarded; the diff loop below is
+    // scope-agnostic because it walks the full sessions list and
+    // queues every row whose isActive changed. Whether the change
+    // came from a legacy (team, gameIds) scope or a parent-children
+    // scope (migration 039), the queued upsert correctly carries
+    // the row's parent_session_id back to cloud.
     const before = await this.localStore.getPlanningSessions(teamId);
     const result = await this.localStore.setActiveSession(
       sessionId,
       teamId,
       gameIds,
+      parentSessionId,
     );
     const after = await this.localStore.getPlanningSessions(teamId);
 

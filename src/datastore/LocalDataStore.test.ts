@@ -3029,6 +3029,100 @@ describe('LocalDataStore', () => {
         // No write — the lock guard short-circuits when nothing mutated.
         expect(mockSetStorageItem.mock.calls.length).toBe(writesBefore);
       });
+
+      describe('parent-children scope (named versions)', () => {
+        // Migration 039: when parentSessionId is passed, the active
+        // flag is scoped to siblings of that parent rather than
+        // (team, gameIds-set). Top-level rows are isolated from
+        // child activations.
+
+        it('activates one child and deactivates ONLY its siblings', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'p1', isActive: false }),
+            baseSession({ id: 'p1c1', parentSessionId: 'p1', isActive: true }),
+            baseSession({ id: 'p1c2', parentSessionId: 'p1', isActive: false }),
+            baseSession({ id: 'p2', isActive: false }),
+            baseSession({ id: 'p2c1', parentSessionId: 'p2', isActive: true }),
+            baseSession({ id: 'p2c2', parentSessionId: 'p2', isActive: false }),
+          ]);
+          const result = await dataStore.setActiveSession(
+            'p1c2',
+            'team_1',
+            ['g1', 'g2'],
+            'p1',
+          );
+          expect(result?.id).toBe('p1c2');
+          expect(result?.isActive).toBe(true);
+          const all = await dataStore.getPlanningSessions();
+          const byId = new Map(all.map((s) => [s.id, s]));
+          expect(byId.get('p1c1')?.isActive).toBe(false);
+          expect(byId.get('p1c2')?.isActive).toBe(true);
+          // Different parent's children untouched.
+          expect(byId.get('p2c1')?.isActive).toBe(true);
+          expect(byId.get('p2c2')?.isActive).toBe(false);
+        });
+
+        it('does not affect top-level rows when activating a child', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'top', isActive: true }),
+            baseSession({ id: 'p', isActive: false }),
+            baseSession({ id: 'c1', parentSessionId: 'p', isActive: false }),
+          ]);
+          await dataStore.setActiveSession('c1', 'team_1', ['g1', 'g2'], 'p');
+          const all = await dataStore.getPlanningSessions();
+          const byId = new Map(all.map((s) => [s.id, s]));
+          expect(byId.get('top')?.isActive).toBe(true);
+          expect(byId.get('c1')?.isActive).toBe(true);
+        });
+
+        it('does not affect children when activating a top-level row (legacy scope)', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'top1', isActive: true }),
+            baseSession({ id: 'top2', isActive: false }),
+            baseSession({ id: 'c1', parentSessionId: 'p', isActive: true }),
+          ]);
+          await dataStore.setActiveSession('top2', 'team_1', ['g1', 'g2']);
+          const all = await dataStore.getPlanningSessions();
+          const byId = new Map(all.map((s) => [s.id, s]));
+          expect(byId.get('top1')?.isActive).toBe(false);
+          expect(byId.get('top2')?.isActive).toBe(true);
+          expect(byId.get('c1')?.isActive).toBe(true);
+        });
+
+        it('returns null when activating a child whose parent does not match', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'c1', parentSessionId: 'p1', isActive: false }),
+          ]);
+          const result = await dataStore.setActiveSession(
+            'c1',
+            'team_1',
+            ['g1', 'g2'],
+            'p2',
+          );
+          expect(result).toBeNull();
+        });
+
+        it('deactivates all siblings when sessionId is null in parent scope', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'c1', parentSessionId: 'p', isActive: true }),
+            baseSession({ id: 'c2', parentSessionId: 'p', isActive: false }),
+          ]);
+          await dataStore.setActiveSession(null, 'team_1', ['g1', 'g2'], 'p');
+          const all = await dataStore.getPlanningSessions();
+          for (const s of all) expect(s.isActive).toBe(false);
+        });
+
+        it('rejects an empty-string parentSessionId with a ValidationError', async () => {
+          // Caller must pick a side: undefined/null = legacy scope,
+          // non-empty string = a real parent id. Empty string would
+          // otherwise silently shift to the parent scope but never
+          // match any row (validator rejects empty parent_session_id
+          // at write time).
+          await expect(
+            dataStore.setActiveSession('a', 'team_1', ['g1', 'g2'], ''),
+          ).rejects.toThrow(/parentSessionId.*non-empty string/);
+        });
+      });
     });
   });
 });

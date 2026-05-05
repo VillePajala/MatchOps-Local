@@ -2434,6 +2434,7 @@ export class LocalDataStore implements DataStore {
     sessionId: string | null,
     teamId: string,
     gameIds: string[],
+    parentSessionId?: string | null,
   ): Promise<PlanningSession | null> {
     this.ensureInitialized();
 
@@ -2455,11 +2456,31 @@ export class LocalDataStore implements DataStore {
         { count: gameIds.length },
       );
     }
+    // Reject empty-string parentSessionId — caller must pick a side
+    // (undefined/null = legacy scope; non-empty string = a real parent
+    // id). Empty string would otherwise silently shift to the parent
+    // scope but never match any row (validator rejects empty
+    // parent_session_id at write time, so no row carries it).
+    if (parentSessionId === '') {
+      throw new ValidationError(
+        'setActiveSession parentSessionId, when provided, must be a non-empty string',
+        'parentSessionId',
+        { parentSessionId },
+      );
+    }
 
     // sortedGameIdsKey already sorts; the Set dedupes so callers passing
     // duplicates (e.g. `[a, b, b]`) match the same scope as `[a, b]` —
     // matches the canonical_game_ids handling in migration 036's RPC.
     const targetKey = sortedGameIdsKey([...new Set(gameIds)]);
+    // Two scope shapes per migration 039:
+    //   - non-empty string → siblings of that parent (empty string
+    //     was rejected above; `?? null` collapses undefined to null
+    //     for the .map closure's narrowing).
+    //   - null/undefined → legacy top-level scope (team + canonical
+    //     gameIds AND parent_session_id IS NULL).
+    const parentScopeId: string | null = parentSessionId ?? null;
+    const useParentScope = parentScopeId !== null;
 
     return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
       const current = await this.loadPlanningSessions();
@@ -2468,9 +2489,11 @@ export class LocalDataStore implements DataStore {
       let mutated = false;
 
       const updated = current.map((session) => {
-        const matchesScope =
-          session.teamId === teamId &&
-          sortedGameIdsKey(session.gameIds) === targetKey;
+        const matchesScope = useParentScope
+          ? session.parentSessionId === parentScopeId
+          : !session.parentSessionId &&
+            session.teamId === teamId &&
+            sortedGameIdsKey(session.gameIds) === targetKey;
         if (!matchesScope) return session;
 
         if (sessionId !== null && session.id === sessionId) {

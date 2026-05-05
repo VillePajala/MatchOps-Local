@@ -71,7 +71,8 @@
 - [x] LocalDataStore.savePlanningSession: passthrough; upsertPlanningSession covered by `...session` spread.
 - [x] 5 new validation unit tests.
 - [x] **PR-C-1 ✅ MERGED** via PR #408 (5 review passes; pass-5 was clean approve, no blockers).
-- [ ] **Pending (PR-C-2):** UI changes — Versions ▾ dropdown, Save changes / Save as new copy actions, child-list rendering, single-active scoped to parent's children, RPC 033/036 update for parent-scoped activation. PARKED for after PR-D (smaller schema-free PR for velocity).
+- [x] **PR-C-2a (RPC + DataStore parent-scope)** ⏳ in flight — migration 039 updates `set_active_planning_session` with optional `p_parent_session_id` arg (two disjoint scopes: legacy top-level vs siblings-of-parent). DataStore.setActiveSession signature widened; Local + Supabase + Synced all pass through. 5 new LocalDataStore unit tests. **Migration NOT YET applied to staging — Supabase MCP token needs re-auth.**
+- [ ] **Pending (PR-C-2b):** UI — Versions ▾ dropdown, Save changes / Save as new copy actions, child-list rendering, activate/rename/delete child rows.
 
 ### PR-D — Half-time (H1/H2) split shortcuts
 **Status:** ✅ MERGED via PR #409 (5 review passes; pass-5 was clean approve, no blockers).
