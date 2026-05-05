@@ -5522,4 +5522,59 @@ describe('SupabaseDataStore', () => {
       expect(dbRow.included_game_ids).toBeNull();
     });
   });
+
+  // ==========================================================================
+  // setActiveSession parent-scope forwarding (PR-C-2a / migration 039)
+  // ==========================================================================
+  describe('setActiveSession parent_session_id forwarding', () => {
+    beforeEach(() => {
+      // The setActiveSession path doesn't go through the query
+      // builder — it calls supabase.rpc() directly. Wire the mock to
+      // return an empty array so the no-op deactivation path resolves
+      // cleanly; tests below assert the args, not the return value.
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: [],
+        error: null,
+      });
+    });
+
+    it('forwards p_parent_session_id = null when called without parentSessionId (legacy scope)', async () => {
+      await dataStore.setActiveSession(null, 'team_1', ['g1', 'g2']);
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'set_active_planning_session',
+        expect.objectContaining({
+          p_session_id: null,
+          p_team_id: 'team_1',
+          p_game_ids: ['g1', 'g2'],
+          p_parent_session_id: null,
+        }),
+      );
+    });
+
+    it('forwards p_parent_session_id = the supplied parent id (parent-children scope)', async () => {
+      await dataStore.setActiveSession(
+        'planningSession_child',
+        'team_1',
+        ['g1', 'g2'],
+        'planningSession_parent',
+      );
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'set_active_planning_session',
+        expect.objectContaining({
+          p_session_id: 'planningSession_child',
+          p_team_id: 'team_1',
+          p_game_ids: ['g1', 'g2'],
+          p_parent_session_id: 'planningSession_parent',
+        }),
+      );
+    });
+
+    it('rejects an empty-string parentSessionId before reaching the RPC', async () => {
+      await expect(
+        dataStore.setActiveSession('a', 'team_1', ['g1', 'g2'], ''),
+      ).rejects.toThrow(/parentSessionId.*non-empty string/);
+      // RPC should not be called when the input fails validation.
+      expect(mockSupabaseClient.rpc).not.toHaveBeenCalled();
+    });
+  });
 });

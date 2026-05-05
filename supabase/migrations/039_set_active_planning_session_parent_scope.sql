@@ -59,6 +59,13 @@ BEGIN
   IF p_game_ids IS NULL OR array_length(p_game_ids, 1) IS NULL THEN
     RAISE EXCEPTION 'game_ids required (non-empty)';
   END IF;
+  -- Empty-string parent_session_id is meaningless — the validator
+  -- rejects it on writes too (planningSession.test.ts). Treat it as
+  -- a hard error rather than silently shifting to a parent scope
+  -- that no real row could match.
+  IF p_parent_session_id IS NOT NULL AND p_parent_session_id = '' THEN
+    RAISE EXCEPTION 'p_parent_session_id, when provided, must be a non-empty string';
+  END IF;
   IF array_length(p_game_ids, 1) > 100 THEN
     RAISE EXCEPTION 'too many game_ids (max 100)';
   END IF;
