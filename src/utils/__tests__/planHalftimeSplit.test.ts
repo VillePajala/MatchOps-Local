@@ -216,6 +216,24 @@ describe('keepStarter', () => {
     });
     expect(keepStarter(d, 'GK', game(10))).toBe(d);
   });
+
+  it('does not duplicate the bench entry when sub player is already on bench', () => {
+    // Defensive guard: a sub created via the timeline editor + then
+    // collapsed via this shortcut could otherwise produce a doubled
+    // bench entry. The split UI's add path already removes the
+    // sub-in player from bench, but timeline-editor splits don't.
+    const d = draft({
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 600, inPlayer: 'p2', positionRole: 'GK' },
+      ],
+      // p2 is BOTH the sub-in player AND already on the bench.
+      bench: ['p2', 'p3'],
+    });
+    const next = keepStarter(d, 'GK', game(10));
+    // Bench unchanged — no duplicate p2 entry.
+    expect(next.bench).toEqual(['p2', 'p3']);
+    expect(next.scheduledSubs).toEqual([]);
+  });
 });
 
 describe('keepSub', () => {
@@ -241,6 +259,23 @@ describe('keepSub', () => {
       ],
     });
     expect(keepSub(d, 'GK', game(10))).toBe(d);
+  });
+
+  it('does not duplicate the bench entry when starter is already on bench', () => {
+    // Same defensive dedup as keepStarter — guards a legacy/imported
+    // draft where the starter somehow appears on the bench too.
+    const d = draft({
+      startingXI: { GK: 'p0', LB: 'p1' },
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 600, inPlayer: 'p2', positionRole: 'GK' },
+      ],
+      // p0 is the starter AND already on bench (legacy state).
+      bench: ['p0', 'p3'],
+    });
+    const next = keepSub(d, 'GK', game(10));
+    expect(next.startingXI.GK).toBe('p2');
+    // Bench unchanged — p0 not duplicated.
+    expect(next.bench).toEqual(['p0', 'p3']);
   });
 
   it('handles a split where the role had no original starter (imported drafts)', () => {
