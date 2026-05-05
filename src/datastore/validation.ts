@@ -356,7 +356,10 @@ export const validatePlanningSession = (
     }
     // session.id is validated as non-empty earlier in this function,
     // so the comparison is sound; no need to short-circuit on its
-    // truthiness.
+    // truthiness. This catches A→A only; depth-2 cycles (A→B→A) are
+    // unreachable today because the DataStore conventionally rejects
+    // a child whose parent is itself a child, but enforcement is
+    // deferred to PR-C-2's parent-exists DataStore check.
     if (session.parentSessionId === session.id) {
       throw new ValidationError(
         `${prefix}parentSessionId cannot equal session.id (self-parent cycle)`,

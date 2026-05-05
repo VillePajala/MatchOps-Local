@@ -76,11 +76,51 @@ BEGIN
   RAISE NOTICE 'OK: idx_planning_sessions_parent exists with correct definition';
 END $$;
 
+-- B2. Self-parent CHECK constraint exists.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'planning_sessions_parent_not_self'
+      AND conrelid = 'public.planning_sessions'::regclass
+  ) THEN
+    RAISE EXCEPTION 'FAIL: CHECK constraint planning_sessions_parent_not_self is missing';
+  END IF;
+  RAISE NOTICE 'OK: CHECK constraint planning_sessions_parent_not_self in place';
+END $$;
+
+-- B3. CHECK constraint actually rejects a self-parent insert.
+DO $$
+DECLARE
+  v_uid uuid := gen_random_uuid();
+  v_id  text := 'verify_038_self_' || gen_random_uuid()::text;
+  v_caught boolean := false;
+BEGIN
+  BEGIN
+    INSERT INTO planning_sessions (
+      id, user_id, team_id, name, draft, game_ids, is_active, parent_session_id
+    ) VALUES (
+      v_id, v_uid, 'team_verify', 'Verify 038 self-parent',
+      '{}'::jsonb, ARRAY['g1'], false, v_id
+    );
+  EXCEPTION WHEN check_violation THEN
+    v_caught := true;
+  END;
+  IF NOT v_caught THEN
+    -- Insert succeeded — CHECK didn't fire. Clean up.
+    DELETE FROM planning_sessions WHERE user_id = v_uid AND id = v_id;
+    RAISE EXCEPTION 'FAIL: self-parent insert was NOT rejected by CHECK constraint';
+  END IF;
+  RAISE NOTICE 'OK: self-parent insert correctly rejected by CHECK constraint';
+END $$;
+
 -- C. Insert + read round-trip — NULL → "top-level parent".
 DO $$
 DECLARE
   v_uid uuid := gen_random_uuid();
-  v_id  text := 'verify_038_parent_' || extract(epoch from now())::bigint;
+  -- Random UUID suffix matches test D — immune to clock skew and
+  -- sub-second re-runs.
+  v_id  text := 'verify_038_parent_' || gen_random_uuid()::text;
   v_read text;
 BEGIN
   INSERT INTO planning_sessions (

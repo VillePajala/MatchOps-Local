@@ -58,6 +58,26 @@ CREATE INDEX IF NOT EXISTS idx_planning_sessions_parent
   ON planning_sessions (user_id, parent_session_id)
   WHERE parent_session_id IS NOT NULL;
 
+-- Schema-level self-parent guard: a row pointing at itself would
+-- create an apparent cycle and confuse the children-listing query.
+-- The validator catches this on app-layer writes; the CHECK is a
+-- belt-and-suspenders defense for any path that bypasses the
+-- validator (RPC body, direct SQL, future bulk import).
+-- IF NOT EXISTS isn't valid for ADD CONSTRAINT in PG, so guard with
+-- a DO block. Idempotent across migration re-runs.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'planning_sessions_parent_not_self'
+      AND conrelid = 'public.planning_sessions'::regclass
+  ) THEN
+    ALTER TABLE planning_sessions
+      ADD CONSTRAINT planning_sessions_parent_not_self
+      CHECK (parent_session_id IS NULL OR parent_session_id <> id);
+  END IF;
+END $$;
+
 -- RLS unchanged: the existing per-user-id policy already scopes child
 -- visibility correctly because RLS filters by user_id, and parents +
 -- children always share the same user_id (validator enforces).
