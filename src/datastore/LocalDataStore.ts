@@ -2391,6 +2391,9 @@ export class LocalDataStore implements DataStore {
           session.includedGameIds === undefined
             ? undefined
             : [...session.includedGameIds],
+        // Pass through the parent pointer so saves preserve the
+        // named-version → parent linkage. String value, no clone needed.
+        parentSessionId: session.parentSessionId,
         createdAt:
           session.createdAt ??
           (existingIndex !== -1 ? current[existingIndex].createdAt : now),
@@ -2516,6 +2519,7 @@ export class LocalDataStore implements DataStore {
       const existingIndex = current.findIndex((s) => s.id === session.id);
       const now = new Date().toISOString();
 
+      // Scalar fields ride through `...session`; arrays/objects below need explicit clone.
       const normalized: PlanningSession = {
         ...session,
         name: session.name.trim(),

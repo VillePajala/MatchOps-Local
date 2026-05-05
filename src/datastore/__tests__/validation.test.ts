@@ -335,6 +335,62 @@ describe('validatePlanningSession', () => {
     );
   });
 
+  // parentSessionId carries the named-version → parent linkage. The
+  // validator only catches structural violations (the parent-exists
+  // invariant is enforced at the DataStore boundary, since the
+  // validator can't reach the store).
+  describe('parentSessionId validation', () => {
+    it('accepts undefined parentSessionId (top-level parent plan)', () => {
+      const session = baseSession({ parentSessionId: undefined });
+      expect(() => validatePlanningSession(session)).not.toThrow();
+    });
+
+    it('accepts a non-empty parentSessionId pointing at a different session', () => {
+      const session = baseSession({
+        id: 'planningSession_child',
+        parentSessionId: 'planningSession_parent',
+      });
+      expect(() => validatePlanningSession(session)).not.toThrow();
+    });
+
+    it('rejects an empty-string parentSessionId', () => {
+      const session = baseSession({ parentSessionId: '' });
+      expect(() => validatePlanningSession(session)).toThrow(
+        /parentSessionId must be a non-empty string/,
+      );
+    });
+
+    it('rejects a parentSessionId that equals session.id (self-parent cycle)', () => {
+      const session = baseSession({
+        id: 'planningSession_self',
+        parentSessionId: 'planningSession_self',
+      });
+      expect(() => validatePlanningSession(session)).toThrow(
+        /self-parent cycle/,
+      );
+    });
+
+    it('rejects a non-string parentSessionId', () => {
+      const session = baseSession({
+        parentSessionId: 123 as unknown as string,
+      });
+      expect(() => validatePlanningSession(session)).toThrow(
+        /parentSessionId must be a non-empty string/,
+      );
+    });
+
+    it('treats null parentSessionId as absent (defensive guard)', () => {
+      // Defensive against raw DB rows that bypass the `?? undefined`
+      // conversion in transformPlanningSessionFromDb. The TS type is
+      // `string | undefined`, but the validator treats null as "no
+      // parent" rather than throwing on it.
+      const session = baseSession({
+        parentSessionId: null as unknown as undefined,
+      });
+      expect(() => validatePlanningSession(session)).not.toThrow();
+    });
+  });
+
 });
 
 describe('sortedGameIdsKey', () => {

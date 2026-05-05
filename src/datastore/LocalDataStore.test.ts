@@ -2798,6 +2798,50 @@ describe('LocalDataStore', () => {
       ).rejects.toThrow(/name must be a non-empty string/);
     });
 
+    it('round-trips parentSessionId on save → read', async () => {
+      // Locks the foundation contract for the named-versions feature:
+      // a child session's parentSessionId must survive savePlanningSession
+      // and be readable back via getPlanningSessions.
+      const parent = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'Parent',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+      });
+      const child = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'Child variant',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+        parentSessionId: parent.id,
+      });
+      expect(child.parentSessionId).toBe(parent.id);
+      const list = await dataStore.getPlanningSessions();
+      const reloaded = list.find((s) => s.id === child.id);
+      expect(reloaded?.parentSessionId).toBe(parent.id);
+      // Parent stays top-level.
+      const reloadedParent = list.find((s) => s.id === parent.id);
+      expect(reloadedParent?.parentSessionId).toBeUndefined();
+    });
+
+    it('preserves parentSessionId === undefined as undefined (top-level)', async () => {
+      // Negative case for the round-trip: an undefined parentSessionId
+      // must NOT leak as null or any other value through the save.
+      const saved = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'Top-level',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+      });
+      expect(saved.parentSessionId).toBeUndefined();
+      const list = await dataStore.getPlanningSessions();
+      const reloaded = list.find((s) => s.id === saved.id);
+      expect(reloaded?.parentSessionId).toBeUndefined();
+    });
+
     it('returns sessions sorted by updatedAt newest-first', async () => {
       // Seed two sessions with explicit timestamps
       savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([

@@ -334,6 +334,41 @@ export const validatePlanningSession = (
     seenGameIds.add(gid);
   });
 
+  // parentSessionId: optional. When present, must be a non-empty
+  // string and must NOT equal session.id (a session cannot parent
+  // itself — that would create an apparent cycle and confuse the
+  // children-listing query). The parent-exists invariant is enforced
+  // at the DataStore layer (the row's existence is verified on
+  // child write); validator only catches the structural violations
+  // because it doesn't have a handle on the sessions store.
+  //
+  // The `!== null` branch is defensive against raw DB values: the TS
+  // type is `string | undefined`, but a row read that bypassed
+  // `?? undefined` could land here as `null` and we want to treat
+  // that as "no parent" (top-level), not throw on it.
+  if (session.parentSessionId !== undefined && session.parentSessionId !== null) {
+    if (!isNonEmptyString(session.parentSessionId)) {
+      throw new ValidationError(
+        `${prefix}parentSessionId must be a non-empty string when present`,
+        'parentSessionId',
+        session.parentSessionId,
+      );
+    }
+    // session.id is validated as non-empty earlier in this function,
+    // so the comparison is sound; no need to short-circuit on its
+    // truthiness. This catches A→A only; depth-2 cycles (A→B→A) are
+    // unreachable today because the DataStore conventionally rejects
+    // a child whose parent is itself a child, but enforcement is
+    // deferred to PR-C-2's parent-exists DataStore check.
+    if (session.parentSessionId === session.id) {
+      throw new ValidationError(
+        `${prefix}parentSessionId cannot equal session.id (self-parent cycle)`,
+        'parentSessionId',
+        session.parentSessionId,
+      );
+    }
+  }
+
   // includedGameIds: optional. When present, must be an array whose
   // entries are a subset of gameIds. Empty array is allowed and means
   // "no games included" — coach explicitly wants the dashboard to zero

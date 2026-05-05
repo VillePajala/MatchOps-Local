@@ -68,6 +68,24 @@ export interface PlanningSession {
    * cloud rows that predate 037.
    */
   includedGameIds?: string[];
+  /**
+   * Soft pointer to a parent PlanningSession.id when this row is a
+   * "named version" of another plan. Absent (`undefined`) means this
+   * row is a top-level parent plan — the legacy meaning, every session
+   * predating PR-C is a parent. (DB rows store NULL for the same case;
+   * `transformPlanningSessionFromDb` converts NULL → `undefined`.)
+   *
+   * The named-versions feature lets a coach branch a tournament plan
+   * into multiple variants ("default", "Jasper-sick contingency", etc.)
+   * — each variant is a child session that shares the parent's
+   * (team_id, gameIds-set). The single-active invariant enforced by
+   * RPC 033/036 is scoped to the parent's children: at most one child
+   * of a given parent can be `is_active = true`.
+   *
+   * Schema: nullable `text` column added in migration 038; absent on
+   * cloud rows that predate 038.
+   */
+  parentSessionId?: string;
   createdAt: string;
   updatedAt: string;
 }
