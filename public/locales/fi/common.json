@@ -1792,7 +1792,7 @@
     "tabGameLabel": "Peli {{n}}",
     "tabIncludeLabel": "Sisällytä tämä peli yhteenlaskuihin",
     "roleActionsTitle": "Rooli: {{role}} — puoliajan vaihtoehdot",
-    "splitAtHalf": "Vaihto puoliajalla",
+    "splitAtHalf": "✂ Vaihto puoliajalla",
     "keepStarter": "Pidä {{player}}",
     "keepSub": "Pidä {{player}}",
     "formation": "Pelisysteemi",

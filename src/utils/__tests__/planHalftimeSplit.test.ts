@@ -41,6 +41,13 @@ describe('halftimeSec', () => {
   it('returns 0 for a 0-duration game (no division by zero)', () => {
     expect(halftimeSec(game(0))).toBe(0);
   });
+
+  it('returns 0 for a 1-period game (no halftime concept in single-period match)', () => {
+    // Futsal-style single-period games have no halftime break.
+    // Surfacing the affordance would create a sub at "half" that
+    // doesn't correspond to any real game pause.
+    expect(halftimeSec(game(20, 1))).toBe(0);
+  });
 });
 
 describe('classifyRoleSplit', () => {

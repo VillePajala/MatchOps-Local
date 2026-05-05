@@ -1284,8 +1284,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                 data-testid="planning-editor-split-at-half"
                 className="rounded-md bg-emerald-700 px-2 py-1 text-emerald-50 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
               >
-                ✂{' '}
-                {t('planningEditor.splitAtHalf', 'Split at half')}
+                {t('planningEditor.splitAtHalf', '✂ Split at half')}
               </button>
             )}
             {split.kind === 'split' && (

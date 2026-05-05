@@ -1792,7 +1792,7 @@
     "tabGameLabel": "Game {{n}}",
     "tabIncludeLabel": "Include this game in totals",
     "roleActionsTitle": "Role: {{role}} — half-time options",
-    "splitAtHalf": "Split at half",
+    "splitAtHalf": "✂ Split at half",
     "keepStarter": "Keep {{player}}",
     "keepSub": "Keep {{player}}",
     "formation": "Formation",

@@ -339,6 +339,8 @@ describe('Translation File Validation', () => {
       //   importNoGamesError; removed obsolete importNoApply that
       //   was replaced by importNextStep in the success card).
       // Planner PR-B-2: +7 keys for planningTotalsTable.
+      // Planner PR-D: +4 half-time split keys (roleActionsTitle,
+      //   splitAtHalf, keepStarter, keepSub).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the

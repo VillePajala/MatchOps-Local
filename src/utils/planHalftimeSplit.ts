@@ -1,42 +1,24 @@
-// Pure helpers for the half-time (H1/H2) split shortcut affordance.
-// Reads/writes a PlanDraft's scheduledSubs array; never touches game
-// state directly. Used by PlanningEditor's role-action panel and
-// covered by unit tests in planHalftimeSplit.test.ts.
-//
-// Why a separate util: the UI shouldn't reason about scheduledSub
-// time math, and the two-period assumption (only one sub per role at
-// gameDuration/2) needs to be the same predicate everywhere.
+// Pure helpers for the H1/H2 split affordance — single source of truth for the two-period halftime assumption.
 
 import type { AppState } from '@/types/game';
 import type { PlanDraft, RoleName, PlayerId } from './planSwapEngine';
 import { gameDurationSec } from './planFormatters';
 
-/**
- * Halftime in seconds for `game`, rounded to a whole second so it
- * lines up with sub.timeSeconds (which is integer-valued per the
- * validator). Returns 0 for a zero-duration / missing game so callers
- * can short-circuit cleanly.
- */
+// Halftime in seconds; rounded so it lines up with sub.timeSeconds
+// (validator requires integer). Returns 0 for missing / zero-duration
+// AND for 1-period games (no half-time exists in a single-period match
+// — futsal coaches would otherwise see the affordance and create a
+// sub at "half" that doesn't correspond to any real game break).
 export function halftimeSec(game: AppState | undefined): number {
   if (!game) return 0;
   const dur = gameDurationSec(game);
   if (dur <= 0) return 0;
+  if ((game as { numberOfPeriods?: number }).numberOfPeriods !== 2) return 0;
   return Math.round(dur / 2);
 }
 
-/**
- * The three states a role can be in for the half-time shortcut UI:
- *   - 'no-sub'       — role has a starter in startingXI and no
- *                      scheduledSub at this role; "Split at half"
- *                      is available iff bench has at least one
- *                      reachable player.
- *   - 'split'        — role has exactly ONE scheduledSub, fired at
- *                      halftimeSec(game). "Keep starter" / "Keep sub"
- *                      can collapse it back to a single chip.
- *   - 'complex'      — role has zero or 2+ subs, OR the single sub is
- *                      not at halftime. The shortcut hides; the coach
- *                      uses the timeline editor for this role.
- */
+// 'complex' = zero+2 subs OR single sub off-half; the panel hides
+// and the coach uses the timeline editor instead.
 export type RoleSplitState =
   | { kind: 'no-sub'; canSplit: boolean }
   | {
@@ -74,16 +56,7 @@ export function classifyRoleSplit(
   return { kind: 'complex' };
 }
 
-/**
- * Add a half-time split sub to `draft` for `role`. Bench[0] becomes
- * the inPlayer at halftimeSec. Returns the new draft (immutable
- * update). No-op if classifyRoleSplit's canSplit is false — caller is
- * expected to gate via the classifier.
- *
- * Sub id is the caller's responsibility: pass `generateId('sub')` from
- * the call site so the same id discipline as the live sub editor
- * applies. This keeps the util pure (no Math.random / Date.now).
- */
+// Caller passes `newSubId` (e.g. `generateId('sub')`) so this util stays pure.
 export function addHalftimeSplit(
   draft: PlanDraft,
   role: RoleName,
