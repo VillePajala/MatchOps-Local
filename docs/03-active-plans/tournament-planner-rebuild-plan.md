@@ -76,12 +76,12 @@
 ### PR-D — Half-time (H1/H2) split shortcuts
 **Status:** ✅ MERGED via PR #409 (5 review passes; pass-5 was clean approve, no blockers).
 
-### PR-E — Visual polish (auto-save indicator first)
-**Status:** ⏳ in flight (PR #410 opening with auto-save indicator)
-- [x] **Auto-save indicator** — PlanningModal tracks `lastSavedAt` (epoch ms), 3-second auto-clear via setTimeout. PlanningEditor renders "✓ Saved HH:MM:SS" badge when set. Hooked into `handleSavePlan`, `handleRename`, `handleDuplicate`. 1 i18n key EN+FI; 2 component tests.
-- [ ] **Reset edits** button — defer until PR-C-2 lands the Versions ▾ dropdown (the Reset is a version-manager affordance per the rebuild plan).
-- [ ] **Show-benches toggle** — defer to PR-E-2 (small but adds modal-header state surface).
-- [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-2 (visual-only).
+### PR-E — Visual polish
+**Status:** PR-E-1 ✅ merged via PR #410 (auto-save indicator). PR-E-2 ⏳ in flight (show-benches toggle).
+- [x] **PR-E-1 auto-save indicator** ✅ MERGED via #410 (1 review pass, silent pass-2). PlanningModal owns `lastSavedAt`; editor renders "✓ Saved HH:MM:SS" badge.
+- [x] **PR-E-2 show-benches toggle** ⏳ in flight — boolean state in editor, header toggle button, bench drawer hidden via HTML `hidden` attr (preserves drag-target registration). 2 i18n keys EN+FI (2593 → 2595); 3 component tests.
+- [ ] **Reset edits** button — defer until PR-C-2 lands the Versions ▾ dropdown.
+- [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-3 (visual-only).
 
 ### PR-F — NOT STARTED
 - [ ] PR-F — bundle import/export

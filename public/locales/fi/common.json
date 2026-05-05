@@ -1796,6 +1796,8 @@
     "keepStarter": "Pidä {{player}}",
     "keepSub": "Pidä {{player}}",
     "savedAt": "Tallennettu {{time}}",
+    "showBenches": "Näytä vaihtopenkit",
+    "hideBenches": "Piilota vaihtopenkit",
     "formation": "Pelisysteemi",
     "gameCount_one": "{{count}} peli",
     "gameCount_other": "{{count}} peliä",

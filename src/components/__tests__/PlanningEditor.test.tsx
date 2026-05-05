@@ -1962,7 +1962,55 @@ describe('PlanningEditor', () => {
     });
   });
 
-  describe('Auto-save indicator (PR-E)', () => {
+  describe('Show-benches toggle', () => {
+    it('renders the bench drawer by default (showBenches=true)', () => {
+      renderEditor();
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      // Default visible.
+      expect(drawer).not.toHaveAttribute('hidden');
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      expect(toggle).toHaveAttribute('data-state', 'on');
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle.textContent ?? '').toMatch(/Hide/i);
+    });
+
+    it('hides the bench drawer when toggled off', async () => {
+      renderEditor();
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      // `hidden` HTML attribute hides the element from the layout
+      // and AT — same effect as `display: none` but reversible
+      // without re-mounting (preserves drag-target registration).
+      expect(drawer).toHaveAttribute('hidden');
+      expect(toggle).toHaveAttribute('data-state', 'off');
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(toggle.textContent ?? '').toMatch(/Show/i);
+    });
+
+    it('clicking the toggle a second time re-shows the drawer', async () => {
+      renderEditor();
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      expect(drawer).not.toHaveAttribute('hidden');
+    });
+  });
+
+  describe('Auto-save indicator', () => {
     it('hides the badge when lastSavedAt is null', () => {
       renderEditor({ lastSavedAt: null });
       expect(
@@ -1982,7 +2030,7 @@ describe('PlanningEditor', () => {
     });
   });
 
-  describe('Role action panel — half-time split shortcuts (PR-D)', () => {
+  describe('Role action panel — half-time split shortcuts', () => {
     it('shows the "Split at half" button when a role with no sub is selected', () => {
       renderEditor();
       // Tap the GK role to select it.

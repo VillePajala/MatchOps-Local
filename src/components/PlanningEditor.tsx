@@ -297,6 +297,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [highlightedPlayerIds, setHighlightedPlayerIds] = useState<
     Set<PlayerId>
   >(() => new Set());
+  // In-session bench-visibility toggle; not persisted on the plan.
+  const [showBenches, setShowBenches] = useState<boolean>(true);
   const toggleHighlight = useCallback((playerId: PlayerId) => {
     setHighlightedPlayerIds((prev) => {
       const next = new Set(prev);
@@ -1051,18 +1053,32 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             <HiOutlineArrowLeft className="h-4 w-4" />
             {t('common.backButton', 'Back')}
           </button>
-          {/* Timer lives in PlanningModal so this component stays stateless. */}
-          {lastSavedAt != null && (
-            <span
-              data-testid="planning-editor-saved-indicator"
-              className="text-xs text-emerald-300"
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowBenches((prev) => !prev)}
+              aria-pressed={showBenches}
+              data-testid="planning-editor-show-benches-toggle"
+              data-state={showBenches ? 'on' : 'off'}
+              className="rounded-md bg-slate-700 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-600"
             >
-              ✓{' '}
-              {t('planningEditor.savedAt', 'Saved {{time}}', {
-                time: new Date(lastSavedAt).toLocaleTimeString(),
-              })}
-            </span>
-          )}
+              {showBenches
+                ? t('planningEditor.hideBenches', 'Hide benches')
+                : t('planningEditor.showBenches', 'Show benches')}
+            </button>
+            {/* Timer lives in PlanningModal so this component stays stateless. */}
+            {lastSavedAt != null && (
+              <span
+                data-testid="planning-editor-saved-indicator"
+                className="text-xs text-emerald-300"
+              >
+                ✓{' '}
+                {t('planningEditor.savedAt', 'Saved {{time}}', {
+                  time: new Date(lastSavedAt).toLocaleTimeString(),
+                })}
+              </span>
+            )}
+          </div>
         </div>
         <p className="text-xs text-slate-400">
           {gameIds.length > 1
@@ -1348,6 +1364,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDropOnBenchDrawer}
         data-testid="planning-editor-bench-drawer"
+        // `hidden` (not unmount) preserves drag-target registration during a toggle mid-drag.
+        hidden={!showBenches}
         className={
           dragOverTarget === 'bench-drawer'
             ? 'rounded-md ring-2 ring-amber-200/60'
