@@ -327,4 +327,39 @@ describe('PlanningMinutesDashboard', () => {
       'Alice: 20:00, 100 percent of fair share',
     );
   });
+
+  describe('read-only fallback (no onToggleHighlight)', () => {
+    // The component's prop signature marks `onToggleHighlight` as
+    // optional — when callers omit it, the pill is purely visual.
+    // PlanningEditor always passes it today, but the contract is
+    // public so the fallback path needs coverage.
+    it('renders a <div role="group"> instead of a <button> when no toggle handler', () => {
+      renderDashboard({ onToggleHighlight: undefined });
+      const row = screen.getByTestId(
+        'planning-minutes-dashboard-entry-p0',
+      );
+      // No interactive button on the read-only path.
+      expect(row.querySelector('button')).toBeNull();
+      // The div carries role="group" so aria-label is honoured by AT
+      // (a roleless <div> would silently drop the label).
+      const inner = row.querySelector('div') as HTMLElement;
+      expect(inner).not.toBeNull();
+      expect(inner).toHaveAttribute('role', 'group');
+      expect(inner).toHaveAttribute(
+        'aria-label',
+        'Alice: 20:00, 100 percent of fair share',
+      );
+    });
+
+    it('still applies the HSL gradient on the read-only fallback', () => {
+      // Style + dimming both live on the inner element regardless of
+      // which branch renders, so the visual contract holds.
+      renderDashboard({ onToggleHighlight: undefined });
+      const row = screen.getByTestId(
+        'planning-minutes-dashboard-entry-p0',
+      );
+      const inner = row.querySelector('div') as HTMLElement;
+      expect(inner.style.backgroundColor).not.toBe('');
+    });
+  });
 });

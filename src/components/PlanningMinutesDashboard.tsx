@@ -191,11 +191,13 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
           const isHighlighted =
             highlightedPlayerIds?.has(entry.playerId) ?? false;
           const isDimmed = anyHighlightActive && !isHighlighted;
-          // Inner button wraps the pill content so list semantics
-          // stay intact (<button> inside <ul> would break "list of N
-          // items" announcement). The <li> remains a passive
-          // structural item; the <button> carries the click handler
-          // and aria-pressed when toggle is wired.
+          // The <li> stays a passive structural list item; the inner
+          // <button> carries the click handler + aria-pressed when
+          // toggle is wired. Keeping interactive state on a real
+          // <button> (rather than promoting the <li> to a clickable
+          // role="button") gives the affordance a native focus ring,
+          // Enter/Space activation, and the right tab order without
+          // hand-rolled keyboard handlers.
           const content = (
             <>
               {/* min-w-0 lets the flex container shrink below its
@@ -264,7 +266,13 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
                   {content}
                 </button>
               ) : (
+                // Read-only fallback when no toggle handler is passed.
+                // role="group" gives the <div> an ARIA role that honours
+                // aria-label — a passive <div> without a role would
+                // silently drop the label for AT users (NVDA/VO/JAWS
+                // ignore aria-label on roleless generic elements).
                 <div
+                  role="group"
                   aria-label={ariaLabel}
                   title={ariaLabel}
                   style={pillStyleForRatio(entry.shareRatio)}
