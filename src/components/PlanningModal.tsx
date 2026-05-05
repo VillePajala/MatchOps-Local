@@ -378,15 +378,19 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         scheduledSubs: d.scheduledSubs.map((s) => ({ ...s })),
       };
     }
-    // Save-as-new-copy semantics: a new row is created (id omitted)
-    // with parent_session_id pointing into the version family.
-    //   - If the editing session is already a child of a parent, the
-    //     copy becomes a sibling (same parent_session_id).
-    //   - If the editing session is top-level, the copy becomes its
-    //     first child — the original session takes on the role of
-    //     "parent / container", and the new row is the active named
-    //     version. createdAt + appliedAt are reset; the copy is a
-    //     fresh row, not a continuation of the original.
+    // Save-as-new-copy creates a new row in the version family.
+    // The named-versions tree is intentionally FLAT (2 levels):
+    // a top-level session is the "container", and all named
+    // versions are direct children. Saving as new copy of an
+    // existing child creates a SIBLING under the same parent
+    // — never a grandchild — so the per-parent active-session
+    // RPC stays a simple flat-list query.
+    //   - editing session is top-level → copy parents at its id
+    //     (first child; original becomes the container).
+    //   - editing session is a child → copy parents at the same
+    //     parent_session_id (sibling).
+    // createdAt + appliedAt are reset because the copy is a fresh
+    // row, not a continuation of the original.
     const saveAsNewCopy = data.saveAs === 'new-copy';
     const newCopyParentId = saveAsNewCopy
       ? editingSession?.parentSessionId ?? editingSession?.id

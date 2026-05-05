@@ -1556,9 +1556,11 @@ describe('PlanningEditor', () => {
         const input = screen.getByTestId(
           'planning-editor-save-name',
         ) as HTMLInputElement;
-        // English fallback string is "{{name}} — copy"; either locale
-        // emits a string ending with the localised "copy" word.
-        expect(input.value).toMatch(/Default[^a-z]*(copy|kopio)/i);
+        // English: "Default — copy"; Finnish: "Default — kopio".
+        // The exact literal " — " separator is locked in both i18n
+        // strings; tighten the regex to avoid accepting any random
+        // separator a future locale might introduce.
+        expect(input.value).toMatch(/^Default — (copy|kopio)$/);
       });
 
       it('submits onSavePlan with saveAs="new-copy"', async () => {

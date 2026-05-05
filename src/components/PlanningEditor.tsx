@@ -731,15 +731,18 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
   const handleStartSave = () => {
     setSaveError(null);
-    setSaveMode('overwrite');
+    // saveMode is reset to 'overwrite' on every successful submit and
+    // on cancel, so re-asserting it here would be redundant — but
+    // the regular Save flow is the default branch, so an explicit
+    // set isn't needed and was dropped per pass-1 review.
     // Trim so a "  " initialName doesn't open the form pre-filled with
     // whitespace the user has to manually clear before typing.
     setSavePlanName((initialName ?? '').trim());
   };
 
-  // "Save as new copy" — opens the same form but in 'new-copy' mode
-  // and pre-seeds the name with " — copy" so the user always picks a
-  // distinct name (the standalone planner uses the same convention).
+  // "Save as new copy" — opens the same form in 'new-copy' mode and
+  // pre-seeds with a " — copy" suffix so the new row gets a distinct
+  // name by default.
   const handleStartSaveAsNewCopy = () => {
     setSaveError(null);
     setSaveMode('new-copy');
