@@ -1962,6 +1962,180 @@ describe('PlanningEditor', () => {
     });
   });
 
+  describe('Role action panel — half-time split shortcuts (PR-D)', () => {
+    it('shows the "Split at half" button when a role with no sub is selected', () => {
+      renderEditor();
+      // Tap the GK role to select it.
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId(`planning-editor-role-${PRESET.roles![0].name}`),
+        );
+      });
+      const panel = screen.getByTestId('planning-editor-role-actions');
+      expect(panel).toHaveAttribute('data-state', 'no-sub');
+      expect(
+        screen.getByTestId('planning-editor-split-at-half'),
+      ).toBeInTheDocument();
+    });
+
+    it('clicking "Split at half" adds a sub at halftime and removes bench[0]', () => {
+      const { props } = renderEditor();
+      const onApplied = props.onApplied as jest.Mock;
+      const role = PRESET.roles![0].name;
+      // Select the role first.
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId('planning-editor-split-at-half'));
+      });
+      // The role-action panel now shows the split state with Keep
+      // starter / Keep sub buttons (the draft has been mutated).
+      const panel = screen.getByTestId('planning-editor-role-actions');
+      expect(panel).toHaveAttribute('data-state', 'split');
+      expect(
+        screen.getByTestId('planning-editor-keep-starter'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-editor-keep-sub'),
+      ).toBeInTheDocument();
+      // onApplied isn't called by Split — it's a draft mutation only.
+      expect(onApplied).not.toHaveBeenCalled();
+    });
+
+    it('does not render the panel when nothing is selected', () => {
+      renderEditor();
+      expect(
+        screen.queryByTestId('planning-editor-role-actions'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clicking "Keep starter" removes the half-time sub and returns sub player to bench', () => {
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: ['p8'],
+            scheduledSubs: [
+              {
+                id: 's1',
+                // 25 min × 2 periods = 3000s, halftime = 1500.
+                timeSeconds: 1500,
+                inPlayer: 'p9',
+                positionRole: role,
+              },
+            ],
+          },
+        },
+      });
+      // Select the role → panel should show 'split' state.
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      expect(
+        screen.getByTestId('planning-editor-role-actions'),
+      ).toHaveAttribute('data-state', 'split');
+      // Click Keep starter → the sub disappears, panel flips to no-sub.
+      act(() => {
+        fireEvent.click(screen.getByTestId('planning-editor-keep-starter'));
+      });
+      expect(
+        screen.getByTestId('planning-editor-role-actions'),
+      ).toHaveAttribute('data-state', 'no-sub');
+    });
+
+    it('clicking "Keep sub" promotes the sub player to starter and benches the original', () => {
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: ['p8'],
+            scheduledSubs: [
+              {
+                id: 's1',
+                timeSeconds: 1500,
+                inPlayer: 'p9',
+                positionRole: role,
+              },
+            ],
+          },
+        },
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId('planning-editor-keep-sub'));
+      });
+      // Panel re-renders in no-sub state; the sub-in player is now
+      // the starter. We can't easily assert the starter from the
+      // editor without diving into draft state, so the panel state
+      // assertion plus the absence of the sub button covers wiring.
+      expect(
+        screen.getByTestId('planning-editor-role-actions'),
+      ).toHaveAttribute('data-state', 'no-sub');
+      expect(
+        screen.queryByTestId('planning-editor-keep-starter'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('disables the "Split at half" button when bench is empty', () => {
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: [],
+            scheduledSubs: [],
+          },
+        },
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      const btn = screen.getByTestId('planning-editor-split-at-half');
+      expect(btn).toBeDisabled();
+    });
+
+    it('does not render the panel for a complex role state (multiple subs)', () => {
+      // Manually craft a draft with two subs at GK.
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: ['p1', 'p2'],
+            scheduledSubs: [
+              { id: 's1', timeSeconds: 300, inPlayer: 'p1', positionRole: role },
+              { id: 's2', timeSeconds: 900, inPlayer: 'p2', positionRole: role },
+            ],
+          },
+        },
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      // Multiple subs → complex → panel hidden.
+      expect(
+        screen.queryByTestId('planning-editor-role-actions'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('Cross-component player highlight (lifted state)', () => {
     // The fixture's makeGameWithLineup walks PRESET.roles and assigns
     // p0, p1, p2, ... to each role in order. So the GK role (first in

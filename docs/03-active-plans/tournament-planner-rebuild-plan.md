@@ -70,10 +70,18 @@
 - [x] SupabaseDataStore.transformPlanningSessionFromDb + ToDb: round-trips `parent_session_id` ↔ `parentSessionId`, explicit-null pattern lets a coach un-link a child by setting `parentSessionId: undefined`.
 - [x] LocalDataStore.savePlanningSession: passthrough; upsertPlanningSession covered by `...session` spread.
 - [x] 5 new validation unit tests.
-- [ ] **Pending (PR-C-2):** UI changes — Versions ▾ dropdown, Save changes / Save as new copy actions, child-list rendering, single-active scoped to parent's children, RPC 033/036 update for parent-scoped activation.
+- [x] **PR-C-1 ✅ MERGED** via PR #408 (5 review passes; pass-5 was clean approve, no blockers).
+- [ ] **Pending (PR-C-2):** UI changes — Versions ▾ dropdown, Save changes / Save as new copy actions, child-list rendering, single-active scoped to parent's children, RPC 033/036 update for parent-scoped activation. PARKED for after PR-D (smaller schema-free PR for velocity).
 
-### PR-D through PR-F — NOT STARTED
-- [ ] PR-D — H1/H2 split shortcut buttons on scheduledSubs
+### PR-D — Half-time (H1/H2) split shortcuts
+**Status:** ⏳ in flight (PR #409 opening)
+- [x] `planHalftimeSplit.ts` pure util: `halftimeSec`, `classifyRoleSplit` (no-sub / split / complex), `addHalftimeSplit`, `keepStarter`, `keepSub`. 22 unit tests.
+- [x] PlanningEditor role-action panel inline below pitch — only renders when a role is selected AND state is no-sub or split (complex routes the coach to the timeline editor as before). 4 component tests.
+- [x] 4 i18n keys EN+FI (`roleActionsTitle`, `splitAtHalf`, `keepStarter`, `keepSub`); types regenerated (2605 → 2609).
+- [ ] Visual chip-split rendering (slate|amber): **deferred** — minor visual; the action panel + scheduledSubs editor cover the functional need.
+- [ ] "Plays both" / "Benched both halves" red borders: **deferred** — UX polish for PR-E.
+
+### PR-E and PR-F — NOT STARTED
 - [ ] PR-E — visual parity polish + show-benches + auto-save indicator + reset
 - [ ] PR-F — bundle import/export
 
