@@ -352,6 +352,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     drafts: Record<string, PlanDraft>;
     gameIds: string[];
     includedGameIds: string[] | undefined;
+    saveAs?: 'overwrite' | 'new-copy';
   }) => {
     // currentTeamId is gated upstream (onSavePlan is only wired when
     // it exists). If the gate is bypassed somehow (rapid sign-out
@@ -377,16 +378,36 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         scheduledSubs: d.scheduledSubs.map((s) => ({ ...s })),
       };
     }
+    // Save-as-new-copy semantics: a new row is created (id omitted)
+    // with parent_session_id pointing into the version family.
+    //   - If the editing session is already a child of a parent, the
+    //     copy becomes a sibling (same parent_session_id).
+    //   - If the editing session is top-level, the copy becomes its
+    //     first child — the original session takes on the role of
+    //     "parent / container", and the new row is the active named
+    //     version. createdAt + appliedAt are reset; the copy is a
+    //     fresh row, not a continuation of the original.
+    const saveAsNewCopy = data.saveAs === 'new-copy';
+    const newCopyParentId = saveAsNewCopy
+      ? editingSession?.parentSessionId ?? editingSession?.id
+      : undefined;
+
     const saved = await saveSession.mutateAsync({
-      id: data.sessionId,
+      id: saveAsNewCopy ? undefined : data.sessionId,
       teamId: currentTeamId,
       name: data.name,
       gameIds: [...data.gameIds],
       draft: cloned,
       includedGameIds: data.includedGameIds,
-      isActive: editingSession?.isActive ?? false,
-      appliedAt: editingSession?.appliedAt,
-      createdAt: editingSession?.createdAt,
+      // New copies start inactive; the user can flip the active
+      // version explicitly via the Versions menu (PR-C-2c) or via
+      // setActiveSession in the parent's children scope.
+      isActive: saveAsNewCopy ? false : editingSession?.isActive ?? false,
+      appliedAt: saveAsNewCopy ? undefined : editingSession?.appliedAt,
+      createdAt: saveAsNewCopy ? undefined : editingSession?.createdAt,
+      parentSessionId: saveAsNewCopy
+        ? newCopyParentId
+        : editingSession?.parentSessionId,
     });
     // Stay in the editor with the (possibly newly-created) session
     // attached so subsequent edits update in place.

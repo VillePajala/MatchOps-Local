@@ -1467,6 +1467,8 @@ export type TranslationKey =
   | 'planningEditor.keepStarter'
   | 'planningEditor.keepSub'
   | 'planningEditor.roleActionsTitle'
+  | 'planningEditor.saveAsNewCopy'
+  | 'planningEditor.saveAsNewCopyDefault'
   | 'planningEditor.saveFailed'
   | 'planningEditor.saveNameRequired'
   | 'planningEditor.savePlanButton'

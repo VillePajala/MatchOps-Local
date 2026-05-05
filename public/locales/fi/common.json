@@ -1798,6 +1798,8 @@
     "savedAt": "Tallennettu {{time}}",
     "showBenches": "Näytä vaihtopenkit",
     "hideBenches": "Piilota vaihtopenkit",
+    "saveAsNewCopy": "💾 Tallenna uutena kopiona…",
+    "saveAsNewCopyDefault": "{{name}} — kopio",
     "formation": "Pelisysteemi",
     "gameCount_one": "{{count}} peli",
     "gameCount_other": "{{count}} peliä",

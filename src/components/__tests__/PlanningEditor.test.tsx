@@ -1518,6 +1518,93 @@ describe('PlanningEditor', () => {
       const button = screen.getByTestId('planning-editor-save');
       expect(button).toHaveTextContent(/Update plan|Päivitä suunnitelma/i);
     });
+
+    describe('Save as new copy (named-versions branch flow)', () => {
+      // The new-copy button only appears when an existing
+      // editingSessionId is set — the user is branching from a
+      // previously-saved plan. Brand-new (unsaved) plans use the
+      // regular Save button.
+
+      it('hides the "Save as new copy" button when there is no editingSessionId', () => {
+        renderEditor({ onSavePlan: jest.fn() });
+        expect(
+          screen.queryByTestId('planning-editor-save-as-new-copy'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows the button when editingSessionId is provided', () => {
+        renderEditor({
+          onSavePlan: jest.fn(),
+          editingSessionId: 'planningSession_existing',
+        });
+        expect(
+          screen.getByTestId('planning-editor-save-as-new-copy'),
+        ).toBeInTheDocument();
+      });
+
+      it('opens the save form pre-filled with " — copy" suffix', async () => {
+        renderEditor({
+          onSavePlan: jest.fn(),
+          editingSessionId: 'planningSession_existing',
+          initialName: 'Default',
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-save-as-new-copy'),
+          );
+        });
+        const input = screen.getByTestId(
+          'planning-editor-save-name',
+        ) as HTMLInputElement;
+        // English fallback string is "{{name}} — copy"; either locale
+        // emits a string ending with the localised "copy" word.
+        expect(input.value).toMatch(/Default[^a-z]*(copy|kopio)/i);
+      });
+
+      it('submits onSavePlan with saveAs="new-copy"', async () => {
+        const onSavePlan = jest.fn().mockResolvedValue(undefined);
+        renderEditor({
+          onSavePlan,
+          editingSessionId: 'planningSession_existing',
+          initialName: 'Default',
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-save-as-new-copy'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+        expect(onSavePlan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sessionId: 'planningSession_existing',
+            saveAs: 'new-copy',
+          }),
+        );
+      });
+
+      it('regular Save button still submits saveAs="overwrite"', async () => {
+        const onSavePlan = jest.fn().mockResolvedValue(undefined);
+        renderEditor({
+          onSavePlan,
+          editingSessionId: 'planningSession_existing',
+          initialName: 'Default',
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save'));
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+        expect(onSavePlan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sessionId: 'planningSession_existing',
+            saveAs: 'overwrite',
+          }),
+        );
+      });
+    });
   });
 
   // ── PR 7c: Reopen flow ──────────────────────────────────────────────

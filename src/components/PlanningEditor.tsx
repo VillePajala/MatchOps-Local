@@ -143,6 +143,16 @@ export interface PlanningEditorProps {
     drafts: Record<string, PlanDraft>;
     gameIds: string[];
     includedGameIds: string[] | undefined;
+    /**
+     * 'overwrite' (default) — update the editing session in place.
+     * 'new-copy' — create a NEW row as a named version of the
+     * current editing session. The handler is responsible for
+     * setting parent_session_id so the new row joins the correct
+     * version family (siblings if currently editing a child,
+     * first child of the current row if currently editing a
+     * top-level session).
+     */
+    saveAs?: 'overwrite' | 'new-copy';
   }) => Promise<void>;
 
   /**
@@ -401,6 +411,14 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [savePlanName, setSavePlanName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // saveMode toggles whether the form Submit overwrites the current
+  // session ('overwrite') or creates a new named version
+  // ('new-copy'). Defaults to 'overwrite' so existing flow is
+  // unchanged; the form opens with 'new-copy' when the user picks
+  // "Save as new copy" from the editor header.
+  const [saveMode, setSaveMode] = useState<'overwrite' | 'new-copy'>(
+    'overwrite',
+  );
   // Inline-banner confirmation for formation change. Storing the
   // pending id keeps the controlled <select> on the current preset
   // until the user confirms — no window.confirm anti-pattern.
@@ -713,14 +731,32 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
   const handleStartSave = () => {
     setSaveError(null);
+    setSaveMode('overwrite');
     // Trim so a "  " initialName doesn't open the form pre-filled with
     // whitespace the user has to manually clear before typing.
     setSavePlanName((initialName ?? '').trim());
   };
 
+  // "Save as new copy" — opens the same form but in 'new-copy' mode
+  // and pre-seeds the name with " — copy" so the user always picks a
+  // distinct name (the standalone planner uses the same convention).
+  const handleStartSaveAsNewCopy = () => {
+    setSaveError(null);
+    setSaveMode('new-copy');
+    const base = (initialName ?? '').trim();
+    setSavePlanName(
+      base
+        ? t('planningEditor.saveAsNewCopyDefault', '{{name}} — copy', {
+            name: base,
+          })
+        : '',
+    );
+  };
+
   const handleCancelSave = () => {
     setSavePlanName(null);
     setSaveError(null);
+    setSaveMode('overwrite');
   };
 
   const handleConfirmSave = async () => {
@@ -755,8 +791,12 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         drafts: stampedDrafts,
         gameIds,
         includedGameIds,
+        saveAs: saveMode,
       });
       setSavePlanName(null);
+      // Reset back to overwrite for the next save submit so a future
+      // "Save plan" click doesn't accidentally repeat new-copy mode.
+      setSaveMode('overwrite');
     } catch (err) {
       logger.error('[PlanningEditor] Save plan failed', err);
       setSaveError(
@@ -1591,17 +1631,38 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
       <div className="flex justify-end gap-2 pt-2">
         {onSavePlan && savePlanName === null && (
-          <button
-            type="button"
-            onClick={handleStartSave}
-            disabled={isApplying || isSaving || gameIds.length === 0}
-            data-testid="planning-editor-save"
-            className="inline-flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 shadow hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {editingSessionId
-              ? t('planningEditor.savePlanUpdate', 'Update plan')
-              : t('planningEditor.savePlanButton', 'Save plan')}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleStartSave}
+              disabled={isApplying || isSaving || gameIds.length === 0}
+              data-testid="planning-editor-save"
+              className="inline-flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-slate-100 shadow hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {editingSessionId
+                ? t('planningEditor.savePlanUpdate', 'Update plan')
+                : t('planningEditor.savePlanButton', 'Save plan')}
+            </button>
+            {/* Save as new copy is only meaningful when there's an
+                existing session to branch from. For brand-new (unsaved)
+                plans the user just picks a name with the regular Save
+                button, so we hide the action entirely until the plan
+                has been saved at least once. */}
+            {editingSessionId && (
+              <button
+                type="button"
+                onClick={handleStartSaveAsNewCopy}
+                disabled={isApplying || isSaving || gameIds.length === 0}
+                data-testid="planning-editor-save-as-new-copy"
+                className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 shadow hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t(
+                  'planningEditor.saveAsNewCopy',
+                  '💾 Save as new copy…',
+                )}
+              </button>
+            )}
+          </>
         )}
         <button
           type="button"

@@ -1798,6 +1798,8 @@
     "savedAt": "Saved {{time}}",
     "showBenches": "Show benches",
     "hideBenches": "Hide benches",
+    "saveAsNewCopy": "💾 Save as new copy…",
+    "saveAsNewCopyDefault": "{{name}} — copy",
     "formation": "Formation",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",
