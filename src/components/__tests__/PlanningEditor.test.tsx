@@ -1962,7 +1962,7 @@ describe('PlanningEditor', () => {
     });
   });
 
-  describe('Show-benches toggle (PR-E-2)', () => {
+  describe('Show-benches toggle', () => {
     it('renders the bench drawer by default (showBenches=true)', () => {
       renderEditor();
       const drawer = screen.getByTestId('planning-editor-bench-drawer');
@@ -2010,7 +2010,7 @@ describe('PlanningEditor', () => {
     });
   });
 
-  describe('Auto-save indicator (PR-E)', () => {
+  describe('Auto-save indicator', () => {
     it('hides the badge when lastSavedAt is null', () => {
       renderEditor({ lastSavedAt: null });
       expect(
@@ -2030,7 +2030,7 @@ describe('PlanningEditor', () => {
     });
   });
 
-  describe('Role action panel — half-time split shortcuts (PR-D)', () => {
+  describe('Role action panel — half-time split shortcuts', () => {
     it('shows the "Split at half" button when a role with no sub is selected', () => {
       renderEditor();
       // Tap the GK role to select it.
