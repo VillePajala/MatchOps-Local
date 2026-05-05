@@ -615,12 +615,16 @@ export interface DataStore {
    * @param sessionId - The session to activate, or null to deactivate the active one
    * @param teamId - Team scope used to find the gameIds-set
    * @param gameIds - The game-set the active session must cover
+   * @param parentSessionId - Optional. When provided, scope is restricted to
+   *   siblings sharing this parent_session_id (named-versions feature). When
+   *   undefined/null, legacy (team, gameIds-set, top-level) scope applies.
    * @returns The newly active session, or null if `sessionId` was null
    */
   setActiveSession(
     sessionId: string | null,
     teamId: string,
-    gameIds: string[]
+    gameIds: string[],
+    parentSessionId?: string | null
   ): Promise<PlanningSession | null>;
 
   /**

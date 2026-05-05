@@ -1023,6 +1023,7 @@ export class SyncedDataStore implements DataStore {
     sessionId: string | null,
     teamId: string,
     gameIds: string[],
+    parentSessionId?: string | null,
   ): Promise<PlanningSession | null> {
     // Toggle activation locally so the UI reflects the change immediately;
     // queue a single sync per affected session so the cloud catches up to
@@ -1055,6 +1056,7 @@ export class SyncedDataStore implements DataStore {
       sessionId,
       teamId,
       gameIds,
+      parentSessionId,
     );
     const after = await this.localStore.getPlanningSessions(teamId);
 

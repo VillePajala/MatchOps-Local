@@ -2434,6 +2434,7 @@ export class LocalDataStore implements DataStore {
     sessionId: string | null,
     teamId: string,
     gameIds: string[],
+    parentSessionId?: string | null,
   ): Promise<PlanningSession | null> {
     this.ensureInitialized();
 
@@ -2460,6 +2461,12 @@ export class LocalDataStore implements DataStore {
     // duplicates (e.g. `[a, b, b]`) match the same scope as `[a, b]` —
     // matches the canonical_game_ids handling in migration 036's RPC.
     const targetKey = sortedGameIdsKey([...new Set(gameIds)]);
+    // Two scope shapes per migration 039:
+    //   - parentSessionId truthy → siblings of that parent (children only)
+    //   - parentSessionId null/undefined → legacy top-level scope
+    //     (team + canonical gameIds AND parent_session_id IS NULL)
+    const useParentScope =
+      parentSessionId !== undefined && parentSessionId !== null;
 
     return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
       const current = await this.loadPlanningSessions();
@@ -2468,9 +2475,11 @@ export class LocalDataStore implements DataStore {
       let mutated = false;
 
       const updated = current.map((session) => {
-        const matchesScope =
-          session.teamId === teamId &&
-          sortedGameIdsKey(session.gameIds) === targetKey;
+        const matchesScope = useParentScope
+          ? session.parentSessionId === parentSessionId
+          : !session.parentSessionId &&
+            session.teamId === teamId &&
+            sortedGameIdsKey(session.gameIds) === targetKey;
         if (!matchesScope) return session;
 
         if (sessionId !== null && session.id === sessionId) {

@@ -4491,6 +4491,7 @@ export class SupabaseDataStore implements DataStore {
     sessionId: string | null,
     teamId: string,
     gameIds: string[],
+    parentSessionId?: string | null,
   ): Promise<PlanningSession | null> {
     this.ensureInitialized();
     checkOnline();
@@ -4516,15 +4517,23 @@ export class SupabaseDataStore implements DataStore {
     }
 
     // Atomic flip via RPC. Two clients activating different sessions for
-    // the same (teamId, gameIds-set) used to be able to interleave the
-    // deactivate + activate UPDATEs and leave multiple rows active. The
-    // RPC consolidates the work into a single UPDATE that PostgreSQL
-    // executes as one transactional step. See migration 033 for the body.
+    // the same scope used to be able to interleave the deactivate +
+    // activate UPDATEs and leave multiple rows active. The RPC
+    // consolidates the work into a single UPDATE that PostgreSQL
+    // executes as one transactional step. See migrations 033/036/039
+    // for the body history.
+    //
+    // Migration 039 adds the optional p_parent_session_id arg: when
+    // present, scope is "siblings of this parent" (named-versions
+    // feature); when null/undefined, legacy (team, gameIds-set,
+    // parent_session_id IS NULL) scope applies — same behaviour as
+    // pre-039 callers.
     const { data, error } = await this.withRetry(async () => {
       const result = await this.getClient().rpc('set_active_planning_session', {
         p_session_id: sessionId,
         p_team_id: teamId,
         p_game_ids: gameIds,
+        p_parent_session_id: parentSessionId ?? null,
       });
       throwIfTransient(result);
       return result;
