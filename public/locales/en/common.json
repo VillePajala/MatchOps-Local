@@ -1796,6 +1796,8 @@
     "keepStarter": "Keep {{player}}",
     "keepSub": "Keep {{player}}",
     "savedAt": "Saved {{time}}",
+    "showBenches": "Show benches",
+    "hideBenches": "Hide benches",
     "formation": "Formation",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",

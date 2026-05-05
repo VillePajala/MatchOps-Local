@@ -1962,6 +1962,54 @@ describe('PlanningEditor', () => {
     });
   });
 
+  describe('Show-benches toggle (PR-E-2)', () => {
+    it('renders the bench drawer by default (showBenches=true)', () => {
+      renderEditor();
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      // Default visible.
+      expect(drawer).not.toHaveAttribute('hidden');
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      expect(toggle).toHaveAttribute('data-state', 'on');
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle.textContent ?? '').toMatch(/Hide/i);
+    });
+
+    it('hides the bench drawer when toggled off', () => {
+      renderEditor();
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      act(() => {
+        fireEvent.click(toggle);
+      });
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      // `hidden` HTML attribute hides the element from the layout
+      // and AT — same effect as `display: none` but reversible
+      // without re-mounting (preserves drag-target registration).
+      expect(drawer).toHaveAttribute('hidden');
+      expect(toggle).toHaveAttribute('data-state', 'off');
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(toggle.textContent ?? '').toMatch(/Show/i);
+    });
+
+    it('clicking the toggle a second time re-shows the drawer', () => {
+      renderEditor();
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      act(() => {
+        fireEvent.click(toggle);
+      });
+      act(() => {
+        fireEvent.click(toggle);
+      });
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      expect(drawer).not.toHaveAttribute('hidden');
+    });
+  });
+
   describe('Auto-save indicator (PR-E)', () => {
     it('hides the badge when lastSavedAt is null', () => {
       renderEditor({ lastSavedAt: null });
