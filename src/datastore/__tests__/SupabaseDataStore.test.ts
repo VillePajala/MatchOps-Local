@@ -5569,6 +5569,19 @@ describe('SupabaseDataStore', () => {
       );
     });
 
+    it('forwards p_parent_session_id = null when called with explicit null (same as omitted)', async () => {
+      // Completes the coverage triangle alongside the omitted and
+      // string-value tests: explicit null reaches the RPC as null
+      // via the `?? null` coalescing in the call site.
+      await dataStore.setActiveSession(null, 'team_1', ['g1', 'g2'], null);
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'set_active_planning_session',
+        expect.objectContaining({
+          p_parent_session_id: null,
+        }),
+      );
+    });
+
     it('rejects an empty-string parentSessionId before reaching the RPC', async () => {
       await expect(
         dataStore.setActiveSession('a', 'team_1', ['g1', 'g2'], ''),

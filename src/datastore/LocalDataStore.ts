@@ -2474,11 +2474,18 @@ export class LocalDataStore implements DataStore {
     // matches the canonical_game_ids handling in migration 036's RPC.
     const targetKey = sortedGameIdsKey([...new Set(gameIds)]);
     // Two scope shapes per migration 039:
-    //   - parentSessionId truthy → siblings of that parent (children only)
-    //   - parentSessionId null/undefined → legacy top-level scope
-    //     (team + canonical gameIds AND parent_session_id IS NULL)
-    const useParentScope =
-      parentSessionId !== undefined && parentSessionId !== null;
+    //   - parentSessionId is a non-empty string → siblings of that
+    //     parent (children only); empty string was rejected above.
+    //   - parentSessionId is undefined or null → legacy top-level
+    //     scope (team + canonical gameIds AND
+    //     parent_session_id IS NULL).
+    // Narrow the var inside the closure so TS sees the non-null
+    // string in the parent-scope branch without a non-null assertion.
+    const parentScopeId: string | null =
+      parentSessionId !== undefined && parentSessionId !== null
+        ? parentSessionId
+        : null;
+    const useParentScope = parentScopeId !== null;
 
     return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
       const current = await this.loadPlanningSessions();
@@ -2488,7 +2495,7 @@ export class LocalDataStore implements DataStore {
 
       const updated = current.map((session) => {
         const matchesScope = useParentScope
-          ? session.parentSessionId === parentSessionId
+          ? session.parentSessionId === parentScopeId
           : !session.parentSessionId &&
             session.teamId === teamId &&
             sortedGameIdsKey(session.gameIds) === targetKey;
