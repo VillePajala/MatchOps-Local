@@ -322,6 +322,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       }
       // Identity preservation: only return a new Set when membership
       // actually changed, so consumers' useMemo deps don't re-fire.
+      // The size check is sufficient (not just a heuristic) BECAUSE
+      // this effect only ever REMOVES elements from prev — `next ⊆
+      // prev` by construction. Equal size under removal-only iff
+      // identical membership; if we ever added to next, we'd need
+      // a deeper compare here.
       return next.size === prev.size ? prev : next;
     });
   }, [drafts]);

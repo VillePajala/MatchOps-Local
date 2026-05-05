@@ -185,6 +185,49 @@ describe('PlanningChipGrid', () => {
     }
   });
 
+  it('each per-game card reads its OWN draft (drafts Record, not shared draft)', () => {
+    // Locks the bug fix: pre-PR-B-3 the prop was a single
+    // `draft: PlanDraft` and every per-game card rendered the same
+    // active-tab lineup. Now `drafts: Record<string, PlanDraft>`
+    // and each card looks up `drafts[gid]`. Two games with two
+    // DIFFERENT players at the same role must render the right
+    // player on the right card.
+    renderGrid({
+      gameIds: ['g1', 'g2'],
+      drafts: {
+        g1: {
+          startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+          bench: ['p5'],
+          scheduledSubs: [],
+        },
+        g2: {
+          // p5 plays GK in g2 (different from g1's p0)
+          startingXI: { GK: 'p5', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+          bench: ['p0'],
+          scheduledSubs: [],
+        },
+      },
+      savedGames: {
+        g1: buildGame(),
+        g2: buildGame({ opponentName: 'Other' }),
+      } as SavedGamesCollection,
+    });
+    // g1 GK chip = p0; g2 GK chip = p5. The other (wrong) player must
+    // NOT appear at GK on the other game's card.
+    expect(
+      screen.getByTestId('planning-chip-grid-chip-g1-GK-p0'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('planning-chip-grid-chip-g1-GK-p5'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('planning-chip-grid-chip-g2-GK-p5'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('planning-chip-grid-chip-g2-GK-p0'),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders a placeholder row for an unassigned role', () => {
     renderGrid({
       // ST left unassigned in startingXI.
