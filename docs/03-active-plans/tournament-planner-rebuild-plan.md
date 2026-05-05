@@ -83,8 +83,10 @@
 - [ ] **Reset edits** button — defer until PR-C-2 lands the Versions ▾ dropdown.
 - [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-3 (visual-only).
 
-### PR-F — NOT STARTED
-- [ ] PR-F — bundle import/export
+### PR-F — Bundle import/export
+**Status:** PR-F-1 ⏳ in flight (parser/serializer foundation)
+- [x] **PR-F-1** ⏳ open as PR #412 — `planBundle.ts` pure util: `parsePlanBundle` (routes formatVersion 1 → existing single-snapshot, formatVersion 2 → bundle), `serializePlanBundle` (forward-compatible export shape), `bundleCurrentVersion` (selector). DoS caps mirror parsePlanExport (5 MB chars, 50 versions max). Prototype-pollution guard on version names. 16 unit tests.
+- [ ] **PR-F-2** Wire UI: "Export tournament plan…" button on the modal versions menu (depends on PR-C-2's Versions dropdown), import-on-bundle path opens picker for the selected version, with warning when other versions are present.
 
 **PR target convention:** PR-B onwards opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
 
