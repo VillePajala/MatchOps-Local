@@ -1,29 +1,59 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineXMark } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { FormationPreset } from '@/config/formationPresets';
-import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
+import type {
+  DraftScheduledSub,
+  PlanDraft,
+  PlayerId,
+} from '@/utils/planSwapEngine';
 import { getRoleSegments } from '@/utils/planFairness';
 import { formatMMSS, gameDurationSec } from '@/utils/planFormatters';
 
 export interface PlanningChipGridProps {
-  draft: PlanDraft;
+  /**
+   * Per-game drafts keyed by gameId (PR-A's foundational shape). Each
+   * card reads `drafts[gid]` so cross-game role views actually reflect
+   * each game's own lineup. Falling back to an empty draft when a
+   * gameId is missing keeps the card render path total.
+   */
+  drafts: Record<string, PlanDraft>;
   preset: FormationPreset;
   gameIds: string[];
   savedGames: SavedGamesCollection;
   roster: Player[];
+  /** Lifted highlight state — shared with MinutesDashboard + TotalsTable. */
+  highlightedPlayerIds: Set<PlayerId>;
+  /** Toggle a single player in the highlighted set. */
+  onToggleHighlight: (playerId: PlayerId) => void;
+  /** Drop the entire highlighted set. */
+  onClearHighlight: () => void;
 }
 
+// Frozen so a future caller mutating the fallback draft can't silently
+// corrupt every render that hits the sparse-draft branch. The
+// `as unknown as` cast widens `readonly never[]` (Object.freeze's
+// inferred return) to the mutable element types PlanDraft declares —
+// the freeze enforces the actual contract at runtime.
+const EMPTY_DRAFT: PlanDraft = Object.freeze({
+  startingXI: Object.freeze({}) as Record<string, PlayerId>,
+  bench: Object.freeze([]) as unknown as PlayerId[],
+  scheduledSubs: Object.freeze([]) as unknown as DraftScheduledSub[],
+}) as PlanDraft;
+
 const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
-  draft,
+  drafts,
   preset,
   gameIds,
   savedGames,
   roster,
+  highlightedPlayerIds,
+  onToggleHighlight,
+  onClearHighlight,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -45,26 +75,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
     [playerMap],
   );
 
-  // Multi-select highlight set. Click a chip → toggle that player.
-  // Clear button resets the whole set. Empty set = no focus mode.
-  // PlanningEditor remounts this component on preset change via a
-  // key prop, so the set never holds players whose roles have
-  // disappeared from the formation.
-  const [highlighted, setHighlighted] = useState<Set<PlayerId>>(new Set());
-  // Stable callback identity so each chip's onClick prop doesn't
-  // change every render — keeps React's chip re-render scope tight
-  // when the parent re-renders for unrelated reasons.
-  const togglePlayer = useCallback((id: PlayerId) => {
-    setHighlighted((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-  const clearHighlight = useCallback(() => setHighlighted(new Set()), []);
-
-  const anyActive = highlighted.size > 0;
+  const anyActive = highlightedPlayerIds.size > 0;
 
   const roles = preset.roles ?? [];
 
@@ -116,7 +127,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
         {anyActive && (
           <button
             type="button"
-            onClick={clearHighlight}
+            onClick={onClearHighlight}
             className="inline-flex items-center gap-1 rounded-md bg-slate-700 px-2 py-1 text-[11px] font-medium text-slate-100 hover:bg-slate-600"
             data-testid="planning-chip-grid-clear"
           >
@@ -124,7 +135,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
             {t(
               'planningChipGrid.clearHighlight',
               'Clear highlight ({{count}})',
-              { count: highlighted.size },
+              { count: highlightedPlayerIds.size },
             )}
           </button>
         )}
@@ -145,6 +156,12 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
             );
           }
           const dur = gameDurationSec(game);
+          // Per-game draft lookup. Falls back to EMPTY_DRAFT for any
+          // gameId without an entry — the card still renders, with
+          // every role showing the "—" placeholder. Matches the
+          // sparse-draft handling in planTotals + PlanningEditor's
+          // lazy-seed pattern.
+          const cardDraft = drafts[gid] ?? EMPTY_DRAFT;
           return (
             <li
               key={gid}
@@ -160,7 +177,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
               </div>
               <ul className="space-y-1" role="list">
                 {roles.map((role) => {
-                  const segs = getRoleSegments(draft, role.name, dur);
+                  const segs = getRoleSegments(cardDraft, role.name, dur);
                   if (segs.length === 0) {
                     // Role unassigned in the draft — render the row
                     // anyway so the user can still scan the formation
@@ -188,7 +205,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                         {role.name}
                       </span>
                       {segs.map((seg) => {
-                        const isHighlighted = highlighted.has(seg.playerId);
+                        const isHighlighted = highlightedPlayerIds.has(seg.playerId);
                         const isDimmed = anyActive && !isHighlighted;
                         const chipClass = isHighlighted
                           ? 'border-emerald-400 bg-emerald-900/40 text-emerald-50 ring-1 ring-emerald-300/60'
@@ -228,7 +245,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                             // starting at the same time.
                             key={`${role.name}-${seg.playerId}-${seg.startSec}`}
                             type="button"
-                            onClick={() => togglePlayer(seg.playerId)}
+                            onClick={() => onToggleHighlight(seg.playerId)}
                             aria-pressed={isHighlighted}
                             // Same translated string for both AT and
                             // sighted hover so the two never drift in

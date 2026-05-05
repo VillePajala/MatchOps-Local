@@ -272,6 +272,64 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [includedGameIds, setIncludedGameIds] = useState<
     string[] | undefined
   >(initialIncludedGameIds);
+
+  // Lifted highlight state for the cross-game player view. A click on
+  // any chip / dashboard pill / totals-table row toggles the player in
+  // this set; the same set drives the visual focus across all three
+  // components so highlighting in one place lights up the player
+  // everywhere they appear. Not persisted across opens — treated as
+  // an in-session reading aid, not part of the saved plan.
+  const [highlightedPlayerIds, setHighlightedPlayerIds] = useState<
+    Set<PlayerId>
+  >(() => new Set());
+  const toggleHighlight = useCallback((playerId: PlayerId) => {
+    setHighlightedPlayerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(playerId)) next.delete(playerId);
+      else next.add(playerId);
+      return next;
+    });
+  }, []);
+  const clearHighlight = useCallback(
+    () => setHighlightedPlayerIds(new Set()),
+    [],
+  );
+  // Drop highlights for players whose role no longer exists in the
+  // active preset. Without this, switching from 4-3-3 → 3-2-2 would
+  // leave "Clear highlight (1)" surfaced for an invisible selection
+  // (the chip grid's old keyed-remount handled this; with the state
+  // lifted we filter explicitly instead).
+  useEffect(() => {
+    setHighlightedPlayerIds((prev) => {
+      if (prev.size === 0) return prev;
+      const stillReachable = new Set<PlayerId>();
+      // A player is "reachable" if they're in startingXI / bench /
+      // sub inPlayer of ANY tab's draft — i.e. they currently appear
+      // somewhere in the plan.
+      // sub.outPlayer is intentionally NOT iterated: outPlayer is
+      // always the role's pre-sub occupant, which is by construction
+      // either startingXI[role] or an earlier sub's inPlayer. Both
+      // are already covered by the loops above; the implicit
+      // invariant is `outPlayer ∈ {startingXI ∪ earlier sub inPlayers}`.
+      for (const d of Object.values(drafts)) {
+        for (const id of Object.values(d.startingXI)) stillReachable.add(id);
+        for (const id of d.bench) stillReachable.add(id);
+        for (const sub of d.scheduledSubs) stillReachable.add(sub.inPlayer);
+      }
+      const next = new Set<PlayerId>();
+      for (const pid of prev) {
+        if (stillReachable.has(pid)) next.add(pid);
+      }
+      // Identity preservation: only return a new Set when membership
+      // actually changed, so consumers' useMemo deps don't re-fire.
+      // The size check is sufficient (not just a heuristic) BECAUSE
+      // this effect only ever REMOVES elements from prev — `next ⊆
+      // prev` by construction. Equal size under removal-only iff
+      // identical membership; if we ever added to next, we'd need
+      // a deeper compare here.
+      return next.size === prev.size ? prev : next;
+    });
+  }, [drafts]);
   // Adapter: existing logic that reads `draft` / writes via `setDraft`
   // continues to work; the adapter routes the read/write to the active
   // tab's slot in the drafts Record.
@@ -1269,6 +1327,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         gameIds={gameIds.filter(isGameIncluded)}
         savedGames={savedGames}
         roster={roster}
+        highlightedPlayerIds={highlightedPlayerIds}
+        onToggleHighlight={toggleHighlight}
       />
 
       <PlanningTotalsTable
@@ -1277,19 +1337,19 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         savedGames={savedGames}
         roster={roster}
         includedGameIds={includedGameIds}
+        highlightedPlayerIds={highlightedPlayerIds}
+        onToggleHighlight={toggleHighlight}
       />
 
       <PlanningChipGrid
-        // Force a remount on preset change so the chip grid's local
-        // highlight set drops players whose roles no longer exist in
-        // the new formation. Without this, "Clear highlight (1)"
-        // would surface for an invisible selection.
-        key={presetId}
-        draft={draft}
+        drafts={drafts}
         preset={preset}
         gameIds={gameIds}
         savedGames={savedGames}
         roster={roster}
+        highlightedPlayerIds={highlightedPlayerIds}
+        onToggleHighlight={toggleHighlight}
+        onClearHighlight={clearHighlight}
       />
 
       {applyError ? (

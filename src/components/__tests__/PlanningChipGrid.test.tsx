@@ -1,12 +1,44 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../i18n.test';
-import PlanningChipGrid from '../PlanningChipGrid';
+import PlanningChipGrid, { type PlanningChipGridProps } from '../PlanningChipGrid';
 import type { Player } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import type { FormationPreset } from '@/config/formationPresets';
+import type { PlayerId } from '@/utils/planSwapEngine';
+
+// Test wrapper: highlight state was lifted out of PlanningChipGrid into
+// PlanningEditor in PR-B-3. Tests that exercise click flow need a host
+// to manage the controlled set, since the grid itself is now a pure
+// presentation component. This mirrors the editor's own state shape.
+const ControlledChipGrid: React.FC<
+  Omit<PlanningChipGridProps, 'highlightedPlayerIds' | 'onToggleHighlight' | 'onClearHighlight'> & {
+    initialHighlighted?: Set<PlayerId>;
+  }
+> = ({ initialHighlighted, ...props }) => {
+  const [hi, setHi] = useState<Set<PlayerId>>(
+    () => initialHighlighted ?? new Set(),
+  );
+  const onToggle = useCallback((id: PlayerId) => {
+    setHi((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const onClear = useCallback(() => setHi(new Set()), []);
+  return (
+    <PlanningChipGrid
+      {...props}
+      highlightedPlayerIds={hi}
+      onToggleHighlight={onToggle}
+      onClearHighlight={onClear}
+    />
+  );
+};
 
 const buildPreset = (): FormationPreset =>
   ({
@@ -43,26 +75,36 @@ const buildGame = (
     ...overrides,
   }) as unknown as AppState;
 
+const defaultRoster = (): Player[] => [
+  { id: 'p0', name: 'Alice' },
+  { id: 'p1', name: 'Bob', nickname: 'Bobby' },
+  { id: 'p2', name: 'Cara' },
+  { id: 'p3', name: 'Dan' },
+  { id: 'p4', name: 'Eli' },
+  { id: 'p5', name: 'Fran' },
+];
+
+// Single source of truth for the canonical 5-role test draft. Pulled
+// up so renderGrid + renderControlled don't independently drift if
+// the fixture roles ever need to change.
+const DEFAULT_DRAFT = {
+  startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+  bench: ['p5'],
+  scheduledSubs: [],
+};
+
 const renderGrid = (
   overrides: Partial<React.ComponentProps<typeof PlanningChipGrid>> = {},
 ) => {
   const props: React.ComponentProps<typeof PlanningChipGrid> = {
-    draft: {
-      startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
-      bench: ['p5'],
-      scheduledSubs: [],
-    },
+    drafts: { g1: DEFAULT_DRAFT },
     preset: buildPreset(),
     gameIds: ['g1'],
     savedGames: { g1: buildGame() } as SavedGamesCollection,
-    roster: [
-      { id: 'p0', name: 'Alice' },
-      { id: 'p1', name: 'Bob', nickname: 'Bobby' },
-      { id: 'p2', name: 'Cara' },
-      { id: 'p3', name: 'Dan' },
-      { id: 'p4', name: 'Eli' },
-      { id: 'p5', name: 'Fran' },
-    ] as Player[],
+    roster: defaultRoster(),
+    highlightedPlayerIds: new Set(),
+    onToggleHighlight: () => {},
+    onClearHighlight: () => {},
     ...overrides,
   };
   return {
@@ -73,6 +115,31 @@ const renderGrid = (
     ),
     props,
   };
+};
+
+// Render with the ControlledChipGrid wrapper so click flow exercises
+// the lifted state path. Used by tests that fireEvent.click chips.
+const renderControlled = (
+  overrides: Partial<
+    Omit<
+      PlanningChipGridProps,
+      'highlightedPlayerIds' | 'onToggleHighlight' | 'onClearHighlight'
+    >
+  > = {},
+) => {
+  const props = {
+    drafts: { g1: DEFAULT_DRAFT },
+    preset: buildPreset(),
+    gameIds: ['g1'],
+    savedGames: { g1: buildGame() } as SavedGamesCollection,
+    roster: defaultRoster(),
+    ...overrides,
+  };
+  return render(
+    <I18nextProvider i18n={i18n}>
+      <ControlledChipGrid {...props} />
+    </I18nextProvider>,
+  );
 };
 
 describe('PlanningChipGrid', () => {
@@ -118,13 +185,89 @@ describe('PlanningChipGrid', () => {
     }
   });
 
+  it('each per-game card reads its OWN draft (drafts Record, not shared draft)', () => {
+    // Locks the bug fix: pre-PR-B-3 the prop was a single
+    // `draft: PlanDraft` and every per-game card rendered the same
+    // active-tab lineup. Now `drafts: Record<string, PlanDraft>`
+    // and each card looks up `drafts[gid]`. Two games with two
+    // DIFFERENT players at the same role must render the right
+    // player on the right card.
+    renderGrid({
+      gameIds: ['g1', 'g2'],
+      drafts: {
+        g1: {
+          startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+          bench: ['p5'],
+          scheduledSubs: [],
+        },
+        g2: {
+          // p5 plays GK in g2 (different from g1's p0)
+          startingXI: { GK: 'p5', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+          bench: ['p0'],
+          scheduledSubs: [],
+        },
+      },
+      savedGames: {
+        g1: buildGame(),
+        g2: buildGame({ opponentName: 'Other' }),
+      } as SavedGamesCollection,
+    });
+    // g1 GK chip = p0; g2 GK chip = p5. The other (wrong) player must
+    // NOT appear at GK on the other game's card.
+    expect(
+      screen.getByTestId('planning-chip-grid-chip-g1-GK-p0'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('planning-chip-grid-chip-g1-GK-p5'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('planning-chip-grid-chip-g2-GK-p5'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('planning-chip-grid-chip-g2-GK-p0'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('falls back to EMPTY_DRAFT when a gameId has no draft entry (sparse drafts)', () => {
+    // Safety net: a new game added to gameIds before its draft is
+    // seeded should render the card with all-placeholder rows
+    // instead of crashing. Locks the EMPTY_DRAFT fallback contract.
+    renderGrid({
+      gameIds: ['g1', 'g_new'],
+      drafts: { g1: DEFAULT_DRAFT },
+      savedGames: {
+        g1: buildGame(),
+        g_new: buildGame({ opponentName: 'TBD' }),
+      } as SavedGamesCollection,
+    });
+    // Both cards rendered.
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g1'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g_new'),
+    ).toBeInTheDocument();
+    // Every role on g_new is a placeholder ("—"), no chips.
+    for (const role of ['GK', 'LB', 'RB', 'CM', 'ST']) {
+      const row = screen.getByTestId(
+        `planning-chip-grid-role-g_new-${role}`,
+      );
+      expect(row).toHaveTextContent('—');
+      expect(
+        row.querySelector('[data-testid^="planning-chip-grid-chip-"]'),
+      ).toBeNull();
+    }
+  });
+
   it('renders a placeholder row for an unassigned role', () => {
     renderGrid({
       // ST left unassigned in startingXI.
-      draft: {
-        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3' },
-        bench: ['p4', 'p5'],
-        scheduledSubs: [],
+      drafts: {
+        g1: {
+          startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3' },
+          bench: ['p4', 'p5'],
+          scheduledSubs: [],
+        },
       },
     });
     const row = screen.getByTestId('planning-chip-grid-role-g1-ST');
@@ -137,12 +280,14 @@ describe('PlanningChipGrid', () => {
 
   it('renders one chip per segment (sub events split a role into multiple chips)', () => {
     renderGrid({
-      draft: {
-        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
-        bench: ['p5'],
-        scheduledSubs: [
-          { id: 's1', timeSeconds: 600, inPlayer: 'p5', positionRole: 'LB' },
-        ],
+      drafts: {
+        g1: {
+          startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+          bench: ['p5'],
+          scheduledSubs: [
+            { id: 's1', timeSeconds: 600, inPlayer: 'p5', positionRole: 'LB' },
+          ],
+        },
       },
     });
     // LB row: p1 (0:00-10:00), p5 (10:00-20:00).
@@ -172,8 +317,16 @@ describe('PlanningChipGrid', () => {
   });
 
   it('clicking a chip toggles the highlight on every chip of that player', () => {
-    renderGrid({
+    // Two games, p0 at GK in both — so highlighting in g1 should
+    // also reflect on the g2 chip (cross-game contract).
+    const sharedDraft = {
+      startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+      bench: ['p5'],
+      scheduledSubs: [],
+    };
+    renderControlled({
       gameIds: ['g1', 'g2'],
+      drafts: { g1: sharedDraft, g2: sharedDraft },
       savedGames: {
         g1: buildGame(),
         g2: buildGame({ opponentName: 'Other' }),
@@ -198,7 +351,7 @@ describe('PlanningChipGrid', () => {
   });
 
   it('multi-select: clicking two chips highlights both players', () => {
-    renderGrid();
+    renderControlled();
     act(() => {
       fireEvent.click(screen.getByTestId('planning-chip-grid-chip-g1-GK-p0'));
       fireEvent.click(screen.getByTestId('planning-chip-grid-chip-g1-LB-p1'));
@@ -212,7 +365,7 @@ describe('PlanningChipGrid', () => {
   });
 
   it('clicking a highlighted chip removes that player from the selection', () => {
-    renderGrid();
+    renderControlled();
     const chip = screen.getByTestId('planning-chip-grid-chip-g1-GK-p0');
     act(() => {
       fireEvent.click(chip);
@@ -225,7 +378,7 @@ describe('PlanningChipGrid', () => {
   });
 
   it('Clear button resets the highlight set and disappears when empty', () => {
-    renderGrid();
+    renderControlled();
     // Clear button hidden when nothing highlighted.
     expect(
       screen.queryByTestId('planning-chip-grid-clear'),
@@ -263,7 +416,7 @@ describe('PlanningChipGrid', () => {
   });
 
   it('Enter / Space on a chip activates the highlight (keyboard a11y)', () => {
-    renderGrid();
+    renderControlled();
     const chip = screen.getByTestId('planning-chip-grid-chip-g1-GK-p0');
     // Native <button> elements activate via Enter / Space click
     // synthesis. fireEvent.click is what jsdom emits for a real

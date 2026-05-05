@@ -4,7 +4,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
-import type { PlanDraft } from '@/utils/planSwapEngine';
+import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
 import {
   aggregatePlanMinutes,
   fairShareBand,
@@ -23,6 +23,15 @@ export interface PlanningMinutesDashboardProps {
   gameIds: string[];
   savedGames: SavedGamesCollection;
   roster: Player[];
+  /**
+   * Lifted highlight set shared with PlanningChipGrid + PlanningTotalsTable.
+   * Optional so the dashboard can be used standalone (e.g. in tests
+   * or future read-only contexts) without forcing the host to thread
+   * the state through.
+   */
+  highlightedPlayerIds?: Set<PlayerId>;
+  /** Click-to-toggle a single player. Optional (paired with highlightedPlayerIds). */
+  onToggleHighlight?: (playerId: PlayerId) => void;
 }
 
 // Continuous-gradient pill style. Mirrors the standalone planner's
@@ -54,6 +63,8 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
   gameIds,
   savedGames,
   roster,
+  highlightedPlayerIds,
+  onToggleHighlight,
 }) => {
   const { t } = useTranslation();
 
@@ -93,6 +104,10 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
       ),
     [aggregate],
   );
+
+  // Hoisted out of the per-row map so it's a single comparison per
+  // render rather than O(n) computations of the same boolean.
+  const anyHighlightActive = (highlightedPlayerIds?.size ?? 0) > 0;
 
   // perPlayer === [] also covers the gameIds: [] case via
   // aggregatePlanMinutes' early exit, so a single check captures
@@ -167,17 +182,24 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
                   pct,
                 },
               );
-          return (
-            <li
-              key={entry.playerId}
-              data-testid={`planning-minutes-dashboard-entry-${entry.playerId}`}
-              data-band={band}
-              data-priority={isPriority ? 'true' : 'false'}
-              aria-label={ariaLabel}
-              title={ariaLabel}
-              style={pillStyleForRatio(entry.shareRatio)}
-              className="flex items-center justify-between rounded-md border px-2 py-1"
-            >
+          // Highlight integration: when any player is highlighted, the
+          // pill either glows (highlighted) or dims to ~40% opacity
+          // (non-highlighted). Empty highlighted set = no focus mode,
+          // every pill renders at full opacity. `anyActive` is hoisted
+          // above the map so it's a single comparison per render
+          // instead of one per row.
+          const isHighlighted =
+            highlightedPlayerIds?.has(entry.playerId) ?? false;
+          const isDimmed = anyHighlightActive && !isHighlighted;
+          // The <li> stays a passive structural list item; the inner
+          // <button> carries the click handler + aria-pressed when
+          // toggle is wired. Keeping interactive state on a real
+          // <button> (rather than promoting the <li> to a clickable
+          // role="button") gives the affordance a native focus ring,
+          // Enter/Space activation, and the right tab order without
+          // hand-rolled keyboard handlers.
+          const content = (
+            <>
               {/* min-w-0 lets the flex container shrink below its
                   intrinsic content width so the inner truncate can
                   fire — `truncate` (overflow-hidden + ellipsis) on
@@ -193,6 +215,72 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
               <span className="font-mono text-[11px] tabular-nums">
                 {formatMMSS(entry.totalSeconds)} ({pct}%)
               </span>
+            </>
+          );
+          // Compose className from filtered tokens to avoid the
+          // double-space artifact a template literal produces when
+          // an interpolation slot resolves to ''. Browsers ignore it,
+          // but `class` strings should be tidy regardless.
+          const className = [
+            'flex items-center justify-between rounded-md border px-2 py-1 transition-opacity',
+            isHighlighted ? 'ring-2 ring-emerald-300/70' : null,
+            !isHighlighted && isDimmed ? 'opacity-40' : null,
+            onToggleHighlight ? 'cursor-pointer text-left w-full' : null,
+          ]
+            .filter(Boolean)
+            .join(' ');
+          // The HSL gradient + aria-label live on the INNER element
+          // (the button or div that fills the <li>). Two reasons:
+          //   1. opacity-40 on the inner element only dims text+border
+          //      when the gradient sits on the <li>; moving both to
+          //      the inner element lets opacity-40 dim the gradient
+          //      too, so non-highlighted pills properly recede during
+          //      focus mode (matches the totals-table behavior).
+          //   2. aria-label on a passive <li> can cause AT to announce
+          //      the player's name twice (once for the list item, once
+          //      for the button). Keeping it solely on the inner
+          //      interactive element produces a single clean
+          //      announcement.
+          // Tests query the outer <li> for data-* attributes (band,
+          // priority, highlighted) and the inner button via its own
+          // data-testid — both surfaces stay reachable.
+          return (
+            <li
+              key={entry.playerId}
+              data-testid={`planning-minutes-dashboard-entry-${entry.playerId}`}
+              data-band={band}
+              data-priority={isPriority ? 'true' : 'false'}
+              data-highlighted={isHighlighted ? 'true' : 'false'}
+            >
+              {onToggleHighlight ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleHighlight(entry.playerId)}
+                  aria-pressed={isHighlighted}
+                  aria-label={ariaLabel}
+                  title={ariaLabel}
+                  style={pillStyleForRatio(entry.shareRatio)}
+                  data-testid={`planning-minutes-dashboard-pill-toggle-${entry.playerId}`}
+                  className={className}
+                >
+                  {content}
+                </button>
+              ) : (
+                // Read-only fallback when no toggle handler is passed.
+                // role="group" gives the <div> an ARIA role that honours
+                // aria-label — a passive <div> without a role would
+                // silently drop the label for AT users (NVDA/VO/JAWS
+                // ignore aria-label on roleless generic elements).
+                <div
+                  role="group"
+                  aria-label={ariaLabel}
+                  title={ariaLabel}
+                  style={pillStyleForRatio(entry.shareRatio)}
+                  className={className}
+                >
+                  {content}
+                </div>
+              )}
             </li>
           );
         })}
