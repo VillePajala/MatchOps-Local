@@ -194,13 +194,32 @@ export function bundleCurrentVersion(
   return { name: first[0], plan: first[1] };
 }
 
-// Each inner version round-trips through serializePlanExport so a v1-only consumer can extract any one verbatim.
+// Each inner version round-trips through serializePlanExport so a
+// v1-only consumer can extract any one verbatim.
 export function serializePlanBundle(
   bundle: Omit<ImportedPlanBundle, 'formatVersion' | 'kind'>,
   options: { savedAt?: string } = {},
 ): string {
   const wireVersions: Record<string, unknown> = {};
   for (const [name, plan] of Object.entries(bundle.versions)) {
+    // Symmetric defensive check on the write side: parsePlanBundle
+    // rejects empty/reserved names on read; refuse to emit a wire
+    // shape that would then fail re-parse. Cheaper to throw at the
+    // serialise call site than to debug an unloadable bundle later.
+    if (name === '') {
+      throw new Error(
+        'serializePlanBundle: bundle version name must be a non-empty string',
+      );
+    }
+    if (
+      name === '__proto__' ||
+      name === 'constructor' ||
+      name === 'prototype'
+    ) {
+      throw new Error(
+        `serializePlanBundle: bundle version uses reserved name "${name}"`,
+      );
+    }
     // Serialise + parse so the wire shape is a nested object, not a string-encoded payload.
     wireVersions[name] = JSON.parse(serializePlanExport(plan));
   }

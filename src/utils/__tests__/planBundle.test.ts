@@ -49,7 +49,6 @@ const validV1Envelope = (overrides: Record<string, unknown> = {}) => ({
     games: [validWireGame()],
   },
   included: [true],
-  currentVersionName: null,
   ...overrides,
 });
 
@@ -234,6 +233,37 @@ describe('parsePlanBundle — bundle path (formatVersion 2)', () => {
     expect(result.error.message).toMatch(/not in versions/);
   });
 
+  it('rejects currentVersionName === "" (empty string)', () => {
+    // The branch in parsePlanBundle distinguishes null (allowed) from
+    // empty string (rejected). Lock the boundary.
+    const inner = JSON.parse(JSON.stringify(validV1Envelope()));
+    const result = parsePlanBundle(
+      JSON.stringify(
+        buildBundleEnvelope({
+          versions: { default: inner },
+          currentVersionName: '',
+        }),
+      ),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toMatch(/non-empty string or null/);
+  });
+
+  it('treats absent currentVersionName as null (defaults to "no preference")', () => {
+    // currentVersionName is optional on the wire — parsePlanBundle
+    // should accept its absence and normalize to null.
+    const inner = JSON.parse(JSON.stringify(validV1Envelope()));
+    const env = buildBundleEnvelope({
+      versions: { default: inner },
+    });
+    delete (env as { currentVersionName?: unknown }).currentVersionName;
+    const result = parsePlanBundle(JSON.stringify(env));
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.kind !== 'bundle') return;
+    expect(result.bundle.currentVersionName).toBeNull();
+  });
+
   it('rejects unsupported formatVersion', () => {
     const result = parsePlanBundle(
       JSON.stringify(buildBundleEnvelope({ formatVersion: 99 })),
@@ -331,6 +361,38 @@ describe('bundleCurrentVersion', () => {
     });
     expect(picked).toBeNull();
   });
+});
+
+describe('serializePlanBundle write-side validation', () => {
+  it('throws on an empty version name (symmetric with parser reject)', () => {
+    const plan = buildPlan();
+    expect(() =>
+      serializePlanBundle({
+        currentVersionName: null,
+        versions: { '': plan },
+      }),
+    ).toThrow(/non-empty string/);
+  });
+
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'throws on a reserved version name (%s) — symmetric with parser reject',
+    (reservedName) => {
+      const plan = buildPlan();
+      const versions: Record<string, ImportedPlan> = {};
+      Object.defineProperty(versions, reservedName, {
+        value: plan,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+      expect(() =>
+        serializePlanBundle({
+          currentVersionName: null,
+          versions,
+        }),
+      ).toThrow(/reserved name/);
+    },
+  );
 });
 
 describe('serializePlanBundle round-trip', () => {
