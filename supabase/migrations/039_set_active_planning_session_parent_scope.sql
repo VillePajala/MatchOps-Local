@@ -78,10 +78,12 @@ BEGIN
   -- ── Lock the in-scope rows up front ──────────────────────────────
   -- Two disjoint scopes:
   --   - Parent-children scope (when p_parent_session_id IS NOT NULL):
-  --     siblings of the same parent. team_id + gameIds are still
-  --     required from the caller for parameter consistency, but the
-  --     scope match is parent_session_id-only since every sibling
-  --     shares the parent's team + games by construction.
+  --     siblings of the same parent. The scope match is
+  --     parent_session_id-only — every sibling shares the parent's
+  --     team + games by construction (validator enforces). p_team_id
+  --     and p_game_ids are still required as input but are NOT used
+  --     in the scope match for child rows; they're validated only so
+  --     the function signature stays uniform across both call shapes.
   --   - Legacy scope (when p_parent_session_id IS NULL): top-level
   --     rows with matching team + canonical gameIds. parent_session_id
   --     IS NULL filter prevents accidentally locking child rows.

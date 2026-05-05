@@ -4515,6 +4515,16 @@ export class SupabaseDataStore implements DataStore {
         { count: gameIds.length },
       );
     }
+    // Mirror LocalDataStore's empty-string guard so cloud callers get
+    // the same rejection rather than hitting a never-matching scope
+    // at the RPC boundary.
+    if (parentSessionId === '') {
+      throw new ValidationError(
+        'setActiveSession parentSessionId, when provided, must be a non-empty string',
+        'parentSessionId',
+        { parentSessionId },
+      );
+    }
 
     // Atomic flip via RPC. Two clients activating different sessions for
     // the same scope used to be able to interleave the deactivate +

@@ -2456,6 +2456,18 @@ export class LocalDataStore implements DataStore {
         { count: gameIds.length },
       );
     }
+    // Reject empty-string parentSessionId — caller must pick a side
+    // (undefined/null = legacy scope; non-empty string = a real parent
+    // id). Empty string would otherwise silently shift to the parent
+    // scope but never match any row (validator rejects empty
+    // parent_session_id at write time, so no row carries it).
+    if (parentSessionId === '') {
+      throw new ValidationError(
+        'setActiveSession parentSessionId, when provided, must be a non-empty string',
+        'parentSessionId',
+        { parentSessionId },
+      );
+    }
 
     // sortedGameIdsKey already sorts; the Set dedupes so callers passing
     // duplicates (e.g. `[a, b, b]`) match the same scope as `[a, b]` —

@@ -3111,6 +3111,17 @@ describe('LocalDataStore', () => {
           const all = await dataStore.getPlanningSessions();
           for (const s of all) expect(s.isActive).toBe(false);
         });
+
+        it('rejects an empty-string parentSessionId with a ValidationError', async () => {
+          // Caller must pick a side: undefined/null = legacy scope,
+          // non-empty string = a real parent id. Empty string would
+          // otherwise silently shift to the parent scope but never
+          // match any row (validator rejects empty parent_session_id
+          // at write time).
+          await expect(
+            dataStore.setActiveSession('a', 'team_1', ['g1', 'g2'], ''),
+          ).rejects.toThrow(/parentSessionId.*non-empty string/);
+        });
       });
     });
   });
