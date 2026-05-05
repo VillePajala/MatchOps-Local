@@ -334,6 +334,30 @@ export const validatePlanningSession = (
     seenGameIds.add(gid);
   });
 
+  // parentSessionId: optional. When present, must be a non-empty
+  // string and must NOT equal session.id (a session cannot parent
+  // itself — that would create an apparent cycle and confuse the
+  // children-listing query). The parent-exists invariant is enforced
+  // at the DataStore layer (the row's existence is verified on
+  // child write); validator only catches the structural violations
+  // because it doesn't have a handle on the sessions store.
+  if (session.parentSessionId !== undefined && session.parentSessionId !== null) {
+    if (!isNonEmptyString(session.parentSessionId)) {
+      throw new ValidationError(
+        `${prefix}parentSessionId must be a non-empty string when present`,
+        'parentSessionId',
+        session.parentSessionId,
+      );
+    }
+    if (session.id && session.parentSessionId === session.id) {
+      throw new ValidationError(
+        `${prefix}parentSessionId cannot equal session.id (self-parent cycle)`,
+        'parentSessionId',
+        session.parentSessionId,
+      );
+    }
+  }
+
   // includedGameIds: optional. When present, must be an array whose
   // entries are a subset of gameIds. Empty array is allowed and means
   // "no games included" — coach explicitly wants the dashboard to zero

@@ -60,10 +60,19 @@
 **Status:** ⏳ in flight (PR-B-1 ✅ merged, PR-B-2 ⏳ open as #406, PR-B-3 pending)
 - [x] **PR-B-1 (continuous-gradient pills)** ✅ MERGED via PR #405 (squash `ed28b19b`) — `fairShareHue(ratio)` red→yellow→green ramp; PlanningMinutesDashboard pills now use inline HSL styles; sort flipped to ASC; pills show `mm:ss (NN%)`; 5 hue unit tests + 2 dashboard tests
 - [x] **PR-B-2 (totals table component)** ✅ MERGED via PR #406 — `computePlanTotals` util, `totalBand` helper, `PlanningTotalsTable` component below MinutesDashboard; 14 util tests + 10 component tests; pass-2 review silent
-- [x] **PR-B-3 (cross-game player highlight)** ⏳ in flight — sub-PR opening as `planner/pr-b3-cross-game-highlight`. Lifted highlight state from `PlanningChipGrid` to `PlanningEditor`; ChipGrid converted to controlled (now reads `drafts: Record` not `draft`, fixes pre-existing per-game cards bug); MinutesDashboard pill is now click-to-toggle with dim/glow; TotalsTable row name button toggles highlight; useEffect prunes stale highlights on draft changes. 3 cross-component integration tests, all existing tests updated for new prop shape.
+- [x] **PR-B-3 (cross-game player highlight)** ✅ MERGED via PR #407 (8 review passes). Lifted highlight state, controlled ChipGrid, ChipGrid pre-existing-bug fix (per-game cards now read their own draft), dashboard pill click-to-toggle, totals row name toggles, useEffect prunes stale highlights, identity-preservation invariant documented, 4 cross-component integration tests, 2 read-only fallback tests, EMPTY_DRAFT frozen, role="group" on read-only div, sparse-draft fallback test.
 
-### PR-C through PR-F — NOT STARTED
-- [ ] PR-C — named versions (parent_session_id + migration 038)
+### PR-C — Named versions (parent_session_id + migration 038)
+**Status:** ⏳ in flight (foundation layer)
+- [x] Migration 038 (`parent_session_id text` column + partial index `idx_planning_sessions_parent` on `(user_id, parent_session_id) WHERE parent_session_id IS NOT NULL`) — applied to staging. Verification SQL covers column shape, index definition, NULL→top-level-parent round-trip, child round-trip, and a backfill no-op check.
+- [x] `PlanningSession.parentSessionId?: string` field with JSDoc documenting the named-version semantic + RPC scope (single-active enforced per parent's children).
+- [x] `validatePlanningSession`: rejects empty-string, non-string, and self-parent (`parentSessionId === id`) cycles. Parent-exists invariant deferred to DataStore boundary.
+- [x] SupabaseDataStore.transformPlanningSessionFromDb + ToDb: round-trips `parent_session_id` ↔ `parentSessionId`, explicit-null pattern lets a coach un-link a child by setting `parentSessionId: undefined`.
+- [x] LocalDataStore.savePlanningSession: passthrough; upsertPlanningSession covered by `...session` spread.
+- [x] 5 new validation unit tests.
+- [ ] **Pending (PR-C-2):** UI changes — Versions ▾ dropdown, Save changes / Save as new copy actions, child-list rendering, single-active scoped to parent's children, RPC 033/036 update for parent-scoped activation.
+
+### PR-D through PR-F — NOT STARTED
 - [ ] PR-D — H1/H2 split shortcut buttons on scheduledSubs
 - [ ] PR-E — visual parity polish + show-benches + auto-save indicator + reset
 - [ ] PR-F — bundle import/export

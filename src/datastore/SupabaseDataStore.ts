@@ -4433,6 +4433,11 @@ export class SupabaseDataStore implements DataStore {
         session.includedGameIds === undefined
           ? undefined
           : [...session.includedGameIds],
+      // Pass through the parent pointer so cloud saves can establish
+      // the named-version → parent linkage. The to-Db transform writes
+      // NULL when this is undefined; preserving undefined here keeps
+      // round-trip parity with LocalDataStore.
+      parentSessionId: session.parentSessionId,
       isActive: session.isActive,
       appliedAt: session.appliedAt,
       createdAt: resolvedCreatedAt,
@@ -4587,17 +4592,20 @@ export class SupabaseDataStore implements DataStore {
 
   // Planning session transforms
   private transformPlanningSessionFromDb(row: PlanningSessionRow): PlanningSession {
-    // Cast row to unknown then to a shape that includes optional
-    // included_game_ids — column added in migration 037, so older
-    // generated DB types may not include it; older rows naturally have
-    // NULL which we read as undefined ("all included" semantics).
+    // Cast row to unknown then to a shape that includes the post-cutover
+    // additive columns (included_game_ids from 037, parent_session_id
+    // from 038) — generated DB types may lag the migrations until
+    // regenerated. Older rows naturally have NULL for both columns,
+    // which we read as undefined to preserve the legacy semantics
+    // ("all gameIds included" + "top-level parent plan").
     //
-    // TODO(post-cutover): regenerate Supabase types after 037 lands in
-    // prod (`supabase gen types typescript`) and drop this double-cast
-    // — `PlanningSessionRow` will then carry `included_game_ids` natively
-    // and the structural widening is no longer needed.
-    const rowWithIncluded = row as unknown as PlanningSessionRow & {
+    // TODO(post-cutover): regenerate Supabase types after 037 + 038
+    // land in prod (`supabase gen types typescript`) and drop this
+    // structural widening — PlanningSessionRow will then carry both
+    // columns natively.
+    const rowExtended = row as unknown as PlanningSessionRow & {
       included_game_ids?: string[] | null;
+      parent_session_id?: string | null;
     };
     return {
       id: row.id,
@@ -4610,9 +4618,10 @@ export class SupabaseDataStore implements DataStore {
           : {},
       isActive: row.is_active ?? false,
       appliedAt: row.applied_at ?? undefined,
-      includedGameIds: Array.isArray(rowWithIncluded.included_game_ids)
-        ? [...rowWithIncluded.included_game_ids]
+      includedGameIds: Array.isArray(rowExtended.included_game_ids)
+        ? [...rowExtended.included_game_ids]
         : undefined,
+      parentSessionId: rowExtended.parent_session_id ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -4643,6 +4652,13 @@ export class SupabaseDataStore implements DataStore {
         session.includedGameIds === undefined
           ? null
           : [...session.includedGameIds],
+      // Same explicit-null pattern as included_game_ids: writing the
+      // column on every upsert lets a coach un-link a child from its
+      // parent (deleting the named-version relationship without
+      // deleting the row) by setting parentSessionId back to undefined.
+      // Key-omission would silently retain the prior parent pointer.
+      parent_session_id:
+        session.parentSessionId === undefined ? null : session.parentSessionId,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
     } as unknown as PlanningSessionInsert;
