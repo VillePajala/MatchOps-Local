@@ -22,6 +22,18 @@
 -- the application boundary, matching the soft-FK approach used for
 -- planning_sessions.game_ids → games.id.
 --
+-- ⚠️  Single-active enforcement is DEFERRED to PR-C-2:
+--   The current set_active_planning_session RPC (033 + 036 hardening)
+--   scopes its uniqueness check to (team_id, sorted_game_ids). When
+--   named versions land, the scope shifts to "siblings of the same
+--   parent_session_id" — a child being activated should deactivate
+--   ONLY its sibling children, not children of unrelated parents that
+--   happen to share the same gameIds-set.
+--   Until PR-C-2 deploys the updated RPC, two children of the same
+--   parent CAN simultaneously hold is_active = true with no DB-level
+--   enforcement. This is acceptable for this PR because no UI path
+--   creates child sessions yet — the column is structural only.
+--
 -- @see docs/03-active-plans/tournament-planner-rebuild-plan.md (PR-C)
 -- @see src/types/planningSession.ts (PlanningSession.parentSessionId)
 -- ============================================================================

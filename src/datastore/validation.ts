@@ -341,6 +341,11 @@ export const validatePlanningSession = (
   // at the DataStore layer (the row's existence is verified on
   // child write); validator only catches the structural violations
   // because it doesn't have a handle on the sessions store.
+  //
+  // The `!== null` branch is defensive against raw DB values: the TS
+  // type is `string | undefined`, but a row read that bypassed
+  // `?? undefined` could land here as `null` and we want to treat
+  // that as "no parent" (top-level), not throw on it.
   if (session.parentSessionId !== undefined && session.parentSessionId !== null) {
     if (!isNonEmptyString(session.parentSessionId)) {
       throw new ValidationError(
@@ -349,7 +354,10 @@ export const validatePlanningSession = (
         session.parentSessionId,
       );
     }
-    if (session.id && session.parentSessionId === session.id) {
+    // session.id is validated as non-empty earlier in this function,
+    // so the comparison is sound; no need to short-circuit on its
+    // truthiness.
+    if (session.parentSessionId === session.id) {
       throw new ValidationError(
         `${prefix}parentSessionId cannot equal session.id (self-parent cycle)`,
         'parentSessionId',

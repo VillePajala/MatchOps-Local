@@ -120,8 +120,13 @@ BEGIN
   RAISE NOTICE 'OK: child session round-trips parent_session_id correctly';
 END $$;
 
--- E. Existing pre-migration rows (if any) should have NULL — additive
--- migration adds a nullable column without backfilling.
+-- E. INFO — pre-existing child rows count.
+-- This is NOT a hard assertion: post-migration application traffic
+-- may legitimately create child sessions. We just log the count so
+-- an operator running verification on a fresh staging deployment
+-- can sanity-check the additive migration didn't backfill anything.
+-- (Hard assertion would require a separate "fresh deployment" mode
+-- the verification script doesn't currently distinguish.)
 DO $$
 DECLARE
   v_non_null_count integer;
@@ -131,9 +136,6 @@ BEGIN
   FROM planning_sessions
   WHERE parent_session_id IS NOT NULL
     AND id NOT LIKE 'verify_038_%';
-
-  -- Operator review log; no hard assertion since post-migration
-  -- application traffic may legitimately create child sessions.
   RAISE NOTICE 'INFO: % rows have non-NULL parent_session_id (non-verify rows)', v_non_null_count;
 END $$;
 
