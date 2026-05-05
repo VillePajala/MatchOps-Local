@@ -297,11 +297,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [highlightedPlayerIds, setHighlightedPlayerIds] = useState<
     Set<PlayerId>
   >(() => new Set());
-  // Show-benches toggle — when off, the bench drawer + bench drag
-  // affordances hide, compressing the editor onto the pitch + role
-  // panel only. Matches the standalone planner's `showBenches` UX.
-  // Default true so coaches see the bench by default; in-session
-  // only (not persisted on the saved plan).
+  // In-session bench-visibility toggle; not persisted on the plan.
   const [showBenches, setShowBenches] = useState<boolean>(true);
   const toggleHighlight = useCallback((playerId: PlayerId) => {
     setHighlightedPlayerIds((prev) => {
@@ -1058,11 +1054,6 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             {t('common.backButton', 'Back')}
           </button>
           <div className="flex items-center gap-3">
-            {/* Show-benches toggle — in-session UX preference; not
-                persisted on the plan. aria-pressed reflects state for
-                AT (a checkbox would also work, but the standalone
-                uses a single button to match the chip-grid header
-                "Clear" affordance). */}
             <button
               type="button"
               onClick={() => setShowBenches((prev) => !prev)}
@@ -1373,11 +1364,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDropOnBenchDrawer}
         data-testid="planning-editor-bench-drawer"
-        // Hide the entire drawer (incl. drag handlers + chips) when
-        // showBenches is off. Using `hidden` rather than conditional
-        // render so the drag-target element registration stays
-        // attached during a brief toggle while a drag is in flight —
-        // dropping onto a hidden element is a no-op without throwing.
+        // `hidden` (not unmount) preserves drag-target registration during a toggle mid-drag.
         hidden={!showBenches}
         className={
           dragOverTarget === 'bench-drawer'

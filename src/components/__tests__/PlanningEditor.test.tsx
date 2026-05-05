@@ -1976,12 +1976,12 @@ describe('PlanningEditor', () => {
       expect(toggle.textContent ?? '').toMatch(/Hide/i);
     });
 
-    it('hides the bench drawer when toggled off', () => {
+    it('hides the bench drawer when toggled off', async () => {
       renderEditor();
       const toggle = screen.getByTestId(
         'planning-editor-show-benches-toggle',
       );
-      act(() => {
+      await act(async () => {
         fireEvent.click(toggle);
       });
       const drawer = screen.getByTestId('planning-editor-bench-drawer');
@@ -1994,15 +1994,15 @@ describe('PlanningEditor', () => {
       expect(toggle.textContent ?? '').toMatch(/Show/i);
     });
 
-    it('clicking the toggle a second time re-shows the drawer', () => {
+    it('clicking the toggle a second time re-shows the drawer', async () => {
       renderEditor();
       const toggle = screen.getByTestId(
         'planning-editor-show-benches-toggle',
       );
-      act(() => {
+      await act(async () => {
         fireEvent.click(toggle);
       });
-      act(() => {
+      await act(async () => {
         fireEvent.click(toggle);
       });
       const drawer = screen.getByTestId('planning-editor-bench-drawer');
