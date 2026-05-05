@@ -227,17 +227,21 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
           ]
             .filter(Boolean)
             .join(' ');
-          // aria-label + style are duplicated on the outer <li> AND
-          // the inner interactive element so:
-          //   1. AT reading the list item still gets the player+mmss+pct
-          //      announcement (matches pre-PR-B-3 behaviour).
-          //   2. The inner <button> inherits the same label as its
-          //      accessible name when the toggle is wired (interactive
-          //      label = content label).
-          //   3. Tests that query the outer <li> for style/aria-label
-          //      don't need to reach into the inner element.
-          // Browsers/AT dedupe duplicate labels in announcement, so the
-          // duplication is invisible to users.
+          // The HSL gradient + aria-label live on the INNER element
+          // (the button or div that fills the <li>). Two reasons:
+          //   1. opacity-40 on the inner element only dims text+border
+          //      when the gradient sits on the <li>; moving both to
+          //      the inner element lets opacity-40 dim the gradient
+          //      too, so non-highlighted pills properly recede during
+          //      focus mode (matches the totals-table behavior).
+          //   2. aria-label on a passive <li> can cause AT to announce
+          //      the player's name twice (once for the list item, once
+          //      for the button). Keeping it solely on the inner
+          //      interactive element produces a single clean
+          //      announcement.
+          // Tests query the outer <li> for data-* attributes (band,
+          // priority, highlighted) and the inner button via its own
+          // data-testid — both surfaces stay reachable.
           return (
             <li
               key={entry.playerId}
@@ -245,9 +249,6 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
               data-band={band}
               data-priority={isPriority ? 'true' : 'false'}
               data-highlighted={isHighlighted ? 'true' : 'false'}
-              aria-label={ariaLabel}
-              title={ariaLabel}
-              style={pillStyleForRatio(entry.shareRatio)}
             >
               {onToggleHighlight ? (
                 <button
@@ -255,13 +256,22 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
                   onClick={() => onToggleHighlight(entry.playerId)}
                   aria-pressed={isHighlighted}
                   aria-label={ariaLabel}
+                  title={ariaLabel}
+                  style={pillStyleForRatio(entry.shareRatio)}
                   data-testid={`planning-minutes-dashboard-pill-toggle-${entry.playerId}`}
                   className={className}
                 >
                   {content}
                 </button>
               ) : (
-                <div className={className}>{content}</div>
+                <div
+                  aria-label={ariaLabel}
+                  title={ariaLabel}
+                  style={pillStyleForRatio(entry.shareRatio)}
+                  className={className}
+                >
+                  {content}
+                </div>
               )}
             </li>
           );
