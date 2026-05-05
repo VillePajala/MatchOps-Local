@@ -70,9 +70,10 @@ export interface PlanningSession {
   includedGameIds?: string[];
   /**
    * Soft pointer to a parent PlanningSession.id when this row is a
-   * "named version" of another plan. NULL/undefined means this row is a
-   * top-level parent plan (which is the legacy meaning — every session
-   * predating PR-C is a parent).
+   * "named version" of another plan. Absent (`undefined`) means this
+   * row is a top-level parent plan — the legacy meaning, every session
+   * predating PR-C is a parent. (DB rows store NULL for the same case;
+   * `transformPlanningSessionFromDb` converts NULL → `undefined`.)
    *
    * The named-versions feature lets a coach branch a tournament plan
    * into multiple variants ("default", "Jasper-sick contingency", etc.)

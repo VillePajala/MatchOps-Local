@@ -378,6 +378,17 @@ describe('validatePlanningSession', () => {
         /parentSessionId must be a non-empty string/,
       );
     });
+
+    it('treats null parentSessionId as absent (defensive guard)', () => {
+      // Defensive against raw DB rows that bypass the `?? undefined`
+      // conversion in transformPlanningSessionFromDb. The TS type is
+      // `string | undefined`, but the validator treats null as "no
+      // parent" rather than throwing on it.
+      const session = baseSession({
+        parentSessionId: null as unknown as undefined,
+      });
+      expect(() => validatePlanningSession(session)).not.toThrow();
+    });
   });
 
 });

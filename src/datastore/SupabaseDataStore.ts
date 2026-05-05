@@ -4601,8 +4601,10 @@ export class SupabaseDataStore implements DataStore {
     //
     // TODO(post-cutover): regenerate Supabase types after 037 + 038
     // land in prod (`supabase gen types typescript`) and drop this
-    // structural widening — PlanningSessionRow will then carry both
-    // columns natively.
+    // ENTIRE `rowExtended` widening block in one pass — both
+    // `included_game_ids` AND `parent_session_id` will be on
+    // PlanningSessionRow natively, so a partial cleanup that only
+    // removes one would still need this widening for the other.
     const rowExtended = row as unknown as PlanningSessionRow & {
       included_game_ids?: string[] | null;
       parent_session_id?: string | null;
