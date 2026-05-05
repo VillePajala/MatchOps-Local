@@ -5395,4 +5395,131 @@ describe('SupabaseDataStore', () => {
       expect(secondCall[1].p_expected_version).toBe(7);
     });
   });
+
+  // ==========================================================================
+  // PLANNING SESSION TRANSFORMS (PR-C-1)
+  // ==========================================================================
+  // The transformPlanningSessionFromDb / ToDb methods are private but
+  // are critical correctness paths for the parent_session_id round-trip
+  // (and the included_game_ids round-trip from PR-A). The
+  // `rowExtended` widening cast already had to be patched once when
+  // 037 landed; these tests guard against a future touch silently
+  // dropping a column. Accessed via `as any` to bypass private — a
+  // common test idiom and lighter than a full upsert-flow mock.
+  describe('Planning session transforms (parent_session_id, included_game_ids)', () => {
+    type PrivateTransforms = {
+      transformPlanningSessionFromDb: (row: unknown) => unknown;
+      transformPlanningSessionToDb: (
+        session: unknown,
+        userId: string,
+      ) => unknown;
+    };
+    const transforms = (): PrivateTransforms =>
+      dataStore as unknown as PrivateTransforms;
+
+    const baseRow = {
+      id: 'planningSession_1',
+      user_id: 'user_1',
+      team_id: 'team_1',
+      name: 'Plan A',
+      game_ids: ['g1'],
+      draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+      is_active: false,
+      applied_at: null,
+      created_at: '2026-04-30T10:00:00.000Z',
+      updated_at: '2026-04-30T10:00:00.000Z',
+    };
+
+    it('fromDb maps null parent_session_id to undefined (top-level parent)', () => {
+      const row = { ...baseRow, parent_session_id: null };
+      const session = transforms().transformPlanningSessionFromDb(row) as {
+        parentSessionId?: string;
+      };
+      expect(session.parentSessionId).toBeUndefined();
+    });
+
+    it('fromDb maps a string parent_session_id to parentSessionId', () => {
+      const row = { ...baseRow, parent_session_id: 'planningSession_parent' };
+      const session = transforms().transformPlanningSessionFromDb(row) as {
+        parentSessionId?: string;
+      };
+      expect(session.parentSessionId).toBe('planningSession_parent');
+    });
+
+    it('fromDb tolerates a row missing parent_session_id entirely (pre-038)', () => {
+      // Pre-migration cloud rows may lack the column; cast widens via
+      // optional chain in the transform.
+      const session = transforms().transformPlanningSessionFromDb(baseRow) as {
+        parentSessionId?: string;
+      };
+      expect(session.parentSessionId).toBeUndefined();
+    });
+
+    it('toDb maps undefined parentSessionId to NULL (un-link semantic)', () => {
+      const session = {
+        id: 'planningSession_1',
+        teamId: 'team_1',
+        name: 'Plan A',
+        gameIds: ['g1'],
+        draft: {},
+        isActive: false,
+        createdAt: '2026-04-30T10:00:00.000Z',
+        updatedAt: '2026-04-30T10:00:00.000Z',
+        // parentSessionId intentionally absent
+      };
+      const dbRow = transforms().transformPlanningSessionToDb(
+        session,
+        'user_1',
+      ) as { parent_session_id: string | null };
+      expect(dbRow.parent_session_id).toBeNull();
+    });
+
+    it('toDb passes through a non-undefined parentSessionId', () => {
+      const session = {
+        id: 'planningSession_1',
+        teamId: 'team_1',
+        name: 'Plan A',
+        gameIds: ['g1'],
+        draft: {},
+        isActive: false,
+        createdAt: '2026-04-30T10:00:00.000Z',
+        updatedAt: '2026-04-30T10:00:00.000Z',
+        parentSessionId: 'planningSession_parent',
+      };
+      const dbRow = transforms().transformPlanningSessionToDb(
+        session,
+        'user_1',
+      ) as { parent_session_id: string | null };
+      expect(dbRow.parent_session_id).toBe('planningSession_parent');
+    });
+
+    // included_game_ids is the sibling column from PR-A; locking the
+    // round-trip here too prevents a future cleanup of the
+    // `rowExtended` widening from accidentally dropping just one column.
+    it('fromDb maps null included_game_ids to undefined ("all included")', () => {
+      const row = { ...baseRow, included_game_ids: null };
+      const session = transforms().transformPlanningSessionFromDb(row) as {
+        includedGameIds?: string[];
+      };
+      expect(session.includedGameIds).toBeUndefined();
+    });
+
+    it('toDb maps undefined includedGameIds to NULL', () => {
+      const session = {
+        id: 'planningSession_1',
+        teamId: 'team_1',
+        name: 'Plan A',
+        gameIds: ['g1'],
+        draft: {},
+        isActive: false,
+        createdAt: '2026-04-30T10:00:00.000Z',
+        updatedAt: '2026-04-30T10:00:00.000Z',
+      };
+      const dbRow = transforms().transformPlanningSessionToDb(
+        session,
+        'user_1',
+      ) as { included_game_ids: string[] | null };
+      expect(dbRow.included_game_ids).toBeNull();
+    });
+  });
 });

@@ -2519,14 +2519,7 @@ export class LocalDataStore implements DataStore {
       const existingIndex = current.findIndex((s) => s.id === session.id);
       const now = new Date().toISOString();
 
-      // Note on field handling here: `...session` carries every field
-      // through by default. The fields below are explicitly named
-      // because they need shape work (trim, deep-clone, defensive
-      // re-clone). Scalar string/boolean/number fields like
-      // `parentSessionId` ride along safely via the spread; array
-      // and object fields like `gameIds`, `includedGameIds`, `draft`
-      // need explicit clone treatment to prevent shared-reference
-      // mutation hazards (see those entries below).
+      // Scalar fields ride through `...session`; arrays/objects below need explicit clone.
       const normalized: PlanningSession = {
         ...session,
         name: session.name.trim(),

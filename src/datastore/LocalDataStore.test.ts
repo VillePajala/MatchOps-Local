@@ -2838,7 +2838,8 @@ describe('LocalDataStore', () => {
       });
       expect(saved.parentSessionId).toBeUndefined();
       const list = await dataStore.getPlanningSessions();
-      expect(list[0].parentSessionId).toBeUndefined();
+      const reloaded = list.find((s) => s.id === saved.id);
+      expect(reloaded?.parentSessionId).toBeUndefined();
     });
 
     it('returns sessions sorted by updatedAt newest-first', async () => {

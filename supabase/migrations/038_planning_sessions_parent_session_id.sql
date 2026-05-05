@@ -14,7 +14,9 @@
 --     the column defaults to NULL, which is the legacy/parent meaning).
 --   - non-NULL parent_session_id → this row is a named version (child)
 --     of the row whose `id` matches. Children inherit the parent's
---     team_id and game_ids-set on write (validator enforces this).
+--     team_id and game_ids-set on write (enforcement deferred to the
+--     DataStore boundary in PR-C-2; validatePlanningSession checks
+--     only structural violations of parent_session_id today).
 --
 -- Soft FK rather than a real REFERENCES constraint because the parent
 -- row may be deleted before its children are migrated in batch updates;

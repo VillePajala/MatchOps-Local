@@ -62,7 +62,12 @@ BEGIN
   IF v_indexdef IS NULL THEN
     RAISE EXCEPTION 'FAIL: index idx_planning_sessions_parent does not exist';
   END IF;
-  IF v_indexdef NOT LIKE '%user_id%parent_session_id%' THEN
+  -- Match column order via positional regex: ensures user_id comes
+  -- before parent_session_id within the parenthesised column list.
+  -- A bare LIKE '%user_id%parent_session_id%' would also match a
+  -- malformed index that mentioned both columns in any context (e.g.
+  -- a comment or a different bracket nesting).
+  IF v_indexdef !~ '\([^)]*user_id[^)]*,[^)]*parent_session_id[^)]*\)' THEN
     RAISE EXCEPTION 'FAIL: idx_planning_sessions_parent column order = %, expected (user_id, parent_session_id)', v_indexdef;
   END IF;
   IF v_indexdef NOT LIKE '%WHERE%parent_session_id IS NOT NULL%' THEN
@@ -96,8 +101,11 @@ END $$;
 DO $$
 DECLARE
   v_uid uuid := gen_random_uuid();
-  v_parent_id text := 'verify_038_p_' || extract(epoch from now())::bigint;
-  v_child_id  text := 'verify_038_c_' || extract(epoch from now())::bigint;
+  -- Random UUIDs (vs. epoch-based suffixes) so test D is immune to
+  -- clock skew, sub-second re-runs, and confused operators reading
+  -- "why two tests have the same suffix".
+  v_parent_id text := 'verify_038_p_' || gen_random_uuid()::text;
+  v_child_id  text := 'verify_038_c_' || gen_random_uuid()::text;
   v_read text;
 BEGIN
   INSERT INTO planning_sessions (
