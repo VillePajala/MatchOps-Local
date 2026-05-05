@@ -13,12 +13,12 @@ export function halftimeSec(game: AppState | undefined): number {
   if (!game) return 0;
   const dur = gameDurationSec(game);
   if (dur <= 0) return 0;
-  if ((game as { numberOfPeriods?: number }).numberOfPeriods !== 2) return 0;
+  if (game.numberOfPeriods !== 2) return 0;
   return Math.round(dur / 2);
 }
 
-// 'complex' = zero+2 subs OR single sub off-half; the panel hides
-// and the coach uses the timeline editor instead.
+// 'complex' = 2+ subs OR single sub off-half; the panel hides and
+// the coach uses the timeline editor instead.
 export type RoleSplitState =
   | { kind: 'no-sub'; canSplit: boolean }
   | {
@@ -45,7 +45,16 @@ export function classifyRoleSplit(
     const canSplit = half > 0 && draft.bench.length > 0;
     return { kind: 'no-sub', canSplit };
   }
-  if (roleSubs.length === 1 && roleSubs[0].timeSeconds === half) {
+  // The `half > 0` guard prevents a 1-period game (or a game with
+  // gameDurationSec === 0) from misclassifying a sub at timeSeconds=0
+  // as a half-time split. Without it, halftimeSec returns 0 for
+  // 1-period games and any sub at 0s would silently surface the
+  // Keep-starter / Keep-sub UI.
+  if (
+    half > 0 &&
+    roleSubs.length === 1 &&
+    roleSubs[0].timeSeconds === half
+  ) {
     return {
       kind: 'split',
       starter: draft.startingXI[role],

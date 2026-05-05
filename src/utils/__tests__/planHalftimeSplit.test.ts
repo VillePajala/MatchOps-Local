@@ -112,6 +112,23 @@ describe('classifyRoleSplit', () => {
     expect(r.kind).toBe('complex');
   });
 
+  it('returns "complex" for a 1-period game even with a sub at timeSeconds === 0', () => {
+    // Without the half > 0 guard, halftimeSec returns 0 for a
+    // 1-period game and a sub at timeSeconds === 0 would misclassify
+    // as 'split' — surfacing the Keep-starter / Keep-sub UI in a
+    // game that has no halftime concept.
+    const r = classifyRoleSplit(
+      draft({
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 0, inPlayer: 'p2', positionRole: 'GK' },
+        ],
+      }),
+      'GK',
+      game(20, 1),
+    );
+    expect(r.kind).toBe('complex');
+  });
+
   it('classifies each role independently when other roles have subs', () => {
     const d = draft({
       scheduledSubs: [

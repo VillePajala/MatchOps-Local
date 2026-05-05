@@ -26,9 +26,6 @@ import {
   roleForCoord,
 } from '@/utils/planApply';
 import logger from '@/utils/logger';
-import PlanningTimeline from './PlanningTimeline';
-import PlanningMinutesDashboard from './PlanningMinutesDashboard';
-import PlanningTotalsTable from './PlanningTotalsTable';
 import {
   classifyRoleSplit,
   addHalftimeSplit,
@@ -36,6 +33,9 @@ import {
   keepSub as halftimeKeepSub,
 } from '@/utils/planHalftimeSplit';
 import { generateId } from '@/utils/idGenerator';
+import PlanningTimeline from './PlanningTimeline';
+import PlanningMinutesDashboard from './PlanningMinutesDashboard';
+import PlanningTotalsTable from './PlanningTotalsTable';
 import PlanningChipGrid from './PlanningChipGrid';
 import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 import PlanningApplyPreview from './PlanningApplyPreview';
