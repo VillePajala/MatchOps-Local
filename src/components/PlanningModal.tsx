@@ -187,6 +187,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const setActiveSession = useSetActiveSessionMutation();
   const sessions: PlanningSession[] = sessionsQuery.data ?? [];
 
+  // Auto-save indicator: epoch ms set after a successful save
+  // mutation, cleared 3s later via the timer below. Passed to
+  // PlanningEditor which renders the "✓ Saved HH:MM:SS" badge.
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (lastSavedAt === null) return;
+    const handle = setTimeout(() => setLastSavedAt(null), 3000);
+    return () => clearTimeout(handle);
+  }, [lastSavedAt]);
+
   // The editor pulls draft + presetId off this; deriving once keeps the
   // JSX clean. Mirrors the length-guard from handleOpenSession so a
   // malformed session (empty gameIds returned from a partial backend
@@ -381,6 +391,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // Stay in the editor with the (possibly newly-created) session
     // attached so subsequent edits update in place.
     setEditingSession(saved);
+    setLastSavedAt(Date.now());
   };
 
   // ── Row actions (Rename / Duplicate / Active-toggle) ────────────────
@@ -435,6 +446,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       });
       setRenamingSessionId(null);
       setRenameDraft('');
+      // Note: lastSavedAt is intentionally NOT set here. The badge
+      // is wired to the editor's save flow only — list-view actions
+      // (rename, duplicate) shouldn't show a "✓ Saved …" notice next
+      // to Back if the user navigates into the editor afterwards
+      // for a different session.
     } catch {
       setListErrorMessage(
         t(
@@ -475,6 +491,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         // can re-apply excludes inside the editor.
         includedGameIds: undefined,
       });
+      // See handleRename — list-view actions don't drive the badge.
     } catch {
       setListErrorMessage(
         t(
@@ -1360,6 +1377,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   }
                   initialName={editingSession?.name ?? pendingImportName}
                   editingSessionId={editingSession?.id}
+                  lastSavedAt={lastSavedAt}
                   // currentTeamId required for Save (the entity is
                   // team-scoped). When absent, Save button is hidden —
                   // user can still Apply but not persist.

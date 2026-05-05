@@ -341,11 +341,12 @@ describe('Translation File Validation', () => {
       // Planner PR-B-2: +7 keys for planningTotalsTable.
       // Planner PR-D: +4 half-time split keys (roleActionsTitle,
       //   splitAtHalf, keepStarter, keepSub).
+      // Planner PR-E-1: +1 savedAt key (auto-save indicator).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the
       // i18n-types.ts assertion below for that distinct number.
-      expect(enKeys.length).toBe(2592);
+      expect(enKeys.length).toBe(2593);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -375,7 +376,8 @@ describe('Translation File Validation', () => {
       // Planner PR-B-2: +7 keys for planningTotalsTable.
       // Planner PR-D: +4 half-time split keys (roleActionsTitle,
       //   splitAtHalf, keepStarter, keepSub).
-      expect(fiKeys.length).toBe(2592);
+      // Planner PR-E-1: +1 savedAt key (auto-save indicator).
+      expect(fiKeys.length).toBe(2593);
     });
   });
 });

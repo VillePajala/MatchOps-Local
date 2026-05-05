@@ -1795,6 +1795,7 @@
     "splitAtHalf": "✂ Vaihto puoliajalla",
     "keepStarter": "Pidä {{player}}",
     "keepSub": "Pidä {{player}}",
+    "savedAt": "Tallennettu {{time}}",
     "formation": "Pelisysteemi",
     "gameCount_one": "{{count}} peli",
     "gameCount_other": "{{count}} peliä",
