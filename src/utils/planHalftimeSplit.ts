@@ -103,11 +103,7 @@ export function addHalftimeSplit(
   };
 }
 
-/**
- * Resolve a half-time split BACK to a single starter. Called when
- * the coach taps "Keep starter": the half-time sub is removed and
- * the sub player goes back to the bench.
- */
+// Collapse a half-time split to its starter; sub player returns to bench.
 export function keepStarter(
   draft: PlanDraft,
   role: RoleName,
@@ -122,12 +118,7 @@ export function keepStarter(
   };
 }
 
-/**
- * Resolve a half-time split BACK to a single chip — but with the
- * SUB player as the new starter. Called when the coach taps "Keep
- * sub": the half-time sub is removed, the sub player takes the
- * starting role, and the original starter goes to the bench.
- */
+// Collapse a half-time split, promoting the sub player to starter; old starter goes to bench.
 export function keepSub(
   draft: PlanDraft,
   role: RoleName,

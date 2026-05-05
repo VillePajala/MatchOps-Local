@@ -59,11 +59,13 @@ describe('classifyRoleSplit', () => {
 
   it('returns "no-sub" with canSplit=false when bench is empty', () => {
     const r = classifyRoleSplit(draft({ bench: [] }), 'GK', game(10));
+    expect(r.kind).toBe('no-sub');
     if (r.kind === 'no-sub') expect(r.canSplit).toBe(false);
   });
 
   it('returns "no-sub" with canSplit=false when game duration is 0', () => {
     const r = classifyRoleSplit(draft(), 'GK', game(0));
+    expect(r.kind).toBe('no-sub');
     if (r.kind === 'no-sub') expect(r.canSplit).toBe(false);
   });
 
