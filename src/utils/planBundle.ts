@@ -11,7 +11,13 @@ import {
 
 export const PLAN_BUNDLE_FORMAT_VERSION = 2 as const;
 
-// Outer envelope cap (UTF-16 code units). Inner versions get their own DoS caps from parsePlanExport.
+// Anti-DoS caps. Bundle-level only: the outer envelope is capped at
+// PARSE_BUNDLE_MAX_CHARS (UTF-16 code units), and the version count
+// at PARSE_BUNDLE_MAX_VERSIONS. Each inner version is then re-parsed
+// through parsePlanExport, which applies its own per-version caps
+// (PARSE_PLAN_EXPORT_MAX_CHARS = 2 MB, plus structural depth limits).
+// So the worst case for a fully-loaded valid bundle is bounded by
+// `min(PARSE_BUNDLE_MAX_CHARS, N × PARSE_PLAN_EXPORT_MAX_CHARS)`.
 export const PARSE_BUNDLE_MAX_VERSIONS = 50;
 export const PARSE_BUNDLE_MAX_CHARS = 5 * 1024 * 1024; // 5 MB
 

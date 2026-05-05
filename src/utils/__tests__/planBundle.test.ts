@@ -4,6 +4,7 @@ import {
   bundleCurrentVersion,
   PLAN_BUNDLE_FORMAT_VERSION,
   PARSE_BUNDLE_MAX_VERSIONS,
+  PARSE_BUNDLE_MAX_CHARS,
 } from '../planBundle';
 import {
   PLAN_EXPORT_KIND,
@@ -81,9 +82,80 @@ describe('parsePlanBundle — single-snapshot path', () => {
     const result = parsePlanBundle(JSON.stringify(broken));
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    // parsePlanExport rejects empty games arrays; the bundle parser
-    // should pass that error through without paraphrase.
-    expect(result.error.message).toMatch(/non-empty array/i);
+    // Path is the stable interface; the message text could rephrase
+    // without breaking callers that read the path field.
+    expect(result.error.path).toMatch(/tournament\.games/);
+  });
+});
+
+describe('parsePlanBundle — defensive bounds', () => {
+  it('rejects an envelope larger than PARSE_BUNDLE_MAX_CHARS', () => {
+    // Pad past the cap with whitespace; JSON.parse strips whitespace
+    // so the inner shape doesn't matter, just the raw char length.
+    const oversized = ' '.repeat(PARSE_BUNDLE_MAX_CHARS + 1);
+    const result = parsePlanBundle(oversized);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toMatch(/too large/i);
+  });
+
+  it('rejects a v2 bundle missing the versions field', () => {
+    const result = parsePlanBundle(
+      JSON.stringify({
+        formatVersion: PLAN_BUNDLE_FORMAT_VERSION,
+        kind: 'matchops-planner-export',
+        savedAt: '2026-04-28T12:00:00.000Z',
+        currentVersionName: null,
+        // versions deliberately absent
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.path).toBe('versions');
+  });
+
+  it('rejects a v2 bundle with an empty version name ""', () => {
+    // Object.entries yields ["": ...] for an empty string key. The
+    // parser should reject it (caller's error, not silent acceptance).
+    const inner = JSON.parse(
+      JSON.stringify({
+        formatVersion: 1,
+        kind: 'matchops-planner-export',
+        tournament: {
+          teamName: 'X',
+          formationId: 'f',
+          rosterSize: 1,
+          games: [
+            {
+              id: 'g1',
+              label: 'Game 1',
+              time: '14:00',
+              field: 'F',
+              opponent: 'O',
+              numberOfPeriods: 2,
+              periodDurationMinutes: 12.5,
+              durationMin: 25,
+              halfTimeMin: 12.5,
+              startingXI: { GK: 'p0' },
+              scheduledSubs: [],
+            },
+          ],
+        },
+        included: [true],
+        currentVersionName: null,
+      }),
+    );
+    const result = parsePlanBundle(
+      JSON.stringify({
+        formatVersion: PLAN_BUNDLE_FORMAT_VERSION,
+        kind: 'matchops-planner-export',
+        currentVersionName: null,
+        versions: { '': inner },
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toMatch(/non-empty string/);
   });
 });
 
