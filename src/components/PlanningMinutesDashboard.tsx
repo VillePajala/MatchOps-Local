@@ -4,7 +4,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
-import type { PlanDraft } from '@/utils/planSwapEngine';
+import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
 import {
   aggregatePlanMinutes,
   fairShareBand,
@@ -29,9 +29,9 @@ export interface PlanningMinutesDashboardProps {
    * or future read-only contexts) without forcing the host to thread
    * the state through.
    */
-  highlightedPlayerIds?: Set<string>;
+  highlightedPlayerIds?: Set<PlayerId>;
   /** Click-to-toggle a single player. Optional (paired with highlightedPlayerIds). */
-  onToggleHighlight?: (playerId: string) => void;
+  onToggleHighlight?: (playerId: PlayerId) => void;
 }
 
 // Continuous-gradient pill style. Mirrors the standalone planner's

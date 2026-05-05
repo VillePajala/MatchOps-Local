@@ -4,7 +4,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { AppState } from '@/types/game';
-import type { PlanDraft } from '@/utils/planSwapEngine';
+import type { PlanDraft, PlayerId } from '@/utils/planSwapEngine';
 import {
   computePlanTotals,
   totalBand,
@@ -29,9 +29,9 @@ export interface PlanningTotalsTableProps {
    */
   includedGameIds?: string[];
   /** Lifted highlight set shared with chip grid + minutes dashboard. */
-  highlightedPlayerIds?: Set<string>;
+  highlightedPlayerIds?: Set<PlayerId>;
   /** Click-to-toggle a single player. Optional (read-only contexts). */
-  onToggleHighlight?: (playerId: string) => void;
+  onToggleHighlight?: (playerId: PlayerId) => void;
 }
 
 // Tailwind classes per band. Aligned with the rest of the planner

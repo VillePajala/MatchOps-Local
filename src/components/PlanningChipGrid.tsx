@@ -35,12 +35,14 @@ export interface PlanningChipGridProps {
 }
 
 // Frozen so a future caller mutating the fallback draft can't silently
-// corrupt every render that hits the sparse-draft branch. getRoleSegments
-// only reads these arrays today, but the freeze locks the contract.
+// corrupt every render that hits the sparse-draft branch. The
+// `as unknown as` cast widens `readonly never[]` (Object.freeze's
+// inferred return) to the mutable element types PlanDraft declares —
+// the freeze enforces the actual contract at runtime.
 const EMPTY_DRAFT: PlanDraft = Object.freeze({
   startingXI: Object.freeze({}) as Record<string, PlayerId>,
-  bench: Object.freeze([]) as readonly PlayerId[] as PlayerId[],
-  scheduledSubs: Object.freeze([]) as readonly DraftScheduledSub[] as DraftScheduledSub[],
+  bench: Object.freeze([]) as unknown as PlayerId[],
+  scheduledSubs: Object.freeze([]) as unknown as DraftScheduledSub[],
 }) as PlanDraft;
 
 const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({

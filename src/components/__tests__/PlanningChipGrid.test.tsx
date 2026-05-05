@@ -228,6 +228,37 @@ describe('PlanningChipGrid', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('falls back to EMPTY_DRAFT when a gameId has no draft entry (sparse drafts)', () => {
+    // Safety net: a new game added to gameIds before its draft is
+    // seeded should render the card with all-placeholder rows
+    // instead of crashing. Locks the EMPTY_DRAFT fallback contract.
+    renderGrid({
+      gameIds: ['g1', 'g_new'],
+      drafts: { g1: DEFAULT_DRAFT },
+      savedGames: {
+        g1: buildGame(),
+        g_new: buildGame({ opponentName: 'TBD' }),
+      } as SavedGamesCollection,
+    });
+    // Both cards rendered.
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g1'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('planning-chip-grid-card-g_new'),
+    ).toBeInTheDocument();
+    // Every role on g_new is a placeholder ("—"), no chips.
+    for (const role of ['GK', 'LB', 'RB', 'CM', 'ST']) {
+      const row = screen.getByTestId(
+        `planning-chip-grid-role-g_new-${role}`,
+      );
+      expect(row).toHaveTextContent('—');
+      expect(
+        row.querySelector('[data-testid^="planning-chip-grid-chip-"]'),
+      ).toBeNull();
+    }
+  });
+
   it('renders a placeholder row for an unassigned role', () => {
     renderGrid({
       // ST left unassigned in startingXI.
