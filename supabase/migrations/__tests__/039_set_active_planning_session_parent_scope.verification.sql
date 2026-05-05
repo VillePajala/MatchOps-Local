@@ -23,23 +23,26 @@
 -- A. RPC exists with the new 4-arg signature.
 DO $$
 DECLARE
-  v_arg_count int;
+  v_sig text;
 BEGIN
   SELECT pg_get_function_arguments(p.oid)::text
-  INTO STRICT v_arg_count
-  -- Sentinel value via array_length of the args list. Compare via
-  -- regexp on the stringified signature so we don't have to match
-  -- exact whitespace.
+  INTO v_sig
   FROM pg_proc p
   JOIN pg_namespace n ON n.oid = p.pronamespace
   WHERE p.proname = 'set_active_planning_session'
     AND n.nspname = 'public'
     AND p.pronargs = 4;
 
-  IF v_arg_count IS NULL THEN
+  IF v_sig IS NULL THEN
     RAISE EXCEPTION 'FAIL: set_active_planning_session 4-arg overload is missing';
   END IF;
-  RAISE NOTICE 'OK: set_active_planning_session 4-arg signature exists';
+  -- Defence-in-depth: require the new arg name to appear in the
+  -- arguments list, otherwise we'd accept a 4-arg overload with the
+  -- wrong final parameter (e.g. an unrelated future migration).
+  IF v_sig NOT LIKE '%p_parent_session_id%' THEN
+    RAISE EXCEPTION 'FAIL: 4-arg overload exists but missing p_parent_session_id; got %', v_sig;
+  END IF;
+  RAISE NOTICE 'OK: set_active_planning_session 4-arg signature exists with p_parent_session_id';
 END $$;
 
 -- B. The function is SECURITY DEFINER with locked search_path.

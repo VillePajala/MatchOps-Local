@@ -2474,17 +2474,12 @@ export class LocalDataStore implements DataStore {
     // matches the canonical_game_ids handling in migration 036's RPC.
     const targetKey = sortedGameIdsKey([...new Set(gameIds)]);
     // Two scope shapes per migration 039:
-    //   - parentSessionId is a non-empty string → siblings of that
-    //     parent (children only); empty string was rejected above.
-    //   - parentSessionId is undefined or null → legacy top-level
-    //     scope (team + canonical gameIds AND
-    //     parent_session_id IS NULL).
-    // Narrow the var inside the closure so TS sees the non-null
-    // string in the parent-scope branch without a non-null assertion.
-    const parentScopeId: string | null =
-      parentSessionId !== undefined && parentSessionId !== null
-        ? parentSessionId
-        : null;
+    //   - non-empty string → siblings of that parent (empty string
+    //     was rejected above; `?? null` collapses undefined to null
+    //     for the .map closure's narrowing).
+    //   - null/undefined → legacy top-level scope (team + canonical
+    //     gameIds AND parent_session_id IS NULL).
+    const parentScopeId: string | null = parentSessionId ?? null;
     const useParentScope = parentScopeId !== null;
 
     return withKeyLock(PLANNING_SESSIONS_KEY, async () => {

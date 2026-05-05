@@ -95,6 +95,10 @@ BEGIN
   --     rows with matching team + canonical gameIds. parent_session_id
   --     IS NULL filter prevents accidentally locking child rows.
   IF p_parent_session_id IS NOT NULL THEN
+    -- Note: p_team_id and v_canonical_game_ids are validated above
+    -- but NOT part of the scope match here. Every sibling shares the
+    -- parent's team + games by construction (validator enforces);
+    -- the parent_session_id-only filter is sufficient.
     PERFORM 1
     FROM planning_sessions
     WHERE user_id = v_user_id
