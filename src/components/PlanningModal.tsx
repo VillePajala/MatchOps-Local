@@ -446,7 +446,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       });
       setRenamingSessionId(null);
       setRenameDraft('');
-      setLastSavedAt(Date.now());
+      // Note: lastSavedAt is intentionally NOT set here. The badge
+      // is wired to the editor's save flow only — list-view actions
+      // (rename, duplicate) shouldn't show a "✓ Saved …" notice next
+      // to Back if the user navigates into the editor afterwards
+      // for a different session.
     } catch {
       setListErrorMessage(
         t(
@@ -487,7 +491,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         // can re-apply excludes inside the editor.
         includedGameIds: undefined,
       });
-      setLastSavedAt(Date.now());
+      // See handleRename — list-view actions don't drive the badge.
     } catch {
       setListErrorMessage(
         t(

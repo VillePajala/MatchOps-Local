@@ -1051,12 +1051,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             <HiOutlineArrowLeft className="h-4 w-4" />
             {t('common.backButton', 'Back')}
           </button>
-          {/* Auto-save badge: epoch ms set by PlanningModal on save
-              success; the parent clears it 3s later via setTimeout
-              so the indicator fades naturally without a per-mount
-              timer here. Hidden when null (no save yet / window
-              elapsed). HH:MM:SS uses the user's locale; "✓" is the
-              same glyph the standalone planner uses. */}
+          {/* Timer lives in PlanningModal so this component stays stateless. */}
           {lastSavedAt != null && (
             <span
               data-testid="planning-editor-saved-indicator"
