@@ -182,6 +182,28 @@ describe('parsePlanBundle — bundle path (formatVersion 2)', () => {
     expect(result.error.message).toMatch(/max \d+/);
   });
 
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'rejects currentVersionName === %s even when no own version of that name exists',
+    (reservedName) => {
+      // Without Object.hasOwn the `in` check would return true for
+      // these names (Object.prototype exposes them) and the
+      // currentVersionName guard would silently pass. Locks the
+      // hasOwn-based fix.
+      const inner = JSON.parse(JSON.stringify(validV1Envelope()));
+      const result = parsePlanBundle(
+        JSON.stringify(
+          buildBundleEnvelope({
+            versions: { default: inner },
+            currentVersionName: reservedName,
+          }),
+        ),
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.message).toMatch(/not in versions/);
+    },
+  );
+
   it('rejects reserved version names (__proto__, constructor, prototype)', () => {
     // Bracket-assign so the property lands as own; otherwise V8
     // routes __proto__ to [[SetPrototypeOf]].
@@ -242,20 +264,40 @@ describe('bundleCurrentVersion', () => {
 describe('serializePlanBundle round-trip', () => {
   it('round-trips a single-version bundle byte-equivalent through parsePlanBundle', () => {
     const plan = buildPlan();
-    const text = serializePlanBundle(
-      {
-        savedAt: '2026-04-28T12:00:00.000Z',
-        currentVersionName: 'default',
-        versions: { default: plan },
-      },
-      { savedAt: '2026-04-28T12:00:00.000Z' },
-    );
+    // bundle.savedAt now wins over options.savedAt, so the test
+    // can set it once on the bundle and skip the options arg.
+    const text = serializePlanBundle({
+      savedAt: '2026-04-28T12:00:00.000Z',
+      currentVersionName: 'default',
+      versions: { default: plan },
+    });
     const reParsed = parsePlanBundle(text);
     expect(reParsed.ok).toBe(true);
     if (!reParsed.ok || reParsed.kind !== 'bundle') return;
     expect(Object.keys(reParsed.bundle.versions)).toEqual(['default']);
     expect(reParsed.bundle.currentVersionName).toBe('default');
     expect(reParsed.bundle.versions.default.teamName).toBe(plan.teamName);
+    expect(reParsed.bundle.savedAt).toBe('2026-04-28T12:00:00.000Z');
+  });
+
+  it('savedAt precedence: bundle.savedAt > options.savedAt > now()', () => {
+    const plan = buildPlan();
+    // bundle wins over options
+    const t1 = serializePlanBundle(
+      {
+        savedAt: '2026-04-28T12:00:00.000Z',
+        currentVersionName: null,
+        versions: { default: plan },
+      },
+      { savedAt: '2030-01-01T00:00:00.000Z' },
+    );
+    expect(t1).toContain('"savedAt": "2026-04-28T12:00:00.000Z"');
+    // options.savedAt fills in when bundle.savedAt is absent
+    const t2 = serializePlanBundle(
+      { currentVersionName: null, versions: { default: plan } },
+      { savedAt: '2030-01-01T00:00:00.000Z' },
+    );
+    expect(t2).toContain('"savedAt": "2030-01-01T00:00:00.000Z"');
   });
 
   it('round-trips a multi-version bundle preserving the version map', () => {
