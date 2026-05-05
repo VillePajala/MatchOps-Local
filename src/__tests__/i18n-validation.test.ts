@@ -372,6 +372,9 @@ describe('Translation File Validation', () => {
       // Planner Phase 5e: +2 playerDetailsModal priority keys.
       // Planner Phase 5f: +2 priority-aware aria keys (chip + pill).
       // Planner Phase 5g: +3 net import handoff keys (see EN block).
+      // Planner PR-B-2: +7 keys for planningTotalsTable.
+      // Planner PR-D: +4 half-time split keys (roleActionsTitle,
+      //   splitAtHalf, keepStarter, keepSub).
       expect(fiKeys.length).toBe(2592);
     });
   });

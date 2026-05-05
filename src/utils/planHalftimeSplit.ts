@@ -111,9 +111,15 @@ export function keepStarter(
 ): PlanDraft {
   const state = classifyRoleSplit(draft, role, game);
   if (state.kind !== 'split') return draft;
+  // Defensive: if the sub player is already on the bench (timeline-
+  // editor-created splits can leave them there), don't duplicate.
+  // The split UI never adds a player who's still on the bench, but
+  // a sub created via the timeline editor + later collapsed via this
+  // shortcut could otherwise produce a doubled bench entry.
+  const benchHasSub = draft.bench.includes(state.subPlayer);
   return {
     ...draft,
-    bench: [...draft.bench, state.subPlayer],
+    bench: benchHasSub ? draft.bench : [...draft.bench, state.subPlayer],
     scheduledSubs: draft.scheduledSubs.filter((s) => s.id !== state.subId),
   };
 }
@@ -131,9 +137,15 @@ export function keepSub(
   // The original starter (if any) returns to the bench. A role with
   // no starter at the time of the split is unusual but possible
   // (imported drafts); we just don't push anything onto bench.
-  const nextBench = state.starter
-    ? [...draft.bench, state.starter]
-    : draft.bench;
+  // Same dedup defense as keepStarter — a starter who's somehow
+  // already on the bench (legacy / imported draft) doesn't get
+  // doubled.
+  const starterAlreadyBench =
+    state.starter !== undefined && draft.bench.includes(state.starter);
+  const nextBench =
+    state.starter && !starterAlreadyBench
+      ? [...draft.bench, state.starter]
+      : draft.bench;
   return {
     ...draft,
     startingXI: nextStartingXI,
