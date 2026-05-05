@@ -74,15 +74,16 @@
 - [ ] **Pending (PR-C-2):** UI changes — Versions ▾ dropdown, Save changes / Save as new copy actions, child-list rendering, single-active scoped to parent's children, RPC 033/036 update for parent-scoped activation. PARKED for after PR-D (smaller schema-free PR for velocity).
 
 ### PR-D — Half-time (H1/H2) split shortcuts
-**Status:** ⏳ in flight (PR #409 opening)
-- [x] `planHalftimeSplit.ts` pure util: `halftimeSec`, `classifyRoleSplit` (no-sub / split / complex), `addHalftimeSplit`, `keepStarter`, `keepSub`. 22 unit tests.
-- [x] PlanningEditor role-action panel inline below pitch — only renders when a role is selected AND state is no-sub or split (complex routes the coach to the timeline editor as before). 4 component tests.
-- [x] 4 i18n keys EN+FI (`roleActionsTitle`, `splitAtHalf`, `keepStarter`, `keepSub`); types regenerated (2605 → 2609).
-- [ ] Visual chip-split rendering (slate|amber): **deferred** — minor visual; the action panel + scheduledSubs editor cover the functional need.
-- [ ] "Plays both" / "Benched both halves" red borders: **deferred** — UX polish for PR-E.
+**Status:** ✅ MERGED via PR #409 (5 review passes; pass-5 was clean approve, no blockers).
 
-### PR-E and PR-F — NOT STARTED
-- [ ] PR-E — visual parity polish + show-benches + auto-save indicator + reset
+### PR-E — Visual polish (auto-save indicator first)
+**Status:** ⏳ in flight (PR #410 opening with auto-save indicator)
+- [x] **Auto-save indicator** — PlanningModal tracks `lastSavedAt` (epoch ms), 3-second auto-clear via setTimeout. PlanningEditor renders "✓ Saved HH:MM:SS" badge when set. Hooked into `handleSavePlan`, `handleRename`, `handleDuplicate`. 1 i18n key EN+FI; 2 component tests.
+- [ ] **Reset edits** button — defer until PR-C-2 lands the Versions ▾ dropdown (the Reset is a version-manager affordance per the rebuild plan).
+- [ ] **Show-benches toggle** — defer to PR-E-2 (small but adds modal-header state surface).
+- [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-2 (visual-only).
+
+### PR-F — NOT STARTED
 - [ ] PR-F — bundle import/export
 
 **PR target convention:** PR-B onwards opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.

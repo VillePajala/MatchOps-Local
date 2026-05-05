@@ -121,6 +121,13 @@ export interface PlanningEditorProps {
   /** When set, Save updates that session instead of creating a new one. */
   editingSessionId?: string;
   /**
+   * Epoch ms of the most recent successful save mutation, or null
+   * when no save has happened yet (or the indicator window has
+   * elapsed). Drives the "✓ Saved HH:MM:SS" badge in the editor
+   * header. Owned by PlanningModal so the timer state is centralised.
+   */
+  lastSavedAt?: number | null;
+  /**
    * Save handler — called when the user submits the inline name form.
    * Implementations call `savePlanningSession` and either create or
    * update based on whether `sessionId` is provided. `drafts` is the
@@ -214,6 +221,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   initialPresetId,
   initialName,
   editingSessionId,
+  lastSavedAt,
   onSavePlan,
   enableApplyPreview = false,
 }) => {
@@ -1033,15 +1041,34 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   return (
     <div className="space-y-4" data-testid="planning-editor">
       <div className="space-y-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-slate-100"
-          disabled={isApplying}
-        >
-          <HiOutlineArrowLeft className="h-4 w-4" />
-          {t('common.backButton', 'Back')}
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-slate-100"
+            disabled={isApplying}
+          >
+            <HiOutlineArrowLeft className="h-4 w-4" />
+            {t('common.backButton', 'Back')}
+          </button>
+          {/* Auto-save badge: epoch ms set by PlanningModal on save
+              success; the parent clears it 3s later via setTimeout
+              so the indicator fades naturally without a per-mount
+              timer here. Hidden when null (no save yet / window
+              elapsed). HH:MM:SS uses the user's locale; "✓" is the
+              same glyph the standalone planner uses. */}
+          {lastSavedAt != null && (
+            <span
+              data-testid="planning-editor-saved-indicator"
+              className="text-xs text-emerald-300"
+            >
+              ✓{' '}
+              {t('planningEditor.savedAt', 'Saved {{time}}', {
+                time: new Date(lastSavedAt).toLocaleTimeString(),
+              })}
+            </span>
+          )}
+        </div>
         <p className="text-xs text-slate-400">
           {gameIds.length > 1
             ? t(

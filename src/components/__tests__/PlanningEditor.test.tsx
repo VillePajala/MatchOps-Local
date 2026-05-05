@@ -1962,6 +1962,26 @@ describe('PlanningEditor', () => {
     });
   });
 
+  describe('Auto-save indicator (PR-E)', () => {
+    it('hides the badge when lastSavedAt is null', () => {
+      renderEditor({ lastSavedAt: null });
+      expect(
+        screen.queryByTestId('planning-editor-saved-indicator'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the "✓ Saved {{time}}" badge when lastSavedAt is set', () => {
+      const ts = new Date('2026-05-05T14:23:45').getTime();
+      renderEditor({ lastSavedAt: ts });
+      const badge = screen.getByTestId('planning-editor-saved-indicator');
+      expect(badge).toBeInTheDocument();
+      // Match the time portion. Locale-dependent format, so just
+      // assert the ✓ glyph and a HH:MM:SS-shaped string are present.
+      expect(badge.textContent ?? '').toMatch(/✓/);
+      expect(badge.textContent ?? '').toMatch(/\d{1,2}:\d{2}:\d{2}/);
+    });
+  });
+
   describe('Role action panel — half-time split shortcuts (PR-D)', () => {
     it('shows the "Split at half" button when a role with no sub is selected', () => {
       renderEditor();

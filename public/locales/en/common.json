@@ -1795,6 +1795,7 @@
     "splitAtHalf": "✂ Split at half",
     "keepStarter": "Keep {{player}}",
     "keepSub": "Keep {{player}}",
+    "savedAt": "Saved {{time}}",
     "formation": "Formation",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",

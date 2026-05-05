@@ -1472,6 +1472,7 @@ export type TranslationKey =
   | 'planningEditor.savePlanLabel'
   | 'planningEditor.savePlanNamePlaceholder'
   | 'planningEditor.savePlanUpdate'
+  | 'planningEditor.savedAt'
   | 'planningEditor.saving'
   | 'planningEditor.splitAtHalf'
   | 'planningEditor.subtitle'
