@@ -29,6 +29,13 @@ import logger from '@/utils/logger';
 import PlanningTimeline from './PlanningTimeline';
 import PlanningMinutesDashboard from './PlanningMinutesDashboard';
 import PlanningTotalsTable from './PlanningTotalsTable';
+import {
+  classifyRoleSplit,
+  addHalftimeSplit,
+  keepStarter as halftimeKeepStarter,
+  keepSub as halftimeKeepSub,
+} from '@/utils/planHalftimeSplit';
+import { generateId } from '@/utils/idGenerator';
 import PlanningChipGrid from './PlanningChipGrid';
 import type { DraftScheduledSub } from '@/utils/planSwapEngine';
 import PlanningApplyPreview from './PlanningApplyPreview';
@@ -1228,6 +1235,88 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
           );
         })}
       </div>
+
+      {(() => {
+        // Role-action panel: shows half-time split shortcuts for the
+        // currently-selected role. Pure rendering — all state changes
+        // route through setDraft so per-tab isolation + undo coverage
+        // work the same as drag-drop edits.
+        if (!selected || selected.target === BENCH) return null;
+        const role = selected.target;
+        const game = savedGames[selectedGameId];
+        const split = classifyRoleSplit(draft, role, game);
+        if (split.kind === 'complex') return null;
+
+        const onSplit = () => {
+          if (split.kind !== 'no-sub' || !split.canSplit) return;
+          setDraft((d) =>
+            addHalftimeSplit(d, role, game, generateId('sub')),
+          );
+        };
+        const onKeepStarter = () => {
+          if (split.kind !== 'split') return;
+          setDraft((d) => halftimeKeepStarter(d, role, game));
+        };
+        const onKeepSub = () => {
+          if (split.kind !== 'split') return;
+          setDraft((d) => halftimeKeepSub(d, role, game));
+        };
+
+        return (
+          <div
+            className="mt-2 rounded-md border border-slate-700 bg-slate-900/40 p-2 text-xs"
+            data-testid="planning-editor-role-actions"
+            data-role={role}
+            data-state={split.kind}
+          >
+            <div className="mb-1 text-slate-400">
+              {t(
+                'planningEditor.roleActionsTitle',
+                'Role: {{role}} — half-time options',
+                { role },
+              )}
+            </div>
+            {split.kind === 'no-sub' && (
+              <button
+                type="button"
+                onClick={onSplit}
+                disabled={!split.canSplit}
+                data-testid="planning-editor-split-at-half"
+                className="rounded-md bg-emerald-700 px-2 py-1 text-emerald-50 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
+              >
+                ✂{' '}
+                {t('planningEditor.splitAtHalf', 'Split at half')}
+              </button>
+            )}
+            {split.kind === 'split' && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onKeepStarter}
+                  data-testid="planning-editor-keep-starter"
+                  className="rounded-md bg-slate-700 px-2 py-1 text-slate-100 hover:bg-slate-600"
+                >
+                  {t('planningEditor.keepStarter', 'Keep {{player}}', {
+                    player: split.starter
+                      ? playerLabel(split.starter)
+                      : '—',
+                  })}
+                </button>
+                <button
+                  type="button"
+                  onClick={onKeepSub}
+                  data-testid="planning-editor-keep-sub"
+                  className="rounded-md bg-amber-700 px-2 py-1 text-amber-50 hover:bg-amber-600"
+                >
+                  {t('planningEditor.keepSub', 'Keep {{player}}', {
+                    player: playerLabel(split.subPlayer),
+                  })}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div
         onDragOver={
