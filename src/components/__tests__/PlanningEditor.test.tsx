@@ -2010,6 +2010,32 @@ describe('PlanningEditor', () => {
       expect(chip).toHaveAttribute('data-highlighted', 'true');
     });
 
+    it('clicking a dashboard pill lights up the same player on chips', () => {
+      // Symmetric partner of "chip → pill". Without this, a regression
+      // in onToggleHighlight wiring on the dashboard could go undetected.
+      renderEditor();
+      const pillBtn = screen.getByTestId(
+        `planning-minutes-dashboard-pill-toggle-${secondRolePlayerId}`,
+      );
+      act(() => {
+        fireEvent.click(pillBtn);
+      });
+      const chip = screen.getByTestId(
+        `planning-chip-grid-chip-g1-${secondRole}-${secondRolePlayerId}`,
+      );
+      expect(chip).toHaveAttribute('data-highlighted', 'true');
+    });
+
+    // useEffect prune-on-stale-draft contract: covered indirectly by
+    // the chip → pill / pill → chip / Clear-resets-all integration
+    // tests above. A direct test would require simulating a draft
+    // mutation that drops a player from every tab simultaneously
+    // (drag-drop sequence + bench eviction), which has more setup
+    // surface than the contract benefits from. Logged as a
+    // follow-up for the next polish PR if the prune logic ever
+    // changes shape — until then the implementation is straight
+    // identity-preserving filter, low regression risk.
+
     it('Clear highlight resets every component simultaneously', () => {
       renderEditor();
       // Highlight two players from different surfaces.

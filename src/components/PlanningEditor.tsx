@@ -306,6 +306,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       // A player is "reachable" if they're in startingXI / bench /
       // sub inPlayer of ANY tab's draft — i.e. they currently appear
       // somewhere in the plan.
+      // sub.outPlayer is intentionally NOT iterated: outPlayer is
+      // always the role's pre-sub occupant, which is by construction
+      // either startingXI[role] or an earlier sub's inPlayer. Both
+      // are already covered by the loops above; the implicit
+      // invariant is `outPlayer ∈ {startingXI ∪ earlier sub inPlayers}`.
       for (const d of Object.values(drafts)) {
         for (const id of Object.values(d.startingXI)) stillReachable.add(id);
         for (const id of d.bench) stillReachable.add(id);

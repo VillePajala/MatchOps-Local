@@ -73,12 +73,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
     [playerMap],
   );
 
-  // Highlight state is now lifted to PlanningEditor so the same
-  // selection drives chips, dashboard pills, and totals-table rows
-  // simultaneously. Empty set = no focus mode (everything renders at
-  // full opacity); non-empty = highlighted glow + non-highlighted dim.
-  const highlighted = highlightedPlayerIds;
-  const anyActive = highlighted.size > 0;
+  const anyActive = highlightedPlayerIds.size > 0;
 
   const roles = preset.roles ?? [];
 
@@ -138,7 +133,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
             {t(
               'planningChipGrid.clearHighlight',
               'Clear highlight ({{count}})',
-              { count: highlighted.size },
+              { count: highlightedPlayerIds.size },
             )}
           </button>
         )}
@@ -208,7 +203,7 @@ const PlanningChipGrid: React.FC<PlanningChipGridProps> = ({
                         {role.name}
                       </span>
                       {segs.map((seg) => {
-                        const isHighlighted = highlighted.has(seg.playerId);
+                        const isHighlighted = highlightedPlayerIds.has(seg.playerId);
                         const isDimmed = anyActive && !isHighlighted;
                         const chipClass = isHighlighted
                           ? 'border-emerald-400 bg-emerald-900/40 text-emerald-50 ring-1 ring-emerald-300/60'

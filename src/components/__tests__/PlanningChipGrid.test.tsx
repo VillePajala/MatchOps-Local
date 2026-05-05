@@ -84,16 +84,20 @@ const defaultRoster = (): Player[] => [
   { id: 'p5', name: 'Fran' },
 ];
 
+// Single source of truth for the canonical 5-role test draft. Pulled
+// up so renderGrid + renderControlled don't independently drift if
+// the fixture roles ever need to change.
+const DEFAULT_DRAFT = {
+  startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
+  bench: ['p5'],
+  scheduledSubs: [],
+};
+
 const renderGrid = (
   overrides: Partial<React.ComponentProps<typeof PlanningChipGrid>> = {},
 ) => {
-  const defaultDraft = {
-    startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
-    bench: ['p5'],
-    scheduledSubs: [],
-  };
   const props: React.ComponentProps<typeof PlanningChipGrid> = {
-    drafts: { g1: defaultDraft },
+    drafts: { g1: DEFAULT_DRAFT },
     preset: buildPreset(),
     gameIds: ['g1'],
     savedGames: { g1: buildGame() } as SavedGamesCollection,
@@ -123,13 +127,8 @@ const renderControlled = (
     >
   > = {},
 ) => {
-  const defaultDraft = {
-    startingXI: { GK: 'p0', LB: 'p1', RB: 'p2', CM: 'p3', ST: 'p4' },
-    bench: ['p5'],
-    scheduledSubs: [],
-  };
   const props = {
-    drafts: { g1: defaultDraft },
+    drafts: { g1: DEFAULT_DRAFT },
     preset: buildPreset(),
     gameIds: ['g1'],
     savedGames: { g1: buildGame() } as SavedGamesCollection,

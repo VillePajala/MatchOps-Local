@@ -216,8 +216,13 @@ const PlanningTotalsTable: React.FC<PlanningTotalsTableProps> = ({
                 data-band={band ?? 'on-track'}
                 data-highlighted={isHighlighted ? 'true' : 'false'}
                 className={[
-                  'border-t border-slate-800 transition-opacity hover:bg-slate-800/40',
-                  isHighlighted ? 'bg-emerald-900/20' : null,
+                  'border-t border-slate-800 transition-opacity',
+                  // Highlighted rows keep the emerald tint on hover too;
+                  // the generic slate hover is suppressed for them so the
+                  // row doesn't briefly flip color while the cursor passes.
+                  isHighlighted
+                    ? 'bg-emerald-900/20 hover:bg-emerald-900/30'
+                    : 'hover:bg-slate-800/40',
                   !isHighlighted && isDimmed ? 'opacity-40' : null,
                 ]
                   .filter(Boolean)
