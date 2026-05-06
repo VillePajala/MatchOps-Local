@@ -131,18 +131,37 @@ describe('planningSessionToImportedPlan', () => {
 
   it('falls back to placeholder fields when a game record is missing', () => {
     // Cloud-sync races can leave session.gameIds pointing at a
-    // game the local client hasn't loaded yet. Export must stay
-    // resilient — the result still parses.
+    // game the local client hasn't loaded yet. Export stays
+    // resilient — populates a placeholder so per-game fields are
+    // valid even without the saved-game record.
+    //
+    // Note: a fully empty savedGames map can't round-trip through
+    // parsePlanExport (the parser rejects an empty teamName and a
+    // rosterSize of 0); the resilience guarantee is "no crash, no
+    // missing required per-game fields", not "always reparses
+    // standalone-clean". Callers wanting full round-trip must pass
+    // overrides via the options arg (covered by the next test).
     const out = planningSessionToImportedPlan(
       buildSession({ gameIds: ['g_unknown'] }),
       {}, // empty savedGames
     );
     expect(out.games).toHaveLength(1);
     expect(out.games[0].id).toBe('g_unknown');
-    // Opponent must be non-empty to round-trip (parsePlanExport
-    // rejects empty strings); converter falls back to the game id.
+    // Opponent fills with the game id so wire-shape validation
+    // (non-empty strings on opponent/label) doesn't bomb.
     expect(out.games[0].opponent).toBe('Game g_unknown');
     expect(out.games[0].label).toBe('Game g_unknown');
+  });
+
+  it('round-trips through parsePlanExport when the caller supplies team/roster overrides for unknown games', () => {
+    // Documented resilience escape hatch: a caller who knows the
+    // team / roster meta out-of-band can still get a fully
+    // standalone-clean envelope even with no game record.
+    const out = planningSessionToImportedPlan(
+      buildSession({ gameIds: ['g_unknown'] }),
+      {},
+      { teamName: 'Pepo U10', rosterSize: 11 },
+    );
     const reParsed = parsePlanExport(serializePlanExport(out));
     expect(reParsed.ok).toBe(true);
   });

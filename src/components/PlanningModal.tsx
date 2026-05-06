@@ -634,9 +634,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // trigger a browser download. The active session (if any) becomes the
   // bundle's currentVersionName so a re-import can reopen on the same
   // version the coach was last using.
+  //
+  // Precondition: caller wires `onExportBundle={handleExportBundle}`
+  // ONLY when editingSession + savedGames are both truthy (see the
+  // PlanningEditor JSX below). The early-return on an empty
+  // versionFamily is defense-in-depth for an empty editingSession
+  // edge case (versionFamily would otherwise be `[editingSession]`
+  // by the memo's construction, never empty when editingSession is
+  // set — but keeping the guard pays for itself the day a future
+  // refactor changes the memo).
   const handleExportBundle = () => {
-    if (!editingSession || !savedGames) return;
-    if (versionFamily.length === 0) return;
+    if (!editingSession || !savedGames || versionFamily.length === 0) return;
     const versions: Record<string, ImportedPlan> = {};
     for (const session of versionFamily) {
       // Skip duplicate names defensively — sessions table enforces
@@ -657,9 +665,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       // inconsistent with the family's actual updatedAt.
       savedAt: editingSession.updatedAt,
     });
-    // File name: parent's name + .matchops-plan.json. The parent is
-    // versionFamily[0] by construction (see the versionFamily memo).
-    const parentName = versionFamily[0].name || 'plan';
+    // File name: parent's name + .matchops-plan.json. Derive parent
+    // from `parentSessionId == null` rather than versionFamily[0] so
+    // a future memo-ordering change can't silently rename the
+    // download. Falls back to editingSession (top-level by
+    // construction when no other parent matches — every session is
+    // either a parent itself or has one in the family).
+    const parent =
+      versionFamily.find((s) => s.parentSessionId == null) ??
+      editingSession;
+    const parentName = parent.name || 'plan';
     const safe = parentName.replace(/[^a-z0-9-_]+/gi, '-').slice(0, 64);
     const filename = `${safe || 'plan'}.matchops-plan.json`;
     try {

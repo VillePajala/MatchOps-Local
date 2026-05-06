@@ -1805,6 +1805,7 @@
     "versionsActive": "Active",
     "versionsActivate": "Activate",
     "exportBundle": "Export tournament plan…",
+    "planMenuLabel": "Plan",
     "formation": "Formation",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",

@@ -86,14 +86,19 @@
 - [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-3 (visual-only).
 
 ### PR-F — Bundle import/export
-**Status:** PR-F-2 ⏳ in flight (export UI)
-- [x] **PR-F-1** merged as PR #412 — `planBundle.ts` pure util: `parsePlanBundle` (routes formatVersion 1 → existing single-snapshot, formatVersion 2 → bundle), `serializePlanBundle` (forward-compatible export shape), `bundleCurrentVersion` (selector). DoS caps mirror parsePlanExport (5 MB chars, 50 versions max). Prototype-pollution guard on version names. 16 unit tests.
-- [ ] **PR-F-2 (in flight)** Wire UI:
-  - [x] `planToExport.ts` converter (`planningSessionToImportedPlan`) — combines `PlanningSession` + `SavedGames` into `ImportedPlan`. Synthesises `outPlayer` from role pre-sub occupant; falls back to `Game ${id}` for missing-game opponents (parsePlanExport rejects empty); halfTimeMin = durationMin/2 to keep `< durationMin` for both 1- and 2-period games. 11 unit tests including parser + bundle round-trip.
-  - [x] "Export tournament plan…" item rendered as the first row of the Versions ▾ menu (`planningEditor.exportBundle`, EN+FI). Dropdown now also renders for single-session plans when `onExportBundle` is provided so a lone plan can still be backed up as a 1-entry bundle.
-  - [x] `PlanningModal.handleExportBundle` builds `Record<name, ImportedPlan>` from `versionFamily`, picks the active session as `currentVersionName`, pins `bundle.savedAt = editingSession.updatedAt`, triggers a Blob/URL download with filename `<parent-name>.matchops-plan.json` (slug-sanitised, capped at 64 chars).
-  - [ ] Import-on-bundle path: PlanningModal needs to consume `parsePlanBundle` results (currently the file picker only calls `parsePlanExport` which rejects v2). After load, open picker for the selected version with a warning banner when other versions are present.
-  - [ ] Bundle import → save flow: persist parent + children for each version through `useSavePlanningSessionMutation` so the imported family lands as a real version tree.
+**Status:** PR-F-2 split — 2a (export, #416) + 2b (import, #417) both in review
+- [x] **PR-F-1** merged as PR #412 — `planBundle.ts` pure util.
+- [ ] **PR-F-2a (in flight, fix-pass-1 on `planner/pr-f2-bundle-export-ui`)** bundle EXPORT UI — open as PR #416. Pass-1 review verdict: "Approve with non-blocking follow-up" — 2 Bugs, 2 Issues, 2 Minors, 1 Nit. Fix-pass-1 applied:
+  - [x] B1 — Consolidated dead-guard in `handleExportBundle` (was `if (!editingSession || !savedGames) return;` then `versionFamily.length === 0` separately) into a single line, with a precondition comment that the prop is wired only when both are truthy. The empty-versionFamily case stays as defense-in-depth for a future memo refactor.
+  - [x] B2 — Filename derivation switched from `versionFamily[0].name` to `versionFamily.find((s) => s.parentSessionId == null)?.name ?? editingSession.name`. Removes the silent dependency on the memo's array order.
+  - [x] I1 — Added 3 integration tests in `PlanningModal.test.tsx` covering the download path: (a) Blob payload reparses as bundle with active-version → currentVersionName, (b) null currentVersionName when no session is active, (c) filename slug-sanitisation (path traversal stripped, 64-char cap).
+  - [x] I2 — `session.includedGameIds!.includes(...)` non-null assertion replaced with destructured `const { includedGameIds } = session;` so the TS narrowing inside the projection branch is real, not asserted.
+  - [x] M1 — Versions ▾ button label adapts: "Versions ({{count}})" when `length > 1`, "Plan" (new key `planningEditor.planMenuLabel`, EN+FI) when only the export item is shown for a single-session plan. Key counts: 2602 → 2603.
+  - [x] M2 — Added inline JSDoc on `halfTimeMin: durationMin / 2` clarifying the equal-period assumption (durationMin/2 == periodDurationMinutes for 2-period games of equal halves; the schema doesn't model unequal periods, so the assumption holds).
+  - [x] N1 — Dropped the file-level block comment in `planToExport.ts`; the function JSDoc is sufficient.
+  - [x] CI test failure — `planToExport.test.ts` "falls back to placeholder fields" was asserting round-trip on an empty-savedGames envelope, but parsePlanExport rejects empty teamName + rosterSize=0. Split into two tests: one verifies the resilient placeholder fields (no crash), one round-trips through parsePlanExport with an explicit `{ teamName, rosterSize }` override.
+- [ ] **PR-F-2b** bundle IMPORT UI — open as PR #417 (independent diff). Sky-tinted version-picker card; auto-advance for 1-version bundles; amber warning on success card. 5 i18n keys, 3 tests.
+- [ ] **PR-F-2c (deferred)** Family-import: persist parent + children at save time. Design open: per-version game binding vs once for the whole family.
 
 **PR target convention:** PR-B onwards opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
 

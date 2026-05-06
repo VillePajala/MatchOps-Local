@@ -1830,4 +1830,230 @@ describe('PlanningModal', () => {
       );
     });
   });
+
+  describe('Bundle export (PR-F-2a)', () => {
+    // Reopen → Versions ▾ → Export builds the bundle and triggers a
+    // browser download. Test asserts (a) the Blob payload reparses as
+    // a valid bundle, (b) the anchor's download attribute follows the
+    // slug-sanitised filename convention, (c) the active session
+    // becomes the bundle's currentVersionName.
+
+    interface MockBlob {
+      content: string[];
+    }
+
+    const setupDownloadCapture = () => {
+      // jsdom's URL.createObjectURL is a no-op stub, so we wrap it to
+      // capture the Blob. Restored in afterEach.
+      const captured = { blobText: '', anchorDownload: '' };
+      const realCreate = URL.createObjectURL;
+      const realRevoke = URL.revokeObjectURL;
+      URL.createObjectURL = jest.fn((blob: Blob | MediaSource) => {
+        // jsdom's Blob doesn't expose .text() synchronously, but the
+        // constructor stores the parts on a private slot — easiest is
+        // to subclass via a constructor wrapper. Here we cast to any
+        // and read the parts off the Blob's `_buffer`-ish slot is
+        // brittle, so instead intercept Blob construction: PlanningModal
+        // builds `new Blob([json], …)`. Read the JSON via the standard
+        // text() API at click time below.
+        (blob as Blob).text().then((t) => {
+          captured.blobText = t;
+        });
+        return 'blob:mock';
+      }) as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = jest.fn();
+
+      // Capture the anchor's download attribute by stubbing
+      // HTMLAnchorElement.click — by then the attribute is set.
+      const realAnchorClick = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () {
+        captured.anchorDownload = this.download;
+      };
+
+      const restore = () => {
+        URL.createObjectURL = realCreate;
+        URL.revokeObjectURL = realRevoke;
+        HTMLAnchorElement.prototype.click = realAnchorClick;
+      };
+      return { captured, restore };
+    };
+
+    it('downloads a bundle with the active session as currentVersionName when Export is clicked', async () => {
+      const parent = buildSession({
+        id: 'p1',
+        name: 'Default',
+        isActive: false,
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Variant A',
+        parentSessionId: 'p1',
+        isActive: true,
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      // Reopen the parent → versionFamily = [parent, child] inside the editor.
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        // Anchor download attribute uses the parent name slug.
+        expect(captured.anchorDownload).toBe('Default.matchops-plan.json');
+        // Wait for the Blob's microtask to land.
+        await waitFor(() => expect(captured.blobText).not.toBe(''));
+        const parsed = JSON.parse(captured.blobText);
+        // formatVersion 2 envelope; currentVersionName picks up the
+        // active child (Variant A), NOT the editing session (parent).
+        expect(parsed.formatVersion).toBe(2);
+        expect(parsed.currentVersionName).toBe('Variant A');
+        expect(Object.keys(parsed.versions).sort()).toEqual([
+          'Default',
+          'Variant A',
+        ]);
+      } finally {
+        restore();
+      }
+    });
+
+    it('uses null currentVersionName when no session in the family is active', async () => {
+      const parent = buildSession({
+        id: 'p1',
+        name: 'Default',
+        isActive: false,
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Variant A',
+        parentSessionId: 'p1',
+        isActive: false,
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        await waitFor(() => expect(captured.blobText).not.toBe(''));
+        const parsed = JSON.parse(captured.blobText);
+        expect(parsed.currentVersionName).toBeNull();
+      } finally {
+        restore();
+      }
+    });
+
+    it('sanitises the parent name into the download filename (no path traversal, capped length)', async () => {
+      // Parent name with characters that would break a filename — slug
+      // strips them; long names truncate at 64 chars.
+      const longName = 'A'.repeat(80);
+      const parent = buildSession({
+        id: 'p1',
+        name: `${longName}/../etc/passwd`,
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Child',
+        parentSessionId: 'p1',
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        // Slug regex strips slash/dot, caps to 64 chars, then suffix.
+        // 64 'A's exactly + .matchops-plan.json
+        expect(captured.anchorDownload).toBe(
+          `${'A'.repeat(64)}.matchops-plan.json`,
+        );
+      } finally {
+        restore();
+      }
+    });
+  });
 });

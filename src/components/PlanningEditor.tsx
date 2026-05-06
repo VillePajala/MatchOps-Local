@@ -1148,9 +1148,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                   data-testid="planning-editor-versions-toggle"
                   className="rounded-md bg-slate-700 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-600"
                 >
-                  {t('planningEditor.versionsLabel', 'Versions ({{count}})', {
-                    count: versions.length,
-                  })}{' '}
+                  {versions.length > 1
+                    ? t('planningEditor.versionsLabel', 'Versions ({{count}})', {
+                        count: versions.length,
+                      })
+                    : t('planningEditor.planMenuLabel', 'Plan')}{' '}
                   <HiOutlineChevronDown className="inline-block h-3 w-3" />
                 </button>
                 {versionsOpen && (

@@ -1,8 +1,3 @@
-// Convert a PlanningSession + SavedGames into the wire-shaped
-// ImportedPlan envelope. Inverse of planFromImport.ts; pairs with
-// serializePlanExport / serializePlanBundle to drive the export
-// UI.
-
 import type { AppState, ScheduledSub } from '@/types/game';
 import type { PlanningSession } from '@/types/planningSession';
 import type { ImportedPlan, ImportedPlanGame } from './planExport';
@@ -90,9 +85,14 @@ function gameToImportedGame(
     periodDurationMinutes: periodMin,
     durationMin,
     // halfTimeMin must be strictly < durationMin in the standalone's
-    // wire format (parsePlanExport rejects equality). Half of the
-    // total works for both 1- and 2-period games — the standalone
-    // doesn't render a half-time banner for 1-period games anyway.
+    // wire format (parsePlanExport rejects equality). For equal
+    // periods (the only shape the standalone authors today),
+    // durationMin / 2 == periodDurationMinutes, i.e., the boundary
+    // between periods — which is the half-time break. The
+    // MatchOps-Local schema doesn't model unequal-period games, so
+    // this assumption holds across every supported configuration;
+    // if that changes, halfTimeMin should switch to
+    // periodDurationMinutes here.
     halfTimeMin: durationMin / 2,
     startingXI: { ...(draft?.startingXI ?? {}) },
     scheduledSubs: draft ? buildScheduledSubsForExport(draft) : [],
@@ -131,10 +131,11 @@ export function planningSessionToImportedPlan(
   // Per-game `included` flag: NULL/undefined includedGameIds means
   // "all included" (legacy semantic from migration 037), so emit a
   // run of `true`s; otherwise project onto session.gameIds order.
-  const included = session.includedGameIds
-    ? session.gameIds.map((gid) =>
-        session.includedGameIds!.includes(gid),
-      )
+  // Destructured up-front so the projection branch doesn't need a
+  // non-null assertion to silence TS narrowing inside the ternary.
+  const { includedGameIds } = session;
+  const included = includedGameIds
+    ? session.gameIds.map((gid) => includedGameIds.includes(gid))
     : session.gameIds.map(() => true);
 
   return {

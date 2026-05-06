@@ -348,11 +348,13 @@ describe('Translation File Validation', () => {
       // Planner PR-C-2c: +3 versions-menu keys (versionsLabel,
       //   versionsActive, versionsActivate).
       // Planner PR-F-2: +1 exportBundle key (versions-menu export item).
+      // Planner PR-F-2a fix-pass: +1 planMenuLabel (label adapts to
+      //   single-session export-only case).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the
       // i18n-types.ts assertion below for that distinct number.
-      expect(enKeys.length).toBe(2602);
+      expect(enKeys.length).toBe(2603);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -389,7 +391,8 @@ describe('Translation File Validation', () => {
       // Planner PR-C-2c: +3 versions-menu keys (versionsLabel,
       //   versionsActive, versionsActivate).
       // Planner PR-F-2: +1 exportBundle key (versions-menu export item).
-      expect(fiKeys.length).toBe(2602);
+      // Planner PR-F-2a fix-pass: +1 planMenuLabel.
+      expect(fiKeys.length).toBe(2603);
     });
   });
 });

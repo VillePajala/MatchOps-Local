@@ -1805,6 +1805,7 @@
     "versionsActive": "Käytössä",
     "versionsActivate": "Ota käyttöön",
     "exportBundle": "Vie turnaussuunnitelma…",
+    "planMenuLabel": "Suunnitelma",
     "formation": "Pelisysteemi",
     "gameCount_one": "{{count}} peli",
     "gameCount_other": "{{count}} peliä",
