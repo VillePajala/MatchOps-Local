@@ -1131,6 +1131,57 @@ describe('PlanningModal', () => {
         expect(payload.parentSessionId).toBe('planningSession_parent');
       });
 
+      it('child-edit path: versionFamily resolves parent + siblings via session.parentSessionId', async () => {
+        // PR-C-2c: when editing a CHILD, the family is resolved
+        // through session.parentSessionId (not session.id). Ensures
+        // the Versions menu shows the right siblings for a child
+        // being edited, not just children of the child.
+        const parent = buildSession({
+          id: 'planningSession_parent',
+          name: 'Default',
+          updatedAt: '2026-04-30T08:00:00.000Z',
+        });
+        const childA = buildSession({
+          id: 'planningSession_child_a',
+          name: 'Variant A',
+          parentSessionId: 'planningSession_parent',
+          updatedAt: '2026-04-30T09:00:00.000Z',
+        });
+        const childB = buildSession({
+          id: 'planningSession_child_b',
+          name: 'Variant B',
+          parentSessionId: 'planningSession_parent',
+          updatedAt: '2026-04-30T10:00:00.000Z',
+        });
+        setSessions([parent, childA, childB]);
+        renderModal({ currentTeamId: 't1' });
+
+        // Open child A (the editing session is a child).
+        fireEvent.click(
+          screen.getByTestId('planning-session-open-planningSession_child_a'),
+        );
+        // Open the Versions menu and assert all three rows render
+        // (parent + both siblings, including the row for childA itself).
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+        expect(
+          screen.getByTestId(
+            'planning-editor-versions-row-planningSession_parent',
+          ),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByTestId(
+            'planning-editor-versions-row-planningSession_child_a',
+          ),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByTestId(
+            'planning-editor-versions-row-planningSession_child_b',
+          ),
+        ).toBeInTheDocument();
+      });
+
       it('overwrite path: regular Save preserves parent_session_id (does not flatten the tree)', async () => {
         // A child session being updated in place must keep its
         // parent_session_id; otherwise overwrite would silently

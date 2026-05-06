@@ -2130,6 +2130,189 @@ describe('PlanningEditor', () => {
     });
   });
 
+  describe('Versions menu', () => {
+    const buildSession = (
+      overrides: Partial<{
+        id: string;
+        name: string;
+        parentSessionId?: string;
+        isActive: boolean;
+        updatedAt: string;
+      }> = {},
+    ) => ({
+      id: 'planningSession_default',
+      teamId: 't1',
+      name: 'Default',
+      gameIds: ['g1'],
+      draft: {},
+      isActive: false,
+      createdAt: '2026-04-30T10:00:00.000Z',
+      updatedAt: '2026-04-30T10:00:00.000Z',
+      ...overrides,
+    });
+
+    it('hides the menu when there is no version family (single session)', () => {
+      renderEditor({
+        versions: [buildSession()],
+      });
+      expect(
+        screen.queryByTestId('planning-editor-versions-toggle'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the toggle when 2+ versions exist', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent' }),
+          buildSession({ id: 'child', parentSessionId: 'parent', name: 'A' }),
+        ],
+      });
+      const toggle = screen.getByTestId('planning-editor-versions-toggle');
+      expect(toggle).toBeInTheDocument();
+      // Count is rendered in the label.
+      expect(toggle.textContent ?? '').toMatch(/2/);
+    });
+
+    it('opens the menu on click and renders one row per version', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'Variant A',
+          }),
+        ],
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      expect(
+        screen.getByTestId('planning-editor-versions-menu'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-editor-versions-row-parent'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-editor-versions-row-child_a'),
+      ).toBeInTheDocument();
+    });
+
+    it('marks the active version with data-active=true and hides Activate button', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const activeRow = screen.getByTestId(
+        'planning-editor-versions-row-parent',
+      );
+      expect(activeRow).toHaveAttribute('data-active', 'true');
+      expect(
+        screen.queryByTestId('planning-editor-versions-activate-parent'),
+      ).not.toBeInTheDocument();
+      // Inactive sibling has the Activate button.
+      expect(
+        screen.getByTestId('planning-editor-versions-activate-child_a'),
+      ).toBeInTheDocument();
+    });
+
+    it('clicking Activate calls onActivateVersion and closes the menu', () => {
+      const onActivateVersion = jest.fn();
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion,
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-activate-child_a'),
+        );
+      });
+      expect(onActivateVersion).toHaveBeenCalledTimes(1);
+      const arg = onActivateVersion.mock.calls[0][0];
+      expect(arg.id).toBe('child_a');
+      // Menu closes after activate.
+      expect(
+        screen.queryByTestId('planning-editor-versions-menu'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('disables the Activate button while a setActiveSession mutation is in flight', () => {
+      // Prevents double-trigger when the user is impatient on a slow
+      // network — a second click would otherwise queue another RPC.
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+        isActivatingVersion: true,
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const btn = screen.getByTestId(
+        'planning-editor-versions-activate-child_a',
+      );
+      expect(btn).toBeDisabled();
+    });
+
+    it('renders activationError inline in the menu', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+        activationError: 'Could not activate that version.',
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const err = screen.getByTestId('planning-editor-versions-error');
+      expect(err).toHaveTextContent('Could not activate that version.');
+      // role="alert" so AT announces it on render.
+      expect(err.getAttribute('role')).toBe('alert');
+    });
+  });
+
   describe('Auto-save indicator', () => {
     it('hides the badge when lastSavedAt is null', () => {
       renderEditor({ lastSavedAt: null });

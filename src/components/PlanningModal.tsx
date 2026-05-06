@@ -185,7 +185,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const deleteSession = useDeletePlanningSessionMutation();
   const saveSession = useSavePlanningSessionMutation();
   const setActiveSession = useSetActiveSessionMutation();
-  const sessions: PlanningSession[] = sessionsQuery.data ?? [];
+  // useMemo so the `?? []` fallback doesn't create a fresh empty
+  // array on every render — the versionFamily memo below depends
+  // on this reference and would re-run unnecessarily otherwise.
+  const sessions: PlanningSession[] = useMemo(
+    () => sessionsQuery.data ?? [],
+    [sessionsQuery.data],
+  );
 
   // Auto-save indicator: epoch ms set after a successful save
   // mutation, cleared 3s later via the timer below. Passed to
@@ -214,6 +220,31 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const sessionFirstDraft = sessionDrafts
     ? Object.values(sessionDrafts).find((d): d is PlanDraft => Boolean(d))
     : undefined;
+
+  // Version family of the editing session. Two-level tree (per
+  // PR-C-2b): a top-level session is the container, named versions
+  // are direct children sharing parent_session_id. The "default"
+  // entry is the parent itself when it has children — coaches edit
+  // it directly until they branch via Save as new copy.
+  //
+  // Parent id resolution:
+  //   - editing top-level session → parent id = session.id
+  //   - editing a child → parent id = session.parentSessionId
+  // The family is then [parent, ...children sorted by updatedAt desc].
+  // Returns just the editing session itself when no family exists yet
+  // (brand-new plan or pre-PR-C-2 session with no children).
+  const versionFamily: PlanningSession[] = useMemo(() => {
+    if (!editingSession) return [];
+    const parentId = editingSession.parentSessionId ?? editingSession.id;
+    const parent =
+      sessions.find((s) => s.id === parentId) ?? editingSession;
+    // ISO 8601 lexicographic sort == chronological for valid timestamps,
+    // so localeCompare on updatedAt yields newest-first without parsing.
+    const children = sessions
+      .filter((s) => s.parentSessionId === parentId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return [parent, ...children];
+  }, [editingSession, sessions]);
 
   // Convert SavedGamesCollection to the picker's input shape.
   const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
@@ -551,6 +582,47 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
               'Could not change the default plan. Please try again.',
             ),
           );
+        },
+      },
+    );
+  };
+
+  // Editor-scoped activation error so a failed Activate from the
+  // Versions menu surfaces inside the editor rather than only in the
+  // list view's listErrorMessage (which the user can't see while
+  // editing). Cleared on the next successful activation.
+  const [activationError, setActivationError] = useState<string | null>(null);
+
+  // Activate a specific version from the editor's Versions ▾ list.
+  // Mirrors handleToggleActive but always activates (never deactivates)
+  // and forwards parentSessionId so the RPC scopes to siblings of the
+  // same parent (per migration 039). The activation only flips
+  // is_active flags in the data layer — the editor stays on the
+  // current row. To EDIT a different version the coach backs out
+  // and reopens; that limitation is intentional for PR-C-2c
+  // (load-with-dirty-check + prompt is deferred).
+  const handleActivateVersion = (session: PlanningSession) => {
+    if (session.isActive) return; // No-op when already active
+    setListErrorMessage(null);
+    setActivationError(null);
+    setActiveSession.mutate(
+      {
+        sessionId: session.id,
+        teamId: session.teamId,
+        gameIds: [...session.gameIds],
+        parentSessionId: session.parentSessionId ?? null,
+      },
+      {
+        onError: () => {
+          const msg = t(
+            'planningModal.activeToggleFailed',
+            'Could not change the default plan. Please try again.',
+          );
+          // Surface in BOTH locations: list-view callers see it via
+          // listErrorMessage; editor-view callers see it via the
+          // editor's new activationError prop.
+          setListErrorMessage(msg);
+          setActivationError(msg);
         },
       },
     );
@@ -1403,6 +1475,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   initialName={editingSession?.name ?? pendingImportName}
                   editingSessionId={editingSession?.id}
                   lastSavedAt={lastSavedAt}
+                  versions={versionFamily}
+                  onActivateVersion={handleActivateVersion}
+                  isActivatingVersion={setActiveSession.isPending}
+                  activationError={activationError}
                   // currentTeamId required for Save (the entity is
                   // team-scoped). When absent, Save button is hidden —
                   // user can still Apply but not persist.

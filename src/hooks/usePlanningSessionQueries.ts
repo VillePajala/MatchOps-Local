@@ -115,6 +115,12 @@ export interface SetActiveSessionVariables {
   teamId: string;
   /** The game-set the active session must cover. */
   gameIds: string[];
+  /**
+   * When provided, scope is restricted to siblings sharing this
+   * parent_session_id (named-versions feature). When undefined/null,
+   * legacy (team, gameIds-set, top-level) scope applies.
+   */
+  parentSessionId?: string | null;
 }
 
 export const useSetActiveSessionMutation = () => {
@@ -126,9 +132,9 @@ export const useSetActiveSessionMutation = () => {
     Error,
     SetActiveSessionVariables
   >({
-    mutationFn: async ({ sessionId, teamId, gameIds }) => {
+    mutationFn: async ({ sessionId, teamId, gameIds, parentSessionId }) => {
       const store = await getStore();
-      return store.setActiveSession(sessionId, teamId, gameIds);
+      return store.setActiveSession(sessionId, teamId, gameIds, parentSessionId);
     },
     onSuccess: (_result, { teamId }) => {
       // setActiveSession can flip is_active on multiple sessions in one
