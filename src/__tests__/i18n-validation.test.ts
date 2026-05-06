@@ -343,13 +343,13 @@ describe('Translation File Validation', () => {
       //   splitAtHalf, keepStarter, keepSub).
       // Planner PR-E-1: +1 savedAt key (auto-save indicator).
       // Planner PR-E-2: +2 show-benches keys (showBenches, hideBenches).
-      // Planner PR-C-2b: +2 save-as-new-copy keys (saveAsNewCopy,
-      //   saveAsNewCopyDefault).
+      // Planner PR-C-2b: +3 save-as-new-copy keys (saveAsNewCopy,
+      //   saveAsNewCopyDefault, saveCopyConfirm).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the
       // i18n-types.ts assertion below for that distinct number.
-      expect(enKeys.length).toBe(2597);
+      expect(enKeys.length).toBe(2598);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -381,9 +381,9 @@ describe('Translation File Validation', () => {
       //   splitAtHalf, keepStarter, keepSub).
       // Planner PR-E-1: +1 savedAt key (auto-save indicator).
       // Planner PR-E-2: +2 show-benches keys (showBenches, hideBenches).
-      // Planner PR-C-2b: +2 save-as-new-copy keys (saveAsNewCopy,
-      //   saveAsNewCopyDefault).
-      expect(fiKeys.length).toBe(2597);
+      // Planner PR-C-2b: +3 save-as-new-copy keys (saveAsNewCopy,
+      //   saveAsNewCopyDefault, saveCopyConfirm).
+      expect(fiKeys.length).toBe(2598);
     });
   });
 });

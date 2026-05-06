@@ -1469,6 +1469,7 @@ export type TranslationKey =
   | 'planningEditor.roleActionsTitle'
   | 'planningEditor.saveAsNewCopy'
   | 'planningEditor.saveAsNewCopyDefault'
+  | 'planningEditor.saveCopyConfirm'
   | 'planningEditor.saveFailed'
   | 'planningEditor.saveNameRequired'
   | 'planningEditor.savePlanButton'

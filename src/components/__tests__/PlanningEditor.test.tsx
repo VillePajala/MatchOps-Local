@@ -1586,6 +1586,37 @@ describe('PlanningEditor', () => {
         );
       });
 
+      it('cancelling new-copy then clicking Save submits saveAs="overwrite" (mode resets on cancel)', async () => {
+      // Locks the cancel-resets-mode contract: after cancelling a
+      // new-copy form, the next regular Save click should NOT
+      // accidentally fire as new-copy.
+      const onSavePlan = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        onSavePlan,
+        editingSessionId: 'planningSession_existing',
+        initialName: 'Default',
+      });
+      // Open new-copy form, then cancel.
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-save-as-new-copy'),
+        );
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-cancel'));
+      });
+      // Click regular Save and submit.
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+      });
+      expect(onSavePlan).toHaveBeenCalledWith(
+        expect.objectContaining({ saveAs: 'overwrite' }),
+      );
+      });
+
       it('regular Save button still submits saveAs="overwrite"', async () => {
         const onSavePlan = jest.fn().mockResolvedValue(undefined);
         renderEditor({

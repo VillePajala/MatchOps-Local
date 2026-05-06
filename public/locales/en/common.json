@@ -1800,6 +1800,7 @@
     "hideBenches": "Hide benches",
     "saveAsNewCopy": "💾 Save as new copy…",
     "saveAsNewCopyDefault": "{{name}} — copy",
+    "saveCopyConfirm": "Save copy",
     "formation": "Formation",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",

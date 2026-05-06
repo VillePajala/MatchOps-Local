@@ -411,11 +411,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [savePlanName, setSavePlanName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  // saveMode toggles whether the form Submit overwrites the current
-  // session ('overwrite') or creates a new named version
-  // ('new-copy'). Defaults to 'overwrite' so existing flow is
-  // unchanged; the form opens with 'new-copy' when the user picks
-  // "Save as new copy" from the editor header.
+  // 'new-copy' creates a sibling row; 'overwrite' updates in place. Reset on submit/cancel.
   const [saveMode, setSaveMode] = useState<'overwrite' | 'new-copy'>(
     'overwrite',
   );
@@ -731,12 +727,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
   const handleStartSave = () => {
     setSaveError(null);
-    // saveMode is reset to 'overwrite' on every successful submit and
-    // on cancel, so re-asserting it here would be redundant — but
-    // the regular Save flow is the default branch, so an explicit
-    // set isn't needed and was dropped per pass-1 review.
-    // Trim so a "  " initialName doesn't open the form pre-filled with
-    // whitespace the user has to manually clear before typing.
+    // Trim so a "  " initialName doesn't open the form pre-filled with whitespace.
     setSavePlanName((initialName ?? '').trim());
   };
 
@@ -1612,6 +1603,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               type="button"
               onClick={handleCancelSave}
               disabled={isSaving}
+              data-testid="planning-editor-save-cancel"
               className="rounded-md bg-slate-700 px-3 py-1 text-xs text-slate-100 hover:bg-slate-600 disabled:opacity-60"
             >
               {t('common.cancel', 'Cancel')}
@@ -1624,9 +1616,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             >
               {isSaving
                 ? t('planningEditor.saving', 'Saving…')
-                : editingSessionId
-                  ? t('planningEditor.savePlanUpdate', 'Update plan')
-                  : t('planningEditor.savePlanButton', 'Save plan')}
+                : saveMode === 'new-copy'
+                  ? t('planningEditor.saveCopyConfirm', 'Save copy')
+                  : editingSessionId
+                    ? t('planningEditor.savePlanUpdate', 'Update plan')
+                    : t('planningEditor.savePlanButton', 'Save plan')}
             </button>
           </div>
         </form>
@@ -1646,11 +1640,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                 ? t('planningEditor.savePlanUpdate', 'Update plan')
                 : t('planningEditor.savePlanButton', 'Save plan')}
             </button>
-            {/* Save as new copy is only meaningful when there's an
-                existing session to branch from. For brand-new (unsaved)
-                plans the user just picks a name with the regular Save
-                button, so we hide the action entirely until the plan
-                has been saved at least once. */}
+            {/* Branching only makes sense once the plan has a saved id. */}
             {editingSessionId && (
               <button
                 type="button"
