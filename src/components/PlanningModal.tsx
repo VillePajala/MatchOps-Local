@@ -20,6 +20,8 @@ import {
   type ImportedPlan,
   type PlanImportError,
 } from '@/utils/planExport';
+import { serializePlanBundle } from '@/utils/planBundle';
+import { planningSessionToImportedPlan } from '@/utils/planToExport';
 import type { Player, PlanningSession } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import PlanningGamePicker, {
@@ -626,6 +628,56 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         },
       },
     );
+  };
+
+  // Build a multi-version bundle from the editing session's family and
+  // trigger a browser download. The active session (if any) becomes the
+  // bundle's currentVersionName so a re-import can reopen on the same
+  // version the coach was last using.
+  const handleExportBundle = () => {
+    if (!editingSession || !savedGames) return;
+    if (versionFamily.length === 0) return;
+    const versions: Record<string, ImportedPlan> = {};
+    for (const session of versionFamily) {
+      // Skip duplicate names defensively — sessions table enforces
+      // uniqueness within a family, but a stale cache during a rename
+      // race could surface two rows with the same name. Last-write
+      // wins matches the cache state.
+      versions[session.name] = planningSessionToImportedPlan(
+        session,
+        savedGames,
+      );
+    }
+    const active = versionFamily.find((s) => s.isActive) ?? null;
+    const json = serializePlanBundle({
+      versions,
+      currentVersionName: active?.name ?? null,
+      // Pin savedAt so a "snapshot" timestamp is meaningful — the
+      // serialiser would otherwise stamp now() which is fine but
+      // inconsistent with the family's actual updatedAt.
+      savedAt: editingSession.updatedAt,
+    });
+    // File name: parent's name + .matchops-plan.json. The parent is
+    // versionFamily[0] by construction (see the versionFamily memo).
+    const parentName = versionFamily[0].name || 'plan';
+    const safe = parentName.replace(/[^a-z0-9-_]+/gi, '-').slice(0, 64);
+    const filename = `${safe || 'plan'}.matchops-plan.json`;
+    try {
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      // Append/click/remove pattern works in every modern browser; some
+      // (Firefox in particular) ignore programmatic clicks on detached
+      // anchors, so the node has to be in the DOM at click time.
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      logger.error('[PlanningModal] export bundle failed', e);
+    }
   };
 
   const handleNewPlan = () => {
@@ -1479,6 +1531,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   onActivateVersion={handleActivateVersion}
                   isActivatingVersion={setActiveSession.isPending}
                   activationError={activationError}
+                  // Bundle export requires a saved session (and the
+                  // savedGames map for game metadata). Brand-new
+                  // unsaved plans hide the option until first Save.
+                  onExportBundle={
+                    editingSession && savedGames
+                      ? handleExportBundle
+                      : undefined
+                  }
                   // currentTeamId required for Save (the entity is
                   // team-scoped). When absent, Save button is hidden —
                   // user can still Apply but not persist.

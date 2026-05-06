@@ -2288,6 +2288,97 @@ describe('PlanningEditor', () => {
       expect(btn).toBeDisabled();
     });
 
+    it('renders the Export tournament plan… item when onExportBundle is provided', () => {
+      // PR-F-2: bundle export is exposed as the first item in the
+      // Versions menu, so a coach with multiple versions can download
+      // the whole family in one click.
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'A',
+          }),
+        ],
+        onExportBundle: jest.fn(),
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      expect(
+        screen.getByTestId('planning-editor-versions-export-bundle'),
+      ).toBeInTheDocument();
+    });
+
+    it('hides the Export item when onExportBundle is not provided', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'A',
+          }),
+        ],
+        // onExportBundle intentionally omitted — brand-new unsaved plans
+        // surface this state in the wild.
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      expect(
+        screen.queryByTestId('planning-editor-versions-export-bundle'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clicking Export calls onExportBundle and closes the menu', () => {
+      const onExportBundle = jest.fn();
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'A',
+          }),
+        ],
+        onExportBundle,
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-export-bundle'),
+        );
+      });
+      expect(onExportBundle).toHaveBeenCalledTimes(1);
+      // Menu closes after export so the user gets back to editing.
+      expect(
+        screen.queryByTestId('planning-editor-versions-menu'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the toggle for a single-session plan when onExportBundle is provided', () => {
+      // Lone session can still be exported as a 1-entry bundle —
+      // useful for backups before branching. Without onExportBundle
+      // the menu stays hidden (earlier test asserts that contract).
+      renderEditor({
+        versions: [buildSession()],
+        onExportBundle: jest.fn(),
+      });
+      expect(
+        screen.getByTestId('planning-editor-versions-toggle'),
+      ).toBeInTheDocument();
+    });
+
     it('renders activationError inline in the menu', () => {
       renderEditor({
         versions: [

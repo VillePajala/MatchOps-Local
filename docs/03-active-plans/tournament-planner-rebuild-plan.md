@@ -86,9 +86,14 @@
 - [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-3 (visual-only).
 
 ### PR-F — Bundle import/export
-**Status:** PR-F-1 ⏳ in flight (parser/serializer foundation)
-- [x] **PR-F-1** ⏳ open as PR #412 — `planBundle.ts` pure util: `parsePlanBundle` (routes formatVersion 1 → existing single-snapshot, formatVersion 2 → bundle), `serializePlanBundle` (forward-compatible export shape), `bundleCurrentVersion` (selector). DoS caps mirror parsePlanExport (5 MB chars, 50 versions max). Prototype-pollution guard on version names. 16 unit tests.
-- [ ] **PR-F-2** Wire UI: "Export tournament plan…" button on the modal versions menu (depends on PR-C-2's Versions dropdown), import-on-bundle path opens picker for the selected version, with warning when other versions are present.
+**Status:** PR-F-2 ⏳ in flight (export UI)
+- [x] **PR-F-1** merged as PR #412 — `planBundle.ts` pure util: `parsePlanBundle` (routes formatVersion 1 → existing single-snapshot, formatVersion 2 → bundle), `serializePlanBundle` (forward-compatible export shape), `bundleCurrentVersion` (selector). DoS caps mirror parsePlanExport (5 MB chars, 50 versions max). Prototype-pollution guard on version names. 16 unit tests.
+- [ ] **PR-F-2 (in flight)** Wire UI:
+  - [x] `planToExport.ts` converter (`planningSessionToImportedPlan`) — combines `PlanningSession` + `SavedGames` into `ImportedPlan`. Synthesises `outPlayer` from role pre-sub occupant; falls back to `Game ${id}` for missing-game opponents (parsePlanExport rejects empty); halfTimeMin = durationMin/2 to keep `< durationMin` for both 1- and 2-period games. 11 unit tests including parser + bundle round-trip.
+  - [x] "Export tournament plan…" item rendered as the first row of the Versions ▾ menu (`planningEditor.exportBundle`, EN+FI). Dropdown now also renders for single-session plans when `onExportBundle` is provided so a lone plan can still be backed up as a 1-entry bundle.
+  - [x] `PlanningModal.handleExportBundle` builds `Record<name, ImportedPlan>` from `versionFamily`, picks the active session as `currentVersionName`, pins `bundle.savedAt = editingSession.updatedAt`, triggers a Blob/URL download with filename `<parent-name>.matchops-plan.json` (slug-sanitised, capped at 64 chars).
+  - [ ] Import-on-bundle path: PlanningModal needs to consume `parsePlanBundle` results (currently the file picker only calls `parsePlanExport` which rejects v2). After load, open picker for the selected version with a warning banner when other versions are present.
+  - [ ] Bundle import → save flow: persist parent + children for each version through `useSavePlanningSessionMutation` so the imported family lands as a real version tree.
 
 **PR target convention:** PR-B onwards opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
 

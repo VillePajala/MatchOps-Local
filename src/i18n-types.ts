@@ -1458,6 +1458,7 @@ export type TranslationKey =
   | 'planningEditor.assignedCount'
   | 'planningEditor.bench'
   | 'planningEditor.benchEmpty'
+  | 'planningEditor.exportBundle'
   | 'planningEditor.formation'
   | 'planningEditor.formationChangeConfirm'
   | 'planningEditor.gameCount'

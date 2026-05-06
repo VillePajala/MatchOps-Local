@@ -1804,6 +1804,7 @@
     "versionsLabel": "Versiot ({{count}})",
     "versionsActive": "Käytössä",
     "versionsActivate": "Ota käyttöön",
+    "exportBundle": "Vie turnaussuunnitelma…",
     "formation": "Pelisysteemi",
     "gameCount_one": "{{count}} peli",
     "gameCount_other": "{{count}} peliä",
