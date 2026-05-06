@@ -411,7 +411,6 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [savePlanName, setSavePlanName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  // 'new-copy' creates a sibling row; 'overwrite' updates in place. Reset on submit/cancel.
   const [saveMode, setSaveMode] = useState<'overwrite' | 'new-copy'>(
     'overwrite',
   );
