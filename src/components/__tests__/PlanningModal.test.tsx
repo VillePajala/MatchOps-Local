@@ -514,6 +514,154 @@ describe('PlanningModal', () => {
     }
   });
 
+  describe('Bundle import (formatVersion: 2)', () => {
+    // PR-F-2b: file-picker now routes through parsePlanBundle so v2
+    // multi-version envelopes are accepted alongside v1 single-snapshot
+    // envelopes. These tests pin the version-picker UX and the
+    // "Loaded one version, others left behind" warning on the success
+    // card.
+
+    const versionEnvelope = (overrides: { teamName?: string } = {}) => ({
+      ...validEnvelope(),
+      tournament: {
+        ...validEnvelope().tournament,
+        teamName: overrides.teamName ?? validEnvelope().tournament.teamName,
+      },
+    });
+
+    const bundleEnvelope = (
+      versions: Record<string, ReturnType<typeof versionEnvelope>>,
+      currentVersionName: string | null = null,
+    ) => ({
+      formatVersion: 2,
+      kind: PLAN_EXPORT_KIND,
+      savedAt: '2026-04-28T12:00:00.000Z',
+      currentVersionName,
+      versions,
+    });
+
+    it('auto-advances a 1-version bundle to the success card', async () => {
+      // Degenerate bundle (single version) skips the picker — making
+      // the user click would be busywork. The success card still
+      // shows the "from bundle" warning so the source is visible.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({ Default: versionEnvelope() }, 'Default'),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+        ).toBeInTheDocument();
+      });
+      // Single-version bundle: no warning (totalVersions === 1).
+      expect(
+        screen.queryByTestId('planning-modal-bundle-warning'),
+      ).not.toBeInTheDocument();
+      // Picker UI never appeared.
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the version picker for a 2+-version bundle', async () => {
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope(
+            {
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope({ teamName: 'Pepo U10' }),
+            },
+            'Variant A',
+          ),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+      // Both versions rendered as rows; success card not yet shown.
+      expect(
+        screen.getByTestId('planning-modal-bundle-version-Default'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-modal-bundle-version-Variant A'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Plan imported|Suunnitelma tuotu/i),
+      ).not.toBeInTheDocument();
+      // currentVersionName from the envelope flagged with data-current.
+      expect(
+        screen
+          .getByTestId('planning-modal-bundle-version-Variant A')
+          .getAttribute('data-current'),
+      ).toBe('true');
+      expect(
+        screen
+          .getByTestId('planning-modal-bundle-version-Default')
+          .getAttribute('data-current'),
+      ).toBe('false');
+    });
+
+    it('selecting a version advances to the success card with the bundle warning', async () => {
+      // Locks the round-trip from bundle picker → success card →
+      // existing handoff. The warning has to show totalVersions > 1
+      // so the coach knows other versions exist in the file.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({
+            Default: versionEnvelope(),
+            'Variant A': versionEnvelope(),
+            'Variant B': versionEnvelope(),
+          }),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-modal-bundle-version-Variant A'),
+        );
+      });
+      // Picker gone; success card visible with the warning.
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+      ).toBeInTheDocument();
+      const warn = screen.getByTestId('planning-modal-bundle-warning');
+      expect(warn).toBeInTheDocument();
+      expect(warn.textContent ?? '').toMatch(/Variant A/);
+      expect(warn.textContent ?? '').toMatch(/3/);
+    });
+  });
+
   it('shows the New plan button on the list page', () => {
     renderModal();
     expect(

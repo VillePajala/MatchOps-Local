@@ -15,11 +15,11 @@ import {
 // from v1 keeps the active-toggle's filled/outline pair visually consistent.
 import { HiStar } from 'react-icons/hi';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import type { ImportedPlan, PlanImportError } from '@/utils/planExport';
 import {
-  parsePlanExport,
-  type ImportedPlan,
-  type PlanImportError,
-} from '@/utils/planExport';
+  parsePlanBundle,
+  type ImportedPlanBundle,
+} from '@/utils/planBundle';
 import type { Player, PlanningSession } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import PlanningGamePicker, {
@@ -89,6 +89,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const [editorGameIds, setEditorGameIds] = useState<string[]>([]);
   const [importedPlan, setImportedPlan] = useState<ImportedPlan | null>(null);
   const [importError, setImportError] = useState<PlanImportError | null>(null);
+  // Bundle import (formatVersion: 2) — when the file picker reads a
+  // multi-version envelope, holds the parsed bundle until the user
+  // picks which version to use. Single-snapshot v1 imports skip this
+  // state entirely (importedPlan goes straight to the success card).
+  const [importedBundle, setImportedBundle] =
+    useState<ImportedPlanBundle | null>(null);
+  // Records that the active importedPlan came from a bundle and how
+  // many siblings were left behind. Surfaced as a warning on the
+  // success card so the user knows other versions exist; null for
+  // single-file imports.
+  const [bundleSourceMeta, setBundleSourceMeta] = useState<{
+    selectedName: string;
+    totalVersions: number;
+  } | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   // Reopen flow: when set, the editor hydrates from the saved session's
   // draft and Save updates that session by id rather than creating new.
@@ -279,6 +293,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const resetImportState = () => {
     setImportedPlan(null);
     setImportError(null);
+    setImportedBundle(null);
+    setBundleSourceMeta(null);
   };
 
   const resetAllModalState = () => {
@@ -639,6 +655,24 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setPage('picker');
   };
 
+  // Bundle version picker: user clicked one row in the version list.
+  // Promotes the chosen version to importedPlan and stamps
+  // bundleSourceMeta so the success card shows the "from bundle"
+  // warning. Family-import (creating parent + children at save time)
+  // is deferred to a follow-up — for now a bundle import yields a
+  // single planning session for the picked version.
+  const handleSelectBundleVersion = (versionName: string) => {
+    if (!importedBundle) return;
+    const plan = importedBundle.versions[versionName];
+    if (!plan) return;
+    setImportedPlan(plan);
+    setBundleSourceMeta({
+      selectedName: versionName,
+      totalVersions: Object.keys(importedBundle.versions).length,
+    });
+    setImportedBundle(null);
+  };
+
   const handlePickerContinue = (gameIds: string[]) => {
     // Picker's validation already blocks Continue on empty selection;
     // guarding here makes the contract explicit at the call site.
@@ -932,12 +966,32 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       });
     reader.onload = () => {
       const text = typeof reader.result === 'string' ? reader.result : '';
-      const result = parsePlanExport(text);
-      if (result.ok) {
-        setImportedPlan(result.plan);
-      } else {
+      // parsePlanBundle accepts BOTH formatVersion 1 (single-snapshot
+      // envelope produced by parsePlanExport) and formatVersion 2
+      // (multi-version bundle from PR-F-1 / PR-F-2a's serializer).
+      // Routing here keeps the file-picker as the single entry point
+      // for both shapes; v1 still flows directly into importedPlan,
+      // v2 lands in importedBundle for the version-picker UI.
+      const result = parsePlanBundle(text);
+      if (!result.ok) {
         setImportError(result.error);
+        return;
       }
+      if (result.kind === 'single') {
+        setImportedPlan(result.plan);
+        return;
+      }
+      // Bundle: stash for the picker. Auto-advance through the picker
+      // when only one version exists (degenerate bundle — no point
+      // making the user click).
+      const versionEntries = Object.entries(result.bundle.versions);
+      if (versionEntries.length === 1) {
+        const [name, plan] = versionEntries[0];
+        setImportedPlan(plan);
+        setBundleSourceMeta({ selectedName: name, totalVersions: 1 });
+        return;
+      }
+      setImportedBundle(result.bundle);
     };
     reader.readAsText(file);
   };
@@ -1302,6 +1356,92 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                       </div>
                     )}
 
+                  {/* Bundle version picker (formatVersion: 2 imports) */}
+                  {importedBundle && (
+                    <div
+                      className="space-y-3 rounded-md bg-sky-900/30 border border-sky-700/40 p-4"
+                      data-testid="planning-modal-bundle-picker"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold text-sky-200">
+                          {t(
+                            'planningModal.bundlePickerTitle',
+                            'Pick a version to import',
+                          )}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={resetImportState}
+                          className="rounded-md p-1 text-sky-200 hover:bg-sky-900/50"
+                          aria-label={t('planningModal.dismissImport', 'Dismiss')}
+                        >
+                          <HiOutlineXMark className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-sky-200/80">
+                        {t(
+                          'planningModal.bundlePickerSubtitle',
+                          'This file contains {{count}} versions. Pick one to load — the others stay in the file.',
+                          {
+                            count: Object.keys(importedBundle.versions).length,
+                          },
+                        )}
+                      </p>
+                      <ul
+                        role="list"
+                        className="space-y-1"
+                        data-testid="planning-modal-bundle-version-list"
+                      >
+                        {Object.entries(importedBundle.versions).map(
+                          ([name, plan]) => {
+                            const isCurrent =
+                              importedBundle.currentVersionName === name;
+                            return (
+                              <li
+                                key={name}
+                                data-testid={`planning-modal-bundle-version-${name}`}
+                                data-current={isCurrent ? 'true' : 'false'}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleSelectBundleVersion(name)
+                                  }
+                                  className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-100 hover:bg-sky-800/40"
+                                >
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    <span className="truncate">{name}</span>
+                                    {isCurrent && (
+                                      <span className="rounded bg-emerald-700/50 px-1 text-[10px] text-emerald-100">
+                                        {t(
+                                          'planningModal.bundleCurrent',
+                                          'Last used',
+                                        )}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="text-[11px] text-slate-300">
+                                    {t(
+                                      'planningModal.bundleVersionMeta',
+                                      '{{games}} games · {{subs}} subs',
+                                      {
+                                        games: plan.games.length,
+                                        subs: plan.games.reduce(
+                                          (n, g) => n + g.scheduledSubs.length,
+                                          0,
+                                        ),
+                                      },
+                                    )}
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
                   {/* Import success */}
                   {importedPlan && (
                     <div className="space-y-3 rounded-md bg-emerald-900/30 border border-emerald-700/40 p-4">
@@ -1318,6 +1458,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                           <HiOutlineXMark className="h-4 w-4" />
                         </button>
                       </div>
+                      {bundleSourceMeta &&
+                        bundleSourceMeta.totalVersions > 1 && (
+                          <p
+                            role="alert"
+                            data-testid="planning-modal-bundle-warning"
+                            className="rounded bg-amber-900/30 border border-amber-700/30 px-2 py-1 text-xs text-amber-200"
+                          >
+                            {t(
+                              'planningModal.bundleSelectedWarning',
+                              'Loaded "{{name}}" from a {{total}}-version bundle. Other versions are not imported.',
+                              {
+                                name: bundleSourceMeta.selectedName,
+                                total: bundleSourceMeta.totalVersions,
+                              },
+                            )}
+                          </p>
+                        )}
                       <ul className="text-sm text-emerald-100/90 space-y-1">
                         <li>
                           <strong>{t('planningModal.team', 'Team')}:</strong>{' '}
