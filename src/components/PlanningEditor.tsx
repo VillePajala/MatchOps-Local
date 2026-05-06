@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import {
   HiOutlineArrowLeft,
   HiOutlineCheck,
+  HiOutlineChevronDown,
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
 import type { Player } from '@/types';
@@ -139,6 +140,13 @@ export interface PlanningEditorProps {
    * parent-children scope. The current editor view doesn't change —
    * the coach must back out + reopen to edit a different version. */
   onActivateVersion?: (session: PlanningSession) => void;
+  /** True while a setActiveSession mutation is in flight; disables
+   * the row Activate buttons to prevent double-trigger. */
+  isActivatingVersion?: boolean;
+  /** Surfaces the most recent activation failure inline in the menu
+   * so the user sees it without leaving the editor view. Cleared on
+   * the next successful activation. */
+  activationError?: string | null;
   /**
    * Save handler — called when the user submits the inline name form.
    * Implementations call `savePlanningSession` and either create or
@@ -246,6 +254,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   lastSavedAt,
   versions,
   onActivateVersion,
+  isActivatingVersion,
+  activationError,
   onSavePlan,
   enableApplyPreview = false,
 }) => {
@@ -1133,7 +1143,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                   {t('planningEditor.versionsLabel', 'Versions ({{count}})', {
                     count: versions.length,
                   })}{' '}
-                  ▾
+                  <HiOutlineChevronDown className="inline-block h-3 w-3" />
                 </button>
                 {versionsOpen && (
                   <ul
@@ -1159,13 +1169,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                           <span className="flex min-w-0 items-center gap-1">
                             <span className="truncate">{v.name}</span>
                             {v.isActive && (
-                              <span
-                                aria-label={t(
-                                  'planningEditor.versionsActive',
-                                  'Active',
-                                )}
-                                className="rounded bg-emerald-700/50 px-1 text-[10px] text-emerald-100"
-                              >
+                              <span className="rounded bg-emerald-700/50 px-1 text-[10px] text-emerald-100">
                                 {t('planningEditor.versionsActive', 'Active')}
                               </span>
                             )}
@@ -1177,8 +1181,9 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                                 onActivateVersion(v);
                                 setVersionsOpen(false);
                               }}
+                              disabled={isActivatingVersion}
                               data-testid={`planning-editor-versions-activate-${v.id}`}
-                              className="rounded bg-amber-700/40 px-1 text-[10px] text-amber-100 hover:bg-amber-600/60"
+                              className="rounded bg-amber-700/40 px-1 text-[10px] text-amber-100 hover:bg-amber-600/60 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {t('planningEditor.versionsActivate', 'Activate')}
                             </button>
@@ -1186,6 +1191,15 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                         </li>
                       );
                     })}
+                    {activationError && (
+                      <li
+                        role="alert"
+                        data-testid="planning-editor-versions-error"
+                        className="mt-1 rounded bg-rose-900/40 px-2 py-1 text-[11px] text-rose-100"
+                      >
+                        {activationError}
+                      </li>
+                    )}
                   </ul>
                 )}
               </div>

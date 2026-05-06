@@ -2261,6 +2261,56 @@ describe('PlanningEditor', () => {
         screen.queryByTestId('planning-editor-versions-menu'),
       ).not.toBeInTheDocument();
     });
+
+    it('disables the Activate button while a setActiveSession mutation is in flight', () => {
+      // Prevents double-trigger when the user is impatient on a slow
+      // network — a second click would otherwise queue another RPC.
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+        isActivatingVersion: true,
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const btn = screen.getByTestId(
+        'planning-editor-versions-activate-child_a',
+      );
+      expect(btn).toBeDisabled();
+    });
+
+    it('renders activationError inline in the menu', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+        activationError: 'Could not activate that version.',
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const err = screen.getByTestId('planning-editor-versions-error');
+      expect(err).toHaveTextContent('Could not activate that version.');
+      // role="alert" so AT announces it on render.
+      expect(err.getAttribute('role')).toBe('alert');
+    });
   });
 
   describe('Auto-save indicator', () => {
