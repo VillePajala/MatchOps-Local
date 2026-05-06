@@ -72,8 +72,8 @@
 - [x] 5 new validation unit tests.
 - [x] **PR-C-1 ✅ MERGED** via PR #408 (5 review passes; pass-5 was clean approve, no blockers).
 - [x] **PR-C-2a (RPC + DataStore parent-scope)** ✅ MERGED via PR #413 (5 review passes). Migration 039 not yet applied to staging — Supabase MCP token needs re-auth before master cutover.
-- [x] **PR-C-2b (Save as new copy action)** ⏳ in flight — onSavePlan signature gains `saveAs: 'overwrite' | 'new-copy'`. New "💾 Save as new copy…" button in editor (only when editingSessionId set). PlanningModal computes parent_session_id (sibling of current child if editing a child; first child of current if editing top-level), creates new row with `id: undefined` so DataStore generates a fresh id. 2 i18n keys EN+FI; 5 new component tests.
-- [ ] **Pending (PR-C-2c):** Versions ▾ dropdown UI for activating/renaming/deleting child rows + child-list rendering.
+- [x] **PR-C-2b (Save as new copy action)** ✅ MERGED via PR #414 — onSavePlan with saveAs flag, flat 2-level tree (sibling-not-grandchild), 5 component tests + 3 PlanningModal branching tests.
+- [x] **PR-C-2c (Versions menu)** ⏳ in flight — Versions ▾ dropdown in editor header, lists parent + children sorted by updatedAt desc, Activate button per row uses setActiveSession with parentSessionId for parent-scoped activation (migration 039). useSetActiveSessionMutation hook signature widened. 6 i18n keys EN+FI; 5 new editor tests + 1 new hook test. Click-to-load with dirty-check deferred to a follow-up; rename/delete remain in the main list view.
 
 ### PR-D — Half-time (H1/H2) split shortcuts
 **Status:** ✅ MERGED via PR #409 (5 review passes; pass-5 was clean approve, no blockers).

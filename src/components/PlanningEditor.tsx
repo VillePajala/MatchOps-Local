@@ -9,6 +9,7 @@ import {
 } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
+import type { PlanningSession } from '@/types/planningSession';
 import {
   FORMATION_PRESETS,
   getPresetById,
@@ -128,6 +129,17 @@ export interface PlanningEditorProps {
    */
   lastSavedAt?: number | null;
   /**
+   * Version family of the current editing session: parent + named
+   * children, sorted parent-first then children by updatedAt desc.
+   * Empty array means no family yet (brand-new plan). Drives the
+   * Versions ▾ dropdown in the editor header.
+   */
+  versions?: PlanningSession[];
+  /** Activate a sibling version. Forwarded to setActiveSession in the
+   * parent-children scope. The current editor view doesn't change —
+   * the coach must back out + reopen to edit a different version. */
+  onActivateVersion?: (session: PlanningSession) => void;
+  /**
    * Save handler — called when the user submits the inline name form.
    * Implementations call `savePlanningSession` and either create or
    * update based on whether `sessionId` is provided. `drafts` is the
@@ -232,6 +244,8 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   initialName,
   editingSessionId,
   lastSavedAt,
+  versions,
+  onActivateVersion,
   onSavePlan,
   enableApplyPreview = false,
 }) => {
@@ -414,6 +428,22 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   const [saveMode, setSaveMode] = useState<'overwrite' | 'new-copy'>(
     'overwrite',
   );
+  // Versions ▾ dropdown open/closed. Click-outside collapses it.
+  const [versionsOpen, setVersionsOpen] = useState<boolean>(false);
+  const versionsMenuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!versionsOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (
+        versionsMenuRef.current &&
+        !versionsMenuRef.current.contains(e.target as Node)
+      ) {
+        setVersionsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [versionsOpen]);
   // Inline-banner confirmation for formation change. Storing the
   // pending id keeps the controlled <select> on the current preset
   // until the user confirms — no window.confirm anti-pattern.
@@ -1087,6 +1117,79 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             {t('common.backButton', 'Back')}
           </button>
           <div className="flex items-center gap-3">
+            {/* Versions ▾ dropdown — only renders when there's a family
+                (at least one named copy alongside the parent). A
+                lone session is just "the plan", no menu needed. */}
+            {versions && versions.length > 1 && (
+              <div className="relative" ref={versionsMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setVersionsOpen((p) => !p)}
+                  aria-expanded={versionsOpen}
+                  aria-haspopup="menu"
+                  data-testid="planning-editor-versions-toggle"
+                  className="rounded-md bg-slate-700 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-600"
+                >
+                  {t('planningEditor.versionsLabel', 'Versions ({{count}})', {
+                    count: versions.length,
+                  })}{' '}
+                  ▾
+                </button>
+                {versionsOpen && (
+                  <ul
+                    role="menu"
+                    data-testid="planning-editor-versions-menu"
+                    className="absolute right-0 top-full mt-1 z-20 min-w-[16rem] rounded-md border border-slate-700 bg-slate-900 p-1 shadow-lg"
+                  >
+                    {versions.map((v) => {
+                      const isCurrent = v.id === editingSessionId;
+                      return (
+                        <li
+                          key={v.id}
+                          role="menuitem"
+                          data-testid={`planning-editor-versions-row-${v.id}`}
+                          data-active={v.isActive ? 'true' : 'false'}
+                          data-current={isCurrent ? 'true' : 'false'}
+                          className={`flex items-center justify-between gap-2 rounded px-2 py-1 text-xs ${
+                            isCurrent
+                              ? 'bg-slate-800 text-slate-100'
+                              : 'text-slate-200 hover:bg-slate-800/60'
+                          }`}
+                        >
+                          <span className="flex min-w-0 items-center gap-1">
+                            <span className="truncate">{v.name}</span>
+                            {v.isActive && (
+                              <span
+                                aria-label={t(
+                                  'planningEditor.versionsActive',
+                                  'Active',
+                                )}
+                                className="rounded bg-emerald-700/50 px-1 text-[10px] text-emerald-100"
+                              >
+                                {t('planningEditor.versionsActive', 'Active')}
+                              </span>
+                            )}
+                          </span>
+                          {!v.isActive && onActivateVersion && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onActivateVersion(v);
+                                setVersionsOpen(false);
+                              }}
+                              data-testid={`planning-editor-versions-activate-${v.id}`}
+                              className="rounded bg-amber-700/40 px-1 text-[10px] text-amber-100 hover:bg-amber-600/60"
+                            >
+                              {t('planningEditor.versionsActivate', 'Activate')}
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setShowBenches((prev) => !prev)}

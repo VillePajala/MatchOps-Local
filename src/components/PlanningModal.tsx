@@ -215,6 +215,29 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     ? Object.values(sessionDrafts).find((d): d is PlanDraft => Boolean(d))
     : undefined;
 
+  // Version family of the editing session. Two-level tree (per
+  // PR-C-2b): a top-level session is the container, named versions
+  // are direct children sharing parent_session_id. The "default"
+  // entry is the parent itself when it has children — coaches edit
+  // it directly until they branch via Save as new copy.
+  //
+  // Parent id resolution:
+  //   - editing top-level session → parent id = session.id
+  //   - editing a child → parent id = session.parentSessionId
+  // The family is then [parent, ...children sorted by updatedAt desc].
+  // Returns just the editing session itself when no family exists yet
+  // (brand-new plan or pre-PR-C-2 session with no children).
+  const versionFamily: PlanningSession[] = useMemo(() => {
+    if (!editingSession) return [];
+    const parentId = editingSession.parentSessionId ?? editingSession.id;
+    const parent =
+      sessions.find((s) => s.id === parentId) ?? editingSession;
+    const children = sessions
+      .filter((s) => s.parentSessionId === parentId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return [parent, ...children];
+  }, [editingSession, sessions]);
+
   // Convert SavedGamesCollection to the picker's input shape.
   const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
     if (!savedGames) return [];
@@ -542,6 +565,37 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         sessionId: session.isActive ? null : session.id,
         teamId: session.teamId,
         gameIds: [...session.gameIds],
+      },
+      {
+        onError: () => {
+          setListErrorMessage(
+            t(
+              'planningModal.activeToggleFailed',
+              'Could not change the default plan. Please try again.',
+            ),
+          );
+        },
+      },
+    );
+  };
+
+  // Activate a specific version from the editor's Versions ▾ list.
+  // Mirrors handleToggleActive but always activates (never deactivates)
+  // and forwards parentSessionId so the RPC scopes to siblings of the
+  // same parent (per migration 039). The activation only flips
+  // is_active flags in the data layer — the editor stays on the
+  // current row. To EDIT a different version the coach backs out
+  // and reopens; that limitation is intentional for PR-C-2c
+  // (load-with-dirty-check + prompt is deferred).
+  const handleActivateVersion = (session: PlanningSession) => {
+    if (session.isActive) return; // No-op when already active
+    setListErrorMessage(null);
+    setActiveSession.mutate(
+      {
+        sessionId: session.id,
+        teamId: session.teamId,
+        gameIds: [...session.gameIds],
+        parentSessionId: session.parentSessionId ?? null,
       },
       {
         onError: () => {
@@ -1403,6 +1457,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   initialName={editingSession?.name ?? pendingImportName}
                   editingSessionId={editingSession?.id}
                   lastSavedAt={lastSavedAt}
+                  versions={versionFamily}
+                  onActivateVersion={handleActivateVersion}
                   // currentTeamId required for Save (the entity is
                   // team-scoped). When absent, Save button is hidden —
                   // user can still Apply but not persist.

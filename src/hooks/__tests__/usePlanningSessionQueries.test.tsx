@@ -235,10 +235,13 @@ describe('useSetActiveSessionMutation', () => {
       });
     });
 
+    // 4th arg is parentSessionId (undefined when not in variables);
+    // forwarded by the mutation per PR-C-2a.
     expect(mockSetActiveSession).toHaveBeenCalledWith(
       's1',
       'team_1',
       ['g1', 'g2'],
+      undefined,
     );
   });
 
@@ -259,7 +262,40 @@ describe('useSetActiveSessionMutation', () => {
       expect(out).toBeNull();
     });
 
-    expect(mockSetActiveSession).toHaveBeenCalledWith(null, 'team_1', ['g1']);
+    expect(mockSetActiveSession).toHaveBeenCalledWith(
+      null,
+      'team_1',
+      ['g1'],
+      undefined,
+    );
+  });
+
+  it('forwards parentSessionId to setActiveSession when supplied', async () => {
+    // PR-C-2c: the Versions menu activates a child by passing
+    // parentSessionId so the RPC scopes to siblings of that parent
+    // (migration 039). Locks the wiring so a future hook refactor
+    // doesn't drop the arg.
+    mockSetActiveSession.mockResolvedValue(
+      session({ id: 'child_a', isActive: true, parentSessionId: 'parent' }),
+    );
+    const { wrapper } = buildWrapper();
+    const { result } = renderHook(() => useSetActiveSessionMutation(), {
+      wrapper,
+    });
+    await act(async () => {
+      await result.current.mutateAsync({
+        sessionId: 'child_a',
+        teamId: 'team_1',
+        gameIds: ['g1', 'g2'],
+        parentSessionId: 'parent',
+      });
+    });
+    expect(mockSetActiveSession).toHaveBeenCalledWith(
+      'child_a',
+      'team_1',
+      ['g1', 'g2'],
+      'parent',
+    );
   });
 
   it('invalidates both the team-scoped and unscoped session lists on success', async () => {
