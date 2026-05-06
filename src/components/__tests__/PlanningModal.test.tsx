@@ -1061,6 +1061,102 @@ describe('PlanningModal', () => {
       expect(draft.g1.bench).not.toBe(draft.g2.bench);
     });
 
+    // ── PR-C-2b: Save as new copy (named-versions branch flow) ──────
+    // The named-versions feature uses a flat 2-level tree: a top-level
+    // session is a "tournament plan" container; saving a copy of it
+    // creates the first child. Saving a copy of an EXISTING child
+    // creates a sibling under the same parent — NOT a grandchild.
+    // This sibling-only model matches the standalone planner's
+    // mental model and keeps the parent_session_id query simple
+    // (no recursion needed for "list all versions of this plan").
+    describe('Save as new copy', () => {
+      it('first-child path: saving as new copy of a top-level session points at the original session', async () => {
+        const session = buildSession({
+          id: 'planningSession_top',
+          name: 'Default',
+          // parentSessionId intentionally absent → top-level
+        });
+        setSessions([session]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(
+          screen.getByTestId('planning-session-open-planningSession_top'),
+        );
+        fireEvent.click(
+          screen.getByTestId('planning-editor-save-as-new-copy'),
+        );
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        const payload = mockSaveMutateAsync.mock.calls[0][0];
+        // id omitted → DataStore generates a fresh id for the new
+        // child row (the original keeps its own row + becomes the
+        // logical "parent / container").
+        expect(payload.id).toBeUndefined();
+        expect(payload.parentSessionId).toBe('planningSession_top');
+        // New copies are inactive by default; user picks the active
+        // version explicitly via the (future) Versions dropdown.
+        expect(payload.isActive).toBe(false);
+        expect(payload.appliedAt).toBeUndefined();
+        expect(payload.createdAt).toBeUndefined();
+      });
+
+      it('sibling path: saving as new copy of a child session keeps the same parent', async () => {
+        // Editing a child session whose parent is already set;
+        // saving as new copy must NOT create a grandchild — it
+        // creates a sibling under the same parent_session_id.
+        const child = buildSession({
+          id: 'planningSession_child_a',
+          name: 'Variant A',
+          parentSessionId: 'planningSession_parent',
+        });
+        setSessions([child]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(
+          screen.getByTestId('planning-session-open-planningSession_child_a'),
+        );
+        fireEvent.click(
+          screen.getByTestId('planning-editor-save-as-new-copy'),
+        );
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+
+        const payload = mockSaveMutateAsync.mock.calls[0][0];
+        expect(payload.id).toBeUndefined();
+        // Same parent as the child being branched from — sibling, not grandchild.
+        expect(payload.parentSessionId).toBe('planningSession_parent');
+      });
+
+      it('overwrite path: regular Save preserves parent_session_id (does not flatten the tree)', async () => {
+        // A child session being updated in place must keep its
+        // parent_session_id; otherwise overwrite would silently
+        // promote the child to a top-level session.
+        const child = buildSession({
+          id: 'planningSession_child_a',
+          name: 'Variant A',
+          parentSessionId: 'planningSession_parent',
+        });
+        setSessions([child]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(
+          screen.getByTestId('planning-session-open-planningSession_child_a'),
+        );
+        fireEvent.click(screen.getByTestId('planning-editor-save'));
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+
+        const payload = mockSaveMutateAsync.mock.calls[0][0];
+        expect(payload.id).toBe('planningSession_child_a');
+        expect(payload.parentSessionId).toBe('planningSession_parent');
+      });
+    });
+
     // ── PR 7d: row-level actions ────────────────────────────────────
     describe('Rename / Duplicate / Active-toggle (PR 7d)', () => {
       it('Rename swaps the row to an inline form and saves with the new name', async () => {
