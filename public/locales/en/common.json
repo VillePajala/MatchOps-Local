@@ -1724,7 +1724,8 @@
     "duplicateFailed": "Could not duplicate the plan. Please try again.",
     "activateAriaLabel": "Set {{name}} as default",
     "deactivateAriaLabel": "Unset {{name}} as default",
-    "activeToggleFailed": "Could not change the default plan. Please try again."
+    "activeToggleFailed": "Could not change the default plan. Please try again.",
+    "exportBundleFailed": "Could not export the tournament plan. Please try again."
   },
   "planningGamePicker": {
     "subtitle": "Pick the games this plan covers. They must share team, period count, and period duration.",
@@ -1811,6 +1812,8 @@
     "versionsLabel": "Versions ({{count}})",
     "versionsActive": "Active",
     "versionsActivate": "Activate",
+    "exportBundle": "Export tournament plan…",
+    "planMenuLabel": "Plan",
     "formation": "Formation",
     "gameCount_one": "{{count}} game",
     "gameCount_other": "{{count}} games",

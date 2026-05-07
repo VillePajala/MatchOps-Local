@@ -356,11 +356,17 @@ describe('Translation File Validation', () => {
       // Planner PR-F-2b fix-pass-2: +1 bundleVersionMissingError
       //   (defense-in-depth setImportError when the picker click
       //   resolves to a name no longer in the bundle).
+      // Planner PR-F-2a: +1 exportBundle key (versions-menu export item).
+      // Planner PR-F-2a fix-pass: +1 planMenuLabel (label adapts to
+      //   single-session export-only case).
+      // Planner PR-F-2a fix-pass-4: +1 exportBundleFailed (surfaces
+      //   the catch-block failure as an inline list error instead of
+      //   a silent log).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the
       // i18n-types.ts assertion below for that distinct number.
-      expect(enKeys.length).toBe(2608);
+      expect(enKeys.length).toBe(2611);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -401,7 +407,10 @@ describe('Translation File Validation', () => {
       //   bundleSelectedWarning).
       // Planner PR-F-2b fix-pass-1: +1 bundleEmptyError.
       // Planner PR-F-2b fix-pass-2: +1 bundleVersionMissingError.
-      expect(fiKeys.length).toBe(2608);
+      // Planner PR-F-2a: +1 exportBundle key (versions-menu export item).
+      // Planner PR-F-2a fix-pass: +1 planMenuLabel.
+      // Planner PR-F-2a fix-pass-4: +1 exportBundleFailed.
+      expect(fiKeys.length).toBe(2611);
     });
   });
 });

@@ -18,8 +18,10 @@ import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import type { ImportedPlan, PlanImportError } from '@/utils/planExport';
 import {
   parsePlanBundle,
+  serializePlanBundle,
   type ImportedPlanBundle,
 } from '@/utils/planBundle';
+import { planningSessionToImportedPlan } from '@/utils/planToExport';
 import type { Player, PlanningSession } from '@/types';
 import type { AppState, SavedGamesCollection } from '@/types/game';
 import PlanningGamePicker, {
@@ -656,6 +658,114 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         },
       },
     );
+  };
+
+  // Build a multi-version bundle from the editing session's family and
+  // trigger a browser download. The active session (if any) becomes the
+  // bundle's currentVersionName so a re-import can reopen on the same
+  // version the coach was last using.
+  //
+  // Precondition: caller wires `onExportBundle={handleExportBundle}`
+  // ONLY when editingSession + savedGames are both truthy (see the
+  // PlanningEditor JSX below). The early-return on an empty
+  // versionFamily is defense-in-depth for an empty editingSession
+  // edge case (versionFamily would otherwise be `[editingSession]`
+  // by the memo's construction, never empty when editingSession is
+  // set — but keeping the guard pays for itself the day a future
+  // refactor changes the memo).
+  const handleExportBundle = () => {
+    if (!editingSession || !savedGames || versionFamily.length === 0) return;
+    const versions: Record<string, ImportedPlan> = {};
+    for (const session of versionFamily) {
+      // Sessions table enforces name uniqueness within a family, but a
+      // stale cache during a rename race could surface two rows with
+      // the same name. Last-write-wins matches the cache state — log
+      // the collision so Sentry can flag the rename race in the wild.
+      if (Object.hasOwn(versions, session.name)) {
+        logger.warn(
+          '[PlanningModal] duplicate version name in export bundle (rename race?)',
+          { name: session.name, sessionId: session.id },
+        );
+      }
+      versions[session.name] = planningSessionToImportedPlan(
+        session,
+        savedGames,
+      );
+    }
+    const active = versionFamily.find((s) => s.isActive) ?? null;
+    // Pin savedAt to the family's MOST RECENT updatedAt so the bundle's
+    // "last saved" timestamp doesn't lie when the user reopens a parent
+    // but has more recently edited a child. ISO 8601 strings sort
+    // lexicographically as chronological, so a sort + last works.
+    // Falls back to editingSession.updatedAt for the (impossible-by-
+    // construction) zero-family case.
+    const familyLatestAt =
+      versionFamily
+        .map((s) => s.updatedAt)
+        .filter((s): s is string => Boolean(s))
+        .sort()
+        .at(-1) ?? editingSession.updatedAt;
+    const json = serializePlanBundle({
+      versions,
+      currentVersionName: active?.name ?? null,
+      savedAt: familyLatestAt,
+    });
+    // File name: parent's name + .matchops-plan.json. Derive parent
+    // from `parentSessionId == null` rather than versionFamily[0] so
+    // a future memo-ordering change can't silently rename the
+    // download. Falls back to editingSession (top-level by
+    // construction when no other parent matches — every session is
+    // either a parent itself or has one in the family).
+    const parent =
+      versionFamily.find((s) => s.parentSessionId == null) ??
+      editingSession;
+    const parentName = parent.name || 'plan';
+    // The character class deliberately ends with `_-` (not `-_`):
+    // inside `[...]`, a `-` between two characters forms a range, so
+    // `0-9-_` would silently parse as `0-9` PLUS the range `- (45) ..
+    // _ (95)`, leaving `.`, `/`, `:`, etc. as "kept" characters. The
+    // working form puts the dash last where it is always literal.
+    // The leading/trailing `-` strip closes a second trap: an
+    // all-special-char name (e.g. `'...'`) collapses to `'-'`, which
+    // is truthy and would make `safe || 'plan'` short-circuit to `-`,
+    // emitting `-.matchops-plan.json` instead of falling back to plan.
+    const safe = parentName
+      .replace(/[^a-z0-9_-]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64);
+    const filename = `${safe || 'plan'}.matchops-plan.json`;
+    // Allocate the object URL outside the try so the finally can
+    // revoke it even if link.click() / removeChild throw — otherwise
+    // the Blob URL leaks until navigation.
+    const url = URL.createObjectURL(
+      new Blob([json], { type: 'application/json' }),
+    );
+    try {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      // Append/click/remove pattern works in every modern browser; some
+      // (Firefox in particular) ignore programmatic clicks on detached
+      // anchors, so the node has to be in the DOM at click time.
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      logger.error('[PlanningModal] export bundle failed', e);
+      // Surface the failure through listErrorMessage so the user sees
+      // it on returning to the saved-sessions list (the editor view
+      // doesn't have a dedicated export-error slot, but this beats
+      // the previous silent-fail path that violated the
+      // production-quality bar in CLAUDE.md).
+      setListErrorMessage(
+        t(
+          'planningModal.exportBundleFailed',
+          'Could not export the tournament plan. Please try again.',
+        ),
+      );
+    } finally {
+      URL.revokeObjectURL(url);
+    }
   };
 
   const handleNewPlan = () => {
@@ -1692,6 +1802,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                   onActivateVersion={handleActivateVersion}
                   isActivatingVersion={setActiveSession.isPending}
                   activationError={activationError}
+                  // Bundle export requires a saved session (and the
+                  // savedGames map for game metadata). Brand-new
+                  // unsaved plans hide the option until first Save.
+                  onExportBundle={
+                    editingSession && savedGames
+                      ? handleExportBundle
+                      : undefined
+                  }
                   // currentTeamId required for Save (the entity is
                   // team-scoped). When absent, Save button is hidden —
                   // user can still Apply but not persist.

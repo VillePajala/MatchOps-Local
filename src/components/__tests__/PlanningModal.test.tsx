@@ -2116,4 +2116,327 @@ describe('PlanningModal', () => {
       );
     });
   });
+
+  describe('Bundle export (PR-F-2a)', () => {
+    // Reopen → Versions ▾ → Export builds the bundle and triggers a
+    // browser download. Test asserts (a) the Blob payload reparses as
+    // a valid bundle, (b) the anchor's download attribute follows the
+    // slug-sanitised filename convention, (c) the active session
+    // becomes the bundle's currentVersionName.
+
+    // Mirror src/utils/exportGames.test.ts's proven download-capture
+    // shape. Spying on URL.createObjectURL / HTMLAnchorElement.prototype
+    // .click via jest.spyOn was silently bypassed in CI's jsdom (the
+    // export handler's catch fired, tripping the global console.error
+    // hook). Mocking document.createElement('a') to return an anchor
+    // with an OWN `click` property (Object.defineProperty) shadows the
+    // prototype method definitively.
+    const setupDownloadCapture = () => {
+      const captured = { blobText: '', anchorDownload: '' };
+
+      const realCreateObjectURL = window.URL.createObjectURL;
+      const realRevokeObjectURL = window.URL.revokeObjectURL;
+      const realCreateElement = document.createElement.bind(document);
+      const realAppendChild = document.body.appendChild.bind(document.body);
+      const realRemoveChild = document.body.removeChild.bind(document.body);
+
+      window.URL.createObjectURL = jest.fn((blob: Blob | MediaSource) => {
+        // FileReader works reliably in jsdom for Blob → string. The
+        // test awaits via waitFor so the onloadend microtask lands
+        // before assertions read captured.blobText.
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          captured.blobText =
+            typeof reader.result === 'string' ? reader.result : '';
+        };
+        reader.readAsText(blob as Blob);
+        return 'blob:mock';
+      }) as typeof URL.createObjectURL;
+      window.URL.revokeObjectURL = jest.fn();
+
+      // Replace createElement so anchors get a stubbed `click` as an
+      // OWN property — definitively masks any throwing prototype-level
+      // click in jsdom and lets us read .download deterministically.
+      // Other tags pass through unchanged.
+      document.createElement = jest.fn((tagName: string, options?) => {
+        const el = realCreateElement(
+          tagName,
+          options as ElementCreationOptions,
+        );
+        if (tagName === 'a') {
+          Object.defineProperty(el, 'click', {
+            value: function () {
+              captured.anchorDownload = (el as HTMLAnchorElement).download;
+            },
+          });
+        }
+        return el;
+      }) as typeof document.createElement;
+
+      // appendChild/removeChild on body are no-ops in this scope — the
+      // anchor is detached, but click is captured before any
+      // navigation could be attempted.
+      document.body.appendChild = jest.fn(
+        (node: Node) => node,
+      ) as typeof document.body.appendChild;
+      document.body.removeChild = jest.fn(
+        (node: Node) => node,
+      ) as typeof document.body.removeChild;
+
+      const restore = () => {
+        window.URL.createObjectURL = realCreateObjectURL;
+        window.URL.revokeObjectURL = realRevokeObjectURL;
+        document.createElement = realCreateElement;
+        document.body.appendChild = realAppendChild;
+        document.body.removeChild = realRemoveChild;
+      };
+      return { captured, restore };
+    };
+
+    it('downloads a bundle with the active session as currentVersionName when Export is clicked', async () => {
+      const parent = buildSession({
+        id: 'p1',
+        name: 'Default',
+        isActive: false,
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Variant A',
+        parentSessionId: 'p1',
+        isActive: true,
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      // Reopen the parent → versionFamily = [parent, child] inside the editor.
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        // Anchor download attribute uses the parent name slug.
+        expect(captured.anchorDownload).toBe('Default.matchops-plan.json');
+        // Wait for the Blob's microtask to land.
+        await waitFor(() => expect(captured.blobText).not.toBe(''));
+        const parsed = JSON.parse(captured.blobText);
+        // formatVersion 2 envelope; currentVersionName picks up the
+        // active child (Variant A), NOT the editing session (parent).
+        expect(parsed.formatVersion).toBe(2);
+        expect(parsed.currentVersionName).toBe('Variant A');
+        expect(Object.keys(parsed.versions).sort()).toEqual([
+          'Default',
+          'Variant A',
+        ]);
+        // Object URL is revoked in the finally block to avoid Blob
+        // memory leaks. Asserting here pins the cleanup so a future
+        // refactor that drops the revoke can't pass silently.
+        expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock');
+      } finally {
+        restore();
+      }
+    });
+
+    it('uses null currentVersionName when no session in the family is active', async () => {
+      const parent = buildSession({
+        id: 'p1',
+        name: 'Default',
+        isActive: false,
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Variant A',
+        parentSessionId: 'p1',
+        isActive: false,
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        await waitFor(() => expect(captured.blobText).not.toBe(''));
+        const parsed = JSON.parse(captured.blobText);
+        expect(parsed.currentVersionName).toBeNull();
+      } finally {
+        restore();
+      }
+    });
+
+    it('sanitises the parent name into the download filename (no path traversal, capped length)', async () => {
+      // Parent name with characters that would break a filename — slug
+      // strips them; long names truncate at 64 chars.
+      const longName = 'A'.repeat(80);
+      const parent = buildSession({
+        id: 'p1',
+        name: `${longName}/../etc/passwd`,
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Child',
+        parentSessionId: 'p1',
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        // Slug regex strips slash/dot, caps to 64 chars, then suffix.
+        // 64 'A's exactly + .matchops-plan.json
+        expect(captured.anchorDownload).toBe(
+          `${'A'.repeat(64)}.matchops-plan.json`,
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it('strips dangerous characters within the 64-char slug window (regex range bug regression)', async () => {
+      // The previous slug regex /[^a-z0-9-_]+/gi inadvertently parsed
+      // `0-9-_` as `0-9` PLUS the range `- (45) .. _ (95)`, leaving
+      // `.` (46), `/` (47), `:`, etc. in the negated class — i.e.
+      // KEPT them. The previous test used a name where the dangerous
+      // chars sat past position 64, so `slice(0, 64)` truncated them
+      // away and the bug was invisible. This test puts `/` and `.`
+      // INSIDE the slug window so a regression resurrecting the bug
+      // would fail here.
+      const parent = buildSession({
+        id: 'p1',
+        name: 'Spring/Fall 2026.v2',
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Child',
+        parentSessionId: 'p1',
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        // Whitespace, slash, dot — every non [a-z0-9_-] run collapses
+        // to a single dash. Trailing chars are NOT stripped (the
+        // regex replaces, doesn't trim), so the suffix attaches
+        // directly to the final segment.
+        expect(captured.anchorDownload).toBe(
+          'Spring-Fall-2026-v2.matchops-plan.json',
+        );
+      } finally {
+        restore();
+      }
+    });
+  });
 });

@@ -147,6 +147,12 @@ export interface PlanningEditorProps {
    * so the user sees it without leaving the editor view. Cleared on
    * the next successful activation. */
   activationError?: string | null;
+  /** Triggers a bundle download of the entire version family (parent +
+   * children) using the standalone planner's `formatVersion: 2`
+   * envelope. Rendered as a top item in the Versions ▾ menu when
+   * provided; the menu otherwise hides the action.
+   */
+  onExportBundle?: () => void;
   /**
    * Save handler — called when the user submits the inline name form.
    * Implementations call `savePlanningSession` and either create or
@@ -256,6 +262,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
   onActivateVersion,
   isActivatingVersion,
   activationError,
+  onExportBundle,
   onSavePlan,
   enableApplyPreview = false,
 }) => {
@@ -1127,10 +1134,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             {t('common.backButton', 'Back')}
           </button>
           <div className="flex items-center gap-3">
-            {/* Versions ▾ dropdown — only renders when there's a family
-                (at least one named copy alongside the parent). A
-                lone session is just "the plan", no menu needed. */}
-            {versions && versions.length > 1 && (
+            {/* Versions ▾ dropdown — renders when there's a family
+                (parent + named copies) OR when export is available
+                (so a lone session can still be downloaded as a 1-entry
+                bundle). The label adapts to which case applies. */}
+            {versions && (versions.length > 1 || onExportBundle) && (
               <div className="relative" ref={versionsMenuRef}>
                 <button
                   type="button"
@@ -1140,9 +1148,11 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                   data-testid="planning-editor-versions-toggle"
                   className="rounded-md bg-slate-700 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-600"
                 >
-                  {t('planningEditor.versionsLabel', 'Versions ({{count}})', {
-                    count: versions.length,
-                  })}{' '}
+                  {versions.length > 1
+                    ? t('planningEditor.versionsLabel', 'Versions ({{count}})', {
+                        count: versions.length,
+                      })
+                    : t('planningEditor.planMenuLabel', 'Plan')}{' '}
                   <HiOutlineChevronDown className="inline-block h-3 w-3" />
                 </button>
                 {versionsOpen && (
@@ -1151,6 +1161,27 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                     data-testid="planning-editor-versions-menu"
                     className="absolute right-0 top-full mt-1 z-20 min-w-[16rem] rounded-md border border-slate-700 bg-slate-900 p-1 shadow-lg"
                   >
+                    {onExportBundle && (
+                      <li
+                        role="menuitem"
+                        className="border-b border-slate-800 pb-1 mb-1"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onExportBundle();
+                            setVersionsOpen(false);
+                          }}
+                          data-testid="planning-editor-versions-export-bundle"
+                          className="block w-full rounded px-2 py-1 text-left text-xs text-slate-200 hover:bg-slate-800/60"
+                        >
+                          {t(
+                            'planningEditor.exportBundle',
+                            'Export tournament plan…',
+                          )}
+                        </button>
+                      </li>
+                    )}
                     {versions.map((v) => {
                       const isCurrent = v.id === editingSessionId;
                       return (
