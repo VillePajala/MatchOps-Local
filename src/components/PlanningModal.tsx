@@ -14,6 +14,7 @@ import {
 // Filled star is absent from `hi2`'s solid set under this name; pulling
 // from v1 keeps the active-toggle's filled/outline pair visually consistent.
 import { HiStar } from 'react-icons/hi';
+import useFocusTrap from '@/hooks/useFocusTrap';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import type { ImportedPlan, PlanImportError } from '@/utils/planExport';
 import {
@@ -198,6 +199,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     isActive: boolean;
     createdAt: string;
   } | null>(null);
+
+  // Modal-level focus trap matches every other full-screen modal in
+  // the app (CloudAuthModal, ReConsentModal, ReverseMigrationWizard).
+  // Without this, Tab/Shift+Tab escapes the dialog into the page
+  // behind the dark scrim — a WCAG 2.4.3 fail.
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, isOpen);
 
   // Saved sessions are scoped to the active team. The query is gated on
   // (isOpen && page === 'list') so it doesn't fetch while the modal is
@@ -1413,11 +1421,22 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
   return (
     <div
+      ref={modalRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="planning-modal-heading"
       className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
       data-testid="planning-modal"
+      onKeyDown={(e) => {
+        // Escape dismisses unless an inline rename input is focused —
+        // its own onKeyDown handler cancels the rename first. Detected
+        // by stopPropagation on the input's Escape, so reaching here
+        // means no rename is open.
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
     >
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -1535,7 +1554,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                       // button to abandon the edit.
                                       onKeyDown={(e) => {
                                         if (e.key === 'Escape') {
+                                          // stopPropagation so the
+                                          // modal-level Escape handler
+                                          // doesn't ALSO fire and close
+                                          // the whole modal — Escape on
+                                          // a rename input cancels the
+                                          // rename first.
                                           e.preventDefault();
+                                          e.stopPropagation();
                                           handleCancelRename();
                                         }
                                       }}

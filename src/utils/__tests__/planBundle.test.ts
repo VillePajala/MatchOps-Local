@@ -284,6 +284,17 @@ describe('parsePlanBundle — bundle path (formatVersion 2)', () => {
     expect(result.error.message).toMatch(/max \d+/);
   });
 
+  it('accepts a bundle with EXACTLY PARSE_BUNDLE_MAX_VERSIONS entries (boundary)', () => {
+    // Off-by-one regression guard: a future refactor swapping `>` for
+    // `>=` would silently reject the documented max.
+    const versions: Record<string, unknown> = {};
+    for (let i = 0; i < PARSE_BUNDLE_MAX_VERSIONS; i++) {
+      versions[`v${i}`] = JSON.parse(JSON.stringify(validV1Envelope()));
+    }
+    const result = parsePlanBundle(JSON.stringify(buildBundleEnvelope({ versions })));
+    expect(result.ok).toBe(true);
+  });
+
   it.each(['__proto__', 'constructor', 'prototype'])(
     'rejects currentVersionName === %s even when no own version of that name exists',
     (reservedName) => {

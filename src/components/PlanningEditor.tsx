@@ -1327,6 +1327,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                     'planningEditor.tabIncludeLabel',
                     'Include this game in totals',
                   )}
+                  // aria-label so screen readers announce a per-tab
+                  // accessible name; the title= alone is mouse-only.
+                  aria-label={t(
+                    'planningEditor.tabIncludeAriaLabel',
+                    'Include {{name}} in totals',
+                    { name: opponent },
+                  )}
                   data-testid={`planning-editor-game-tab-include-${gid}`}
                   onClick={(e) => e.stopPropagation()}
                 />
@@ -1335,7 +1342,13 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
                   onClick={() => setSelectedGameId(gid)}
                   className="flex flex-col items-start text-left leading-tight"
                   role="tab"
+                  // ARIA tabs need an id so the panel can label itself
+                  // back via aria-labelledby. aria-controls links the
+                  // tab to the pitch panel rendered below.
+                  id={`planning-editor-tab-${gid}`}
+                  aria-controls="planning-editor-tabpanel"
                   aria-selected={isActive}
+                  tabIndex={isActive ? 0 : -1}
                 >
                   <span className="font-semibold">
                     {t('planningEditor.tabGameLabel', 'Game {{n}}', { n: idx + 1 })}
