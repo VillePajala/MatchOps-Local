@@ -40,6 +40,7 @@ import {
 import type { PlanDraft } from '@/utils/planSwapEngine';
 import { planDraftFromImport } from '@/utils/planFromImport';
 import { getPresetById } from '@/config/formationPresets';
+import { PLANNING_SESSION_NAME_MAX } from '@/datastore/validation';
 
 type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
 
@@ -1466,6 +1467,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                         }
                                       }}
                                       autoFocus
+                                      // Mirrors validatePlanningSession's
+                                      // 200-char cap so the input can't
+                                      // produce a name that the save
+                                      // path would reject.
+                                      maxLength={PLANNING_SESSION_NAME_MAX}
                                       className="flex-1 rounded-md bg-slate-900/60 border border-slate-700 px-2 py-1 text-sm text-slate-100"
                                       aria-label={t(
                                         'planningModal.renameInputAriaLabel',

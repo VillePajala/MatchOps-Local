@@ -14,12 +14,12 @@ import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import logger from '@/utils/logger';
 
-const PLANNING_SESSION_NAME_MAX = 200;
+export const PLANNING_SESSION_NAME_MAX = 200;
 // Mirrors the cap enforced by LocalDataStore.setActiveSession AND
 // migration 036's RPC. Without this the validator silently accepts
 // sessions that fail at activation time, leaving the user with no
 // signal that the save itself was the problem.
-const PLANNING_SESSION_GAME_IDS_MAX = 100;
+export const PLANNING_SESSION_GAME_IDS_MAX = 100;
 
 const SCHEDULED_SUB_STATUSES: readonly ScheduledSubStatus[] = ['pending', 'fired', 'skipped'];
 
@@ -630,7 +630,6 @@ export const validatePlanningSession = (
   }
 };
 
-export { PLANNING_SESSION_NAME_MAX, PLANNING_SESSION_GAME_IDS_MAX };
 
 /**
  * Separator for sortedGameIdsKey. NUL byte was chosen over space so

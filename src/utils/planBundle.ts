@@ -131,6 +131,9 @@ export function parsePlanBundle(raw: string): BundleImportResult {
     out[name] = inner.plan;
   }
 
+  // currentVersionName missing from parsed JSON → null ("no preferred
+  // version, consumer picks first"). Distinct from explicit null
+  // (still "no preference") which we let through unchanged below.
   let currentVersionName: string | null = null;
   if (parsed.currentVersionName !== undefined) {
     if (parsed.currentVersionName === null) {

@@ -23,6 +23,7 @@ import {
   type PlayerId,
   type SwapTarget,
 } from '@/utils/planSwapEngine';
+import { PLANNING_SESSION_NAME_MAX } from '@/datastore/validation';
 import {
   applyDraftToGame,
   roleForCoord,
@@ -1733,6 +1734,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
             // Auto-focus on form open so the user can start typing
             // immediately without an extra click.
             autoFocus
+            // maxLength matches validatePlanningSession's cap so the
+            // user can't type past the limit and hit a generic save
+            // failure with no explanation.
+            maxLength={PLANNING_SESSION_NAME_MAX}
             className="w-full rounded-md bg-slate-900/60 border border-slate-700 px-2 py-1 text-sm text-slate-100 disabled:opacity-60"
             data-testid="planning-editor-save-name"
           />

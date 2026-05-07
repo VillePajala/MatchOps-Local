@@ -4406,8 +4406,19 @@ export class SupabaseDataStore implements DataStore {
           .eq('id', session.id as string)
           .eq('user_id', userId)
           .maybeSingle();
+        // PGRST116 = "row not found" — legitimate (new session, no
+        // prior createdAt to preserve), so we fall through to the
+        // `?? now` fallback below. ANY OTHER error (auth failure,
+        // schema drift, RLS rejection) must NOT be silently swallowed
+        // — throwing here surfaces the real failure instead of
+        // resolvedCreatedAt landing on `now` and overwriting whatever
+        // the row would actually have read.
         if (result.error && result.error.code !== 'PGRST116') {
           throwIfTransient(result);
+          this.classifyAndThrowError(
+            result.error,
+            'Failed to fetch existing planning session createdAt',
+          );
         }
         return result;
       }, 'savePlanningSession-fetchCreatedAt');
