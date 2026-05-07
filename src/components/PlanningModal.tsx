@@ -799,6 +799,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // single planning session for the picked version.
   const handleSelectBundleVersion = (versionName: string) => {
     if (!importedBundle) return;
+    // If the user previously hit "Import all" with no active team and
+    // saw familyImportError, clear it on pivot to single-version so a
+    // stale error doesn't linger alongside the single-version flow.
+    setFamilyImportError(null);
     const plan = importedBundle.versions[versionName];
     if (!plan) {
       // Unreachable today — buttons render from
@@ -867,7 +871,6 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setImportedPlan(null);
     setBundleSourceMeta(null);
     setImportHandoffError(null);
-    setEditorEntryPage('list');
     setPage('picker');
   };
 
@@ -960,9 +963,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           isActive: false,
         });
       }
-      // Success — clear handoff and surface the list view.
+      // Success — clear handoff and surface the list view. The query
+      // invalidation in saveSession's onSuccess refreshes the list so
+      // the new family appears.
       setPendingFamilyImport(null);
-      setEditorGameIds([]);
       setPage('list');
     } catch (e) {
       logger.error('[PlanningModal] family-import save failed', e);

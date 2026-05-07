@@ -868,6 +868,49 @@ describe('PlanningModal', () => {
         ).toBeInTheDocument();
       });
 
+      it('clears the no-team error when the user pivots from Import-all to a single-version row', async () => {
+        // Pass-1 review fix: familyImportError persisted alongside the
+        // single-version flow if the user pivoted after seeing the
+        // no-team error. The single-version handler now clears it.
+        renderModal({ savedGames: { g1: asSavedGame({ teamId: 't1', teamName: 'Pepo', opponentName: 'Opp', gameDate: '2026-04-30', numberOfPeriods: 2, periodDurationMinutes: 25 }) } });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope({
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope(),
+            }),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        // Trigger the no-team error.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        expect(
+          screen.getByTestId('planning-modal-family-import-error'),
+        ).toBeInTheDocument();
+        // Pivot: pick a single version. Error should clear.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-version-button-Default'),
+          );
+        });
+        expect(
+          screen.queryByTestId('planning-modal-family-import-error'),
+        ).not.toBeInTheDocument();
+      });
+
       it('routes Import-all → game picker → family save (parent + children, primary marked active)', async () => {
         const savedGames: SavedGamesCollection = {
           g1: asSavedGame({
