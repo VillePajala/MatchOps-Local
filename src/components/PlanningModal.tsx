@@ -677,10 +677,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     if (!editingSession || !savedGames || versionFamily.length === 0) return;
     const versions: Record<string, ImportedPlan> = {};
     for (const session of versionFamily) {
-      // Skip duplicate names defensively — sessions table enforces
-      // uniqueness within a family, but a stale cache during a rename
-      // race could surface two rows with the same name. Last-write
-      // wins matches the cache state.
+      // Sessions table enforces name uniqueness within a family, but a
+      // stale cache during a rename race could surface two rows with
+      // the same name. Last-write-wins matches the cache state — log
+      // the collision so Sentry can flag the rename race in the wild.
+      if (Object.hasOwn(versions, session.name)) {
+        logger.warn(
+          '[PlanningModal] duplicate version name in export bundle (rename race?)',
+          { name: session.name, sessionId: session.id },
+        );
+      }
       versions[session.name] = planningSessionToImportedPlan(
         session,
         savedGames,

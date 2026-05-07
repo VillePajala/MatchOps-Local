@@ -4,6 +4,7 @@ import type { ImportedPlan, ImportedPlanGame } from './planExport';
 import { PLAN_EXPORT_KIND, PLAN_FORMAT_VERSION } from './planExport';
 import { gameDurationSec } from './planFormatters';
 import type { PlanDraft } from './planSwapEngine';
+import logger from './logger';
 
 interface ToExportOptions {
   /** Override the team name. Defaults to the first saved-game's teamName. */
@@ -42,8 +43,15 @@ function buildScheduledSubsForExport(
     // requires a non-empty player id), so the entire bundle would
     // fail to round-trip. The planner UI keeps these in sync, but a
     // future role-rename or imported-then-edited plan could leave the
-    // sub orphaned. Quietly skip rather than break the whole export.
-    if (!draft.startingXI[role]) continue;
+    // sub orphaned. Skip the sub but log so Sentry can flag the
+    // data-integrity drop in the wild.
+    if (!draft.startingXI[role]) {
+      logger.warn('[planToExport] dropping orphaned scheduled sub', {
+        role,
+        subIds: subs.map((s) => s.id),
+      });
+      continue;
+    }
     const sorted = [...subs].sort((a, b) => a.timeSeconds - b.timeSeconds);
     let curPlayer = draft.startingXI[role];
     for (const s of sorted) {
