@@ -286,12 +286,18 @@ describe('parsePlanBundle — bundle path (formatVersion 2)', () => {
 
   it('accepts a bundle with EXACTLY PARSE_BUNDLE_MAX_VERSIONS entries (boundary)', () => {
     // Off-by-one regression guard: a future refactor swapping `>` for
-    // `>=` would silently reject the documented max.
+    // `>=` would silently reject the documented max. currentVersionName
+    // override pins to v0 so the bundle's "must reference a real
+    // version" check doesn't fire — this test is about the count cap.
     const versions: Record<string, unknown> = {};
     for (let i = 0; i < PARSE_BUNDLE_MAX_VERSIONS; i++) {
       versions[`v${i}`] = JSON.parse(JSON.stringify(validV1Envelope()));
     }
-    const result = parsePlanBundle(JSON.stringify(buildBundleEnvelope({ versions })));
+    const result = parsePlanBundle(
+      JSON.stringify(
+        buildBundleEnvelope({ versions, currentVersionName: 'v0' }),
+      ),
+    );
     expect(result.ok).toBe(true);
   });
 
