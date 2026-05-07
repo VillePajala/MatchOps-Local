@@ -4570,7 +4570,13 @@ export class SupabaseDataStore implements DataStore {
     if (rows.length === 0) {
       return null;
     }
-    return this.transformPlanningSessionFromDb(rows[0]);
+    const session = this.transformPlanningSessionFromDb(rows[0]);
+    // Validate the round-trip just like getPlanningSessions does. The
+    // RPC body returns a clean row in practice, but a future schema
+    // drift mustn't propagate to the caller without surfacing — keeps
+    // the DataStore interface uniformly safe across read paths.
+    validatePlanningSession(session);
+    return session;
   }
 
   async upsertPlanningSession(session: PlanningSession): Promise<PlanningSession> {

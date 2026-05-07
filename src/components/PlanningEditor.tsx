@@ -785,10 +785,17 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
     setSaveError(null);
     setSaveMode('new-copy');
     const base = (initialName ?? '').trim();
+    // The " — copy" suffix is 7 chars — slice the base so the
+    // pre-filled name never exceeds PLANNING_SESSION_NAME_MAX (200).
+    // The input's maxLength prevents the user from typing past 200,
+    // but React doesn't clip a programmatically set `value`; without
+    // this slice, an unedited submit on a 194+ char base name would
+    // hit ValidationError with no hint about the cause.
+    const safeBase = base.slice(0, PLANNING_SESSION_NAME_MAX - 7);
     setSavePlanName(
-      base
+      safeBase
         ? t('planningEditor.saveAsNewCopyDefault', '{{name}} — copy', {
-            name: base,
+            name: safeBase,
           })
         : '',
     );

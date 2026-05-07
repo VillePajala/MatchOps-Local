@@ -167,7 +167,12 @@ export function parsePlanBundle(raw: string): BundleImportResult {
     bundle: {
       formatVersion: PLAN_BUNDLE_FORMAT_VERSION,
       kind: PLAN_EXPORT_KIND,
-      ...(typeof parsed.savedAt === 'string'
+      // savedAt must be a string AND parse to a real timestamp —
+      // hand-crafted bundles with `savedAt: "not-a-date"` would
+      // otherwise produce `Invalid Date` in the UI's display + ISO
+      // sort comparisons.
+      ...(typeof parsed.savedAt === 'string' &&
+      !Number.isNaN(new Date(parsed.savedAt).getTime())
         ? { savedAt: parsed.savedAt }
         : {}),
       currentVersionName,

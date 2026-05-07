@@ -570,10 +570,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         // is also omitted on purpose so the DataStore stamps a fresh
         // timestamp for the new copy rather than carrying the original's.
         teamId: session.teamId,
+        // The "(copy)" suffix is 7 chars — slice the base so the
+        // resulting name never exceeds PLANNING_SESSION_NAME_MAX
+        // (200). Without this, duplicating a 194+ char name would
+        // produce a 201+ char string that validatePlanningSession
+        // rejects, surfaced as the generic duplicateFailed message
+        // with no character-limit hint.
         name: t(
           'planningModal.duplicateNameSuffix',
           '{{name}} (copy)',
-          { name: session.name },
+          { name: session.name.slice(0, PLANNING_SESSION_NAME_MAX - 7) },
         ),
         gameIds: [...session.gameIds],
         draft: session.draft,
