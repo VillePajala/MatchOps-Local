@@ -1839,37 +1839,40 @@ describe('PlanningModal', () => {
     // becomes the bundle's currentVersionName.
 
     const setupDownloadCapture = () => {
-      // jsdom's URL.createObjectURL is a no-op stub, so we wrap it to
-      // capture the Blob. Restored in afterEach.
+      // jsdom's URL.createObjectURL is "Not implemented" by default — a
+      // direct property assignment can be silently rejected if the
+      // descriptor is non-writable, leaving handleExportBundle's catch
+      // path to fire with logger.error, which the global setupTests
+      // hook treats as a test failure. jest.spyOn handles both the
+      // missing-method and non-writable cases by going through the
+      // property descriptor.
       const captured = { blobText: '', anchorDownload: '' };
-      const realCreate = URL.createObjectURL;
-      const realRevoke = URL.revokeObjectURL;
-      URL.createObjectURL = jest.fn((blob: Blob | MediaSource) => {
-        // jsdom's Blob doesn't expose .text() synchronously, but the
-        // constructor stores the parts on a private slot — easiest is
-        // to subclass via a constructor wrapper. Here we cast to any
-        // and read the parts off the Blob's `_buffer`-ish slot is
-        // brittle, so instead intercept Blob construction: PlanningModal
-        // builds `new Blob([json], …)`. Read the JSON via the standard
-        // text() API at click time below.
-        (blob as Blob).text().then((t) => {
-          captured.blobText = t;
+      const createSpy = jest
+        .spyOn(URL, 'createObjectURL')
+        .mockImplementation((blob: Blob | MediaSource) => {
+          // Read Blob.text() asynchronously; the test awaits via
+          // waitFor to let the microtask resolve.
+          (blob as Blob).text().then((t) => {
+            captured.blobText = t;
+          });
+          return 'blob:mock';
         });
-        return 'blob:mock';
-      }) as unknown as typeof URL.createObjectURL;
-      URL.revokeObjectURL = jest.fn();
+      const revokeSpy = jest
+        .spyOn(URL, 'revokeObjectURL')
+        .mockImplementation(() => undefined);
 
-      // Capture the anchor's download attribute by stubbing
-      // HTMLAnchorElement.click — by then the attribute is set.
-      const realAnchorClick = HTMLAnchorElement.prototype.click;
-      HTMLAnchorElement.prototype.click = function () {
-        captured.anchorDownload = this.download;
-      };
+      // anchor.click triggers a navigation in jsdom; spy + replace
+      // captures the download attribute set just before the click.
+      const clickSpy = jest
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          captured.anchorDownload = this.download;
+        });
 
       const restore = () => {
-        URL.createObjectURL = realCreate;
-        URL.revokeObjectURL = realRevoke;
-        HTMLAnchorElement.prototype.click = realAnchorClick;
+        createSpy.mockRestore();
+        revokeSpy.mockRestore();
+        clickSpy.mockRestore();
       };
       return { captured, restore };
     };
