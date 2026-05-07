@@ -97,6 +97,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // state entirely (importedPlan goes straight to the success card).
   const [importedBundle, setImportedBundle] =
     useState<ImportedPlanBundle | null>(null);
+  // Family-import handoff (PR-F-2c): when the user clicks "Import all
+  // versions" on the bundle picker, the bundle is stashed here while
+  // they pick the game-binding once. handlePickerContinue branches on
+  // this so a family-import doesn't fall into the single-session
+  // editor flow.
+  const [pendingFamilyImport, setPendingFamilyImport] =
+    useState<ImportedPlanBundle | null>(null);
+  const [familyImportError, setFamilyImportError] = useState<string | null>(
+    null,
+  );
   // Records that the active importedPlan came from a bundle and how
   // many siblings were left behind. Surfaced as a warning on the
   // success card so the user knows other versions exist; null for
@@ -311,6 +321,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     setImportError(null);
     setImportedBundle(null);
     setBundleSourceMeta(null);
+    setPendingFamilyImport(null);
+    setFamilyImportError(null);
   };
 
   const resetAllModalState = () => {
@@ -817,9 +829,152 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // Picker's validation already blocks Continue on empty selection;
     // guarding here makes the contract explicit at the call site.
     if (gameIds.length === 0) return;
+    // Family-import branch: the picker is being used to bind a whole
+    // imported bundle's game set in one step. Skip the editor and
+    // create parent + N children directly. (Editor open on import is
+    // a per-version flow; family import lands on the list view so
+    // the user can see all created versions and pick one to open.)
+    if (pendingFamilyImport) {
+      void handleImportFamilyContinue(pendingFamilyImport, gameIds);
+      return;
+    }
     setEditorGameIds(gameIds);
     setEditorEntryPage('picker');
     setPage('editor');
+  };
+
+  // "Import all" path from the bundle picker. Stashes the bundle,
+  // clears any single-version handoff state, then routes to the game
+  // picker so the user picks the game-binding ONCE for the whole
+  // family. Continue → handlePickerContinue → handleImportFamilyContinue.
+  const handleImportAllFromBundle = () => {
+    if (!importedBundle) return;
+    if (!currentTeamId) {
+      // Family-import requires a team scope (planning_sessions are
+      // team-scoped). Without it we can't create the rows.
+      setFamilyImportError(
+        t(
+          'planningModal.familyImportNoTeamError',
+          'Pick an active team before importing a tournament plan.',
+        ),
+      );
+      return;
+    }
+    setPendingFamilyImport(importedBundle);
+    // Clear the single-version slot so the success card can't render
+    // alongside the picker — and so a back-out cleanly resets.
+    setImportedBundle(null);
+    setImportedPlan(null);
+    setBundleSourceMeta(null);
+    setImportHandoffError(null);
+    setEditorEntryPage('list');
+    setPage('picker');
+  };
+
+  // Save parent + N-1 children for a multi-version bundle import. The
+  // "primary" version (currentVersionName from the envelope, or the
+  // first key) becomes the parent; remaining versions become children
+  // of that parent. Saves are sequential — the parent must land first
+  // so children get its real id. Failures mid-loop leave any
+  // already-saved rows in place; the user sees the import error and
+  // can retry from the list view.
+  const handleImportFamilyContinue = async (
+    bundle: ImportedPlanBundle,
+    gameIds: string[],
+  ) => {
+    if (!currentTeamId) return;
+    setFamilyImportError(null);
+    const entries = Object.entries(bundle.versions);
+    if (entries.length === 0) {
+      // parsePlanBundle guard already rejects 0-version bundles, but
+      // defense-in-depth.
+      setListErrorMessage(
+        t(
+          'planningModal.bundleEmptyError',
+          'This bundle has no versions to import.',
+        ),
+      );
+      setPendingFamilyImport(null);
+      setPage('list');
+      return;
+    }
+    // Pick primary: currentVersionName if it's still in versions, else
+    // the first entry. Object.hasOwn (not `in`) guards against
+    // prototype keys — parsePlanBundle already rejects them on the
+    // way in, but the defense costs nothing.
+    const primaryName =
+      bundle.currentVersionName != null &&
+      Object.hasOwn(bundle.versions, bundle.currentVersionName)
+        ? bundle.currentVersionName
+        : entries[0][0];
+    const primaryPlan = bundle.versions[primaryName];
+    const childEntries = entries.filter(([n]) => n !== primaryName);
+
+    // Build the per-game draft for the primary first; reuse for
+    // children if their startingXI/scheduledSubs aren't divergent.
+    // (Each version still gets its own per-game draft below.)
+    const buildDrafts = (
+      plan: typeof primaryPlan,
+    ): Record<string, PlanDraft> => {
+      const presetMatch = plan.formationId
+        ? getPresetById(plan.formationId)
+        : undefined;
+      // The standalone planner authored each version against its own
+      // startingXI/scheduledSubs; the per-game-id mapping comes from
+      // the bound gameIds. The first imported game's entries seed
+      // every selected game (the standalone treats versions as
+      // tournament-wide). Per-game divergence happens in the editor.
+      const importedFirstGame = plan.games[0];
+      if (!importedFirstGame) return {};
+      const { draft } = planDraftFromImport(
+        importedFirstGame,
+        roster,
+        presetMatch?.id,
+      );
+      const drafts: Record<string, PlanDraft> = {};
+      for (const gid of gameIds) drafts[gid] = draft;
+      return drafts;
+    };
+
+    try {
+      const primaryDraft = buildDrafts(primaryPlan);
+      const primarySaved = await saveSession.mutateAsync({
+        teamId: currentTeamId,
+        name: primaryName,
+        gameIds,
+        draft: primaryDraft,
+        // Mark primary active so the family has a default version
+        // resolvable at apply time. setActiveSession would do the
+        // same atomically post-save, but landing it on the create
+        // saves a round-trip.
+        isActive: true,
+      });
+      for (const [childName, childPlan] of childEntries) {
+        const childDraft = buildDrafts(childPlan);
+        await saveSession.mutateAsync({
+          teamId: currentTeamId,
+          name: childName,
+          gameIds,
+          draft: childDraft,
+          parentSessionId: primarySaved.id,
+          isActive: false,
+        });
+      }
+      // Success — clear handoff and surface the list view.
+      setPendingFamilyImport(null);
+      setEditorGameIds([]);
+      setPage('list');
+    } catch (e) {
+      logger.error('[PlanningModal] family-import save failed', e);
+      setListErrorMessage(
+        t(
+          'planningModal.familyImportFailed',
+          'Could not import the tournament plan. Please try again.',
+        ),
+      );
+      setPendingFamilyImport(null);
+      setPage('list');
+    }
   };
 
   // Hands an imported standalone plan off to the editor: derive a
@@ -1542,6 +1697,41 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                           'planningModal.bundlePickerSubtitle',
                           'This file contains {{count}} versions. Pick one to load — the others stay in the file.',
                           { count: sortedBundleVersions.length },
+                        )}
+                      </p>
+                      {/* "Import all" sits above the per-version rows
+                          when there are 2+ versions — shorter
+                          friction path for the common "save the
+                          whole tournament family" flow. Hidden for
+                          1-version bundles since the auto-advance
+                          path already handles that case. */}
+                      <div className="flex flex-col gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleImportAllFromBundle}
+                          data-testid="planning-modal-bundle-import-all"
+                          className="rounded bg-sky-700/40 px-2 py-1.5 text-left text-sm text-sky-50 hover:bg-sky-600/60"
+                        >
+                          {t(
+                            'planningModal.bundleImportAll',
+                            'Import all {{count}} versions as a family →',
+                            { count: sortedBundleVersions.length },
+                          )}
+                        </button>
+                        {familyImportError && (
+                          <p
+                            role="alert"
+                            data-testid="planning-modal-family-import-error"
+                            className="text-xs text-rose-300"
+                          >
+                            {familyImportError}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-sky-200/60">
+                        {t(
+                          'planningModal.bundleImportAllOrPickOne',
+                          'Or pick a single version:',
                         )}
                       </p>
                       <ul

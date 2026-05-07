@@ -362,11 +362,14 @@ describe('Translation File Validation', () => {
       // Planner PR-F-2a fix-pass-4: +1 exportBundleFailed (surfaces
       //   the catch-block failure as an inline list error instead of
       //   a silent log).
+      // Planner PR-F-2c: +4 family-import keys (bundleImportAll,
+      //   bundleImportAllOrPickOne, familyImportNoTeamError,
+      //   familyImportFailed).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the
       // i18n-types.ts assertion below for that distinct number.
-      expect(enKeys.length).toBe(2611);
+      expect(enKeys.length).toBe(2615);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -410,7 +413,8 @@ describe('Translation File Validation', () => {
       // Planner PR-F-2a: +1 exportBundle key (versions-menu export item).
       // Planner PR-F-2a fix-pass: +1 planMenuLabel.
       // Planner PR-F-2a fix-pass-4: +1 exportBundleFailed.
-      expect(fiKeys.length).toBe(2611);
+      // Planner PR-F-2c: +4 family-import keys.
+      expect(fiKeys.length).toBe(2615);
     });
   });
 });

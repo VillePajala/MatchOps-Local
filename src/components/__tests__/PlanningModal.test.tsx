@@ -798,6 +798,299 @@ describe('PlanningModal', () => {
       );
       expect(names).toEqual(['Alpha', 'Mike', 'Zebra']);
     });
+
+    describe('family-import (PR-F-2c)', () => {
+      // The "Import all versions" button on the bundle picker stashes
+      // the bundle, routes through the game-picker once, and creates
+      // parent + N-1 children sequentially. Tests the full chain.
+
+      it('shows the Import-all button on the bundle picker for 2+-version bundles', async () => {
+        renderModal();
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope({
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope(),
+            }),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        // Label includes the version count.
+        const btn = screen.getByTestId('planning-modal-bundle-import-all');
+        expect(btn.textContent ?? '').toMatch(/2/);
+      });
+
+      it('blocks Import-all when no team is active and shows the error inline', async () => {
+        // planning_sessions are team-scoped — without a team the
+        // family-import has no rowscope. Surface that as an inline
+        // alert next to the button rather than silently failing.
+        renderModal({ savedGames: { g1: asSavedGame({ teamId: 't1', teamName: 'Pepo', opponentName: 'Opp', gameDate: '2026-04-30', numberOfPeriods: 2, periodDurationMinutes: 25 }) } });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope({
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope(),
+            }),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        expect(
+          screen.getByTestId('planning-modal-family-import-error'),
+        ).toBeInTheDocument();
+        // Picker stays open so the user can recover by closing and
+        // reopening with a team.
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+
+      it('routes Import-all → game picker → family save (parent + children, primary marked active)', async () => {
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                Default: versionEnvelope(),
+                'Variant A': versionEnvelope(),
+              },
+              'Default',
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        // Picker shown, bundle picker gone.
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        expect(
+          screen.queryByTestId('planning-modal-bundle-picker'),
+        ).not.toBeInTheDocument();
+        // Pick the saved game and Continue.
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        // Two saves: parent (currentVersionName='Default', isActive=true)
+        // followed by child ('Variant A', parentSessionId=parent.id).
+        await waitFor(() => {
+          expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
+        });
+        const calls = mockSaveMutateAsync.mock.calls.map((c) => c[0]);
+        const parentCall = calls[0];
+        const childCall = calls[1];
+        expect(parentCall).toMatchObject({
+          name: 'Default',
+          teamId: 'team_a',
+          gameIds: ['g1'],
+          isActive: true,
+        });
+        // Parent shouldn't carry a parentSessionId.
+        expect((parentCall as { parentSessionId?: string }).parentSessionId).toBeUndefined();
+        expect(childCall).toMatchObject({
+          name: 'Variant A',
+          teamId: 'team_a',
+          gameIds: ['g1'],
+          isActive: false,
+        });
+        // Child must reference the parent's id (the mock returns
+        // 'planningSession_new' for the first save).
+        expect((childCall as { parentSessionId?: string }).parentSessionId).toBe(
+          'planningSession_new',
+        );
+      });
+
+      it('falls back to the first version key when currentVersionName is missing from the bundle', async () => {
+        // Defense-in-depth: if the bundle envelope's currentVersionName
+        // doesn't resolve to a real version (corrupt / hand-edited),
+        // family-import should still pick a primary rather than fail.
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        // currentVersionName: null (or missing) → fall back to first
+        // sorted entry. parsePlanBundle sorts alphabetically on
+        // PlanningModal's render side; on the IMPORT side bundleEnvelope
+        // emits in insertion order. The handler reads
+        // Object.entries(bundle.versions) directly, which preserves
+        // insertion order.
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                FirstByInsertion: versionEnvelope(),
+                Other: versionEnvelope(),
+              },
+              null,
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        await waitFor(() => {
+          expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
+        });
+        // First entry by insertion order = primary = parent.
+        expect(mockSaveMutateAsync.mock.calls[0][0]).toMatchObject({
+          name: 'FirstByInsertion',
+          isActive: true,
+        });
+      });
+
+      it('surfaces a list-view error and lands on list when a save throws mid-loop', async () => {
+        // Simulate a partial-failure: parent saves, child throws.
+        // Expectation: listErrorMessage shown, page=list, NO crash,
+        // pendingFamilyImport cleared.
+        mockSaveMutateAsync
+          .mockResolvedValueOnce({
+            ...buildSession(),
+            id: 'parent_id',
+            name: 'Default',
+          })
+          .mockRejectedValueOnce(new Error('network down'));
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                Default: versionEnvelope(),
+                'Variant A': versionEnvelope(),
+              },
+              'Default',
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        // Both saves attempted; second rejected.
+        await waitFor(() => {
+          expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
+        });
+        await waitFor(() => {
+          expect(
+            screen.getByText(
+              /Could not import the tournament plan|Turnaussuunnitelman tuonti epäonnistui/i,
+            ),
+          ).toBeInTheDocument();
+        });
+      });
+    });
   });
 
   it('shows the New plan button on the list page', () => {
