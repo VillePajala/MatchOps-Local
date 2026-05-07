@@ -261,6 +261,65 @@ describe('validatePlanningSession', () => {
     );
   });
 
+  it('rejects gameIds longer than PLANNING_SESSION_GAME_IDS_MAX (DoS guard)', () => {
+    // Mirrors migration 036's RPC cap. A backup-restore over 100 would
+    // corrupt activation downstream because RPC scope-matching uses
+    // canonical_game_ids and the cap is enforced server-side.
+    const overcap = Array.from({ length: 101 }, (_, i) => `g${i}`);
+    const draft: PlanningSession['draft'] = {};
+    for (const gid of overcap) {
+      draft[gid] = { startingXI: {}, bench: [], scheduledSubs: [] };
+    }
+    expect(() =>
+      validatePlanningSession(baseSession({ gameIds: overcap, draft })),
+    ).toThrow(/gameIds cannot exceed 100/);
+  });
+
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'rejects reserved role key "%s" in startingXI (prototype-pollution defense)',
+    (badKey) => {
+      const session = baseSession();
+      // Cast through unknown — the type forbids the bad keys but the
+      // sync/upsert path can construct them from raw JSON.
+      session.draft.g1.startingXI = {
+        [badKey]: 'p1',
+      } as unknown as PlanningSession['draft'][string]['startingXI'];
+      expect(() => validatePlanningSession(session)).toThrow(
+        /startingXI uses reserved role key/,
+      );
+    },
+  );
+
+  it('rejects startingXI duplicating a playerId across roles', () => {
+    const session = baseSession();
+    session.draft.g1.startingXI = { GK: 'p1', LB: 'p1' };
+    expect(() => validatePlanningSession(session)).toThrow(
+      /startingXI duplicates playerId "p1"/,
+    );
+  });
+
+  it('rejects a player appearing in both startingXI and bench', () => {
+    const session = baseSession();
+    session.draft.g1.startingXI = { GK: 'p1', LB: 'p2' };
+    session.draft.g1.bench = ['p1', 'p3'];
+    expect(() => validatePlanningSession(session)).toThrow(
+      /player "p1" appears in both startingXI and bench/,
+    );
+  });
+
+  it('rejects scheduledSubs longer than SCHEDULED_SUBS_MAX per draft (DoS guard)', () => {
+    const session = baseSession();
+    session.draft.g1.scheduledSubs = Array.from({ length: 501 }, (_, i) => ({
+      id: `sub_${i}`,
+      timeSeconds: i * 10,
+      inPlayer: 'p3',
+      positionRole: 'LB',
+    }));
+    expect(() => validatePlanningSession(session)).toThrow(
+      /scheduledSubs cannot exceed 500/,
+    );
+  });
+
   it('rejects a non-object draft value', () => {
     expect(() =>
       validatePlanningSession({

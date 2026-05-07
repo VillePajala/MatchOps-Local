@@ -1115,6 +1115,14 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
       includedGameIds === undefined ? true : includedGameIds.includes(gid),
     [includedGameIds],
   );
+  // Memoised included subset for the dashboard prop. Without this, a
+  // fresh array every render breaks PlanningMinutesDashboard's
+  // useMemo dep on `gameIds`, re-running aggregatePlanMinutes
+  // unnecessarily.
+  const includedGameIdsList = useMemo(
+    () => gameIds.filter(isGameIncluded),
+    [gameIds, isGameIncluded],
+  );
   const toggleGameIncluded = useCallback(
     (gid: string) => {
       setIncludedGameIds((prev) => {
@@ -1260,8 +1268,10 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
               <span
                 data-testid="planning-editor-saved-indicator"
                 className="text-xs text-emerald-300"
+                role="status"
+                aria-live="polite"
               >
-                ✓{' '}
+                <span aria-hidden="true">✓ </span>
                 {t('planningEditor.savedAt', 'Saved {{time}}', {
                   time: new Date(lastSavedAt).toLocaleTimeString(),
                 })}
@@ -1641,7 +1651,7 @@ const PlanningEditor: React.FC<PlanningEditorProps> = ({
 
       <PlanningMinutesDashboard
         draft={drafts}
-        gameIds={gameIds.filter(isGameIncluded)}
+        gameIds={includedGameIdsList}
         savedGames={savedGames}
         roster={roster}
         highlightedPlayerIds={highlightedPlayerIds}

@@ -102,7 +102,11 @@ const PlanningMinutesDashboard: React.FC<PlanningMinutesDashboardProps> = ({
       [...aggregate.perPlayer].sort(
         (a, b) => a.totalSeconds - b.totalSeconds,
       ),
-    [aggregate],
+    // Narrowed dep: `aggregate.perPlayer` is referentially stable when
+    // the underlying draft/games/included-set didn't change. Depending
+    // on the whole `aggregate` object re-ran the sort on every render
+    // because the wrapping object is freshly allocated each call.
+    [aggregate.perPlayer],
   );
 
   // Hoisted out of the per-row map so it's a single comparison per

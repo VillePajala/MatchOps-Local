@@ -2,9 +2,21 @@
 
 import type { DraftScheduledSub, PlanDraft, PlayerId, RoleName } from './planSwapEngine';
 
+// Memoise the sub-grouping by `scheduledSubs` array identity. ChipGrid
+// + Timeline call getRoleSegments for every role × every game on every
+// render; rebuilding + sorting the Map per call is the documented
+// hot-loop perf bug. WeakMap so memoisation entries vanish when the
+// draft is collected.
+const subsByRoleCache = new WeakMap<
+  readonly DraftScheduledSub[],
+  Map<RoleName, DraftScheduledSub[]>
+>();
+
 function subsByRole(
   subs: readonly DraftScheduledSub[],
 ): Map<RoleName, DraftScheduledSub[]> {
+  const cached = subsByRoleCache.get(subs);
+  if (cached) return cached;
   const out = new Map<RoleName, DraftScheduledSub[]>();
   for (const s of subs) {
     const list = out.get(s.positionRole) ?? [];
@@ -14,6 +26,7 @@ function subsByRole(
   for (const list of out.values()) {
     list.sort((a, b) => a.timeSeconds - b.timeSeconds);
   }
+  subsByRoleCache.set(subs, out);
   return out;
 }
 

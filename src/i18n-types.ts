@@ -1516,6 +1516,7 @@ export type TranslationKey =
   | 'planningModal.deleteConfirm'
   | 'planningModal.deleteFailed'
   | 'planningModal.deleteSession'
+  | 'planningModal.deleteSessionAriaLabel'
   | 'planningModal.dismissImport'
   | 'planningModal.duplicateAriaLabel'
   | 'planningModal.duplicateFailed'

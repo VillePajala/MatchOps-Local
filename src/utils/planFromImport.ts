@@ -72,6 +72,14 @@ export function planDraftFromImport(
   const seenInXI = new Set<PlayerId>();
 
   for (const [role, playerId] of Object.entries(imported.startingXI)) {
+    // Defense-in-depth: parsePlanExport rejects reserved role keys, but
+    // this function may also be called on imported objects produced by
+    // planningSessionToImportedPlan (in-memory) which bypass the
+    // bundle-parse path. Mirror the validator's prototype-pollution
+    // guard so a malicious in-process caller can't poison the draft.
+    if (role === '__proto__' || role === 'constructor' || role === 'prototype') {
+      continue;
+    }
     if (!playerId) continue; // skip unfilled slots from the standalone
     if (!rosterIds.has(playerId)) {
       unknownPlayerIds.push(playerId);

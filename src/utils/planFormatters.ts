@@ -18,5 +18,11 @@ export const formatMMSS = (totalSec: number): string => {
 export const gameDurationSec = (game: AppState): number => {
   const periods = game.numberOfPeriods ?? 2;
   const minutes = game.periodDurationMinutes ?? 10;
-  return Math.max(0, periods * minutes * 60);
+  // Guard NaN/Infinity from corrupt cloud rows: a non-finite product
+  // would poison every downstream aggregate (planMinutesAggregate
+  // accumulates totalFieldSeconds, then fairShareSeconds → every
+  // shareRatio becomes NaN). Clamp to 0 so corruption is visible as
+  // empty, not silently broken.
+  const total = periods * minutes * 60;
+  return Number.isFinite(total) ? Math.max(0, total) : 0;
 };

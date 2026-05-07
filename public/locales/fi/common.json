@@ -1715,6 +1715,7 @@
     "gameCountLabel_other": "{{count}} peliä",
     "updatedAtLabel": "päivitetty {{date}}",
     "deleteSession": "Poista suunnitelma",
+    "deleteSessionAriaLabel": "Poista {{name}}",
     "deleteConfirm": "Vahvista poisto?",
     "sessionsLoadError": "Tallennettujen suunnitelmien lataus epäonnistui. Yritä uudelleen.",
     "openSession": "Avaa",

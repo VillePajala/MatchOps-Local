@@ -572,7 +572,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       // (rename, duplicate) shouldn't show a "✓ Saved …" notice next
       // to Back if the user navigates into the editor afterwards
       // for a different session.
-    } catch {
+    } catch (err) {
+      logger.error('[PlanningModal] rename failed', err);
       setListErrorMessage(
         t(
           'planningModal.renameFailed',
@@ -626,7 +627,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         includedGameIds: undefined,
       });
       // See handleRename — list-view actions don't drive the badge.
-    } catch {
+    } catch (err) {
+      logger.error('[PlanningModal] duplicate failed', err);
       setListErrorMessage(
         t(
           'planningModal.duplicateFailed',
@@ -1413,7 +1415,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={t('planningModal.title', 'Planning')}
+      aria-labelledby="planning-modal-heading"
       className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
       data-testid="planning-modal"
     >
@@ -1423,7 +1425,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
 
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
+            <h2
+              id="planning-modal-heading"
+              className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center"
+            >
               {t('planningModal.title', 'Planning')}
             </h2>
           </div>
@@ -1745,9 +1750,15 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                         setPendingDeleteId(session.id);
                                       }}
                                       className="rounded-md p-1.5 text-slate-300 hover:bg-rose-900/40 hover:text-rose-200"
+                                      // Per-session aria-label mirrors
+                                      // the Open / Activate / Rename
+                                      // buttons so a column of trash
+                                      // icons is disambiguated for
+                                      // screen-reader users.
                                       aria-label={t(
-                                        'planningModal.deleteSession',
-                                        'Delete plan',
+                                        'planningModal.deleteSessionAriaLabel',
+                                        'Delete {{name}}',
+                                        { name: session.name },
                                       )}
                                       data-testid={`planning-session-delete-${session.id}`}
                                     >

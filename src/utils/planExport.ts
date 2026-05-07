@@ -349,6 +349,24 @@ export const parsePlanExport = (raw: string): PlanImportResult => {
     if (!isNonEmptyString(g.opponent)) {
       return fail(`${at}.opponent must be a non-empty string`, `${at}.opponent`);
     }
+    // Per-string anti-DoS caps: a hand-crafted bundle could pump
+    // megabytes into label/time/field/opponent and ride under the 2 MB
+    // outer cap (50 games × 40 KB strings = 2 MB). Reject anything
+    // beyond a reasonable display length so the row never lands.
+    const STRING_FIELD_MAX = 200;
+    for (const [field, value] of [
+      ['label', g.label],
+      ['time', g.time],
+      ['field', g.field],
+      ['opponent', g.opponent],
+    ] as const) {
+      if (typeof value === 'string' && value.length > STRING_FIELD_MAX) {
+        return fail(
+          `${at}.${field} exceeds max length ${STRING_FIELD_MAX} (got ${value.length})`,
+          `${at}.${field}`,
+        );
+      }
+    }
 
     games.push({
       id: g.id,

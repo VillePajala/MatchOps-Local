@@ -1715,6 +1715,7 @@
     "gameCountLabel_other": "{{count}} games",
     "updatedAtLabel": "updated {{date}}",
     "deleteSession": "Delete plan",
+    "deleteSessionAriaLabel": "Delete {{name}}",
     "deleteConfirm": "Confirm delete?",
     "sessionsLoadError": "Could not load saved plans. Please try again.",
     "openSession": "Open",

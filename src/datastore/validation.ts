@@ -25,6 +25,13 @@ export const PLANNING_SESSION_GAME_IDS_MAX = 100;
 // well above any real coach's planning depth (typical games have
 // 10-30 subs scheduled).
 export const SCHEDULED_SUBS_MAX = 500;
+// Per-draft anti-DoS caps. Symmetric with PARSE_PLAN_EXPORT_MAX_*
+// in planExport.ts so sync / upsert / backup-restore paths can't
+// land oversized drafts that the export-side caps would block.
+// 30 starting-XI roles covers every real formation; 100 bench
+// entries is well above any real squad.
+export const PLANNING_DRAFT_STARTING_XI_KEYS_MAX = 30;
+export const PLANNING_DRAFT_BENCH_MAX = 100;
 
 const SCHEDULED_SUB_STATUSES: readonly ScheduledSubStatus[] = ['pending', 'fired', 'skipped'];
 
@@ -499,6 +506,14 @@ export const validatePlanningSession = (
         pd.startingXI,
       );
     }
+    const xiKeys = Object.keys(pd.startingXI as Record<string, unknown>);
+    if (xiKeys.length > PLANNING_DRAFT_STARTING_XI_KEYS_MAX) {
+      throw new ValidationError(
+        `${prefix}${draftPath}.startingXI cannot exceed ${PLANNING_DRAFT_STARTING_XI_KEYS_MAX} roles (got ${xiKeys.length})`,
+        `${draftPath}.startingXI`,
+        xiKeys.length,
+      );
+    }
     for (const [role, pid] of Object.entries(
       pd.startingXI as Record<string, unknown>,
     )) {
@@ -526,6 +541,13 @@ export const validatePlanningSession = (
         `${prefix}${draftPath}.bench must be an array`,
         `${draftPath}.bench`,
         pd.bench,
+      );
+    }
+    if ((pd.bench as unknown[]).length > PLANNING_DRAFT_BENCH_MAX) {
+      throw new ValidationError(
+        `${prefix}${draftPath}.bench cannot exceed ${PLANNING_DRAFT_BENCH_MAX} entries (got ${(pd.bench as unknown[]).length})`,
+        `${draftPath}.bench`,
+        (pd.bench as unknown[]).length,
       );
     }
     pd.bench.forEach((pid, idx) => {
@@ -574,6 +596,13 @@ export const validatePlanningSession = (
         `${prefix}${draftPath}.scheduledSubs must be an array`,
         `${draftPath}.scheduledSubs`,
         pd.scheduledSubs,
+      );
+    }
+    if (pd.scheduledSubs.length > SCHEDULED_SUBS_MAX) {
+      throw new ValidationError(
+        `${prefix}${draftPath}.scheduledSubs cannot exceed ${SCHEDULED_SUBS_MAX} entries (got ${pd.scheduledSubs.length})`,
+        `${draftPath}.scheduledSubs`,
+        pd.scheduledSubs.length,
       );
     }
     const seenSubIds = new Set<string>();
