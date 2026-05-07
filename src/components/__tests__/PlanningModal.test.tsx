@@ -680,6 +680,119 @@ describe('PlanningModal', () => {
       expect(warn.textContent ?? '').toMatch(/Variant A/);
       expect(warn.textContent ?? '').toMatch(/3/);
     });
+
+    it('rejects a 0-version bundle with an error message instead of a blank picker', async () => {
+      // parsePlanBundle accepts an empty `versions: {}` envelope by
+      // design ("a coach can save an empty bundle"), but the picker
+      // would render an empty <ul> with no row to click. Fix-pass-1
+      // routes that case to setImportError so the user gets a
+      // dismissible explanation rather than a stuck UI.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(bundleEnvelope({})),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Import failed|Tuonti epäonnistui/i),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByText(
+          /no versions to import|paketissa ei ole versioita/i,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('dismissing the picker clears import state and unmounts the picker card', async () => {
+      // The X button reuses resetImportState which also clears the
+      // success card and any error. Locks the dismiss path so a
+      // future refactor splitting the bundle picker into its own
+      // component can't silently lose this teardown.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({
+            Default: versionEnvelope(),
+            'Variant A': versionEnvelope(),
+          }),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-modal-bundle-picker-dismiss'),
+        );
+      });
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+      // Success card never appeared either — dismiss is a clean exit.
+      expect(
+        screen.queryByText(/Plan imported|Suunnitelma tuotu/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders bundle versions in alphabetical order regardless of envelope key order', async () => {
+      // Locks deterministic ordering. A future serializer or hand-
+      // edited file mustn't reorder the picker rows just by changing
+      // JS object insertion order.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({
+            // Insertion order: Z, A, M — picker should render A, M, Z.
+            Zebra: versionEnvelope(),
+            Alpha: versionEnvelope(),
+            Mike: versionEnvelope(),
+          }),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-version-list'),
+        ).toBeInTheDocument();
+      });
+      const list = screen.getByTestId(
+        'planning-modal-bundle-version-list',
+      );
+      const rows = Array.from(
+        list.querySelectorAll('[data-testid^="planning-modal-bundle-version-"]'),
+      ).filter(
+        (el) =>
+          !el.getAttribute('data-testid')!.includes('-button-') &&
+          el.getAttribute('data-testid') !==
+            'planning-modal-bundle-version-list',
+      );
+      const names = rows.map((el) =>
+        el
+          .getAttribute('data-testid')!
+          .replace('planning-modal-bundle-version-', ''),
+      );
+      expect(names).toEqual(['Alpha', 'Mike', 'Zebra']);
+    });
   });
 
   it('shows the New plan button on the list page', () => {

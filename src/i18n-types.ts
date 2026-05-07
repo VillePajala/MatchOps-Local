@@ -1502,6 +1502,7 @@ export type TranslationKey =
   | 'planningModal.activeBadge'
   | 'planningModal.activeToggleFailed'
   | 'planningModal.bundleCurrent'
+  | 'planningModal.bundleEmptyError'
   | 'planningModal.bundlePickerSubtitle'
   | 'planningModal.bundlePickerTitle'
   | 'planningModal.bundleSelectedWarning'

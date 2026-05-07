@@ -350,11 +350,14 @@ describe('Translation File Validation', () => {
       // Planner PR-F-2b: +5 bundle-import keys (bundlePickerTitle,
       //   bundlePickerSubtitle, bundleCurrent, bundleVersionMeta,
       //   bundleSelectedWarning).
+      // Planner PR-F-2b fix-pass-1: +1 bundleEmptyError (guard for a
+      //   0-version bundle envelope that parsePlanBundle accepts but
+      //   the picker UI can't render usefully).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the
       // i18n-types.ts assertion below for that distinct number.
-      expect(enKeys.length).toBe(2606);
+      expect(enKeys.length).toBe(2607);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -393,7 +396,8 @@ describe('Translation File Validation', () => {
       // Planner PR-F-2b: +5 bundle-import keys (bundlePickerTitle,
       //   bundlePickerSubtitle, bundleCurrent, bundleVersionMeta,
       //   bundleSelectedWarning).
-      expect(fiKeys.length).toBe(2606);
+      // Planner PR-F-2b fix-pass-1: +1 bundleEmptyError.
+      expect(fiKeys.length).toBe(2607);
     });
   });
 });

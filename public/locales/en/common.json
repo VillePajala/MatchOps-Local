@@ -1692,6 +1692,7 @@
     "bundleCurrent": "Last used",
     "bundleVersionMeta": "{{games}} games · {{subs}} subs",
     "bundleSelectedWarning": "Loaded \"{{name}}\" from a {{total}}-version bundle. Other versions are not imported.",
+    "bundleEmptyError": "This bundle has no versions to import.",
     "team": "Team",
     "formation": "Formation",
     "gameCount": "Games",
