@@ -73,8 +73,12 @@ const mockSetActiveMutate = jest.fn<
 >();
 // handleFamilyImport (post-pass-5) awaits setActiveSession after all
 // children land. mutateAsync defaults to a resolved promise so the
-// existing fire-and-forget tests need no per-test setup.
-const mockSetActiveMutateAsync = jest.fn(async () => undefined);
+// existing fire-and-forget tests need no per-test setup. Typed with
+// an `unknown` parameter so `mock.calls[i][0]` is well-typed in the
+// assertion sites.
+const mockSetActiveMutateAsync = jest.fn<Promise<undefined>, [unknown]>(
+  async () => undefined,
+);
 
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
