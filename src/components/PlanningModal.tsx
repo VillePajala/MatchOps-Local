@@ -193,6 +193,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     name: string;
     gameIds: string[];
     draft: PlanningSession['draft'];
+    parentSessionId: string | null | undefined;
     includedGameIds: string[] | undefined;
     isActive: boolean;
     createdAt: string;
