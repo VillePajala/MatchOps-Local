@@ -868,11 +868,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     }
     setPendingFamilyImport(importedBundle);
     // Clear the single-version slot so the success card can't render
-    // alongside the picker — and so a back-out cleanly resets.
+    // alongside the picker — and so a back-out cleanly resets. Also
+    // zero familyImportError defensively so a stale alert from a
+    // previous no-team click can't follow the user to the picker.
     setImportedBundle(null);
     setImportedPlan(null);
     setBundleSourceMeta(null);
     setImportHandoffError(null);
+    setFamilyImportError(null);
     setPage('picker');
   };
 
@@ -887,7 +890,22 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     bundle: ImportedPlanBundle,
     gameIds: string[],
   ) => {
-    if (!currentTeamId) return;
+    if (!currentTeamId) {
+      // Defense-in-depth: handleImportAllFromBundle already gated on
+      // currentTeamId, but the async handler runs after a render cycle
+      // — a stale-state edge case mustn't strand the user on the game
+      // picker with no feedback. Surface as a list error and clear
+      // pending state so the user has a path back.
+      setListErrorMessage(
+        t(
+          'planningModal.familyImportNoTeamError',
+          'Pick an active team before importing a tournament plan.',
+        ),
+      );
+      setPendingFamilyImport(null);
+      setPage('list');
+      return;
+    }
     setFamilyImportError(null);
     const entries = Object.entries(bundle.versions);
     if (entries.length === 0) {
@@ -938,6 +956,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       return drafts;
     };
 
+    // Track whether the parent landed so the catch picks the right
+    // user message: a parent-throw leaves zero rows (clean retry is
+    // safe), a child-throw leaves the parent orphaned (user must
+    // delete it before retry to avoid duplicate primaries).
+    let parentSavedOK = false;
     try {
       const primaryDraft = buildDrafts(primaryPlan);
       const primarySaved = await saveSession.mutateAsync({
@@ -951,6 +974,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         // saves a round-trip.
         isActive: true,
       });
+      parentSavedOK = true;
       for (const [childName, childPlan] of childEntries) {
         const childDraft = buildDrafts(childPlan);
         await saveSession.mutateAsync({
@@ -970,10 +994,15 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     } catch (e) {
       logger.error('[PlanningModal] family-import save failed', e);
       setListErrorMessage(
-        t(
-          'planningModal.familyImportFailed',
-          'Could not import the tournament plan. Please try again.',
-        ),
+        parentSavedOK
+          ? t(
+              'planningModal.familyImportPartialFailed',
+              'Some versions may not have been imported. Check the list and remove any partial sessions before re-importing.',
+            )
+          : t(
+              'planningModal.familyImportFailed',
+              'Import failed. Please try again.',
+            ),
       );
       setPendingFamilyImport(null);
       setPage('list');
@@ -1714,35 +1743,39 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                           { count: sortedBundleVersions.length },
                         )}
                       </p>
-                      {/* "Import all" sits above the per-version rows
-                          when there are 2+ versions — shorter
-                          friction path for the common "save the
-                          whole tournament family" flow. Hidden for
-                          1-version bundles since the auto-advance
-                          path already handles that case. */}
-                      <div className="flex flex-col gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleImportAllFromBundle}
-                          data-testid="planning-modal-bundle-import-all"
-                          className="rounded bg-sky-700/40 px-2 py-1.5 text-left text-sm text-sky-50 hover:bg-sky-600/60"
-                        >
-                          {t(
-                            'planningModal.bundleImportAll',
-                            'Import all {{count}} versions as a family →',
-                            { count: sortedBundleVersions.length },
-                          )}
-                        </button>
-                        {familyImportError && (
-                          <p
-                            role="alert"
-                            data-testid="planning-modal-family-import-error"
-                            className="text-xs text-rose-300"
+                      {/* "Import all" surfaces only for 2+-version
+                          bundles. The auto-advance path skips the
+                          picker for 1-version bundles, but the
+                          explicit guard here keeps a future bypass
+                          (or a test path that mounts the picker
+                          directly with importedBundle set) from
+                          producing a "family of one" — the row UI
+                          already handles single-version selection. */}
+                      {sortedBundleVersions.length >= 2 && (
+                        <div className="flex flex-col gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleImportAllFromBundle}
+                            data-testid="planning-modal-bundle-import-all"
+                            className="rounded bg-sky-700/40 px-2 py-1.5 text-left text-sm text-sky-50 hover:bg-sky-600/60"
                           >
-                            {familyImportError}
-                          </p>
-                        )}
-                      </div>
+                            {t(
+                              'planningModal.bundleImportAll',
+                              'Import all {{count}} versions as a family →',
+                              { count: sortedBundleVersions.length },
+                            )}
+                          </button>
+                          {familyImportError && (
+                            <p
+                              role="alert"
+                              data-testid="planning-modal-family-import-error"
+                              className="text-xs text-rose-300"
+                            >
+                              {familyImportError}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       <p className="text-[11px] text-sky-200/60">
                         {t(
                           'planningModal.bundleImportAllOrPickOne',
