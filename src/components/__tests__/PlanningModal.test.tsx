@@ -1838,41 +1838,71 @@ describe('PlanningModal', () => {
     // slug-sanitised filename convention, (c) the active session
     // becomes the bundle's currentVersionName.
 
+    // Mirror src/utils/exportGames.test.ts's proven download-capture
+    // shape. Spying on URL.createObjectURL / HTMLAnchorElement.prototype
+    // .click via jest.spyOn was silently bypassed in CI's jsdom (the
+    // export handler's catch fired, tripping the global console.error
+    // hook). Mocking document.createElement('a') to return an anchor
+    // with an OWN `click` property (Object.defineProperty) shadows the
+    // prototype method definitively.
     const setupDownloadCapture = () => {
-      // jsdom's URL.createObjectURL is "Not implemented" by default — a
-      // direct property assignment can be silently rejected if the
-      // descriptor is non-writable, leaving handleExportBundle's catch
-      // path to fire with logger.error, which the global setupTests
-      // hook treats as a test failure. jest.spyOn handles both the
-      // missing-method and non-writable cases by going through the
-      // property descriptor.
       const captured = { blobText: '', anchorDownload: '' };
-      const createSpy = jest
-        .spyOn(URL, 'createObjectURL')
-        .mockImplementation((blob: Blob | MediaSource) => {
-          // Read Blob.text() asynchronously; the test awaits via
-          // waitFor to let the microtask resolve.
-          (blob as Blob).text().then((t) => {
-            captured.blobText = t;
-          });
-          return 'blob:mock';
-        });
-      const revokeSpy = jest
-        .spyOn(URL, 'revokeObjectURL')
-        .mockImplementation(() => undefined);
 
-      // anchor.click triggers a navigation in jsdom; spy + replace
-      // captures the download attribute set just before the click.
-      const clickSpy = jest
-        .spyOn(HTMLAnchorElement.prototype, 'click')
-        .mockImplementation(function (this: HTMLAnchorElement) {
-          captured.anchorDownload = this.download;
-        });
+      const realCreateObjectURL = window.URL.createObjectURL;
+      const realRevokeObjectURL = window.URL.revokeObjectURL;
+      const realCreateElement = document.createElement.bind(document);
+      const realAppendChild = document.body.appendChild.bind(document.body);
+      const realRemoveChild = document.body.removeChild.bind(document.body);
+
+      window.URL.createObjectURL = jest.fn((blob: Blob | MediaSource) => {
+        // FileReader works reliably in jsdom for Blob → string. The
+        // test awaits via waitFor so the onloadend microtask lands
+        // before assertions read captured.blobText.
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          captured.blobText =
+            typeof reader.result === 'string' ? reader.result : '';
+        };
+        reader.readAsText(blob as Blob);
+        return 'blob:mock';
+      }) as typeof URL.createObjectURL;
+      window.URL.revokeObjectURL = jest.fn();
+
+      // Replace createElement so anchors get a stubbed `click` as an
+      // OWN property — definitively masks any throwing prototype-level
+      // click in jsdom and lets us read .download deterministically.
+      // Other tags pass through unchanged.
+      document.createElement = jest.fn((tagName: string, options?) => {
+        const el = realCreateElement(
+          tagName,
+          options as ElementCreationOptions,
+        );
+        if (tagName === 'a') {
+          Object.defineProperty(el, 'click', {
+            value: function () {
+              captured.anchorDownload = (el as HTMLAnchorElement).download;
+            },
+          });
+        }
+        return el;
+      }) as typeof document.createElement;
+
+      // appendChild/removeChild on body are no-ops in this scope — the
+      // anchor is detached, but click is captured before any
+      // navigation could be attempted.
+      document.body.appendChild = jest.fn(
+        (node: Node) => node,
+      ) as typeof document.body.appendChild;
+      document.body.removeChild = jest.fn(
+        (node: Node) => node,
+      ) as typeof document.body.removeChild;
 
       const restore = () => {
-        createSpy.mockRestore();
-        revokeSpy.mockRestore();
-        clickSpy.mockRestore();
+        window.URL.createObjectURL = realCreateObjectURL;
+        window.URL.revokeObjectURL = realRevokeObjectURL;
+        document.createElement = realCreateElement;
+        document.body.appendChild = realAppendChild;
+        document.body.removeChild = realRemoveChild;
       };
       return { captured, restore };
     };
