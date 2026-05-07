@@ -979,16 +979,18 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     let parentSavedOK = false;
     try {
       const primaryDraft = buildDrafts(primaryPlan);
+      // Save parent with isActive=false so a child-save failure does
+      // not leave an active orphan in the list view. The activation
+      // is flipped post-loop only when every child has landed — pass-5
+      // review feedback. Costs one extra round-trip in the success
+      // path; the failure path now leaves a recoverable family with no
+      // misleading "active version with 0 children" UX.
       const primarySaved = await saveSession.mutateAsync({
         teamId: currentTeamId,
         name: primaryName,
         gameIds,
         draft: primaryDraft,
-        // Mark primary active so the family has a default version
-        // resolvable at apply time. setActiveSession would do the
-        // same atomically post-save, but landing it on the create
-        // saves a round-trip.
-        isActive: true,
+        isActive: false,
       });
       parentSavedOK = true;
       for (const [childName, childPlan] of childEntries) {
@@ -1002,6 +1004,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           isActive: false,
         });
       }
+      // All children landed — flip the parent active. setActiveSession
+      // is atomic at the RPC layer (deactivates other in-scope rows)
+      // so the family has exactly one active version after this call.
+      // parentSessionId=null because the primary IS the parent.
+      await setActiveSession.mutateAsync({
+        sessionId: primarySaved.id,
+        teamId: currentTeamId,
+        gameIds,
+        parentSessionId: null,
+      });
       // Success — clear handoff and surface the list view. The query
       // invalidation in saveSession's onSuccess refreshes the list so
       // the new family appears.

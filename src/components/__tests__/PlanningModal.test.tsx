@@ -71,6 +71,10 @@ const mockSetActiveMutate = jest.fn<
   void,
   [unknown, SetActiveCallbacks?]
 >();
+// handleFamilyImport (post-pass-5) awaits setActiveSession after all
+// children land. mutateAsync defaults to a resolved promise so the
+// existing fire-and-forget tests need no per-test setup.
+const mockSetActiveMutateAsync = jest.fn(async () => undefined);
 
 jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   __esModule: true,
@@ -85,6 +89,7 @@ jest.mock('@/hooks/usePlanningSessionQueries', () => ({
   }),
   useSetActiveSessionMutation: () => ({
     mutate: mockSetActiveMutate,
+    mutateAsync: mockSetActiveMutateAsync,
     isPending: false,
     error: null,
   }),
@@ -119,6 +124,8 @@ beforeEach(() => {
   mockDeleteMutate.mockClear();
   mockSaveMutateAsync.mockClear();
   mockSetActiveMutate.mockClear();
+  mockSetActiveMutateAsync.mockClear();
+  mockSetActiveMutateAsync.mockImplementation(async () => undefined);
   mockUsePlanningSessionsQuery.mockClear();
   mockDeleteMutationReturn = {
     mutate: mockDeleteMutate,
@@ -1012,8 +1019,10 @@ describe('PlanningModal', () => {
             screen.getByRole('button', { name: /continue|jatka/i }),
           );
         });
-        // Two saves: parent (currentVersionName='Default', isActive=true)
-        // followed by child ('Variant A', parentSessionId=parent.id).
+        // Two saves: parent (currentVersionName='Default', initially
+        // isActive=false per pass-5 review — flipped to active via
+        // setActiveSession after all children land) followed by child
+        // ('Variant A', parentSessionId=parent.id).
         await waitFor(() => {
           expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
         });
@@ -1024,7 +1033,7 @@ describe('PlanningModal', () => {
           name: 'Default',
           teamId: 'team_a',
           gameIds: ['g1'],
-          isActive: true,
+          isActive: false,
         });
         // Parent shouldn't carry a parentSessionId.
         expect((parentCall as { parentSessionId?: string }).parentSessionId).toBeUndefined();
@@ -1039,6 +1048,16 @@ describe('PlanningModal', () => {
         expect((childCall as { parentSessionId?: string }).parentSessionId).toBe(
           'planningSession_new',
         );
+        // Parent activated post-loop via setActiveSession.
+        await waitFor(() => {
+          expect(mockSetActiveMutateAsync).toHaveBeenCalledTimes(1);
+        });
+        expect(mockSetActiveMutateAsync.mock.calls[0][0]).toMatchObject({
+          sessionId: 'planningSession_new',
+          teamId: 'team_a',
+          gameIds: ['g1'],
+          parentSessionId: null,
+        });
       });
 
       it('falls back to the first version key when currentVersionName is missing from the bundle', async () => {
@@ -1102,10 +1121,12 @@ describe('PlanningModal', () => {
         await waitFor(() => {
           expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
         });
-        // First entry by insertion order = primary = parent.
+        // First entry by insertion order = primary = parent. Parent is
+        // saved isActive=false (pass-5 review); setActiveSession flips
+        // it post-loop.
         expect(mockSaveMutateAsync.mock.calls[0][0]).toMatchObject({
           name: 'FirstByInsertion',
-          isActive: true,
+          isActive: false,
         });
       });
 
@@ -1262,6 +1283,11 @@ describe('PlanningModal', () => {
             ),
           ).toBeInTheDocument();
         });
+        // Pass-5 review: setActiveSession must NOT fire when a child
+        // throws — the parent is left isActive=false (recoverable
+        // orphan) instead of an active orphan with 0 children, which
+        // was the prior confusing UX.
+        expect(mockSetActiveMutateAsync).not.toHaveBeenCalled();
       });
     });
   });
