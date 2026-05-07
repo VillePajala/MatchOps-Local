@@ -1838,10 +1838,6 @@ describe('PlanningModal', () => {
     // slug-sanitised filename convention, (c) the active session
     // becomes the bundle's currentVersionName.
 
-    interface MockBlob {
-      content: string[];
-    }
-
     const setupDownloadCapture = () => {
       // jsdom's URL.createObjectURL is a no-op stub, so we wrap it to
       // capture the Blob. Restored in afterEach.
