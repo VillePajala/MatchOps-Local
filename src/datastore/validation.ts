@@ -20,6 +20,11 @@ export const PLANNING_SESSION_NAME_MAX = 200;
 // sessions that fail at activation time, leaving the user with no
 // signal that the save itself was the problem.
 export const PLANNING_SESSION_GAME_IDS_MAX = 100;
+// Anti-DoS cap on scheduledSubs per game. A hand-crafted backup file
+// without this cap would freeze the sub-banner UI on restore. 500 is
+// well above any real coach's planning depth (typical games have
+// 10-30 subs scheduled).
+export const SCHEDULED_SUBS_MAX = 500;
 
 const SCHEDULED_SUB_STATUSES: readonly ScheduledSubStatus[] = ['pending', 'fired', 'skipped'];
 
@@ -36,6 +41,13 @@ const validateScheduledSubs = (
       `${prefix}scheduledSubs must be an array when present`,
       'scheduledSubs',
       subs,
+    );
+  }
+  if (subs.length > SCHEDULED_SUBS_MAX) {
+    throw new ValidationError(
+      `${prefix}scheduledSubs cannot exceed ${SCHEDULED_SUBS_MAX} entries (got ${subs.length})`,
+      'scheduledSubs',
+      subs.length,
     );
   }
 

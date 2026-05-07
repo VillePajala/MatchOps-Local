@@ -18,6 +18,12 @@ export const PLAN_BUNDLE_FORMAT_VERSION = 2 as const;
 // (PARSE_PLAN_EXPORT_MAX_CHARS = 2 MB, plus structural depth limits).
 // So the worst case for a fully-loaded valid bundle is bounded by
 // `min(PARSE_BUNDLE_MAX_CHARS, N × PARSE_PLAN_EXPORT_MAX_CHARS)`.
+// IMPORTANT: the OUTER cap is always the binding term — N inner
+// versions parsed from a 5 MB envelope cannot collectively exceed
+// 5 MB of payload (the envelope is the payload). The N × 2 MB term
+// is only relevant if a future refactor weakens the outer cap; a
+// reader removing the 5 MB cap "because the per-version cap covers
+// it" would unlock 50 × 2 MB = 100 MB. Keep both layers.
 export const PARSE_BUNDLE_MAX_VERSIONS = 50;
 export const PARSE_BUNDLE_MAX_CHARS = 5 * 1024 * 1024; // 5 MB
 

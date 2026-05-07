@@ -135,6 +135,17 @@ describe('validateGame — scheduledSubs', () => {
     expect(() => validateGame(game)).toThrow(/duplicate id "sub_dup"/);
   });
 
+  it('rejects scheduledSubs longer than SCHEDULED_SUBS_MAX (DoS guard)', () => {
+    // Hand-crafted backup files could pump tens of thousands of subs
+    // into a single game; the sub-banner UI would freeze on restore.
+    // Cap is 500 per validation.ts. 501 entries should trip.
+    const subs = Array.from({ length: 501 }, (_, i) =>
+      wellFormedSub({ id: `sub_${i}`, timeSeconds: i * 10 }),
+    );
+    const game = { ...baseGame(), scheduledSubs: subs };
+    expect(() => validateGame(game)).toThrow(/scheduledSubs cannot exceed 500/);
+  });
+
   it('rejects an entry missing positionRole', () => {
     const game = {
       ...baseGame(),
