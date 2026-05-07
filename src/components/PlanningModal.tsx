@@ -701,13 +701,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     for (const session of versionFamily) {
       // Sessions table enforces name uniqueness within a family, but a
       // stale cache during a rename race could surface two rows with
-      // the same name. Last-write-wins matches the cache state — log
-      // the collision so Sentry can flag the rename race in the wild.
+      // the same name. Keep the first occurrence (parent comes first in
+      // versionFamily, so a child colliding with parent doesn't erase
+      // the parent) and log the collision at error severity so Sentry
+      // flags the rename race — silently dropping a version on export
+      // is a data-integrity event, not just a curiosity.
       if (Object.hasOwn(versions, session.name)) {
-        logger.warn(
-          '[PlanningModal] duplicate version name in export bundle (rename race?)',
+        logger.error(
+          '[PlanningModal] duplicate version name in export bundle (rename race?) — keeping first occurrence',
           { name: session.name, sessionId: session.id },
         );
+        continue;
       }
       versions[session.name] = planningSessionToImportedPlan(
         session,
