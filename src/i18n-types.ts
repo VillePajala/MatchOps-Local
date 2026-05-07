@@ -1521,6 +1521,7 @@ export type TranslationKey =
   | 'planningModal.emptyHint'
   | 'planningModal.emptyTitle'
   | 'planningModal.errorPath'
+  | 'planningModal.exportBundleFailed'
   | 'planningModal.fileTooLarge'
   | 'planningModal.formation'
   | 'planningModal.gameCount'

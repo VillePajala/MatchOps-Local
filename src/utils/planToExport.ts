@@ -37,8 +37,15 @@ function buildScheduledSubsForExport(
   }
   const out: ScheduledSub[] = [];
   for (const [role, subs] of byRole) {
+    // Drop subs whose role isn't anchored in startingXI — outPlayer
+    // would otherwise emit as '', which parsePlanExport rejects (it
+    // requires a non-empty player id), so the entire bundle would
+    // fail to round-trip. The planner UI keeps these in sync, but a
+    // future role-rename or imported-then-edited plan could leave the
+    // sub orphaned. Quietly skip rather than break the whole export.
+    if (!draft.startingXI[role]) continue;
     const sorted = [...subs].sort((a, b) => a.timeSeconds - b.timeSeconds);
-    let curPlayer = draft.startingXI[role] ?? '';
+    let curPlayer = draft.startingXI[role];
     for (const s of sorted) {
       out.push({
         id: s.id,

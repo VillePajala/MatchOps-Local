@@ -2254,6 +2254,10 @@ describe('PlanningModal', () => {
           'Default',
           'Variant A',
         ]);
+        // Object URL is revoked in the finally block to avoid Blob
+        // memory leaks. Asserting here pins the cleanup so a future
+        // refactor that drops the revoke can't pass silently.
+        expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock');
       } finally {
         restore();
       }

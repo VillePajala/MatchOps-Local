@@ -719,7 +719,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // `0-9-_` would silently parse as `0-9` PLUS the range `- (45) ..
     // _ (95)`, leaving `.`, `/`, `:`, etc. as "kept" characters. The
     // working form puts the dash last where it is always literal.
-    const safe = parentName.replace(/[^a-z0-9_-]+/gi, '-').slice(0, 64);
+    // The leading/trailing `-` strip closes a second trap: an
+    // all-special-char name (e.g. `'...'`) collapses to `'-'`, which
+    // is truthy and would make `safe || 'plan'` short-circuit to `-`,
+    // emitting `-.matchops-plan.json` instead of falling back to plan.
+    const safe = parentName
+      .replace(/[^a-z0-9_-]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64);
     const filename = `${safe || 'plan'}.matchops-plan.json`;
     // Allocate the object URL outside the try so the finally can
     // revoke it even if link.click() / removeChild throw — otherwise
@@ -739,6 +746,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       document.body.removeChild(link);
     } catch (e) {
       logger.error('[PlanningModal] export bundle failed', e);
+      // Surface the failure through listErrorMessage so the user sees
+      // it on returning to the saved-sessions list (the editor view
+      // doesn't have a dedicated export-error slot, but this beats
+      // the previous silent-fail path that violated the
+      // production-quality bar in CLAUDE.md).
+      setListErrorMessage(
+        t(
+          'planningModal.exportBundleFailed',
+          'Could not export the tournament plan. Please try again.',
+        ),
+      );
     } finally {
       URL.revokeObjectURL(url);
     }

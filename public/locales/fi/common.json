@@ -1724,7 +1724,8 @@
     "duplicateFailed": "Suunnitelman monistaminen epäonnistui. Yritä uudelleen.",
     "activateAriaLabel": "Aseta {{name}} oletukseksi",
     "deactivateAriaLabel": "Poista oletus {{name}}",
-    "activeToggleFailed": "Oletussuunnitelman vaihto epäonnistui. Yritä uudelleen."
+    "activeToggleFailed": "Oletussuunnitelman vaihto epäonnistui. Yritä uudelleen.",
+    "exportBundleFailed": "Turnaussuunnitelman vienti epäonnistui. Yritä uudelleen."
   },
   "planningGamePicker": {
     "subtitle": "Valitse tämän suunnitelman pelit. Niiden tulee jakaa sama joukkue, jaksomäärä ja jakson kesto.",
