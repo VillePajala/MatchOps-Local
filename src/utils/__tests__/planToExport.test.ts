@@ -153,6 +153,18 @@ describe('planningSessionToImportedPlan', () => {
     expect(out.games[0].label).toBe('Game g_unknown');
   });
 
+  it('floors rosterSize at 1 when the source game has no selected players (round-trip safe)', () => {
+    // Pass-9 review Bug: parsePlanExport rejects rosterSize < 1, so a
+    // brand-new game with selectedPlayerIds === [] would emit a
+    // bundle that fails to round-trip on re-import. Lock the floor
+    // so the bug can't silently regress.
+    const game = buildGame({ selectedPlayerIds: [] });
+    const out = planningSessionToImportedPlan(buildSession(), { g1: game });
+    expect(out.rosterSize).toBeGreaterThanOrEqual(1);
+    const reParsed = parsePlanExport(serializePlanExport(out));
+    expect(reParsed.ok).toBe(true);
+  });
+
   it('round-trips through parsePlanExport when the caller supplies team/roster overrides for unknown games', () => {
     // Documented resilience escape hatch: a caller who knows the
     // team / roster meta out-of-band can still get a fully

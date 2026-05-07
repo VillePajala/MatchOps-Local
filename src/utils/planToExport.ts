@@ -152,8 +152,13 @@ export function planningSessionToImportedPlan(
     (d): d is PlanDraft => Boolean(d),
   );
   const formationId = options.formationId ?? firstDraft?.presetId ?? '';
-  const rosterSize =
-    options.rosterSize ?? firstGame?.selectedPlayerIds?.length ?? 0;
+  // Floor at 1: parsePlanExport rejects rosterSize < 1, so a brand-new
+  // game with no selected players (selectedPlayerIds.length === 0)
+  // would emit a bundle that fails to round-trip on re-import.
+  const rosterSize = Math.max(
+    1,
+    options.rosterSize ?? firstGame?.selectedPlayerIds?.length ?? 0,
+  );
   // Per-game `included` flag: NULL/undefined includedGameIds means
   // "all included" (legacy semantic from migration 037), so emit a
   // run of `true`s; otherwise project onto session.gameIds order.
