@@ -941,7 +941,7 @@ export class LocalDataStore implements DataStore {
   async deleteTeam(id: string): Promise<boolean> {
     this.ensureInitialized();
 
-    return withKeyLock(TEAMS_INDEX_KEY, async () => {
+    const removed = await withKeyLock(TEAMS_INDEX_KEY, async () => {
       const teamsIndex = await this.loadTeamsIndex();
       if (!teamsIndex[id]) {
         return false;
@@ -951,6 +951,26 @@ export class LocalDataStore implements DataStore {
       await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return true;
     });
+
+    if (!removed) return false;
+
+    // Cascade-delete planning sessions scoped to the removed team. Soft
+    // FK by design (migration 031), so the integrity is enforced here
+    // rather than via DB constraint. Without this, sessions would
+    // surface in the list view as "unresolvable team" entries that the
+    // editor would refuse to open.
+    await withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const sessions = await this.loadPlanningSessions();
+      const remaining = sessions.filter((s) => s.teamId !== id);
+      if (remaining.length !== sessions.length) {
+        await this.storageSetItem(
+          PLANNING_SESSIONS_KEY,
+          JSON.stringify(remaining),
+        );
+      }
+    });
+
+    return true;
   }
 
   /**
@@ -1844,7 +1864,7 @@ export class LocalDataStore implements DataStore {
   async deleteGame(id: string): Promise<boolean> {
     this.ensureInitialized();
 
-    return withKeyLock(SAVED_GAMES_KEY, async () => {
+    const removed = await withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
       if (!games[id]) {
         return false;
@@ -1854,6 +1874,53 @@ export class LocalDataStore implements DataStore {
       await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
       return true;
     });
+
+    if (!removed) return false;
+
+    // Strip the deleted game id from every PlanningSession that
+    // referenced it. validatePlanningSession requires gameIds and
+    // draft to agree (every gameId has a draft entry), so a future
+    // re-save of an affected session would throw on the dangling id.
+    // If a session ends up with zero remaining gameIds, drop it
+    // entirely — a planning session without games has no editor view.
+    await withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const sessions = await this.loadPlanningSessions();
+      let mutated = false;
+      const next: PlanningSession[] = [];
+      for (const session of sessions) {
+        if (!session.gameIds.includes(id)) {
+          next.push(session);
+          continue;
+        }
+        const remainingGameIds = session.gameIds.filter((gid) => gid !== id);
+        if (remainingGameIds.length === 0) {
+          // Drop the session.
+          mutated = true;
+          continue;
+        }
+        const newDraft = { ...session.draft };
+        delete newDraft[id];
+        const newIncluded = session.includedGameIds
+          ? session.includedGameIds.filter((gid) => gid !== id)
+          : undefined;
+        next.push({
+          ...session,
+          gameIds: remainingGameIds,
+          draft: newDraft,
+          includedGameIds: newIncluded,
+          updatedAt: new Date().toISOString(),
+        });
+        mutated = true;
+      }
+      if (mutated) {
+        await this.storageSetItem(
+          PLANNING_SESSIONS_KEY,
+          JSON.stringify(next),
+        );
+      }
+    });
+
+    return true;
   }
 
   async addGameEvent(gameId: string, event: GameEvent): Promise<AppState | null> {
