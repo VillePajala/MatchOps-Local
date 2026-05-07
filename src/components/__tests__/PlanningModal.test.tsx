@@ -798,6 +798,472 @@ describe('PlanningModal', () => {
       );
       expect(names).toEqual(['Alpha', 'Mike', 'Zebra']);
     });
+
+    describe('family-import (PR-F-2c)', () => {
+      // The "Import all versions" button on the bundle picker stashes
+      // the bundle, routes through the game-picker once, and creates
+      // parent + N-1 children sequentially. Tests the full chain.
+
+      it('shows the Import-all button on the bundle picker for 2+-version bundles', async () => {
+        renderModal();
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope({
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope(),
+            }),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        // Label includes the version count.
+        const btn = screen.getByTestId('planning-modal-bundle-import-all');
+        expect(btn.textContent ?? '').toMatch(/2/);
+      });
+
+      it('does NOT render the Import-all button for a 1-version bundle (defense-in-depth)', async () => {
+        // 1-version bundles take the auto-advance path and never
+        // mount the picker UI in the current call graph, but a
+        // future test that mounts the picker directly with
+        // importedBundle set must not surface the button (which
+        // would produce a "family of one" — parent-only, no
+        // children). The explicit `>= 2` guard in the JSX is
+        // pinned by this test; if a future refactor drops the
+        // guard the assertion below would catch it. Driving the
+        // 1-version case through the file picker requires a
+        // synthetic envelope where parsePlanBundle still routes
+        // to the bundle path: a 2-version envelope where the
+        // picker auto-advance would otherwise fire actually
+        // doesn't happen for 1 version (auto-advance), so the
+        // cleanest test mounts the picker via a 2-version path
+        // and checks that the button DISAPPEARS if a hypothetical
+        // future state held only one version. Since we can't
+        // mutate state from outside, we instead pin the contract
+        // at the import-edge: a 1-version v2 bundle never reaches
+        // the picker, so neither the picker nor the import-all
+        // button render at all.
+        renderModal();
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope({ Solo: versionEnvelope() }, 'Solo'),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        // 1-version bundle auto-advances to the success card; the
+        // picker (and its Import-all button) never mount.
+        await waitFor(() => {
+          expect(
+            screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+          ).toBeInTheDocument();
+        });
+        expect(
+          screen.queryByTestId('planning-modal-bundle-picker'),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('planning-modal-bundle-import-all'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('blocks Import-all when no team is active and shows the error inline', async () => {
+        // planning_sessions are team-scoped — without a team the
+        // family-import has no rowscope. Surface that as an inline
+        // alert next to the button rather than silently failing.
+        renderModal({ savedGames: { g1: asSavedGame({ teamId: 't1', teamName: 'Pepo', opponentName: 'Opp', gameDate: '2026-04-30', numberOfPeriods: 2, periodDurationMinutes: 25 }) } });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope({
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope(),
+            }),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        expect(
+          screen.getByTestId('planning-modal-family-import-error'),
+        ).toBeInTheDocument();
+        // Picker stays open so the user can recover by closing and
+        // reopening with a team.
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+
+      it('clears the no-team error when the user pivots from Import-all to a single-version row', async () => {
+        // Pass-1 review fix: familyImportError persisted alongside the
+        // single-version flow if the user pivoted after seeing the
+        // no-team error. The single-version handler now clears it.
+        renderModal({ savedGames: { g1: asSavedGame({ teamId: 't1', teamName: 'Pepo', opponentName: 'Opp', gameDate: '2026-04-30', numberOfPeriods: 2, periodDurationMinutes: 25 }) } });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope({
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope(),
+            }),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        // Trigger the no-team error.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        expect(
+          screen.getByTestId('planning-modal-family-import-error'),
+        ).toBeInTheDocument();
+        // Pivot: pick a single version. Error should clear.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-version-button-Default'),
+          );
+        });
+        expect(
+          screen.queryByTestId('planning-modal-family-import-error'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('routes Import-all → game picker → family save (parent + children, primary marked active)', async () => {
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                Default: versionEnvelope(),
+                'Variant A': versionEnvelope(),
+              },
+              'Default',
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        // Picker shown, bundle picker gone.
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        expect(
+          screen.queryByTestId('planning-modal-bundle-picker'),
+        ).not.toBeInTheDocument();
+        // Pick the saved game and Continue.
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        // Two saves: parent (currentVersionName='Default', isActive=true)
+        // followed by child ('Variant A', parentSessionId=parent.id).
+        await waitFor(() => {
+          expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
+        });
+        const calls = mockSaveMutateAsync.mock.calls.map((c) => c[0]);
+        const parentCall = calls[0];
+        const childCall = calls[1];
+        expect(parentCall).toMatchObject({
+          name: 'Default',
+          teamId: 'team_a',
+          gameIds: ['g1'],
+          isActive: true,
+        });
+        // Parent shouldn't carry a parentSessionId.
+        expect((parentCall as { parentSessionId?: string }).parentSessionId).toBeUndefined();
+        expect(childCall).toMatchObject({
+          name: 'Variant A',
+          teamId: 'team_a',
+          gameIds: ['g1'],
+          isActive: false,
+        });
+        // Child must reference the parent's id (the mock returns
+        // 'planningSession_new' for the first save).
+        expect((childCall as { parentSessionId?: string }).parentSessionId).toBe(
+          'planningSession_new',
+        );
+      });
+
+      it('falls back to the first version key when currentVersionName is missing from the bundle', async () => {
+        // Defense-in-depth: if the bundle envelope's currentVersionName
+        // doesn't resolve to a real version (corrupt / hand-edited),
+        // family-import should still pick a primary rather than fail.
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        // currentVersionName: null (or missing) → fall back to first
+        // sorted entry. parsePlanBundle sorts alphabetically on
+        // PlanningModal's render side; on the IMPORT side bundleEnvelope
+        // emits in insertion order. The handler reads
+        // Object.entries(bundle.versions) directly, which preserves
+        // insertion order.
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                FirstByInsertion: versionEnvelope(),
+                Other: versionEnvelope(),
+              },
+              null,
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        await waitFor(() => {
+          expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
+        });
+        // First entry by insertion order = primary = parent.
+        expect(mockSaveMutateAsync.mock.calls[0][0]).toMatchObject({
+          name: 'FirstByInsertion',
+          isActive: true,
+        });
+      });
+
+      it('surfaces the list-view error even when the user has no pre-existing sessions (empty list)', async () => {
+        // Pin the motivation for moving listErrorMessage outside the
+        // populated-list block: a brand-new user's first family-import
+        // failing with no pre-existing sessions still gets the error.
+        // The earlier partial-failure test seeded a savedGame; this one
+        // also seeds a savedGame for the picker to bind, but planning
+        // sessions remain empty (setSessions defaults to []).
+        mockSaveMutateAsync.mockRejectedValueOnce(new Error('network down'));
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        // sessions list is empty (default).
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                Default: versionEnvelope(),
+                'Variant A': versionEnvelope(),
+              },
+              'Default',
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        // The error renders even though there's no populated session
+        // list to anchor it. Pin the message text to the
+        // parent-throw variant — `familyImportFailed` ("safe retry"),
+        // NOT `familyImportPartialFailed` (orphan cleanup needed).
+        // The two messages give materially different user guidance,
+        // so the path-specific variant must be locked here.
+        await waitFor(() => {
+          expect(
+            screen.getByText(
+              /Import failed\. Please try again|Tuonti epäonnistui\. Yritä uudelleen/i,
+            ),
+          ).toBeInTheDocument();
+        });
+        // Should NOT see the partial-failure message (no parent landed).
+        expect(
+          screen.queryByText(
+            /Some versions may not have been imported|Osa versioista jäi mahdollisesti tuomatta/i,
+          ),
+        ).not.toBeInTheDocument();
+        // Empty-state message also still rendered (no session list to
+        // hide it under).
+        expect(
+          screen.getByText(/No saved planning sessions yet|Ei tallennettuja/i),
+        ).toBeInTheDocument();
+      });
+
+      it('surfaces a list-view error and lands on list when a save throws mid-loop', async () => {
+        // Simulate a partial-failure: parent saves, child throws.
+        // Expectation: listErrorMessage shown, page=list, NO crash,
+        // pendingFamilyImport cleared.
+        mockSaveMutateAsync
+          .mockResolvedValueOnce({
+            ...buildSession(),
+            id: 'parent_id',
+            name: 'Default',
+          })
+          .mockRejectedValueOnce(new Error('network down'));
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                Default: versionEnvelope(),
+                'Variant A': versionEnvelope(),
+              },
+              'Default',
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        // Both saves attempted; second rejected.
+        await waitFor(() => {
+          expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
+        });
+        await waitFor(() => {
+          expect(
+            screen.getByText(
+              /Some versions may not have been imported|Osa versioista jäi mahdollisesti tuomatta/i,
+            ),
+          ).toBeInTheDocument();
+        });
+      });
+    });
   });
 
   it('shows the New plan button on the list page', () => {
