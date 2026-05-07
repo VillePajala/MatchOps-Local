@@ -345,12 +345,12 @@ May fold into a later UX polish pass if not needed in MVP.
 - [ ] Manual smoke test on staging: Planning menu opens → game picker → editor → Apply → games updated. PlanningSession saves and reloads.
 - [ ] Manual smoke test on staging: live-match scheduled-sub banner fires.
 - [ ] Local mode parity confirmed (cloud features absent gracefully when in local mode).
-- [ ] All nine migrations (028, 029, 030, 031, 032, 033, 034, 035, 036) applied to staging without error.
+- [ ] All twelve migrations (028, 029, 030, 031, 032, 033, 034, 035, 036, 037, 038, 039) applied to staging without error.
 - [ ] Standalone JSON envelope still imports correctly.
 
 ### Cutover steps (production)
 
-> **CRITICAL ORDERING:** Migration 035 promotes `planning_sessions` from `PRIMARY KEY (id)` to `(user_id, id)`, and the app code uses `{ onConflict: 'user_id,id' }` on every cloud save. Without 035 applied, the first cloud save throws a PostgREST constraint error. Apply migrations BEFORE letting cloud users reach the Planning feature, OR keep the modal gated behind a feature flag until verified.
+> **CRITICAL ORDERING:** Migration 035 promotes `planning_sessions` from `PRIMARY KEY (id)` to `(user_id, id)`, and the app code uses `{ onConflict: 'user_id,id' }` on every cloud save. Migration 038 adds the `parent_session_id` column that `transformPlanningSessionToDb` writes unconditionally — without it every cloud save throws `column "parent_session_id" does not exist`. Migration 039 updates `set_active_planning_session` to a 4-arg signature with `p_parent_session_id` — the SupabaseDataStore call site passes the new arg and the old 3-arg RPC body would either reject it (PostgREST argument mismatch) or silently fall back to legacy scope. Apply migrations BEFORE letting cloud users reach the Planning feature, OR keep the modal gated behind a feature flag until verified.
 
 1. Merge `feature/planner-integration` → `master` (user, manual).
 2. Vercel auto-deploys to prod. Feature available, but new schema columns are still `null` (no migration applied yet) — DO NOT let coaches open the Planning modal in cloud mode until step 3 completes.
@@ -364,6 +364,9 @@ May fold into a later UX polish pass if not needed in MVP.
    - 034 `add_player_is_priority`
    - 035 `planning_sessions_composite_pk`
    - 036 `set_active_planning_session_hardening`
+   - 037 `planning_sessions_included_game_ids` (per-game include flag column)
+   - 038 `planning_sessions_parent_session_id` (named-versions column + self-parent CHECK + insertion-order index)
+   - 039 `set_active_planning_session_parent_scope` (4-arg RPC with parent-children scope)
 4. Run each verification SQL (`__tests__/*.verification.sql`) and confirm all assertions pass.
 5. Verify: a clean prod login → Planning menu → empty session list → import standalone export → save → reload → session reappears.
 6. Announce to coaches; deprecate the standalone Vercel URL ~2 weeks later.

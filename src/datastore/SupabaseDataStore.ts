@@ -4618,12 +4618,15 @@ export class SupabaseDataStore implements DataStore {
     // which we read as undefined to preserve the legacy semantics
     // ("all gameIds included" + "top-level parent plan").
     //
-    // TODO(post-cutover): regenerate Supabase types after 037 + 038
-    // land in prod (`supabase gen types typescript`) and drop this
+    // TODO(post-cutover): regenerate Supabase types after 037 + 038 +
+    // 039 land in prod (`supabase gen types typescript`) and drop this
     // ENTIRE `rowExtended` widening block in one pass — both
     // `included_game_ids` AND `parent_session_id` will be on
     // PlanningSessionRow natively, so a partial cleanup that only
     // removes one would still need this widening for the other.
+    // Migration 039 also expands `set_active_planning_session` to a
+    // 4-arg signature; the RPC call site at line 4541 will need its
+    // `as unknown as` widening dropped at the same time.
     const rowExtended = row as unknown as PlanningSessionRow & {
       included_game_ids?: string[] | null;
       parent_session_id?: string | null;
