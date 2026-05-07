@@ -1059,7 +1059,8 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         : parentSavedOK
         ? t(
             'planningModal.familyImportPartialFailed',
-            'Some versions may not have been imported. Check the list and remove any partial sessions before re-importing.',
+            'Import failed after saving "{{name}}". Delete that entry from the list and try again.',
+            { name: primaryName },
           )
         : t(
             'planningModal.familyImportFailed',

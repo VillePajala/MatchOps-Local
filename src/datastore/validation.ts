@@ -354,13 +354,18 @@ export const validatePlanningSession = (
         session.parentSessionId,
       );
     }
-    // session.id is validated as non-empty earlier in this function,
-    // so the comparison is sound; no need to short-circuit on its
-    // truthiness. This catches A→A only; depth-2 cycles (A→B→A) are
-    // unreachable today because the DataStore conventionally rejects
-    // a child whose parent is itself a child, but enforcement is
-    // deferred to PR-C-2's parent-exists DataStore check.
-    if (session.parentSessionId === session.id) {
+    // session.id is OPTIONAL in this validator (DataStores call this
+    // before generating the id for new rows). Guard on
+    // isNonEmptyString so a brand-new session with both id and
+    // parentSessionId === undefined doesn't trigger the check via
+    // `undefined === undefined`. This catches A→A only; depth-2
+    // cycles (A→B→A) are unreachable today because the DataStore
+    // conventionally rejects a child whose parent is itself a child,
+    // but enforcement is deferred to PR-C-2's parent-exists check.
+    if (
+      isNonEmptyString(session.id) &&
+      session.parentSessionId === session.id
+    ) {
       throw new ValidationError(
         `${prefix}parentSessionId cannot equal session.id (self-parent cycle)`,
         'parentSessionId',

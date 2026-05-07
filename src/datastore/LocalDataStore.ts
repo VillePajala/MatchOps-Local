@@ -2362,7 +2362,7 @@ export class LocalDataStore implements DataStore {
   ): Promise<PlanningSession> {
     this.ensureInitialized();
 
-    validatePlanningSession({ ...session, id: session.id ?? 'pending' });
+    validatePlanningSession(session);
 
     return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
       const current = await this.loadPlanningSessions();

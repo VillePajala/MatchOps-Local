@@ -1207,7 +1207,7 @@ describe('PlanningModal', () => {
         // Should NOT see the partial-failure message (no parent landed).
         expect(
           screen.queryByText(
-            /Some versions may not have been imported|Osa versioista jäi mahdollisesti tuomatta/i,
+            /Import failed after saving|Tuonti epäonnistui sen jälkeen/i,
           ),
         ).not.toBeInTheDocument();
         // Empty-state message also still rendered (no session list to
@@ -1280,10 +1280,12 @@ describe('PlanningModal', () => {
         await waitFor(() => {
           expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
         });
+        // Pass-7 review: the partial-failure message names the
+        // orphan parent so the user knows which row to delete.
         await waitFor(() => {
           expect(
             screen.getByText(
-              /Some versions may not have been imported|Osa versioista jäi mahdollisesti tuomatta/i,
+              /Import failed after saving "Default"|Tuonti epäonnistui sen jälkeen kun "Default"/i,
             ),
           ).toBeInTheDocument();
         });

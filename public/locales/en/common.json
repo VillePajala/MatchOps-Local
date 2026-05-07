@@ -1698,7 +1698,7 @@
     "bundleImportAllOrPickOne": "Or pick a single version:",
     "familyImportNoTeamError": "Pick an active team before importing a tournament plan.",
     "familyImportFailed": "Import failed. Please try again.",
-    "familyImportPartialFailed": "Some versions may not have been imported. Check the list and remove any partial sessions before re-importing.",
+    "familyImportPartialFailed": "Import failed after saving \"{{name}}\". Delete that entry from the list and try again.",
     "familyImportActivationFailed": "All versions imported, but none could be activated. Open the list and activate a version manually.",
     "team": "Team",
     "formation": "Formation",

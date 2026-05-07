@@ -4381,7 +4381,7 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
 
-    validatePlanningSession({ ...session, id: session.id ?? 'pending' });
+    validatePlanningSession(session);
 
     const userId = await this.getUserId();
     const now = new Date().toISOString();
