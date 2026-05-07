@@ -714,7 +714,12 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       versionFamily.find((s) => s.parentSessionId == null) ??
       editingSession;
     const parentName = parent.name || 'plan';
-    const safe = parentName.replace(/[^a-z0-9-_]+/gi, '-').slice(0, 64);
+    // The character class deliberately ends with `_-` (not `-_`):
+    // inside `[...]`, a `-` between two characters forms a range, so
+    // `0-9-_` would silently parse as `0-9` PLUS the range `- (45) ..
+    // _ (95)`, leaving `.`, `/`, `:`, etc. as "kept" characters. The
+    // working form puts the dash last where it is always literal.
+    const safe = parentName.replace(/[^a-z0-9_-]+/gi, '-').slice(0, 64);
     const filename = `${safe || 'plan'}.matchops-plan.json`;
     // Allocate the object URL outside the try so the finally can
     // revoke it even if link.click() / removeChild throw — otherwise

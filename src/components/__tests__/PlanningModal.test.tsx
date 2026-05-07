@@ -2370,5 +2370,69 @@ describe('PlanningModal', () => {
         restore();
       }
     });
+
+    it('strips dangerous characters within the 64-char slug window (regex range bug regression)', async () => {
+      // The previous slug regex /[^a-z0-9-_]+/gi inadvertently parsed
+      // `0-9-_` as `0-9` PLUS the range `- (45) .. _ (95)`, leaving
+      // `.` (46), `/` (47), `:`, etc. in the negated class — i.e.
+      // KEPT them. The previous test used a name where the dangerous
+      // chars sat past position 64, so `slice(0, 64)` truncated them
+      // away and the bug was invisible. This test puts `/` and `.`
+      // INSIDE the slug window so a regression resurrecting the bug
+      // would fail here.
+      const parent = buildSession({
+        id: 'p1',
+        name: 'Spring/Fall 2026.v2',
+      });
+      const child = buildSession({
+        id: 'c1',
+        name: 'Child',
+        parentSessionId: 'p1',
+      });
+      setSessions([parent, child]);
+      const savedGames: SavedGamesCollection = {
+        g1: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+        g2: asSavedGame({
+          teamId: 't1',
+          teamName: 'Pepo U10',
+          opponentName: 'Opp B',
+          gameDate: '2026-04-30',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 12,
+        }),
+      };
+      renderModal({ currentTeamId: 't1', savedGames });
+      fireEvent.click(screen.getByTestId('planning-session-open-p1'));
+
+      const { captured, restore } = setupDownloadCapture();
+      try {
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-toggle'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-versions-export-bundle'),
+          );
+        });
+        // Whitespace, slash, dot — every non [a-z0-9_-] run collapses
+        // to a single dash. Trailing chars are NOT stripped (the
+        // regex replaces, doesn't trim), so the suffix attaches
+        // directly to the final segment.
+        expect(captured.anchorDownload).toBe(
+          'Spring-Fall-2026-v2.matchops-plan.json',
+        );
+      } finally {
+        restore();
+      }
+    });
   });
 });

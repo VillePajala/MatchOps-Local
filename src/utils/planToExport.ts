@@ -67,10 +67,20 @@ function gameToImportedGame(
   // Fall back to a placeholder when the game record is missing — keeps
   // export resilient to cloud-sync races. Numeric defaults match the
   // most permissive standalone shape (1 period, 12.5 min, 25 min total).
-  const periods = (game?.numberOfPeriods ?? 2) as 1 | 2;
+  // Clamp numberOfPeriods to the standalone's supported {1, 2} domain
+  // (a future MatchOps-Local schema change introducing 3-period games
+  // would otherwise emit a value that breaks parsePlanExport's strict
+  // type and silently flow through the `as` cast).
+  const rawPeriods = game?.numberOfPeriods ?? 2;
+  const periods: 1 | 2 = rawPeriods === 1 ? 1 : 2;
   const periodMin = game?.periodDurationMinutes ?? 12.5;
   const dur = game ? gameDurationSec(game) : periods * periodMin * 60;
-  const durationMin = dur / 60;
+  // Floor durationMin at 1 minute. parsePlanExport rejects
+  // durationMin <= 0 AND halfTimeMin >= durationMin; a degenerate game
+  // (periodDurationMinutes === 0) would otherwise emit a bundle that
+  // fails to round-trip. The UI clamps periodDurationMinutes >= 1, so
+  // this floor is a defense-in-depth for data that bypassed validation.
+  const durationMin = Math.max(1, dur / 60);
   // Opponent / label fall back to a synthesised placeholder when the
   // saved game is unavailable (cloud-sync race) — parsePlanExport
   // rejects empty opponent strings.
@@ -92,7 +102,8 @@ function gameToImportedGame(
     // MatchOps-Local schema doesn't model unequal-period games, so
     // this assumption holds across every supported configuration;
     // if that changes, halfTimeMin should switch to
-    // periodDurationMinutes here.
+    // periodDurationMinutes here. (durationMin is floored at 1 above,
+    // so durationMin / 2 is always strictly positive.)
     halfTimeMin: durationMin / 2,
     startingXI: { ...(draft?.startingXI ?? {}) },
     scheduledSubs: draft ? buildScheduledSubsForExport(draft) : [],
