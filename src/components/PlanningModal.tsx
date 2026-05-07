@@ -97,11 +97,9 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   // state entirely (importedPlan goes straight to the success card).
   const [importedBundle, setImportedBundle] =
     useState<ImportedPlanBundle | null>(null);
-  // Family-import handoff (PR-F-2c): when the user clicks "Import all
-  // versions" on the bundle picker, the bundle is stashed here while
-  // they pick the game-binding once. handlePickerContinue branches on
-  // this so a family-import doesn't fall into the single-session
-  // editor flow.
+  // Stash for the "Import all" path: the bundle waits here while the
+  // user picks one shared game-binding. handlePickerContinue branches
+  // on this so a family-import skips the single-session editor.
   const [pendingFamilyImport, setPendingFamilyImport] =
     useState<ImportedPlanBundle | null>(null);
   const [familyImportError, setFamilyImportError] = useState<string | null>(
@@ -839,6 +837,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // a per-version flow; family import lands on the list view so
     // the user can see all created versions and pick one to open.)
     if (pendingFamilyImport) {
+      // void: handleImportFamilyContinue has its own try/catch that
+      // sets listErrorMessage on failure; the caller (sync click
+      // handler) doesn't need to await. ESLint no-floating-promises
+      // is satisfied by the explicit void.
       void handleImportFamilyContinue(pendingFamilyImport, gameIds);
       return;
     }
@@ -913,20 +915,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     const primaryPlan = bundle.versions[primaryName];
     const childEntries = entries.filter(([n]) => n !== primaryName);
 
-    // Build the per-game draft for the primary first; reuse for
-    // children if their startingXI/scheduledSubs aren't divergent.
-    // (Each version still gets its own per-game draft below.)
+    // buildDrafts: map each bound gameId to a PlanDraft derived from
+    // the version's first imported game. Called once per version so
+    // each parent/child reflects its own startingXI/scheduledSubs.
+    // Empty `plan.games` returns {} (degenerate version with no draft
+    // data — session lands with empty slots; safe in the UI).
     const buildDrafts = (
       plan: typeof primaryPlan,
     ): Record<string, PlanDraft> => {
       const presetMatch = plan.formationId
         ? getPresetById(plan.formationId)
         : undefined;
-      // The standalone planner authored each version against its own
-      // startingXI/scheduledSubs; the per-game-id mapping comes from
-      // the bound gameIds. The first imported game's entries seed
-      // every selected game (the standalone treats versions as
-      // tournament-wide). Per-game divergence happens in the editor.
       const importedFirstGame = plan.games[0];
       if (!importedFirstGame) return {};
       const { draft } = planDraftFromImport(
@@ -1665,11 +1664,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                       (e.g. a new user's first family-import fails with no
                       pre-existing sessions to anchor the list). Delete
                       failures, open failures, and family-import failures
-                      all flow through this slot. */}
+                      all flow through this slot. The isLoading guard is
+                      intentionally NOT here — a query refetch triggered
+                      by saveSession.onSuccess would otherwise hide the
+                      banner during the ~200ms loading window. */}
                   {!importedPlan &&
                     !importError &&
                     !sessionsQuery.isError &&
-                    !sessionsQuery.isLoading &&
                     listErrorMessage && (
                       <p
                         className="text-sm text-rose-300"

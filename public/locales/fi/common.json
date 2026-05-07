@@ -1697,7 +1697,7 @@
     "bundleImportAll": "Tuo kaikki {{count}} versiota perheenä →",
     "bundleImportAllOrPickOne": "Tai valitse yksi versio:",
     "familyImportNoTeamError": "Valitse aktiivinen joukkue ennen turnaussuunnitelman tuontia.",
-    "familyImportFailed": "Turnaussuunnitelman tuonti epäonnistui. Yritä uudelleen.",
+    "familyImportFailed": "Osa versioista jäi mahdollisesti tuomatta. Tarkista lista ja poista keskeneräiset sessiot ennen uudelleentuontia.",
     "team": "Joukkue",
     "formation": "Muodostelma",
     "gameCount": "Pelit",

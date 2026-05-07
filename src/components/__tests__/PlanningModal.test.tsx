@@ -1062,6 +1062,77 @@ describe('PlanningModal', () => {
         });
       });
 
+      it('surfaces the list-view error even when the user has no pre-existing sessions (empty list)', async () => {
+        // Pin the motivation for moving listErrorMessage outside the
+        // populated-list block: a brand-new user's first family-import
+        // failing with no pre-existing sessions still gets the error.
+        // The earlier partial-failure test seeded a savedGame; this one
+        // also seeds a savedGame for the picker to bind, but planning
+        // sessions remain empty (setSessions defaults to []).
+        mockSaveMutateAsync.mockRejectedValueOnce(new Error('network down'));
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        // sessions list is empty (default).
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                Default: versionEnvelope(),
+                'Variant A': versionEnvelope(),
+              },
+              'Default',
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        // The error renders even though there's no populated session
+        // list to anchor it.
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-list-error'),
+          ).toBeInTheDocument();
+        });
+        // Empty-state message also still rendered (no session list to
+        // hide it under).
+        expect(
+          screen.getByText(/No saved planning sessions yet|Ei tallennettuja/i),
+        ).toBeInTheDocument();
+      });
+
       it('surfaces a list-view error and lands on list when a save throws mid-loop', async () => {
         // Simulate a partial-failure: parent saves, child throws.
         // Expectation: listErrorMessage shown, page=list, NO crash,
@@ -1128,7 +1199,7 @@ describe('PlanningModal', () => {
         await waitFor(() => {
           expect(
             screen.getByText(
-              /Could not import the tournament plan|Turnaussuunnitelman tuonti epäonnistui/i,
+              /Some versions may not have been imported|Osa versioista jäi mahdollisesti tuomatta/i,
             ),
           ).toBeInTheDocument();
         });
