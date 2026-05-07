@@ -199,6 +199,23 @@ describe('planningSessionToImportedPlan', () => {
     expect(out.savedAt).toBe('2026-05-01T08:00:00.000Z');
   });
 
+  it('satisfies halfTimeMin < durationMin for 1-period games (parsePlanExport invariant)', () => {
+    // The converter sets halfTimeMin = durationMin / 2 to keep the
+    // standalone's strict `<` invariant satisfied for both 1- and
+    // 2-period games. Default fixtures are 2-period; this test
+    // exercises 1-period explicitly so the round-trip through
+    // parsePlanExport (which rejects halfTimeMin >= durationMin) is
+    // locked.
+    const out = planningSessionToImportedPlan(
+      buildSession(),
+      { g1: buildGame({ numberOfPeriods: 1, periodDurationMinutes: 12.5 }) },
+    );
+    expect(out.games[0].numberOfPeriods).toBe(1);
+    expect(out.games[0].halfTimeMin).toBeLessThan(out.games[0].durationMin);
+    const reParsed = parsePlanExport(serializePlanExport(out));
+    expect(reParsed.ok).toBe(true);
+  });
+
   it('feeds serializePlanBundle so a parent+child family round-trips through parsePlanBundle', () => {
     // The PR-F-2 export UI builds a Record<name, ImportedPlan>
     // straight from the version family and passes it to

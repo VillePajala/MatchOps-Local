@@ -2288,7 +2288,7 @@ describe('PlanningEditor', () => {
       expect(btn).toBeDisabled();
     });
 
-    it('renders the Export tournament plan… item when onExportBundle is provided', () => {
+    it('renders the Export tournament plan… item when onExportBundle is provided', async () => {
       // PR-F-2: bundle export is exposed as the first item in the
       // Versions menu, so a coach with multiple versions can download
       // the whole family in one click.
@@ -2303,7 +2303,7 @@ describe('PlanningEditor', () => {
         ],
         onExportBundle: jest.fn(),
       });
-      act(() => {
+      await act(async () => {
         fireEvent.click(
           screen.getByTestId('planning-editor-versions-toggle'),
         );
@@ -2313,7 +2313,7 @@ describe('PlanningEditor', () => {
       ).toBeInTheDocument();
     });
 
-    it('hides the Export item when onExportBundle is not provided', () => {
+    it('hides the Export item when onExportBundle is not provided', async () => {
       renderEditor({
         versions: [
           buildSession({ id: 'parent', name: 'Default' }),
@@ -2326,7 +2326,7 @@ describe('PlanningEditor', () => {
         // onExportBundle intentionally omitted — brand-new unsaved plans
         // surface this state in the wild.
       });
-      act(() => {
+      await act(async () => {
         fireEvent.click(
           screen.getByTestId('planning-editor-versions-toggle'),
         );
@@ -2336,7 +2336,7 @@ describe('PlanningEditor', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('clicking Export calls onExportBundle and closes the menu', () => {
+    it('clicking Export calls onExportBundle and closes the menu', async () => {
       const onExportBundle = jest.fn();
       renderEditor({
         versions: [
@@ -2349,12 +2349,12 @@ describe('PlanningEditor', () => {
         ],
         onExportBundle,
       });
-      act(() => {
+      await act(async () => {
         fireEvent.click(
           screen.getByTestId('planning-editor-versions-toggle'),
         );
       });
-      act(() => {
+      await act(async () => {
         fireEvent.click(
           screen.getByTestId('planning-editor-versions-export-bundle'),
         );

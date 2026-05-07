@@ -687,13 +687,22 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       );
     }
     const active = versionFamily.find((s) => s.isActive) ?? null;
+    // Pin savedAt to the family's MOST RECENT updatedAt so the bundle's
+    // "last saved" timestamp doesn't lie when the user reopens a parent
+    // but has more recently edited a child. ISO 8601 strings sort
+    // lexicographically as chronological, so a sort + last works.
+    // Falls back to editingSession.updatedAt for the (impossible-by-
+    // construction) zero-family case.
+    const familyLatestAt =
+      versionFamily
+        .map((s) => s.updatedAt)
+        .filter((s): s is string => Boolean(s))
+        .sort()
+        .at(-1) ?? editingSession.updatedAt;
     const json = serializePlanBundle({
       versions,
       currentVersionName: active?.name ?? null,
-      // Pin savedAt so a "snapshot" timestamp is meaningful — the
-      // serialiser would otherwise stamp now() which is fine but
-      // inconsistent with the family's actual updatedAt.
-      savedAt: editingSession.updatedAt,
+      savedAt: familyLatestAt,
     });
     // File name: parent's name + .matchops-plan.json. Derive parent
     // from `parentSessionId == null` rather than versionFamily[0] so
@@ -707,9 +716,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     const parentName = parent.name || 'plan';
     const safe = parentName.replace(/[^a-z0-9-_]+/gi, '-').slice(0, 64);
     const filename = `${safe || 'plan'}.matchops-plan.json`;
+    // Allocate the object URL outside the try so the finally can
+    // revoke it even if link.click() / removeChild throw — otherwise
+    // the Blob URL leaks until navigation.
+    const url = URL.createObjectURL(
+      new Blob([json], { type: 'application/json' }),
+    );
     try {
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
@@ -719,9 +732,10 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
     } catch (e) {
       logger.error('[PlanningModal] export bundle failed', e);
+    } finally {
+      URL.revokeObjectURL(url);
     }
   };
 
