@@ -1293,6 +1293,88 @@ describe('PlanningModal', () => {
         // was the prior confusing UX.
         expect(mockSetActiveMutateAsync).not.toHaveBeenCalled();
       });
+
+      it('surfaces the activation-failed message when all saves succeed but setActiveSession throws', async () => {
+        // Pass-6 review item 4 + 9: the activation-throw path is the
+        // third distinct failure mode. All saves landed (parent +
+        // child); the family is intact, just inactive. The user
+        // recovery is to manually activate, NOT to delete partials —
+        // pin the message so the recovery guidance can't drift back
+        // to the misleading partial-failure variant.
+        mockSaveMutateAsync
+          .mockResolvedValueOnce({
+            ...buildSession(),
+            id: 'parent_id',
+            name: 'Default',
+          })
+          .mockResolvedValueOnce({
+            ...buildSession(),
+            id: 'child_id',
+            name: 'Variant A',
+          });
+        mockSetActiveMutateAsync.mockRejectedValueOnce(new Error('rpc down'));
+        const savedGames: SavedGamesCollection = {
+          g1: asSavedGame({
+            teamId: 'team_a',
+            teamName: 'Pepo',
+            opponentName: 'Opp',
+            gameDate: '2026-04-30',
+            numberOfPeriods: 2,
+            periodDurationMinutes: 25,
+          }),
+        };
+        renderModal({ currentTeamId: 'team_a', savedGames });
+        const file = fileFromText(
+          'plan.json',
+          JSON.stringify(
+            bundleEnvelope(
+              {
+                Default: versionEnvelope(),
+                'Variant A': versionEnvelope(),
+              },
+              'Default',
+            ),
+          ),
+        );
+        const input = screen.getByTestId(
+          'planning-modal-file-input',
+        ) as HTMLInputElement;
+        fireEvent.change(input, { target: { files: [file] } });
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          ).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-modal-bundle-import-all'),
+          );
+        });
+        await waitFor(() => {
+          expect(screen.getByTestId('planning-game-picker')).toBeInTheDocument();
+        });
+        await act(async () => {
+          fireEvent.click(screen.getAllByRole('checkbox')[0]);
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByRole('button', { name: /continue|jatka/i }),
+          );
+        });
+        await waitFor(() => {
+          expect(mockSaveMutateAsync).toHaveBeenCalledTimes(2);
+        });
+        await waitFor(() => {
+          expect(mockSetActiveMutateAsync).toHaveBeenCalledTimes(1);
+        });
+        await waitFor(() => {
+          expect(
+            screen.getByText(
+              /All versions imported, but none could be activated|Kaikki versiot tuotiin, mutta yhtäkään ei voitu aktivoida/i,
+            ),
+          ).toBeInTheDocument();
+        });
+      });
     });
   });
 

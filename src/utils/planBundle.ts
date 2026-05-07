@@ -121,6 +121,14 @@ export function parsePlanBundle(raw: string): BundleImportResult {
         'versions',
       );
     }
+    // Round-trip via JSON.stringify so the inner shape goes through
+    // parsePlanExport's full DoS caps (PARSE_PLAN_EXPORT_MAX_CHARS)
+    // and structural validation. We can't pass `value` directly —
+    // parsePlanExport's contract is a string envelope, and re-running
+    // it on the serialised inner is what enforces the per-version
+    // size + depth limits (which are the per-version half of the
+    // multi-layer cap explained at the top of this file). Do not
+    // optimise this away into a "trust the parsed object" path.
     const inner = parsePlanExport(JSON.stringify(value));
     if (!inner.ok) {
       return fail(

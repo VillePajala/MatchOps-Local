@@ -267,7 +267,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     // filter), fall back to a solo family. Pretending the child is
     // its own parent would mis-label it on export and corrupt the
     // family wiring of any sibling pulled in by the children filter.
-    if (!parent) return [editingSession];
+    // Log so Sentry can measure how often the orphan path is hit —
+    // a high rate would indicate an FK/cleanup bug elsewhere.
+    if (!parent) {
+      if (parentId !== editingSession.id) {
+        logger.warn(
+          '[PlanningModal] versionFamily fell back to solo: parent not loaded',
+          { editingSessionId: editingSession.id, parentSessionId: parentId },
+        );
+      }
+      return [editingSession];
+    }
     // ISO 8601 lexicographic sort == chronological for valid timestamps,
     // so localeCompare on updatedAt yields newest-first without parsing.
     const children = sessions
@@ -972,11 +982,16 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       return drafts;
     };
 
-    // Track whether the parent landed so the catch picks the right
-    // user message: a parent-throw leaves zero rows (clean retry is
-    // safe), a child-throw leaves the parent orphaned (user must
-    // delete it before retry to avoid duplicate primaries).
+    // Track which phase failed so the catch picks the right user
+    // message:
+    //   - parent throw: zero rows landed; clean retry is safe.
+    //   - child throw: parent orphaned with isActive=false; the user
+    //       must delete it before retry to avoid duplicate primaries.
+    //   - activation throw: every row landed but none is active; the
+    //       user can recover by manually activating a version, no
+    //       deletion needed.
     let parentSavedOK = false;
+    let allSavesOK = false;
     try {
       const primaryDraft = buildDrafts(primaryPlan);
       // Save parent with isActive=false so a child-save failure does
@@ -1004,6 +1019,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           isActive: false,
         });
       }
+      allSavesOK = true;
       // All children landed — flip the parent active. setActiveSession
       // is atomic at the RPC layer (deactivates other in-scope rows)
       // so the family has exactly one active version after this call.
@@ -1021,17 +1037,21 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
       setPage('list');
     } catch (e) {
       logger.error('[PlanningModal] family-import save failed', e);
-      setListErrorMessage(
-        parentSavedOK
-          ? t(
-              'planningModal.familyImportPartialFailed',
-              'Some versions may not have been imported. Check the list and remove any partial sessions before re-importing.',
-            )
-          : t(
-              'planningModal.familyImportFailed',
-              'Import failed. Please try again.',
-            ),
-      );
+      const message = allSavesOK
+        ? t(
+            'planningModal.familyImportActivationFailed',
+            'All versions imported, but none could be activated. Open the list and activate a version manually.',
+          )
+        : parentSavedOK
+        ? t(
+            'planningModal.familyImportPartialFailed',
+            'Some versions may not have been imported. Check the list and remove any partial sessions before re-importing.',
+          )
+        : t(
+            'planningModal.familyImportFailed',
+            'Import failed. Please try again.',
+          );
+      setListErrorMessage(message);
       setPendingFamilyImport(null);
       setPage('list');
     }

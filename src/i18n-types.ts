@@ -1524,6 +1524,7 @@ export type TranslationKey =
   | 'planningModal.emptyTitle'
   | 'planningModal.errorPath'
   | 'planningModal.exportBundleFailed'
+  | 'planningModal.familyImportActivationFailed'
   | 'planningModal.familyImportFailed'
   | 'planningModal.familyImportNoTeamError'
   | 'planningModal.familyImportPartialFailed'

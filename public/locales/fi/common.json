@@ -1699,6 +1699,7 @@
     "familyImportNoTeamError": "Valitse aktiivinen joukkue ennen turnaussuunnitelman tuontia.",
     "familyImportFailed": "Tuonti epäonnistui. Yritä uudelleen.",
     "familyImportPartialFailed": "Osa versioista jäi mahdollisesti tuomatta. Tarkista lista ja poista keskeneräiset sessiot ennen uudelleentuontia.",
+    "familyImportActivationFailed": "Kaikki versiot tuotiin, mutta yhtäkään ei voitu aktivoida. Avaa lista ja aktivoi versio manuaalisesti.",
     "team": "Joukkue",
     "formation": "Muodostelma",
     "gameCount": "Pelit",
