@@ -140,19 +140,20 @@ describe('PlanningMinutesDashboard', () => {
   });
 
   it('marks a heavy-over player with the heavy-over band', () => {
-    // 4 players in the rotation, but p3 plays both LB AND RB across
-    // sub events — they accumulate well over their fair share.
-    // Subs at t=0 swap p1→p3 and p2→p3 so p3 plays the full 20 min
-    // on both LB and RB = 40 min, while p1+p2 each play 0 min.
-    // Fair share = (1200 * 3 starters) / 2 active = 1800s.
-    // p3 = 2400s, ratio = 2400/1800 = 1.33 → heavy-over.
+    // p3 takes LB at t=0 and stays for the full 20:00 (1200s).
+    // p1 (displaced at t=0) drops out of `referenced` because they
+    // accumulated 0s. To keep 4 referenced players in the
+    // denominator, p4 enters RB mid-game (both p2 and p4 then have
+    // positive time).
+    // Fair share = (1200 * 3 starters) / 4 referenced = 900s.
+    // p3 = 1200s → ratio 1.333… → heavy-over.
     renderDashboard({
       draft: {
         startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
-        bench: ['p3'],
+        bench: ['p3', 'p4'],
         scheduledSubs: [
           { id: 's1', timeSeconds: 0, inPlayer: 'p3', positionRole: 'LB' },
-          { id: 's2', timeSeconds: 0, inPlayer: 'p3', positionRole: 'RB' },
+          { id: 's2', timeSeconds: 600, inPlayer: 'p4', positionRole: 'RB' },
         ],
       },
     });
