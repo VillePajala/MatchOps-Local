@@ -1693,6 +1693,7 @@
     "bundleVersionMeta": "{{games}} peliä · {{subs}} vaihtoa",
     "bundleSelectedWarning": "Ladattiin ”{{name}}” {{total}}-version paketista. Muita versioita ei tuotu.",
     "bundleEmptyError": "Tässä paketissa ei ole versioita tuotavaksi.",
+    "bundleVersionMissingError": "Tätä versiota ei enää löydy paketista.",
     "team": "Joukkue",
     "formation": "Muodostelma",
     "gameCount": "Pelit",

@@ -535,13 +535,16 @@ describe('PlanningModal', () => {
     // "Loaded one version, others left behind" warning on the success
     // card.
 
-    const versionEnvelope = (overrides: { teamName?: string } = {}) => ({
-      ...validEnvelope(),
-      tournament: {
-        ...validEnvelope().tournament,
-        teamName: overrides.teamName ?? validEnvelope().tournament.teamName,
-      },
-    });
+    const versionEnvelope = (overrides: { teamName?: string } = {}) => {
+      const base = validEnvelope();
+      return {
+        ...base,
+        tournament: {
+          ...base.tournament,
+          teamName: overrides.teamName ?? base.tournament.teamName,
+        },
+      };
+    };
 
     const bundleEnvelope = (
       versions: Record<string, ReturnType<typeof versionEnvelope>>,
@@ -555,9 +558,11 @@ describe('PlanningModal', () => {
     });
 
     it('auto-advances a 1-version bundle to the success card', async () => {
-      // Degenerate bundle (single version) skips the picker — making
-      // the user click would be busywork. The success card still
-      // shows the "from bundle" warning so the source is visible.
+      // Degenerate bundle (single version) skips both the picker AND
+      // the "from bundle" warning — the warning only renders when
+      // siblings were left behind, and a 1-version bundle has none.
+      // (Earlier fix-pass also stopped writing bundleSourceMeta in
+      // this branch since the warning wouldn't fire anyway.)
       renderModal();
       const file = fileFromText(
         'plan.json',

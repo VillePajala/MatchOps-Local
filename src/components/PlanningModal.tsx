@@ -266,6 +266,20 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
     return Object.entries(savedGames).map(([id, game]) => ({ id, game }));
   }, [savedGames]);
 
+  // Bundle picker rows in deterministic alphabetical order (defends
+  // against insertion-order shuffle from a hand-edited or future
+  // serializer change). Empty array when no bundle is loaded so the
+  // JSX below can render unconditionally.
+  const sortedBundleVersions = useMemo(
+    () =>
+      importedBundle
+        ? Object.entries(importedBundle.versions).sort(([a], [b]) =>
+            a.localeCompare(b),
+          )
+        : [],
+    [importedBundle],
+  );
+
   // Three reset levels, smallest to largest:
   //
   // 1. resetPendingImport — clears the standalone-import handoff stash
@@ -664,7 +678,23 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const handleSelectBundleVersion = (versionName: string) => {
     if (!importedBundle) return;
     const plan = importedBundle.versions[versionName];
-    if (!plan) return;
+    if (!plan) {
+      // Unreachable today — buttons render from
+      // Object.entries(importedBundle.versions), so the name
+      // always resolves. Defense-in-depth: surface the failure as
+      // an import error instead of silently doing nothing, which
+      // would leave the picker rows clickable but unresponsive
+      // and look like a broken UI.
+      setImportError({
+        message: t(
+          'planningModal.bundleVersionMissingError',
+          'That version is no longer in the bundle.',
+        ),
+        path: `versions.${versionName}`,
+      });
+      setImportedBundle(null);
+      return;
+    }
     setImportedPlan(plan);
     setBundleSourceMeta({
       selectedName: versionName,
@@ -1371,20 +1401,11 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                       </div>
                     )}
 
-                  {/* Bundle version picker (formatVersion: 2 imports) */}
-                  {importedBundle && (() => {
-                    // IIFE so the version list is computed once for both
-                    // the subtitle's count and the row map. Object.keys
-                    // length was being evaluated twice inline; sorting
-                    // alphabetically here also makes the picker
-                    // deterministic regardless of the JSON object's
-                    // insertion order (a future serializer or hand-edit
-                    // mustn't silently shuffle the rows).
-                    const sortedEntries = Object.entries(
-                      importedBundle.versions,
-                    ).sort(([a], [b]) => a.localeCompare(b));
-                    const versionCount = sortedEntries.length;
-                    return (
+                  {/* Bundle version picker (formatVersion: 2 imports).
+                      sortedBundleVersions is memoised at the top of the
+                      component so the count + rows here read off the same
+                      list. */}
+                  {importedBundle && (
                     <div
                       className="space-y-3 rounded-md bg-sky-900/30 border border-sky-700/40 p-4"
                       data-testid="planning-modal-bundle-picker"
@@ -1410,7 +1431,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                         {t(
                           'planningModal.bundlePickerSubtitle',
                           'This file contains {{count}} versions. Pick one to load — the others stay in the file.',
-                          { count: versionCount },
+                          { count: sortedBundleVersions.length },
                         )}
                       </p>
                       <ul
@@ -1418,7 +1439,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                         className="space-y-1"
                         data-testid="planning-modal-bundle-version-list"
                       >
-                        {sortedEntries.map(
+                        {sortedBundleVersions.map(
                           ([name, plan]) => {
                             const isCurrent =
                               importedBundle.currentVersionName === name;
@@ -1467,8 +1488,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                         )}
                       </ul>
                     </div>
-                    );
-                  })()}
+                  )}
 
                   {/* Import success */}
                   {importedPlan && (
@@ -1486,6 +1506,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                           <HiOutlineXMark className="h-4 w-4" />
                         </button>
                       </div>
+                      {/* totalVersions > 1 is technically dead today
+                          (bundleSourceMeta is only set from
+                          handleSelectBundleVersion, and the picker only
+                          renders for 2+ versions). Keeping the guard so
+                          a future call site that sets bundleSourceMeta
+                          for a 1-version bundle can't accidentally
+                          surface a misleading "other versions left
+                          behind" message. */}
                       {bundleSourceMeta &&
                         bundleSourceMeta.totalVersions > 1 && (
                           <p

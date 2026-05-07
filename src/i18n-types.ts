@@ -1507,6 +1507,7 @@ export type TranslationKey =
   | 'planningModal.bundlePickerTitle'
   | 'planningModal.bundleSelectedWarning'
   | 'planningModal.bundleVersionMeta'
+  | 'planningModal.bundleVersionMissingError'
   | 'planningModal.deactivateAriaLabel'
   | 'planningModal.deleteConfirm'
   | 'planningModal.deleteFailed'
