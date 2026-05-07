@@ -347,14 +347,23 @@ describe('Translation File Validation', () => {
       //   saveAsNewCopyDefault, saveCopyConfirm).
       // Planner PR-C-2c: +3 versions-menu keys (versionsLabel,
       //   versionsActive, versionsActivate).
-      // Planner PR-F-2: +1 exportBundle key (versions-menu export item).
+      // Planner PR-F-2b: +5 bundle-import keys (bundlePickerTitle,
+      //   bundlePickerSubtitle, bundleCurrent, bundleVersionMeta,
+      //   bundleSelectedWarning).
+      // Planner PR-F-2b fix-pass-1: +1 bundleEmptyError (guard for a
+      //   0-version bundle envelope that parsePlanBundle accepts but
+      //   the picker UI can't render usefully).
+      // Planner PR-F-2b fix-pass-2: +1 bundleVersionMissingError
+      //   (defense-in-depth setImportError when the picker click
+      //   resolves to a name no longer in the bundle).
+      // Planner PR-F-2a: +1 exportBundle key (versions-menu export item).
       // Planner PR-F-2a fix-pass: +1 planMenuLabel (label adapts to
       //   single-session export-only case).
       // Note: this counts JSON leaf nodes from the translation files
       // (getAllKeys()). i18n-types.ts uses a slightly different
       // counter that includes synthesised plural bases — see the
       // i18n-types.ts assertion below for that distinct number.
-      expect(enKeys.length).toBe(2603);
+      expect(enKeys.length).toBe(2610);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -390,9 +399,14 @@ describe('Translation File Validation', () => {
       //   saveAsNewCopyDefault, saveCopyConfirm).
       // Planner PR-C-2c: +3 versions-menu keys (versionsLabel,
       //   versionsActive, versionsActivate).
-      // Planner PR-F-2: +1 exportBundle key (versions-menu export item).
+      // Planner PR-F-2b: +5 bundle-import keys (bundlePickerTitle,
+      //   bundlePickerSubtitle, bundleCurrent, bundleVersionMeta,
+      //   bundleSelectedWarning).
+      // Planner PR-F-2b fix-pass-1: +1 bundleEmptyError.
+      // Planner PR-F-2b fix-pass-2: +1 bundleVersionMissingError.
+      // Planner PR-F-2a: +1 exportBundle key (versions-menu export item).
       // Planner PR-F-2a fix-pass: +1 planMenuLabel.
-      expect(fiKeys.length).toBe(2603);
+      expect(fiKeys.length).toBe(2610);
     });
   });
 });

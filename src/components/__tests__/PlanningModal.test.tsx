@@ -313,7 +313,15 @@ describe('PlanningModal', () => {
       },
     });
     renderModal();
-    const file = fileFromText('plan.json', '{}'); // body irrelevant; mock intercepts
+    // PR-F-2b switched the file picker to parsePlanBundle, which
+    // delegates to parsePlanExport ONLY for v1 envelopes. The body
+    // must declare formatVersion: 1 so the bundle parser hands off
+    // to the mock; otherwise parsePlanBundle returns its own
+    // "Unsupported formatVersion" error before the mock can fire.
+    const file = fileFromText(
+      'plan.json',
+      JSON.stringify({ formatVersion: PLAN_FORMAT_VERSION }),
+    );
     const input = screen.getByTestId(
       'planning-modal-file-input',
     ) as HTMLInputElement;
@@ -420,7 +428,13 @@ describe('PlanningModal', () => {
 
   it('shows an error message and field path on invalid envelope', async () => {
     renderModal();
-    const bad = JSON.stringify({ ...validEnvelope(), formatVersion: 2 });
+    // PR-F-2b: parsePlanBundle now treats formatVersion: 2 as a
+    // valid bundle envelope, so the original test's "set
+    // formatVersion: 2 to trigger an error" no longer works. Use 99
+    // (out of range) instead — parsePlanBundle returns
+    // "Unsupported formatVersion" with path "formatVersion", which
+    // the test still asserts on.
+    const bad = JSON.stringify({ ...validEnvelope(), formatVersion: 99 });
     const file = fileFromText('bad.json', bad);
     const input = screen.getByTestId(
       'planning-modal-file-input',
@@ -512,6 +526,278 @@ describe('PlanningModal', () => {
     } finally {
       window.FileReader = realFileReader;
     }
+  });
+
+  describe('Bundle import (formatVersion: 2)', () => {
+    // PR-F-2b: file-picker now routes through parsePlanBundle so v2
+    // multi-version envelopes are accepted alongside v1 single-snapshot
+    // envelopes. These tests pin the version-picker UX and the
+    // "Loaded one version, others left behind" warning on the success
+    // card.
+
+    const versionEnvelope = (overrides: { teamName?: string } = {}) => {
+      const base = validEnvelope();
+      return {
+        ...base,
+        tournament: {
+          ...base.tournament,
+          teamName: overrides.teamName ?? base.tournament.teamName,
+        },
+      };
+    };
+
+    const bundleEnvelope = (
+      versions: Record<string, ReturnType<typeof versionEnvelope>>,
+      currentVersionName: string | null = null,
+    ) => ({
+      formatVersion: 2,
+      kind: PLAN_EXPORT_KIND,
+      savedAt: '2026-04-28T12:00:00.000Z',
+      currentVersionName,
+      versions,
+    });
+
+    it('auto-advances a 1-version bundle to the success card', async () => {
+      // Degenerate bundle (single version) skips both the picker AND
+      // the "from bundle" warning — the warning only renders when
+      // siblings were left behind, and a 1-version bundle has none.
+      // (Earlier fix-pass also stopped writing bundleSourceMeta in
+      // this branch since the warning wouldn't fire anyway.)
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({ Default: versionEnvelope() }, 'Default'),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+        ).toBeInTheDocument();
+      });
+      // Single-version bundle: no warning (totalVersions === 1).
+      expect(
+        screen.queryByTestId('planning-modal-bundle-warning'),
+      ).not.toBeInTheDocument();
+      // Picker UI never appeared.
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the version picker for a 2+-version bundle', async () => {
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope(
+            {
+              Default: versionEnvelope(),
+              'Variant A': versionEnvelope({ teamName: 'Pepo U10' }),
+            },
+            'Variant A',
+          ),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+      // Both versions rendered as rows; success card not yet shown.
+      expect(
+        screen.getByTestId('planning-modal-bundle-version-Default'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-modal-bundle-version-Variant A'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Plan imported|Suunnitelma tuotu/i),
+      ).not.toBeInTheDocument();
+      // currentVersionName from the envelope flagged with data-current.
+      expect(
+        screen
+          .getByTestId('planning-modal-bundle-version-Variant A')
+          .getAttribute('data-current'),
+      ).toBe('true');
+      expect(
+        screen
+          .getByTestId('planning-modal-bundle-version-Default')
+          .getAttribute('data-current'),
+      ).toBe('false');
+    });
+
+    it('selecting a version advances to the success card with the bundle warning', async () => {
+      // Locks the round-trip from bundle picker → success card →
+      // existing handoff. The warning has to show totalVersions > 1
+      // so the coach knows other versions exist in the file.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({
+            Default: versionEnvelope(),
+            'Variant A': versionEnvelope(),
+            'Variant B': versionEnvelope(),
+          }),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+      await act(async () => {
+        // Click the inner <button> rather than the wrapping <li> —
+        // React's synthetic onClick listener is on the button, and
+        // a click event whose target is the parent <li> doesn't fire
+        // the button's listener (event.target ≠ button + not a
+        // descendant). The `-button-` testid is on the button
+        // exactly so tests don't have to traverse with `within`.
+        fireEvent.click(
+          screen.getByTestId('planning-modal-bundle-version-button-Variant A'),
+        );
+      });
+      // Picker gone; success card visible with the warning.
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(/Plan imported|Suunnitelma tuotu/i),
+      ).toBeInTheDocument();
+      const warn = screen.getByTestId('planning-modal-bundle-warning');
+      expect(warn).toBeInTheDocument();
+      expect(warn.textContent ?? '').toMatch(/Variant A/);
+      expect(warn.textContent ?? '').toMatch(/3/);
+    });
+
+    it('rejects a 0-version bundle with an error message instead of a blank picker', async () => {
+      // parsePlanBundle accepts an empty `versions: {}` envelope by
+      // design ("a coach can save an empty bundle"), but the picker
+      // would render an empty <ul> with no row to click. Fix-pass-1
+      // routes that case to setImportError so the user gets a
+      // dismissible explanation rather than a stuck UI.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(bundleEnvelope({})),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Import failed|Tuonti epäonnistui/i),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.getByText(
+          /no versions to import|paketissa ei ole versioita/i,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('dismissing the picker clears import state and unmounts the picker card', async () => {
+      // The X button reuses resetImportState which also clears the
+      // success card and any error. Locks the dismiss path so a
+      // future refactor splitting the bundle picker into its own
+      // component can't silently lose this teardown.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({
+            Default: versionEnvelope(),
+            'Variant A': versionEnvelope(),
+          }),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-picker'),
+        ).toBeInTheDocument();
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-modal-bundle-picker-dismiss'),
+        );
+      });
+      expect(
+        screen.queryByTestId('planning-modal-bundle-picker'),
+      ).not.toBeInTheDocument();
+      // Success card never appeared either — dismiss is a clean exit.
+      expect(
+        screen.queryByText(/Plan imported|Suunnitelma tuotu/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders bundle versions in alphabetical order regardless of envelope key order', async () => {
+      // Locks deterministic ordering. A future serializer or hand-
+      // edited file mustn't reorder the picker rows just by changing
+      // JS object insertion order.
+      renderModal();
+      const file = fileFromText(
+        'plan.json',
+        JSON.stringify(
+          bundleEnvelope({
+            // Insertion order: Z, A, M — picker should render A, M, Z.
+            Zebra: versionEnvelope(),
+            Alpha: versionEnvelope(),
+            Mike: versionEnvelope(),
+          }),
+        ),
+      );
+      const input = screen.getByTestId(
+        'planning-modal-file-input',
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [file] } });
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('planning-modal-bundle-version-list'),
+        ).toBeInTheDocument();
+      });
+      const list = screen.getByTestId(
+        'planning-modal-bundle-version-list',
+      );
+      const rows = Array.from(
+        list.querySelectorAll('[data-testid^="planning-modal-bundle-version-"]'),
+      ).filter(
+        (el) =>
+          !el.getAttribute('data-testid')!.includes('-button-') &&
+          el.getAttribute('data-testid') !==
+            'planning-modal-bundle-version-list',
+      );
+      const names = rows.map((el) =>
+        el
+          .getAttribute('data-testid')!
+          .replace('planning-modal-bundle-version-', ''),
+      );
+      expect(names).toEqual(['Alpha', 'Mike', 'Zebra']);
+    });
   });
 
   it('shows the New plan button on the list page', () => {

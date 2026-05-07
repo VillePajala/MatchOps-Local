@@ -86,18 +86,20 @@
 - [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-3 (visual-only).
 
 ### PR-F — Bundle import/export
-**Status:** PR-F-2 split — 2a (export, #416) + 2b (import, #417) both in review
-- [x] **PR-F-1** merged as PR #412 — `planBundle.ts` pure util.
-- [ ] **PR-F-2a (in flight, fix-pass-1 on `planner/pr-f2-bundle-export-ui`)** bundle EXPORT UI — open as PR #416. Pass-1 review verdict: "Approve with non-blocking follow-up" — 2 Bugs, 2 Issues, 2 Minors, 1 Nit. Fix-pass-1 applied:
-  - [x] B1 — Consolidated dead-guard in `handleExportBundle` (was `if (!editingSession || !savedGames) return;` then `versionFamily.length === 0` separately) into a single line, with a precondition comment that the prop is wired only when both are truthy. The empty-versionFamily case stays as defense-in-depth for a future memo refactor.
-  - [x] B2 — Filename derivation switched from `versionFamily[0].name` to `versionFamily.find((s) => s.parentSessionId == null)?.name ?? editingSession.name`. Removes the silent dependency on the memo's array order.
-  - [x] I1 — Added 3 integration tests in `PlanningModal.test.tsx` covering the download path: (a) Blob payload reparses as bundle with active-version → currentVersionName, (b) null currentVersionName when no session is active, (c) filename slug-sanitisation (path traversal stripped, 64-char cap).
-  - [x] I2 — `session.includedGameIds!.includes(...)` non-null assertion replaced with destructured `const { includedGameIds } = session;` so the TS narrowing inside the projection branch is real, not asserted.
-  - [x] M1 — Versions ▾ button label adapts: "Versions ({{count}})" when `length > 1`, "Plan" (new key `planningEditor.planMenuLabel`, EN+FI) when only the export item is shown for a single-session plan. Key counts: 2602 → 2603.
-  - [x] M2 — Added inline JSDoc on `halfTimeMin: durationMin / 2` clarifying the equal-period assumption (durationMin/2 == periodDurationMinutes for 2-period games of equal halves; the schema doesn't model unequal periods, so the assumption holds).
-  - [x] N1 — Dropped the file-level block comment in `planToExport.ts`; the function JSDoc is sufficient.
-  - [x] CI test failure — `planToExport.test.ts` "falls back to placeholder fields" was asserting round-trip on an empty-savedGames envelope, but parsePlanExport rejects empty teamName + rosterSize=0. Split into two tests: one verifies the resilient placeholder fields (no crash), one round-trips through parsePlanExport with an explicit `{ teamName, rosterSize }` override.
-- [ ] **PR-F-2b** bundle IMPORT UI — open as PR #417 (independent diff). Sky-tinted version-picker card; auto-advance for 1-version bundles; amber warning on success card. 5 i18n keys, 3 tests.
+**Status:** PR-F-1 merged · PR-F-2b merged as #417 · PR-F-2a #416 (in review)
+- [x] **PR-F-1** merged as PR #412 — `planBundle.ts` pure util: `parsePlanBundle` (routes formatVersion 1 → existing single-snapshot, formatVersion 2 → bundle), `serializePlanBundle`, `bundleCurrentVersion`. DoS caps mirror parsePlanExport (5 MB chars, 50 versions max). Prototype-pollution guard on version names. 16 unit tests.
+- [x] **PR-F-2b** merged as PR #417 — bundle IMPORT UI: file picker delegates to `parsePlanBundle`; sky-tinted version-picker card for 2+-version bundles; auto-advance for 1-version; 0-version surfaces structured `bundleEmptyError`; defense-in-depth `bundleVersionMissingError`; alphabetical row order; 7 i18n keys (EN+FI), 6 new tests, key counts 2601 → 2608.
+- [ ] **PR-F-2a** ⏳ open as PR #416 — bundle EXPORT UI. `planToExport.ts` converter; "Export tournament plan…" item in Versions ▾ menu; PlanningModal.handleExportBundle Blob download. Pass-1 review verdict: "Approve with non-blocking follow-up". Findings (2 Bugs, 2 Issues, 2 Minors, 1 Nit) addressed in fix-pass-1 + lint fix + test mock fix:
+  - [x] B1: consolidated dead guard in handleExportBundle.
+  - [x] B2: filename derives parent from `parentSessionId == null` rather than memo array index.
+  - [x] I1: added 3 integration tests for the download path (Blob payload reparses as bundle, currentVersionName picks up the active sibling, slug sanitisation).
+  - [x] I2: replaced non-null assertion with destructure.
+  - [x] M1: Versions ▾ button label adapts ("Plan" key for single-session export-only).
+  - [x] M2: JSDoc on halfTimeMin = durationMin/2 invariant.
+  - [x] N1: dropped file-level comment in planToExport.ts.
+  - [x] CI test fix: planToExport "placeholder fields" round-trip split into two tests.
+  - [x] Lint fix: dropped unused MockBlob interface.
+  - [x] Test mock fix: switched download capture to the proven `document.createElement('a')` mock pattern from `exportGames.test.ts` (jest.spyOn on prototype was bypassed in CI's jsdom).
 - [ ] **PR-F-2c (deferred)** Family-import: persist parent + children at save time. Design open: per-version game binding vs once for the whole family.
 
 **PR target convention:** PR-B onwards opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
