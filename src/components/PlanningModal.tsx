@@ -1696,7 +1696,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                       all flow through this slot. The isLoading guard is
                       intentionally NOT here — a query refetch triggered
                       by saveSession.onSuccess would otherwise hide the
-                      banner during the ~200ms loading window. */}
+                      banner during the ~200ms loading window.
+                      `importError` and `importedPlan` gates suppress the
+                      list error specifically when a file-parse error or
+                      success card is owning the visible space — those
+                      take priority so the user isn't reading two
+                      conflicting status messages at once. Both are
+                      cleared by resetImportState before any list-error
+                      flow lands here in current call paths. */}
                   {!importedPlan &&
                     !importError &&
                     !sessionsQuery.isError &&
