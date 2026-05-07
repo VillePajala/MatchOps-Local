@@ -2097,6 +2097,41 @@ describe('PlanningModal', () => {
         });
       });
 
+      it('Rename of a child session preserves parentSessionId and includedGameIds', async () => {
+        // Pass-7 review: omitting these fields from the save payload
+        // makes the DataStore write NULL — silently promoting a child
+        // to top-level (tearing the family) and erasing per-game
+        // include flags. Lock the carry-through so a future refactor
+        // can't reintroduce the bug.
+        const child = buildSession({
+          id: 's_child',
+          name: 'Variant A',
+          parentSessionId: 's_parent',
+          includedGameIds: ['g1'],
+        });
+        setSessions([child]);
+        renderModal({ currentTeamId: 't1' });
+
+        fireEvent.click(screen.getByTestId('planning-session-rename-s_child'));
+        const input = await screen.findByTestId(
+          'planning-session-rename-input-s_child',
+        );
+        fireEvent.change(input, { target: { value: 'Variant A renamed' } });
+        await act(async () => {
+          fireEvent.submit(
+            screen.getByTestId('planning-session-rename-form-s_child'),
+          );
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        const payload = mockSaveMutateAsync.mock.calls[0][0] as {
+          parentSessionId?: string | null;
+          includedGameIds?: readonly string[] | null;
+        };
+        expect(payload.parentSessionId).toBe('s_parent');
+        expect(payload.includedGameIds).toEqual(['g1']);
+      });
+
       it('Rename rejects empty input with an inline error and does not call mutate', async () => {
         setSessions([buildSession({ id: 's1', name: 'Original' })]);
         renderModal({ currentTeamId: 't1' });
@@ -2317,6 +2352,32 @@ describe('PlanningModal', () => {
         expect(payload.name).toMatch(/Default \(copy\)|Default \(kopio\)/i);
         expect(payload.isActive).toBe(false);
         expect(payload.appliedAt).toBeUndefined();
+      });
+
+      it('Duplicate of a child session creates a sibling under the same parent', async () => {
+        // Pass-7 review: list-view duplicate must mirror the editor's
+        // Save-as-new-copy semantics (sibling under the same parent),
+        // not silently promote the duplicate to a new top-level plan.
+        setSessions([
+          buildSession({
+            id: 's_child',
+            name: 'Variant A',
+            parentSessionId: 's_parent',
+          }),
+        ]);
+        renderModal({ currentTeamId: 't1' });
+
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-session-duplicate-s_child'),
+          );
+        });
+
+        expect(mockSaveMutateAsync).toHaveBeenCalledTimes(1);
+        const payload = mockSaveMutateAsync.mock.calls[0][0] as {
+          parentSessionId?: string | null;
+        };
+        expect(payload.parentSessionId).toBe('s_parent');
       });
 
       it('Rename failure surfaces an inline error and keeps rename mode open', async () => {

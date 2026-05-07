@@ -142,9 +142,12 @@ DO $$
 DECLARE
   v_authenticated_can_execute boolean;
 BEGIN
+  -- Migration 039 dropped the 3-arg signature and replaced it with a
+  -- 4-arg signature (added p_parent_session_id for named-version
+  -- scoping). Keeping the old signature here would FAIL post-039.
   v_authenticated_can_execute := has_function_privilege(
     'authenticated',
-    'set_active_planning_session(text,text,text[])',
+    'set_active_planning_session(text,text,text[],text)',
     'execute'
   );
   IF NOT v_authenticated_can_execute THEN

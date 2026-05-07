@@ -552,8 +552,14 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         name: trimmed,
         gameIds: [...session.gameIds],
         // Preserve the existing draft + metadata; rename mutates name
-        // only (and updatedAt, which the DataStore stamps).
+        // only (and updatedAt, which the DataStore stamps). Family +
+        // include-flags fields MUST be carried over — omitting them
+        // makes the DataStore write NULL, which silently promotes a
+        // child to top-level (tearing the family) and erases the
+        // per-game include flags.
         draft: session.draft,
+        parentSessionId: session.parentSessionId,
+        includedGameIds: session.includedGameIds,
         isActive: session.isActive,
         appliedAt: session.appliedAt,
         createdAt: session.createdAt,
@@ -598,6 +604,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
         ),
         gameIds: [...session.gameIds],
         draft: session.draft,
+        // Carry parentSessionId so duplicating a child produces a
+        // sibling under the same parent (matches the editor's
+        // Save-as-new-copy semantics). Omitting would silently
+        // promote the duplicate to a new top-level plan, which
+        // surprises coaches expecting the copy to appear in the
+        // same version family.
+        parentSessionId: session.parentSessionId,
         isActive: false,
         // PlanningSession.appliedAt is `string | undefined`; passing
         // undefined is the canonical "not yet applied" sentinel.
@@ -1167,12 +1180,17 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           )
         : sessionToStamp.draft;
       // Capture so the Undo path can clear appliedAt on full rollback.
+      // Carry parentSessionId on both the cached snapshot AND the
+      // appliedAt-stamping save: the undo path spreads the snapshot
+      // back into a save, and a missing field would write NULL —
+      // silently orphaning the child from its family.
       stampedSessionRef.current = {
         id: sessionToStamp.id,
         teamId: sessionToStamp.teamId,
         name: sessionToStamp.name,
         gameIds: sessionToStamp.gameIds,
         draft: cloned,
+        parentSessionId: sessionToStamp.parentSessionId,
         includedGameIds:
           appliedIncludedGameIds ?? sessionToStamp.includedGameIds,
         isActive: sessionToStamp.isActive,
@@ -1185,6 +1203,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
           name: sessionToStamp.name,
           gameIds: sessionToStamp.gameIds,
           draft: cloned,
+          parentSessionId: sessionToStamp.parentSessionId,
           includedGameIds:
             appliedIncludedGameIds ?? sessionToStamp.includedGameIds,
           isActive: sessionToStamp.isActive,
