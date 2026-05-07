@@ -86,9 +86,17 @@
 - [ ] **Chip palette / pill gradient luminance tuning** — defer to PR-E-3 (visual-only).
 
 ### PR-F — Bundle import/export
-**Status:** PR-F-1 ⏳ in flight (parser/serializer foundation)
-- [x] **PR-F-1** ⏳ open as PR #412 — `planBundle.ts` pure util: `parsePlanBundle` (routes formatVersion 1 → existing single-snapshot, formatVersion 2 → bundle), `serializePlanBundle` (forward-compatible export shape), `bundleCurrentVersion` (selector). DoS caps mirror parsePlanExport (5 MB chars, 50 versions max). Prototype-pollution guard on version names. 16 unit tests.
-- [ ] **PR-F-2** Wire UI: "Export tournament plan…" button on the modal versions menu (depends on PR-C-2's Versions dropdown), import-on-bundle path opens picker for the selected version, with warning when other versions are present.
+**Status:** PR-F-2 split into 2a (export) + 2b (import)
+- [x] **PR-F-1** merged as PR #412 — `planBundle.ts` pure util: `parsePlanBundle` (routes formatVersion 1 → existing single-snapshot, formatVersion 2 → bundle), `serializePlanBundle` (forward-compatible export shape), `bundleCurrentVersion` (selector). DoS caps mirror parsePlanExport (5 MB chars, 50 versions max). Prototype-pollution guard on version names. 16 unit tests.
+- [x] **PR-F-2a** ⏳ open as PR #416 — bundle EXPORT UI. `planToExport.ts` converter; "Export tournament plan…" item in Versions ▾ menu; PlanningModal.handleExportBundle Blob download.
+- [ ] **PR-F-2b (in flight)** bundle IMPORT UI:
+  - [x] File picker now calls `parsePlanBundle` (accepts both v1 single-snapshot and v2 bundle envelopes); existing `parsePlanExport` mock chain still drives v1 tests via parsePlanBundle's delegation.
+  - [x] Version-picker card (sky-tinted, distinct from the green success card) renders for 2+-version bundles. Each row shows `{games · subs}` meta and a "Last used" badge for `currentVersionName`.
+  - [x] 1-version bundles auto-advance straight to the success card (no busywork).
+  - [x] Selecting a version sets `bundleSourceMeta` so the success card shows an amber warning: `Loaded "{{name}}" from a {{total}}-version bundle. Other versions are not imported.`
+  - [x] 5 i18n keys (EN+FI): bundlePickerTitle, bundlePickerSubtitle, bundleCurrent, bundleVersionMeta, bundleSelectedWarning.
+  - [x] 3 new tests for the bundle flow (auto-advance / picker render / pick → warning).
+  - [ ] Family-import (creating parent + N children at save time) deferred to PR-F-2c — design TBD: should the user pick games once and all versions share, or per-version game binding?
 
 **PR target convention:** PR-B onwards opened as separate sub-PRs against `feature/planner-integration` (NOT master). Master cutover only after all PRs land + final review pass.
 
