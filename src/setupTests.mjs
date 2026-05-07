@@ -258,6 +258,9 @@ const allowedConsolePatterns = [
   '[SyncEngine]',
   // SyncExecutor warnings/errors (expected in sync failure tests)
   '[SyncExecutor]',
+  // PlanningModal warnings/errors (expected in family-import failure
+  // tests + the orphan-parent observability log)
+  '[PlanningModal]',
   // PlayBilling errors (expected in billing error-handling tests)
   '[PlayBilling]',
   // SeasonTournamentManagementModal errors (expected in delete tests)
