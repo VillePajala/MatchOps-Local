@@ -261,8 +261,13 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
   const versionFamily: PlanningSession[] = useMemo(() => {
     if (!editingSession) return [];
     const parentId = editingSession.parentSessionId ?? editingSession.id;
-    const parent =
-      sessions.find((s) => s.id === parentId) ?? editingSession;
+    const parent = sessions.find((s) => s.id === parentId);
+    // If editingSession references a parent that isn't loaded
+    // (orphaned child after parent deleted, sync race, cross-team
+    // filter), fall back to a solo family. Pretending the child is
+    // its own parent would mis-label it on export and corrupt the
+    // family wiring of any sibling pulled in by the children filter.
+    if (!parent) return [editingSession];
     // ISO 8601 lexicographic sort == chronological for valid timestamps,
     // so localeCompare on updatedAt yields newest-first without parsing.
     const children = sessions

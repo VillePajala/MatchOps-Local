@@ -101,6 +101,25 @@ describe('computePlayerSeconds', () => {
     expect(totals.get('p4')).toBe(500);
   });
 
+  it('counts the union — not the sum — when a player occupies two roles simultaneously', () => {
+    // Malformed-but-reachable: validation only prevents within-role
+    // duplicates and (in==out) within a single sub, NOT a sub bringing
+    // in a player already on-field elsewhere. p1 starts at LB and is
+    // also subbed into GK at 600s — for [600, 1500] p1 occupies both
+    // roles. Per-role sum would give 1500 (LB) + 900 (GK) = 2400s,
+    // which exceeds gameDurationSec; the union is the real on-field
+    // time of 1500s.
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p3', LB: 'p1', RB: 'p2' },
+      bench: ['p4'],
+      scheduledSubs: [sub('s1', 600, 'p1', 'GK')],
+    };
+    const totals = computePlayerSeconds(draft, 1500);
+    expect(totals.get('p1')).toBe(1500);
+    expect(totals.get('p2')).toBe(1500);
+    expect(totals.get('p3')).toBe(600); // displaced at 600
+  });
+
   it('subs targeting an empty role are silently ignored (no startingXI entry)', () => {
     // GK is unassigned; a sub at GK has no startingPlayer to displace.
     const draft: PlanDraft = {
