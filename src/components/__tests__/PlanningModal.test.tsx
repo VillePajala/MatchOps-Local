@@ -313,7 +313,15 @@ describe('PlanningModal', () => {
       },
     });
     renderModal();
-    const file = fileFromText('plan.json', '{}'); // body irrelevant; mock intercepts
+    // PR-F-2b switched the file picker to parsePlanBundle, which
+    // delegates to parsePlanExport ONLY for v1 envelopes. The body
+    // must declare formatVersion: 1 so the bundle parser hands off
+    // to the mock; otherwise parsePlanBundle returns its own
+    // "Unsupported formatVersion" error before the mock can fire.
+    const file = fileFromText(
+      'plan.json',
+      JSON.stringify({ formatVersion: PLAN_FORMAT_VERSION }),
+    );
     const input = screen.getByTestId(
       'planning-modal-file-input',
     ) as HTMLInputElement;
@@ -420,7 +428,13 @@ describe('PlanningModal', () => {
 
   it('shows an error message and field path on invalid envelope', async () => {
     renderModal();
-    const bad = JSON.stringify({ ...validEnvelope(), formatVersion: 2 });
+    // PR-F-2b: parsePlanBundle now treats formatVersion: 2 as a
+    // valid bundle envelope, so the original test's "set
+    // formatVersion: 2 to trigger an error" no longer works. Use 99
+    // (out of range) instead — parsePlanBundle returns
+    // "Unsupported formatVersion" with path "formatVersion", which
+    // the test still asserts on.
+    const bad = JSON.stringify({ ...validEnvelope(), formatVersion: 99 });
     const file = fileFromText('bad.json', bad);
     const input = screen.getByTestId(
       'planning-modal-file-input',
@@ -644,8 +658,14 @@ describe('PlanningModal', () => {
         ).toBeInTheDocument();
       });
       await act(async () => {
+        // Click the inner <button> rather than the wrapping <li> —
+        // React's synthetic onClick listener is on the button, and
+        // a click event whose target is the parent <li> doesn't fire
+        // the button's listener (event.target ≠ button + not a
+        // descendant). The `-button-` testid is on the button
+        // exactly so tests don't have to traverse with `within`.
         fireEvent.click(
-          screen.getByTestId('planning-modal-bundle-version-Variant A'),
+          screen.getByTestId('planning-modal-bundle-version-button-Variant A'),
         );
       });
       // Picker gone; success card visible with the warning.

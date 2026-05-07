@@ -1407,6 +1407,7 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                                   onClick={() =>
                                     handleSelectBundleVersion(name)
                                   }
+                                  data-testid={`planning-modal-bundle-version-button-${name}`}
                                   className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-100 hover:bg-sky-800/40"
                                 >
                                   <span className="flex min-w-0 items-center gap-2">
