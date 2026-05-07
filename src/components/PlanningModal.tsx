@@ -1653,17 +1653,27 @@ const PlanningModal: React.FC<PlanningModalProps> = ({
                             );
                           })}
                         </ul>
-                        {/* Inline error banner: delete failures, open failures (corrupt session), etc. */}
-                        {listErrorMessage && (
-                          <p
-                            className="text-sm text-rose-300"
-                            role="alert"
-                            data-testid="planning-modal-list-error"
-                          >
-                            {listErrorMessage}
-                          </p>
-                        )}
                       </div>
+                    )}
+
+                  {/* listErrorMessage rendered OUTSIDE the populated-list
+                      block so it surfaces even when sessions.length === 0
+                      (e.g. a new user's first family-import fails with no
+                      pre-existing sessions to anchor the list). Delete
+                      failures, open failures, and family-import failures
+                      all flow through this slot. */}
+                  {!importedPlan &&
+                    !importError &&
+                    !sessionsQuery.isError &&
+                    !sessionsQuery.isLoading &&
+                    listErrorMessage && (
+                      <p
+                        className="text-sm text-rose-300"
+                        role="alert"
+                        data-testid="planning-modal-list-error"
+                      >
+                        {listErrorMessage}
+                      </p>
                     )}
 
                   {/* Bundle version picker (formatVersion: 2 imports).
