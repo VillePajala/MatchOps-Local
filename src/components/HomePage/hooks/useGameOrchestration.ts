@@ -326,7 +326,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
-  const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
+  // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
+  // HTML and the first client render produce identical markup (MATCHOPS-LOCAL-8K /
+  // MATCHOPS-LOCAL-3). The real value is adopted post-hydration via useEffect below.
+  const [appLanguage, setAppLanguage] = useState<string>('fi');
+
+  // Adopt the real i18n language once on the client, after hydration has completed.
+  useEffect(() => {
+    if (i18n.language !== appLanguage) {
+      setAppLanguage(i18n.language);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     utilGetLastHomeTeamName(userId).then((name) => setDefaultTeamNameSetting(name));
