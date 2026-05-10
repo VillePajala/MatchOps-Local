@@ -46,11 +46,20 @@ export default function WelcomeScreen({
   hideLocalModeOptions = false,
 }: WelcomeScreenProps) {
   const { t } = useTranslation();
-  const [language, setLanguage] = useState<string>(i18n.language);
+  // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
+  // HTML and the first client render produce identical markup. Reading i18n.language
+  // here directly causes a hydration mismatch when localStorage holds a non-default
+  // language (MATCHOPS-LOCAL-8K / MATCHOPS-LOCAL-3). The real value is adopted
+  // post-hydration via useEffect below.
+  const [language, setLanguage] = useState<string>('fi');
 
-  // Language is already loaded from localStorage by i18n on initialization.
-  // i18n.language is the source of truth - no need to call getAppSettings().
-  // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N).
+  // Adopt the real i18n language once on the client, after hydration has completed.
+  useEffect(() => {
+    if (i18n.language !== language) {
+      setLanguage(i18n.language);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Save language preference when changed
   useEffect(() => {
