@@ -72,6 +72,12 @@ const ALL_ACTION_TYPES = new Set([
   'LOAD_PERSISTED_GAME_DATA',
   'PAUSE_TIMER_FOR_HIDDEN',
   'RESTORE_TIMER_STATE',
+  // Scheduled substitutions (planner integration phase 0b)
+  'ADD_SCHEDULED_SUB',
+  'UPDATE_SCHEDULED_SUB',
+  'DELETE_SCHEDULED_SUB',
+  'SKIP_SCHEDULED_SUB',
+  'APPLY_SCHEDULED_SUB',
 ]);
 
 describe('useGameSessionWithHistory action type validation', () => {

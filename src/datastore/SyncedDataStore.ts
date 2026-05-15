@@ -20,6 +20,7 @@ import type {
   Season,
   Tournament,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
@@ -75,6 +76,8 @@ export interface PushAllToCloudResult {
   personnel: number;
   /** Number of successfully pushed games */
   games: number;
+  /** Number of successfully pushed planning sessions */
+  planningSessions: number;
   /** Whether settings were successfully pushed */
   settings: boolean;
   /** Whether warmup plan was successfully pushed */
@@ -97,6 +100,8 @@ export interface PushAllToCloudResult {
     rosters: string[];
     /** IDs of adjustments that failed to push */
     adjustments: string[];
+    /** IDs of planning sessions that failed to push */
+    planningSessions: string[];
     /** Whether settings failed to push */
     settings: boolean;
     /** Whether warmup plan failed to push */
@@ -979,6 +984,112 @@ export class SyncedDataStore implements DataStore {
   }
 
   // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ==========================================================================
+
+  async getPlanningSessions(teamId?: string): Promise<PlanningSession[]> {
+    return this.localStore.getPlanningSessions(teamId);
+  }
+
+  async savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): Promise<PlanningSession> {
+    const saved = await this.localStore.savePlanningSession(session);
+    // Distinguish create vs update for the sync queue's op-type:
+    // input.id present → caller is overwriting an existing row;
+    // absent → new row, LocalDataStore generated saved.id. The cloud
+    // executor routes both to upsertPlanningSession so this is purely
+    // a labelling fix, but future conflict-resolution logic that
+    // treats create vs update differently would otherwise see every
+    // overwrite as a "create".
+    const op = session.id !== undefined ? 'update' : 'create';
+    await this.queueSync('planningSession', saved.id, op, saved);
+    return saved;
+  }
+
+  async deletePlanningSession(id: string): Promise<boolean> {
+    const deleted = await this.localStore.deletePlanningSession(id);
+    if (deleted) {
+      await this.queueSync('planningSession', id, 'delete', null);
+    }
+    return deleted;
+  }
+
+  async setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[],
+    parentSessionId?: string | null,
+  ): Promise<PlanningSession | null> {
+    // Toggle activation locally so the UI reflects the change immediately;
+    // queue a single sync per affected session so the cloud catches up to
+    // the same state. We don't queue for sessions that didn't change
+    // (handler is idempotent: sessions already in the desired isActive
+    // state are returned as-is by LocalDataStore).
+    //
+    // Note: queued sync uses upsertPlanningSession (a direct row upsert),
+    // not the set_active_planning_session RPC (migration 033) that
+    // enforces single-active atomically server-side. If two activations
+    // happen offline and queue, the cloud briefly holds two is_active=true
+    // rows between queue entries before converging. Local-first semantics
+    // mean the user never sees this transient cloud state, and queue
+    // ordering produces the correct final state. Accepted trade-off:
+    // tightening this would require a dedicated sync executor path that
+    // routes 'planningSession activate' updates through the RPC, which
+    // is out of scope for the cutover.
+    // TODO(planner): add a dedicated SyncOpType for setActiveSession that
+    // executes via the set_active_planning_session RPC, eliminating the
+    // transient-double-active window even under offline-then-sync flows.
+    //
+    // Separately: the `before` read below is outside LocalDataStore's
+    // PLANNING_SESSIONS_KEY lock. A concurrent savePlanningSession
+    // between `before` and the setActiveSession call could produce a
+    // stale-diff entry in the sync queue. Single-user-single-tab usage
+    // makes this race effectively unreachable; documenting rather than
+    // restructuring LocalDataStore.setActiveSession to return the diff.
+    // parentSessionId is just forwarded; the diff loop below is
+    // scope-agnostic because it walks the full sessions list and
+    // queues every row whose isActive changed. Whether the change
+    // came from a legacy (team, gameIds) scope or a parent-children
+    // scope (migration 039), the queued upsert correctly carries
+    // the row's parent_session_id back to cloud.
+    const before = await this.localStore.getPlanningSessions(teamId);
+    const result = await this.localStore.setActiveSession(
+      sessionId,
+      teamId,
+      gameIds,
+      parentSessionId,
+    );
+    const after = await this.localStore.getPlanningSessions(teamId);
+
+    const beforeById = new Map(before.map((s) => [s.id, s]));
+    for (const session of after) {
+      const prev = beforeById.get(session.id);
+      if (prev && prev.isActive !== session.isActive) {
+        await this.queueSync(
+          'planningSession',
+          session.id,
+          'update',
+          session,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  async upsertPlanningSession(session: PlanningSession): Promise<PlanningSession> {
+    const result = await this.localStore.upsertPlanningSession(session);
+    // Queue as 'create' — cloud uses upsert, so this dedupes to the latest write.
+    await this.queueSync('planningSession', session.id, 'create', result);
+    return result;
+  }
+
+  // ==========================================================================
   // TIMER STATE
   // ==========================================================================
 
@@ -1048,6 +1159,7 @@ export class SyncedDataStore implements DataStore {
       tournaments: 0,
       personnel: 0,
       games: 0,
+      planningSessions: 0,
       settings: false,
       warmupPlan: false,
       failures: {
@@ -1059,6 +1171,7 @@ export class SyncedDataStore implements DataStore {
         games: [] as string[],
         rosters: [] as string[],
         adjustments: [] as string[],
+        planningSessions: [] as string[],
         settings: false,
         warmupPlan: false,
       },
@@ -1088,6 +1201,7 @@ export class SyncedDataStore implements DataStore {
         settings,
         warmupPlan,
         adjustmentsMap,
+        planningSessions,
       ] = await Promise.all([
         this.localStore.getPlayers(),
         this.localStore.getTeams(true),
@@ -1099,6 +1213,7 @@ export class SyncedDataStore implements DataStore {
         this.localStore.getSettings(),
         this.localStore.getWarmupPlan(),
         this.localStore.getAllPlayerAdjustments(),
+        this.localStore.getPlanningSessions(),
       ]);
 
       // ========================================================================
@@ -1218,6 +1333,22 @@ export class SyncedDataStore implements DataStore {
             adjustments[i] = adj;
             await this.localStore.updatePlayerAdjustment(playerId, adj.id, adj);
           }
+        }
+      }
+
+      // Planning sessions: surface orphan game_ids to logs but do not
+      // strip them — sessions store soft references and the editor
+      // already handles missing-game warnings on open. Logging matches
+      // the debuggability pattern used for every other entity above.
+      const gameIdsSet = new Set(Object.keys(games));
+      for (const session of planningSessions) {
+        const orphanGameIds = session.gameIds.filter(
+          (gid) => !gameIdsSet.has(gid),
+        );
+        if (orphanGameIds.length > 0) {
+          orphanWarnings.push(
+            `Planning session "${session.name}" references ${orphanGameIds.length} missing game(s): ${orphanGameIds.join(', ')}`,
+          );
         }
       }
 
@@ -1385,7 +1516,37 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
-      // 8. Settings (single item, just retry)
+      // 8. Planning sessions (reference saved games via game_ids[]).
+      //    Pushed after games to maintain dependency order: game_ids is
+      //    a soft reference (no SQL FK constraint, see migration 031),
+      //    validated at the app layer rather than server-side. Pushing
+      //    in this order means a fresh client reading planning sessions
+      //    immediately after a sync sees a consistent view (games it
+      //    references already exist in the cloud), even though the DB
+      //    itself wouldn't reject an out-of-order push.
+      logger.info(`[SyncedDataStore] Pushing ${planningSessions.length} planning sessions to cloud...`);
+      const planningChunks = chunkArray(planningSessions, BULK_PUSH_CHUNK_SIZE);
+      for (const chunk of planningChunks) {
+        const results = await Promise.allSettled(
+          chunk.map(session =>
+            retryWithBackoff(
+              () => remoteStore.upsertPlanningSession(session),
+              { operationName: `upsertPlanningSession(${session.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.planningSessions++;
+          } else {
+            summary.failures.planningSessions.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed planning session ${chunk[i].id} after retries:`,
+              getSafeErrorMessage((results[i] as PromiseRejectedResult).reason));
+          }
+        }
+      }
+
+      // 9. Settings (single item, just retry)
       logger.info('[SyncedDataStore] Pushing settings to cloud...');
       try {
         await retryWithBackoff(

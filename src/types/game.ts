@@ -70,6 +70,54 @@ export interface TacticalDisc {
   type: 'home' | 'opponent' | 'goalie';
 }
 
+/**
+ * Formation role identifier (e.g. "GK", "LB", "CDM", "ST").
+ *
+ * Placeholder string alias for now. PR 5 of the planner integration replaces
+ * this with a tighter union derived from the formation-roles map on
+ * `FormationPreset` (see issue #372). Anything that should already use the
+ * tighter type points at `PositionRole` so the future swap is mechanical.
+ *
+ * @since PR 2 (tournament-planner-integration phase 0a)
+ */
+export type PositionRole = string;
+
+export type ScheduledSubStatus = 'pending' | 'fired' | 'skipped';
+
+/**
+ * A pre-planned substitution attached to a game. The live-game timer fires a
+ * banner when `timeSeconds` is crossed; the coach taps Apply (creating a
+ * normal `substitution` GameEvent and marking the sub `'fired'`) or Skip
+ * (marking it `'skipped'`).
+ *
+ * Field names match the standalone planner's JSON envelope so the bridge
+ * (PR 4) round-trips without an extra transform layer.
+ *
+ * **Note for stats consumers:** `APPLY_SCHEDULED_SUB` deliberately does
+ * NOT update `playersOnField` — it only marks the sub `'fired'` and
+ * appends `substitution` `GameEvent`s. The actual on-pitch swap happens
+ * when the coach drags the player on the field. As a result, a
+ * `substitution` event whose `entityId`s came from `outPlayer` /
+ * `inPlayer` may not be consistent with the `playersOnField` snapshot
+ * captured at the same `timeSeconds` (e.g. if the coach forgot to drag
+ * after tapping Apply). Stat aggregators reading `gameEvents` should
+ * trust the events as the source of truth, not cross-reference against
+ * `playersOnField`. The banner is a coach-side reminder; it is not a
+ * source-of-truth declaration of who is on the pitch.
+ */
+export interface ScheduledSub {
+  id: string;
+  /** Game-clock seconds at which the banner should fire. Must be >= 0. */
+  timeSeconds: number;
+  /** ID of the player going off. */
+  outPlayer: string;
+  /** ID of the player coming on. */
+  inPlayer: string;
+  /** The role/slot the sub affects (free-form string until PR 5). */
+  positionRole: PositionRole;
+  status: ScheduledSubStatus;
+}
+
 export interface AppState {
   playersOnField: Player[];
   opponents: Opponent[];
@@ -112,6 +160,22 @@ export interface AppState {
   tacticalDiscs: TacticalDisc[];
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
+  /**
+   * Pre-planned substitutions consumed by the live-game timer banner.
+   *
+   * @remarks
+   * Optional for backwards compatibility with old games and legacy local data.
+   * Treated as `[]` when undefined. See `ScheduledSub` for shape.
+   *
+   * **Backend asymmetry:** legacy games loaded from `LocalDataStore` may
+   * surface as `undefined` (the key is absent from the stored JSON), while
+   * `SupabaseDataStore` always returns `[]` (the column is `NOT NULL DEFAULT
+   * '[]'::jsonb` and backfills existing rows on migration 029). Always
+   * default with `?? []` at consumer sites to handle both modes uniformly;
+   * never branch on `=== undefined` vs `.length === 0` as a meaningful
+   * distinction.
+   */
+  scheduledSubs?: ScheduledSub[];
   /** Formation snap points for player positioning assistance */
   formationSnapPoints?: Point[];
   teamId?: string;              // NEW: the team this game belongs to

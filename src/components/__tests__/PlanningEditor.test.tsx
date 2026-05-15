@@ -1,0 +1,2710 @@
+import React from 'react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '../../i18n.test';
+import PlanningEditor from '../PlanningEditor';
+import type { AppState, SavedGamesCollection } from '@/types/game';
+import type { Player } from '@/types';
+import { getPresetById } from '@/config/formationPresets';
+
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+// Mock kept module-loaded so individual tests can override
+// computeApplyDiff (used by the error-path test below). The default
+// implementation forwards to the real export.
+jest.mock('@/utils/applyPreview', () => {
+  const actual = jest.requireActual('@/utils/applyPreview');
+  return {
+    __esModule: true,
+    ...actual,
+    computeApplyDiff: jest.fn(actual.computeApplyDiff),
+  };
+});
+
+// 8v8-3-3-1 is the editor's heuristic default for an 8-player lineup
+// (the first 8v8 preset by id), so the test fixture and the editor
+// agree on which preset to render.
+const PRESET_ID = '8v8-3-3-1';
+const PRESET = getPresetById(PRESET_ID)!;
+
+// Build a roster of N players with deterministic ids (`p0`, `p1`, …).
+const makeRoster = (n: number): Player[] =>
+  Array.from({ length: n }, (_, i) => ({
+    id: `p${i}`,
+    name: `Player ${i}`,
+    nickname: `P${i}`,
+    isGoalie: i === 0,
+  })) as Player[];
+
+// Place each preset role's first-N players at the canonical coords so the
+// editor's roleForCoord snap finds them. Uses preset.roles to drive the
+// fixture, so it never drifts from formationPresets.ts.
+const makeGameWithLineup = (
+  roster: Player[],
+  benchIds: string[] = [],
+): AppState => {
+  const playersOnField: Player[] = [];
+  for (const [idx, role] of (PRESET.roles ?? []).entries()) {
+    const player = roster[idx];
+    if (!player) continue;
+    playersOnField.push({ ...player, relX: role.relX, relY: role.relY });
+  }
+  const onFieldIds = playersOnField.map((p) => p.id);
+  return {
+    teamName: 'Pepo',
+    teamId: 'team_a',
+    opponentName: 'Opp',
+    gameDate: '2026-04-28',
+    numberOfPeriods: 2,
+    periodDurationMinutes: 25,
+    playersOnField,
+    selectedPlayerIds: [...onFieldIds, ...benchIds],
+    availablePlayers: roster,
+  } as unknown as AppState;
+};
+
+const renderEditor = (
+  overrides: Partial<React.ComponentProps<typeof PlanningEditor>> = {},
+) => {
+  const roster = makeRoster(11);
+  const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+  const props: React.ComponentProps<typeof PlanningEditor> = {
+    gameIds: ['g1'],
+    savedGames: { g1: game } as SavedGamesCollection,
+    roster,
+    onBack: jest.fn(),
+    onApplied: jest.fn(),
+    applyToGame: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+  return {
+    ...render(
+      <I18nextProvider i18n={i18n}>
+        <PlanningEditor {...props} />
+      </I18nextProvider>,
+    ),
+    props,
+  };
+};
+
+// Fixture lineup uses 8 field players (incl. GK), which the editor's
+// default-preset heuristic maps to the first 8v8 preset (8v8-3-3-1).
+describe('PlanningEditor', () => {
+  it('renders the pitch with one button per preset role', () => {
+    renderEditor();
+    const pitch = screen.getByTestId('planning-editor-pitch');
+    expect(pitch).toBeInTheDocument();
+    // 8v8-3-3-1 has 8 roles incl. GK.
+    expect(pitch.querySelectorAll('button').length).toBe(PRESET.roles!.length);
+  });
+
+  it('snaps loaded players onto their canonical roles', () => {
+    renderEditor();
+    // Each preset role's button should show the corresponding player's
+    // nickname (P0..P7 for the 8 field roles).
+    for (let i = 0; i < (PRESET.roles ?? []).length; i++) {
+      const role = (PRESET.roles ?? [])[i];
+      const btn = screen.getByTestId(`planning-editor-role-${role.name}`);
+      expect(btn).toHaveTextContent(`P${i}`);
+    }
+  });
+
+  it('lists bench players from selectedPlayerIds not on the field', () => {
+    renderEditor();
+    const bench = screen.getByTestId('planning-editor-bench');
+    // p8, p9, p10 are bench-only.
+    expect(bench).toHaveTextContent('P8');
+    expect(bench).toHaveTextContent('P9');
+    expect(bench).toHaveTextContent('P10');
+  });
+
+  it('off-formation players (legacy coord drift) fall through to the bench', () => {
+    const roster = makeRoster(8);
+    // Place p1 at coords no role of the preset matches within tolerance
+    // (~mid-pitch but offset enough to miss roleForCoord). 0.99,0.99 is
+    // safely outside any 8v8 role.
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField: [
+        { ...roster[0], relX: PRESET.roles![0].relX, relY: PRESET.roles![0].relY },
+        { ...roster[1], relX: 0.99, relY: 0.99 },
+      ],
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const bench = screen.getByTestId('planning-editor-bench');
+    // p1 had no role match — it lands on the bench, visible to the coach.
+    expect(bench).toHaveTextContent('P1');
+  });
+
+  it('tap-to-swap: tap two roles swaps their players', async () => {
+    renderEditor();
+    const role0 = (PRESET.roles ?? [])[0]; // GK
+    const role1 = (PRESET.roles ?? [])[1];
+    const before0 = screen
+      .getByTestId(`planning-editor-role-${role0.name}`)
+      .textContent;
+    const before1 = screen
+      .getByTestId(`planning-editor-role-${role1.name}`)
+      .textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role0.name}`),
+      ).toHaveTextContent(before1!.replace(role1.name, '').trim());
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role1.name}`),
+    ).toHaveTextContent(before0!.replace(role0.name, '').trim());
+  });
+
+  it('tap-to-swap: tapping the same role twice deselects without swapping', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const before = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).className,
+    ).toContain('bg-amber-400');
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).className,
+    ).not.toContain('bg-amber-400');
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(before);
+  });
+
+  it('tap-to-swap: tap role then bench player brings bench player on', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1]; // skip GK to keep semantics obvious
+    const fieldPlayerBefore = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      fieldPlayerBefore!.replace(role.name, '').trim(),
+    );
+  });
+
+  it('tap on empty role does not enter selection mode', async () => {
+    // Build a game whose first preset role (GK) is empty.
+    const roster = makeRoster(8);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1) // drop the first role so it stays empty
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const role0 = (PRESET.roles ?? [])[0];
+    const role1 = (PRESET.roles ?? [])[1];
+    // Tap empty role0 (no-op), then role1 (arms it), then role0
+    // (should now move role1's player into role0). We assert role1
+    // ends empty — proving role0's first tap didn't arm selection.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role1.name}`),
+      ).toHaveTextContent('—');
+    });
+  });
+
+  it('tap-to-swap: bench player → empty role fills the role with no displacement', async () => {
+    // GK role left empty; p0 and p8 land on the bench (in selectedPlayerIds
+    // but not on field). Tapping bench p8 then the empty GK role should
+    // place p8 at GK and shrink the bench by one — no displacement.
+    const roster = makeRoster(9);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const gkRole = (PRESET.roles ?? [])[0];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${gkRole.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${gkRole.name}`),
+      ).toHaveTextContent('P8');
+    });
+    const benchText = screen.getByTestId('planning-editor-bench').textContent ?? '';
+    expect(benchText).not.toMatch(/\bP8\b/);
+  });
+
+  // ----- Drag-drop (desktop). Touch devices don't fire drag events,
+  // so tap-to-swap remains the mobile-only path. -----
+
+  it('drag-drop: dragging role A onto role B swaps their players', async () => {
+    renderEditor();
+    const role0 = (PRESET.roles ?? [])[0];
+    const role1 = (PRESET.roles ?? [])[1];
+    const before0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    const before1 = screen.getByTestId(`planning-editor-role-${role1.name}`).textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role0.name}`),
+      ).toHaveTextContent(before1!.replace(role1.name, '').trim());
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role1.name}`),
+    ).toHaveTextContent(before0!.replace(role0.name, '').trim());
+  });
+
+  it('drag-drop: dragging a bench player onto a role brings them on', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const displacedLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
+    // Previous occupant should now be on the bench tail.
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      displacedLabel,
+    );
+  });
+
+  it('drag-drop: dragging a role onto the bench drawer sends the player to bench', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const fieldPlayerLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('—');
+    });
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      fieldPlayerLabel,
+    );
+  });
+
+  it('drag-drop: drop on self is a no-op', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const before = screen.getByTestId(`planning-editor-role-${role.name}`).textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(before);
+  });
+
+  it('drag-drop: hovering the drag source over itself does not show conflicting visuals', async () => {
+    // While dragging, the source button has opacity-50 (dim). If the
+    // drop-target ring also fires when hovering self, the user sees
+    // two contradictory cues (dim = "you're holding it" vs ring =
+    // "drop here"). Ring should be suppressed when isOver === isSrc.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const button = screen.getByTestId(`planning-editor-role-${role.name}`);
+    await act(async () => {
+      fireEvent.dragStart(button);
+    });
+    expect(button.className).toContain('opacity-50');
+    await act(async () => {
+      fireEvent.dragOver(button);
+    });
+    // Still dimmed (still the source)…
+    expect(button.className).toContain('opacity-50');
+    // …but the drop-target ring is suppressed on the source itself.
+    // Other roles use ring on dragover; the source must not.
+    const ringMatches = button.className.match(/\bring-amber-200\b/g) ?? [];
+    expect(ringMatches.length).toBe(0);
+  });
+
+  it('drag-drop: dragging a role onto a specific bench player swaps them (does not bubble to bench-drawer)', async () => {
+    // Codex P1: a drop on a bench <button> bubbles to the bench-drawer
+    // <div> ancestor. Both handlers read the same captured dragSource
+    // (stale closure), so without stopPropagation the second handler
+    // performs performDrop(BENCH) and benches the just-placed player —
+    // role ends up empty instead of holding the bench player.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const fieldPlayerLabel = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent!.replace(role.name, '')
+      .trim();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P8');
+    });
+    expect(screen.getByTestId('planning-editor-bench')).toHaveTextContent(
+      fieldPlayerLabel,
+    );
+  });
+
+  it('drag-drop: dragLeave keeps the highlight when moving from drawer into a child', async () => {
+    // Browsers fire dragleave on the parent <div> before dragover on
+    // a descendant <button>. Without the relatedTarget contains-guard
+    // the ring would disappear for a frame each time the cursor
+    // crossed an internal boundary. Verify the guard stays the
+    // clear, and that a real exit (relatedTarget outside) still clears.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const drawer = screen.getByTestId('planning-editor-bench-drawer');
+    const childBench = screen.getByTestId('planning-editor-bench-p8');
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragOver(drawer);
+    });
+    await waitFor(() => {
+      expect(drawer.className).toContain('ring-amber-200');
+    });
+    // jsdom's DragEvent constructor doesn't honour the `relatedTarget`
+    // init option — fireEvent's plain object is dropped silently — so
+    // we build the event explicitly and pin relatedTarget via
+    // defineProperty before dispatching.
+    const buildDragLeave = (related: Node) => {
+      const ev = new MouseEvent('dragleave', { bubbles: true, cancelable: true });
+      Object.defineProperty(ev, 'relatedTarget', { value: related });
+      return ev;
+    };
+    await act(async () => {
+      fireEvent(drawer, buildDragLeave(childBench));
+    });
+    expect(drawer.className).toContain('ring-amber-200');
+    await act(async () => {
+      fireEvent(drawer, buildDragLeave(document.body));
+    });
+    expect(drawer.className).not.toContain('ring-amber-200');
+  });
+
+  it('drag-drop: bench → bench dragOver does NOT highlight the bench drawer', async () => {
+    // Without the bench <button>'s onDragOver guard, hovering one bench
+    // player while dragging another previously fired the drawer's
+    // 'bench-drawer' highlight even though the drop is a no-op. The
+    // bench drawer wrapper's ring class only applies when dragOverTarget
+    // === 'bench-drawer'; assert it stays off for bench → bench.
+    renderEditor();
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    expect(
+      screen.getByTestId('planning-editor-bench-drawer').className,
+    ).not.toContain('ring-amber-200');
+  });
+
+  it('drag-drop: bench → empty role brings the bench player on with no displacement', async () => {
+    // GK role left empty so the bench → role drop has no field
+    // occupant to displace. Bench should shrink by one; GK takes p8.
+    const roster = makeRoster(9);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const gkRole = (PRESET.roles ?? [])[0];
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId(`planning-editor-role-${gkRole.name}`));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${gkRole.name}`),
+      ).toHaveTextContent('P8');
+    });
+    expect(screen.getByTestId('planning-editor-bench').textContent).not.toMatch(
+      /\bP8\b/,
+    );
+  });
+
+  it('drag-drop: bench → drawer (bench source) clears tap-selection so it does not leak into the next tap', async () => {
+    // 1. tap-select a bench player (this sets `selected`)
+    // 2. start a drag from a different bench player (bench → bench)
+    // 3. drop on the bench drawer area (early-return branch)
+    // 4. tap a role — should NOT swap, because both selected and
+    //    dragSource must be clean by now. Without setSelected(null) in
+    //    the early return, the role tap would auto-swap with the
+    //    originally tap-selected bench player.
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const beforeRoleText = screen
+      .getByTestId(`planning-editor-role-${role.name}`)
+      .textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-drawer'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    // Role contents must be unchanged — first tap after the drag
+    // should arm a fresh selection, not auto-swap with a stale one.
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`).textContent,
+    ).toBe(beforeRoleText);
+  });
+
+  it('drag-drop: bench → bench drag is a no-op', async () => {
+    renderEditor();
+    const before = screen.getByTestId('planning-editor-bench').textContent;
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.dragOver(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    expect(screen.getByTestId('planning-editor-bench').textContent).toBe(before);
+  });
+
+  it('drag-drop: cancelled drag does not leak a prior tap-selection into the next tap', async () => {
+    // Sequence the bug needs to fail without the handleDragStart fix:
+    //   1. tap-select role A           → selected = { target: A }
+    //   2. start dragging role B       → dragSource = { target: B }
+    //   3. cancel the drag (dragEnd)
+    //   4. tap role C                  → must NOT swap A↔C
+    // With handleDragStart calling clearDragState, step 2 already
+    // wipes the prior tap-selection so the cancel path is safe.
+    renderEditor();
+    const role0 = (PRESET.roles ?? [])[0];
+    const role1 = (PRESET.roles ?? [])[1];
+    const role2 = (PRESET.roles ?? [])[2];
+    const beforeRole0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    const beforeRole2 = screen.getByTestId(`planning-editor-role-${role2.name}`).textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragStart(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.dragEnd(screen.getByTestId(`planning-editor-role-${role1.name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role2.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role0.name}`).textContent,
+    ).toBe(beforeRole0);
+    expect(
+      screen.getByTestId(`planning-editor-role-${role2.name}`).textContent,
+    ).toBe(beforeRole2);
+  });
+
+  it('drag-drop: dragend without drop clears drag state', async () => {
+    renderEditor();
+    const role = (PRESET.roles ?? [])[1];
+    const sourceEl = screen.getByTestId(`planning-editor-role-${role.name}`);
+    await act(async () => {
+      fireEvent.dragStart(sourceEl);
+    });
+    expect(sourceEl.className).toContain('opacity-50');
+    await act(async () => {
+      fireEvent.dragEnd(sourceEl);
+    });
+    // Drag visuals cleared even though no drop landed.
+    expect(sourceEl.className).not.toContain('opacity-50');
+    // A subsequent unrelated tap should still work — proves dragSource
+    // didn't leak into the tap-selected state.
+    const role0 = (PRESET.roles ?? [])[0];
+    const before0 = screen.getByTestId(`planning-editor-role-${role0.name}`).textContent;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role0.name}`));
+    });
+    expect(
+      screen.getByTestId(`planning-editor-role-${role0.name}`).textContent,
+    ).toBe(before0);
+  });
+
+  it('drag-drop: role buttons are not draggable while applying', async () => {
+    // Stall applyToGame on a never-resolving promise to keep isApplying
+    // pinned to true through the assertion.
+    const applyToGame = jest.fn().mockReturnValue(new Promise(() => {}));
+    renderEditor({ applyToGame });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-apply')).toBeDisabled();
+    });
+    const role = (PRESET.roles ?? [])[1];
+    expect(
+      screen.getByTestId(`planning-editor-role-${role.name}`),
+    ).toHaveAttribute('draggable', 'false');
+    expect(
+      screen.getByTestId('planning-editor-bench-p8'),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
+  it('drag-drop: role buttons are not draggable while the formation-change banner is open', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    const fivev5Roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${fivev5Roles[0].name}`),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${fivev5Roles[1].name}`),
+      );
+    });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`planning-editor-role-${fivev5Roles[0].name}`),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
+  it('drag-drop: empty role buttons are not draggable', () => {
+    // Build a game whose first preset role is empty.
+    const roster = makeRoster(8);
+    const playersOnField = (PRESET.roles ?? [])
+      .slice(1)
+      .map((role, idx) => ({
+        ...roster[idx + 1],
+        relX: role.relX,
+        relY: role.relY,
+      })) as Player[];
+    const game = {
+      ...makeGameWithLineup(roster),
+      playersOnField,
+      selectedPlayerIds: roster.map((p) => p.id),
+    } as unknown as AppState;
+    renderEditor({
+      savedGames: { g1: game } as SavedGamesCollection,
+      roster,
+    });
+    const emptyRole = (PRESET.roles ?? [])[0];
+    expect(
+      screen.getByTestId(`planning-editor-role-${emptyRole.name}`),
+    ).toHaveAttribute('draggable', 'false');
+  });
+
+  it('Apply calls applyToGame for each picked game and then onApplied', async () => {
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(onApplied).toHaveBeenCalledTimes(1);
+    });
+    expect(applyToGame).toHaveBeenCalledTimes(2);
+    // Each call carries playersOnField + selectedPlayerIds + scheduledSubs.
+    const [firstId, firstUpdates] = applyToGame.mock.calls[0];
+    expect(firstId).toBe('g1');
+    expect(firstUpdates).toHaveProperty('playersOnField');
+    expect(firstUpdates).toHaveProperty('selectedPlayerIds');
+    expect(firstUpdates).toHaveProperty('scheduledSubs');
+  });
+
+  it('Apply writes scheduledSubs from the timeline to every picked game', async () => {
+    // Add a sub via the timeline form, then Apply, and verify the sub
+    // lands on each picked game's scheduledSubs with status: 'pending'.
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    const role1 = (PRESET.roles ?? [])[1].name;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '08:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(onApplied).toHaveBeenCalledTimes(1);
+    });
+    // PR-A contract: per-game drafts. The sub was added on the active
+    // tab (g1) only — the timeline lives on g1's draft. g1 receives
+    // the sub; g2's draft is the game-derived default, so g2 receives
+    // an empty scheduledSubs. outPlayer on g1's sub must resolve to
+    // role1's pre-sub occupant (p1 from makeGameWithLineup), proving
+    // the lazy outPlayer derivation in applyDraftToGame works through
+    // the full UI → engine → persist path.
+    const callsByGameId = new Map<string, Partial<AppState>>();
+    for (const call of applyToGame.mock.calls) {
+      callsByGameId.set(call[0] as string, call[1] as Partial<AppState>);
+    }
+    expect(callsByGameId.get('g1')?.scheduledSubs).toHaveLength(1);
+    expect(callsByGameId.get('g1')?.scheduledSubs?.[0]).toMatchObject({
+      timeSeconds: 480,
+      positionRole: role1,
+      inPlayer: 'p8',
+      outPlayer: 'p1',
+      status: 'pending',
+    });
+    expect(callsByGameId.get('g2')?.scheduledSubs).toHaveLength(0);
+  });
+
+  it('Apply warning banner reports unreachable subs (sub past per-game end)', async () => {
+    // PR-A contract: per-game drafts. The unreachable-sub case fires
+    // when a SCHEDULED SUB inside a tab's own draft is past the
+    // tab's own game duration. We hydrate game1's draft from a
+    // saved game that has a 14:00 sub but only 10 minutes of total
+    // play time — applyDraftToGame's per-game filter siphons that
+    // sub into unreachableSubs and the banner surfaces the count.
+    const roster = makeRoster(11);
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      numberOfPeriods: 2,
+      periodDurationMinutes: 5, // 10 min total — sub at 14:00 unreachable
+      scheduledSubs: [
+        {
+          id: 's_far',
+          timeSeconds: 840, // 14:00 — past game1's 600s end
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+          status: 'pending',
+        },
+      ],
+    } as AppState;
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId('planning-editor-warning').textContent,
+    ).toMatch(/could not be applied|joita ei voitu soveltaa/i);
+    expect(onApplied).not.toHaveBeenCalled();
+    // Apply still ran — the dropped sub doesn't prevent persistence
+    // of the lineup itself.
+    expect(applyToGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('Apply shows the warning banner and does not call onApplied when a game drops players or roles', async () => {
+    // Build a game whose availablePlayers excludes one of the bench
+    // players in the draft (p10). applyDraftToGame will drop p10 from
+    // selectedPlayerIds and surface it via unknownPlayerIds; the editor
+    // saves the rest and stays open with the warning banner.
+    const roster = makeRoster(11);
+    const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    // Narrow the per-game roster: drop p10 entirely.
+    const narrowAvailable = roster.filter((p) => p.id !== 'p10');
+    const game1: AppState = {
+      ...(game as AppState),
+      availablePlayers: narrowAvailable,
+    } as AppState;
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    // The save still ran for the games that succeeded.
+    expect(applyToGame).toHaveBeenCalledTimes(1);
+    // But the modal should not auto-close so the coach acknowledges.
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it('Apply reports partial-save count when a later game fails', async () => {
+    // Two-game plan: g1 saves OK, g2 throws. The error banner must
+    // reflect the 1-of-2 success so the coach knows what's already
+    // persisted before retrying.
+    const applyToGame = jest
+      .fn()
+      .mockResolvedValueOnce(undefined) // g1 OK
+      .mockRejectedValueOnce(new Error('network down')); // g2 fails
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Saved 1 of 2|Tallennettu 1\/2/i,
+    );
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it('Apply error banner carries forward warning counters from games that succeeded before the throw', async () => {
+    // g1 succeeds with unknown-players warning (per-game roster narrows
+    // p10), g2 throws. Coach sees both: "Saved 1 of 2…" AND the unknown-
+    // players note about the earlier successful save.
+    const roster = makeRoster(11);
+    const game1Base = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    const game1: AppState = {
+      ...(game1Base as AppState),
+      availablePlayers: roster.filter((p) => p.id !== 'p10'),
+    } as AppState;
+    const game2 = makeGameWithLineup(roster, ['p8']);
+    const applyToGame = jest
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('network down'));
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    const alertText = screen.getByRole('alert').textContent ?? '';
+    expect(alertText).toMatch(/Saved 1 of 2|Tallennettu 1\/2/i);
+    expect(alertText).toMatch(
+      /players outside their roster|kokoonpanon ulkopuolisia pelaajia/i,
+    );
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it('Apply error banner does not over-count drops from the throwing game', async () => {
+    // g1 saves cleanly (no drops). g2 has narrowed availablePlayers (drops
+    // p10) AND its applyToGame throws. Without the post-await guard, g2's
+    // drops would be counted as a saved warning even though g2 never
+    // persisted. Assert the alert reflects only g1's clean save.
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2Base = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    const game2: AppState = {
+      ...(game2Base as AppState),
+      availablePlayers: roster.filter((p) => p.id !== 'p10'),
+    } as AppState;
+    const applyToGame = jest
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('network down'));
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    const alertText = screen.getByRole('alert').textContent ?? '';
+    expect(alertText).toMatch(/Saved 1 of 2|Tallennettu 1\/2/i);
+    expect(alertText).not.toMatch(
+      /players outside their roster|kokoonpanon ulkopuolisia pelaajia/i,
+    );
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it('Apply surfaces a sanitized error and does not call onApplied on failure', async () => {
+    // Raw error text from the mutation must never reach the user (CLAUDE
+    // Quality Bar). The banner shows the translated fallback only.
+    const applyToGame = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('Supabase: relation "games" does not exist'));
+    const onApplied = jest.fn();
+    renderEditor({ applyToGame, onApplied });
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Apply failed|Käyttö epäonnistui/i,
+    );
+    // Raw mutation message never leaks.
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/Supabase/i);
+    expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it('Back invokes onBack', async () => {
+    const { props } = renderEditor();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /back|takaisin/i }));
+    });
+    expect(props.onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('switching formation rebuilds the draft and clears any selection', async () => {
+    renderEditor();
+    // ST is unique to 8v8-3-3-1 (5v5-2-2 has GK/LB/RB/LF/RF, no ST).
+    const ROLE_8V8_ONLY = 'ST';
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`planning-editor-role-${ROLE_8V8_ONLY}`),
+      );
+    });
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(`planning-editor-role-${ROLE_8V8_ONLY}`),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('formation change resets EVERY tab, not just the active one (PR-A regression)', async () => {
+    // Pass-11 review caught: applyPresetChange used to call setDraft
+    // (the active-tab adapter), so non-active tabs kept stale role
+    // names from the old preset. On Apply those tabs would silently
+    // drop their field players via unknownRoles. This test pins the
+    // multi-game fix: switching formation re-seeds drafts for every
+    // gameId, so the second tab also surfaces the new role grid
+    // (queryable via subsequent applyToGame.scheduledSubs[].positionRole
+    // not containing the old ST role on Apply).
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const game2 = makeGameWithLineup(roster, ['p9']);
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    // Switch to 5v5-2-2 (no ST role).
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    // Pristine drafts → no confirm banner, switch happens immediately.
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+    // Apply both games. Neither should produce an unknownRoles
+    // warning, which would fire if a tab's draft still carried an
+    // ST role from 8v8-3-3-1.
+    fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    await waitFor(() => {
+      expect(applyToGame).toHaveBeenCalledTimes(2);
+    });
+    expect(
+      screen.queryByTestId('planning-editor-warning'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('switching formation shows inline banner only when the draft diverged from the loaded snap', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    // Pristine draft → switch happens immediately, no banner.
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+    expect(select).toHaveValue('5v5-2-2');
+    // Make a manual edit: swap two roles. Draft now diverges.
+    const roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
+    });
+    // Try switching → banner appears, select stays put.
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    expect(select).toHaveValue('5v5-2-2');
+    // Cancel keeps the current preset.
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId('planning-editor-preset-confirm-cancel'),
+      );
+    });
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+    expect(select).toHaveValue('5v5-2-2');
+  });
+
+  it('role and bench buttons are disabled while the formation-change banner is open', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    const roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
+    });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    // While the banner is open, no further swaps should be possible.
+    expect(
+      screen.getByTestId(`planning-editor-role-${roles[0].name}`),
+    ).toBeDisabled();
+    expect(screen.getByTestId('planning-editor-bench-p4')).toBeDisabled();
+  });
+
+  it('formation change with only scheduled-sub edits prompts the confirm banner (does not silently discard subs)', async () => {
+    // Bug 1: handlePresetChange's diverged check only inspected
+    // startingXI; if the user added a sub without touching the pitch,
+    // the change fired silently and applyPresetChange re-hydrated
+    // from the saved game, wiping the sub. Verify the confirm
+    // banner shows up so the coach can choose.
+    renderEditor();
+    const role1 = (PRESET.roles ?? [])[1].name;
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-add'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '08:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-role'), {
+        target: { value: role1 },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    // Sub is on the draft; pitch is untouched. Switching formation
+    // should prompt confirm rather than silently re-hydrate.
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+  });
+
+  it('formation change with only an in-place sub edit also prompts the confirm banner', async () => {
+    // Bug 2 follow-up: editing an existing sub's time (or any other
+    // field) preserves its id and the array length. Before this fix
+    // the diverged check missed it (length unchanged, id still in
+    // baseline set) → silent re-hydration discarded the edit. Now
+    // the check inspects each field by id-keyed lookup.
+    const role1 = (PRESET.roles ?? [])[1].name;
+    const roster = makeRoster(11);
+    // Hydrate the editor with an existing sub via game1.scheduledSubs;
+    // draftFromGame strips status and brings the rest onto the draft.
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8']),
+      scheduledSubs: [
+        {
+          id: 's1',
+          timeSeconds: 480,
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role1,
+          status: 'pending',
+        },
+      ],
+    } as AppState;
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+    });
+    // Open the existing sub and bump its time.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-sub-edit-s1'));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-time'), {
+        target: { value: '12:00' },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('planning-timeline-form-in'), {
+        target: { value: 'p8' },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-timeline-form-save'));
+    });
+    // Switch formation — confirm banner must show.
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+  });
+
+  it('reopen filters fired/skipped subs out of the editable draft', async () => {
+    const role = (PRESET.roles ?? [])[1].name;
+    const roster = makeRoster(11);
+    const game1: AppState = {
+      ...makeGameWithLineup(roster, ['p8', 'p9', 'p10']),
+      scheduledSubs: [
+        {
+          id: 's_pending',
+          timeSeconds: 600,
+          outPlayer: 'p1',
+          inPlayer: 'p8',
+          positionRole: role,
+          status: 'pending',
+        },
+        {
+          id: 's_fired',
+          timeSeconds: 300,
+          outPlayer: 'p2',
+          inPlayer: 'p9',
+          positionRole: role,
+          status: 'fired',
+        },
+        {
+          id: 's_skipped',
+          timeSeconds: 480,
+          outPlayer: 'p3',
+          inPlayer: 'p10',
+          positionRole: role,
+          status: 'skipped',
+        },
+      ],
+    } as AppState;
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+    });
+    expect(screen.getByTestId('planning-timeline-sub-edit-s_pending')).toBeInTheDocument();
+    expect(screen.queryByTestId('planning-timeline-sub-edit-s_fired')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('planning-timeline-sub-edit-s_skipped')).not.toBeInTheDocument();
+  });
+
+  it('confirming the formation-change banner switches the preset', async () => {
+    renderEditor();
+    const select = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-2-2' } });
+    });
+    const roles = getPresetById('5v5-2-2')!.roles ?? [];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[0].name}`));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${roles[1].name}`));
+    });
+    await act(async () => {
+      fireEvent.change(select, { target: { value: '5v5-1-2-1' } });
+    });
+    expect(
+      screen.getByTestId('planning-editor-preset-confirm'),
+    ).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId('planning-editor-preset-confirm-accept'),
+      );
+    });
+    await waitFor(() => {
+      expect(select).toHaveValue('5v5-1-2-1');
+    });
+    expect(
+      screen.queryByTestId('planning-editor-preset-confirm'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('warning banner exposes a Done button that calls onApplied', async () => {
+    // Bug fix: previously the warning state had no exit. Coach must
+    // be able to acknowledge and close the modal.
+    const roster = makeRoster(11);
+    const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+    const game1: AppState = {
+      ...(game as AppState),
+      // Drop p10 from the per-game roster → unknownPlayerIds fires.
+      availablePlayers: roster.filter((p) => p.id !== 'p10'),
+    } as AppState;
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1'],
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-warning-done'));
+    });
+    expect(onApplied).toHaveBeenCalledTimes(1);
+  });
+
+  it('bench → bench tap moves the selection to the new bench player', async () => {
+    // Coverage for the bench-to-bench branch of handleBenchTap. The
+    // engine treats this as a no-op swap; the UI just retargets the
+    // selection so a subsequent role tap acts on the latest bench
+    // choice. We assert by tapping role afterwards and verifying
+    // the second-tapped bench player ends up on the field.
+    renderEditor();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p8'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-bench-p9'));
+    });
+    const role = (PRESET.roles ?? [])[1];
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`planning-editor-role-${role.name}`));
+    });
+    // Selection retargeted to p9 → p9 lands on the role.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`planning-editor-role-${role.name}`),
+      ).toHaveTextContent('P9');
+    });
+  });
+
+  it('Apply surfaces the missing-game warning when a picked id is no longer in savedGames', async () => {
+    // Picker selected g1 + g2, but g2 has been deleted (cloud sync,
+    // multi-tab race, IndexedDB eviction). The editor must NOT
+    // auto-close as if both saved; instead surface the gap.
+    const roster = makeRoster(11);
+    const game1 = makeGameWithLineup(roster, ['p8']);
+    const applyToGame = jest.fn().mockResolvedValue(undefined);
+    const onApplied = jest.fn();
+    renderEditor({
+      gameIds: ['g1', 'g2'],
+      // g2 missing on purpose.
+      savedGames: { g1: game1 } as SavedGamesCollection,
+      roster,
+      applyToGame,
+      onApplied,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('planning-editor-warning')).toBeInTheDocument();
+    });
+    // The save still ran for g1.
+    expect(applyToGame).toHaveBeenCalledTimes(1);
+    expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+    // Modal does not auto-close.
+    expect(onApplied).not.toHaveBeenCalled();
+    // Warning text mentions the skipped game.
+    expect(screen.getByTestId('planning-editor-warning')).toHaveTextContent(
+      /no longer available|ei ollut enää saatavilla/i,
+    );
+  });
+
+  // ── PR 7c: Save flow ────────────────────────────────────────────────
+  describe('Save plan (PR 7c)', () => {
+    it('does not render Save button when onSavePlan is undefined', () => {
+      renderEditor();
+      expect(
+        screen.queryByTestId('planning-editor-save'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clicking Save opens the inline name form', () => {
+      renderEditor({ onSavePlan: jest.fn() });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      expect(screen.getByTestId('planning-editor-save-form')).toBeInTheDocument();
+      expect(screen.getByTestId('planning-editor-save-name')).toBeInTheDocument();
+    });
+
+    it('Save form pre-fills name from initialName', () => {
+      renderEditor({
+        onSavePlan: jest.fn(),
+        initialName: 'Existing plan',
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      const input = screen.getByTestId(
+        'planning-editor-save-name',
+      ) as HTMLInputElement;
+      expect(input.value).toBe('Existing plan');
+    });
+
+    it('Save form rejects empty name with inline error', async () => {
+      const onSavePlan = jest.fn();
+      renderEditor({ onSavePlan });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      // Don't type anything; click confirm.
+      fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+
+      expect(
+        await screen.findByTestId('planning-editor-save-error'),
+      ).toHaveTextContent(/Plan name is required|Suunnitelman nimi vaaditaan/i);
+      expect(onSavePlan).not.toHaveBeenCalled();
+    });
+
+    it('successful save calls onSavePlan with sessionId, name, draft, gameIds', async () => {
+      const onSavePlan = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        onSavePlan,
+        gameIds: ['g1', 'g2'],
+        editingSessionId: 'planningSession_existing',
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      const input = screen.getByTestId('planning-editor-save-name');
+      fireEvent.change(input, { target: { value: 'My Plan' } });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+      });
+
+      expect(onSavePlan).toHaveBeenCalledTimes(1);
+      const call = onSavePlan.mock.calls[0][0];
+      expect(call.sessionId).toBe('planningSession_existing');
+      expect(call.name).toBe('My Plan');
+      expect(call.gameIds).toEqual(['g1', 'g2']);
+      // PR-A: drafts is a per-game Record now (was `draft` single).
+      expect(call.drafts).toBeDefined();
+      expect(typeof call.drafts).toBe('object');
+      // includedGameIds carries the include-flag state (undefined =
+      // "all included", which is the default for a fresh session).
+      expect(call.includedGameIds).toBeUndefined();
+      // Form closes on success.
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('planning-editor-save-form'),
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('failed save surfaces an inline error and keeps the form open', async () => {
+      const onSavePlan = jest
+        .fn()
+        .mockRejectedValue(new Error('storage offline'));
+      renderEditor({ onSavePlan });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      fireEvent.change(screen.getByTestId('planning-editor-save-name'), {
+        target: { value: 'My Plan' },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+      });
+
+      expect(
+        await screen.findByTestId('planning-editor-save-error'),
+      ).toHaveTextContent(
+        /Could not save plan|Suunnitelman tallentaminen epäonnistui/i,
+      );
+      // Form remains open so the user can retry.
+      expect(
+        screen.getByTestId('planning-editor-save-form'),
+      ).toBeInTheDocument();
+    });
+
+    it('Enter key in the name input submits the save form', async () => {
+      const onSavePlan = jest.fn().mockResolvedValue(undefined);
+      renderEditor({ onSavePlan });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      const input = screen.getByTestId('planning-editor-save-name');
+      fireEvent.change(input, { target: { value: 'Keyboard plan' } });
+
+      // <form onSubmit> fires when Enter is pressed in the input;
+      // wrapping in submit on the form is the a11y-correct pattern.
+      const form = screen.getByTestId('planning-editor-save-form');
+      await act(async () => {
+        fireEvent.submit(form);
+      });
+      expect(onSavePlan).toHaveBeenCalledTimes(1);
+      expect(onSavePlan.mock.calls[0][0].name).toBe('Keyboard plan');
+    });
+
+    it('Save button label says "Update plan" when editingSessionId is set', () => {
+      renderEditor({
+        onSavePlan: jest.fn(),
+        editingSessionId: 'planningSession_existing',
+      });
+      const button = screen.getByTestId('planning-editor-save');
+      expect(button).toHaveTextContent(/Update plan|Päivitä suunnitelma/i);
+    });
+
+    describe('Save as new copy (named-versions branch flow)', () => {
+      // The new-copy button only appears when an existing
+      // editingSessionId is set — the user is branching from a
+      // previously-saved plan. Brand-new (unsaved) plans use the
+      // regular Save button.
+
+      it('hides the "Save as new copy" button when there is no editingSessionId', () => {
+        renderEditor({ onSavePlan: jest.fn() });
+        expect(
+          screen.queryByTestId('planning-editor-save-as-new-copy'),
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows the button when editingSessionId is provided', () => {
+        renderEditor({
+          onSavePlan: jest.fn(),
+          editingSessionId: 'planningSession_existing',
+        });
+        expect(
+          screen.getByTestId('planning-editor-save-as-new-copy'),
+        ).toBeInTheDocument();
+      });
+
+      it('opens the save form pre-filled with " — copy" suffix', async () => {
+        renderEditor({
+          onSavePlan: jest.fn(),
+          editingSessionId: 'planningSession_existing',
+          initialName: 'Default',
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-save-as-new-copy'),
+          );
+        });
+        const input = screen.getByTestId(
+          'planning-editor-save-name',
+        ) as HTMLInputElement;
+        // English: "Default — copy"; Finnish: "Default — kopio".
+        // The exact literal " — " separator is locked in both i18n
+        // strings; tighten the regex to avoid accepting any random
+        // separator a future locale might introduce.
+        expect(input.value).toMatch(/^Default — (copy|kopio)$/);
+      });
+
+      it('submits onSavePlan with saveAs="new-copy"', async () => {
+        const onSavePlan = jest.fn().mockResolvedValue(undefined);
+        renderEditor({
+          onSavePlan,
+          editingSessionId: 'planningSession_existing',
+          initialName: 'Default',
+        });
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-save-as-new-copy'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+        expect(onSavePlan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sessionId: 'planningSession_existing',
+            saveAs: 'new-copy',
+          }),
+        );
+      });
+
+      it('cancelling new-copy then clicking Save submits saveAs="overwrite" (mode resets on cancel)', async () => {
+        // Locks the cancel-resets-mode contract: after cancelling a
+        // new-copy form, the next regular Save click should NOT
+        // accidentally fire as new-copy.
+        const onSavePlan = jest.fn().mockResolvedValue(undefined);
+        renderEditor({
+          onSavePlan,
+          editingSessionId: 'planningSession_existing',
+          initialName: 'Default',
+        });
+        // Open new-copy form, then cancel.
+        await act(async () => {
+          fireEvent.click(
+            screen.getByTestId('planning-editor-save-as-new-copy'),
+          );
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-cancel'));
+        });
+        // Click regular Save and submit.
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save'));
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+        expect(onSavePlan).toHaveBeenCalledWith(
+          expect.objectContaining({ saveAs: 'overwrite' }),
+        );
+      });
+
+      it('regular Save button still submits saveAs="overwrite"', async () => {
+        const onSavePlan = jest.fn().mockResolvedValue(undefined);
+        renderEditor({
+          onSavePlan,
+          editingSessionId: 'planningSession_existing',
+          initialName: 'Default',
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save'));
+        });
+        await act(async () => {
+          fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+        });
+        expect(onSavePlan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sessionId: 'planningSession_existing',
+            saveAs: 'overwrite',
+          }),
+        );
+      });
+    });
+  });
+
+  // ── PR 7c: Reopen flow ──────────────────────────────────────────────
+  describe('Reopen with initialDraft (PR 7c)', () => {
+    it('uses initialDraft when provided instead of deriving from the game', () => {
+      const roster = makeRoster(11);
+      // Build a custom draft different from what draftFromGame would yield.
+      const initialDraft = {
+        startingXI: { GK: 'p5' }, // p5 placed as GK explicitly
+        bench: ['p0', 'p1'],
+        scheduledSubs: [],
+      };
+      renderEditor({ initialDraft, roster });
+
+      // p5 should appear on the GK button (rather than p0 which would be
+      // the default from makeGameWithLineup).
+      const gkButton = screen.getByTestId('planning-editor-role-GK');
+      expect(gkButton).toHaveTextContent(/P5/);
+    });
+
+    it('initialPresetId overrides the game-derived default preset (Codex PR-392 P1)', () => {
+      // The fixture lineup has 8 field players → editor's default would
+      // pick an 8v8 preset. Forcing initialPresetId to a different preset
+      // should change the role grid the editor renders.
+      const elevenVsEleven = getPresetById('11v11-4-3-3');
+      expect(elevenVsEleven).toBeDefined();
+
+      renderEditor({ initialPresetId: '11v11-4-3-3' });
+      const pitch = screen.getByTestId('planning-editor-pitch');
+      // 11v11-4-3-3 has 11 roles incl. GK; 8v8-3-3-1 has 8.
+      expect(pitch.querySelectorAll('button').length).toBe(
+        elevenVsEleven!.roles!.length,
+      );
+    });
+
+    it('falls back to the default preset when initialPresetId is unknown', () => {
+      // Stale saved sessions could carry a preset id no longer in the
+      // registry. The editor should not crash; it should fall back
+      // silently to the game-derived default.
+      renderEditor({ initialPresetId: 'NOT_A_REAL_PRESET' });
+      // Renders successfully — pitch buttons match the default 8v8 count.
+      const pitch = screen.getByTestId('planning-editor-pitch');
+      expect(pitch.querySelectorAll('button').length).toBe(
+        PRESET.roles!.length,
+      );
+    });
+
+    it('saved draft carries presetId so reopen can restore the same grid', async () => {
+      const onSavePlan = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        onSavePlan,
+        initialPresetId: '11v11-4-3-3',
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-save'));
+      fireEvent.change(screen.getByTestId('planning-editor-save-name'), {
+        target: { value: 'My Plan' },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-save-confirm'));
+      });
+      const call = onSavePlan.mock.calls[0][0];
+      // PR-A: per-game drafts. Each tab's draft carries the active
+      // presetId so reopen renders the same role grid. With a single
+      // gameId, drafts has one entry keyed by that gameId.
+      const firstGid = call.gameIds[0];
+      expect(call.drafts[firstGid].presetId).toBe('11v11-4-3-3');
+    });
+  });
+
+  describe('Apply preview gating', () => {
+    it('with enableApplyPreview=false (default), Apply runs immediately', async () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      // Build a draft different from the saved game so apply has work
+      // to do; even so, no preview should appear because the flag is off.
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({ applyToGame, onApplied, roster, savedGames: { g1: game } });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      });
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+    });
+
+    it('with enableApplyPreview=true, Apply opens the preview instead', () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      // Force a non-matching draft so the preview has at least one card
+      // (otherwise the empty-state would render and confirm would be
+      // disabled — but the preview itself would still be present).
+      renderEditor({
+        applyToGame,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p1' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      expect(
+        screen.getByTestId('planning-apply-preview'),
+      ).toBeInTheDocument();
+      // Apply has NOT yet been called — the user must confirm.
+      expect(applyToGame).not.toHaveBeenCalled();
+    });
+
+    it('preview Confirm runs apply for only the checked games', async () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster);
+      const game2 = makeGameWithLineup(roster);
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        savedGames: { g1: game1, g2: game2 },
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' }, // not present in either game
+          bench: [],
+          scheduledSubs: [],
+        },
+        roster,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Uncheck g2 — only g1 will be applied.
+      fireEvent.click(screen.getByTestId('planning-apply-preview-toggle-g2'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+      expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+      // onApplied receives a snapshot containing only the checked
+      // game (g1) with its pre-apply fields — drives the undo banner.
+      expect(onApplied).toHaveBeenCalledTimes(1);
+      const snapshot = onApplied.mock.calls[0][0];
+      expect(snapshot).toBeDefined();
+      expect(snapshot.games).toHaveLength(1);
+      expect(snapshot.games[0].gameId).toBe('g1');
+      // The snapshot preserves undefined fields verbatim (not
+      // normalized to []) so a legacy game whose scheduledSubs was
+      // never set restores losslessly. Arrays are shallow-cloned at
+      // capture time so future in-place mutations on the live game
+      // can't retroactively corrupt the snapshot — assert equal
+      // contents but NOT the same reference.
+      expect(snapshot.games[0].before.playersOnField).toEqual(
+        game1.playersOnField,
+      );
+      expect(snapshot.games[0].before.playersOnField).not.toBe(
+        game1.playersOnField,
+      );
+      expect(snapshot.games[0].before.selectedPlayerIds).toEqual(
+        game1.selectedPlayerIds,
+      );
+      expect(snapshot.games[0].before.selectedPlayerIds).not.toBe(
+        game1.selectedPlayerIds,
+      );
+      // scheduledSubs was undefined on game1 — undefined stays
+      // undefined (not promoted to []) so undo is lossless.
+      expect(snapshot.games[0].before.scheduledSubs).toBeUndefined();
+      expect(typeof snapshot.appliedAt).toBe('number');
+    });
+
+    it('warning path (missing-only) does NOT pass a snapshot to onApplied', async () => {
+      // The warning path returns early without calling onApplied at
+      // all, but defensive: even if a future change calls onApplied
+      // from the warning branch, no snapshot should ride along since
+      // nothing was actually mutated. Note: pass-9 added partial-success
+      // snapshot capture for warnings that fire AFTER some games saved;
+      // this scenario has 0 saves (gx missing entirely), so the snapshot
+      // remains undefined.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['gx'],
+        savedGames: {} as SavedGamesCollection, // missing → warning
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      // applyToGame never fired (gx wasn't in savedGames), the
+      // warning banner shows, and onApplied is NOT invoked from the
+      // warning path itself — the user has to click Done to exit.
+      expect(applyToGame).not.toHaveBeenCalled();
+      expect(onApplied).not.toHaveBeenCalled();
+      // Click Done: snapshot arg must be undefined since no games were
+      // mutated. The wrapping arrow keeps the SyntheticEvent from
+      // sneaking in as the first positional. Pass-9 wired the in-memory
+      // draft as the second positional so handleEditorApplied can stamp
+      // appliedAt + persist it; that's a no-op when snapshot is absent
+      // (handleEditorApplied gates on snapshot.games.length > 0).
+      fireEvent.click(screen.getByTestId('planning-editor-warning-done'));
+      expect(onApplied).toHaveBeenCalledTimes(1);
+      // First positional (snapshot) is undefined — the regression guard.
+      expect(onApplied.mock.calls[0][0]).toBeUndefined();
+    });
+
+    it('preview Cancel returns to edit mode without applying', () => {
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      renderEditor({
+        applyToGame,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      fireEvent.click(screen.getByTestId('planning-apply-preview-cancel'));
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      expect(applyToGame).not.toHaveBeenCalled();
+    });
+
+    it('preview surfaces missing-game notice and routes the id through Confirm so the post-apply warning fires', async () => {
+      // Cloud-sync race / IndexedDB eviction: gameIds includes 'g2'
+      // but savedGames lacks it. Pre-PR 8b, handleApply(gameIds) hit
+      // the !game guard on g2 and surfaced applyWarnMissing. The
+      // preview must not silently drop g2 — it should appear in the
+      // inline notice AND be re-included on confirm so the warning
+      // banner fires.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster);
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        // g2 intentionally absent.
+        savedGames: { g1: game1 },
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+        roster,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Inline notice for the missing g2.
+      expect(
+        screen.getByTestId('planning-apply-preview-missing'),
+      ).toBeInTheDocument();
+      // g2 doesn't get its own card (no diff was computed).
+      expect(
+        screen.queryByTestId('planning-apply-preview-card-g2'),
+      ).not.toBeInTheDocument();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('planning-apply-preview-confirm'));
+      });
+      // applyToGame fired only for g1 (the only resolved game).
+      expect(applyToGame).toHaveBeenCalledTimes(1);
+      expect(applyToGame).toHaveBeenCalledWith('g1', expect.anything());
+      // The post-apply warning surfaces the missing-game count via the
+      // existing applyWarnMissing path: "N selected game(s) were no
+      // longer available and were skipped."
+      await waitFor(() => {
+        expect(
+          screen.getByText(/1 selected game.*were skipped|1 .*ei.*ohitettiin/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('preview enables Confirm and surfaces the warning when ALL games are missing', async () => {
+      // Cloud-sync wipe edge case: every gameId in the plan is absent
+      // from savedGames. Without the special-case, visibleDiffs is
+      // empty AND checkedCount is 0, so the original
+      // `disabled={checkedCount === 0}` gate would lock the user out
+      // of triggering the post-apply applyWarnMissing banner — a
+      // regression vs. the pre-PR direct-apply path.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const onApplied = jest.fn();
+      renderEditor({
+        applyToGame,
+        onApplied,
+        gameIds: ['g1', 'g2'],
+        savedGames: {} as SavedGamesCollection,
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      // Both ids surface in the inline notice.
+      expect(
+        screen.getByTestId('planning-apply-preview-missing'),
+      ).toBeInTheDocument();
+      // No game cards. The "noChanges" empty-state must NOT render —
+      // it would contradict the missing-games notice ("nothing to
+      // apply" alongside "2 games can't be loaded").
+      expect(
+        screen.queryByTestId('planning-apply-preview-empty'),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('planning-apply-preview-card-g1'),
+      ).not.toBeInTheDocument();
+      const confirm = screen.getByTestId(
+        'planning-apply-preview-confirm',
+      ) as HTMLButtonElement;
+      // Critical: Confirm must be enabled so the user can trigger the
+      // post-apply warning instead of being trapped at Cancel.
+      expect(confirm).not.toBeDisabled();
+      // Label must not say "Apply to 0 games" — that's misleading
+      // when the user has nothing to actually apply. Use the
+      // neutral "Continue" / "Jatka" copy instead.
+      expect(confirm).toHaveTextContent(/Continue|Jatka/i);
+      expect(confirm).not.toHaveTextContent(/Apply to 0|Sovella 0/i);
+      await act(async () => {
+        fireEvent.click(confirm);
+      });
+      // applyToGame never fires (no real games to save) but the
+      // warning banner does — and the !game branch in handleApply
+      // increments gamesNotFound for both g1 and g2.
+      expect(applyToGame).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(
+          screen.getByText(/2 selected game.*were skipped|2 .*ei.*ohitettiin/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('handleStartApply surfaces applyError when computeApplyDiff throws', async () => {
+      // computeApplyDiff is pure today but a malformed game state (or a
+      // future regression) could make it throw. The catch in
+      // handleStartApply prevents the click from being silently swallowed.
+      const { computeApplyDiff } = jest.requireMock(
+        '@/utils/applyPreview',
+      ) as { computeApplyDiff: jest.Mock };
+      computeApplyDiff.mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
+      renderEditor({
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      expect(
+        screen.queryByTestId('planning-apply-preview'),
+      ).not.toBeInTheDocument();
+      // The error banner is the same applyError surfaced by the
+      // direct apply path: "Could not apply plan. Please try again."
+      // mockImplementationOnce auto-restores after the call, so no
+      // manual teardown is needed.
+      await waitFor(() => {
+        expect(
+          screen.getByText(/Could not apply plan|Suunnitelman.*ei voitu/i),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('Apply button is disabled while the preview is open', () => {
+      // Without this guard a second click would reset previewDiffs but
+      // the existing preview instance keeps its checked state, so the
+      // user could confirm against stale toggles.
+      renderEditor({
+        enableApplyPreview: true,
+        initialDraft: {
+          startingXI: { GK: 'p5' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      });
+      const applyBtn = screen.getByTestId(
+        'planning-editor-apply',
+      ) as HTMLButtonElement;
+      expect(applyBtn).not.toBeDisabled();
+      fireEvent.click(applyBtn);
+      expect(
+        screen.getByTestId('planning-apply-preview'),
+      ).toBeInTheDocument();
+      expect(applyBtn).toBeDisabled();
+    });
+
+    it('preview shows independent per-game diffs (PR-A regression)', async () => {
+      // Pass-12 review caught: handleStartApply's diff loop used `draft`
+      // (the active-tab adapter), so the preview rendered the active
+      // tab's diff for every game card. The actual Apply already used
+      // drafts[id] correctly. This test pins the preview fix.
+      const applyToGame = jest.fn().mockResolvedValue(undefined);
+      const roster = makeRoster(11);
+      const game1 = makeGameWithLineup(roster, ['p8']);
+      const game2 = makeGameWithLineup(roster, ['p9']);
+      const role1 = (PRESET.roles ?? [])[1].name;
+      const role2 = (PRESET.roles ?? [])[2].name;
+      // Build two clearly different drafts: g1 puts p8 at role1, g2
+      // puts p8 at role2. The preview cards should reflect each
+      // tab's own draft, not a shared one.
+      const drafts = {
+        g1: {
+          startingXI: { [role1]: 'p8' },
+          bench: [],
+          scheduledSubs: [],
+        },
+        g2: {
+          startingXI: { [role2]: 'p8' },
+          bench: [],
+          scheduledSubs: [],
+        },
+      };
+      renderEditor({
+        applyToGame,
+        gameIds: ['g1', 'g2'],
+        savedGames: { g1: game1, g2: game2 } as SavedGamesCollection,
+        roster,
+        enableApplyPreview: true,
+        initialDrafts: drafts,
+      });
+      fireEvent.click(screen.getByTestId('planning-editor-apply'));
+      const card1 = screen.getByTestId('planning-apply-preview-card-g1');
+      const card2 = screen.getByTestId('planning-apply-preview-card-g2');
+      // Each card adds p8 at ITS OWN role: g1 adds at role1, g2
+      // adds at role2. Pre-fix both cards would have shown the same
+      // "Add" entry (whichever role the active tab carried).
+      // Removals from each game's pre-state can mention the other
+      // role, so we anchor on the Add direction only.
+      expect(card1.textContent).toContain(`Add P8 at ${role1}`);
+      expect(card1.textContent).not.toContain(`Add P8 at ${role2}`);
+      expect(card2.textContent).toContain(`Add P8 at ${role2}`);
+      expect(card2.textContent).not.toContain(`Add P8 at ${role1}`);
+    });
+  });
+
+  describe('Show-benches toggle', () => {
+    it('renders the bench drawer by default (showBenches=true)', () => {
+      renderEditor();
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      // Default visible.
+      expect(drawer).not.toHaveAttribute('hidden');
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      expect(toggle).toHaveAttribute('data-state', 'on');
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle.textContent ?? '').toMatch(/Hide/i);
+    });
+
+    it('hides the bench drawer when toggled off', async () => {
+      renderEditor();
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      // `hidden` HTML attribute hides the element from the layout
+      // and AT — same effect as `display: none` but reversible
+      // without re-mounting (preserves drag-target registration).
+      expect(drawer).toHaveAttribute('hidden');
+      expect(toggle).toHaveAttribute('data-state', 'off');
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      expect(toggle.textContent ?? '').toMatch(/Show/i);
+    });
+
+    it('clicking the toggle a second time re-shows the drawer', async () => {
+      renderEditor();
+      const toggle = screen.getByTestId(
+        'planning-editor-show-benches-toggle',
+      );
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      await act(async () => {
+        fireEvent.click(toggle);
+      });
+      const drawer = screen.getByTestId('planning-editor-bench-drawer');
+      expect(drawer).not.toHaveAttribute('hidden');
+    });
+  });
+
+  describe('Versions menu', () => {
+    const buildSession = (
+      overrides: Partial<{
+        id: string;
+        name: string;
+        parentSessionId?: string;
+        isActive: boolean;
+        updatedAt: string;
+      }> = {},
+    ) => ({
+      id: 'planningSession_default',
+      teamId: 't1',
+      name: 'Default',
+      gameIds: ['g1'],
+      draft: {},
+      isActive: false,
+      createdAt: '2026-04-30T10:00:00.000Z',
+      updatedAt: '2026-04-30T10:00:00.000Z',
+      ...overrides,
+    });
+
+    it('hides the menu when there is no version family (single session)', () => {
+      renderEditor({
+        versions: [buildSession()],
+      });
+      expect(
+        screen.queryByTestId('planning-editor-versions-toggle'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the toggle when 2+ versions exist', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent' }),
+          buildSession({ id: 'child', parentSessionId: 'parent', name: 'A' }),
+        ],
+      });
+      const toggle = screen.getByTestId('planning-editor-versions-toggle');
+      expect(toggle).toBeInTheDocument();
+      // Count is rendered in the label.
+      expect(toggle.textContent ?? '').toMatch(/2/);
+    });
+
+    it('opens the menu on click and renders one row per version', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'Variant A',
+          }),
+        ],
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      expect(
+        screen.getByTestId('planning-editor-versions-menu'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-editor-versions-row-parent'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-editor-versions-row-child_a'),
+      ).toBeInTheDocument();
+    });
+
+    it('marks the active version with data-active=true and hides Activate button', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const activeRow = screen.getByTestId(
+        'planning-editor-versions-row-parent',
+      );
+      expect(activeRow).toHaveAttribute('data-active', 'true');
+      expect(
+        screen.queryByTestId('planning-editor-versions-activate-parent'),
+      ).not.toBeInTheDocument();
+      // Inactive sibling has the Activate button.
+      expect(
+        screen.getByTestId('planning-editor-versions-activate-child_a'),
+      ).toBeInTheDocument();
+    });
+
+    it('clicking Activate calls onActivateVersion and closes the menu', () => {
+      const onActivateVersion = jest.fn();
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion,
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-activate-child_a'),
+        );
+      });
+      expect(onActivateVersion).toHaveBeenCalledTimes(1);
+      const arg = onActivateVersion.mock.calls[0][0];
+      expect(arg.id).toBe('child_a');
+      // Menu closes after activate.
+      expect(
+        screen.queryByTestId('planning-editor-versions-menu'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('disables the Activate button while a setActiveSession mutation is in flight', () => {
+      // Prevents double-trigger when the user is impatient on a slow
+      // network — a second click would otherwise queue another RPC.
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+        isActivatingVersion: true,
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const btn = screen.getByTestId(
+        'planning-editor-versions-activate-child_a',
+      );
+      expect(btn).toBeDisabled();
+    });
+
+    it('renders the Export tournament plan… item when onExportBundle is provided', async () => {
+      // PR-F-2: bundle export is exposed as the first item in the
+      // Versions menu, so a coach with multiple versions can download
+      // the whole family in one click.
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'A',
+          }),
+        ],
+        onExportBundle: jest.fn(),
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      expect(
+        screen.getByTestId('planning-editor-versions-export-bundle'),
+      ).toBeInTheDocument();
+    });
+
+    it('hides the Export item when onExportBundle is not provided', async () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'A',
+          }),
+        ],
+        // onExportBundle intentionally omitted — brand-new unsaved plans
+        // surface this state in the wild.
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      expect(
+        screen.queryByTestId('planning-editor-versions-export-bundle'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clicking Export calls onExportBundle and closes the menu', async () => {
+      const onExportBundle = jest.fn();
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', name: 'Default' }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            name: 'A',
+          }),
+        ],
+        onExportBundle,
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-export-bundle'),
+        );
+      });
+      expect(onExportBundle).toHaveBeenCalledTimes(1);
+      // Menu closes after export so the user gets back to editing.
+      expect(
+        screen.queryByTestId('planning-editor-versions-menu'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the toggle for a single-session plan when onExportBundle is provided', () => {
+      // Lone session can still be exported as a 1-entry bundle —
+      // useful for backups before branching. Without onExportBundle
+      // the menu stays hidden (earlier test asserts that contract).
+      renderEditor({
+        versions: [buildSession()],
+        onExportBundle: jest.fn(),
+      });
+      expect(
+        screen.getByTestId('planning-editor-versions-toggle'),
+      ).toBeInTheDocument();
+    });
+
+    it('renders activationError inline in the menu', () => {
+      renderEditor({
+        versions: [
+          buildSession({ id: 'parent', isActive: true }),
+          buildSession({
+            id: 'child_a',
+            parentSessionId: 'parent',
+            isActive: false,
+          }),
+        ],
+        onActivateVersion: jest.fn(),
+        activationError: 'Could not activate that version.',
+      });
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId('planning-editor-versions-toggle'),
+        );
+      });
+      const err = screen.getByTestId('planning-editor-versions-error');
+      expect(err).toHaveTextContent('Could not activate that version.');
+      // role="alert" so AT announces it on render.
+      expect(err.getAttribute('role')).toBe('alert');
+    });
+  });
+
+  describe('Auto-save indicator', () => {
+    it('hides the badge when lastSavedAt is null', () => {
+      renderEditor({ lastSavedAt: null });
+      expect(
+        screen.queryByTestId('planning-editor-saved-indicator'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows the "✓ Saved {{time}}" badge when lastSavedAt is set', () => {
+      const ts = new Date('2026-05-05T14:23:45').getTime();
+      renderEditor({ lastSavedAt: ts });
+      const badge = screen.getByTestId('planning-editor-saved-indicator');
+      expect(badge).toBeInTheDocument();
+      // Match the time portion. Locale-dependent format, so just
+      // assert the ✓ glyph and a HH:MM:SS-shaped string are present.
+      expect(badge.textContent ?? '').toMatch(/✓/);
+      expect(badge.textContent ?? '').toMatch(/\d{1,2}:\d{2}:\d{2}/);
+    });
+  });
+
+  describe('Role action panel — half-time split shortcuts', () => {
+    it('shows the "Split at half" button when a role with no sub is selected', () => {
+      renderEditor();
+      // Tap the GK role to select it.
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId(`planning-editor-role-${PRESET.roles![0].name}`),
+        );
+      });
+      const panel = screen.getByTestId('planning-editor-role-actions');
+      expect(panel).toHaveAttribute('data-state', 'no-sub');
+      expect(
+        screen.getByTestId('planning-editor-split-at-half'),
+      ).toBeInTheDocument();
+    });
+
+    it('clicking "Split at half" adds a sub at halftime and removes bench[0]', () => {
+      const { props } = renderEditor();
+      const onApplied = props.onApplied as jest.Mock;
+      const role = PRESET.roles![0].name;
+      // Select the role first.
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId('planning-editor-split-at-half'));
+      });
+      // The role-action panel now shows the split state with Keep
+      // starter / Keep sub buttons (the draft has been mutated).
+      const panel = screen.getByTestId('planning-editor-role-actions');
+      expect(panel).toHaveAttribute('data-state', 'split');
+      expect(
+        screen.getByTestId('planning-editor-keep-starter'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId('planning-editor-keep-sub'),
+      ).toBeInTheDocument();
+      // onApplied isn't called by Split — it's a draft mutation only.
+      expect(onApplied).not.toHaveBeenCalled();
+    });
+
+    it('does not render the panel when nothing is selected', () => {
+      renderEditor();
+      expect(
+        screen.queryByTestId('planning-editor-role-actions'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clicking "Keep starter" removes the half-time sub and returns sub player to bench', () => {
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: ['p8'],
+            scheduledSubs: [
+              {
+                id: 's1',
+                // 25 min × 2 periods = 3000s, halftime = 1500.
+                timeSeconds: 1500,
+                inPlayer: 'p9',
+                positionRole: role,
+              },
+            ],
+          },
+        },
+      });
+      // Select the role → panel should show 'split' state.
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      expect(
+        screen.getByTestId('planning-editor-role-actions'),
+      ).toHaveAttribute('data-state', 'split');
+      // Click Keep starter → the sub disappears, panel flips to no-sub.
+      act(() => {
+        fireEvent.click(screen.getByTestId('planning-editor-keep-starter'));
+      });
+      expect(
+        screen.getByTestId('planning-editor-role-actions'),
+      ).toHaveAttribute('data-state', 'no-sub');
+    });
+
+    it('clicking "Keep sub" promotes the sub player to starter and benches the original', () => {
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: ['p8'],
+            scheduledSubs: [
+              {
+                id: 's1',
+                timeSeconds: 1500,
+                inPlayer: 'p9',
+                positionRole: role,
+              },
+            ],
+          },
+        },
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId('planning-editor-keep-sub'));
+      });
+      // Panel re-renders in no-sub state; the sub-in player is now
+      // the starter. We can't easily assert the starter from the
+      // editor without diving into draft state, so the panel state
+      // assertion plus the absence of the sub button covers wiring.
+      expect(
+        screen.getByTestId('planning-editor-role-actions'),
+      ).toHaveAttribute('data-state', 'no-sub');
+      expect(
+        screen.queryByTestId('planning-editor-keep-starter'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('disables the "Split at half" button when bench is empty', () => {
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: [],
+            scheduledSubs: [],
+          },
+        },
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      const btn = screen.getByTestId('planning-editor-split-at-half');
+      expect(btn).toBeDisabled();
+    });
+
+    it('does not render the panel for a complex role state (multiple subs)', () => {
+      // Manually craft a draft with two subs at GK.
+      const role = PRESET.roles![0].name;
+      const roster = makeRoster(11);
+      const game = makeGameWithLineup(roster, ['p8', 'p9', 'p10']);
+      renderEditor({
+        savedGames: { g1: game } as SavedGamesCollection,
+        initialDrafts: {
+          g1: {
+            startingXI: { [role]: 'p0' },
+            bench: ['p1', 'p2'],
+            scheduledSubs: [
+              { id: 's1', timeSeconds: 300, inPlayer: 'p1', positionRole: role },
+              { id: 's2', timeSeconds: 900, inPlayer: 'p2', positionRole: role },
+            ],
+          },
+        },
+      });
+      act(() => {
+        fireEvent.click(screen.getByTestId(`planning-editor-role-${role}`));
+      });
+      // Multiple subs → complex → panel hidden.
+      expect(
+        screen.queryByTestId('planning-editor-role-actions'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Cross-component player highlight (lifted state)', () => {
+    // The fixture's makeGameWithLineup walks PRESET.roles and assigns
+    // p0, p1, p2, ... to each role in order. So the GK role (first in
+    // 8v8-3-3-1) holds p0, and the second role (LB by preset
+    // definition) holds p1, etc. We anchor on that mapping.
+    const gkPlayerId = 'p0';
+    const secondRolePlayerId = 'p1';
+    const gkRole = PRESET.roles![0].name;
+    const secondRole = PRESET.roles![1].name;
+
+    it('clicking a chip lights up the same player on a dashboard pill', () => {
+      renderEditor();
+      // Click the GK chip on the active tab — the dashboard pill for
+      // the same player should reflect the highlight too.
+      const chip = screen.getByTestId(
+        `planning-chip-grid-chip-g1-${gkRole}-${gkPlayerId}`,
+      );
+      act(() => {
+        fireEvent.click(chip);
+      });
+      const pill = screen.getByTestId(
+        `planning-minutes-dashboard-entry-${gkPlayerId}`,
+      );
+      expect(pill).toHaveAttribute('data-highlighted', 'true');
+      // Another dashboard pill stays at data-highlighted="false" so
+      // the cross-component contract is symmetric.
+      const otherPill = screen.getByTestId(
+        `planning-minutes-dashboard-entry-${secondRolePlayerId}`,
+      );
+      expect(otherPill).toHaveAttribute('data-highlighted', 'false');
+    });
+
+    it('clicking a totals-table row name lights up the same player on chips', () => {
+      renderEditor();
+      // Click the player-name button in the totals table → chip on
+      // the active tab also highlights.
+      const toggle = screen.getByTestId(
+        `planning-totals-row-toggle-${secondRolePlayerId}`,
+      );
+      act(() => {
+        fireEvent.click(toggle);
+      });
+      const chip = screen.getByTestId(
+        `planning-chip-grid-chip-g1-${secondRole}-${secondRolePlayerId}`,
+      );
+      expect(chip).toHaveAttribute('data-highlighted', 'true');
+    });
+
+    it('clicking a dashboard pill lights up the same player on chips', () => {
+      // Symmetric partner of "chip → pill". Without this, a regression
+      // in onToggleHighlight wiring on the dashboard could go undetected.
+      renderEditor();
+      const pillBtn = screen.getByTestId(
+        `planning-minutes-dashboard-pill-toggle-${secondRolePlayerId}`,
+      );
+      act(() => {
+        fireEvent.click(pillBtn);
+      });
+      const chip = screen.getByTestId(
+        `planning-chip-grid-chip-g1-${secondRole}-${secondRolePlayerId}`,
+      );
+      expect(chip).toHaveAttribute('data-highlighted', 'true');
+    });
+
+    // useEffect prune-on-stale-draft contract: covered indirectly by
+    // the chip → pill / pill → chip / Clear-resets-all integration
+    // tests above. A direct test would require simulating a draft
+    // mutation that drops a player from every tab simultaneously
+    // (drag-drop sequence + bench eviction), which has more setup
+    // surface than the contract benefits from. Logged as a
+    // follow-up for the next polish PR if the prune logic ever
+    // changes shape — until then the implementation is straight
+    // identity-preserving filter, low regression risk.
+
+    it('Clear highlight resets every component simultaneously', () => {
+      renderEditor();
+      // Highlight two players from different surfaces.
+      act(() => {
+        fireEvent.click(
+          screen.getByTestId(
+            `planning-chip-grid-chip-g1-${gkRole}-${gkPlayerId}`,
+          ),
+        );
+        fireEvent.click(
+          screen.getByTestId(
+            `planning-minutes-dashboard-pill-toggle-${secondRolePlayerId}`,
+          ),
+        );
+      });
+      const clear = screen.getByTestId('planning-chip-grid-clear');
+      act(() => {
+        fireEvent.click(clear);
+      });
+      // Chip + dashboard pills both return to non-highlighted.
+      expect(
+        screen.getByTestId(
+          `planning-chip-grid-chip-g1-${gkRole}-${gkPlayerId}`,
+        ),
+      ).toHaveAttribute('data-highlighted', 'false');
+      expect(
+        screen.getByTestId(
+          `planning-minutes-dashboard-entry-${secondRolePlayerId}`,
+        ),
+      ).toHaveAttribute('data-highlighted', 'false');
+      expect(
+        screen.queryByTestId('planning-chip-grid-clear'),
+      ).not.toBeInTheDocument();
+    });
+  });
+});

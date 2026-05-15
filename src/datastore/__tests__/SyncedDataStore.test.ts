@@ -1175,4 +1175,58 @@ describe('SyncedDataStore', () => {
       unsubscribe(); // Clean up
     });
   });
+
+  // ==========================================================================
+  // setActiveSession parent-scope pass-through (PR-C-2a / migration 039)
+  // ==========================================================================
+  describe('setActiveSession parent-scope pass-through', () => {
+    it('forwards parentSessionId to localStore.setActiveSession', async () => {
+      // Inline spy avoids expanding the top-level localStoreSpy
+      // type/list for a single test path. The forwarding logic is
+      // one line — this test just locks that the arg arrives.
+      // Cast to bracket-access the private localStore field.
+      const localStore = (
+        store as unknown as { localStore: LocalDataStore }
+      ).localStore;
+      const spy = jest
+        .spyOn(localStore, 'setActiveSession')
+        .mockResolvedValue(null);
+      try {
+        await store.setActiveSession(
+          'planningSession_child',
+          'team_1',
+          ['g1', 'g2'],
+          'planningSession_parent',
+        );
+        expect(spy).toHaveBeenCalledWith(
+          'planningSession_child',
+          'team_1',
+          ['g1', 'g2'],
+          'planningSession_parent',
+        );
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('forwards parentSessionId = undefined when called without the arg', async () => {
+      const localStore = (
+        store as unknown as { localStore: LocalDataStore }
+      ).localStore;
+      const spy = jest
+        .spyOn(localStore, 'setActiveSession')
+        .mockResolvedValue(null);
+      try {
+        await store.setActiveSession(null, 'team_1', ['g1', 'g2']);
+        expect(spy).toHaveBeenCalledWith(
+          null,
+          'team_1',
+          ['g1', 'g2'],
+          undefined,
+        );
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  });
 });

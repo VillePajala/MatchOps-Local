@@ -1,0 +1,2200 @@
+'use client';
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  HiOutlineArrowUpTray,
+  HiOutlineDocumentDuplicate,
+  HiOutlinePencilSquare,
+  HiOutlinePlus,
+  HiOutlineStar,
+  HiOutlineTrash,
+  HiOutlineXMark,
+} from 'react-icons/hi2';
+// Filled star is absent from `hi2`'s solid set under this name; pulling
+// from v1 keeps the active-toggle's filled/outline pair visually consistent.
+import { HiStar } from 'react-icons/hi';
+import useFocusTrap from '@/hooks/useFocusTrap';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import type { ImportedPlan, PlanImportError } from '@/utils/planExport';
+import {
+  parsePlanBundle,
+  serializePlanBundle,
+  type ImportedPlanBundle,
+} from '@/utils/planBundle';
+import { planningSessionToImportedPlan } from '@/utils/planToExport';
+import type { Player, PlanningSession } from '@/types';
+import type { AppState, SavedGamesCollection } from '@/types/game';
+import PlanningGamePicker, {
+  type PlanningGamePickerGame,
+} from './PlanningGamePicker';
+import PlanningEditor from './PlanningEditor';
+import PlanningUndoBanner from './PlanningUndoBanner';
+import type { ApplySnapshot } from '@/utils/applySnapshot';
+import logger from '@/utils/logger';
+import {
+  useDeletePlanningSessionMutation,
+  usePlanningSessionsQuery,
+  useSavePlanningSessionMutation,
+  useSetActiveSessionMutation,
+} from '@/hooks/usePlanningSessionQueries';
+import type { PlanDraft } from '@/utils/planSwapEngine';
+import { planDraftFromImport } from '@/utils/planFromImport';
+import { getPresetById } from '@/config/formationPresets';
+import { PLANNING_SESSION_NAME_MAX } from '@/datastore/validation';
+
+type PlanningPage = 'list' | 'picker' | 'editor' | 'undoBanner';
+
+// Guard against missing / malformed updatedAt; `new Date(<bad>)` would render as "Invalid Date".
+const formatSessionDate = (
+  iso: string | undefined,
+  locale: string,
+): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString(locale);
+};
+
+interface PlanningModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  /** All saved games keyed by id (from useGamePersistence). */
+  savedGames?: SavedGamesCollection;
+  /**
+   * Active team id — picker filters to games matching this team. Optional;
+   * undefined leaves all saved games eligible (for users without team
+   * scoping configured).
+   */
+  currentTeamId?: string;
+  /**
+   * Active team's display name. Used by the picker as a fallback match
+   * for legacy games that have no `teamId` — without this they'd be
+   * silently excluded when a team filter is active.
+   */
+  currentTeamName?: string;
+  /** Master roster — required; the editor renders raw UUIDs without it. */
+  roster: Player[];
+  /** Required — missing at runtime would silently drop saves. */
+  applyToGame: (gameId: string, updates: Partial<AppState>) => Promise<void>;
+}
+
+const PlanningModal: React.FC<PlanningModalProps> = ({
+  isOpen,
+  onClose,
+  savedGames,
+  currentTeamId,
+  currentTeamName,
+  roster,
+  applyToGame,
+}) => {
+  const { t, i18n } = useTranslation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [page, setPage] = useState<PlanningPage>('list');
+  const [editorGameIds, setEditorGameIds] = useState<string[]>([]);
+  const [importedPlan, setImportedPlan] = useState<ImportedPlan | null>(null);
+  const [importError, setImportError] = useState<PlanImportError | null>(null);
+  // Bundle import (formatVersion: 2) — when the file picker reads a
+  // multi-version envelope, holds the parsed bundle until the user
+  // picks which version to use. Single-snapshot v1 imports skip this
+  // state entirely (importedPlan goes straight to the success card).
+  const [importedBundle, setImportedBundle] =
+    useState<ImportedPlanBundle | null>(null);
+  // Stash for the "Import all" path: the bundle waits here while the
+  // user picks one shared game-binding. handlePickerContinue branches
+  // on this so a family-import skips the single-session editor.
+  const [pendingFamilyImport, setPendingFamilyImport] =
+    useState<ImportedPlanBundle | null>(null);
+  const [familyImportError, setFamilyImportError] = useState<string | null>(
+    null,
+  );
+  // Records that the active importedPlan came from a bundle and how
+  // many siblings were left behind. Surfaced as a warning on the
+  // success card so the user knows other versions exist; null for
+  // single-file imports.
+  const [bundleSourceMeta, setBundleSourceMeta] = useState<{
+    selectedName: string;
+    totalVersions: number;
+  } | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  // Reopen flow: when set, the editor hydrates from the saved session's
+  // draft and Save updates that session by id rather than creating new.
+  const [editingSession, setEditingSession] = useState<PlanningSession | null>(
+    null,
+  );
+  // Entry point that brought the user into the editor. Reopen ('list')
+  // bypasses the picker; the picker route ('picker') is the standard
+  // new-plan flow. handleEditorBack uses this to return the user to
+  // wherever they came from rather than always dropping into the picker.
+  const [editorEntryPage, setEditorEntryPage] = useState<'list' | 'picker'>(
+    'picker',
+  );
+  // Rename: when set, the matching row renders as an inline name-input
+  // form instead of the static name + meta. Null = no row in rename mode.
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(
+    null,
+  );
+  const [renameDraft, setRenameDraft] = useState('');
+  /**
+   * Inline error message rendered below the saved-session list.
+   * Dual-purpose:
+   * 1. Delete failures (Codex/Claude PR-391 follow-up) — set in the
+   *    delete mutation's `onSettled` error branch.
+   * 2. Open failures (corrupt session — empty gameIds, missing draft
+   *    for first gameId) — set by handleOpenSession.
+   * Cleared on next interaction or when the modal closes.
+   */
+  const [listErrorMessage, setListErrorMessage] = useState<string | null>(
+    null,
+  );
+  // Standalone-import handoff stash; cleared by resetPendingImport.
+  // `undefined` (not `null`) so values flow into the editor's
+  // `... | undefined` props with no coercion.
+  const [pendingImportDraft, setPendingImportDraft] =
+    useState<PlanDraft | undefined>(undefined);
+  const [pendingImportPresetId, setPendingImportPresetId] =
+    useState<string | undefined>(undefined);
+  const [pendingImportName, setPendingImportName] =
+    useState<string | undefined>(undefined);
+  // Inline alert beside the "Use this plan" button — distinct from
+  // listErrorMessage which sits on the list page.
+  const [importHandoffError, setImportHandoffError] = useState<string | null>(
+    null,
+  );
+  // Post-apply undo state. Snapshot held for the UNDO_WINDOW_MS span;
+  // banner is rendered when page === 'undoBanner'. Cleared on undo
+  // success, dismiss, expire, or modal close.
+  const [undoSnapshot, setUndoSnapshot] = useState<ApplySnapshot | null>(null);
+  const [isUndoing, setIsUndoing] = useState(false);
+  // Mirror of isUndoing kept in a ref for synchronous reads from the
+  // banner's 1s timer and from handleClose. The setState happens before
+  // applyToGame is awaited, but the closure-captured `isUndoing` in
+  // handleUndoExpire wouldn't observe the update until after the paint
+  // commit — a narrow window where the timer firing in between would
+  // close the modal mid-restore. Two layers protect this:
+  //   1. Existing call sites set the ref synchronously *before*
+  //      setIsUndoing, closing the race within the same tick.
+  //   2. The useEffect below re-syncs after every commit so a future
+  //      setIsUndoing call that forgets the manual write still ends
+  //      up consistent on the next render.
+  const isUndoingRef = useRef(false);
+  useEffect(() => {
+    isUndoingRef.current = isUndoing;
+  }, [isUndoing]);
+  const [undoError, setUndoError] = useState<string | null>(null);
+  // Index of the next snapshot entry to restore. Advances on each
+  // successful applyToGame so a mid-loop failure doesn't redo the
+  // already-restored games on retry.
+  const [undoCursor, setUndoCursor] = useState(0);
+  // Captured at appliedAt-stamp time so the Undo path can clear the
+  // stamp on full rollback. resetAllModalState clears editingSession
+  // before the undo banner mounts, so we can't read it from there.
+  const stampedSessionRef = useRef<{
+    id: string;
+    teamId: string;
+    name: string;
+    gameIds: string[];
+    draft: PlanningSession['draft'];
+    parentSessionId: string | undefined;
+    includedGameIds: string[] | undefined;
+    isActive: boolean;
+    createdAt: string;
+  } | null>(null);
+
+  // Modal-level focus trap matches every other full-screen modal in
+  // the app (CloudAuthModal, ReConsentModal, ReverseMigrationWizard).
+  // Without this, Tab/Shift+Tab escapes the dialog into the page
+  // behind the dark scrim — a WCAG 2.4.3 fail.
+  const modalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRef, isOpen);
+
+  // Saved sessions are scoped to the active team. The query is gated on
+  // (isOpen && page === 'list') so it doesn't fetch while the modal is
+  // closed or while the user is in the picker / editor — avoids cache
+  // refresh churn during in-flight editing.
+  const sessionsEnabled = isOpen && page === 'list';
+  const sessionsQuery = usePlanningSessionsQuery({
+    teamId: currentTeamId,
+    enabled: sessionsEnabled,
+  });
+  const deleteSession = useDeletePlanningSessionMutation();
+  const saveSession = useSavePlanningSessionMutation();
+  const setActiveSession = useSetActiveSessionMutation();
+  // useMemo so the `?? []` fallback doesn't create a fresh empty
+  // array on every render — the versionFamily memo below depends
+  // on this reference and would re-run unnecessarily otherwise.
+  const sessions: PlanningSession[] = useMemo(
+    () => sessionsQuery.data ?? [],
+    [sessionsQuery.data],
+  );
+
+  // Auto-save indicator: epoch ms set after a successful save
+  // mutation, cleared 3s later via the timer below. Passed to
+  // PlanningEditor which renders the "✓ Saved HH:MM:SS" badge.
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (lastSavedAt === null) return;
+    const handle = setTimeout(() => setLastSavedAt(null), 3000);
+    return () => clearTimeout(handle);
+  }, [lastSavedAt]);
+
+  // The editor pulls draft + presetId off this; deriving once keeps the
+  // JSX clean. Mirrors the length-guard from handleOpenSession so a
+  // malformed session (empty gameIds returned from a partial backend
+  // Per-game drafts source for the editor: a reopened saved session
+  // hands the entire draft Record so each tab seeds from its own
+  // entry. A standalone-import handoff goes through `initialDraft`
+  // instead — back-compat path that seeds every tab with the single
+  // imported lineup, since the standalone exports one shared lineup
+  // and the user can per-tab divergence the result by hand.
+  const sessionDrafts: Record<string, PlanDraft> | undefined =
+    editingSession?.draft;
+  // First non-empty draft's presetId — used as the preset hint when
+  // none is explicit. Falls back to the import's preset when no
+  // session is loaded.
+  const sessionFirstDraft = sessionDrafts
+    ? Object.values(sessionDrafts).find((d): d is PlanDraft => Boolean(d))
+    : undefined;
+
+  // Version family of the editing session. Two-level tree (per
+  // PR-C-2b): a top-level session is the container, named versions
+  // are direct children sharing parent_session_id. The "default"
+  // entry is the parent itself when it has children — coaches edit
+  // it directly until they branch via Save as new copy.
+  //
+  // Parent id resolution:
+  //   - editing top-level session → parent id = session.id
+  //   - editing a child → parent id = session.parentSessionId
+  // The family is then [parent, ...children sorted by updatedAt desc].
+  // Returns just the editing session itself when no family exists yet
+  // (brand-new plan or pre-PR-C-2 session with no children).
+  const versionFamily: PlanningSession[] = useMemo(() => {
+    if (!editingSession) return [];
+    const parentId = editingSession.parentSessionId ?? editingSession.id;
+    const parent = sessions.find((s) => s.id === parentId);
+    // If editingSession references a parent that isn't loaded
+    // (orphaned child after parent deleted, sync race, cross-team
+    // filter), fall back to a solo family. Pretending the child is
+    // its own parent would mis-label it on export and corrupt the
+    // family wiring of any sibling pulled in by the children filter.
+    // Log so Sentry can measure how often the orphan path is hit —
+    // a high rate would indicate an FK/cleanup bug elsewhere.
+    if (!parent) {
+      if (parentId !== editingSession.id) {
+        logger.warn(
+          '[PlanningModal] versionFamily fell back to solo: parent not loaded',
+          { editingSessionId: editingSession.id, parentSessionId: parentId },
+        );
+      }
+      return [editingSession];
+    }
+    // ISO 8601 lexicographic sort == chronological for valid timestamps,
+    // so localeCompare on updatedAt yields newest-first without parsing.
+    const children = sessions
+      .filter((s) => s.parentSessionId === parentId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return [parent, ...children];
+  }, [editingSession, sessions]);
+
+  // Convert SavedGamesCollection to the picker's input shape.
+  const pickerGames: PlanningGamePickerGame[] = useMemo(() => {
+    if (!savedGames) return [];
+    return Object.entries(savedGames).map(([id, game]) => ({ id, game }));
+  }, [savedGames]);
+
+  // Bundle picker rows in deterministic alphabetical order (defends
+  // against insertion-order shuffle from a hand-edited or future
+  // serializer change). Empty array when no bundle is loaded so the
+  // JSX below can render unconditionally.
+  const sortedBundleVersions = useMemo(
+    () =>
+      importedBundle
+        ? Object.entries(importedBundle.versions).sort(([a], [b]) =>
+            a.localeCompare(b),
+          )
+        : [],
+    [importedBundle],
+  );
+
+  // Three reset levels, smallest to largest:
+  //
+  // 1. resetPendingImport — clears the standalone-import handoff stash
+  //    only. Used by the open-existing-session path: drops half-imported
+  //    state without touching unrelated editor state (undo snapshots,
+  //    rename drafts, etc.).
+  //
+  // 2. resetImportState — clears the file-picked imported plan + error.
+  //    Used by import re-entry (load a different file mid-flow).
+  //
+  // 3. resetAllModalState — full reset before returning to 'list' or
+  //    closing the modal. Calls 1 + 2 + every other editor-adjacent
+  //    setter. THIS IS THE ONE handleClose / goToList / "back to list"
+  //    callers want; the previous code paired resetImportState() +
+  //    resetEditorState() manually, which a future caller forgetting
+  //    the import-state half could silently leak. Pass-17 Issue 5
+  //    consolidated to this single function.
+  const resetPendingImport = () => {
+    setPendingImportDraft(undefined);
+    setPendingImportPresetId(undefined);
+    setPendingImportName(undefined);
+    setImportHandoffError(null);
+  };
+
+  const resetImportState = () => {
+    setImportedPlan(null);
+    setImportError(null);
+    setImportedBundle(null);
+    setBundleSourceMeta(null);
+    setPendingFamilyImport(null);
+    setFamilyImportError(null);
+  };
+
+  const resetAllModalState = () => {
+    resetImportState();
+    setEditorGameIds([]);
+    setPendingDeleteId(null);
+    setEditingSession(null);
+    setListErrorMessage(null);
+    setRenamingSessionId(null);
+    setRenameDraft('');
+    setUndoSnapshot(null);
+    setUndoError(null);
+    setIsUndoing(false);
+    isUndoingRef.current = false;
+    setUndoCursor(0);
+    // Drop the stamped-session pointer so a stale entry from the
+    // previous Apply can't leak into the next undo/dismiss cycle.
+    stampedSessionRef.current = null;
+    // Reset editorEntryPage to 'list' so a future caller that forgets
+    // to set it explicitly gets a sensible default — current callers
+    // all set it before entering the editor, but this defends against
+    // future drift.
+    setEditorEntryPage('list');
+    resetPendingImport();
+  };
+
+  const goToList = () => {
+    // Full reset: a future contributor mounting goToList from the editor
+    // would otherwise leak draft/undo state — the partial split between
+    // import vs editor reset was the trap pass-17 flagged.
+    resetAllModalState();
+    setPage('list');
+  };
+
+  const handleClose = () => {
+    // Mid-undo guard: if handleUndoConfirm's applyToGame loop is in
+    // flight, its closure-captured handlers will run after we'd reset.
+    // Letting close fall through here causes a double reset + double
+    // onClose. Mirror handleUndoExpire's guard.
+    if (isUndoingRef.current) return;
+    // Single full reset: resetAllModalState is the documented
+    // close-the-modal-completely entry point. The previous code had to
+    // pair resetImportState() + resetAllModalState() manually; pass-17
+    // Issue 5 flagged that as a future-drift hazard.
+    resetAllModalState();
+    setPage('list');
+    onClose();
+  };
+
+  // Reopen flow: load the session's draft into the editor. The session's
+  // draft map is keyed by gameId; current editor edits a single PlanDraft
+  // applied to all picked games (homogeneous-set constraint), so we pick
+  // the first gameId's draft. PR 7d may relax this if per-game divergence
+  // becomes a real product need.
+  const handleOpenSession = (session: PlanningSession) => {
+    // Empty gameIds is corrupt-session territory — surface as a list
+    // error rather than silently opening an empty editor.
+    if (session.gameIds.length === 0) {
+      setEditingSession(null);
+      setListErrorMessage(
+        t(
+          'planningModal.openSessionFailed',
+          'Could not open this plan. Its data may be corrupt.',
+        ),
+      );
+      return;
+    }
+    // Per-game drafts are the contract now. The editor seeds each
+    // tab from session.draft[gameId] (falling back to a game-derived
+    // default if a particular gameId is missing), so we don't need to
+    // pre-validate that gameIds[0] has an entry — the editor handles
+    // missing entries by deriving from savedGames[gid].
+    resetImportState();
+    // Clear any pending standalone-import handoff — otherwise an
+    // import whose picker the user backed out of would leak its
+    // pendingImportPresetId into the reopen path, and a session
+    // whose draft has no presetId would silently render against
+    // the import's preset (the second `??` in the editor's
+    // initialPresetId chain wins when sessionFirstDraft.presetId
+    // is undefined).
+    resetPendingImport();
+    setListErrorMessage(null);
+    // Clear any half-confirmed delete from the list — without this, a
+    // user who clicks Delete on session A, then Open on session B,
+    // would return to the list later with A's "Confirm delete?" row
+    // still visible.
+    setPendingDeleteId(null);
+    // Clear any in-progress rename on a different row — without this,
+    // pressing Back from the editor returns the user to a list where
+    // the prior row is still showing the rename form.
+    setRenamingSessionId(null);
+    setRenameDraft('');
+    setEditingSession(session);
+    setEditorGameIds([...session.gameIds]);
+    setEditorEntryPage('list');
+    setPage('editor');
+  };
+
+  const handleSavePlan = async (data: {
+    sessionId: string | undefined;
+    name: string;
+    drafts: Record<string, PlanDraft>;
+    gameIds: string[];
+    includedGameIds: string[] | undefined;
+    saveAs?: 'overwrite' | 'new-copy';
+  }) => {
+    // currentTeamId is gated upstream (onSavePlan is only wired when
+    // it exists). If the gate is bypassed somehow (rapid sign-out
+    // between click and async settle), throwing surfaces an error to
+    // the editor's existing catch — silently returning would let the
+    // form close as if the save succeeded when nothing was written.
+    if (!currentTeamId) {
+      throw new Error('Cannot save planning session without a team scope');
+    }
+    // Per-game drafts: each gameId persists its own PlanDraft. Deep-
+    // clone each entry so a caller that retains the input drafts and
+    // mutates after save can't corrupt the stored value (DataStores
+    // also clone defensively, but cloning at this layer keeps the
+    // contract obvious).
+    const cloned: Record<string, PlanDraft> = {};
+    for (const gid of data.gameIds) {
+      const d = data.drafts[gid];
+      if (!d) continue;
+      cloned[gid] = {
+        ...d,
+        startingXI: { ...d.startingXI },
+        bench: [...d.bench],
+        scheduledSubs: d.scheduledSubs.map((s) => ({ ...s })),
+      };
+    }
+    // Save-as-new-copy creates a new row in the version family.
+    // The named-versions tree is intentionally FLAT (2 levels):
+    // a top-level session is the "container", and all named
+    // versions are direct children. Saving as new copy of an
+    // existing child creates a SIBLING under the same parent
+    // — never a grandchild — so the per-parent active-session
+    // RPC stays a simple flat-list query.
+    //   - editing session is top-level → copy parents at its id
+    //     (first child; original becomes the container).
+    //   - editing session is a child → copy parents at the same
+    //     parent_session_id (sibling).
+    // createdAt + appliedAt are reset because the copy is a fresh
+    // row, not a continuation of the original.
+    const saveAsNewCopy = data.saveAs === 'new-copy';
+    const newCopyParentId = saveAsNewCopy
+      ? editingSession?.parentSessionId ?? editingSession?.id
+      : undefined;
+
+    const saved = await saveSession.mutateAsync({
+      id: saveAsNewCopy ? undefined : data.sessionId,
+      teamId: currentTeamId,
+      name: data.name,
+      gameIds: [...data.gameIds],
+      draft: cloned,
+      includedGameIds: data.includedGameIds,
+      // New copies start inactive; the user can flip the active
+      // version explicitly via the Versions menu (PR-C-2c) or via
+      // setActiveSession in the parent's children scope.
+      isActive: saveAsNewCopy ? false : editingSession?.isActive ?? false,
+      appliedAt: saveAsNewCopy ? undefined : editingSession?.appliedAt,
+      createdAt: saveAsNewCopy ? undefined : editingSession?.createdAt,
+      parentSessionId: saveAsNewCopy
+        ? newCopyParentId
+        : editingSession?.parentSessionId,
+    });
+    // Stay in the editor with the (possibly newly-created) session
+    // attached so subsequent edits update in place.
+    setEditingSession(saved);
+    setLastSavedAt(Date.now());
+  };
+
+  // ── Row actions (Rename / Duplicate / Active-toggle) ────────────────
+  // All three reuse the existing planning-session mutations (save +
+  // setActive); the row-level UI just composes them.
+
+  const handleStartRename = (session: PlanningSession) => {
+    setListErrorMessage(null);
+    setPendingDeleteId(null);
+    setRenamingSessionId(session.id);
+    setRenameDraft(session.name);
+  };
+
+  const handleCancelRename = () => {
+    setRenamingSessionId(null);
+    setRenameDraft('');
+    // Clear any rename-time validation banner — without this, a user
+    // who hit "Plan name is required" then Cancel would see the banner
+    // persist past their explicit abandon.
+    setListErrorMessage(null);
+  };
+
+  const handleConfirmRename = async (session: PlanningSession) => {
+    const trimmed = renameDraft.trim();
+    if (!trimmed) {
+      // Empty after trim: validator would reject anyway; bail with an
+      // inline error so the user gets feedback before round-tripping.
+      setListErrorMessage(
+        t(
+          'planningModal.renameNameRequired',
+          'Plan name is required.',
+        ),
+      );
+      return;
+    }
+    // Clear any prior error from a previous failed attempt — without
+    // this, a "name required" warning would persist past a successful
+    // retry and incorrectly signal failure.
+    setListErrorMessage(null);
+    try {
+      await saveSession.mutateAsync({
+        id: session.id,
+        teamId: session.teamId,
+        name: trimmed,
+        gameIds: [...session.gameIds],
+        // Preserve the existing draft + metadata; rename mutates name
+        // only (and updatedAt, which the DataStore stamps). Family +
+        // include-flags fields MUST be carried over — omitting them
+        // makes the DataStore write NULL, which silently promotes a
+        // child to top-level (tearing the family) and erases the
+        // per-game include flags.
+        draft: session.draft,
+        parentSessionId: session.parentSessionId,
+        includedGameIds: session.includedGameIds,
+        isActive: session.isActive,
+        appliedAt: session.appliedAt,
+        createdAt: session.createdAt,
+      });
+      setRenamingSessionId(null);
+      setRenameDraft('');
+      // Note: lastSavedAt is intentionally NOT set here. The badge
+      // is wired to the editor's save flow only — list-view actions
+      // (rename, duplicate) shouldn't show a "✓ Saved …" notice next
+      // to Back if the user navigates into the editor afterwards
+      // for a different session.
+    } catch (err) {
+      logger.error('[PlanningModal] rename failed', err);
+      setListErrorMessage(
+        t(
+          'planningModal.renameFailed',
+          'Could not rename the plan. Please try again.',
+        ),
+      );
+    }
+  };
+
+  const handleDuplicate = async (session: PlanningSession) => {
+    setListErrorMessage(null);
+    try {
+      await saveSession.mutateAsync({
+        // id omitted → DataStore generates a new one. Clone everything
+        // else but reset isActive (only one active plan per scope) and
+        // appliedAt (the duplicate hasn't been applied yet). createdAt
+        // is also omitted on purpose so the DataStore stamps a fresh
+        // timestamp for the new copy rather than carrying the original's.
+        teamId: session.teamId,
+        // The "(copy)" suffix is 7 chars — slice the base so the
+        // resulting name never exceeds PLANNING_SESSION_NAME_MAX
+        // (200). Without this, duplicating a 194+ char name would
+        // produce a 201+ char string that validatePlanningSession
+        // rejects, surfaced as the generic duplicateFailed message
+        // with no character-limit hint.
+        name: t(
+          'planningModal.duplicateNameSuffix',
+          '{{name}} (copy)',
+          { name: session.name.slice(0, PLANNING_SESSION_NAME_MAX - 7) },
+        ),
+        gameIds: [...session.gameIds],
+        draft: session.draft,
+        // Carry parentSessionId so duplicating a child produces a
+        // sibling under the same parent (matches the editor's
+        // Save-as-new-copy semantics). Omitting would silently
+        // promote the duplicate to a new top-level plan, which
+        // surprises coaches expecting the copy to appear in the
+        // same version family.
+        parentSessionId: session.parentSessionId,
+        isActive: false,
+        // PlanningSession.appliedAt is `string | undefined`; passing
+        // undefined is the canonical "not yet applied" sentinel.
+        // SupabaseDataStore.transformPlanningSessionToDb maps this to
+        // SQL NULL, so the round-trip is preserved across both backends.
+        appliedAt: undefined,
+        // includedGameIds intentionally omitted → resolves to NULL ("all
+        // included") on the duplicate. A coach duplicating a plan is
+        // typically branching to try a variant; carrying over per-game
+        // exclude flags from the source would be surprising. The user
+        // can re-apply excludes inside the editor.
+        includedGameIds: undefined,
+      });
+      // See handleRename — list-view actions don't drive the badge.
+    } catch (err) {
+      logger.error('[PlanningModal] duplicate failed', err);
+      setListErrorMessage(
+        t(
+          'planningModal.duplicateFailed',
+          'Could not duplicate the plan. Please try again.',
+        ),
+      );
+    }
+  };
+
+  const handleToggleActive = async (session: PlanningSession) => {
+    setListErrorMessage(null);
+    // Fire-and-forget: errors are surfaced via the onError callback
+    // rather than a try/catch around mutateAsync. Either pattern works
+    // with React Query; the onError style keeps the handler synchronous
+    // for the common case where the user clicks and walks away.
+    //
+    // Pass null when the session is currently active to deactivate;
+    // pass the id to activate (the RPC also deactivates other in-scope
+    // sessions atomically).
+    setActiveSession.mutate(
+      {
+        sessionId: session.isActive ? null : session.id,
+        teamId: session.teamId,
+        gameIds: [...session.gameIds],
+      },
+      {
+        onError: () => {
+          setListErrorMessage(
+            t(
+              'planningModal.activeToggleFailed',
+              'Could not change the default plan. Please try again.',
+            ),
+          );
+        },
+      },
+    );
+  };
+
+  // Editor-scoped activation error so a failed Activate from the
+  // Versions menu surfaces inside the editor rather than only in the
+  // list view's listErrorMessage (which the user can't see while
+  // editing). Cleared on the next successful activation.
+  const [activationError, setActivationError] = useState<string | null>(null);
+
+  // Activate a specific version from the editor's Versions ▾ list.
+  // Mirrors handleToggleActive but always activates (never deactivates)
+  // and forwards parentSessionId so the RPC scopes to siblings of the
+  // same parent (per migration 039). The activation only flips
+  // is_active flags in the data layer — the editor stays on the
+  // current row. To EDIT a different version the coach backs out
+  // and reopens; that limitation is intentional for PR-C-2c
+  // (load-with-dirty-check + prompt is deferred).
+  const handleActivateVersion = (session: PlanningSession) => {
+    if (session.isActive) return; // No-op when already active
+    setListErrorMessage(null);
+    setActivationError(null);
+    setActiveSession.mutate(
+      {
+        sessionId: session.id,
+        teamId: session.teamId,
+        gameIds: [...session.gameIds],
+        parentSessionId: session.parentSessionId ?? null,
+      },
+      {
+        onError: () => {
+          const msg = t(
+            'planningModal.activeToggleFailed',
+            'Could not change the default plan. Please try again.',
+          );
+          // Surface in BOTH locations: list-view callers see it via
+          // listErrorMessage; editor-view callers see it via the
+          // editor's new activationError prop.
+          setListErrorMessage(msg);
+          setActivationError(msg);
+        },
+      },
+    );
+  };
+
+  // Build a multi-version bundle from the editing session's family and
+  // trigger a browser download. The active session (if any) becomes the
+  // bundle's currentVersionName so a re-import can reopen on the same
+  // version the coach was last using.
+  //
+  // Precondition: caller wires `onExportBundle={handleExportBundle}`
+  // ONLY when editingSession + savedGames are both truthy (see the
+  // PlanningEditor JSX below). The early-return on an empty
+  // versionFamily is defense-in-depth for an empty editingSession
+  // edge case (versionFamily would otherwise be `[editingSession]`
+  // by the memo's construction, never empty when editingSession is
+  // set — but keeping the guard pays for itself the day a future
+  // refactor changes the memo).
+  const handleExportBundle = () => {
+    if (!editingSession || !savedGames || versionFamily.length === 0) return;
+    const versions: Record<string, ImportedPlan> = {};
+    for (const session of versionFamily) {
+      // Sessions table enforces name uniqueness within a family, but a
+      // stale cache during a rename race could surface two rows with
+      // the same name. Keep the first occurrence (parent comes first in
+      // versionFamily, so a child colliding with parent doesn't erase
+      // the parent) and log the collision at error severity so Sentry
+      // flags the rename race — silently dropping a version on export
+      // is a data-integrity event, not just a curiosity.
+      if (Object.hasOwn(versions, session.name)) {
+        logger.error(
+          '[PlanningModal] duplicate version name in export bundle (rename race?) — keeping first occurrence',
+          { name: session.name, sessionId: session.id },
+        );
+        continue;
+      }
+      versions[session.name] = planningSessionToImportedPlan(
+        session,
+        savedGames,
+      );
+    }
+    const active = versionFamily.find((s) => s.isActive) ?? null;
+    // Pin savedAt to the family's MOST RECENT updatedAt so the bundle's
+    // "last saved" timestamp doesn't lie when the user reopens a parent
+    // but has more recently edited a child. ISO 8601 strings sort
+    // lexicographically as chronological, so a sort + last works.
+    // Falls back to editingSession.updatedAt for the (impossible-by-
+    // construction) zero-family case.
+    const familyLatestAt =
+      versionFamily
+        .map((s) => s.updatedAt)
+        .filter((s): s is string => Boolean(s))
+        .sort()
+        .at(-1) ?? editingSession.updatedAt;
+    const json = serializePlanBundle({
+      versions,
+      currentVersionName: active?.name ?? null,
+      savedAt: familyLatestAt,
+    });
+    // File name: parent's name + .matchops-plan.json. Derive parent
+    // from `parentSessionId == null` rather than versionFamily[0] so
+    // a future memo-ordering change can't silently rename the
+    // download. Falls back to editingSession (top-level by
+    // construction when no other parent matches — every session is
+    // either a parent itself or has one in the family).
+    const parent =
+      versionFamily.find((s) => s.parentSessionId == null) ??
+      editingSession;
+    const parentName = parent.name || 'plan';
+    // The character class deliberately ends with `_-` (not `-_`):
+    // inside `[...]`, a `-` between two characters forms a range, so
+    // `0-9-_` would silently parse as `0-9` PLUS the range `- (45) ..
+    // _ (95)`, leaving `.`, `/`, `:`, etc. as "kept" characters. The
+    // working form puts the dash last where it is always literal.
+    // The leading/trailing `-` strip closes a second trap: an
+    // all-special-char name (e.g. `'...'`) collapses to `'-'`, which
+    // is truthy and would make `safe || 'plan'` short-circuit to `-`,
+    // emitting `-.matchops-plan.json` instead of falling back to plan.
+    const safe = parentName
+      .replace(/[^a-z0-9_-]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64);
+    const filename = `${safe || 'plan'}.matchops-plan.json`;
+    // Allocate the object URL outside the try so the finally can
+    // revoke it even if link.click() / removeChild throw — otherwise
+    // the Blob URL leaks until navigation.
+    const url = URL.createObjectURL(
+      new Blob([json], { type: 'application/json' }),
+    );
+    try {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      // Append/click/remove pattern works in every modern browser; some
+      // (Firefox in particular) ignore programmatic clicks on detached
+      // anchors, so the node has to be in the DOM at click time.
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      logger.error('[PlanningModal] export bundle failed', e);
+      // Surface the failure through listErrorMessage so the user sees
+      // it on returning to the saved-sessions list (the editor view
+      // doesn't have a dedicated export-error slot, but this beats
+      // the previous silent-fail path that violated the
+      // production-quality bar in CLAUDE.md).
+      setListErrorMessage(
+        t(
+          'planningModal.exportBundleFailed',
+          'Could not export the tournament plan. Please try again.',
+        ),
+      );
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  const handleNewPlan = () => {
+    resetImportState();
+    // resetAllModalState clears every editor-adjacent state field
+    // (editingSession, listErrorMessage, pendingImport*, undo*).
+    // Without it, an import whose picker the user backed out of
+    // would leak pendingImportDraft into the next New Plan flow
+    // and inject the stale draft into a brand-new editor session.
+    resetAllModalState();
+    setPage('picker');
+  };
+
+  // Bundle version picker: user clicked one row in the version list.
+  // Promotes the chosen version to importedPlan and stamps
+  // bundleSourceMeta so the success card shows the "from bundle"
+  // warning. Family-import (creating parent + children at save time)
+  // is deferred to a follow-up — for now a bundle import yields a
+  // single planning session for the picked version.
+  const handleSelectBundleVersion = (versionName: string) => {
+    if (!importedBundle) return;
+    // If the user previously hit "Import all" with no active team and
+    // saw familyImportError, clear it on pivot to single-version so a
+    // stale error doesn't linger alongside the single-version flow.
+    setFamilyImportError(null);
+    const plan = importedBundle.versions[versionName];
+    if (!plan) {
+      // Unreachable today — buttons render from
+      // Object.entries(importedBundle.versions), so the name
+      // always resolves. Defense-in-depth: surface the failure as
+      // an import error instead of silently doing nothing, which
+      // would leave the picker rows clickable but unresponsive
+      // and look like a broken UI.
+      setImportError({
+        message: t(
+          'planningModal.bundleVersionMissingError',
+          'That version is no longer in the bundle.',
+        ),
+        path: `versions.${versionName}`,
+      });
+      setImportedBundle(null);
+      return;
+    }
+    setImportedPlan(plan);
+    setBundleSourceMeta({
+      selectedName: versionName,
+      totalVersions: Object.keys(importedBundle.versions).length,
+    });
+    setImportedBundle(null);
+  };
+
+  const handlePickerContinue = (gameIds: string[]) => {
+    // Picker's validation already blocks Continue on empty selection;
+    // guarding here makes the contract explicit at the call site.
+    if (gameIds.length === 0) return;
+    // Family-import branch: the picker is being used to bind a whole
+    // imported bundle's game set in one step. Skip the editor and
+    // create parent + N children directly. (Editor open on import is
+    // a per-version flow; family import lands on the list view so
+    // the user can see all created versions and pick one to open.)
+    if (pendingFamilyImport) {
+      // void: handleImportFamilyContinue has its own try/catch that
+      // sets listErrorMessage on failure; the caller (sync click
+      // handler) doesn't need to await. ESLint no-floating-promises
+      // is satisfied by the explicit void.
+      void handleImportFamilyContinue(pendingFamilyImport, gameIds);
+      return;
+    }
+    setEditorGameIds(gameIds);
+    setEditorEntryPage('picker');
+    setPage('editor');
+  };
+
+  // "Import all" path from the bundle picker. Stashes the bundle,
+  // clears any single-version handoff state, then routes to the game
+  // picker so the user picks the game-binding ONCE for the whole
+  // family. Continue → handlePickerContinue → handleImportFamilyContinue.
+  const handleImportAllFromBundle = () => {
+    if (!importedBundle) return;
+    if (!currentTeamId) {
+      // Family-import requires a team scope (planning_sessions are
+      // team-scoped). Without it we can't create the rows.
+      setFamilyImportError(
+        t(
+          'planningModal.familyImportNoTeamError',
+          'Pick an active team before importing a tournament plan.',
+        ),
+      );
+      return;
+    }
+    setPendingFamilyImport(importedBundle);
+    // Clear the single-version slot so the success card can't render
+    // alongside the picker — and so a back-out cleanly resets. Also
+    // zero familyImportError defensively so a stale alert from a
+    // previous no-team click can't follow the user to the picker.
+    setImportedBundle(null);
+    setImportedPlan(null);
+    setBundleSourceMeta(null);
+    setImportHandoffError(null);
+    setFamilyImportError(null);
+    setPage('picker');
+  };
+
+  // Save parent + N-1 children for a multi-version bundle import. The
+  // "primary" version (currentVersionName from the envelope, or the
+  // first key) becomes the parent; remaining versions become children
+  // of that parent. Saves are sequential — the parent must land first
+  // so children get its real id. Failures mid-loop leave any
+  // already-saved rows in place; the user sees the import error and
+  // can retry from the list view.
+  const handleImportFamilyContinue = async (
+    bundle: ImportedPlanBundle,
+    gameIds: string[],
+  ) => {
+    if (!currentTeamId) {
+      // Defense-in-depth: handleImportAllFromBundle already gated on
+      // currentTeamId, but the async handler runs after a render cycle
+      // — a stale-state edge case mustn't strand the user on the game
+      // picker with no feedback. Surface as a list error and clear
+      // pending state so the user has a path back.
+      setListErrorMessage(
+        t(
+          'planningModal.familyImportNoTeamError',
+          'Pick an active team before importing a tournament plan.',
+        ),
+      );
+      setPendingFamilyImport(null);
+      setPage('list');
+      return;
+    }
+    setFamilyImportError(null);
+    const entries = Object.entries(bundle.versions);
+    if (entries.length === 0) {
+      // parsePlanBundle guard already rejects 0-version bundles, but
+      // defense-in-depth.
+      setListErrorMessage(
+        t(
+          'planningModal.bundleEmptyError',
+          'This bundle has no versions to import.',
+        ),
+      );
+      setPendingFamilyImport(null);
+      setPage('list');
+      return;
+    }
+    // Pick primary: currentVersionName if it's still in versions, else
+    // the first entry. Object.hasOwn (not `in`) guards against
+    // prototype keys — parsePlanBundle already rejects them on the
+    // way in, but the defense costs nothing.
+    const primaryName =
+      bundle.currentVersionName != null &&
+      Object.hasOwn(bundle.versions, bundle.currentVersionName)
+        ? bundle.currentVersionName
+        : entries[0][0];
+    const primaryPlan = bundle.versions[primaryName];
+    const childEntries = entries.filter(([n]) => n !== primaryName);
+
+    // buildDrafts: map each bound gameId to a PlanDraft derived from
+    // the version's first imported game. Called once per version so
+    // each parent/child reflects its own startingXI/scheduledSubs.
+    // Empty `plan.games` returns {} (degenerate version with no draft
+    // data — session lands with empty slots; safe in the UI).
+    const buildDrafts = (
+      plan: typeof primaryPlan,
+    ): Record<string, PlanDraft> => {
+      const presetMatch = plan.formationId
+        ? getPresetById(plan.formationId)
+        : undefined;
+      const importedFirstGame = plan.games[0];
+      if (!importedFirstGame) return {};
+      const { draft } = planDraftFromImport(
+        importedFirstGame,
+        roster,
+        presetMatch?.id,
+      );
+      const drafts: Record<string, PlanDraft> = {};
+      for (const gid of gameIds) drafts[gid] = draft;
+      return drafts;
+    };
+
+    // Track which phase failed so the catch picks the right user
+    // message:
+    //   - parent throw: zero rows landed; clean retry is safe.
+    //   - child throw: parent orphaned with isActive=false; the user
+    //       must delete it before retry to avoid duplicate primaries.
+    //   - activation throw: every row landed but none is active; the
+    //       user can recover by manually activating a version, no
+    //       deletion needed.
+    let parentSavedOK = false;
+    let allSavesOK = false;
+    try {
+      const primaryDraft = buildDrafts(primaryPlan);
+      // Save parent with isActive=false so a child-save failure does
+      // not leave an active orphan in the list view. The activation
+      // is flipped post-loop only when every child has landed — pass-5
+      // review feedback. Costs one extra round-trip in the success
+      // path; the failure path now leaves a recoverable family with no
+      // misleading "active version with 0 children" UX.
+      const primarySaved = await saveSession.mutateAsync({
+        teamId: currentTeamId,
+        name: primaryName,
+        gameIds,
+        draft: primaryDraft,
+        isActive: false,
+      });
+      parentSavedOK = true;
+      for (const [childName, childPlan] of childEntries) {
+        const childDraft = buildDrafts(childPlan);
+        await saveSession.mutateAsync({
+          teamId: currentTeamId,
+          name: childName,
+          gameIds,
+          draft: childDraft,
+          parentSessionId: primarySaved.id,
+          isActive: false,
+        });
+      }
+      allSavesOK = true;
+      // All children landed — flip the parent active. setActiveSession
+      // is atomic at the RPC layer (deactivates other in-scope rows)
+      // so the family has exactly one active version after this call.
+      // parentSessionId=null because the primary IS the parent.
+      await setActiveSession.mutateAsync({
+        sessionId: primarySaved.id,
+        teamId: currentTeamId,
+        gameIds,
+        parentSessionId: null,
+      });
+      // Success — clear handoff and surface the list view. The query
+      // invalidation in saveSession's onSuccess refreshes the list so
+      // the new family appears.
+      setPendingFamilyImport(null);
+      setPage('list');
+    } catch (e) {
+      logger.error('[PlanningModal] family-import save failed', e);
+      const message = allSavesOK
+        ? t(
+            'planningModal.familyImportActivationFailed',
+            'All versions imported, but none could be activated. Open the list and activate a version manually.',
+          )
+        : parentSavedOK
+        ? t(
+            'planningModal.familyImportPartialFailed',
+            'Import failed after saving "{{name}}". Delete that entry from the list and try again.',
+            { name: primaryName },
+          )
+        : t(
+            'planningModal.familyImportFailed',
+            'Import failed. Please try again.',
+          );
+      setListErrorMessage(message);
+      setPendingFamilyImport(null);
+      setPage('list');
+    }
+  };
+
+  // Hands an imported standalone plan off to the editor: derive a
+  // PlanDraft from the first imported game's startingXI + scheduledSubs
+  // (the editor uses one shared draft across the picked games), stash
+  // the suggested name + preset, then route to the picker so the user
+  // binds the imported plan to actual saved games. Save creates the
+  // PlanningSession via the existing handleSavePlan flow.
+  const handleUseImportedPlan = () => {
+    if (!importedPlan) return;
+    setImportHandoffError(null);
+    const firstGame = importedPlan.games[0];
+    if (!firstGame) {
+      // parsePlanExport already rejects zero-game envelopes, so this
+      // is defense-in-depth. Inline to the success card so the user
+      // sees the failure next to the button they just pressed.
+      setImportHandoffError(
+        t(
+          'planningModal.importNoGamesError',
+          'Imported plan has no games. Pick a different file.',
+        ),
+      );
+      return;
+    }
+    // Route the imported envelope through the shared normalizer so
+    // empty role slots, duplicate role assignments, and players outside
+    // the team roster are handled identically to the rest of the
+    // import surface area. Bench is derived from the team roster minus
+    // assigned starters; the editor uses this draft as-is when the
+    // user lands on it via the picker handoff.
+    // Only carry the formationId if it resolves to a known preset; an
+    // unknown id would fail the editor's preset lookup silently.
+    const presetMatch = importedPlan.formationId
+      ? getPresetById(importedPlan.formationId)
+      : undefined;
+    // Pass the resolved preset id into the importer so it lands on
+    // draft.presetId. Without that, saving + reopening this imported
+    // plan would fall back to whatever preset is active later and
+    // silently drop role-name-mismatched startingXI entries.
+    const { draft } = planDraftFromImport(firstGame, roster, presetMatch?.id);
+    setPendingImportDraft(draft);
+    setPendingImportPresetId(presetMatch?.id);
+    setPendingImportName(
+      // `||` (not `??`) intentional: an empty-string version name is
+      // as unusable as null for a plan, so both should fall through
+      // to the default.
+      importedPlan.currentVersionName ||
+        t('planningModal.importedPlanDefaultName', 'Imported plan'),
+    );
+    // Clear the import banner so the user sees the picker, not a
+    // stale success card from the previous step.
+    resetImportState();
+    setPage('picker');
+    setEditorEntryPage('picker');
+  };
+
+  const handleEditorBack = () => {
+    // Reset editingSession: the reopen path bypasses the picker, so
+    // without this clear, "back from editor → pick different games →
+    // Save" would silently overwrite the original session.
+    setEditingSession(null);
+    // Route back to wherever the editor was entered from. Reopen entry
+    // ('list') drops directly back to the saved-session list; picker
+    // entry ('picker') drops back into the picker for game-selection
+    // adjustments before another Continue.
+    setPage(editorEntryPage);
+  };
+
+  const handleEditorApplied = (
+    snapshot?: ApplySnapshot,
+    appliedDrafts?: Record<string, PlanDraft>,
+    appliedIncludedGameIds?: string[],
+  ) => {
+    // The modal stays mounted across opens (`isOpen={false}` early-returns
+    // null but doesn't unmount), so explicit resets are required to
+    // prevent stale banners / editingSession from leaking into the next
+    // open. Shared with handleClose via resetAllModalState.
+
+    // Stamp appliedAt + the just-applied per-game drafts on the session
+    // so the metadata reflects what was actually applied. Apply
+    // implicitly commits: a coach who edits a saved session and clicks
+    // Apply (without an explicit Save) still ends up with the session
+    // row matching the games' new state. Fire-and-forget — Apply
+    // already succeeded against the games (snapshot proves it); a
+    // failed metadata stamp must not block the undo banner.
+    // Only stamps when we have a real snapshot (the warning-path Done
+    // calls onApplied() with no args).
+    const sessionToStamp = editingSession;
+    if (sessionToStamp && snapshot && snapshot.games.length > 0) {
+      // Per-game drafts: clone each entry so a caller mutating after
+      // save can't corrupt the stored value. If onApplied didn't pass
+      // drafts (defensive — shouldn't happen with current editor),
+      // fall through with the existing session.draft.
+      const cloned: Record<string, PlanDraft> = appliedDrafts
+        ? Object.fromEntries(
+            sessionToStamp.gameIds
+              .filter((gid) => appliedDrafts[gid] !== undefined)
+              .map((gid) => {
+                const d = appliedDrafts[gid];
+                return [
+                  gid,
+                  {
+                    ...d,
+                    startingXI: { ...d.startingXI },
+                    bench: [...d.bench],
+                    scheduledSubs: d.scheduledSubs.map((s) => ({ ...s })),
+                  },
+                ];
+              }),
+          )
+        : sessionToStamp.draft;
+      // Capture so the Undo path can clear appliedAt on full rollback.
+      // Carry parentSessionId on both the cached snapshot AND the
+      // appliedAt-stamping save: the undo path spreads the snapshot
+      // back into a save, and a missing field would write NULL —
+      // silently orphaning the child from its family.
+      stampedSessionRef.current = {
+        id: sessionToStamp.id,
+        teamId: sessionToStamp.teamId,
+        name: sessionToStamp.name,
+        gameIds: sessionToStamp.gameIds,
+        draft: cloned,
+        parentSessionId: sessionToStamp.parentSessionId,
+        includedGameIds:
+          appliedIncludedGameIds ?? sessionToStamp.includedGameIds,
+        isActive: sessionToStamp.isActive,
+        createdAt: sessionToStamp.createdAt,
+      };
+      saveSession
+        .mutateAsync({
+          id: sessionToStamp.id,
+          teamId: sessionToStamp.teamId,
+          name: sessionToStamp.name,
+          gameIds: sessionToStamp.gameIds,
+          draft: cloned,
+          parentSessionId: sessionToStamp.parentSessionId,
+          includedGameIds:
+            appliedIncludedGameIds ?? sessionToStamp.includedGameIds,
+          isActive: sessionToStamp.isActive,
+          appliedAt: new Date().toISOString(),
+          createdAt: sessionToStamp.createdAt,
+        })
+        .catch((err) => {
+          logger.warn(
+            '[PlanningModal] Failed to stamp appliedAt — Apply succeeded but metadata is stale',
+            err,
+          );
+        });
+    }
+
+    if (snapshot && snapshot.games.length > 0) {
+      // Full-success apply with at least one game mutated — switch the
+      // modal into undo-banner mode instead of closing. Calling
+      // resetAllModalState first keeps this path in sync with future
+      // additions there; React batches the override below into the
+      // same commit so the user never sees a flash of empty state.
+      resetAllModalState();
+      setUndoSnapshot(snapshot);
+      setPage('undoBanner');
+      return;
+    }
+    // No snapshot (warning path that still closed the editor — unlikely
+    // since the warning path returns early without onApplied — but
+    // defensive). Fall back to the original close behavior.
+    resetAllModalState();
+    setPage('list');
+    onClose();
+  };
+
+  const handleUndoDismiss = () => {
+    resetAllModalState();
+    setPage('list');
+    onClose();
+  };
+
+  const handleUndoExpire = () => {
+    // Don't tear down the modal while an undo is in flight; the
+    // applyToGame loop will resolve and either close cleanly on
+    // success or surface undoError on the still-mounted banner for
+    // retry. The ref read closes a sub-paint stale-closure window
+    // that the state-only check would otherwise miss.
+    if (isUndoingRef.current) return;
+    // Same effect as Dismiss: close the modal and forget the snapshot.
+    // Kept as a separate name so the test suite can assert which path
+    // fired (timeout vs. user click).
+    resetAllModalState();
+    setPage('list');
+    onClose();
+  };
+
+  const handleUndoConfirm = async () => {
+    if (!undoSnapshot || isUndoing) return;
+    isUndoingRef.current = true;
+    setIsUndoing(true);
+    setUndoError(null);
+    // Resume from undoCursor so a retry after a mid-loop failure
+    // doesn't re-restore the games that already succeeded — those
+    // are already at their pre-apply state.
+    let cursor = undoCursor;
+    try {
+      while (cursor < undoSnapshot.games.length) {
+        const entry = undoSnapshot.games[cursor];
+        await applyToGame(entry.gameId, entry.before);
+        cursor++;
+      }
+      // Full rollback succeeded — clear the appliedAt stamp on the
+      // session that was Apply'd, so the list doesn't show a stale
+      // "Applied on X" badge for a plan that was effectively undone.
+      // Fire-and-forget: the field is metadata-only, and the games are
+      // already restored.
+      //
+      // Product semantic (decided in Finding 4 review): Apply *implicitly
+      // commits* the in-memory draft to the session row. Undo therefore
+      // reverts the games + clears appliedAt, but KEEPS the new draft —
+      // the user's edits are theirs to keep. If they want to revert the
+      // draft too, they navigate to a different session or close without
+      // saving (but Apply already saved). This means an "undone" session
+      // shows the new draft + no appliedAt; the next Apply re-stamps.
+      const stamped = stampedSessionRef.current;
+      if (stamped) {
+        saveSession
+          .mutateAsync({
+            ...stamped,
+            appliedAt: undefined,
+          })
+          .catch((err) => {
+            logger.warn(
+              '[PlanningModal] Failed to clear appliedAt after Undo — list may show stale badge',
+              err,
+            );
+          });
+        stampedSessionRef.current = null;
+      }
+      resetAllModalState();
+      setPage('list');
+      onClose();
+    } catch (err) {
+      logger.error('[PlanningModal] Undo failed', err);
+      setUndoCursor(cursor);
+      // Different copy when at least one game has been restored
+      // already so the user knows where the retry will pick up,
+      // versus the all-or-nothing first-game failure.
+      const messageKey =
+        cursor > 0
+          ? 'planningUndoBanner.undoFailedPartial'
+          : 'planningUndoBanner.undoFailed';
+      const messageDefault =
+        cursor > 0
+          ? 'Restored {{done}} of {{total}} games. Click Undo to finish.'
+          : 'Could not undo the apply. Please try again.';
+      setUndoError(
+        t(messageKey, messageDefault, {
+          done: cursor,
+          total: undoSnapshot.games.length,
+        }),
+      );
+      setIsUndoing(false);
+      isUndoingRef.current = false;
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-importing the same file
+    if (!file) return;
+
+    resetImportState();
+    // Plans are tiny — 1 MB is generous. Guard against accidental large
+    // files that would stall the main thread on low-memory mobile devices.
+    const MAX_BYTES = 1 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      setImportError({
+        message: t(
+          'planningModal.fileTooLarge',
+          'File is too large (over 1 MB). Plans should be a few KB; please check the file.',
+        ),
+      });
+      return;
+    }
+    // FileReader rather than `file.text()` for broader runtime support
+    // (jsdom's File polyfill in tests, older mobile Safari).
+    const reader = new FileReader();
+    reader.onerror = () =>
+      setImportError({
+        message: t('planningModal.readError', 'Failed to read file.'),
+      });
+    reader.onload = () => {
+      const text = typeof reader.result === 'string' ? reader.result : '';
+      // parsePlanBundle accepts BOTH formatVersion 1 (single-snapshot
+      // envelope produced by parsePlanExport) and formatVersion 2
+      // (multi-version bundle from PR-F-1 / PR-F-2a's serializer).
+      // Routing here keeps the file-picker as the single entry point
+      // for both shapes; v1 still flows directly into importedPlan,
+      // v2 lands in importedBundle for the version-picker UI.
+      const result = parsePlanBundle(text);
+      if (!result.ok) {
+        setImportError(result.error);
+        return;
+      }
+      if (result.kind === 'single') {
+        setImportedPlan(result.plan);
+        return;
+      }
+      // Bundle: stash for the picker. Auto-advance for a 1-version
+      // degenerate bundle; reject 0-version (parsePlanBundle accepts
+      // empty bundles by design — a coach can save one — but the
+      // picker UI has no row to click in that case, leaving the
+      // user stuck behind an empty <ul> with only the dismiss X).
+      const versionEntries = Object.entries(result.bundle.versions);
+      if (versionEntries.length === 0) {
+        setImportError({
+          message: t(
+            'planningModal.bundleEmptyError',
+            'This bundle has no versions to import.',
+          ),
+          path: 'versions',
+        });
+        return;
+      }
+      if (versionEntries.length === 1) {
+        // No bundleSourceMeta for the auto-advance — the
+        // "from bundle" warning only renders for >1 versions, so
+        // setting it here would be dead state that confuses the
+        // next reader.
+        const [, plan] = versionEntries[0];
+        setImportedPlan(plan);
+        return;
+      }
+      setImportedBundle(result.bundle);
+    };
+    reader.readAsText(file);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="planning-modal-heading"
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+      data-testid="planning-modal"
+      onKeyDown={(e) => {
+        // Escape dismisses unless an inline rename input is focused —
+        // its own onKeyDown handler cancels the rename first. Detected
+        // by stopPropagation on the input's Escape, so reaching here
+        // means no rename is open.
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
+    >
+      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+
+        <div className="relative z-10 flex flex-col min-h-0 h-full">
+          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
+            <h2
+              id="planning-modal-heading"
+              className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center"
+            >
+              {t('planningModal.title', 'Planning')}
+            </h2>
+          </div>
+
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-6">
+              {page === 'list' && (
+                <>
+                  {/* Saved-session list */}
+                  {!importedPlan && !importError && sessionsQuery.isLoading && (
+                    <div
+                      className="text-center py-6 text-slate-300 text-sm"
+                      role="status"
+                    >
+                      {t('planningModal.sessionsLoading', 'Loading saved plans…')}
+                    </div>
+                  )}
+
+                  {/* Error banner: replaces the blank state on fetch failure. */}
+                  {!importedPlan && !importError && sessionsQuery.isError && (
+                    <p
+                      className="text-center text-sm text-rose-300 py-4"
+                      role="alert"
+                      data-testid="planning-modal-sessions-error"
+                    >
+                      {t(
+                        'planningModal.sessionsLoadError',
+                        'Could not load saved plans. Please try again.',
+                      )}
+                    </p>
+                  )}
+
+                  {/* Empty state: reserved for genuine empty-but-successful — !isError keeps it from masking a fetch failure. */}
+                  {!importedPlan &&
+                    !importError &&
+                    !sessionsQuery.isLoading &&
+                    !sessionsQuery.isError &&
+                    sessions.length === 0 && (
+                      <div className="space-y-3 text-center py-8">
+                        <p className="text-slate-200 text-base">
+                          {t(
+                            'planningModal.emptyTitle',
+                            'No saved planning sessions yet.',
+                          )}
+                        </p>
+                        <p className="text-slate-400 text-sm">
+                          {t(
+                            'planningModal.emptyHint',
+                            'Start a new plan from your saved games, or import a plan exported from the standalone planner.',
+                          )}
+                        </p>
+                      </div>
+                    )}
+
+                  {/* List: !isError + !isLoading guards against either banner co-rendering with stale data. */}
+                  {!importedPlan &&
+                    !importError &&
+                    !sessionsQuery.isError &&
+                    !sessionsQuery.isLoading &&
+                    sessions.length > 0 && (
+                      <div
+                        className="space-y-2"
+                        data-testid="planning-modal-session-list"
+                      >
+                        <h3
+                          id="planning-modal-session-heading"
+                          className="text-sm font-semibold text-slate-200"
+                        >
+                          {t(
+                            'planningModal.savedSessionsHeading',
+                            'Saved plans',
+                          )}
+                        </h3>
+                        <ul
+                          aria-labelledby="planning-modal-session-heading"
+                          className="space-y-2"
+                        >
+                          {sessions.map((session) => {
+                            const isPending = pendingDeleteId === session.id;
+                            const isRenaming =
+                              renamingSessionId === session.id;
+                            return (
+                              <li
+                                key={session.id}
+                                className="flex items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-800/60 px-3 py-2"
+                              >
+                                {isRenaming ? (
+                                  <form
+                                    className="flex flex-1 items-center gap-2"
+                                    data-testid={`planning-session-rename-form-${session.id}`}
+                                    onSubmit={(e) => {
+                                      e.preventDefault();
+                                      void handleConfirmRename(session);
+                                    }}
+                                  >
+                                    <input
+                                      type="text"
+                                      value={renameDraft}
+                                      onChange={(e) =>
+                                        setRenameDraft(e.target.value)
+                                      }
+                                      // Esc cancels — keyboard-only users
+                                      // shouldn't have to Tab to the Cancel
+                                      // button to abandon the edit.
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Escape') {
+                                          // stopPropagation so the
+                                          // modal-level Escape handler
+                                          // doesn't ALSO fire and close
+                                          // the whole modal — Escape on
+                                          // a rename input cancels the
+                                          // rename first.
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          handleCancelRename();
+                                        }
+                                      }}
+                                      autoFocus
+                                      // Mirrors validatePlanningSession's
+                                      // 200-char cap so the input can't
+                                      // produce a name that the save
+                                      // path would reject.
+                                      maxLength={PLANNING_SESSION_NAME_MAX}
+                                      className="flex-1 rounded-md bg-slate-900/60 border border-slate-700 px-2 py-1 text-sm text-slate-100"
+                                      aria-label={t(
+                                        'planningModal.renameInputAriaLabel',
+                                        'New name',
+                                      )}
+                                      data-testid={`planning-session-rename-input-${session.id}`}
+                                    />
+                                    <button
+                                      type="submit"
+                                      disabled={saveSession.isPending}
+                                      className="rounded-md bg-emerald-600 px-2 py-1 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                                      data-testid={`planning-session-rename-confirm-${session.id}`}
+                                    >
+                                      {t('common.save', 'Save')}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelRename}
+                                      className="rounded-md bg-slate-700 px-2 py-1 text-xs text-slate-100 hover:bg-slate-600"
+                                      data-testid={`planning-session-rename-cancel-${session.id}`}
+                                    >
+                                      {t('common.cancel', 'Cancel')}
+                                    </button>
+                                  </form>
+                                ) : (
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="truncate text-sm font-medium text-slate-100">
+                                        {session.name}
+                                      </span>
+                                      {session.isActive && (
+                                        <span className="rounded-full bg-emerald-700/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200">
+                                          {t(
+                                            'planningModal.activeBadge',
+                                            'Default',
+                                          )}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-slate-400">
+                                      {t(
+                                        'planningModal.gameCountLabel',
+                                        '{{count}} games',
+                                        { count: session.gameIds.length },
+                                      )}
+                                      {' · '}
+                                      {t(
+                                        'planningModal.updatedAtLabel',
+                                        'updated {{date}}',
+                                        {
+                                          date: formatSessionDate(
+                                            session.updatedAt,
+                                            i18n.language,
+                                          ),
+                                        },
+                                      )}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {isRenaming ? null : isPending ? (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      // mutate (not mutateAsync) so React Query absorbs rejections; isPending blocks double-submit.
+                                      onClick={() => {
+                                        setListErrorMessage(null);
+                                        deleteSession.mutate({
+                                          sessionId: session.id,
+                                          teamId: session.teamId,
+                                        }, {
+                                          onSettled: (
+                                            _data,
+                                            err,
+                                          ) => {
+                                            setPendingDeleteId(null);
+                                            // Surface delete failures inline; success path leaves message null.
+                                            if (err) {
+                                              setListErrorMessage(
+                                                t(
+                                                  'planningModal.deleteFailed',
+                                                  'Could not delete the plan. Please try again.',
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        });
+                                      }}
+                                      disabled={deleteSession.isPending}
+                                      className="rounded-md bg-rose-600 px-2 py-1 text-xs font-semibold text-white hover:bg-rose-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                      data-testid={`planning-session-delete-confirm-${session.id}`}
+                                    >
+                                      {t(
+                                        'planningModal.deleteConfirm',
+                                        'Confirm delete?',
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPendingDeleteId(null)}
+                                      className="rounded-md bg-slate-700 px-2 py-1 text-xs text-slate-100 hover:bg-slate-600"
+                                    >
+                                      {t('common.cancel', 'Cancel')}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleOpenSession(session)
+                                      }
+                                      className="rounded-md bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600"
+                                      // Per-session aria-label so screen
+                                      // readers can disambiguate the column
+                                      // of identical "Open" buttons.
+                                      aria-label={t(
+                                        'planningModal.openSessionAriaLabel',
+                                        'Open {{name}}',
+                                        { name: session.name },
+                                      )}
+                                      data-testid={`planning-session-open-${session.id}`}
+                                    >
+                                      {t(
+                                        'planningModal.openSession',
+                                        'Open',
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleActive(session)}
+                                      // Single mutation instance → all rows
+                                      // share isPending. Acceptable at this
+                                      // scale (the operation is fast); per-
+                                      // row gating would require tracking
+                                      // which session is in flight.
+                                      disabled={setActiveSession.isPending}
+                                      className={
+                                        session.isActive
+                                          ? 'rounded-md p-1.5 text-amber-300 hover:bg-amber-900/40 disabled:opacity-60'
+                                          : 'rounded-md p-1.5 text-slate-300 hover:bg-slate-700 disabled:opacity-60'
+                                      }
+                                      aria-label={
+                                        session.isActive
+                                          ? t(
+                                              'planningModal.deactivateAriaLabel',
+                                              'Deactivate {{name}}',
+                                              { name: session.name },
+                                            )
+                                          : t(
+                                              'planningModal.activateAriaLabel',
+                                              'Activate {{name}}',
+                                              { name: session.name },
+                                            )
+                                      }
+                                      aria-pressed={session.isActive}
+                                      data-testid={`planning-session-active-toggle-${session.id}`}
+                                    >
+                                      {session.isActive ? (
+                                        <HiStar className="h-4 w-4" />
+                                      ) : (
+                                        <HiOutlineStar className="h-4 w-4" />
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartRename(session)}
+                                      // saveSession is shared across rename
+                                      // and duplicate, so a Duplicate in
+                                      // flight disables every row's Rename
+                                      // button (and vice versa). Acceptable
+                                      // at this scale; per-row gating would
+                                      // need separate mutation instances.
+                                      disabled={saveSession.isPending}
+                                      className="rounded-md p-1.5 text-slate-300 hover:bg-slate-700 disabled:opacity-60"
+                                      aria-label={t(
+                                        'planningModal.renameAriaLabel',
+                                        'Rename {{name}}',
+                                        { name: session.name },
+                                      )}
+                                      data-testid={`planning-session-rename-${session.id}`}
+                                    >
+                                      <HiOutlinePencilSquare className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDuplicate(session)}
+                                      disabled={saveSession.isPending}
+                                      className="rounded-md p-1.5 text-slate-300 hover:bg-slate-700 disabled:opacity-60"
+                                      aria-label={t(
+                                        'planningModal.duplicateAriaLabel',
+                                        'Duplicate {{name}}',
+                                        { name: session.name },
+                                      )}
+                                      data-testid={`planning-session-duplicate-${session.id}`}
+                                    >
+                                      <HiOutlineDocumentDuplicate className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setListErrorMessage(null);
+                                        setPendingDeleteId(session.id);
+                                      }}
+                                      className="rounded-md p-1.5 text-slate-300 hover:bg-rose-900/40 hover:text-rose-200"
+                                      // Per-session aria-label mirrors
+                                      // the Open / Activate / Rename
+                                      // buttons so a column of trash
+                                      // icons is disambiguated for
+                                      // screen-reader users.
+                                      aria-label={t(
+                                        'planningModal.deleteSessionAriaLabel',
+                                        'Delete {{name}}',
+                                        { name: session.name },
+                                      )}
+                                      data-testid={`planning-session-delete-${session.id}`}
+                                    >
+                                      <HiOutlineTrash className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* listErrorMessage rendered OUTSIDE the populated-list
+                      block so it surfaces even when sessions.length === 0
+                      (e.g. a new user's first family-import fails with no
+                      pre-existing sessions to anchor the list). Delete
+                      failures, open failures, and family-import failures
+                      all flow through this slot. The isLoading guard is
+                      intentionally NOT here — a query refetch triggered
+                      by saveSession.onSuccess would otherwise hide the
+                      banner during the ~200ms loading window.
+                      `importError` and `importedPlan` gates suppress the
+                      list error specifically when a file-parse error or
+                      success card is owning the visible space — those
+                      take priority so the user isn't reading two
+                      conflicting status messages at once. Both are
+                      cleared by resetImportState before any list-error
+                      flow lands here in current call paths. */}
+                  {!importedPlan &&
+                    !importError &&
+                    !sessionsQuery.isError &&
+                    listErrorMessage && (
+                      <p
+                        className="text-sm text-rose-300"
+                        role="alert"
+                        data-testid="planning-modal-list-error"
+                      >
+                        {listErrorMessage}
+                      </p>
+                    )}
+
+                  {/* Bundle version picker (formatVersion: 2 imports).
+                      sortedBundleVersions is memoised at the top of the
+                      component so the count + rows here read off the same
+                      list. */}
+                  {importedBundle && (
+                    <div
+                      className="space-y-3 rounded-md bg-sky-900/30 border border-sky-700/40 p-4"
+                      data-testid="planning-modal-bundle-picker"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold text-sky-200">
+                          {t(
+                            'planningModal.bundlePickerTitle',
+                            'Pick a version to import',
+                          )}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={resetImportState}
+                          data-testid="planning-modal-bundle-picker-dismiss"
+                          className="rounded-md p-1 text-sky-200 hover:bg-sky-900/50"
+                          aria-label={t('planningModal.dismissImport', 'Dismiss')}
+                        >
+                          <HiOutlineXMark className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-sky-200/80">
+                        {t(
+                          'planningModal.bundlePickerSubtitle',
+                          'This file contains {{count}} versions. Pick one to load — the others stay in the file.',
+                          { count: sortedBundleVersions.length },
+                        )}
+                      </p>
+                      {/* "Import all" surfaces only for 2+-version
+                          bundles. The auto-advance path skips the
+                          picker for 1-version bundles, but the
+                          explicit guard here keeps a future bypass
+                          (or a test path that mounts the picker
+                          directly with importedBundle set) from
+                          producing a "family of one" — the row UI
+                          already handles single-version selection. */}
+                      {sortedBundleVersions.length >= 2 && (
+                        <div className="flex flex-col gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleImportAllFromBundle}
+                            data-testid="planning-modal-bundle-import-all"
+                            className="rounded bg-sky-700/40 px-2 py-1.5 text-left text-sm text-sky-50 hover:bg-sky-600/60"
+                          >
+                            {t(
+                              'planningModal.bundleImportAll',
+                              'Import all {{count}} versions as a family →',
+                              { count: sortedBundleVersions.length },
+                            )}
+                          </button>
+                          {familyImportError && (
+                            <p
+                              role="alert"
+                              data-testid="planning-modal-family-import-error"
+                              className="text-xs text-rose-300"
+                            >
+                              {familyImportError}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-[11px] text-sky-200/60">
+                        {t(
+                          'planningModal.bundleImportAllOrPickOne',
+                          'Or pick a single version:',
+                        )}
+                      </p>
+                      <ul
+                        role="list"
+                        className="space-y-1"
+                        data-testid="planning-modal-bundle-version-list"
+                      >
+                        {sortedBundleVersions.map(
+                          ([name, plan]) => {
+                            const isCurrent =
+                              importedBundle.currentVersionName === name;
+                            return (
+                              <li
+                                key={name}
+                                data-testid={`planning-modal-bundle-version-${name}`}
+                                data-current={isCurrent ? 'true' : 'false'}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleSelectBundleVersion(name)
+                                  }
+                                  data-testid={`planning-modal-bundle-version-button-${name}`}
+                                  className="flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-sm text-slate-100 hover:bg-sky-800/40"
+                                >
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    <span className="truncate">{name}</span>
+                                    {isCurrent && (
+                                      <span className="rounded bg-emerald-700/50 px-1 text-[10px] text-emerald-100">
+                                        {t(
+                                          'planningModal.bundleCurrent',
+                                          'Last used',
+                                        )}
+                                      </span>
+                                    )}
+                                  </span>
+                                  <span className="text-[11px] text-slate-300">
+                                    {t(
+                                      'planningModal.bundleVersionMeta',
+                                      '{{games}} games · {{subs}} subs',
+                                      {
+                                        games: plan.games.length,
+                                        subs: plan.games.reduce(
+                                          (n, g) => n + g.scheduledSubs.length,
+                                          0,
+                                        ),
+                                      },
+                                    )}
+                                  </span>
+                                </button>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Import success */}
+                  {importedPlan && (
+                    <div className="space-y-3 rounded-md bg-emerald-900/30 border border-emerald-700/40 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold text-emerald-200">
+                          {t('planningModal.importSuccessTitle', 'Plan imported')}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={resetImportState}
+                          className="rounded-md p-1 text-emerald-200 hover:bg-emerald-900/50"
+                          aria-label={t('planningModal.dismissImport', 'Dismiss')}
+                        >
+                          <HiOutlineXMark className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {/* totalVersions > 1 is technically dead today
+                          (bundleSourceMeta is only set from
+                          handleSelectBundleVersion, and the picker only
+                          renders for 2+ versions). Keeping the guard so
+                          a future call site that sets bundleSourceMeta
+                          for a 1-version bundle can't accidentally
+                          surface a misleading "other versions left
+                          behind" message. */}
+                      {bundleSourceMeta &&
+                        bundleSourceMeta.totalVersions > 1 && (
+                          <p
+                            role="alert"
+                            data-testid="planning-modal-bundle-warning"
+                            className="rounded bg-amber-900/30 border border-amber-700/30 px-2 py-1 text-xs text-amber-200"
+                          >
+                            {t(
+                              'planningModal.bundleSelectedWarning',
+                              'Loaded "{{name}}" from a {{total}}-version bundle. Other versions are not imported.',
+                              {
+                                name: bundleSourceMeta.selectedName,
+                                total: bundleSourceMeta.totalVersions,
+                              },
+                            )}
+                          </p>
+                        )}
+                      <ul className="text-sm text-emerald-100/90 space-y-1">
+                        <li>
+                          <strong>{t('planningModal.team', 'Team')}:</strong>{' '}
+                          {importedPlan.teamName}
+                        </li>
+                        <li>
+                          <strong>{t('planningModal.formation', 'Formation')}:</strong>{' '}
+                          {importedPlan.formationId}
+                        </li>
+                        <li>
+                          <strong>{t('planningModal.gameCount', 'Games')}:</strong>{' '}
+                          {importedPlan.games.length}
+                        </li>
+                        <li>
+                          <strong>{t('planningModal.subCount', 'Scheduled subs')}:</strong>{' '}
+                          {importedPlan.games.reduce(
+                            (n, g) => n + g.scheduledSubs.length,
+                            0,
+                          )}
+                        </li>
+                      </ul>
+                      <p className="text-xs text-emerald-200/80 pt-2">
+                        {t(
+                          'planningModal.importNextStep',
+                          'Pick the saved games to bind this plan to, then Save to create a planning session.',
+                        )}
+                      </p>
+                      {importHandoffError && (
+                        <p
+                          role="alert"
+                          className="text-xs text-rose-200"
+                          data-testid="planning-modal-import-handoff-error"
+                        >
+                          {importHandoffError}
+                        </p>
+                      )}
+                      <div className="flex justify-end pt-1">
+                        <button
+                          type="button"
+                          onClick={handleUseImportedPlan}
+                          data-testid="planning-modal-import-use"
+                          className="rounded-md bg-emerald-500/90 px-3 py-1.5 text-sm font-semibold text-slate-900 shadow hover:bg-emerald-400"
+                        >
+                          {t(
+                            'planningModal.useImportedPlan',
+                            'Use this plan →',
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Import failure */}
+                  {importError && (
+                    <div className="space-y-2 rounded-md bg-rose-900/30 border border-rose-700/40 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold text-rose-200">
+                          {t('planningModal.importFailedTitle', 'Import failed')}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={resetImportState}
+                          className="rounded-md p-1 text-rose-200 hover:bg-rose-900/50"
+                          aria-label={t('planningModal.dismissImport', 'Dismiss')}
+                        >
+                          <HiOutlineXMark className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-sm text-rose-100/90">{importError.message}</p>
+                      {importError.path ? (
+                        <p className="text-xs font-mono text-rose-200/80">
+                          {t('planningModal.errorPath', 'at')}: {importError.path}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleNewPlan}
+                      className="inline-flex items-center gap-2 rounded-md bg-amber-500/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow hover:bg-amber-400"
+                    >
+                      <HiOutlinePlus className="h-4 w-4" />
+                      {t('planningModal.newPlanButton', 'New plan')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleImportClick}
+                      className="inline-flex items-center gap-2 rounded-md bg-slate-700/70 px-4 py-2 text-sm font-semibold text-slate-100 shadow hover:bg-slate-600"
+                    >
+                      <HiOutlineArrowUpTray className="h-4 w-4" />
+                      {t('planningModal.importButton', 'Import plan from JSON')}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/json,.json"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      data-testid="planning-modal-file-input"
+                    />
+                  </div>
+                </>
+              )}
+
+              {page === 'picker' && (
+                <PlanningGamePicker
+                  games={pickerGames}
+                  teamFilterId={currentTeamId}
+                  teamFilterName={currentTeamName}
+                  onBack={goToList}
+                  onContinue={handlePickerContinue}
+                />
+              )}
+
+              {page === 'undoBanner' && undoSnapshot && (
+                <PlanningUndoBanner
+                  gameCount={undoSnapshot.games.length}
+                  appliedAt={undoSnapshot.appliedAt}
+                  isUndoing={isUndoing}
+                  undoError={undoError}
+                  onUndo={() => void handleUndoConfirm()}
+                  onDismiss={handleUndoDismiss}
+                  onExpire={handleUndoExpire}
+                />
+              )}
+
+              {page === 'editor' && (
+                <PlanningEditor
+                  gameIds={editorGameIds}
+                  savedGames={savedGames ?? {}}
+                  roster={roster}
+                  onBack={handleEditorBack}
+                  onApplied={handleEditorApplied}
+                  applyToGame={applyToGame}
+                  // Per-game initial drafts come from a reopened session
+                  // (full Record). For an import handoff (single
+                  // imported lineup applied across every tab), use
+                  // the back-compat `initialDraft` prop — the editor
+                  // seeds every tab with that draft, and the coach can
+                  // diverge per-tab from there.
+                  initialDrafts={sessionDrafts}
+                  initialDraft={
+                    sessionDrafts ? undefined : pendingImportDraft
+                  }
+                  initialIncludedGameIds={editingSession?.includedGameIds}
+                  // Preset is stored on the draft so reopen renders the
+                  // SAME role grid the user authored under — role keys
+                  // differ across presets (LM/RM vs LB/RB), so a
+                  // mismatched preset would drop assignments.
+                  initialPresetId={
+                    sessionFirstDraft?.presetId ?? pendingImportPresetId
+                  }
+                  initialName={editingSession?.name ?? pendingImportName}
+                  editingSessionId={editingSession?.id}
+                  lastSavedAt={lastSavedAt}
+                  versions={versionFamily}
+                  onActivateVersion={handleActivateVersion}
+                  isActivatingVersion={setActiveSession.isPending}
+                  activationError={activationError}
+                  // Bundle export requires a saved session (and the
+                  // savedGames map for game metadata). Brand-new
+                  // unsaved plans hide the option until first Save.
+                  onExportBundle={
+                    editingSession && savedGames
+                      ? handleExportBundle
+                      : undefined
+                  }
+                  // currentTeamId required for Save (the entity is
+                  // team-scoped). When absent, Save button is hidden —
+                  // user can still Apply but not persist.
+                  onSavePlan={
+                    currentTeamId ? handleSavePlan : undefined
+                  }
+                  // Gate Apply behind a per-game diff preview so the
+                  // coach can see (and selectively skip) what's about
+                  // to change.
+                  enableApplyPreview
+                />
+              )}
+            </div>
+          </div>
+
+          <ModalFooter>
+            <button
+              type="button"
+              onClick={handleClose}
+              className={primaryButtonStyle}
+              data-testid="planning-modal-done"
+            >
+              {t('common.doneButton', 'Done')}
+            </button>
+          </ModalFooter>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PlanningModal;

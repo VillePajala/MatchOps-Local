@@ -2,6 +2,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
+import logger from '@/utils/logger';
 import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import GoalLogModal from '@/components/GoalLogModal';
@@ -20,6 +21,7 @@ const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
 const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
 const RulesDirectoryModal = dynamic(() => import('@/components/RulesDirectoryModal'));
 const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
+const PlanningModal = dynamic(() => import('@/components/PlanningModal'));
 import type {
   Player,
   GameEvent,
@@ -36,6 +38,7 @@ import type {
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
+import type { ScheduledSub } from '@/types/game';
 
 interface LoadGameState {
   isLoadingGamesList: boolean;
@@ -59,6 +62,7 @@ interface SeasonTournamentMutations {
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
 
 interface ModalManagerState {
+  isPlanningModalOpen: boolean;
   isTrainingResourcesOpen: boolean;
   isRulesDirectoryOpen: boolean;
   isInstructionsModalOpen: boolean;
@@ -169,6 +173,7 @@ interface ModalManagerHandlers {
   openPlayerStats: (playerId: string) => void;
   closeSeasonTournamentModal: () => void;
   closeGameSettingsModal: () => void;
+  closePlanningModal: () => void;
   teamNameChange: (name: string) => void;
   opponentNameChange: (name: string) => void;
   gameDateChange: (date: string) => void;
@@ -195,6 +200,9 @@ interface ModalManagerHandlers {
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
   setGamePersonnel?: (personnelIds: string[]) => void;
+  addScheduledSub: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
+  updateScheduledSub: (sub: ScheduledSub) => void;
+  deleteScheduledSub: (id: string) => void;
   closeSettingsModal: () => void;
   setAppLanguage: (lang: string) => void;
   setDefaultTeamName: (name: string) => void;
@@ -242,6 +250,31 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
         <RulesDirectoryModal
           isOpen={state.isRulesDirectoryOpen}
           onClose={handlers.toggleRulesDirectory}
+        />
+
+        <PlanningModal
+          isOpen={state.isPlanningModalOpen}
+          onClose={handlers.closePlanningModal}
+          savedGames={data.savedGames}
+          currentTeamId={data.gameSessionState.teamId}
+          currentTeamName={data.gameSessionState.teamName}
+          roster={data.masterRoster}
+          applyToGame={async (gameId, updates) => {
+            // Sequential writes: failure on game N stops the loop;
+            // 1..N-1 are persisted, N+1..M are not. Throwing on a
+            // missing mutation is intentional — silently no-op'ing
+            // would close the modal without writing anything.
+            if (!data.updateGameDetailsMutation) {
+              logger.error(
+                '[ModalManager] PlanningModal applyToGame called without updateGameDetailsMutation',
+              );
+              throw new Error('Apply unavailable');
+            }
+            await data.updateGameDetailsMutation.mutateAsync({
+              gameId,
+              updates,
+            });
+          }}
         />
 
         <InstructionsModal
@@ -462,6 +495,10 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           masterRoster={data.masterRoster}
           teams={data.teams}
           onTeamIdChange={(teamId) => handlers.teamIdChange(teamId ?? undefined)}
+          scheduledSubs={data.gameSessionState.scheduledSubs}
+          onAddScheduledSub={handlers.addScheduledSub}
+          onUpdateScheduledSub={handlers.updateScheduledSub}
+          onDeleteScheduledSub={handlers.deleteScheduledSub}
         />
 
         <SettingsModal

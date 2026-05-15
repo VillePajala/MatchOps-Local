@@ -136,4 +136,96 @@ describe('useSavedGameManager', () => {
     expect(setCurrentGameId).toHaveBeenCalledWith('game-1');
     expect(onCloseLoadGameModal).toHaveBeenCalledTimes(1);
   });
+
+  it('forwards scheduledSubs into the LOAD_PERSISTED_GAME_DATA payload', async () => {
+    const { savedGame, savedGamesState } = baseOptions();
+    const sub = {
+      id: 'sub_1',
+      timeSeconds: 600,
+      outPlayer: 'p1',
+      inPlayer: 'p2',
+      positionRole: 'LM',
+      status: 'pending' as const,
+    };
+    savedGame.scheduledSubs = [sub];
+    const savedGames = { 'game-1': savedGame };
+    savedGamesState.setter(savedGames);
+    const setCurrentGameId = jest.fn();
+    const dispatchGameSession = jest.fn();
+    const props = {
+      savedGames,
+      setSavedGames: savedGamesState.setter,
+      currentGameId: null,
+      setCurrentGameId,
+      availablePlayers: [],
+      setAvailablePlayers: jest.fn(),
+      masterRoster: [],
+      setPlayersOnField: jest.fn(),
+      setOpponents: jest.fn(),
+      setDrawings: jest.fn(),
+      setTacticalDiscs: jest.fn(),
+      setTacticalDrawings: jest.fn(),
+      setTacticalBallPosition: jest.fn(),
+      setIsPlayed: jest.fn(),
+      dispatchGameSession,
+      resetHistory: jest.fn(),
+      initialState: savedGame,
+      initialGameSessionData: initialGameSessionStatePlaceholder,
+      queryClient: { invalidateQueries: jest.fn().mockResolvedValue(undefined) } as unknown as Parameters<typeof useSavedGameManager>[0]['queryClient'],
+      t: t as Parameters<typeof useSavedGameManager>[0]['t'],
+      onCloseLoadGameModal: jest.fn(),
+    };
+    const hook = renderHook(() => useSavedGameManager(props));
+
+    await act(async () => {
+      await hook.result.current.handleLoadGame('game-1');
+    });
+
+    const loadDispatch = dispatchGameSession.mock.calls.find(
+      ([action]) => action.type === 'LOAD_PERSISTED_GAME_DATA',
+    );
+    expect(loadDispatch).toBeDefined();
+    expect(loadDispatch?.[0].payload.scheduledSubs).toEqual([sub]);
+  });
+
+  it('defaults scheduledSubs to [] when the saved game has no field', async () => {
+    const { savedGame, savedGamesState } = baseOptions();
+    delete (savedGame as Partial<AppState>).scheduledSubs;
+    const savedGames = { 'game-1': savedGame };
+    savedGamesState.setter(savedGames);
+    const dispatchGameSession = jest.fn();
+    const props = {
+      savedGames,
+      setSavedGames: savedGamesState.setter,
+      currentGameId: null,
+      setCurrentGameId: jest.fn(),
+      availablePlayers: [],
+      setAvailablePlayers: jest.fn(),
+      masterRoster: [],
+      setPlayersOnField: jest.fn(),
+      setOpponents: jest.fn(),
+      setDrawings: jest.fn(),
+      setTacticalDiscs: jest.fn(),
+      setTacticalDrawings: jest.fn(),
+      setTacticalBallPosition: jest.fn(),
+      setIsPlayed: jest.fn(),
+      dispatchGameSession,
+      resetHistory: jest.fn(),
+      initialState: savedGame,
+      initialGameSessionData: initialGameSessionStatePlaceholder,
+      queryClient: { invalidateQueries: jest.fn().mockResolvedValue(undefined) } as unknown as Parameters<typeof useSavedGameManager>[0]['queryClient'],
+      t: t as Parameters<typeof useSavedGameManager>[0]['t'],
+      onCloseLoadGameModal: jest.fn(),
+    };
+    const hook = renderHook(() => useSavedGameManager(props));
+
+    await act(async () => {
+      await hook.result.current.handleLoadGame('game-1');
+    });
+
+    const loadDispatch = dispatchGameSession.mock.calls.find(
+      ([action]) => action.type === 'LOAD_PERSISTED_GAME_DATA',
+    );
+    expect(loadDispatch?.[0].payload.scheduledSubs).toEqual([]);
+  });
 });

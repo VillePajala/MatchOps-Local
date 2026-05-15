@@ -23,6 +23,7 @@ import type {
   TournamentSeries,
   TeamPlacementInfo,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
 import type { PlayerAssessment } from '@/types/playerAssessment';
@@ -42,7 +43,7 @@ import {
   StorageError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, validateScheduledSubsFromDb, PLANNING_SESSION_GAME_IDS_MAX } from '@/datastore/validation';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { generateId } from '@/utils/idGenerator';
@@ -77,6 +78,7 @@ type GameTacticalDataRow = Database['public']['Tables']['game_tactical_data']['R
 type PlayerAssessmentRow = Database['public']['Tables']['player_assessments']['Row'];
 type PlayerAdjustmentRow = Database['public']['Tables']['player_adjustments']['Row'];
 type WarmupPlanRow = Database['public']['Tables']['warmup_plans']['Row'];
+type PlanningSessionRow = Database['public']['Tables']['planning_sessions']['Row'];
 
 // Insert types (data for INSERT operations)
 //
@@ -100,6 +102,7 @@ type GameTacticalDataInsert = Database['public']['Tables']['game_tactical_data']
 type PlayerAssessmentInsert = Database['public']['Tables']['player_assessments']['Insert'];
 type PlayerAdjustmentInsert = Database['public']['Tables']['player_adjustments']['Insert'];
 type WarmupPlanInsert = Database['public']['Tables']['warmup_plans']['Insert'];
+type PlanningSessionInsert = Database['public']['Tables']['planning_sessions']['Insert'];
 
 // Update types (for UPDATE operations without any casts)
 type PlayerUpdate = Database['public']['Tables']['players']['Update'];
@@ -213,6 +216,10 @@ const parseTeamPlacements = (value: Json | null): Record<string, TeamPlacementIn
   const record = value as unknown as Record<string, TeamPlacementInfo>;
   return Object.keys(record).length > 0 ? record : undefined;
 };
+
+// scheduled_subs JSONB read-time validation moved to validation.ts
+// (validateScheduledSubsFromDb) so LocalDataStore can use the same
+// boundary defense from its loadSavedGames path.
 
 /**
  * Normalize a numeric rating to the DB constraint range (1-10).
@@ -877,6 +884,7 @@ export class SupabaseDataStore implements DataStore {
       name: trimmedName,
       nickname: player.nickname?.trim() || undefined,
       isGoalie: player.isGoalie ?? false,
+      isPriority: player.isPriority ?? false,
       receivedFairPlayCard: player.receivedFairPlayCard ?? false,
     };
 
@@ -955,6 +963,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: updatedPlayer.nickname ?? null,
       jersey_number: updatedPlayer.jerseyNumber ?? null,
       is_goalie: updatedPlayer.isGoalie ?? false,
+      is_priority: updatedPlayer.isPriority ?? false,
       color: updatedPlayer.color ?? null,
       notes: updatedPlayer.notes ?? null,
       received_fair_play_card: updatedPlayer.receivedFairPlayCard ?? false,
@@ -1008,6 +1017,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: row.nickname ?? undefined,
       jerseyNumber: row.jersey_number ?? undefined,
       isGoalie: row.is_goalie ?? false,
+      isPriority: row.is_priority ?? false,
       color: row.color ?? undefined,
       notes: row.notes ?? undefined,
       receivedFairPlayCard: row.received_fair_play_card ?? false,
@@ -1024,6 +1034,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: player.nickname ?? null,
       jersey_number: player.jerseyNumber ?? null,
       is_goalie: player.isGoalie ?? false,
+      is_priority: player.isPriority ?? false,
       color: player.color ?? null,
       notes: player.notes ?? null,
       received_fair_play_card: player.receivedFairPlayCard ?? false,
@@ -1063,6 +1074,7 @@ export class SupabaseDataStore implements DataStore {
       name: trimmedName,
       nickname: player.nickname?.trim() || undefined,
       isGoalie: player.isGoalie ?? false,
+      isPriority: player.isPriority ?? false,
       receivedFairPlayCard: player.receivedFairPlayCard ?? false,
     };
 
@@ -2843,6 +2855,7 @@ export class SupabaseDataStore implements DataStore {
         nickname: onFieldPlayer?.nickname ?? player.nickname ?? '',
         jersey_number: onFieldPlayer?.jerseyNumber ?? player.jerseyNumber ?? '',
         is_goalie: onFieldPlayer?.isGoalie ?? player.isGoalie ?? false,
+        is_priority: onFieldPlayer?.isPriority ?? player.isPriority ?? false,
         color: onFieldPlayer?.color ?? player.color,
         notes: onFieldPlayer?.notes ?? player.notes ?? '',
         received_fair_play_card: onFieldPlayer?.receivedFairPlayCard ?? player.receivedFairPlayCard ?? false,
@@ -3027,6 +3040,7 @@ export class SupabaseDataStore implements DataStore {
           ? game.gamePersonnel.filter((id): id is string => typeof id === 'string' && id.trim() !== '')
           : [],
         formation_snap_points: (game.formationSnapPoints ?? null) as unknown as Json,
+        scheduled_subs: (game.scheduledSubs ?? []) as unknown as Json,
         // === Timer restoration ===
         time_elapsed_in_seconds: (game.timeElapsedInSeconds != null && isFinite(game.timeElapsedInSeconds))
           ? game.timeElapsedInSeconds : null,
@@ -3057,6 +3071,7 @@ export class SupabaseDataStore implements DataStore {
       nickname: p.nickname || undefined,
       jerseyNumber: p.jersey_number ?? '',
       isGoalie: p.is_goalie ?? false,
+      isPriority: p.is_priority ?? false,
       color: p.color ?? undefined,
       notes: p.notes || undefined,
       receivedFairPlayCard: p.received_fair_play_card ?? false,
@@ -3072,6 +3087,7 @@ export class SupabaseDataStore implements DataStore {
         nickname: p.nickname || undefined,
         jerseyNumber: p.jersey_number ?? '',
         isGoalie: p.is_goalie ?? false,
+        isPriority: p.is_priority ?? false,
         color: p.color ?? undefined,
         notes: p.notes || undefined,
         receivedFairPlayCard: p.received_fair_play_card ?? false,
@@ -3179,6 +3195,17 @@ export class SupabaseDataStore implements DataStore {
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
       formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,
+      // Validate each scheduled sub at the boundary. The JSONB column
+      // is server-trusted but a partial cloud-write or external edit
+      // could leave malformed rows that would surface as runtime
+      // crashes deep in the live-banner timer or applyDraftToGame.
+      // Mirror the per-item validation pattern used for planning
+      // sessions in getPlanningSessions.
+      scheduledSubs: validateScheduledSubsFromDb(
+        game.scheduled_subs,
+        'SupabaseDataStore',
+        game.id,
+      ),
       // === Timer restoration ===
       timeElapsedInSeconds: game.time_elapsed_in_seconds ?? undefined,
       // === Player arrays ===
@@ -3494,6 +3521,7 @@ export class SupabaseDataStore implements DataStore {
       tacticalDrawings: [],
       completedIntervalDurations: [],
       gamePersonnel: [],
+      scheduledSubs: [],
       // === Nullable strings default to empty ===
       seasonId: '',
       tournamentId: '',
@@ -4284,6 +4312,397 @@ export class SupabaseDataStore implements DataStore {
       is_default: plan.isDefault,
       sections: plan.sections as unknown as Database['public']['Tables']['warmup_plans']['Insert']['sections'],
     };
+  }
+
+  // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ==========================================================================
+
+  async getPlanningSessions(teamId?: string): Promise<PlanningSession[]> {
+    this.ensureInitialized();
+    checkOnline();
+
+    // Belt-and-suspenders: RLS already enforces user isolation, but every
+    // other read in this file pairs the policy with an explicit
+    // .eq('user_id', userId). If a future migration accidentally relaxes
+    // the planning_sessions policy, this filter caps the blast radius.
+    const userId = await this.getUserId();
+    const result = await this.withRetry(async () => {
+      let query = this.getClient()
+        .from('planning_sessions')
+        .select('*')
+        .eq('user_id', userId);
+      if (teamId) {
+        query = query.eq('team_id', teamId);
+      }
+      return throwIfTransient(
+        await query.order('updated_at', { ascending: false }),
+      );
+    }, 'getPlanningSessions');
+
+    if (result.error) {
+      this.classifyAndThrowError(result.error, 'Failed to load planning sessions');
+    }
+
+    const rows = (result.data || []) as PlanningSessionRow[];
+    // Per-item validation at the boundary: the DB JSONB cast in
+    // transformPlanningSessionFromDb trusts cloud rows completely. Drop
+    // and log malformed rows here so a partial cloud-write doesn't
+    // surface as a crash in applyPlanToGame downstream.
+    const valid: PlanningSession[] = [];
+    for (const row of rows) {
+      const session = this.transformPlanningSessionFromDb(row);
+      try {
+        validatePlanningSession(session);
+        valid.push(session);
+      } catch (validationError) {
+        logger.warn(
+          '[SupabaseDataStore] Dropping invalid planning session from cloud read',
+          {
+            sessionId: session.id,
+            error:
+              validationError instanceof Error
+                ? validationError.message
+                : String(validationError),
+          },
+        );
+      }
+    }
+    return valid;
+  }
+
+  async savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): Promise<PlanningSession> {
+    this.ensureInitialized();
+    checkOnline();
+
+    validatePlanningSession(session);
+
+    const userId = await this.getUserId();
+    const now = new Date().toISOString();
+    const targetId = session.id ?? generateId('planningSession');
+
+    // Preserve the existing createdAt on update when the caller didn't supply
+    // one — matches the LocalDataStore contract and prevents every edit from
+    // rewriting the original creation timestamp. Only one extra round-trip,
+    // and only when both id is present and createdAt is missing.
+    // Follow-up: a COALESCE on the DB side (RPC with ON CONFLICT … DO UPDATE
+    // SET created_at = COALESCE(planning_sessions.created_at, EXCLUDED.created_at))
+    // would eliminate this fetch entirely — kept as a fast-follow rather than
+    // expanding migration scope here.
+    let resolvedCreatedAt: string;
+    if (session.createdAt) {
+      resolvedCreatedAt = session.createdAt;
+    } else if (session.id) {
+      const { data: existing } = await this.withRetry(async () => {
+        const result = await this.getClient()
+          .from('planning_sessions')
+          .select('created_at')
+          .eq('id', session.id as string)
+          .eq('user_id', userId)
+          .maybeSingle();
+        // PGRST116 = "row not found" — legitimate (new session, no
+        // prior createdAt to preserve), so we fall through to the
+        // `?? now` fallback below. ANY OTHER error (auth failure,
+        // schema drift, RLS rejection) must NOT be silently swallowed
+        // — throwing here surfaces the real failure instead of
+        // resolvedCreatedAt landing on `now` and overwriting whatever
+        // the row would actually have read.
+        if (result.error && result.error.code !== 'PGRST116') {
+          throwIfTransient(result);
+          this.classifyAndThrowError(
+            result.error,
+            'Failed to fetch existing planning session createdAt',
+          );
+        }
+        return result;
+      }, 'savePlanningSession-fetchCreatedAt');
+      resolvedCreatedAt = existing?.created_at ?? now;
+    } else {
+      resolvedCreatedAt = now;
+    }
+
+    const normalized: PlanningSession = {
+      id: targetId,
+      teamId: session.teamId,
+      name: session.name.trim(),
+      gameIds: [...session.gameIds],
+      // Deep-clone — same rationale as LocalDataStore.savePlanningSession:
+      // a caller retaining the input and mutating draft[gameId].bench
+      // after save would otherwise silently corrupt the stored value.
+      draft: JSON.parse(JSON.stringify(session.draft)),
+      // Preserve undefined explicitly: transformPlanningSessionToDb only
+      // emits included_game_ids when defined, so undefined → NULL ("all
+      // included" semantic). Dropping this field would silently discard
+      // per-game include flags on every cloud save.
+      includedGameIds:
+        session.includedGameIds === undefined
+          ? undefined
+          : [...session.includedGameIds],
+      // Pass through the parent pointer so cloud saves can establish
+      // the named-version → parent linkage. The to-Db transform writes
+      // NULL when this is undefined; preserving undefined here keeps
+      // round-trip parity with LocalDataStore.
+      parentSessionId: session.parentSessionId,
+      isActive: session.isActive,
+      appliedAt: session.appliedAt,
+      createdAt: resolvedCreatedAt,
+      updatedAt: now,
+    };
+
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .upsert(
+          this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
+          // Composite PK after migration 035 — no unique constraint on
+          // `id` alone after that migration runs, so onConflict must
+          // name both columns. Matches every other upsert in this file
+          // (Rule from migration 013: composite PK = composite onConflict).
+          { onConflict: 'user_id,id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'savePlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to save planning session');
+    }
+
+    return normalized;
+  }
+
+  async deletePlanningSession(id: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+
+    const userId = await this.getUserId();
+    const { error, count } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .delete({ count: 'exact' })
+        .eq('id', id)
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to delete planning session');
+    }
+    return (count ?? 0) > 0;
+  }
+
+  async setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[],
+    parentSessionId?: string | null,
+  ): Promise<PlanningSession | null> {
+    this.ensureInitialized();
+    checkOnline();
+
+    if (!teamId || !Array.isArray(gameIds) || gameIds.length === 0) {
+      throw new ValidationError(
+        'setActiveSession requires teamId and a non-empty gameIds[]',
+        'teamId',
+        { teamId, gameIds },
+      );
+    }
+    if (gameIds.length > PLANNING_SESSION_GAME_IDS_MAX) {
+      // Parity with LocalDataStore + migration 036's RPC cap. Without
+      // this, a 101+ gameIds array hits the RPC and surfaces as a raw
+      // Postgres "too many game_ids (max 100)" exception rather than
+      // the consistent ValidationError both DataStores throw on
+      // bounds violations. See migration 036 for the SQL-side guard.
+      throw new ValidationError(
+        `setActiveSession received too many gameIds (max ${PLANNING_SESSION_GAME_IDS_MAX})`,
+        'gameIds',
+        { count: gameIds.length },
+      );
+    }
+    // Mirror LocalDataStore's empty-string guard so cloud callers get
+    // the same rejection rather than hitting a never-matching scope
+    // at the RPC boundary.
+    if (parentSessionId === '') {
+      throw new ValidationError(
+        'setActiveSession parentSessionId, when provided, must be a non-empty string',
+        'parentSessionId',
+        { parentSessionId },
+      );
+    }
+
+    // Atomic flip via RPC. Two clients activating different sessions for
+    // the same scope used to be able to interleave the deactivate +
+    // activate UPDATEs and leave multiple rows active. The RPC
+    // consolidates the work into a single UPDATE that PostgreSQL
+    // executes as one transactional step. See migrations 033/036/039
+    // for the body history.
+    //
+    // Migration 039 adds the optional p_parent_session_id arg: when
+    // present, scope is "siblings of this parent" (named-versions
+    // feature); when null/undefined, legacy (team, gameIds-set,
+    // parent_session_id IS NULL) scope applies — same behaviour as
+    // pre-039 callers.
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient().rpc('set_active_planning_session', {
+        p_session_id: sessionId,
+        p_team_id: teamId,
+        p_game_ids: gameIds,
+        p_parent_session_id: parentSessionId ?? null,
+      });
+      throwIfTransient(result);
+      return result;
+    }, 'setActiveSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to set active planning session');
+    }
+
+    // Empty result = either we asked to deactivate (sessionId === null) or
+    // the target wasn't in scope (the RPC validates that before flipping).
+    const rows = (data ?? []) as PlanningSessionRow[];
+    if (rows.length === 0) {
+      return null;
+    }
+    const session = this.transformPlanningSessionFromDb(rows[0]);
+    // Validate the round-trip just like getPlanningSessions does. The
+    // RPC body returns a clean row in practice, but a future schema
+    // drift mustn't propagate to the caller without surfacing — keeps
+    // the DataStore interface uniformly safe across read paths.
+    validatePlanningSession(session);
+    return session;
+  }
+
+  async upsertPlanningSession(session: PlanningSession): Promise<PlanningSession> {
+    this.ensureInitialized();
+    checkOnline();
+
+    validatePlanningSession(session);
+
+    const userId = await this.getUserId();
+    const normalized: PlanningSession = {
+      ...session,
+      name: session.name.trim(),
+      gameIds: [...session.gameIds],
+      // Deep-clone matches savePlanningSession; SyncedDataStore's sync
+      // path passes the same session into both stores, so mutations
+      // by the caller after either upsert must not bleed across.
+      draft: JSON.parse(JSON.stringify(session.draft)),
+      // Explicit clone parallels savePlanningSession + LocalDataStore.
+      // The shallow `...session` spread above would share the array
+      // reference, so a caller mutating session.includedGameIds after
+      // upsert could corrupt either store's view.
+      includedGameIds:
+        session.includedGameIds === undefined
+          ? undefined
+          : [...session.includedGameIds],
+    };
+
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('planning_sessions')
+        .upsert(
+          this.transformPlanningSessionToDb(normalized, userId) as unknown as never,
+          // Composite PK after migration 035 — no unique constraint on
+          // `id` alone after that migration runs, so onConflict must
+          // name both columns. Matches every other upsert in this file
+          // (Rule from migration 013: composite PK = composite onConflict).
+          { onConflict: 'user_id,id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'upsertPlanningSession');
+
+    if (error) {
+      this.classifyAndThrowError(error, 'Failed to upsert planning session');
+    }
+
+    return normalized;
+  }
+
+  // Planning session transforms
+  private transformPlanningSessionFromDb(row: PlanningSessionRow): PlanningSession {
+    // Cast row to unknown then to a shape that includes the post-cutover
+    // additive columns (included_game_ids from 037, parent_session_id
+    // from 038) — generated DB types may lag the migrations until
+    // regenerated. Older rows naturally have NULL for both columns,
+    // which we read as undefined to preserve the legacy semantics
+    // ("all gameIds included" + "top-level parent plan").
+    //
+    // TODO(post-cutover): regenerate Supabase types after 037 + 038 +
+    // 039 land in prod (`supabase gen types typescript`) and drop this
+    // ENTIRE `rowExtended` widening block in one pass — both
+    // `included_game_ids` AND `parent_session_id` will be on
+    // PlanningSessionRow natively, so a partial cleanup that only
+    // removes one would still need this widening for the other.
+    // Migration 039 also expands `set_active_planning_session` to a
+    // 4-arg signature; the RPC call site at line 4541 will need its
+    // `as unknown as` widening dropped at the same time.
+    const rowExtended = row as unknown as PlanningSessionRow & {
+      included_game_ids?: string[] | null;
+      parent_session_id?: string | null;
+    };
+    return {
+      id: row.id,
+      teamId: row.team_id,
+      name: row.name,
+      gameIds: Array.isArray(row.game_ids) ? row.game_ids : [],
+      draft:
+        row.draft && typeof row.draft === 'object' && !Array.isArray(row.draft)
+          ? (row.draft as unknown as PlanningSession['draft'])
+          : {},
+      isActive: row.is_active ?? false,
+      appliedAt: row.applied_at ?? undefined,
+      includedGameIds: Array.isArray(rowExtended.included_game_ids)
+        ? [...rowExtended.included_game_ids]
+        : undefined,
+      parentSessionId: rowExtended.parent_session_id ?? undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  private transformPlanningSessionToDb(
+    session: PlanningSession,
+    userId: string,
+  ): PlanningSessionInsert {
+    return {
+      id: session.id,
+      user_id: userId,
+      team_id: session.teamId,
+      name: session.name,
+      game_ids: [...session.gameIds],
+      draft: session.draft as unknown as Json,
+      is_active: session.isActive,
+      applied_at: session.appliedAt ?? null,
+      // Explicit `?? null` (not key-omission) so an upsert that brings
+      // includedGameIds back to undefined ("all gameIds included") clears
+      // the column to NULL on the DB side. Spreading `{}` would leave
+      // the column out of the SET list entirely, so an existing row's
+      // stale `included_game_ids = ['g1']` would survive the supposed
+      // "clear" — the round-trip with LocalDataStore (which always
+      // writes undefined verbatim) would then diverge. NULL = "all
+      // included" semantic per resolveIncludedGameIds.
+      included_game_ids:
+        session.includedGameIds === undefined
+          ? null
+          : [...session.includedGameIds],
+      // Same explicit-null pattern as included_game_ids: writing the
+      // column on every upsert lets a coach un-link a child from its
+      // parent (deleting the named-version relationship without
+      // deleting the row) by setting parentSessionId back to undefined.
+      // Key-omission would silently retain the prior parent pointer.
+      parent_session_id:
+        session.parentSessionId === undefined ? null : session.parentSessionId,
+      created_at: session.createdAt,
+      updated_at: session.updatedAt,
+    } as unknown as PlanningSessionInsert;
   }
 
   // ==========================================================================

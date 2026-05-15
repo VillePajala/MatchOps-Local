@@ -296,6 +296,117 @@ describe('PlayerDetailsModal', () => {
     });
   });
 
+  describe('Priority Toggle (edit mode)', () => {
+    it('renders the priority toggle in edit mode', async () => {
+      await act(async () => {
+        renderWithProviders();
+      });
+      const toggle = screen.getByTestId('player-details-modal-priority-toggle');
+      expect(toggle).toBeInTheDocument();
+      expect(toggle).not.toBeChecked();
+    });
+
+    it('does NOT render the priority toggle in create mode', async () => {
+      // Edit-mode-only by design — coaches mark priority via a
+      // follow-up edit on a created player. Keeps the create
+      // signature unchanged across the existing onAddPlayer chain.
+      await act(async () => {
+        renderWithProviders({
+          mode: 'create',
+          player: undefined,
+          onAddPlayer: jest.fn(),
+          onUpdatePlayer: undefined,
+        });
+      });
+      expect(
+        screen.queryByTestId('player-details-modal-priority-toggle'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('initializes from player.isPriority=true', async () => {
+      await act(async () => {
+        renderWithProviders({
+          player: { ...mockPlayer, isPriority: true },
+        });
+      });
+      expect(
+        screen.getByTestId('player-details-modal-priority-toggle'),
+      ).toBeChecked();
+    });
+
+    it('toggling and saving forwards isPriority into the updates payload', async () => {
+      const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({ onUpdatePlayer });
+      });
+      await user.click(
+        screen.getByTestId('player-details-modal-priority-toggle'),
+      );
+      await user.click(screen.getByRole('button', { name: /Save/i }));
+      expect(onUpdatePlayer).toHaveBeenCalledWith('p1', { isPriority: true });
+    });
+
+    it('toggling on-then-off from undefined initial state is a no-op', async () => {
+      // Inverse of the off-then-on case below. Player.isPriority is
+      // undefined (legacy data); the diff guard treats undefined ==
+      // false. Toggle on then off → back to original-equivalent (false),
+      // so no save call should fire.
+      const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      // Strip isPriority via rest destructure rather than mutating
+      // a spread copy.
+      const { isPriority: _ip, ...playerWithoutFlag } = mockPlayer;
+      void _ip;
+      await act(async () => {
+        renderWithProviders({ onUpdatePlayer, player: playerWithoutFlag });
+      });
+      const toggle = screen.getByTestId(
+        'player-details-modal-priority-toggle',
+      );
+      await user.click(toggle); // on
+      await user.click(toggle); // off (back to undefined-equivalent)
+      await user.click(screen.getByRole('button', { name: /Save/i }));
+      expect(onUpdatePlayer).not.toHaveBeenCalled();
+    });
+
+    it('aria-describedby links the hint paragraph to the checkbox', async () => {
+      await act(async () => {
+        renderWithProviders();
+      });
+      const toggle = screen.getByTestId(
+        'player-details-modal-priority-toggle',
+      );
+      const describedBy = toggle.getAttribute('aria-describedby');
+      expect(describedBy).toBe('player-details-modal-priority-hint');
+      // The referenced element must actually exist in the DOM —
+      // otherwise screen readers would announce nothing.
+      expect(document.getElementById(describedBy!)).not.toBeNull();
+    });
+
+    it('flipping back to original state does NOT include isPriority in updates', async () => {
+      // Player started as priority=true. User toggles off then back
+      // on. The compare-against-original check should treat this as
+      // a no-op for the isPriority field. With no other changes,
+      // onUpdatePlayer is never called.
+      const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({
+          onUpdatePlayer,
+          player: { ...mockPlayer, isPriority: true },
+        });
+      });
+      const toggle = screen.getByTestId(
+        'player-details-modal-priority-toggle',
+      );
+      await user.click(toggle); // off
+      await user.click(toggle); // back on
+      await user.click(screen.getByRole('button', { name: /Save/i }));
+      expect(onUpdatePlayer).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Validation', () => {
     it('disables Save button when name is empty', async () => {
       const user = userEvent.setup();

@@ -1,5 +1,5 @@
 import { SavedGamesCollection } from "@/types"; // AppState was removed, SavedGamesCollection is still used.
-import { Player, Season, Tournament } from "@/types"; // Corrected import path for these types
+import { Player, PlanningSession, Season, Tournament } from "@/types"; // Corrected import path for these types
 // Import the constants from the central file - kept for backup format compatibility
 import {
   SAVED_GAMES_KEY,
@@ -12,6 +12,7 @@ import {
   TEAM_ROSTERS_KEY,
   PERSONNEL_KEY,
   WARMUP_PLAN_KEY,
+  PLANNING_SESSIONS_KEY,
 } from "@/config/storageKeys";
 import logger from "@/utils/logger";
 import i18n from "i18next";
@@ -25,6 +26,7 @@ import type { AppSettings } from '@/types/settings';
 import type { PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { processImportedGames } from './gameImportHelper';
+import { validatePlanningSession } from '@/datastore/validation';
 import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
 import { retryWithBackoff, countPushFailures } from '@/utils/retry';
 import type { PushAllToCloudResult } from '@/datastore/SyncedDataStore';
@@ -46,6 +48,7 @@ interface FullBackupData {
     [TEAM_ROSTERS_KEY]?: TeamRostersIndex | null;
     [PERSONNEL_KEY]?: PersonnelCollection | null;
     [WARMUP_PLAN_KEY]?: WarmupPlan | null;
+    [PLANNING_SESSIONS_KEY]?: PlanningSession[] | null;
   };
 }
 
@@ -184,6 +187,43 @@ function validateBackupData(backupData: FullBackupData): BackupValidationResult 
     }
   }
 
+  // Validate planning sessions array. Without this gate, a malformed
+  // session in the backup would slip past preflight, the import would
+  // call clearAllUserData, then fail on upsertPlanningSession — leaving
+  // the user with cleared local data and a half-restored cloud copy.
+  const planningSessions = localStorage[PLANNING_SESSIONS_KEY];
+  if (planningSessions !== null && planningSessions !== undefined) {
+    if (!Array.isArray(planningSessions)) {
+      errors.push('Planning sessions must be an array');
+    } else {
+      const sessionIds = new Set<string>();
+      planningSessions.forEach((session, idx) => {
+        if (!session || typeof session !== 'object' || Array.isArray(session)) {
+          errors.push(`Planning session at index ${idx} is not a valid object`);
+          return;
+        }
+        try {
+          validatePlanningSession(session as Partial<PlanningSession>, `at index ${idx}`);
+        } catch (err) {
+          errors.push(
+            err instanceof Error
+              ? `Planning session at index ${idx}: ${err.message}`
+              : `Planning session at index ${idx} failed validation`,
+          );
+          return;
+        }
+        const id = (session as { id?: string }).id;
+        if (id) {
+          if (sessionIds.has(id)) {
+            errors.push(`Duplicate planning session id: ${id}`);
+          } else {
+            sessionIds.add(id);
+          }
+        }
+      });
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -223,6 +263,7 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
       teamRosters,
       personnel,
       warmupPlan,
+      planningSessions,
     ] = await Promise.all([
       dataStore.getGames(),
       dataStore.getSettings(),
@@ -234,6 +275,7 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
       dataStore.getAllTeamRosters(),
       dataStore.getAllPersonnel(),
       dataStore.getWarmupPlan(),
+      dataStore.getPlanningSessions(),
     ]);
 
     // Convert DataStore formats to backup format (for backward compatibility)
@@ -321,6 +363,15 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
     backupData.localStorage[WARMUP_PLAN_KEY] = warmupPlan;
     if (warmupPlan) {
       logger.log('Backed up warmup plan');
+    }
+
+    // Planning sessions: array of session entities. Stored as an array
+    // (not an id-keyed map) to mirror seasons/tournaments.
+    if (planningSessions.length > 0) {
+      backupData.localStorage[PLANNING_SESSIONS_KEY] = planningSessions;
+      logger.log(`Backed up ${planningSessions.length} planning sessions`);
+    } else {
+      backupData.localStorage[PLANNING_SESSIONS_KEY] = null;
     }
 
   } catch (error) {
@@ -721,6 +772,17 @@ export const importFullBackup = async (
         logger.log('Restored warmup plan');
       }
 
+      // Restore planning sessions (depends on games — sessions reference
+      // games.id via the soft game_ids array, so games must already be in
+      // the store for the editor's load path to find them).
+      const planningSessionsToRestore = backupData.localStorage[PLANNING_SESSIONS_KEY];
+      if (planningSessionsToRestore && Array.isArray(planningSessionsToRestore)) {
+        for (const session of planningSessionsToRestore) {
+          await dataStore.upsertPlanningSession(session);
+        }
+        logger.log(`Restored ${planningSessionsToRestore.length} planning sessions`);
+      }
+
     } catch (innerError) {
       logger.error('Error restoring data:', innerError);
       if (showToast) {
@@ -791,6 +853,7 @@ export const importFullBackup = async (
             if (f.games.length > 0) failureDetails.push(`${f.games.length} games`);
             if (f.rosters.length > 0) failureDetails.push(`${f.rosters.length} rosters`);
             if (f.adjustments.length > 0) failureDetails.push(`${f.adjustments.length} adjustments`);
+            if (f.planningSessions.length > 0) failureDetails.push(`${f.planningSessions.length} planning sessions`);
             if (f.settings) failureDetails.push('settings');
             if (f.warmupPlan) failureDetails.push('warmup plan');
 
@@ -809,6 +872,7 @@ export const importFullBackup = async (
               games: f.games,
               rosters: f.rosters,
               adjustments: f.adjustments,
+              planningSessions: f.planningSessions,
               settings: f.settings,
               warmupPlan: f.warmupPlan,
             });

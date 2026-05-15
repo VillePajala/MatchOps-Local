@@ -245,6 +245,27 @@ describe('LocalDataStore', () => {
         expect(player.isGoalie).toBe(false);
         expect(player.receivedFairPlayCard).toBe(false);
       });
+
+      it('defaults isPriority to false when omitted', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player = await dataStore.createPlayer({
+          name: 'New Player',
+        });
+        expect(player.isPriority).toBe(false);
+      });
+
+      it('preserves isPriority when explicitly set to true', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player = await dataStore.createPlayer({
+          name: 'Priority Player',
+          isPriority: true,
+        });
+        expect(player.isPriority).toBe(true);
+        // Confirm the saved roster carries the flag through to storage.
+        const lastCall = mockSetStorageItem.mock.calls.at(-1);
+        const saved: Player[] = JSON.parse(lastCall![1] as string);
+        expect(saved[0].isPriority).toBe(true);
+      });
     });
 
     describe('updatePlayer', () => {
@@ -283,6 +304,21 @@ describe('LocalDataStore', () => {
         });
 
         expect(updated?.name).toBe('Trimmed Name');
+      });
+
+      it('preserves isPriority through an unrelated field update', async () => {
+        // updatePlayer round-trips via { ...existing, ...updates } —
+        // a future refactor adding field-level merge logic could
+        // silently drop the flag without an explicit guard.
+        const priorityPlayer: Player = {
+          ...mockPlayer,
+          isPriority: true,
+        };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([priorityPlayer]));
+        const updated = await dataStore.updatePlayer('player_123', {
+          name: 'Renamed',
+        });
+        expect(updated?.isPriority).toBe(true);
       });
     });
 
@@ -340,6 +376,27 @@ describe('LocalDataStore', () => {
         const savedPlayers = JSON.parse(saveCall[1] as string);
         expect(savedPlayers).toHaveLength(2);
         expect(savedPlayers.find((p: Player) => p.id === 'player_456').name).toBe('Another');
+      });
+
+      it('defaults isPriority to false when omitted', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player: Player = {
+          id: 'player_pending',
+          name: 'Player Without Flag',
+        };
+        const result = await dataStore.upsertPlayer(player);
+        expect(result.isPriority).toBe(false);
+      });
+
+      it('preserves isPriority when explicitly set to true', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
+        const player: Player = {
+          id: 'player_priority',
+          name: 'Priority Player',
+          isPriority: true,
+        };
+        const result = await dataStore.upsertPlayer(player);
+        expect(result.isPriority).toBe(true);
       });
     });
   });
@@ -1622,6 +1679,16 @@ describe('LocalDataStore', () => {
         expect(gameData.homeScore).toBe(3);
         expect(gameData.awayScore).toBe(2);
       });
+
+      it('should default scheduledSubs to an empty array', async () => {
+        // Locks in CLAUDE.md Rule 10 for the new field; if the default is
+        // ever dropped, this test fails before subtle UI bugs do.
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+
+        const { gameData } = await dataStore.createGame({});
+
+        expect(gameData.scheduledSubs).toEqual([]);
+      });
     });
 
     describe('saveGame', () => {
@@ -1652,6 +1719,79 @@ describe('LocalDataStore', () => {
         const invalidGame = { ...mockGame, gameDate: '' };
         await expect(dataStore.saveGame('game_1', invalidGame))
           .rejects.toThrow('Missing required game fields');
+      });
+
+      it('should round-trip scheduledSubs through save and load', async () => {
+        const subs = [
+          {
+            id: 'sub_1',
+            timeSeconds: 600,
+            outPlayer: 'p1',
+            inPlayer: 'p2',
+            positionRole: 'CDM',
+            status: 'pending' as const,
+          },
+        ];
+        const gameWithSubs = { ...mockGame, scheduledSubs: subs };
+
+        let storedJson = '';
+        mockGetStorageItem.mockImplementation(async () => storedJson || '{}');
+        mockSetStorageItem.mockImplementation(async (_key: string, value: string) => {
+          storedJson = value;
+        });
+
+        await dataStore.saveGame('game_1', gameWithSubs);
+        const loaded = await dataStore.getGameById('game_1');
+
+        expect(loaded?.scheduledSubs).toEqual(subs);
+      });
+
+      it('should reject game with malformed scheduledSubs', async () => {
+        const invalidGame = {
+          ...mockGame,
+          scheduledSubs: [
+            {
+              id: '',
+              timeSeconds: 60,
+              outPlayer: 'p1',
+              inPlayer: 'p2',
+              positionRole: 'CDM',
+              status: 'pending' as const,
+            },
+          ],
+        };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow(/scheduledSubs\[0\]\.id/);
+      });
+
+      it('should reject scheduledSubs explicitly set to null', async () => {
+        // null !== undefined, so the early-return in validateScheduledSubs
+        // does not fire; Array.isArray(null) is false → ValidationError.
+        const invalidGame = {
+          ...mockGame,
+          scheduledSubs: null as unknown as AppState['scheduledSubs'],
+        };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow(/scheduledSubs must be an array/);
+      });
+
+      it('should round-trip a legacy game with no scheduledSubs field as undefined', async () => {
+        // Legacy games stored before migration 029 have no scheduledSubs key.
+        // saveGame must not synthesise a value, and getGameById must surface
+        // it as undefined so consumers know to default with `?? []`.
+        const legacyGame = { ...mockGame };
+        delete legacyGame.scheduledSubs;
+
+        let storedJson = '';
+        mockGetStorageItem.mockImplementation(async () => storedJson || '{}');
+        mockSetStorageItem.mockImplementation(async (_key: string, value: string) => {
+          storedJson = value;
+        });
+
+        await dataStore.saveGame('game_legacy', legacyGame);
+        const loaded = await dataStore.getGameById('game_legacy');
+
+        expect(loaded?.scheduledSubs).toBeUndefined();
       });
     });
 
@@ -2524,6 +2664,465 @@ describe('LocalDataStore', () => {
       // not by LocalDataStore. This allows teams.ts to wrap multiple DataStore
       // operations in a single lock for atomic read-modify-write operations.
       // See teams.ts:addPlayerToRoster, updatePlayerInRoster, removePlayerFromRoster.
+    });
+  });
+
+  // ============================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ============================================================
+  describe('Planning Sessions', () => {
+    type PlanningSession = import('@/types').PlanningSession;
+
+    const baseSession = (
+      overrides: Partial<PlanningSession> = {},
+    ): PlanningSession => ({
+      id: 'planningSession_1',
+      teamId: 'team_1',
+      name: 'Lauto 80 Verne-5',
+      gameIds: ['g1', 'g2'],
+      draft: {
+        g1: {
+          startingXI: { GK: 'p1', LB: 'p2' },
+          bench: ['p3'],
+          scheduledSubs: [
+            {
+              id: 's1',
+              timeSeconds: 600,
+              inPlayer: 'p3',
+              positionRole: 'LB',
+            },
+          ],
+        },
+        g2: {
+          startingXI: { GK: 'p1' },
+          bench: ['p2', 'p3'],
+          scheduledSubs: [],
+        },
+      },
+      isActive: false,
+      createdAt: '2026-04-30T12:00:00.000Z',
+      updatedAt: '2026-04-30T12:00:00.000Z',
+      ...overrides,
+    });
+
+    let savedJsonByKey: Record<string, string> = {};
+
+    beforeEach(() => {
+      savedJsonByKey = {};
+      mockGetStorageItem.mockImplementation(async (key: string) =>
+        savedJsonByKey[key] ?? null,
+      );
+      mockSetStorageItem.mockImplementation(async (key: string, value: string) => {
+        savedJsonByKey[key] = value;
+      });
+    });
+
+    it('returns an empty list when nothing is stored', async () => {
+      const sessions = await dataStore.getPlanningSessions();
+      expect(sessions).toEqual([]);
+    });
+
+    it('saves a new session and returns it with timestamps', async () => {
+      const input = baseSession();
+      const saved = await dataStore.savePlanningSession({
+        teamId: input.teamId,
+        name: input.name,
+        gameIds: input.gameIds,
+        draft: input.draft,
+        isActive: input.isActive,
+      });
+
+      expect(saved.id).toMatch(/^planningSession_/);
+      expect(saved.createdAt).toBeTruthy();
+      expect(saved.updatedAt).toBeTruthy();
+
+      const list = await dataStore.getPlanningSessions();
+      expect(list).toHaveLength(1);
+      expect(list[0].id).toBe(saved.id);
+    });
+
+    it('preserves createdAt on subsequent saves of the same id', async () => {
+      const first = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'A',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+      });
+      // No fake timers — verify the createdAt-preservation contract directly,
+      // not a timestamp ordering that would need a wall-clock advance.
+      const second = await dataStore.savePlanningSession({
+        id: first.id,
+        teamId: 't1',
+        name: 'A — renamed',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+        createdAt: first.createdAt,
+      });
+      expect(second.id).toBe(first.id);
+      expect(second.createdAt).toBe(first.createdAt);
+      expect(second.name).toBe('A — renamed');
+    });
+
+    it('preserves createdAt when the caller omits it on update', async () => {
+      const first = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'A',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+      });
+      const second = await dataStore.savePlanningSession({
+        id: first.id,
+        teamId: 't1',
+        name: 'A — renamed',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+        // createdAt intentionally omitted — implementation should fall back
+        // to the existing row's createdAt, not stamp `now`.
+      });
+      expect(second.createdAt).toBe(first.createdAt);
+    });
+
+    it('rejects a save that fails validation', async () => {
+      await expect(
+        dataStore.savePlanningSession({
+          teamId: 't1',
+          name: '',
+          gameIds: ['g1'],
+          draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+          isActive: false,
+        }),
+      ).rejects.toThrow(/name must be a non-empty string/);
+    });
+
+    it('round-trips parentSessionId on save → read', async () => {
+      // Locks the foundation contract for the named-versions feature:
+      // a child session's parentSessionId must survive savePlanningSession
+      // and be readable back via getPlanningSessions.
+      const parent = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'Parent',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+      });
+      const child = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'Child variant',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+        parentSessionId: parent.id,
+      });
+      expect(child.parentSessionId).toBe(parent.id);
+      const list = await dataStore.getPlanningSessions();
+      const reloaded = list.find((s) => s.id === child.id);
+      expect(reloaded?.parentSessionId).toBe(parent.id);
+      // Parent stays top-level.
+      const reloadedParent = list.find((s) => s.id === parent.id);
+      expect(reloadedParent?.parentSessionId).toBeUndefined();
+    });
+
+    it('preserves parentSessionId === undefined as undefined (top-level)', async () => {
+      // Negative case for the round-trip: an undefined parentSessionId
+      // must NOT leak as null or any other value through the save.
+      const saved = await dataStore.savePlanningSession({
+        teamId: 't1',
+        name: 'Top-level',
+        gameIds: ['g1'],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+      });
+      expect(saved.parentSessionId).toBeUndefined();
+      const list = await dataStore.getPlanningSessions();
+      const reloaded = list.find((s) => s.id === saved.id);
+      expect(reloaded?.parentSessionId).toBeUndefined();
+    });
+
+    it('returns sessions sorted by updatedAt newest-first', async () => {
+      // Seed two sessions with explicit timestamps
+      savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+        baseSession({
+          id: 'older',
+          updatedAt: '2026-04-20T10:00:00.000Z',
+        }),
+        baseSession({
+          id: 'newer',
+          updatedAt: '2026-04-30T10:00:00.000Z',
+        }),
+      ]);
+      const sessions = await dataStore.getPlanningSessions();
+      expect(sessions.map((s) => s.id)).toEqual(['newer', 'older']);
+    });
+
+    it('filters by teamId when provided', async () => {
+      savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+        baseSession({ id: 'a', teamId: 't1' }),
+        baseSession({ id: 'b', teamId: 't2' }),
+      ]);
+      const sessions = await dataStore.getPlanningSessions('t1');
+      expect(sessions.map((s) => s.id)).toEqual(['a']);
+    });
+
+    it('deletes a session and returns false when not found', async () => {
+      savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+        baseSession({ id: 'a' }),
+      ]);
+      expect(await dataStore.deletePlanningSession('a')).toBe(true);
+      expect(await dataStore.deletePlanningSession('nope')).toBe(false);
+      expect(await dataStore.getPlanningSessions()).toEqual([]);
+    });
+
+    it('upserts a session with a fixed id', async () => {
+      const session = baseSession({ id: 'fixed_id' });
+      const result = await dataStore.upsertPlanningSession(session);
+      expect(result.id).toBe('fixed_id');
+      const list = await dataStore.getPlanningSessions();
+      expect(list[0].id).toBe('fixed_id');
+    });
+
+    describe('setActiveSession', () => {
+      it('activates the target and deactivates other in-scope sessions', async () => {
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: true }),
+          baseSession({ id: 'b', isActive: false }),
+        ]);
+
+        const activated = await dataStore.setActiveSession('b', 'team_1', ['g1', 'g2']);
+        expect(activated?.id).toBe('b');
+        expect(activated?.isActive).toBe(true);
+
+        const all = await dataStore.getPlanningSessions();
+        expect(all.find((s) => s.id === 'a')?.isActive).toBe(false);
+        expect(all.find((s) => s.id === 'b')?.isActive).toBe(true);
+      });
+
+      it('treats gameIds as a set (order-independent scoping)', async () => {
+        // Active session a covers [g1, g2]; we activate b that covers [g2, g1]
+        // — the same set in different order. a should deactivate.
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', gameIds: ['g1', 'g2'], isActive: true }),
+          baseSession({ id: 'b', gameIds: ['g2', 'g1'], isActive: false }),
+        ]);
+        await dataStore.setActiveSession('b', 'team_1', ['g2', 'g1']);
+        const all = await dataStore.getPlanningSessions();
+        expect(all.find((s) => s.id === 'a')?.isActive).toBe(false);
+        expect(all.find((s) => s.id === 'b')?.isActive).toBe(true);
+      });
+
+      it('does not deactivate sessions outside the (teamId, gameIds-set) scope', async () => {
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          // Same team but different game set — must remain active. Draft
+          // map must match gameIds (parity check enforced on load).
+          baseSession({
+            id: 'other_set',
+            gameIds: ['g3'],
+            draft: {
+              g3: { startingXI: {}, bench: [], scheduledSubs: [] },
+            },
+            isActive: true,
+          }),
+          baseSession({
+            id: 'target_off',
+            gameIds: ['g1', 'g2'],
+            isActive: false,
+          }),
+        ]);
+
+        await dataStore.setActiveSession('target_off', 'team_1', ['g1', 'g2']);
+        const all = await dataStore.getPlanningSessions();
+        expect(all.find((s) => s.id === 'other_set')?.isActive).toBe(true);
+        expect(all.find((s) => s.id === 'target_off')?.isActive).toBe(true);
+      });
+
+      it('returns null and writes nothing when sessionId is not in scope', async () => {
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: true }),
+        ]);
+        const setItemCallsBefore = mockSetStorageItem.mock.calls.length;
+        const result = await dataStore.setActiveSession('does_not_exist', 'team_1', ['g1', 'g2']);
+        expect(result).toBeNull();
+        // No storage write should have happened — guard against accidentally
+        // deactivating in-scope sessions when the target lookup fails.
+        expect(mockSetStorageItem.mock.calls.length).toBe(setItemCallsBefore);
+      });
+
+      it('deactivates the active in-scope session when sessionId is null', async () => {
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: true }),
+        ]);
+        const result = await dataStore.setActiveSession(null, 'team_1', ['g1', 'g2']);
+        expect(result).toBeNull();
+        const all = await dataStore.getPlanningSessions();
+        expect(all.find((s) => s.id === 'a')?.isActive).toBe(false);
+      });
+
+      it('recovers from a corrupt multi-active state by collapsing to one', async () => {
+        // Storage already has 3 in-scope sessions all flagged active —
+        // could happen via direct savePlanningSession calls (which don't
+        // enforce exclusivity) or hand-edited storage. setActiveSession
+        // must collapse the state so exactly one is active afterwards.
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: true }),
+          baseSession({ id: 'b', isActive: true }),
+          baseSession({ id: 'c', isActive: true }),
+        ]);
+        await dataStore.setActiveSession('b', 'team_1', ['g1', 'g2']);
+        const all = await dataStore.getPlanningSessions();
+        // All seeded sessions share the same (teamId, gameIds-set), so
+        // filtering by isActive is equivalent to in-scope filtering
+        // here. Out-of-scope-isolation is pinned by an earlier test.
+        const stillActive = all.filter((s) => s.isActive);
+        expect(stillActive).toHaveLength(1);
+        expect(stillActive[0].id).toBe('b');
+      });
+
+      it('post-condition: exactly one in-scope session is active after any sequence of toggles', async () => {
+        // Property-style test — sweep a few orderings and assert the
+        // invariant ("at most one active per (teamId, gameIds-set)")
+        // holds after each step. Cheap belt-and-braces against future
+        // refactors that might lose the deactivation-on-flip behavior.
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: false }),
+          baseSession({ id: 'b', isActive: false }),
+          baseSession({ id: 'c', isActive: false }),
+        ]);
+        const sequence: Array<string | null> = [
+          'a',
+          'b',
+          null,
+          'c',
+          'c', // idempotent re-activate
+          'a',
+        ];
+        for (const target of sequence) {
+          await dataStore.setActiveSession(target, 'team_1', ['g1', 'g2']);
+          const all = await dataStore.getPlanningSessions();
+          const active = all.filter((s) => s.isActive);
+          if (target === null) {
+            // After deactivate-all, no in-scope session is active.
+            expect(active).toHaveLength(0);
+          } else {
+            // For a concrete target, exactly that one is active.
+            // Asserting the identity (not just count) catches a
+            // regression where the toggle deactivates everything
+            // instead of activating the target — count<=1 alone
+            // would pass that broken behavior.
+            expect(active).toHaveLength(1);
+            expect(active[0].id).toBe(target);
+          }
+        }
+      });
+
+      it('re-activating the same session is a no-op (no write)', async () => {
+        savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+          baseSession({ id: 'a', isActive: true }),
+        ]);
+        const writesBefore = mockSetStorageItem.mock.calls.length;
+        const result = await dataStore.setActiveSession('a', 'team_1', ['g1', 'g2']);
+        // Returns the already-active session.
+        expect(result?.id).toBe('a');
+        expect(result?.isActive).toBe(true);
+        // No write — the lock guard short-circuits when nothing mutated.
+        expect(mockSetStorageItem.mock.calls.length).toBe(writesBefore);
+      });
+
+      describe('parent-children scope (named versions)', () => {
+        // Migration 039: when parentSessionId is passed, the active
+        // flag is scoped to siblings of that parent rather than
+        // (team, gameIds-set). Top-level rows are isolated from
+        // child activations.
+
+        it('activates one child and deactivates ONLY its siblings', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'p1', isActive: false }),
+            baseSession({ id: 'p1c1', parentSessionId: 'p1', isActive: true }),
+            baseSession({ id: 'p1c2', parentSessionId: 'p1', isActive: false }),
+            baseSession({ id: 'p2', isActive: false }),
+            baseSession({ id: 'p2c1', parentSessionId: 'p2', isActive: true }),
+            baseSession({ id: 'p2c2', parentSessionId: 'p2', isActive: false }),
+          ]);
+          const result = await dataStore.setActiveSession(
+            'p1c2',
+            'team_1',
+            ['g1', 'g2'],
+            'p1',
+          );
+          expect(result?.id).toBe('p1c2');
+          expect(result?.isActive).toBe(true);
+          const all = await dataStore.getPlanningSessions();
+          const byId = new Map(all.map((s) => [s.id, s]));
+          expect(byId.get('p1c1')?.isActive).toBe(false);
+          expect(byId.get('p1c2')?.isActive).toBe(true);
+          // Different parent's children untouched.
+          expect(byId.get('p2c1')?.isActive).toBe(true);
+          expect(byId.get('p2c2')?.isActive).toBe(false);
+        });
+
+        it('does not affect top-level rows when activating a child', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'top', isActive: true }),
+            baseSession({ id: 'p', isActive: false }),
+            baseSession({ id: 'c1', parentSessionId: 'p', isActive: false }),
+          ]);
+          await dataStore.setActiveSession('c1', 'team_1', ['g1', 'g2'], 'p');
+          const all = await dataStore.getPlanningSessions();
+          const byId = new Map(all.map((s) => [s.id, s]));
+          expect(byId.get('top')?.isActive).toBe(true);
+          expect(byId.get('c1')?.isActive).toBe(true);
+        });
+
+        it('does not affect children when activating a top-level row (legacy scope)', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'top1', isActive: true }),
+            baseSession({ id: 'top2', isActive: false }),
+            baseSession({ id: 'c1', parentSessionId: 'p', isActive: true }),
+          ]);
+          await dataStore.setActiveSession('top2', 'team_1', ['g1', 'g2']);
+          const all = await dataStore.getPlanningSessions();
+          const byId = new Map(all.map((s) => [s.id, s]));
+          expect(byId.get('top1')?.isActive).toBe(false);
+          expect(byId.get('top2')?.isActive).toBe(true);
+          expect(byId.get('c1')?.isActive).toBe(true);
+        });
+
+        it('returns null when activating a child whose parent does not match', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'c1', parentSessionId: 'p1', isActive: false }),
+          ]);
+          const result = await dataStore.setActiveSession(
+            'c1',
+            'team_1',
+            ['g1', 'g2'],
+            'p2',
+          );
+          expect(result).toBeNull();
+        });
+
+        it('deactivates all siblings when sessionId is null in parent scope', async () => {
+          savedJsonByKey['soccerPlanningSessions'] = JSON.stringify([
+            baseSession({ id: 'c1', parentSessionId: 'p', isActive: true }),
+            baseSession({ id: 'c2', parentSessionId: 'p', isActive: false }),
+          ]);
+          await dataStore.setActiveSession(null, 'team_1', ['g1', 'g2'], 'p');
+          const all = await dataStore.getPlanningSessions();
+          for (const s of all) expect(s.isActive).toBe(false);
+        });
+
+        it('rejects an empty-string parentSessionId with a ValidationError', async () => {
+          // Caller must pick a side: undefined/null = legacy scope,
+          // non-empty string = a real parent id. Empty string would
+          // otherwise silently shift to the parent scope but never
+          // match any row (validator rejects empty parent_session_id
+          // at write time).
+          await expect(
+            dataStore.setActiveSession('a', 'team_1', ['g1', 'g2'], ''),
+          ).rejects.toThrow(/parentSessionId.*non-empty string/);
+        });
+      });
     });
   });
 });

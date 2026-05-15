@@ -1,4 +1,4 @@
-import type { GameType, Gender, AppState } from './game';
+import type { GameType, Gender, AppState, ScheduledSub } from './game';
 
 export interface Player {
   id: string;
@@ -8,6 +8,7 @@ export interface Player {
   relY?: number; // Relative Y (0.0 to 1.0)
   color?: string; // Optional: Specific color for the disk
   isGoalie?: boolean; // Optional: Is this player the goalie?
+  isPriority?: boolean; // Set at the roster level, not per-plan.
   jerseyNumber?: string; // Optional: Player's jersey number
   notes?: string; // Optional: Notes specific to this player
   receivedFairPlayCard?: boolean; // Optional: Did this player receive the fair play card?
@@ -232,6 +233,7 @@ export * from './personnel';
 export * from './modals';
 export * from './settings';
 export * from './fieldConfig';
+export * from './planningSession';
 
 // Player-level manual stat adjustments (e.g., external games not tracked in app)
 export interface PlayerStatAdjustment {
@@ -279,6 +281,7 @@ export interface UpdateGameDetailsMutationMeta {
     numberOfPeriods?: number;
     periodDurationMinutes?: number;
     homeOrAway?: 'home' | 'away';
+    scheduledSubs?: ScheduledSub[];
   };
   expectedIsPlayed?: boolean;
   sequence: number;

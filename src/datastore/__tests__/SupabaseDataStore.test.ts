@@ -8,7 +8,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { TeamPlayer, Season, Tournament } from '@/types';
+import type { Player, TeamPlayer, Season, Tournament } from '@/types';
 import type { AppState } from '@/types/game';
 import type { PersonnelRole } from '@/types/personnel';
 import type { AppSettings } from '@/types/settings';
@@ -464,6 +464,28 @@ describe('SupabaseDataStore', () => {
           })
         ).rejects.toThrow(ValidationError);
       });
+
+      it('forwards isPriority through the insert payload (round-trip via transformPlayerToDb)', async () => {
+        await dataStore.createPlayer({
+          name: 'Priority Player',
+          isGoalie: false,
+          isPriority: true,
+          receivedFairPlayCard: false,
+        });
+        const insertCall = (mockQueryBuilder.insert as jest.Mock).mock.calls[0][0];
+        expect(insertCall.is_priority).toBe(true);
+      });
+
+      it('defaults isPriority to false when omitted (matches isGoalie / receivedFairPlayCard pattern)', async () => {
+        const player = await dataStore.createPlayer({
+          name: 'Regular Player',
+          isGoalie: false,
+          receivedFairPlayCard: false,
+        });
+        expect(player.isPriority).toBe(false);
+        const insertCall = (mockQueryBuilder.insert as jest.Mock).mock.calls[0][0];
+        expect(insertCall.is_priority).toBe(false);
+      });
     });
 
     describe('updatePlayer', () => {
@@ -506,6 +528,37 @@ describe('SupabaseDataStore', () => {
 
         const result = await dataStore.updatePlayer('nonexistent', { name: 'New Name' });
         expect(result).toBeNull();
+      });
+
+      it('forwards isPriority into the PATCH payload', async () => {
+        const existingRow = {
+          id: 'player_123',
+          name: 'Existing',
+          nickname: null,
+          jersey_number: null,
+          is_goalie: false,
+          is_priority: false,
+          color: null,
+          notes: null,
+          received_fair_play_card: false,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          user_id: 'user_123',
+        };
+        mockQueryBuilder.single = jest.fn().mockResolvedValue({
+          data: existingRow,
+          error: null,
+        });
+        const updateMock = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        });
+        mockQueryBuilder.update = updateMock;
+
+        await dataStore.updatePlayer('player_123', { isPriority: true });
+        const patchPayload = (updateMock as jest.Mock).mock.calls[0][0];
+        expect(patchPayload.is_priority).toBe(true);
       });
     });
 
@@ -2656,6 +2709,14 @@ describe('SupabaseDataStore', () => {
         // gameDate should default to today
         expect(gameData.gameDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       });
+
+      it('should default scheduledSubs to an empty array (Rule 10 parity with LocalDataStore)', async () => {
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: null, error: null });
+
+        const { gameData } = await dataStore.createGame({});
+
+        expect(gameData.scheduledSubs).toEqual([]);
+      });
     });
 
     describe('saveGame', () => {
@@ -4001,6 +4062,110 @@ describe('SupabaseDataStore', () => {
         expect(result.selectedPlayerIds[1]).toBe('p2');
       });
 
+      it('preserves is_priority through the game_players round-trip', () => {
+        // Both reverse-transform paths (availablePlayers and
+        // playersOnField) read p.is_priority. Without this test,
+        // the `?? false` fallback would mask a regression where the
+        // mapping silently dropped the field.
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'inProgress',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [
+            {
+              id: 'game_123_p1',
+              game_id: 'game_123',
+              player_id: 'p1',
+              user_id: 'user_123',
+              player_name: 'Priority On Field',
+              is_goalie: false,
+              is_priority: true,
+              is_selected: true,
+              on_field: true,
+              rel_x: 0.5,
+              rel_y: 0.5,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+            {
+              id: 'game_123_p2',
+              game_id: 'game_123',
+              player_id: 'p2',
+              user_id: 'user_123',
+              player_name: 'Priority Bench',
+              is_goalie: false,
+              is_priority: true,
+              is_selected: true,
+              on_field: false,
+              rel_x: null,
+              rel_y: null,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+            {
+              id: 'game_123_p3',
+              game_id: 'game_123',
+              player_id: 'p3',
+              user_id: 'user_123',
+              player_name: 'Regular',
+              is_goalie: false,
+              is_priority: false,
+              is_selected: true,
+              on_field: false,
+              rel_x: null,
+              rel_y: null,
+              created_at: '2024-01-15T10:00:00Z',
+            },
+          ],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        // availablePlayers covers both reverse paths.
+        const byId = new Map<string, Player>(
+          result.availablePlayers.map(
+            (p: Player) => [p.id, p] as [string, Player],
+          ),
+        );
+        expect(byId.get('p1')?.isPriority).toBe(true);
+        expect(byId.get('p2')?.isPriority).toBe(true);
+        expect(byId.get('p3')?.isPriority).toBe(false);
+
+        // playersOnField is its own map() call site — assert the
+        // priority flag survives that path independently.
+        expect(result.playersOnField).toHaveLength(1);
+        expect(result.playersOnField[0].id).toBe('p1');
+        expect(result.playersOnField[0].isPriority).toBe(true);
+        // selectedPlayerIds is built from the same rows in a third
+        // construction in the same function — keeping a presence
+        // assertion here pins the full reverse-transform output
+        // against future divergence between the three blocks.
+        expect(new Set(result.selectedPlayerIds)).toEqual(
+          new Set(['p1', 'p2', 'p3']),
+        );
+      });
+
       it('should sort events by order_index', () => {
         const transformTablesToGame = getPrivateMethod('transformTablesToGame');
         const tables = {
@@ -4263,6 +4428,199 @@ describe('SupabaseDataStore', () => {
 
         // Verify tactical data
         expect(roundTrippedGame.tacticalBallPosition).toEqual({ relX: 0.5, relY: 0.5 });
+      });
+    });
+
+    describe('scheduledSubs transforms', () => {
+      it('forward transform: undefined scheduledSubs becomes empty JSONB array', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          isPlayed: true,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          availablePlayers: [],
+          playersOnField: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+        expect(result.game.scheduled_subs).toEqual([]);
+      });
+
+      it('forward transform: well-formed scheduledSubs survives', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const subs = [
+          {
+            id: 'sub_1',
+            timeSeconds: 600,
+            outPlayer: 'p1',
+            inPlayer: 'p2',
+            positionRole: 'CDM',
+            status: 'pending' as const,
+          },
+        ];
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          isPlayed: true,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          availablePlayers: [],
+          playersOnField: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+          scheduledSubs: subs,
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+        expect(result.game.scheduled_subs).toEqual(subs);
+      });
+
+      it('reverse transform: missing/null scheduled_subs becomes []', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            scheduled_subs: null,
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+        expect(result.scheduledSubs).toEqual([]);
+      });
+
+      it('reverse transform: corrupt scheduled_subs (non-array) becomes []', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            scheduled_subs: { not: 'an array' },
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+        expect(result.scheduledSubs).toEqual([]);
+      });
+
+      it('reverse transform: well-formed scheduled_subs is preserved', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const subs = [
+          {
+            id: 'sub_1',
+            timeSeconds: 600,
+            outPlayer: 'p1',
+            inPlayer: 'p2',
+            positionRole: 'CDM',
+            status: 'pending' as const,
+          },
+        ];
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            season_id: null,
+            tournament_id: null,
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'notStarted',
+            is_played: true,
+            home_score: 0,
+            away_score: 0,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            scheduled_subs: subs,
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+        expect(result.scheduledSubs).toEqual(subs);
       });
     });
   });
@@ -5035,6 +5393,201 @@ describe('SupabaseDataStore', () => {
       // Second call should pass expected version 7
       const secondCall = (mockSupabaseClient.rpc as jest.Mock).mock.calls[1];
       expect(secondCall[1].p_expected_version).toBe(7);
+    });
+  });
+
+  // ==========================================================================
+  // PLANNING SESSION TRANSFORMS (PR-C-1)
+  // ==========================================================================
+  // The transformPlanningSessionFromDb / ToDb methods are private but
+  // are critical correctness paths for the parent_session_id round-trip
+  // (and the included_game_ids round-trip from PR-A). The
+  // `rowExtended` widening cast already had to be patched once when
+  // 037 landed; these tests guard against a future touch silently
+  // dropping a column. Accessed via `as any` to bypass private — a
+  // common test idiom and lighter than a full upsert-flow mock.
+  describe('Planning session transforms (parent_session_id, included_game_ids)', () => {
+    type PrivateTransforms = {
+      transformPlanningSessionFromDb: (row: unknown) => unknown;
+      transformPlanningSessionToDb: (
+        session: unknown,
+        userId: string,
+      ) => unknown;
+    };
+    const transforms = (): PrivateTransforms =>
+      dataStore as unknown as PrivateTransforms;
+
+    const baseRow = {
+      id: 'planningSession_1',
+      user_id: 'user_1',
+      team_id: 'team_1',
+      name: 'Plan A',
+      game_ids: ['g1'],
+      draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+      is_active: false,
+      applied_at: null,
+      created_at: '2026-04-30T10:00:00.000Z',
+      updated_at: '2026-04-30T10:00:00.000Z',
+    };
+
+    it('fromDb maps null parent_session_id to undefined (top-level parent)', () => {
+      const row = { ...baseRow, parent_session_id: null };
+      const session = transforms().transformPlanningSessionFromDb(row) as {
+        parentSessionId?: string;
+      };
+      expect(session.parentSessionId).toBeUndefined();
+    });
+
+    it('fromDb maps a string parent_session_id to parentSessionId', () => {
+      const row = { ...baseRow, parent_session_id: 'planningSession_parent' };
+      const session = transforms().transformPlanningSessionFromDb(row) as {
+        parentSessionId?: string;
+      };
+      expect(session.parentSessionId).toBe('planningSession_parent');
+    });
+
+    it('fromDb tolerates a row missing parent_session_id entirely (pre-038)', () => {
+      // Pre-migration cloud rows may lack the column; cast widens via
+      // optional chain in the transform.
+      const session = transforms().transformPlanningSessionFromDb(baseRow) as {
+        parentSessionId?: string;
+      };
+      expect(session.parentSessionId).toBeUndefined();
+    });
+
+    it('toDb maps undefined parentSessionId to NULL (un-link semantic)', () => {
+      const session = {
+        id: 'planningSession_1',
+        teamId: 'team_1',
+        name: 'Plan A',
+        gameIds: ['g1'],
+        draft: {},
+        isActive: false,
+        createdAt: '2026-04-30T10:00:00.000Z',
+        updatedAt: '2026-04-30T10:00:00.000Z',
+        // parentSessionId intentionally absent
+      };
+      const dbRow = transforms().transformPlanningSessionToDb(
+        session,
+        'user_1',
+      ) as { parent_session_id: string | null };
+      expect(dbRow.parent_session_id).toBeNull();
+    });
+
+    it('toDb passes through a non-undefined parentSessionId', () => {
+      const session = {
+        id: 'planningSession_1',
+        teamId: 'team_1',
+        name: 'Plan A',
+        gameIds: ['g1'],
+        draft: {},
+        isActive: false,
+        createdAt: '2026-04-30T10:00:00.000Z',
+        updatedAt: '2026-04-30T10:00:00.000Z',
+        parentSessionId: 'planningSession_parent',
+      };
+      const dbRow = transforms().transformPlanningSessionToDb(
+        session,
+        'user_1',
+      ) as { parent_session_id: string | null };
+      expect(dbRow.parent_session_id).toBe('planningSession_parent');
+    });
+
+    // included_game_ids is the sibling column from PR-A; locking the
+    // round-trip here too prevents a future cleanup of the
+    // `rowExtended` widening from accidentally dropping just one column.
+    it('fromDb maps null included_game_ids to undefined ("all included")', () => {
+      const row = { ...baseRow, included_game_ids: null };
+      const session = transforms().transformPlanningSessionFromDb(row) as {
+        includedGameIds?: string[];
+      };
+      expect(session.includedGameIds).toBeUndefined();
+    });
+
+    it('toDb maps undefined includedGameIds to NULL', () => {
+      const session = {
+        id: 'planningSession_1',
+        teamId: 'team_1',
+        name: 'Plan A',
+        gameIds: ['g1'],
+        draft: {},
+        isActive: false,
+        createdAt: '2026-04-30T10:00:00.000Z',
+        updatedAt: '2026-04-30T10:00:00.000Z',
+      };
+      const dbRow = transforms().transformPlanningSessionToDb(
+        session,
+        'user_1',
+      ) as { included_game_ids: string[] | null };
+      expect(dbRow.included_game_ids).toBeNull();
+    });
+  });
+
+  // ==========================================================================
+  // setActiveSession parent-scope forwarding (PR-C-2a / migration 039)
+  // ==========================================================================
+  describe('setActiveSession parent_session_id forwarding', () => {
+    beforeEach(() => {
+      // The setActiveSession path doesn't go through the query
+      // builder — it calls supabase.rpc() directly. Wire the mock to
+      // return an empty array so the no-op deactivation path resolves
+      // cleanly; tests below assert the args, not the return value.
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: [],
+        error: null,
+      });
+    });
+
+    it('forwards p_parent_session_id = null when called without parentSessionId (legacy scope)', async () => {
+      await dataStore.setActiveSession(null, 'team_1', ['g1', 'g2']);
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'set_active_planning_session',
+        expect.objectContaining({
+          p_session_id: null,
+          p_team_id: 'team_1',
+          p_game_ids: ['g1', 'g2'],
+          p_parent_session_id: null,
+        }),
+      );
+    });
+
+    it('forwards p_parent_session_id = the supplied parent id (parent-children scope)', async () => {
+      await dataStore.setActiveSession(
+        'planningSession_child',
+        'team_1',
+        ['g1', 'g2'],
+        'planningSession_parent',
+      );
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'set_active_planning_session',
+        expect.objectContaining({
+          p_session_id: 'planningSession_child',
+          p_team_id: 'team_1',
+          p_game_ids: ['g1', 'g2'],
+          p_parent_session_id: 'planningSession_parent',
+        }),
+      );
+    });
+
+    it('forwards p_parent_session_id = null when called with explicit null (same as omitted)', async () => {
+      // Completes the coverage triangle alongside the omitted and
+      // string-value tests: explicit null reaches the RPC as null
+      // via the `?? null` coalescing in the call site.
+      await dataStore.setActiveSession(null, 'team_1', ['g1', 'g2'], null);
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith(
+        'set_active_planning_session',
+        expect.objectContaining({
+          p_parent_session_id: null,
+        }),
+      );
+    });
+
+    it('rejects an empty-string parentSessionId before reaching the RPC', async () => {
+      await expect(
+        dataStore.setActiveSession('a', 'team_1', ['g1', 'g2'], ''),
+      ).rejects.toThrow(/parentSessionId.*non-empty string/);
+      // RPC should not be called when the input fails validation.
+      expect(mockSupabaseClient.rpc).not.toHaveBeenCalled();
     });
   });
 });

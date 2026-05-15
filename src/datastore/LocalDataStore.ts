@@ -13,6 +13,7 @@ import type {
   Tournament,
   TournamentSeries,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
@@ -26,7 +27,7 @@ import {
   NotInitializedError,
   ValidationError,
 } from '@/interfaces/DataStoreErrors';
-import { validateGame, normalizeOptionalString } from '@/datastore/validation';
+import { validateGame, validatePlanningSession, normalizeOptionalString, sortedGameIdsKey, validateScheduledSubsFromDb, PLANNING_SESSION_GAME_IDS_MAX } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
 import { validateUserId } from '@/datastore/userDatabase';
 import {
@@ -41,6 +42,7 @@ import {
   TEAM_ROSTERS_KEY,
   PERSONNEL_KEY,
   WARMUP_PLAN_KEY,
+  PLANNING_SESSIONS_KEY,
   TIMER_STATE_KEY,
 } from '@/config/storageKeys';
 import { AGE_GROUPS } from '@/config/gameOptions';
@@ -647,6 +649,7 @@ export class LocalDataStore implements DataStore {
         name: trimmedName,
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
+        isPriority: player.isPriority ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
       };
 
@@ -740,6 +743,7 @@ export class LocalDataStore implements DataStore {
         name: trimmedName,
         nickname: player.nickname?.trim() || undefined,
         isGoalie: player.isGoalie ?? false,
+        isPriority: player.isPriority ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
         // Set timestamps: preserve createdAt if exists, always update updatedAt
         createdAt: player.createdAt ?? (existingIndex !== -1 ? roster[existingIndex].createdAt : now),
@@ -937,7 +941,7 @@ export class LocalDataStore implements DataStore {
   async deleteTeam(id: string): Promise<boolean> {
     this.ensureInitialized();
 
-    return withKeyLock(TEAMS_INDEX_KEY, async () => {
+    const removed = await withKeyLock(TEAMS_INDEX_KEY, async () => {
       const teamsIndex = await this.loadTeamsIndex();
       if (!teamsIndex[id]) {
         return false;
@@ -947,6 +951,26 @@ export class LocalDataStore implements DataStore {
       await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
       return true;
     });
+
+    if (!removed) return false;
+
+    // Cascade-delete planning sessions scoped to the removed team. Soft
+    // FK by design (migration 031), so the integrity is enforced here
+    // rather than via DB constraint. Without this, sessions would
+    // surface in the list view as "unresolvable team" entries that the
+    // editor would refuse to open.
+    await withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const sessions = await this.loadPlanningSessions();
+      const remaining = sessions.filter((s) => s.teamId !== id);
+      if (remaining.length !== sessions.length) {
+        await this.storageSetItem(
+          PLANNING_SESSIONS_KEY,
+          JSON.stringify(remaining),
+        );
+      }
+    });
+
+    return true;
   }
 
   /**
@@ -1782,6 +1806,7 @@ export class LocalDataStore implements DataStore {
       completedIntervalDurations: [],
       lastSubConfirmationTimeSeconds: 0,
       gamePersonnel: [],
+      scheduledSubs: [],
       ...game,
     };
 
@@ -1839,7 +1864,7 @@ export class LocalDataStore implements DataStore {
   async deleteGame(id: string): Promise<boolean> {
     this.ensureInitialized();
 
-    return withKeyLock(SAVED_GAMES_KEY, async () => {
+    const removed = await withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
       if (!games[id]) {
         return false;
@@ -1849,6 +1874,53 @@ export class LocalDataStore implements DataStore {
       await this.storageSetItem(SAVED_GAMES_KEY, JSON.stringify(games));
       return true;
     });
+
+    if (!removed) return false;
+
+    // Strip the deleted game id from every PlanningSession that
+    // referenced it. validatePlanningSession requires gameIds and
+    // draft to agree (every gameId has a draft entry), so a future
+    // re-save of an affected session would throw on the dangling id.
+    // If a session ends up with zero remaining gameIds, drop it
+    // entirely — a planning session without games has no editor view.
+    await withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const sessions = await this.loadPlanningSessions();
+      let mutated = false;
+      const next: PlanningSession[] = [];
+      for (const session of sessions) {
+        if (!session.gameIds.includes(id)) {
+          next.push(session);
+          continue;
+        }
+        const remainingGameIds = session.gameIds.filter((gid) => gid !== id);
+        if (remainingGameIds.length === 0) {
+          // Drop the session.
+          mutated = true;
+          continue;
+        }
+        const newDraft = { ...session.draft };
+        delete newDraft[id];
+        const newIncluded = session.includedGameIds
+          ? session.includedGameIds.filter((gid) => gid !== id)
+          : undefined;
+        next.push({
+          ...session,
+          gameIds: remainingGameIds,
+          draft: newDraft,
+          includedGameIds: newIncluded,
+          updatedAt: new Date().toISOString(),
+        });
+        mutated = true;
+      }
+      if (mutated) {
+        await this.storageSetItem(
+          PLANNING_SESSIONS_KEY,
+          JSON.stringify(next),
+        );
+      }
+    });
+
+    return true;
   }
 
   async addGameEvent(gameId: string, event: GameEvent): Promise<AppState | null> {
@@ -2330,6 +2402,246 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  // ==========================================================================
+  // PLANNING SESSIONS (Tournament-planner Phase 3)
+  // ==========================================================================
+
+  async getPlanningSessions(teamId?: string): Promise<PlanningSession[]> {
+    this.ensureInitialized();
+
+    const sessions = await this.loadPlanningSessions();
+    const filtered = teamId
+      ? sessions.filter((session) => session.teamId === teamId)
+      : sessions;
+    // Newest-first ordering: cheaper to read latest plans first in the UI list.
+    return [...filtered].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+  }
+
+  async savePlanningSession(
+    session: Omit<PlanningSession, 'id' | 'createdAt' | 'updatedAt'> & {
+      id?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): Promise<PlanningSession> {
+    this.ensureInitialized();
+
+    validatePlanningSession(session);
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const now = new Date().toISOString();
+
+      const targetId = session.id ?? generateId('planningSession');
+      const existingIndex = current.findIndex((s) => s.id === targetId);
+
+      const normalized: PlanningSession = {
+        id: targetId,
+        teamId: session.teamId,
+        name: session.name.trim(),
+        gameIds: [...session.gameIds],
+        // Deep-clone the draft map so a caller that retains the input
+        // session and mutates draft[gameId].bench / scheduledSubs after
+        // save can't silently corrupt the stored value. The shape is
+        // pure data (Records, arrays of primitives), so the JSON round-
+        // trip is exact and works in every environment (structuredClone
+        // is missing from some test runtimes).
+        draft: JSON.parse(JSON.stringify(session.draft)),
+        isActive: session.isActive,
+        appliedAt: session.appliedAt,
+        // Preserve undefined as undefined ("all gameIds included" per
+        // resolveIncludedGameIds); otherwise clone the array.
+        includedGameIds:
+          session.includedGameIds === undefined
+            ? undefined
+            : [...session.includedGameIds],
+        // Pass through the parent pointer so saves preserve the
+        // named-version → parent linkage. String value, no clone needed.
+        parentSessionId: session.parentSessionId,
+        createdAt:
+          session.createdAt ??
+          (existingIndex !== -1 ? current[existingIndex].createdAt : now),
+        updatedAt: now,
+      };
+
+      if (existingIndex !== -1) {
+        current[existingIndex] = normalized;
+      } else {
+        current.push(normalized);
+      }
+      await this.storageSetItem(
+        PLANNING_SESSIONS_KEY,
+        JSON.stringify(current),
+      );
+      return normalized;
+    });
+  }
+
+  async deletePlanningSession(id: string): Promise<boolean> {
+    this.ensureInitialized();
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const next = current.filter((session) => session.id !== id);
+      if (next.length === current.length) {
+        return false;
+      }
+      await this.storageSetItem(
+        PLANNING_SESSIONS_KEY,
+        JSON.stringify(next),
+      );
+      return true;
+    });
+  }
+
+  async setActiveSession(
+    sessionId: string | null,
+    teamId: string,
+    gameIds: string[],
+    parentSessionId?: string | null,
+  ): Promise<PlanningSession | null> {
+    this.ensureInitialized();
+
+    if (!teamId || !Array.isArray(gameIds) || gameIds.length === 0) {
+      throw new ValidationError(
+        'setActiveSession requires teamId and a non-empty gameIds[]',
+        'teamId',
+        { teamId, gameIds },
+      );
+    }
+    if (gameIds.length > PLANNING_SESSION_GAME_IDS_MAX) {
+      // Mirror migration 036's RPC cap: an unbounded gameIds array is a
+      // perf footgun (O(n*m) scope matching per session) and there's no
+      // realistic plan that needs >100 games. Enforce the same ceiling
+      // in both DataStores so the contract matches across modes.
+      throw new ValidationError(
+        `setActiveSession received too many gameIds (max ${PLANNING_SESSION_GAME_IDS_MAX})`,
+        'gameIds',
+        { count: gameIds.length },
+      );
+    }
+    // Reject empty-string parentSessionId — caller must pick a side
+    // (undefined/null = legacy scope; non-empty string = a real parent
+    // id). Empty string would otherwise silently shift to the parent
+    // scope but never match any row (validator rejects empty
+    // parent_session_id at write time, so no row carries it).
+    if (parentSessionId === '') {
+      throw new ValidationError(
+        'setActiveSession parentSessionId, when provided, must be a non-empty string',
+        'parentSessionId',
+        { parentSessionId },
+      );
+    }
+
+    // sortedGameIdsKey already sorts; the Set dedupes so callers passing
+    // duplicates (e.g. `[a, b, b]`) match the same scope as `[a, b]` —
+    // matches the canonical_game_ids handling in migration 036's RPC.
+    const targetKey = sortedGameIdsKey([...new Set(gameIds)]);
+    // Two scope shapes per migration 039:
+    //   - non-empty string → siblings of that parent (empty string
+    //     was rejected above; `?? null` collapses undefined to null
+    //     for the .map closure's narrowing).
+    //   - null/undefined → legacy top-level scope (team + canonical
+    //     gameIds AND parent_session_id IS NULL).
+    const parentScopeId: string | null = parentSessionId ?? null;
+    const useParentScope = parentScopeId !== null;
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const now = new Date().toISOString();
+      let activated: PlanningSession | null = null;
+      let mutated = false;
+
+      const updated = current.map((session) => {
+        const matchesScope = useParentScope
+          ? session.parentSessionId === parentScopeId
+          : !session.parentSessionId &&
+            session.teamId === teamId &&
+            sortedGameIdsKey(session.gameIds) === targetKey;
+        if (!matchesScope) return session;
+
+        if (sessionId !== null && session.id === sessionId) {
+          if (!session.isActive) {
+            mutated = true;
+            const next = { ...session, isActive: true, updatedAt: now };
+            activated = next;
+            return next;
+          }
+          activated = session;
+          return session;
+        }
+        if (session.isActive) {
+          mutated = true;
+          return { ...session, isActive: false, updatedAt: now };
+        }
+        return session;
+      });
+
+      if (sessionId !== null && !activated) {
+        // The caller asked to activate a session that doesn't exist or is
+        // outside the (teamId, gameIds-set) scope. Surfacing as null lets the
+        // UI prompt re-fetch / re-pick rather than silently mis-activating.
+        return null;
+      }
+
+      if (mutated) {
+        await this.storageSetItem(
+          PLANNING_SESSIONS_KEY,
+          JSON.stringify(updated),
+        );
+      }
+      return activated;
+    });
+  }
+
+  async upsertPlanningSession(
+    session: PlanningSession,
+  ): Promise<PlanningSession> {
+    this.ensureInitialized();
+
+    validatePlanningSession(session);
+
+    return withKeyLock(PLANNING_SESSIONS_KEY, async () => {
+      const current = await this.loadPlanningSessions();
+      const existingIndex = current.findIndex((s) => s.id === session.id);
+      const now = new Date().toISOString();
+
+      // Scalar fields ride through `...session`; arrays/objects below need explicit clone.
+      const normalized: PlanningSession = {
+        ...session,
+        name: session.name.trim(),
+        gameIds: [...session.gameIds],
+        // Deep-clone matches savePlanningSession; the SyncedDataStore
+        // sync path passes locally-stored sessions straight into
+        // remoteStore.upsertPlanningSession, so a caller that mutates
+        // the input afterwards must not corrupt either store's copy.
+        draft: JSON.parse(JSON.stringify(session.draft)),
+        includedGameIds:
+          session.includedGameIds === undefined
+            ? undefined
+            : [...session.includedGameIds],
+        createdAt:
+          session.createdAt ??
+          (existingIndex !== -1 ? current[existingIndex].createdAt : now),
+        updatedAt: session.updatedAt ?? now,
+      };
+
+      if (existingIndex !== -1) {
+        current[existingIndex] = normalized;
+      } else {
+        current.push(normalized);
+      }
+      await this.storageSetItem(
+        PLANNING_SESSIONS_KEY,
+        JSON.stringify(current),
+      );
+      return normalized;
+    });
+  }
+
   async getTimerState(): Promise<TimerState | null> {
     this.ensureInitialized();
 
@@ -2598,6 +2910,46 @@ export class LocalDataStore implements DataStore {
     }
   }
 
+  private async loadPlanningSessions(): Promise<PlanningSession[]> {
+    try {
+      const json = await this.storageGetItem(PLANNING_SESSIONS_KEY);
+      if (!json) {
+        return [];
+      }
+      const parsed = JSON.parse(json);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      // Per-item validation guards against schema drift: a session
+      // saved before a required field was added would otherwise load
+      // as a malformed PlanningSession and surface as a runtime crash
+      // deep in applyPlanToGame. Filter and log instead — match the
+      // pattern used by other loaders for corrupt entries.
+      const valid: PlanningSession[] = [];
+      for (const candidate of parsed) {
+        try {
+          validatePlanningSession(candidate as Partial<PlanningSession>);
+          valid.push(candidate as PlanningSession);
+        } catch (validationError) {
+          logger.warn(
+            '[LocalDataStore] Dropping invalid planning session on load',
+            {
+              sessionId: (candidate as { id?: string } | null)?.id,
+              error:
+                validationError instanceof Error
+                  ? validationError.message
+                  : String(validationError),
+            },
+          );
+        }
+      }
+      return valid;
+    } catch (error) {
+      logger.error('[LocalDataStore] Failed to load planning sessions', error);
+      return [];
+    }
+  }
+
   private async loadPersonnelCollection(): Promise<PersonnelCollection> {
     try {
       const personnelJson = await this.storageGetItem(PERSONNEL_KEY);
@@ -2629,7 +2981,26 @@ export class LocalDataStore implements DataStore {
         return {};
       }
 
-      return parsed as SavedGamesCollection;
+      // Boundary-validate scheduled_subs per game so a corrupted
+      // IndexedDB blob (partial write, manual edit, schema drift)
+      // can't crash ScheduledSubBanner / applyDraftToGame downstream.
+      // Same defense the cloud read path uses in
+      // SupabaseDataStore.transformGameFromDb.
+      const games = parsed as SavedGamesCollection;
+      for (const gameId of Object.keys(games)) {
+        const game = games[gameId];
+        if (game && Array.isArray(game.scheduledSubs)) {
+          games[gameId] = {
+            ...game,
+            scheduledSubs: validateScheduledSubsFromDb(
+              game.scheduledSubs,
+              'LocalDataStore',
+              gameId,
+            ),
+          };
+        }
+      }
+      return games;
     } catch (error) {
       logger.error('[LocalDataStore] Failed to load saved games', error);
       return {};

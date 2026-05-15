@@ -342,6 +342,7 @@ describe('retry utility', () => {
       games: [],
       rosters: [],
       adjustments: [],
+      planningSessions: [],
       settings: false,
       warmupPlan: false,
     };
@@ -389,10 +390,11 @@ describe('retry utility', () => {
         games: ['6'],
         rosters: ['7'],
         adjustments: ['8'],
+        planningSessions: ['9'],
         settings: true,
         warmupPlan: true,
       };
-      expect(countPushFailures(failures)).toBe(10);
+      expect(countPushFailures(failures)).toBe(11);
     });
   });
 });

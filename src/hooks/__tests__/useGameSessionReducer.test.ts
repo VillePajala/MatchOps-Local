@@ -120,6 +120,37 @@ describe('gameSessionReducer', () => {
     });
   });
 
+  test('LOAD_STATE_FROM_HISTORY restores scheduledSubs (undo/redo regression)', () => {
+    // Regression: useGameSessionWithHistory marks ADD/UPDATE/DELETE/SKIP/
+    // APPLY_SCHEDULED_SUB as history-saving, but the slice + restore
+    // payload previously omitted scheduledSubs entirely. Undo/redo
+    // therefore left scheduled-sub state changes stuck in the current
+    // state, contradicting the action categorization.
+    const sub = {
+      id: 'sub_1',
+      timeSeconds: 600,
+      outPlayer: 'p1',
+      inPlayer: 'p2',
+      positionRole: 'LB',
+      status: 'pending' as const,
+    };
+    const stateWithSubs = {
+      ...baseState,
+      scheduledSubs: [sub],
+    };
+    const restored = gameSessionReducer(stateWithSubs, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: { scheduledSubs: [] },
+    });
+    expect(restored.scheduledSubs).toEqual([]);
+
+    const reAdded = gameSessionReducer(restored, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: { scheduledSubs: [sub] },
+    });
+    expect(reAdded.scheduledSubs).toEqual([sub]);
+  });
+
   /**
    * CRITICAL REGRESSION TEST: Validates teamId persists through save/load cycle
    *
@@ -351,6 +382,231 @@ describe('gameSessionReducer', () => {
       const state = { ...baseState, customLeagueName: 'My League' };
       const result = gameSessionReducer(state, { type: 'SET_CUSTOM_LEAGUE_NAME', payload: '' });
       expect(result.customLeagueName).toBeUndefined();
+    });
+  });
+
+  describe('Scheduled substitutions', () => {
+    const wellFormedSub = (overrides: Partial<import('@/types/game').ScheduledSub> = {}): import('@/types/game').ScheduledSub => ({
+      id: 'sub_1',
+      timeSeconds: 600,
+      outPlayer: 'p1',
+      inPlayer: 'p2',
+      positionRole: 'CDM',
+      status: 'pending',
+      ...overrides,
+    });
+
+    it('ADD_SCHEDULED_SUB appends to the list', () => {
+      const result = gameSessionReducer(baseState, {
+        type: 'ADD_SCHEDULED_SUB',
+        payload: wellFormedSub(),
+      });
+      expect(result.scheduledSubs).toHaveLength(1);
+      expect(result.scheduledSubs?.[0].id).toBe('sub_1');
+    });
+
+    it('UPDATE_SCHEDULED_SUB replaces the matching entry by id', () => {
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [wellFormedSub({ id: 'a' }), wellFormedSub({ id: 'b' })],
+      };
+      const result = gameSessionReducer(start, {
+        type: 'UPDATE_SCHEDULED_SUB',
+        payload: wellFormedSub({ id: 'b', timeSeconds: 900 }),
+      });
+      expect(result.scheduledSubs?.[1].timeSeconds).toBe(900);
+      expect(result.scheduledSubs?.[0].timeSeconds).toBe(600);
+    });
+
+    it('UPDATE_SCHEDULED_SUB syncs the active prompt when its id matches', () => {
+      const original = wellFormedSub({ id: 'live', positionRole: 'CDM' });
+      const updated = { ...original, positionRole: 'CAM' };
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [original],
+        activeScheduledSubPrompt: original,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'UPDATE_SCHEDULED_SUB',
+        payload: updated,
+      });
+      expect(result.activeScheduledSubPrompt?.positionRole).toBe('CAM');
+    });
+
+    it('UPDATE_SCHEDULED_SUB is a no-op for fired subs (audit-trail guard)', () => {
+      const fired = wellFormedSub({ id: 'done', status: 'fired' });
+      const start: GameSessionState = { ...baseState, scheduledSubs: [fired] };
+      const result = gameSessionReducer(start, {
+        type: 'UPDATE_SCHEDULED_SUB',
+        payload: { ...fired, positionRole: 'CAM' },
+      });
+      expect(result.scheduledSubs?.[0].positionRole).toBe('CDM');
+      expect(result.scheduledSubs?.[0].status).toBe('fired');
+    });
+
+    it('DELETE_SCHEDULED_SUB is a no-op for fired subs (audit-trail guard)', () => {
+      const fired = wellFormedSub({ id: 'done', status: 'fired' });
+      const start: GameSessionState = { ...baseState, scheduledSubs: [fired] };
+      const result = gameSessionReducer(start, {
+        type: 'DELETE_SCHEDULED_SUB',
+        payload: 'done',
+      });
+      expect(result.scheduledSubs).toHaveLength(1);
+    });
+
+    it('UPDATE_SCHEDULED_SUB leaves an active prompt untouched if ids differ', () => {
+      const promptSub = wellFormedSub({ id: 'shown' });
+      const otherSub = wellFormedSub({ id: 'other', timeSeconds: 900 });
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [promptSub, otherSub],
+        activeScheduledSubPrompt: promptSub,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'UPDATE_SCHEDULED_SUB',
+        payload: { ...otherSub, timeSeconds: 1200 },
+      });
+      expect(result.activeScheduledSubPrompt).toBe(promptSub);
+    });
+
+    it('DELETE_SCHEDULED_SUB removes by id and clears active prompt if it matches', () => {
+      const sub = wellFormedSub({ id: 'doomed' });
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [sub],
+        activeScheduledSubPrompt: sub,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'DELETE_SCHEDULED_SUB',
+        payload: 'doomed',
+      });
+      expect(result.scheduledSubs).toHaveLength(0);
+      expect(result.activeScheduledSubPrompt).toBeUndefined();
+    });
+
+    it('SKIP_SCHEDULED_SUB sets status=skipped and clears the prompt', () => {
+      const sub = wellFormedSub();
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [sub],
+        activeScheduledSubPrompt: sub,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'SKIP_SCHEDULED_SUB',
+        payload: sub.id,
+      });
+      expect(result.scheduledSubs?.[0].status).toBe('skipped');
+      expect(result.activeScheduledSubPrompt).toBeUndefined();
+    });
+
+    it('APPLY_SCHEDULED_SUB sets status=fired, appends both off+on events, clears the prompt', () => {
+      const sub = wellFormedSub();
+      const eventOff = {
+        id: 'evt_off',
+        type: 'substitution' as const,
+        time: 605,
+        entityId: 'p1',
+      };
+      const eventOn = {
+        id: 'evt_on',
+        type: 'substitution' as const,
+        time: 605,
+        entityId: 'p2',
+      };
+      const start: GameSessionState = {
+        ...baseState,
+        scheduledSubs: [sub],
+        activeScheduledSubPrompt: sub,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'APPLY_SCHEDULED_SUB',
+        payload: { subId: sub.id, gameEvents: [eventOff, eventOn] },
+      });
+      expect(result.scheduledSubs?.[0].status).toBe('fired');
+      expect(result.gameEvents).toContainEqual(eventOff);
+      expect(result.gameEvents).toContainEqual(eventOn);
+      expect(result.activeScheduledSubPrompt).toBeUndefined();
+    });
+
+    it('SET_TIMER_ELAPSED surfaces a due pending sub when timer is running', () => {
+      const sub = wellFormedSub({ timeSeconds: 600 });
+      const start: GameSessionState = {
+        ...baseState,
+        isTimerRunning: true,
+        gameStatus: 'inProgress',
+        scheduledSubs: [sub],
+        activeScheduledSubPrompt: undefined,
+      };
+      const result = gameSessionReducer(start, {
+        type: 'SET_TIMER_ELAPSED',
+        payload: 600,
+      });
+      expect(result.activeScheduledSubPrompt?.id).toBe(sub.id);
+    });
+
+    it('SET_TIMER_ELAPSED does NOT fire while paused (decision: subs hold during stoppage)', () => {
+      const sub = wellFormedSub({ timeSeconds: 600 });
+      const start: GameSessionState = {
+        ...baseState,
+        isTimerRunning: false, // paused
+        scheduledSubs: [sub],
+      };
+      const result = gameSessionReducer(start, {
+        type: 'SET_TIMER_ELAPSED',
+        payload: 600,
+      });
+      // SET_TIMER_ELAPSED early-returns when paused — both elapsed time and
+      // the prompt stay unchanged.
+      expect(result.activeScheduledSubPrompt).toBeUndefined();
+      expect(result.timeElapsedInSeconds).toBe(0);
+    });
+
+    it('SET_TIMER_ELAPSED keeps the existing prompt when one is already active (no override)', () => {
+      const subA = wellFormedSub({ id: 'a', timeSeconds: 600 });
+      const subB = wellFormedSub({ id: 'b', timeSeconds: 700 });
+      const start: GameSessionState = {
+        ...baseState,
+        isTimerRunning: true,
+        gameStatus: 'inProgress',
+        scheduledSubs: [subA, subB],
+        activeScheduledSubPrompt: subA, // already showing A
+      };
+      const result = gameSessionReducer(start, {
+        type: 'SET_TIMER_ELAPSED',
+        payload: 800, // both A and B due
+      });
+      expect(result.activeScheduledSubPrompt?.id).toBe('a');
+    });
+
+    it('SET_TIMER_ELAPSED skips already-fired subs', () => {
+      const subA = wellFormedSub({ id: 'a', status: 'fired' });
+      const subB = wellFormedSub({ id: 'b', timeSeconds: 700 });
+      const start: GameSessionState = {
+        ...baseState,
+        isTimerRunning: true,
+        gameStatus: 'inProgress',
+        scheduledSubs: [subA, subB],
+      };
+      const result = gameSessionReducer(start, {
+        type: 'SET_TIMER_ELAPSED',
+        payload: 700,
+      });
+      expect(result.activeScheduledSubPrompt?.id).toBe('b');
+    });
+
+    it('LOAD_PERSISTED_GAME_DATA restores scheduledSubs and clears activeScheduledSubPrompt', () => {
+      const subs = [wellFormedSub({ id: 'persisted' })];
+      const result = gameSessionReducer(baseState, {
+        type: 'LOAD_PERSISTED_GAME_DATA',
+        payload: {
+          teamName: 'Loaded',
+          opponentName: 'Other',
+          gameDate: '2026-04-28',
+          scheduledSubs: subs,
+        },
+      });
+      expect(result.scheduledSubs).toEqual(subs);
+      expect(result.activeScheduledSubPrompt).toBeUndefined();
     });
   });
 });

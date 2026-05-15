@@ -25,7 +25,9 @@ import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { AppState } from '@/types';
+import type { ScheduledSub } from '@/types/game';
 import logger from '@/utils/logger';
+import { generateId } from '@/utils/idGenerator';
 
 /**
  * Parameters for useGameSessionCoordination hook
@@ -92,6 +94,15 @@ export interface UseGameSessionCoordinationReturn {
     setWentToPenalties: (value: boolean) => void;
     setShowPositionLabels: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
+    // Scheduled-substitution handlers (planner integration phase 0b).
+    // `addScheduledSub` takes a partial — the coordination layer stamps id
+    // and status='pending' before dispatching, keeping ID generation in one
+    // place rather than letting components mint their own.
+    addScheduledSub: (sub: Omit<ScheduledSub, 'id' | 'status'>) => void;
+    updateScheduledSub: (sub: ScheduledSub) => void;
+    deleteScheduledSub: (id: string) => void;
+    applyScheduledSub: (subId: string) => void;
+    skipScheduledSub: (subId: string) => void;
   };
 }
 
@@ -284,6 +295,10 @@ export function useGameSessionCoordination({
       gameLocation: state.gameLocation,
       gameTime: state.gameTime,
       gameEvents: state.gameEvents,
+      // scheduledSubs is in HISTORY_SAVING_ACTIONS for ADD/UPDATE/DELETE/
+      // SKIP/APPLY — undo/redo must restore the array or those actions
+      // are non-undoable despite being marked otherwise.
+      scheduledSubs: state.scheduledSubs,
       demandFactor: state.demandFactor,
       subIntervalMinutes: state.subIntervalMinutes,
       completedIntervalDurations: state.completedIntervalDurations,
@@ -506,6 +521,9 @@ export function useGameSessionCoordination({
         gameLocation: state.gameLocation,
         gameTime: state.gameTime,
         gameEvents: state.gameEvents,
+        // Pair with the slice above so undo/redo restores scheduled-sub
+        // ADD/UPDATE/DELETE/SKIP/APPLY state changes.
+        scheduledSubs: state.scheduledSubs ?? [],
         gamePersonnel: state.gamePersonnel ?? [],
         teamId: state.teamId,
         subIntervalMinutes: state.subIntervalMinutes ?? 5,
@@ -524,6 +542,90 @@ export function useGameSessionCoordination({
       }
     });
   }, [dispatchGameSession]);
+
+  // --- Scheduled substitutions (planner integration phase 0b) ---
+  // ID generation lives here so components don't mint their own; matches the
+  // pattern used elsewhere in the coordination layer for game entities.
+  const handleAddScheduledSub = useCallback(
+    (sub: Omit<ScheduledSub, 'id' | 'status'>) => {
+      // Use the shared generateId utility (same one the sub-fired event
+      // ids below use). The previous inline `sub_${Date.now()}_…`
+      // string was indistinguishable from generateId('sub') output but
+      // bypassed the utility, breaking the file's stated invariant.
+      const id = generateId('sub');
+      dispatchGameSession({
+        type: 'ADD_SCHEDULED_SUB',
+        payload: { ...sub, id, status: 'pending' },
+      });
+    },
+    [dispatchGameSession],
+  );
+
+  const handleUpdateScheduledSub = useCallback(
+    (sub: ScheduledSub) => {
+      dispatchGameSession({ type: 'UPDATE_SCHEDULED_SUB', payload: sub });
+    },
+    [dispatchGameSession],
+  );
+
+  const handleDeleteScheduledSub = useCallback(
+    (id: string) => {
+      dispatchGameSession({ type: 'DELETE_SCHEDULED_SUB', payload: id });
+    },
+    [dispatchGameSession],
+  );
+
+  // Refs so the Apply handler doesn't re-create on every timer tick. Without
+  // this, `gameSessionState.timeElapsedInSeconds` as a dependency would
+  // produce a new function ref every second, propagating through the
+  // orchestration chain and re-rendering the banner on every tick.
+  const scheduledSubsRef = useRef(gameSessionState.scheduledSubs);
+  const timeElapsedRef = useRef(gameSessionState.timeElapsedInSeconds);
+  useEffect(() => {
+    scheduledSubsRef.current = gameSessionState.scheduledSubs;
+    timeElapsedRef.current = gameSessionState.timeElapsedInSeconds;
+  }, [gameSessionState.scheduledSubs, gameSessionState.timeElapsedInSeconds]);
+
+  // Apply: convert the active prompt into a substitution GameEvent. Constructs
+  // the event here (reducer stays pure) using the *current* elapsed time, not
+  // the planned timeSeconds — the actual sub happened "now," even if the
+  // banner was sitting unanswered for a while.
+  const handleApplyScheduledSub = useCallback(
+    (subId: string) => {
+      const sub = scheduledSubsRef.current?.find((s) => s.id === subId);
+      if (!sub) return;
+      // Emit one event per affected player so future stat aggregators
+      // (subs-per-player, time-on-pitch from event log) see both halves.
+      // Order: off first, on second — matches the on-pitch transition.
+      const time = timeElapsedRef.current;
+      const gameEvents = [
+        {
+          id: generateId('evt_sub_off'),
+          type: 'substitution' as const,
+          time,
+          entityId: sub.outPlayer,
+        },
+        {
+          id: generateId('evt_sub_on'),
+          type: 'substitution' as const,
+          time,
+          entityId: sub.inPlayer,
+        },
+      ];
+      dispatchGameSession({
+        type: 'APPLY_SCHEDULED_SUB',
+        payload: { subId, gameEvents },
+      });
+    },
+    [dispatchGameSession],
+  );
+
+  const handleSkipScheduledSub = useCallback(
+    (subId: string) => {
+      dispatchGameSession({ type: 'SKIP_SCHEDULED_SUB', payload: subId });
+    },
+    [dispatchGameSession],
+  );
 
   return {
     // Core session state
@@ -577,6 +679,11 @@ export function useGameSessionCoordination({
       setWentToPenalties: handleSetWentToPenalties,
       setShowPositionLabels: handleSetShowPositionLabels,
       setGamePersonnel: handleSetGamePersonnel,
+      addScheduledSub: handleAddScheduledSub,
+      updateScheduledSub: handleUpdateScheduledSub,
+      deleteScheduledSub: handleDeleteScheduledSub,
+      applyScheduledSub: handleApplyScheduledSub,
+      skipScheduledSub: handleSkipScheduledSub,
     },
   };
 }

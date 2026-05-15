@@ -1,0 +1,366 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '../../i18n.test';
+import PlanningMinutesDashboard from '../PlanningMinutesDashboard';
+import type { Player } from '@/types';
+import type { AppState, SavedGamesCollection } from '@/types/game';
+
+const buildGame = (mins = 10, periods = 2): AppState =>
+  ({
+    teamId: 't1',
+    teamName: 'Pepo',
+    numberOfPeriods: periods,
+    periodDurationMinutes: mins,
+  }) as unknown as AppState;
+
+const renderDashboard = (
+  overrides: Partial<React.ComponentProps<typeof PlanningMinutesDashboard>> = {},
+) => {
+  const props: React.ComponentProps<typeof PlanningMinutesDashboard> = {
+    draft: {
+      startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+      bench: ['p3'],
+      scheduledSubs: [],
+    },
+    gameIds: ['g1'],
+    savedGames: { g1: buildGame() } as SavedGamesCollection,
+    roster: [
+      { id: 'p0', name: 'Alice' },
+      { id: 'p1', name: 'Bob', nickname: 'Bobby' },
+      { id: 'p2', name: 'Cara' },
+      { id: 'p3', name: 'Dan' },
+    ] as Player[],
+    ...overrides,
+  };
+  return render(
+    <I18nextProvider i18n={i18n}>
+      <PlanningMinutesDashboard {...props} />
+    </I18nextProvider>,
+  );
+};
+
+describe('PlanningMinutesDashboard', () => {
+  it('renders the empty-state when no players are referenced', () => {
+    renderDashboard({
+      draft: { startingXI: {}, bench: [], scheduledSubs: [] },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-empty'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('planning-minutes-dashboard'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the empty-state when gameIds is empty', () => {
+    renderDashboard({ gameIds: [] });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-empty'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders one entry per referenced player with mm:ss totals', () => {
+    renderDashboard();
+    expect(
+      screen.getByTestId('planning-minutes-dashboard'),
+    ).toBeInTheDocument();
+    // 3 starters, no subs → each plays the full 20:00.
+    for (const pid of ['p0', 'p1', 'p2']) {
+      const row = screen.getByTestId(
+        `planning-minutes-dashboard-entry-${pid}`,
+      );
+      expect(row).toHaveTextContent('20:00');
+    }
+    // p3 is bench-only with no sub appearance — must NOT render.
+    expect(
+      screen.queryByTestId('planning-minutes-dashboard-entry-p3'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses nickname over name when both are present', () => {
+    renderDashboard();
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p1'),
+    ).toHaveTextContent('Bobby');
+  });
+
+  it('tags rows with their fair-share band via data-band', () => {
+    // 3 starters, all play the full game, fair-share = full game.
+    // Every band → "fair".
+    renderDashboard();
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p0'),
+    ).toHaveAttribute('data-band', 'fair');
+  });
+
+  it('renders the fair-share header value as mm:ss', () => {
+    // 3 starters × 1200s game = 3600s total field time. Fair share =
+    // 3600 / 3 = 1200s = 20:00. Guards against accidental key renames
+    // or format drift on the header.
+    renderDashboard();
+    expect(screen.getByText('Fair share: 20:00')).toBeInTheDocument();
+  });
+
+  it('marks a low-share player with the low band', () => {
+    // p1 plays 0–17:00 (1020s) of a 20:00 game. Fair share with 4
+    // referenced players = (1200 * 3) / 4 = 900s. shareRatio =
+    // 1020/900 = 1.133… → over. To hit `low` (0.7 ≤ ratio < 0.9):
+    // p1 plays 13:00 (780s) → 780/900 = 0.866 → low.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 780, inPlayer: 'p3', positionRole: 'LB' },
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p1'),
+    ).toHaveAttribute('data-band', 'low');
+  });
+
+  it('marks an over-share player with the over band', () => {
+    // Setup as above with sub at 17:00 → p1 plays 1020s,
+    // 1020/900 = 1.133 → over.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 1020, inPlayer: 'p3', positionRole: 'LB' },
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p1'),
+    ).toHaveAttribute('data-band', 'over');
+  });
+
+  it('marks a heavy-over player with the heavy-over band', () => {
+    // p3 takes LB at t=0 and stays for the full 20:00 (1200s).
+    // p1 (displaced at t=0) drops out of `referenced` because they
+    // accumulated 0s. To keep 4 referenced players in the
+    // denominator, p4 enters RB mid-game (both p2 and p4 then have
+    // positive time).
+    // Fair share = (1200 * 3 starters) / 4 referenced = 900s.
+    // p3 = 1200s → ratio 1.333… → heavy-over.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3', 'p4'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 0, inPlayer: 'p3', positionRole: 'LB' },
+          { id: 's2', timeSeconds: 600, inPlayer: 'p4', positionRole: 'RB' },
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p3'),
+    ).toHaveAttribute('data-band', 'heavy-over');
+  });
+
+  it('marks an under-share player with the under band', () => {
+    // p1 plays 0-5 min then p3 takes over. p1 ends at 5min/20min total
+    // = 25% of fair share = under band.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 300, inPlayer: 'p3', positionRole: 'LB' },
+        ],
+      },
+    });
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p1'),
+    ).toHaveAttribute('data-band', 'under');
+  });
+
+  it('aggregates across multiple games using the same draft', () => {
+    renderDashboard({
+      gameIds: ['g1', 'g2', 'g3'],
+      savedGames: {
+        g1: buildGame(),
+        g2: buildGame(),
+        g3: buildGame(),
+      } as SavedGamesCollection,
+    });
+    // 20:00 per game × 3 games = 1:00:00 per starter.
+    expect(
+      screen.getByTestId('planning-minutes-dashboard-entry-p0'),
+    ).toHaveTextContent('60:00');
+  });
+
+  it('sorts entries by total seconds ascending (needs-attention first)', () => {
+    // Ascending ordering: under-played players surface FIRST so the
+    // coach sees who needs more time when glancing at the dashboard.
+    // Mirrors the standalone planner's "needs attention at the top"
+    // arrangement.
+    renderDashboard({
+      draft: {
+        startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+        bench: ['p3'],
+        scheduledSubs: [
+          { id: 's1', timeSeconds: 300, inPlayer: 'p3', positionRole: 'LB' },
+        ],
+      },
+    });
+    const rows = screen
+      .getByTestId('planning-minutes-dashboard-grid')
+      .querySelectorAll('li');
+    const ids = [...rows].map((r) =>
+      r.getAttribute('data-testid')?.replace(
+        'planning-minutes-dashboard-entry-',
+        '',
+      ),
+    );
+    // p1 plays 5m → first; p3 plays 15m; p0 + p2 play 20m and tie
+    // (relative order: id-asc per referencedPlayerIds sort).
+    expect(ids).toEqual(['p1', 'p3', 'p0', 'p2']);
+  });
+
+  it('applies an inline HSL color style to each pill', () => {
+    // Locks the visual contract: pills no longer use discrete
+    // tailwind classes; backgroundColor + borderColor + color are
+    // assigned as inline HSL styles computed from fairShareHue(ratio).
+    // jsdom resolves CSS color values to rgb() form, so we just check
+    // that EACH pill has a non-empty inline backgroundColor (i.e. the
+    // gradient ran). The exact hue formula is locked by fairShareHue's
+    // unit tests in planMinutesAggregate.test.ts.
+    renderDashboard();
+    const rows = screen
+      .getByTestId('planning-minutes-dashboard-grid')
+      .querySelectorAll('li');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      // The HSL gradient now lives on the inner button/div (so the
+      // dim-during-focus opacity dims the gradient too). The <li>
+      // is a passive structural element with no inline style.
+      const inner = row.querySelector('button, div') as HTMLElement | null;
+      expect(inner).not.toBeNull();
+      expect(inner!.style.backgroundColor).not.toBe('');
+      expect(inner!.style.borderColor).not.toBe('');
+      expect(inner!.style.color).not.toBe('');
+    }
+  });
+
+  it('renders the percentage suffix next to the mm:ss total', () => {
+    // Pills render "mm:ss (NN%)" so the coach reads the exact share
+    // at a glance without needing hover/AT.
+    renderDashboard();
+    const rows = screen
+      .getByTestId('planning-minutes-dashboard-grid')
+      .querySelectorAll('li');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      // Percentage text rendered with `(NN%)` literal so even the
+      // 0% / 100% boundaries match.
+      expect(row.textContent ?? '').toMatch(/\(\d+%\)/);
+    }
+  });
+
+  it('renders a ★ glyph + "Priority" aria-label prefix for priority players', () => {
+    renderDashboard({
+      roster: [
+        { id: 'p0', name: 'Alice', isPriority: true },
+        { id: 'p1', name: 'Bob', nickname: 'Bobby' },
+        { id: 'p2', name: 'Cara' },
+        { id: 'p3', name: 'Dan' },
+      ] as Player[],
+    });
+    const priorityRow = screen.getByTestId(
+      'planning-minutes-dashboard-entry-p0',
+    );
+    expect(priorityRow).toHaveAttribute('data-priority', 'true');
+    expect(priorityRow).toHaveTextContent('★');
+    // aria-label lives on the inner interactive element (button or
+    // div). The outer <li> is a passive structural item; putting
+    // aria-label there too would cause AT to announce the player
+    // name twice on focus.
+    const priorityInner = priorityRow.querySelector('button, div');
+    expect(priorityInner!.getAttribute('aria-label')).toMatch(
+      /^Priority Alice/,
+    );
+    // Non-priority players don't get the glyph or prefix.
+    const regular = screen.getByTestId(
+      'planning-minutes-dashboard-entry-p1',
+    );
+    expect(regular).toHaveAttribute('data-priority', 'false');
+    expect(regular).not.toHaveTextContent('★');
+    const regularInner = regular.querySelector('button, div');
+    expect(regularInner!.getAttribute('aria-label')).toMatch(/^Bobby:/);
+  });
+
+  it('the ★ glyph is aria-hidden so screen readers don\'t announce it as "star"', () => {
+    renderDashboard({
+      roster: [
+        { id: 'p0', name: 'Alice', isPriority: true },
+        { id: 'p1', name: 'Bob' },
+        { id: 'p2', name: 'Cara' },
+        { id: 'p3', name: 'Dan' },
+      ] as Player[],
+    });
+    const row = screen.getByTestId(
+      'planning-minutes-dashboard-entry-p0',
+    );
+    const star = row.querySelector('span[aria-hidden="true"]');
+    expect(star).not.toBeNull();
+    expect(star).toHaveTextContent('★');
+  });
+
+  it('exposes an aria-label per row that bundles player + mm:ss + percent', () => {
+    renderDashboard();
+    const row = screen.getByTestId(
+      'planning-minutes-dashboard-entry-p0',
+    );
+    // aria-label / title live on the inner interactive element so
+    // AT only announces the player once. Outer <li> is passive.
+    const inner = row.querySelector('button, div') as HTMLElement;
+    expect(inner).toHaveAttribute(
+      'aria-label',
+      'Alice: 20:00, 100 percent of fair share',
+    );
+    expect(inner).toHaveAttribute(
+      'title',
+      'Alice: 20:00, 100 percent of fair share',
+    );
+  });
+
+  describe('read-only fallback (no onToggleHighlight)', () => {
+    // The component's prop signature marks `onToggleHighlight` as
+    // optional — when callers omit it, the pill is purely visual.
+    // PlanningEditor always passes it today, but the contract is
+    // public so the fallback path needs coverage.
+    it('renders a <div role="group"> instead of a <button> when no toggle handler', () => {
+      renderDashboard({ onToggleHighlight: undefined });
+      const row = screen.getByTestId(
+        'planning-minutes-dashboard-entry-p0',
+      );
+      // No interactive button on the read-only path.
+      expect(row.querySelector('button')).toBeNull();
+      // The div carries role="group" so aria-label is honoured by AT
+      // (a roleless <div> would silently drop the label).
+      const inner = row.querySelector('div') as HTMLElement;
+      expect(inner).not.toBeNull();
+      expect(inner).toHaveAttribute('role', 'group');
+      expect(inner).toHaveAttribute(
+        'aria-label',
+        'Alice: 20:00, 100 percent of fair share',
+      );
+    });
+
+    it('still applies the HSL gradient on the read-only fallback', () => {
+      // Style + dimming both live on the inner element regardless of
+      // which branch renders, so the visual contract holds.
+      renderDashboard({ onToggleHighlight: undefined });
+      const row = screen.getByTestId(
+        'planning-minutes-dashboard-entry-p0',
+      );
+      const inner = row.querySelector('div') as HTMLElement;
+      expect(inner.style.backgroundColor).not.toBe('');
+    });
+  });
+});

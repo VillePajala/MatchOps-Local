@@ -24,6 +24,7 @@ import type {
   Season,
   Tournament,
   PlayerStatAdjustment,
+  PlanningSession,
 } from '@/types';
 import type { AppState } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
@@ -323,6 +324,10 @@ async function executeSyncOperation(
       await syncWarmupPlan(cloudStore, operation, data);
       break;
 
+    case 'planningSession':
+      await syncPlanningSession(cloudStore, operation, entityId, data);
+      break;
+
     default: {
       // TypeScript exhaustiveness check
       const _exhaustive: never = entityType;
@@ -508,6 +513,20 @@ async function syncWarmupPlan(
   }
 }
 
+async function syncPlanningSession(
+  store: DataStore,
+  operation: SyncOperation['operation'],
+  entityId: string,
+  data: unknown
+): Promise<void> {
+  if (operation === 'delete') {
+    await store.deletePlanningSession(entityId);
+  } else {
+    validateObjectData(data, 'planningSession', operation, entityId);
+    await store.upsertPlanningSession(data as PlanningSession);
+  }
+}
+
 // =============================================================================
 // Conflict Resolution Helpers
 // =============================================================================
@@ -658,6 +677,17 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
           };
         }
 
+        case 'planningSession': {
+          const sessions = await cloudStore.getPlanningSessions();
+          const session = sessions.find((s) => s.id === entityId);
+          if (!session) return null;
+          return {
+            ...session,
+            id: session.id,
+            updatedAt: session.updatedAt,
+          };
+        }
+
         default: {
           const _exhaustive: never = entityType;
           throw new Error(`Unknown entity type for cloud fetch: ${_exhaustive}`);
@@ -729,6 +759,11 @@ function createCloudWriter(cloudStore: DataStore): CloudRecordWriter {
       case 'warmupPlan':
         validateObjectData(data, 'warmupPlan', 'upsert');
         await cloudStore.saveWarmupPlan(data as WarmupPlan);
+        break;
+
+      case 'planningSession':
+        validateObjectData(data, 'planningSession', 'upsert', entityId);
+        await cloudStore.upsertPlanningSession(data as PlanningSession);
         break;
 
       default: {
@@ -805,6 +840,10 @@ function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
         await cloudStore.deleteWarmupPlan();
         break;
 
+      case 'planningSession':
+        await cloudStore.deletePlanningSession(entityId);
+        break;
+
       default: {
         const _exhaustive: never = entityType;
         throw new Error(`Unknown entity type for cloud delete: ${_exhaustive}`);
@@ -876,6 +915,11 @@ function createLocalWriter(localStore: DataStore): LocalRecordWriter {
       case 'warmupPlan':
         validateObjectData(data, 'warmupPlan', 'upsert');
         await localStore.saveWarmupPlan(data as WarmupPlan);
+        break;
+
+      case 'planningSession':
+        validateObjectData(data, 'planningSession', 'upsert', entityId);
+        await localStore.upsertPlanningSession(data as PlanningSession);
         break;
 
       default: {

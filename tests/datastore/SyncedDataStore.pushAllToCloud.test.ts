@@ -124,6 +124,7 @@ describe('SyncedDataStore.pushAllToCloud', () => {
       getWarmupPlan: jest.fn().mockResolvedValue(mockWarmupPlan),
       getAllTeamRosters: jest.fn().mockResolvedValue(mockTeamRosters),
       getAllPlayerAdjustments: jest.fn().mockResolvedValue(mockAdjustments),
+      getPlanningSessions: jest.fn().mockResolvedValue([]),
     } as unknown as jest.Mocked<DataStore>;
 
     // Create mock remote store (all operations succeed by default)
@@ -138,6 +139,7 @@ describe('SyncedDataStore.pushAllToCloud', () => {
       saveWarmupPlan: jest.fn().mockResolvedValue(undefined),
       setTeamRoster: jest.fn().mockResolvedValue(undefined),
       upsertPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
+      upsertPlanningSession: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<DataStore>;
   });
 

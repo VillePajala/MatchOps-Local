@@ -1,0 +1,304 @@
+import {
+  aggregatePlanMinutes,
+  fairShareBand,
+  fairShareHue,
+} from '../planMinutesAggregate';
+import type { PlanDraft } from '../planSwapEngine';
+import type { AppState } from '@/types/game';
+
+const game = (mins: number, periods = 2): AppState =>
+  ({
+    numberOfPeriods: periods,
+    periodDurationMinutes: mins,
+    teamId: 't1',
+    teamName: 'Pepo',
+  }) as unknown as AppState;
+
+const draftBasic: PlanDraft = {
+  startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+  bench: ['p3'],
+  scheduledSubs: [],
+};
+
+describe('aggregatePlanMinutes', () => {
+  it('returns an empty result when there are no gameIds', () => {
+    const out = aggregatePlanMinutes(draftBasic, [], {});
+    expect(out.perPlayer).toEqual([]);
+    expect(out.fairShareSeconds).toBe(0);
+    expect(out.totalFieldSeconds).toBe(0);
+    // No games → nobody played → empty referenced set. Distinguishes
+    // "denominator includes you because you'd play" (old) from
+    // "denominator includes you because you actually played" (new).
+    expect(out.referencedPlayerIds).toEqual([]);
+  });
+
+  it('returns an empty result when the draft has no starting XI or subs', () => {
+    const empty: PlanDraft = { startingXI: {}, bench: [], scheduledSubs: [] };
+    const out = aggregatePlanMinutes(empty, ['g1'], { g1: game(10) });
+    expect(out.perPlayer).toEqual([]);
+    expect(out.fairShareSeconds).toBe(0);
+    expect(out.referencedPlayerIds).toEqual([]);
+  });
+
+  it('aggregates seconds across multiple games with the same draft', () => {
+    // Two games, 2 periods × 10 min = 1200s each. 3 starting players,
+    // no subs → each starting player gets 1200s per game = 2400s total.
+    const out = aggregatePlanMinutes(
+      draftBasic,
+      ['g1', 'g2'],
+      { g1: game(10), g2: game(10) },
+    );
+    const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+    expect(byId.get('p0')?.totalSeconds).toBe(2400);
+    expect(byId.get('p1')?.totalSeconds).toBe(2400);
+    expect(byId.get('p2')?.totalSeconds).toBe(2400);
+    // Total field seconds = 1200 * 3 starters * 2 games = 7200.
+    expect(out.totalFieldSeconds).toBe(7200);
+    // Fair share = 7200 / 3 referenced = 2400. Each player at the
+    // target, so shareRatio === 1.
+    expect(out.fairShareSeconds).toBe(2400);
+    for (const entry of out.perPlayer) expect(entry.shareRatio).toBe(1);
+  });
+
+  it('weights games by their individual durations', () => {
+    // Game 1: 10 min × 2 periods = 1200s. Game 2: 25 min × 2 = 3000s.
+    // Same draft applies to both.
+    const out = aggregatePlanMinutes(
+      draftBasic,
+      ['g1', 'g2'],
+      { g1: game(10), g2: game(25) },
+    );
+    const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+    expect(byId.get('p0')?.totalSeconds).toBe(4200); // 1200 + 3000
+    expect(out.totalFieldSeconds).toBe(12_600); // 4200 * 3 starters
+  });
+
+  it('returns an empty aggregate when every gameId is missing from savedGames', () => {
+    // Every id is missing — totals stays empty, fair share is 0, no
+    // perPlayer entries. The dashboard's empty-state fires from this.
+    const out = aggregatePlanMinutes(
+      draftBasic,
+      ['missing1', 'missing2'],
+      {},
+    );
+    expect(out.perPlayer).toEqual([]);
+    expect(out.referencedPlayerIds).toEqual([]);
+    expect(out.fairShareSeconds).toBe(0);
+    expect(out.totalFieldSeconds).toBe(0);
+  });
+
+  it('skips games whose savedGames entry is missing', () => {
+    // gx not in savedGames — must not throw, must contribute 0.
+    const out = aggregatePlanMinutes(
+      draftBasic,
+      ['g1', 'gx'],
+      { g1: game(10) },
+    );
+    const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+    expect(byId.get('p0')?.totalSeconds).toBe(1200);
+    expect(out.totalFieldSeconds).toBe(3600);
+  });
+
+  it('a sub-only player counts toward the referenced denominator', () => {
+    // p3 starts on the bench but is subbed in at 5:00 for LB.
+    // referencedPlayerIds = [p0, p1, p2, p3] → fair share spread
+    // across 4 players. Total seconds = 1200 * 3 = 3600.
+    // Fair share = 3600 / 4 = 900s per player.
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+      bench: ['p3'],
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 300, inPlayer: 'p3', positionRole: 'LB' },
+      ],
+    };
+    const out = aggregatePlanMinutes(draft, ['g1'], { g1: game(10) });
+    expect(out.fairShareSeconds).toBe(900);
+    const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+    // p1 played 0-5min = 300s; p3 played 5-20min = 900s.
+    expect(byId.get('p1')?.totalSeconds).toBe(300);
+    expect(byId.get('p3')?.totalSeconds).toBe(900);
+    // p3 shareRatio = 900/900 = 1. p1 shareRatio = 300/900 ≈ 0.333.
+    expect(byId.get('p3')?.shareRatio).toBeCloseTo(1, 5);
+    expect(byId.get('p1')?.shareRatio).toBeCloseTo(1 / 3, 5);
+  });
+
+  it('excludes inPlayers of unreachable subs from the fair-share denominator', () => {
+    // p3 is the inPlayer of a sub scheduled at 25:00 in a 20:00 game
+    // — unreachable. computePlayerSeconds clamps the sub time and p3
+    // contributes 0s. p3 must NOT count toward the denominator —
+    // otherwise active players would appear over their share.
+    const draft: PlanDraft = {
+      startingXI: { GK: 'p0', LB: 'p1', RB: 'p2' },
+      bench: ['p3'],
+      scheduledSubs: [
+        { id: 's1', timeSeconds: 1500, inPlayer: 'p3', positionRole: 'LB' },
+      ],
+    };
+    const out = aggregatePlanMinutes(draft, ['g1'], { g1: game(10) });
+    // 3 active players, 1200s each = 3600s total. Fair share = 3600 / 3
+    // = 1200s, NOT 3600 / 4 = 900s.
+    expect(out.fairShareSeconds).toBe(1200);
+    // referencedPlayerIds is sorted by id for deterministic equality.
+    expect(out.referencedPlayerIds).toEqual(['p0', 'p1', 'p2']);
+    expect(out.referencedPlayerIds).not.toContain('p3');
+    // Active players are at exactly fair share.
+    for (const entry of out.perPlayer) expect(entry.shareRatio).toBe(1);
+  });
+
+  it('handles 0-duration games without dividing by zero', () => {
+    // Duration 0 should be skipped (no contribution to either totals
+    // or totalFieldSeconds), not produce NaN ratios.
+    const out = aggregatePlanMinutes(
+      draftBasic,
+      ['g1', 'g2'],
+      { g1: game(0), g2: game(10) },
+    );
+    expect(out.totalFieldSeconds).toBe(3600);
+    for (const entry of out.perPlayer) {
+      expect(Number.isFinite(entry.shareRatio)).toBe(true);
+      expect(entry.shareRatio).toBe(1);
+    }
+  });
+
+  // pass-15 Issue: per-game Record overload was the primary production
+  // path (PlanningEditor → Dashboard) but had zero direct coverage.
+  // These lock the discriminator: each gameId reads its own draft
+  // independently, so per-player seconds reflect per-game lineups.
+  describe('per-game Record<string, PlanDraft> overload', () => {
+    it('each game uses its own draft (different starters across tabs)', () => {
+      // p0 starts only in g1, p1 starts only in g2 — both should land
+      // at 1200s (one full 20-min game each), not 2400s.
+      const drafts: Record<string, PlanDraft> = {
+        g1: { startingXI: { GK: 'p0' }, bench: ['p1'], scheduledSubs: [] },
+        g2: { startingXI: { GK: 'p1' }, bench: ['p0'], scheduledSubs: [] },
+      };
+      const out = aggregatePlanMinutes(drafts, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+      expect(byId.get('p0')?.totalSeconds).toBe(1200);
+      expect(byId.get('p1')?.totalSeconds).toBe(1200);
+      // Total field seconds = 1200 * 1 starter * 2 games = 2400.
+      expect(out.totalFieldSeconds).toBe(2400);
+      // Fair share = 2400 / 2 referenced = 1200; both at target.
+      expect(out.fairShareSeconds).toBe(1200);
+    });
+
+    it('a missing gameId entry in the Record is treated like an empty draft (no contribution)', () => {
+      // g2 has no draft entry; the loop must skip it without throwing
+      // and without inflating totalFieldSeconds.
+      const drafts: Record<string, PlanDraft> = {
+        g1: { startingXI: { GK: 'p0' }, bench: [], scheduledSubs: [] },
+        // g2 deliberately absent
+      };
+      const out = aggregatePlanMinutes(drafts, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      // Only g1 contributes: 1200s for p0.
+      const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+      expect(byId.get('p0')?.totalSeconds).toBe(1200);
+      expect(out.totalFieldSeconds).toBe(1200);
+      expect(out.referencedPlayerIds).toEqual(['p0']);
+    });
+
+    it('empty Record produces empty result (per-game equivalent of empty draft)', () => {
+      const out = aggregatePlanMinutes({}, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      expect(out.perPlayer).toEqual([]);
+      expect(out.totalFieldSeconds).toBe(0);
+      expect(out.referencedPlayerIds).toEqual([]);
+    });
+
+    it('respects per-game gameDuration when each draft has its own scheduledSubs', () => {
+      // g1: p0 starts and stays — full 1200s.
+      // g2: p1 starts, p2 subs in at 600s → p1 gets 600s, p2 gets 600s.
+      const drafts: Record<string, PlanDraft> = {
+        g1: { startingXI: { GK: 'p0' }, bench: [], scheduledSubs: [] },
+        g2: {
+          startingXI: { GK: 'p1' },
+          bench: ['p2'],
+          scheduledSubs: [
+            { id: 's1', timeSeconds: 600, inPlayer: 'p2', positionRole: 'GK' },
+          ],
+        },
+      };
+      const out = aggregatePlanMinutes(drafts, ['g1', 'g2'], {
+        g1: game(10),
+        g2: game(10),
+      });
+      const byId = new Map(out.perPlayer.map((e) => [e.playerId, e]));
+      expect(byId.get('p0')?.totalSeconds).toBe(1200);
+      expect(byId.get('p1')?.totalSeconds).toBe(600);
+      expect(byId.get('p2')?.totalSeconds).toBe(600);
+    });
+  });
+});
+
+describe('fairShareBand', () => {
+  it.each([
+    [0.0, 'under'],
+    [0.5, 'under'],
+    [0.69, 'under'],
+    [0.7, 'low'],
+    [0.85, 'low'],
+    [0.9, 'fair'],
+    [1.0, 'fair'],
+    [1.1, 'fair'],
+    [1.11, 'over'],
+    [1.3, 'over'],
+    [1.31, 'heavy-over'],
+    [2.0, 'heavy-over'],
+  ])('ratio %f → %s', (ratio, expected) => {
+    expect(fairShareBand(ratio)).toBe(expected);
+  });
+});
+
+describe('fairShareHue (continuous gradient)', () => {
+  // Continuous red→yellow→green hue ramp matching the standalone
+  // planner. Anchors at the saturation cap, the on-target ratio,
+  // and a few interior points to lock the formula.
+  it('clamps below-range ratios to red (hue 0)', () => {
+    // ratio = 0 is the value aggregatePlanMinutes emits for a
+    // zero-minutes player (when fairShareSeconds > 0 the divide
+    // gives 0; when fairShareSeconds === 0 the explicit fallback is
+    // 0 too). Locks the zero-minutes → red-pill contract.
+    expect(fairShareHue(0)).toBe(0);
+    expect(fairShareHue(0.2)).toBe(0);
+    expect(fairShareHue(0.4)).toBe(0);
+  });
+
+  it('clamps above-range ratios to green (hue 150)', () => {
+    expect(fairShareHue(1.5)).toBe(150);
+    expect(fairShareHue(2)).toBe(150);
+    expect(fairShareHue(10)).toBe(150);
+  });
+
+  it('maps ratio 1.0 ("on target") near yellow-green (hue ~82)', () => {
+    // (1.0 - 0.4) / 1.1 * 150 = 81.81... → rounds to 82.
+    expect(fairShareHue(1.0)).toBe(82);
+  });
+
+  it('produces a monotonically non-decreasing ramp across the range', () => {
+    // Critical for the visual contract: a slightly-better ratio must
+    // never produce a worse-looking pill (e.g. ratio 0.85 yellower
+    // than 0.95). Locks the formula's monotonicity.
+    const samples = [0.4, 0.5, 0.7, 0.9, 1.0, 1.1, 1.3, 1.5];
+    let prev = -1;
+    for (const r of samples) {
+      const h = fairShareHue(r);
+      expect(h).toBeGreaterThanOrEqual(prev);
+      prev = h;
+    }
+  });
+
+  it('returns an integer hue (avoids fractional CSS hue strings)', () => {
+    for (const r of [0.4, 0.55, 0.7, 0.85, 1.0, 1.15, 1.3, 1.5]) {
+      const h = fairShareHue(r);
+      expect(Number.isInteger(h)).toBe(true);
+    }
+  });
+});

@@ -82,6 +82,7 @@ export type Database = {
           game_id: string
           id: string
           is_goalie: boolean | null
+          is_priority: boolean | null
           is_selected: boolean | null
           jersey_number: string | null
           nickname: string | null
@@ -100,6 +101,7 @@ export type Database = {
           game_id: string
           id: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           is_selected?: boolean | null
           jersey_number?: string | null
           nickname?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           game_id?: string
           id?: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           is_selected?: boolean | null
           jersey_number?: string | null
           nickname?: string | null
@@ -218,6 +221,7 @@ export type Database = {
           number_of_periods: number
           opponent_name: string
           period_duration_minutes: number
+          scheduled_subs: Json
           season_id: string | null
           show_player_names: boolean
           show_position_labels: boolean
@@ -258,6 +262,7 @@ export type Database = {
           number_of_periods?: number
           opponent_name: string
           period_duration_minutes?: number
+          scheduled_subs?: Json
           season_id?: string | null
           show_player_names?: boolean
           show_position_labels?: boolean
@@ -298,6 +303,7 @@ export type Database = {
           number_of_periods?: number
           opponent_name?: string
           period_duration_minutes?: number
+          scheduled_subs?: Json
           season_id?: string | null
           show_player_names?: boolean
           show_position_labels?: boolean
@@ -373,6 +379,45 @@ export type Database = {
           phone?: string | null
           role?: string
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      planning_sessions: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          draft: Json
+          game_ids: string[]
+          id: string
+          is_active: boolean
+          name: string
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          draft?: Json
+          game_ids?: string[]
+          id: string
+          is_active?: boolean
+          name: string
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          draft?: Json
+          game_ids?: string[]
+          id?: string
+          is_active?: boolean
+          name?: string
+          team_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -544,6 +589,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_goalie: boolean | null
+          is_priority: boolean | null
           jersey_number: string | null
           name: string
           nickname: string | null
@@ -557,6 +603,7 @@ export type Database = {
           created_at?: string | null
           id: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           jersey_number?: string | null
           name: string
           nickname?: string | null
@@ -570,6 +617,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_goalie?: boolean | null
+          is_priority?: boolean | null
           jersey_number?: string | null
           name?: string
           nickname?: string | null
@@ -1046,6 +1094,14 @@ export type Database = {
           p_tactical_data: Json
         }
         Returns: number
+      }
+      set_active_planning_session: {
+        Args: {
+          p_session_id: string | null
+          p_team_id: string
+          p_game_ids: string[]
+        }
+        Returns: Database["public"]["Tables"]["planning_sessions"]["Row"][]
       }
       set_team_roster: {
         Args: { p_roster: Json[]; p_team_id: string }

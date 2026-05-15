@@ -21,6 +21,7 @@ export const playerSchema = z.object({
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex code')
     .optional(),
   isGoalie: z.boolean().optional(),
+  isPriority: z.boolean().optional(),
   jerseyNumber: z.string()
     .regex(/^\d{1,3}$/, 'Jersey number must be 1-3 digits')
     .optional(),
@@ -36,6 +37,26 @@ export const gameEventSchema = z.object({
   assisterId: z.string().optional(),
   entityId: z.string().optional(),
 });
+
+export const scheduledSubSchema = z
+  .object({
+    id: z.string().min(1),
+    // Integer constraint matches validateScheduledSubs (validation.ts):
+    // a backup with fractional timeSeconds would pass this schema but
+    // fail the next DataStore save, leaving the restored game unsavable.
+    timeSeconds: z.number().int().min(0),
+    outPlayer: z.string().min(1),
+    inPlayer: z.string().min(1),
+    // Non-empty: validateScheduledSubs (validation.ts) rejects empty
+    // strings; the schema must mirror that or backups smuggle
+    // un-saveable rows past the import preflight.
+    positionRole: z.string().min(1),
+    status: z.enum(['pending', 'fired', 'skipped']),
+  })
+  .refine((s) => s.outPlayer !== s.inPlayer, {
+    message: 'inPlayer must differ from outPlayer (no self-substitution)',
+    path: ['inPlayer'],
+  });
 
 export const intervalLogSchema = z.object({
   period: z.number(),
@@ -95,6 +116,16 @@ export const appStateSchema = z.object({
     .int('Current period must be an integer'),
   gameStatus: z.enum(['notStarted', 'inProgress', 'periodEnd', 'gameEnd']),
   selectedPlayerIds: z.array(z.string()),
+  // Duplicate-id refinement matches validateScheduledSubs: ids are the
+  // lookup key for live-banner Apply/Skip dispatch, so duplicates would
+  // make the dispatcher ambiguous.
+  scheduledSubs: z
+    .array(scheduledSubSchema)
+    .refine(
+      (subs) => new Set(subs.map((s) => s.id)).size === subs.length,
+      { message: 'scheduledSubs contains duplicate ids' },
+    )
+    .optional(),
   assessments: z.record(z.string(), playerAssessmentSchema).optional(),
   seasonId: z.string(),
   tournamentId: z.string(),

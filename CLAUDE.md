@@ -331,6 +331,19 @@ const seasons = await localDataStore.getSeasons(true);          // Computes club
 - Load older games on demand
 - UI virtualization for large lists
 
+#### Rule 20: save_game_with_relations RPC — Full Replacement on Every Change
+
+**Any new column on `games` requires a full `CREATE OR REPLACE FUNCTION save_game_with_relations(...)` migration**, including the entire ON CONFLICT DO UPDATE SET clause.
+
+**Why:** Postgres `CREATE OR REPLACE FUNCTION` substitutes the whole body — there is no inheritance from prior definitions. The RPC's ON CONFLICT clause is an explicit column list (NOT `SET (col1, col2, ...) = (EXCLUDED.col1, EXCLUDED.col2, ...)`); columns omitted from the list are silently dropped on every update after the first insert. Migration history showed this trap with `went_to_overtime` (021), `show_position_labels` (022), and `scheduled_subs` (030).
+
+**How to apply:**
+1. New column added on `games` → write a new migration that does `CREATE OR REPLACE FUNCTION save_game_with_relations` with the FULL existing body plus the new column in BOTH the upsert source AND the ON CONFLICT DO UPDATE SET clause.
+2. Reference the prior body explicitly in the migration header (`@see migrations/NNN_*.sql for prior body`).
+3. Add a verification SQL file under `supabase/migrations/__tests__/` that asserts the new column survives an INSERT-then-UPDATE round-trip.
+
+The verification approach guards the regression class without requiring every reviewer to remember Rule 20.
+
 ---
 
 ### Branching Strategy

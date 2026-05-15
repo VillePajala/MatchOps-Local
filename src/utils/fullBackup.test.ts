@@ -10,6 +10,7 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
   WARMUP_PLAN_KEY,
+  PLANNING_SESSIONS_KEY,
 } from "@/config/storageKeys";
 import { DEFAULT_GAME_ID } from "@/config/constants";
 import type { SavedGamesCollection, AppState } from "@/types/game";
@@ -194,6 +195,23 @@ function createMockDataStore(): DataStore {
     }),
     deleteWarmupPlan: jest.fn(),
 
+    // Planning Sessions (fullBackup includes them; mock implements
+    // a minimal upsert and a roundtrip-friendly read).
+    getPlanningSessions: jest.fn().mockImplementation(async () => {
+      return (mockStore[PLANNING_SESSIONS_KEY] as unknown[]) || [];
+    }),
+    savePlanningSession: jest.fn(),
+    deletePlanningSession: jest.fn().mockResolvedValue(false),
+    setActiveSession: jest.fn().mockResolvedValue(null),
+    upsertPlanningSession: jest.fn().mockImplementation(async (session) => {
+      const list = (mockStore[PLANNING_SESSIONS_KEY] as unknown[]) || [];
+      mockStore[PLANNING_SESSIONS_KEY] = [
+        ...list.filter((s) => (s as { id?: string }).id !== session.id),
+        session,
+      ];
+      return session;
+    }),
+
     // Timer State
     getTimerState: jest.fn().mockResolvedValue(null),
     saveTimerState: jest.fn().mockResolvedValue(undefined),
@@ -211,6 +229,7 @@ function createMockDataStore(): DataStore {
       delete mockStore[TEAM_ROSTERS_KEY];
       delete mockStore['matchops_personnel'];
       delete mockStore[WARMUP_PLAN_KEY];
+      delete mockStore[PLANNING_SESSIONS_KEY];
     }),
 
     // Entity Reference Checks
@@ -695,6 +714,48 @@ describe("importFullBackup", () => {
 
       // Verify restore success message
       // Note: Alert no longer shown on success - result object indicates success
+    });
+
+    it("round-trips planning sessions through export → import", async () => {
+      // Regression: fullBackup previously omitted planning_sessions
+      // entirely, so export → reset → restore silently dropped every
+      // saved plan. This pins them as a first-class backup entity.
+      const sessions = [
+        {
+          id: "planningSession_1",
+          teamId: "t1",
+          name: "Default",
+          gameIds: ["g1"],
+          draft: { g1: { startingXI: { GK: "p1" }, bench: [], scheduledSubs: [] } },
+          isActive: true,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-02T00:00:00.000Z",
+        },
+        {
+          id: "planningSession_2",
+          teamId: "t1",
+          name: "Jasper sick",
+          gameIds: ["g1"],
+          draft: { g1: { startingXI: { GK: "p1" }, bench: [], scheduledSubs: [] } },
+          isActive: false,
+          createdAt: "2026-04-03T00:00:00.000Z",
+          updatedAt: "2026-04-04T00:00:00.000Z",
+        },
+      ];
+      mockStore[PLANNING_SESSIONS_KEY] = sessions;
+      const backupJson = await exportFullBackup();
+      const parsed = JSON.parse(backupJson);
+      expect(parsed.localStorage[PLANNING_SESSIONS_KEY]).toEqual(sessions);
+
+      // Import the round-trip: clear store, then restore from json.
+      delete mockStore[PLANNING_SESSIONS_KEY];
+      (window.confirm as jest.Mock).mockReturnValue(true);
+      const result = await importFullBackup(backupJson);
+      expect(result?.success).toBe(true);
+      const restored = mockStore[PLANNING_SESSIONS_KEY] as typeof sessions;
+      expect(restored).toHaveLength(2);
+      expect(restored.find((s) => s.id === "planningSession_1")).toEqual(sessions[0]);
+      expect(restored.find((s) => s.id === "planningSession_2")).toEqual(sessions[1]);
     });
   });
 
@@ -1274,6 +1335,69 @@ describe("importFullBackup", () => {
       // Should mention multiple errors in the message
       expect(alertMock).toHaveBeenCalledWith(
         expect.stringContaining("Backup validation failed")
+      );
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("rejects backup with malformed planning session BEFORE clearing data", async () => {
+      // Regression: validateBackupData previously didn't check
+      // PLANNING_SESSIONS_KEY. A malformed session would slip past
+      // preflight, the import would clearAllUserData, then fail late
+      // on upsertPlanningSession — leaving the user with cleared
+      // local data and a half-restored cloud copy.
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [PLANNING_SESSIONS_KEY]: [
+            {
+              // Missing required fields — gameIds not an array, draft missing.
+              id: "planningSession_1",
+              teamId: "t1",
+              name: "Bad",
+              gameIds: "not-an-array",
+              isActive: false,
+            },
+          ],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Backup validation failed"),
+      );
+      // The critical invariant: clearAllUserData must NOT have been called.
+      expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
+      alertMock.mockRestore();
+    });
+
+    it("rejects backup with duplicate planning session ids BEFORE clearing data", async () => {
+      const session = {
+        id: "planningSession_1",
+        teamId: "t1",
+        name: "A",
+        gameIds: ["g1"],
+        draft: { g1: { startingXI: {}, bench: [], scheduledSubs: [] } },
+        isActive: false,
+        createdAt: "2026-04-30T12:00:00.000Z",
+        updatedAt: "2026-04-30T12:00:00.000Z",
+      };
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [PLANNING_SESSIONS_KEY]: [session, { ...session, name: "B" }],
+        },
+      };
+      const alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result).toBeNull();
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining("Duplicate planning session id"),
       );
       expect(mockDataStore.clearAllUserData).not.toHaveBeenCalled();
       alertMock.mockRestore();

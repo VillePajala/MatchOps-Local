@@ -281,14 +281,151 @@ describe('Translation File Validation', () => {
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
       // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420
       // Sync auth expired: authExpiredTitle (syncStatus)
-      expect(enKeys.length).toBe(2421);
+      // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
+      // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
+      // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
+      // Planner Phase 1d: planningEditor split applyWarnUnknown into
+      // applyWarnUnknownPlayers + applyWarnUnknownRoles so each counter
+      // shows only when > 0. Generator now also synthesizes the plural
+      // base key for every `_one`/`_other` pair so dynamic-key call
+      // sites can assert against TranslationKey.
+      // +1: applySavedSummary (warning banner saved-count prefix).
+      // Planner Phase 2: planningTimeline (18 keys: title, totalDuration,
+      // empty, addSub, editSub, removeSub, time, role, inPlayer,
+      // pickPlayer, noRoles, errBadTime, errTimeOutOfRange, errNoRole,
+      // errNoPlayer, errNoOccupant, errSelfSub, errDoublePosition)
+      // +1 planningEditor.applyWarnUnreachableSubs (per-game end +
+      // empty role + self-sub catch-all).
+      // +1 planningTimeline.minutesPanel (a11y aria-label).
+      // Planner Phase 3b: planningModal saved-sessions list +9
+      // (sessionsLoading, savedSessionsHeading, activeBadge,
+      // gameCountLabel_one, gameCountLabel_other, updatedAtLabel,
+      // deleteSession, deleteConfirm, sessionsLoadError).
+      // Planner Phase 3c (PR 7c):
+      //   +4 planningModal: openSession, openSessionAriaLabel,
+      //     deleteFailed, openSessionFailed.
+      //   +7 planningEditor: savePlanButton, savePlanUpdate,
+      //     savePlanLabel, savePlanNamePlaceholder, saveNameRequired,
+      //     saving, saveFailed.
+      // Planner Phase 3d (PR 7d): +10 planningModal row actions:
+      //   renameAriaLabel, renameInputAriaLabel, renameNameRequired,
+      //   renameFailed, duplicateAriaLabel, duplicateNameSuffix,
+      //   duplicateFailed, activateAriaLabel, deactivateAriaLabel,
+      //   activeToggleFailed.
+      // Planner Phase 4b: +23 planningApplyPreview keys for the
+      //   per-game diff preview component (title + selected-count
+      //   plural pair, change-type copy incl. lineupRemovedNoRole and
+      //   subRemovedWithOut/subRefWithOut for out-player surfacing,
+      //   missingGames plural pair for the inline cloud-sync-race
+      //   notice, confirm plural pair + confirmMissingOnly fallback
+      //   for the all-missing edge case, cancel/empty/missing-game).
+      // Planner Phase 4c: +8 planningUndoBanner keys for the
+      //   post-Apply undo banner (title plural pair, countdown,
+      //   undo/undoing/dismiss labels, undoFailed + undoFailedPartial
+      //   error variants).
+      // Planner Phase 5a: +4 planningMinutesDashboard keys for the
+      //   plan-level minutes dashboard (title, fairShare, empty,
+      //   entryAria).
+      // Planner Phase 5b: +5 planningChipGrid keys for the per-game
+      //   chip-grid view (title, empty, clearHighlight, chipAria,
+      //   gameMissing).
+      // Planner Phase 5e: +2 playerDetailsModal keys (priorityLabel,
+      //   priorityHint) for the roster-level priority toggle.
+      // Planner Phase 5f: +2 priority-aware aria-label keys for the
+      //   ★ rendering on chips (planningChipGrid.chipAriaPriority)
+      //   and dashboard pills (planningMinutesDashboard.entryAriaPriority).
+      // Planner Phase 5g: +3 net (added importNextStep,
+      //   useImportedPlan, importedPlanDefaultName,
+      //   importNoGamesError; removed obsolete importNoApply that
+      //   was replaced by importNextStep in the success card).
+      // Planner PR-B-2: +7 keys for planningTotalsTable.
+      // Planner PR-D: +4 half-time split keys (roleActionsTitle,
+      //   splitAtHalf, keepStarter, keepSub).
+      // Planner PR-E-1: +1 savedAt key (auto-save indicator).
+      // Planner PR-E-2: +2 show-benches keys (showBenches, hideBenches).
+      // Planner PR-C-2b: +3 save-as-new-copy keys (saveAsNewCopy,
+      //   saveAsNewCopyDefault, saveCopyConfirm).
+      // Planner PR-C-2c: +3 versions-menu keys (versionsLabel,
+      //   versionsActive, versionsActivate).
+      // Planner PR-F-2b: +5 bundle-import keys (bundlePickerTitle,
+      //   bundlePickerSubtitle, bundleCurrent, bundleVersionMeta,
+      //   bundleSelectedWarning).
+      // Planner PR-F-2b fix-pass-1: +1 bundleEmptyError (guard for a
+      //   0-version bundle envelope that parsePlanBundle accepts but
+      //   the picker UI can't render usefully).
+      // Planner PR-F-2b fix-pass-2: +1 bundleVersionMissingError
+      //   (defense-in-depth setImportError when the picker click
+      //   resolves to a name no longer in the bundle).
+      // Planner PR-F-2a: +1 exportBundle key (versions-menu export item).
+      // Planner PR-F-2a fix-pass: +1 planMenuLabel (label adapts to
+      //   single-session export-only case).
+      // Planner PR-F-2a fix-pass-4: +1 exportBundleFailed (surfaces
+      //   the catch-block failure as an inline list error instead of
+      //   a silent log).
+      // Planner PR-F-2c: +4 family-import keys (bundleImportAll,
+      //   bundleImportAllOrPickOne, familyImportNoTeamError,
+      //   familyImportFailed).
+      // Planner PR-F-2c fix-pass-2: +1 familyImportPartialFailed (split
+      //   from familyImportFailed so the parent-throw vs child-throw
+      //   cases get distinct user guidance).
+      // Master cutover fix-pass-6: +1 familyImportActivationFailed
+      //   (third path — all saves succeed but setActiveSession throws,
+      //   so recovery is to manually activate, not delete partials).
+      // Master cutover fix-pass-11: +1 deleteSessionAriaLabel (per-row
+      //   trash button aria-label scoped to the session name).
+      // Note: this counts JSON leaf nodes from the translation files
+      // (getAllKeys()). i18n-types.ts uses a slightly different
+      // counter that includes synthesised plural bases — see the
+      // i18n-types.ts assertion below for that distinct number.
+      expect(enKeys.length).toBe(2618);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421 → 2441
       // Sync auth expired: authExpiredTitle (syncStatus)
-      expect(fiKeys.length).toBe(2421);
+      // Planner Phase 0b: scheduledSubBanner (5 keys) + scheduledSubsSection (15 keys)
+      // Planner Phase 0.5: planningModal (16 keys, +newPlanButton) + controlBar.planning (1 key)
+      // Planner Phase 1c: planningGamePicker (5 keys; selectAtLeastOne dropped)
+      // Planner Phase 1d: planningEditor (16 keys; split warning into
+      // applyWarnUnknownPlayers + applyWarnUnknownRoles)
+      // +1: applySavedSummary (warning banner saved-count prefix).
+      // Planner Phase 2: planningTimeline section (18 keys, incl.
+      // errDoublePosition).
+      // +1 planningEditor.applyWarnUnreachableSubs.
+      // +1 planningTimeline.minutesPanel.
+      // Planner Phase 3b: planningModal saved-sessions list +9.
+      // Planner Phase 3c (PR 7c): +4 planningModal +7 planningEditor.
+      // Planner Phase 3d (PR 7d): +10 planningModal row-action keys.
+      // Planner Phase 4b: +23 planningApplyPreview keys (see EN block).
+      // Planner Phase 4c: +8 planningUndoBanner keys (see EN block).
+      // Planner Phase 5a: +4 planningMinutesDashboard keys.
+      // Planner Phase 5b: +5 planningChipGrid keys.
+      // Planner Phase 5e: +2 playerDetailsModal priority keys.
+      // Planner Phase 5f: +2 priority-aware aria keys (chip + pill).
+      // Planner Phase 5g: +3 net import handoff keys (see EN block).
+      // Planner PR-B-2: +7 keys for planningTotalsTable.
+      // Planner PR-D: +4 half-time split keys (roleActionsTitle,
+      //   splitAtHalf, keepStarter, keepSub).
+      // Planner PR-E-1: +1 savedAt key (auto-save indicator).
+      // Planner PR-E-2: +2 show-benches keys (showBenches, hideBenches).
+      // Planner PR-C-2b: +3 save-as-new-copy keys (saveAsNewCopy,
+      //   saveAsNewCopyDefault, saveCopyConfirm).
+      // Planner PR-C-2c: +3 versions-menu keys (versionsLabel,
+      //   versionsActive, versionsActivate).
+      // Planner PR-F-2b: +5 bundle-import keys (bundlePickerTitle,
+      //   bundlePickerSubtitle, bundleCurrent, bundleVersionMeta,
+      //   bundleSelectedWarning).
+      // Planner PR-F-2b fix-pass-1: +1 bundleEmptyError.
+      // Planner PR-F-2b fix-pass-2: +1 bundleVersionMissingError.
+      // Planner PR-F-2a: +1 exportBundle key (versions-menu export item).
+      // Planner PR-F-2a fix-pass: +1 planMenuLabel.
+      // Planner PR-F-2a fix-pass-4: +1 exportBundleFailed.
+      // Planner PR-F-2c: +4 family-import keys.
+      // Planner PR-F-2c fix-pass-2: +1 familyImportPartialFailed.
+      // Master cutover fix-pass-6: +1 familyImportActivationFailed.
+      // Master cutover fix-pass-11: +1 deleteSessionAriaLabel.
+      expect(fiKeys.length).toBe(2618);
     });
   });
 });
@@ -310,6 +447,16 @@ describe('i18n-types.ts Validation', () => {
     const en = JSON.parse(enContent);
     const enKeys = getAllKeys(en);
 
-    expect(keyCount).toBe(enKeys.length);
+    // The generator synthesizes plural base keys (`foo` from `foo_one` /
+    // `foo_other`) so dynamic-key call sites using i18next pluralization
+    // can assert against TranslationKey. Mirror that synthesis here.
+    const synthesizedBases = new Set<string>();
+    for (const key of enKeys) {
+      const m = key.match(/^(.*)_(one|other|two|few|many|zero)$/);
+      if (m) synthesizedBases.add(m[1]);
+    }
+    const expected = new Set([...enKeys, ...synthesizedBases]).size;
+
+    expect(keyCount).toBe(expected);
   });
 });

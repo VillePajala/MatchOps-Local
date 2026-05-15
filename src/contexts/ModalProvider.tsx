@@ -30,6 +30,8 @@ interface ModalContextValue {
   settingsInitialTab: SettingsTab | undefined;
   isPlayerAssessmentModalOpen: boolean;
   setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isPlanningModalOpen: boolean;
+  setIsPlanningModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const ModalContext = createContext<ModalContextValue | undefined>(undefined);
@@ -43,6 +45,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
+  const [isPlanningModalOpen, setIsPlanningModalOpen] = useState(false);
 
   // Anti-flash guard: ignore closes occurring too soon after opening for critical modals
   const ANTI_FLASH_MS = 200;
@@ -207,6 +210,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     settingsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
+    isPlanningModalOpen,
+    setIsPlanningModalOpen,
   }), [
     isGameSettingsModalOpen, setIsGameSettingsModalOpen,
     modalState.loadGame, setIsLoadGameModalOpen,
@@ -220,6 +225,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     modalState.settings, setIsSettingsModalOpen,
     openSettingsToTab, settingsInitialTab,
     isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen,
+    isPlanningModalOpen, setIsPlanningModalOpen,
   ]);
 
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
