@@ -27,6 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### What's Next
 - **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
+- **High priority before Supabase schema/table work**: new Supabase `public` tables need explicit Data API grants. From 2026-05-30 this applies to new Supabase projects, and from 2026-10-30 it is enforced for new tables in existing projects. Any migration/table-creation flow must grant the intended roles explicitly before access through PostgREST, GraphQL, or `supabase-js` can be assumed.
 
 ### Essential Reading
 - **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** ⭐ **Single source of truth**
