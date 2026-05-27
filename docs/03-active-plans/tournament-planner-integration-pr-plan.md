@@ -1,5 +1,7 @@
 # Tournament Planner Integration — PR Plan
 
+> **Status note, 2026-05-18:** This is now implementation history and supporting detail. For the current canonical planner roadmap, branch policy, and release boundary, start with [planner-roadmap.md](./planner-roadmap.md).
+
 **Status:** active · **Last updated:** 2026-04-28 · **Owner:** @valoraami
 **Companions:**
 - `tournament-planner-integration.md` — design plan (the *what* and *why*)

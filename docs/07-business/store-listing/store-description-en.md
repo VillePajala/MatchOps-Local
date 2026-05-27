@@ -3,76 +3,112 @@
 ## Short Description (80 characters max)
 
 ```
-Soccer & futsal game timer & tactics app for coaches. Track lineups, stats & more.
+Soccer & futsal coach app: match timer, lineups, substitutions, stats & more.
 ```
 
-Character count: 78
+Character count: 76
 
 ## Full Description (4000 characters max)
 
 ```
-MatchOps - The Essential Soccer & Futsal Coach Companion
+Your clipboard, stopwatch, notebook, and stats — in one app.
 
-Take control of your team's game day with MatchOps, the powerful yet simple coaching app designed for youth and amateur soccer and futsal coaches. Whether you're managing substitutions, tracking player time, or analyzing post-game statistics, MatchOps has you covered.
+MatchOps replaces scattered game day tools with one app. Plan your lineup, track games live, and build statistics automatically.
 
-🎯 KEY FEATURES
+PLAN
+• Place players on an interactive soccer field
+• Use quick formations to set up your lineup
+• Draw tactics on the tactical board
+• Add opponent discs for tactical planning
 
-Game Timer & Period Management
-• Professional game timer with period tracking
-• Configurable period lengths (halves, quarters, thirds)
-• Overtime and stoppage time support
-• Visual countdown and elapsed time display
+TRACK
+• Track the game clock and substitution intervals
+• Log goals and assists with a few taps
+• Draw halftime tactics
+• Match log builds automatically
 
-Interactive Tactics Board
-• Select-and-place player positioning
-• Formation templates for quick setup
-• Visual lineup management during games
-• Real-time position adjustments
+ASSESS
+• Player and team stats build automatically
+• Track development across seasons and tournaments
+• Assess performances on 10 metrics
+• Export stats to Excel
 
-Player Roster Management
-• Unlimited player roster
-• Jersey numbers and positions
-• Playing time tracking per player
-• Quick substitution management
+MANAGE
+• Create and manage multiple teams
+• Organize leagues and tournaments
+• Browse game history, filter by opponent or season
+• Keep record of coaching staff
 
-Statistics & Analytics
-• Goals and assists tracking
-• Playing time per player
-• Game history and trends
-• Season-by-season statistics
+SOCCER AND FUTSAL
+• Soccer and futsal court views
+• Game type labeling for stats and filtering
 
-🏆 PERFECT FOR
+PRIVACY AND FLEXIBILITY
+• Works offline — your data is always available
+• Quick setup — create an account and start coaching
+• Cloud sync keeps your data safe across devices
+• Backup and restore via JSON export
+• English and Finnish
 
-• Youth soccer and futsal coaches (U8 to U18)
-• Amateur and recreational league coaches
-• Club team managers
-• Parents coaching their child's team
-• Anyone managing soccer or futsal games
+For soccer and futsal coaches at any level — from youth teams to competitive — who want a simple way to manage match events.
 
-📱 WORKS OFFLINE
-
-MatchOps is a local-first app - all your data stays on your device by default. No account required. Optional cloud sync lets you access your data across devices. Perfect for fields with poor connectivity.
-
-✨ WHY COACHES LOVE MATCHOPS
-
-"Finally an app that just works at the field!" - Youth Coach, Finland
-
-• Simple, focused interface - no clutter
-• Fast and responsive
-• No ads interrupting your coaching
-• Privacy-focused - your data stays on your device
-
-🔒 YOUR DATA, YOUR CONTROL
-
-All game data, rosters, and statistics are stored locally on your device. We don't collect personal information or require account creation. Optional error reporting helps us improve the app while keeping your coaching data private.
-
-Download MatchOps today and transform how you manage your team's games!
-
----
-Made with ❤️ for soccer and futsal coaches everywhere
+Focus on coaching, not paperwork.
 ```
 
-Character count: ~2,100 (well under 4,000 limit)
+## Full Description — Finnish (4000 characters max)
+
+```
+Kirjoitusalusta, sekuntikello, muistikirja ja tilastot — yhdessä sovelluksessa.
+
+MatchOps korvaa pelin päivän erilliset työkalut yhdellä sovelluksella. Suunnittele kokoonpano, seuraa pelejä reaaliajassa ja kerää tilastot automaattisesti.
+
+SUUNNITTELE
+• Aseta pelaajat interaktiiviselle jalkapallokentälle
+• Käytä valmiita muodostelmia kokoonpanon luontiin
+• Piirrä taktiikat taktiikataululla
+• Lisää vastustajan kiekot taktiseen suunnitteluun
+
+SEURAA
+• Seuraa pelikelloa ja vaihtovälejä
+• Kirjaa maalit ja syötöt muutamalla napautuksella
+• Piirrä puoliaikataktiikat
+• Pelin tapahtumaloki rakentuu automaattisesti
+
+ARVIOI
+• Pelaaja- ja joukkuetilastot kertyvät automaattisesti
+• Seuraa kehitystä kausien ja turnausten yli
+• Arvioi suorituksia 10 mittarilla
+• Vie tilastot Exceliin
+
+HALLITSE
+• Luo ja hallitse useita joukkueita
+• Järjestä sarjoja ja turnauksia
+• Selaa pelihistoriaa, suodata vastustajan tai kauden mukaan
+• Pidä kirjaa valmennustiimistä
+
+JALKAPALLO JA FUTSAL
+• Jalkapallo- ja futsal-kenttänäkymät
+• Pelityypin merkintä tilastoihin ja suodatukseen
+
+YKSITYISYYS JA JOUSTAVUUS
+• Toimii offline — tietosi ovat aina saatavilla
+• Nopea käyttöönotto — luo tili ja aloita valmennus
+• Pilvisynkronointi pitää tietosi turvassa laitteiden välillä
+• Varmuuskopiointi ja palautus JSON-viennillä
+• Englanti ja suomi
+
+Jalkapallo- ja futsalvalmentajille kaikilla tasoilla — junioreista kilpajoukkueisiin — jotka haluavat yksinkertaisen tavan hallita pelitapahtumia.
+
+Keskity valmentamiseen, älä paperityöhön.
+```
+
+## Short Description — Finnish (80 characters max)
+
+```
+Jalkapallo- ja futsal-valmentajan työkalu: pelikello, kokoonpanot ja tilastot.
+```
+
+Character count: 78
 
 ## App Name Variations
 
@@ -81,27 +117,35 @@ Character count: ~2,100 (well under 4,000 limit)
 
 ## Keywords (for ASO)
 
-- soccer
-- football
-- coach
-- coaching
-- timer
-- game timer
-- lineup
-- tactics
-- youth soccer
-- substitutions
-- player management
-- sports app
+English:
+- soccer coach app, futsal coach app, match timer, lineup planner
+- substitution tracker, tactics board, youth soccer coaching
+- team roster manager, player stats, game statistics
+- coaching app, football coach, sports app
 
-## What's New (for updates)
+Finnish:
+- jalkapallo, futsal, valmennus, kokoonpano, peliaika
+- vaihdot, tilastot, taktiikat, pelikello, valmentaja
+- joukkue, juniori, urheilusovellus
 
+## What's New (for version 1.0.5)
+
+English:
 ```
-Version 1.0.0
-• Initial Play Store release
-• Game timer with configurable periods
-• Interactive tactics board
-• Player roster management
-• Statistics tracking
-• Offline support
+- Fixed game settings: time input and goal assists
+- Game list sorted by date
+- Fixed team creation not responding
+- Improved app update reliability
+- Desktop UI improvements
+- Stability and performance fixes
+```
+
+Finnish:
+```
+- Peliasetukset korjattu: aikasyöte ja maalien syöttäjät
+- Peliluettelo päivämääräjärjestyksessä
+- Joukkueen luonti korjattu
+- Sovelluspäivityksen luotettavuus parannettu
+- Työpöytänäkymän parannuksia
+- Vakautta ja suorituskykyä parannettu
 ```

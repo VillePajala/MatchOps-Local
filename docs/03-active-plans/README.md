@@ -1,12 +1,14 @@
 # Active Plans — START HERE
 
-**Last Updated**: February 2026
+**Last Updated**: 2026-05-19
 
 ---
 
 ## 🎯 Single Source of Truth
 
 **[UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md)** — All project work in one place
+
+**Current release boundary:** the Friday, 2026-05-22 Play Store release should stay on `master` and release-critical fixes only. Planner work remains in its own feature lane.
 
 ---
 
@@ -20,14 +22,16 @@
 | **PLAY-STORE-IMPLEMENTATION-PLAN.md** | Play Store distribution | 📋 Active |
 | **branch-review-findings.md** | Code review findings tracker | 📋 Reference |
 | **user-flow-testing-plan.md** | Manual testing plan | 📋 Pre-release |
+| **tester-feedback-roadmap.md** | Closed-test feedback execution plan | 📋 Production readiness |
 | **welcome-screen-simplification-plan.md** | Welcome screen UX | 📋 Reference |
 | **review-plan.md** | Pre-launch quality audit tracker | 📋 Active |
+| **planner-roadmap.md** | Canonical future roadmap for match planner cleanup/rebuild | 📋 Future feature |
 
 **Note**: Completed plans (supabase-implementation-guide, local-first-sync, subscription, etc.) have been archived to `08-archived/completed-active-plans/`. The supabase-implementation-guide has been relocated to `02-technical/` as permanent reference.
 
 ---
 
-## Current Status (February 2026)
+## Current Status (May 2026)
 
 ✅ **Supabase Cloud Backend** — PRs 1-12 Complete
 ✅ **Local-First Sync** — PR #324 Merged
@@ -53,9 +57,10 @@
 See [billing-implementation-plan.md](./billing-implementation-plan.md#staging-vs-production-architecture) for setup details.
 
 **Next**:
-1. Business setup (Toiminimi, bank account, Google Payments)
-2. Enable `PREMIUM_ENFORCEMENT_ENABLED = true`
-3. Merge feature branch to master
-4. Rebuild TWA with Play Billing enabled
+1. Keep `master` focused on the Play Store release.
+2. Fold closed-test feedback into production-readiness work via [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) and [tester-feedback-roadmap.md](./tester-feedback-roadmap.md).
+3. Finish release-critical testing, packaging, and production access answers.
+4. Keep planner work isolated on `feature/planner-integration` and follow [planner-roadmap.md](./planner-roadmap.md).
+5. Revisit planner cutover after the Play Store release.
 
 See [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) for details.

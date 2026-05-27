@@ -1,8 +1,18 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: February 2026
+**Last Updated**: 2026-05-19
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
+
+---
+
+## May 2026 Release Boundary
+
+The Friday, 2026-05-22 Play Store release stays on `master` and release-critical fixes only.
+
+Closed-test feedback from May 19, 2026 is now part of the Play Store production-readiness lane. The canonical execution order is tracked here; the detailed breakdown lives in [tester-feedback-roadmap.md](./tester-feedback-roadmap.md), with source analysis in [../10-analysis/tester-feedback-analysis-2026-05-19.md](../10-analysis/tester-feedback-analysis-2026-05-19.md).
+
+The match planner is a future feature lane. It remains isolated on `feature/planner-integration` and follows [planner-roadmap.md](./planner-roadmap.md). Do not merge planner work or planner migrations into `master` for the May 22 release.
 
 ---
 
@@ -17,7 +27,8 @@
 | Communication Infrastructure | ✅ Complete (domains, email, Sentry, websites, social) |
 | Supabase Cloud Backend | ✅ PRs 1-12 Complete, Local-First Sync Complete |
 | Billing Infrastructure | ✅ Phases 1-7 Complete (Edge Function, Play Billing, Subscription Management) |
-| Next Major Work | 🎯 **Play Store Release - Enable PREMIUM_ENFORCEMENT_ENABLED + Business Setup** |
+| Closed Tester Feedback | 📋 Production-readiness follow-up added |
+| Next Major Work | Play Store production access; planner deferred to `feature/planner-integration` |
 
 ---
 
@@ -165,6 +176,55 @@
   - [x] velomoai.com website live on Vercel (Next.js 16.x + Tailwind 4.x)
   - Note: X/Twitter using personal account for now (can create @MatchOpsApp later)
 - [ ] Complete internal testing
+- [ ] **P5F: Closed Tester Feedback Follow-up** - REQUIRED BEFORE PRODUCTION ACCESS SUBMISSION
+  - **Detailed Plan**: [tester-feedback-roadmap.md](./tester-feedback-roadmap.md)
+  - **Source Analysis**: [tester-feedback-analysis-2026-05-19.md](../10-analysis/tester-feedback-analysis-2026-05-19.md)
+  - **Source PDFs**:
+    - `/mnt/c/Users/ville.pajala/Desktop/com.matchops.local_feedback.pdf`
+    - `/mnt/c/Users/ville.pajala/Desktop/com.matchops.local_production.pdf`
+
+  **Tester Report Summary**: Testers found no critical crashes or functional bugs. Their actionable feedback is launch-readiness work: ASO, onboarding, Play Store screenshots, Android packaging quality, feedback/update communication, and localization.
+
+  **P0 - Before Production Access Form**
+  - [ ] Rewrite Play Console production access answers so they do not claim incomplete work
+    - Avoid saying "transitioned to native components" unless a native/TWA packaging change was actually completed
+    - Use "prioritized" or "planned" for onboarding/screenshots/ASO until those changes are implemented
+  - [ ] Verify current Android artifact is a proper Trusted Web Activity, not a generic WebView wrapper
+    - App opens without browser chrome
+    - Package name is `com.matchops.local`
+    - Production domain and package pass Digital Asset Links verification
+  - [ ] Confirm `public/.well-known/assetlinks.json` fingerprints match production signing / Play App Signing
+  - [ ] Document v1 packaging decision: PWA + verified TWA; native rewrite deferred unless Play review or performance evidence requires it
+  - [ ] Refresh Play Store ASO copy in English and Finnish
+    - Include soccer/futsal coach keywords naturally
+    - Align claims with actual production pricing, limits, cloud sync, and billing state
+    - Avoid "unlimited" unless limits are actually disabled in the production build
+  - [ ] Update store listing checklist for existing feature graphic and screenshots
+
+  **P1 - Before Public Launch**
+  - [ ] Produce 6-8 feature-focused Play Store screenshots with realistic sample data
+    - Match tracking field
+    - Lineup/roster setup
+    - Substitutions/player minutes
+    - Tactics board
+    - Goals/events
+    - Player stats
+    - Seasons/tournaments
+    - Offline/local-first value
+  - [ ] Add or refine guided first-match onboarding
+    - Lightweight persisted checklist preferred over a heavy tour framework
+    - Suggested flow: add players -> create/select team -> create match -> place lineup -> start timer -> log event -> open stats
+    - Keep it skippable and resettable from Settings/Help
+  - [ ] Add an in-app feedback entry point
+    - Settings -> Send feedback
+    - No private roster/game data sent automatically
+    - User sees what diagnostic context is included
+
+  **P2 - Post-Launch Follow-up**
+  - [ ] Surface release notes/update notifications using existing changelog infrastructure
+  - [ ] Add tablet screenshot sets if tablet usage or Play listing conversion warrants it
+  - [ ] Add more locales based on actual acquisition/support data; likely first candidates: Swedish, Norwegian, Danish
+  - [ ] Reassess native strategy only if TWA performance, Play review, or platform API needs justify it
 - [ ] Submit for production review
 - [ ] Public release
 

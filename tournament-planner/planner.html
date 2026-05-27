@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tournament Planner — Pepo Violetti</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 16px;
+    background: #f4f4f4;
+    color: #222;
+  }
+  h1 { margin: 0 0 8px; font-size: 20px; }
+  h3 { margin: 0 0 6px; font-size: 14px; color: #555; font-weight: 600; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; align-items: center; }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #ddd;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 4px;
+    user-select: none;
+  }
+  .tab.selected { background: #2d5; color: white; font-weight: 600; }
+  .tab:hover:not(.selected) { background: #ccc; }
+  .tab .tab-check {
+    cursor: pointer;
+    width: 14px; height: 14px;
+    margin: 0;
+  }
+  .tab:not(.included) { opacity: 0.55; }
+  .tab.selected:not(.included) { opacity: 0.75; }
+
+  .controls { margin-left: auto; display: flex; gap: 6px; }
+  .controls button {
+    padding: 6px 10px;
+    font-size: 12px;
+    border: 1px solid #aaa;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .controls button:hover { background: #eee; }
+
+  .versions-wrap { position: relative; }
+  .versions-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: white;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+    min-width: 420px;
+    max-width: 560px;
+    max-height: 420px;
+    overflow-y: auto;
+    z-index: 100;
+    padding: 4px 0;
+    font-size: 12px;
+    display: none;
+  }
+  .versions-wrap.open .versions-menu { display: block; }
+  .versions-item {
+    display: flex;
+    align-items: center;
+    padding: 7px 10px;
+    cursor: pointer;
+    gap: 8px;
+  }
+  .versions-item:hover { background: #f0f7ff; }
+  .versions-item.save-row {
+    font-weight: 600;
+    color: #2d5;
+    border-bottom: 1px solid #eee;
+  }
+  .versions-item.save-row:hover { background: #e8f5e9; }
+  .versions-item.current {
+    background: #e3f2fd;
+    border-left: 3px solid #0d47a1;
+    padding-left: 7px;
+  }
+  .versions-item.current:hover { background: #bbdefb; }
+  .versions-item.current .version-name::before { content: "📂 "; }
+  .version-name { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .version-time { font-size: 10px; color: #888; font-weight: normal; }
+  .version-rename {
+    background: none;
+    border: none;
+    color: #2d5;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .version-rename:hover { color: #080; }
+  .version-delete {
+    background: none;
+    border: none;
+    color: #c33;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 6px;
+    line-height: 1;
+  }
+  .version-delete:hover { color: #900; }
+  .versions-empty { padding: 10px 12px; color: #888; font-style: italic; }
+
+  .current-version-label {
+    display: none;
+    font-size: 11px;
+    color: #0d47a1;
+    font-weight: 600;
+    padding: 5px 8px;
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 4px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    align-self: center;
+  }
+  .current-version-label.has-version { display: inline-block; }
+
+  .game-view { margin-bottom: 16px; }
+  .games-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(370px, 1fr));
+    gap: 12px;
+  }
+  .games-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #888;
+    background: white;
+    border-radius: 6px;
+    border: 2px dashed #ddd;
+  }
+
+  .half {
+    background: white;
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    min-width: 0;
+  }
+  .half h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: #222; }
+  .half.focused { outline: 3px solid #2d5; outline-offset: -3px; }
+  .pitch {
+    display: grid;
+    grid-template-rows: repeat(6, auto);
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    background: linear-gradient(to bottom, #4caf50, #388e3c);
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .pos-box {
+    background: rgba(0,0,0,0.18);
+    border-radius: 4px;
+    padding: 3px 4px 4px;
+    width: 155px;  /* fixed — every position is identical regardless of player name */
+  }
+  .pos-box.pos-st  { grid-row: 1; grid-column: 1 / 3; justify-self: center; }
+  .pos-box.pos-cam { grid-row: 2; grid-column: 1 / 3; justify-self: center; }
+  .pos-box.pos-lm  { grid-row: 3; grid-column: 1; justify-self: end; }
+  .pos-box.pos-rm  { grid-row: 3; grid-column: 2; justify-self: start; }
+  .pos-box.pos-cdm { grid-row: 4; grid-column: 1 / 3; justify-self: center; }
+  .pos-box.pos-lb  { grid-row: 5; grid-column: 1; justify-self: end; }
+  .pos-box.pos-rb  { grid-row: 5; grid-column: 2; justify-self: start; }
+  .pos-box.pos-gk  { grid-row: 6; grid-column: 1 / 3; justify-self: center; }
+
+  .pos-label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 8px;
+    color: white;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+  .pos-spacer { flex: 0 0 18px; }
+  .pos-name { flex: 1; text-align: center; }
+  .pos-wrench {
+    flex: 0 0 18px;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 3px;
+    font-size: 10px;
+    padding: 0;
+    line-height: 1.1;
+    cursor: pointer;
+    font-weight: 700;
+    text-align: center;
+  }
+  .pos-wrench:hover { background: rgba(255,255,255,0.4); }
+  .pos-box.edit-mode .pos-wrench { background: #f57c00; border-color: #e65100; }
+
+  .pos-actions {
+    display: none;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 3px;
+  }
+  .pos-box.edit-mode .pos-actions { display: flex; }
+  .pos-action {
+    background: rgba(255,255,255,0.22);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    line-height: 1.3;
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .pos-action:hover { background: rgba(255,255,255,0.4); }
+  .chip-row {
+    display: flex;
+    gap: 2px;
+  }
+
+  .slot {
+    padding: 4px 3px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    cursor: grab;
+    user-select: none;
+    border-radius: 3px;
+    min-height: 28px;
+    line-height: 1.2;
+    flex: 1;
+    min-width: 0;
+    background: white;
+    border: 1.5px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .slot:active { cursor: grabbing; }
+  .slot.drag-over { border-color: #2d5; background: #c8e6c9; }
+
+  /* Player-tracking highlight (click a chip to highlight all chips of that player) */
+  .slot.highlighted {
+    outline: 3px solid #f57c00;
+    outline-offset: 2px;
+    position: relative;
+    z-index: 1;
+  }
+  .slot:not(.highlighted).any-highlighted { opacity: 0.35; }
+
+  .highlight-banner {
+    background: #fff3e0;
+    border: 1px solid #f57c00;
+    padding: 6px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #e65100;
+  }
+  .highlight-banner:hover { background: #ffe0b2; }
+
+  .player-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 12px;
+  }
+  .player-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 16px;
+    border: 2px solid;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s;
+  }
+  .player-pill:hover { transform: scale(1.04); }
+  /* Pill colors come from per-pill inline vars based on a continuous hue gradient */
+  .player-pill {
+    background: var(--pill-bg, #f5f5f5);
+    border-color: var(--pill-border, #bbb);
+    color: var(--pill-color, #333);
+  }
+  .player-pill .player-min {
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.95;
+  }
+  .player-pill .player-ratio {
+    font-size: 9px;
+    opacity: 0.6;
+    font-weight: 600;
+  }
+  .player-pill.highlighted {
+    outline: 3px solid #f57c00;
+    outline-offset: 2px;
+  }
+  .player-pill .gk-mark-inline {
+    background: #1565c0;
+    color: white;
+    font-size: 8px;
+    padding: 1px 3px;
+    border-radius: 2px;
+    font-weight: 700;
+    margin-right: 2px;
+  }
+  /* H2 chips (substitution) — light yellow tint */
+  .slot[data-half="h2"] {
+    background: #fff3cd;
+    border-color: #ffc107;
+  }
+  /* When the same player plays both halves, show a single green full-game chip */
+  .chip-row.full-game .slot[data-half="h1"] {
+    background: #d4edda;
+    border-color: #28a745;
+    border-radius: 3px;
+    flex: 1;
+  }
+  .chip-row.full-game .slot[data-half="h2"] {
+    display: none;
+  }
+
+  .bench-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .bench-label {
+    font-size: 9px;
+    color: #666;
+    font-weight: 600;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .bench-row .chip-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+  }
+  .bench-row .slot[data-half="h1"] {
+    background: #e8e8e8;
+    border-color: #bbb;
+  }
+  .bench-row .slot[data-half="h2"] {
+    background: #ffecb3;
+    border-color: #d4a017;
+  }
+  .slot.benched-both {
+    background: #ffcdd2 !important;
+    border-color: #c62828 !important;
+    color: #b71c1c !important;
+    font-weight: 700;
+    box-shadow: 0 0 0 1px #c62828 inset;
+  }
+  /* Divided-position chip where the player is still on field in the other half
+     (i.e. not really subbed off, just changing position at half time) */
+  .slot.plays-both {
+    box-shadow: inset 0 0 0 2px #c62828;
+  }
+
+  .game-warning {
+    background: #fff3e0;
+    border: 1.5px solid #ff9800;
+    color: #bf360c;
+    padding: 4px 8px;
+    margin: 0 0 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .totals {
+    background: white;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .totals table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .totals th, .totals td {
+    padding: 5px 8px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  .totals th {
+    background: #f8f8f8;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #666;
+  }
+  .totals td.min-cell {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .totals .total-col { font-weight: 600; background: #f8f8f8; }
+  .totals .zero { color: #c33; font-weight: 600; }
+  .totals .below-half { color: #e90; }
+  .totals .priority { color: #2d5; font-weight: 600; }
+  .totals th.inactive, .totals td.min-cell.inactive {
+    color: #bbb;
+    text-decoration: line-through;
+    background: #fafafa;
+  }
+  .totals .gk-mark {
+    display: inline-block;
+    font-size: 9px;
+    background: #1565c0;
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-right: 4px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    vertical-align: middle;
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>Tournament Planner — Pepo Violetti</h1>
+<p style="font-size: 12px; color: #666; margin: 0 0 10px;">
+  Auto-saves to your browser after every change — close the tab, come back, it's still there.
+  Use <strong>Export JSON</strong> for an extra backup file; <strong>Import JSON</strong> to restore one.
+  <span id="save-status" style="color: #2d5; font-weight: 600;"></span>
+</p>
+
+<div class="tabs" id="tabs">
+  <div class="controls">
+    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:6px 8px;border:1px solid #aaa;border-radius:4px;background:white;">
+      <input type="checkbox" id="show-benches-toggle"> Show benches
+    </label>
+    <span id="current-version-label" class="current-version-label" title="Currently editing this named version"></span>
+    <div class="versions-wrap">
+      <button id="versions-btn" title="Save, load, and manage named versions">Versions ▾</button>
+      <div class="versions-menu" id="versions-menu"></div>
+    </div>
+    <button id="import-btn" title="Restore a previously exported .json snapshot">Import JSON</button>
+    <input type="file" id="import-file" accept="application/json" style="display:none">
+    <button id="export-btn" title="Download current state as a .json file (backup)">Export JSON</button>
+    <button id="reset-btn">Reset to plan</button>
+  </div>
+</div>
+
+<div id="game-view" class="game-view"></div>
+
+<div class="totals">
+  <h3>Minutes per player (all 5 games)</h3>
+  <table id="totals-table"></table>
+  <p style="font-size: 11px; color: #666; margin: 8px 0 0;">
+    Each half = 12:30. <span class="zero">Red</span> = 0 min that game.
+    <span class="below-half">Orange</span> = total &lt; 50 min.
+    <span class="priority">Green</span> = ≥ 60 min.
+    <span class="gk-mark">GK</span> = goalkeeper that game (full game);
+    <span class="gk-mark">GK·H1</span> / <span class="gk-mark">GK·H2</span> = goalkeeper one half only.
+    Above the games: <strong>player pills</strong> use a continuous red-yellow-green gradient based on % of fair share
+    (deep red &lt; 50%, yellow = on target, deep green &gt; 140%). Pills are sorted <em>ascending by minutes</em> so players needing more time appear first. The percentage next to each player is their current share vs. expected.
+    <strong>Click any pill (or chip)</strong> to highlight every appearance of that player across all games. Click more pills to add to the selection. Click a highlighted pill again to remove it, or use the <em>Clear</em> button.
+    A small <strong>⚙</strong> gear appears on the right of each position's label — click it to reveal merge/split buttons for that spot. Merged positions get <strong>Split</strong>; divided positions get <strong>Keep [starter]</strong> / <strong>Keep [sub]</strong>.
+    A player benched both halves of a game (not playing) is highlighted in red on both of their bench chips inside the affected game.
+    On the pitch, a chip gets a <strong>red border</strong> if its player is in a divided position here but is also on the field in the other half elsewhere (i.e. the "sub" is actually just a position switch, not a real substitution).
+    Use the <strong>Versions ▾</strong> button to save the current plan under a name and reload it later; each game's current state is always auto-saved separately from named versions.
+    Drag any chip to any slot within the same game to reorganize.
+  </p>
+</div>
+
+<script>
+'use strict';
+
+const PLAYERS = [
+  'Verne', 'Petja', 'Jasper', 'Niilo H.', 'Jooa', 'Tiitus',
+  'Mikhail', 'Tomas', 'Alexandra', 'Onni', 'Roope'
+];
+const POSITIONS = ['GK', 'LB', 'RB', 'CDM', 'LM', 'RM', 'CAM', 'ST'];
+const BENCH_SIZE = 3;
+const PRIORITY = ['Onni', 'Jasper', 'Alexandra'];
+const HALF_MIN = 750; // 12:30 in seconds
+
+// Seed data from our plan
+const SEED = [
+  // Game 1
+  {
+    h1: { GK:'Verne', LB:'Niilo H.', RB:'Jooa', CDM:'Roope', LM:'Jasper', RM:'Onni', CAM:'Petja', ST:'Alexandra',
+          bench0:'Mikhail', bench1:'Tiitus', bench2:'Tomas' },
+    h2: { GK:'Verne', LB:'Niilo H.', RB:'Jooa', CDM:'Tomas', LM:'Jasper', RM:'Onni', CAM:'Tiitus', ST:'Mikhail',
+          bench0:'Roope', bench1:'Alexandra', bench2:'Petja' }
+  },
+  // Game 2
+  {
+    h1: { GK:'Petja', LB:'Tomas', RB:'Niilo H.', CDM:'Verne', LM:'Alexandra', RM:'Onni', CAM:'Tiitus', ST:'Mikhail',
+          bench0:'Roope', bench1:'Jooa', bench2:'Jasper' },
+    h2: { GK:'Petja', LB:'Tomas', RB:'Jooa', CDM:'Roope', LM:'Alexandra', RM:'Jasper', CAM:'Tiitus', ST:'Mikhail',
+          bench0:'Verne', bench1:'Niilo H.', bench2:'Onni' }
+  },
+  // Game 3
+  {
+    h1: { GK:'Verne', LB:'Tomas', RB:'Niilo H.', CDM:'Roope', LM:'Alexandra', RM:'Onni', CAM:'Jasper', ST:'Mikhail',
+          bench0:'Petja', bench1:'Jooa', bench2:'Tiitus' },
+    h2: { GK:'Verne', LB:'Petja', RB:'Jooa', CDM:'Roope', LM:'Alexandra', RM:'Onni', CAM:'Jasper', ST:'Tiitus',
+          bench0:'Tomas', bench1:'Niilo H.', bench2:'Mikhail' }
+  },
+  // Game 4 — not designed yet, copy G3 as starting point
+  {
+    h1: { GK:'Verne', LB:'Tomas', RB:'Niilo H.', CDM:'Roope', LM:'Alexandra', RM:'Onni', CAM:'Jasper', ST:'Mikhail',
+          bench0:'Petja', bench1:'Jooa', bench2:'Tiitus' },
+    h2: { GK:'Verne', LB:'Petja', RB:'Jooa', CDM:'Roope', LM:'Alexandra', RM:'Onni', CAM:'Jasper', ST:'Tiitus',
+          bench0:'Tomas', bench1:'Niilo H.', bench2:'Mikhail' }
+  },
+  // Game 5 — not designed yet; Jasper in goal per the goalie rotation
+  {
+    h1: { GK:'Jasper', LB:'Tomas', RB:'Niilo H.', CDM:'Roope', LM:'Alexandra', RM:'Onni', CAM:'Tiitus', ST:'Mikhail',
+          bench0:'Petja', bench1:'Verne', bench2:'Jooa' },
+    h2: { GK:'Jasper', LB:'Petja', RB:'Jooa', CDM:'Roope', LM:'Alexandra', RM:'Onni', CAM:'Tiitus', ST:'Mikhail',
+          bench0:'Tomas', bench1:'Verne', bench2:'Niilo H.' }
+  }
+];
+
+const STORAGE_KEY = 'matchops-planner-state-v2';
+const LEGACY_KEY = 'matchops-planner-state-v1';
+const DEFAULT_INCLUDED = [true, true, true, true, true];
+
+const loaded = loadAll();
+let state = loaded.games;
+let included = loaded.included;
+let showBenches = loaded.showBenches;
+let currentVersionName = loaded.currentVersionName;
+let selectedGame = 0;
+const highlightedPlayers = new Set();  // click-to-track state (multi-select)
+function toggleHighlight(player) {
+  if (!player) return;
+  if (highlightedPlayers.has(player)) highlightedPlayers.delete(player);
+  else highlightedPlayers.add(player);
+}
+function isHighlighted(player) {
+  return player && highlightedPlayers.has(player);
+}
+function anyHighlightActive() {
+  return highlightedPlayers.size > 0;
+}
+
+// Heat map thresholds (ratio of player's total to expected)
+const HEAT_UNDER = 0.70;   // < 70% of expected → red ring
+const HEAT_OVER  = 1.10;   // > 110% of expected → green ring
+
+function playerTotalSecInIncluded(player) {
+  return [0,1,2,3,4].reduce((sum, i) =>
+    sum + (included[i] ? playerMinsPerGame(player, i) : 0), 0);
+}
+function heatStatus(player) {
+  if (!player) return 'ok';
+  const activeCount = included.filter(x => x).length;
+  if (activeCount === 0) return 'ok';
+  const totalSec = playerTotalSecInIncluded(player);
+  const expectedSec = 12000 * activeCount / 11; // 200 min/game × 60 × active / 11 players
+  const ratio = totalSec / expectedSec;
+  if (ratio < HEAT_UNDER) return 'under';
+  if (ratio > HEAT_OVER) return 'over';
+  return 'ok';
+}
+
+function loadAll() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && Array.isArray(parsed.games) && Array.isArray(parsed.included)) {
+        return {
+          games: parsed.games,
+          included: parsed.included.slice(0, 5).concat(DEFAULT_INCLUDED.slice(parsed.included.length)),
+          showBenches: parsed.showBenches !== undefined ? parsed.showBenches : true,
+          currentVersionName: parsed.currentVersionName || null,
+        };
+      }
+    }
+    // migrate from v1 (games array only)
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) {
+      const games = JSON.parse(legacy);
+      if (Array.isArray(games)) {
+        return { games, included: DEFAULT_INCLUDED.slice(), showBenches: true, currentVersionName: null };
+      }
+    }
+  } catch (e) { /* ignore */ }
+  return {
+    games: JSON.parse(JSON.stringify(SEED)),
+    included: DEFAULT_INCLUDED.slice(),
+    showBenches: true,
+    currentVersionName: null,
+  };
+}
+function saveAll() {
+  const snapshot = { games: state, included, showBenches, currentVersionName, savedAt: new Date().toISOString() };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+  showSaved();
+  updateCurrentVersionLabel();
+}
+function updateCurrentVersionLabel() {
+  const el = document.getElementById('current-version-label');
+  if (!el) return;
+  if (currentVersionName) {
+    el.textContent = `📂 ${currentVersionName}`;
+    el.classList.add('has-version');
+  } else {
+    el.textContent = '';
+    el.classList.remove('has-version');
+  }
+}
+let saveStatusTimer = null;
+function showSaved() {
+  const el = document.getElementById('save-status');
+  if (!el) return;
+  const now = new Date();
+  const hh = now.getHours().toString().padStart(2, '0');
+  const mm = now.getMinutes().toString().padStart(2, '0');
+  const ss = now.getSeconds().toString().padStart(2, '0');
+  el.textContent = `✓ Saved ${hh}:${mm}:${ss}`;
+  if (saveStatusTimer) clearTimeout(saveStatusTimer);
+  saveStatusTimer = setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+function slotKey(pos, benchIdx) {
+  return benchIdx != null ? `bench${benchIdx}` : pos;
+}
+
+function chipMarkup(gameIdx, half, key, player, extraClass) {
+  const highlight = isHighlighted(player) ? 'highlighted' : '';
+  const dimmed = anyHighlightActive() && player && !isHighlighted(player) ? 'any-highlighted' : '';
+  const cls = ['slot', highlight, dimmed, extraClass || ''].filter(Boolean).join(' ');
+  return `<div class="${cls}" data-game="${gameIdx}" data-half="${half}" data-key="${key}" draggable="true">${player}</div>`;
+}
+
+function benchedBothHalves(gameIdx) {
+  const g = state[gameIdx];
+  const benchH1 = new Set([g.h1.bench0, g.h1.bench1, g.h1.bench2].filter(Boolean));
+  const benchH2 = new Set([g.h2.bench0, g.h2.bench1, g.h2.bench2].filter(Boolean));
+  const onFieldH1 = new Set(POSITIONS.map(p => g.h1[p]).filter(Boolean));
+  const onFieldH2 = new Set(POSITIONS.map(p => g.h2[p]).filter(Boolean));
+  // Only flag as "sits out" if the player is truly not on the field in either half.
+  // (Guards against duplicate/inconsistent state where a player is both on bench and on field.)
+  return [...benchH1]
+    .filter(p => benchH2.has(p))
+    .filter(p => !onFieldH1.has(p) && !onFieldH2.has(p));
+}
+
+function renderGameCard(gameIdx) {
+  const g = state[gameIdx];
+  const benchedBoth = new Set(benchedBothHalves(gameIdx));
+  // Pre-compute "on-field" sets so we can flag divided chips where the player is actually on the field in the other half too
+  const onFieldH1 = new Set(POSITIONS.map(p => g.h1[p]).filter(Boolean));
+  const onFieldH2 = new Set(POSITIONS.map(p => g.h2[p]).filter(Boolean));
+  const card = document.createElement('div');
+  card.className = 'half' + (gameIdx === selectedGame ? ' focused' : '');
+  card.dataset.game = gameIdx;
+  card.innerHTML = `
+    <h3>Game ${gameIdx + 1}</h3>
+    <div class="pitch">
+      ${POSITIONS.map(p => {
+        const h1 = g.h1[p] || '';
+        const h2 = g.h2[p] || '';
+        const full = h1 !== '' && h1 === h2;
+        let actionsHTML = '';
+        if (full) {
+          actionsHTML = `<button class="pos-action" data-action="split" data-game="${gameIdx}" data-pos="${p}" title="Split into starter + sub">✂ Split</button>`;
+        } else if (h1 && h2) {
+          actionsHTML = `
+            <button class="pos-action" data-action="merge-h1" data-game="${gameIdx}" data-pos="${p}" title="Make ${h1} full-game">Keep ${h1}</button>
+            <button class="pos-action" data-action="merge-h2" data-game="${gameIdx}" data-pos="${p}" title="Make ${h2} full-game">Keep ${h2}</button>
+          `;
+        }
+        const hasActions = actionsHTML !== '';
+        // Flag if the H1 player is also on the field in H2 (or vice versa) while this position is divided
+        const h1PlaysBoth = !full && h1 && onFieldH2.has(h1) ? 'plays-both' : '';
+        const h2PlaysBoth = !full && h2 && onFieldH1.has(h2) ? 'plays-both' : '';
+        return `
+          <div class="pos-box pos-${p.toLowerCase()}">
+            <div class="pos-label">
+              <span class="pos-spacer"></span>
+              <span class="pos-name">${p}</span>
+              ${hasActions
+                ? `<button class="pos-wrench" data-game="${gameIdx}" data-pos="${p}" title="Edit this position">⚙</button>`
+                : `<span class="pos-spacer"></span>`}
+            </div>
+            <div class="chip-row ${full ? 'full-game' : ''}">
+              ${chipMarkup(gameIdx, 'h1', p, h1, h1PlaysBoth)}
+              ${chipMarkup(gameIdx, 'h2', p, h2, h2PlaysBoth)}
+            </div>
+            ${hasActions ? `<div class="pos-actions">${actionsHTML}</div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+    ${showBenches ? `
+    <div class="bench-section">
+      <div class="bench-row">
+        <div class="bench-label">Bench H1</div>
+        <div class="chip-row">
+          ${[0,1,2].map(i => {
+            const player = g.h1[`bench${i}`] || '';
+            return chipMarkup(gameIdx, 'h1', `bench${i}`, player, benchedBoth.has(player) ? 'benched-both' : '');
+          }).join('')}
+        </div>
+      </div>
+      <div class="bench-row">
+        <div class="bench-label">Bench H2</div>
+        <div class="chip-row">
+          ${[0,1,2].map(i => {
+            const player = g.h2[`bench${i}`] || '';
+            return chipMarkup(gameIdx, 'h2', `bench${i}`, player, benchedBoth.has(player) ? 'benched-both' : '');
+          }).join('')}
+        </div>
+      </div>
+    </div>` : ''}
+  `;
+  return card;
+}
+
+function playerRatio(player) {
+  const activeCount = included.filter(x => x).length;
+  if (activeCount === 0) return null; // no reference, neutral
+  const totalSec = playerTotalSecInIncluded(player);
+  const expected = 12000 * activeCount / 11; // fair-share seconds
+  if (expected <= 0) return null;
+  return totalSec / expected;
+}
+
+function hueForRatio(ratio) {
+  // Map ratio (clamped 0.4 → 1.5) to hue 0 (red) → 150 (green).
+  // 1.0 ratio ≈ hue 100 (yellow-green "on target").
+  const r = Math.max(0.4, Math.min(1.5, ratio));
+  return Math.round((r - 0.4) / 1.1 * 150);
+}
+
+function renderPlayerList() {
+  const list = document.createElement('div');
+  list.className = 'player-list';
+
+  // Sort ascending by minutes so the "needs attention" players come first
+  const sorted = [...PLAYERS].sort((a, b) => {
+    const diff = playerTotalSecInIncluded(a) - playerTotalSecInIncluded(b);
+    if (diff !== 0) return diff;
+    return a.localeCompare(b);
+  });
+
+  for (const p of sorted) {
+    const total = playerTotalSecInIncluded(p);
+    const ratio = playerRatio(p);
+    const pill = document.createElement('div');
+    pill.className = 'player-pill' + (isHighlighted(p) ? ' highlighted' : '');
+    pill.dataset.player = p;
+
+    if (ratio !== null) {
+      const hue = hueForRatio(ratio);
+      pill.style.setProperty('--pill-bg', `hsl(${hue}, 78%, 92%)`);
+      pill.style.setProperty('--pill-border', `hsl(${hue}, 55%, 42%)`);
+      pill.style.setProperty('--pill-color', `hsl(${hue}, 60%, 22%)`);
+    }
+
+    const pct = ratio !== null ? Math.round(ratio * 100) + '%' : '';
+    pill.innerHTML = `
+      <span class="player-name">${p}</span>
+      <span class="player-min">${formatMin(total)}</span>
+      ${pct ? `<span class="player-ratio">${pct}</span>` : ''}
+    `;
+    pill.addEventListener('click', () => {
+      toggleHighlight(p);
+      renderGame();
+    });
+    list.appendChild(pill);
+  }
+
+  if (anyHighlightActive()) {
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'player-pill clear-btn';
+    clearBtn.style.cssText = 'background:#fff;border-color:#aaa;color:#666;font-size:11px;cursor:pointer;';
+    clearBtn.textContent = `Clear (${highlightedPlayers.size})`;
+    clearBtn.addEventListener('click', () => {
+      highlightedPlayers.clear();
+      renderGame();
+    });
+    list.appendChild(clearBtn);
+  }
+  return list;
+}
+
+function renderGame() {
+  const view = document.getElementById('game-view');
+  view.innerHTML = '';
+
+  // Player status list (color-coded by tournament total)
+  view.appendChild(renderPlayerList());
+
+  const includedIndices = [0,1,2,3,4].filter(i => included[i]);
+
+  if (includedIndices.length === 0) {
+    const note = document.createElement('div');
+    note.className = 'games-empty';
+    note.textContent = 'No games included. Tick a Game ✓ above to show it here and count it in totals.';
+    view.appendChild(note);
+    attachDragHandlers();
+    return;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'games-container';
+  for (const i of includedIndices) {
+    container.appendChild(renderGameCard(i));
+  }
+  view.appendChild(container);
+  attachDragHandlers();
+}
+
+function attachDragHandlers() {
+  document.querySelectorAll('.slot').forEach(slot => {
+    slot.addEventListener('dragstart', onDragStart);
+    slot.addEventListener('dragover', onDragOver);
+    slot.addEventListener('dragleave', onDragLeave);
+    slot.addEventListener('drop', onDrop);
+    slot.addEventListener('dragend', onDragEnd);
+    slot.addEventListener('click', onChipClick);
+  });
+  document.querySelectorAll('.pos-action').forEach(btn => {
+    btn.addEventListener('click', onPosAction);
+  });
+  document.querySelectorAll('.pos-wrench').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      btn.closest('.pos-box').classList.toggle('edit-mode');
+    });
+  });
+}
+
+function findKeyInHalf(g, half, player, excludePos) {
+  // Find which slot in the given half currently contains this player.
+  for (const p of POSITIONS) {
+    if (p !== excludePos && g[half][p] === player) return p;
+  }
+  for (let i = 0; i < 3; i++) {
+    if (g[half][`bench${i}`] === player) return `bench${i}`;
+  }
+  return null;
+}
+
+function onPosAction(e) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const action = btn.dataset.action;
+  const gIdx = parseInt(btn.dataset.game, 10);
+  const pos = btn.dataset.pos;
+  const g = state[gIdx];
+
+  if (action === 'merge-h1') {
+    // Promote H1 player (starter) to full-game → make H2 at this pos also be H1's player.
+    const keeper = g.h1[pos];
+    if (!keeper || g.h2[pos] === keeper) return;
+    const displaced = g.h2[pos];
+    const target = findKeyInHalf(g, 'h2', keeper, pos);
+    if (target) {
+      const tmp = g.h2[pos];
+      g.h2[pos] = g.h2[target];
+      g.h2[target] = tmp;
+    } else {
+      // Fallback: keeper not found in H2 (inconsistent state). Force the merge and push the
+      // displaced H2 player onto the H2 bench.
+      g.h2[pos] = keeper;
+      g.h2.bench0 = displaced;
+    }
+  } else if (action === 'merge-h2') {
+    // Promote H2 player (sub) to full-game → make H1 at this pos also be H2's player.
+    const keeper = g.h2[pos];
+    if (!keeper || g.h1[pos] === keeper) return;
+    const displaced = g.h1[pos];
+    const target = findKeyInHalf(g, 'h1', keeper, pos);
+    if (target) {
+      const tmp = g.h1[pos];
+      g.h1[pos] = g.h1[target];
+      g.h1[target] = tmp;
+    } else {
+      // Fallback: keeper not found in H1 (inconsistent state). Force the merge and push the
+      // displaced H1 player onto the H1 bench.
+      g.h1[pos] = keeper;
+      g.h1.bench0 = displaced;
+    }
+  } else if (action === 'split') {
+    // Currently merged: H1 == H2 == starter. Break by swapping H2 with bench H2 slot 0.
+    const tmp = g.h2[pos];
+    g.h2[pos] = g.h2.bench0;
+    g.h2.bench0 = tmp;
+  }
+
+  saveAll();
+  renderGame();
+  renderTotals();
+}
+
+function onChipClick(e) {
+  const slot = e.currentTarget;
+  const gIdx = parseInt(slot.dataset.game, 10);
+  const player = state[gIdx][slot.dataset.half][slot.dataset.key];
+  if (!player) return;
+  toggleHighlight(player);
+  renderGame();
+}
+
+let dragSource = null;
+
+function onDragStart(e) {
+  const slot = e.currentTarget;
+  dragSource = { game: slot.dataset.game, half: slot.dataset.half, key: slot.dataset.key };
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', JSON.stringify(dragSource));
+  slot.style.opacity = '0.4';
+}
+
+function onDragOver(e) {
+  if (!dragSource) return;
+  const slot = e.currentTarget;
+  // Restrict to same game only. Cross-half drops are allowed and handled
+  // specially in onDrop so the "one slot per player per half" invariant stays intact.
+  if (slot.dataset.game !== dragSource.game) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  slot.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const target = e.currentTarget;
+  target.classList.remove('drag-over');
+  if (!dragSource) return;
+  if (target.dataset.game !== dragSource.game) return;
+  if (target.dataset.half === dragSource.half && target.dataset.key === dragSource.key) return;
+
+  const gIdx = parseInt(dragSource.game, 10);
+  const g = state[gIdx];
+  const tgtKey = target.dataset.key;
+  const tgtHalf = target.dataset.half;
+  const srcKey = dragSource.key;
+  const srcHalf = dragSource.half;
+  const srcPlayer = g[srcHalf][srcKey];
+  const tgtPlayer = g[tgtHalf][tgtKey];
+
+  if (!srcPlayer) return; // can't drag from an empty slot
+
+  // Special case: dragging between the two halves of the SAME position box
+  // (e.g. within a split CDM). Flip the two players by globally swapping them in this game
+  // so the invariant stays intact everywhere they appear.
+  if (srcKey === tgtKey && srcHalf !== tgtHalf && POSITIONS.includes(srcKey) && srcPlayer && tgtPlayer && srcPlayer !== tgtPlayer) {
+    const pA = srcPlayer, pB = tgtPlayer;
+    const keys = POSITIONS.concat(['bench0','bench1','bench2']);
+    for (const half of ['h1','h2']) {
+      for (const k of keys) {
+        if (g[half][k] === pA) g[half][k] = pB;
+        else if (g[half][k] === pB) g[half][k] = pA;
+      }
+    }
+    saveAll();
+    renderGame();
+    renderTotals();
+    return;
+  }
+
+  if (srcHalf === tgtHalf) {
+    // ── SAME-HALF DROP ──
+    // Detect target-was-merged BEFORE we mutate (pitch position with H1==H2)
+    const isTargetFieldPos = POSITIONS.includes(tgtKey);
+    const targetWasMerged = isTargetFieldPos && g.h1[tgtKey] === g.h2[tgtKey] && g.h1[tgtKey] !== '';
+
+    g[tgtHalf][tgtKey] = srcPlayer;
+    g[srcHalf][srcKey] = tgtPlayer;
+
+    // If target was a full-game (merged) chip, preserve the merge by making the other half
+    // also become the source player.
+    if (targetWasMerged && srcPlayer !== tgtPlayer) {
+      const otherHalf = tgtHalf === 'h1' ? 'h2' : 'h1';
+      const srcOtherKey = findKeyInHalf(g, otherHalf, srcPlayer, tgtKey);
+      if (srcOtherKey) {
+        const tmp = g[otherHalf][tgtKey];
+        g[otherHalf][tgtKey] = srcPlayer;
+        g[otherHalf][srcOtherKey] = tmp;
+      }
+    }
+  } else {
+    // ── CROSS-HALF DROP ──
+    // Interpret as: "put the source player at the target slot" (target half).
+    // Swap target slot with source-player's existing slot in the target half.
+    // Source slot / source half is NOT modified — invariants stay intact.
+    const srcInTargetHalf = findKeyInHalf(g, tgtHalf, srcPlayer, null);
+    if (srcInTargetHalf) {
+      const tmp = g[tgtHalf][tgtKey];
+      g[tgtHalf][tgtKey] = srcPlayer;
+      g[tgtHalf][srcInTargetHalf] = tmp;
+    } else {
+      // Source player isn't in the target half (inconsistent state) — best-effort fallback:
+      // force-set target, push displaced to target-half bench0.
+      g[tgtHalf][tgtKey] = srcPlayer;
+      g[tgtHalf].bench0 = tgtPlayer;
+    }
+  }
+
+  saveAll();
+  renderGame();
+  renderTotals();
+}
+
+function onDragEnd(e) {
+  e.currentTarget.style.opacity = '';
+  document.querySelectorAll('.slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+  dragSource = null;
+}
+
+function formatMin(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function playerMinsPerGame(player, gameIdx) {
+  const g = state[gameIdx];
+  let secs = 0;
+  for (const half of ['h1','h2']) {
+    // on field if in any position (not bench0/1/2)
+    for (const pos of POSITIONS) {
+      if (g[half][pos] === player) { secs += HALF_MIN; break; }
+    }
+  }
+  return secs;
+}
+
+function playerGKInGame(player, gameIdx) {
+  const g = state[gameIdx];
+  const h1 = g.h1.GK === player;
+  const h2 = g.h2.GK === player;
+  if (h1 && h2) return 'full';
+  if (h1) return 'h1';
+  if (h2) return 'h2';
+  return null;
+}
+
+function renderTabs() {
+  const container = document.getElementById('tabs');
+  // Preserve the controls element (it lives inside .tabs)
+  const controls = container.querySelector('.controls');
+  container.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (i === selectedGame ? ' selected' : '') + (included[i] ? ' included' : '');
+    tab.dataset.game = i;
+    tab.innerHTML = `
+      <input type="checkbox" class="tab-check" ${included[i] ? 'checked' : ''} title="Include Game ${i+1} in totals">
+      <span>Game ${i+1}</span>
+    `;
+    tab.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tab-check')) return;
+      selectedGame = i;
+      renderTabs();
+      renderGame();
+    });
+    tab.querySelector('.tab-check').addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    tab.querySelector('.tab-check').addEventListener('change', (e) => {
+      included[i] = e.target.checked;
+      saveAll();
+      renderTabs();
+      renderGame();
+      renderTotals();
+    });
+    container.appendChild(tab);
+  }
+  if (controls) container.appendChild(controls);
+}
+
+function renderTotals() {
+  const table = document.getElementById('totals-table');
+  let html = `
+    <thead>
+      <tr>
+        <th>Player</th>
+        ${[0,1,2,3,4].map(i => `<th class="min-cell ${included[i] ? '' : 'inactive'}">G${i+1}</th>`).join('')}
+        <th class="min-cell total-col">Total</th>
+      </tr>
+    </thead><tbody>
+  `;
+  for (const p of PLAYERS) {
+    const perGame = [0,1,2,3,4].map(i => playerMinsPerGame(p, i));
+    const total = perGame.reduce((sum, v, i) => sum + (included[i] ? v : 0), 0);
+    const totalClass = total >= 60*60 ? 'priority' : (total < 50*60 ? 'below-half' : '');
+    html += `<tr><td>${p}</td>`;
+    perGame.forEach((secs, i) => {
+      const classes = [];
+      if (!included[i]) classes.push('inactive');
+      else if (secs === 0) classes.push('zero');
+      const gk = playerGKInGame(p, i);
+      let gkBadge = '';
+      if (gk === 'full') gkBadge = '<span class="gk-mark" title="Goalkeeper — full game">GK</span>';
+      else if (gk === 'h1') gkBadge = '<span class="gk-mark" title="Goalkeeper — first half only">GK·H1</span>';
+      else if (gk === 'h2') gkBadge = '<span class="gk-mark" title="Goalkeeper — second half only">GK·H2</span>';
+      html += `<td class="min-cell ${classes.join(' ')}">${gkBadge}${formatMin(secs)}</td>`;
+    });
+    html += `<td class="min-cell total-col ${totalClass}">${formatMin(total)}</td></tr>`;
+  }
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// Reset — fully clear stored state and reload so the app re-seeds cleanly
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (!confirm('Reset all games to the original plan? This discards your changes and re-enables all games.')) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_KEY);
+  } catch (e) { /* ignore */ }
+  location.reload();
+});
+
+// Export (full snapshot — games + included flags + named versions)
+function safeFilenamePart(s) {
+  return (s || '')
+    .replace(/[\/\\?%*:|"<>]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60);
+}
+document.getElementById('export-btn').addEventListener('click', () => {
+  const snapshot = {
+    formatVersion: 2,
+    savedAt: new Date().toISOString(),
+    games: state,
+    included,
+    showBenches,
+    currentVersionName,
+    versions: loadVersions(),
+  };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  const verPart = currentVersionName ? safeFilenamePart(currentVersionName) + '_' : '';
+  a.href = url;
+  a.download = `tournament-plan_${verPart}${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Import (restore from a .json file)
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('import-file').click();
+});
+document.getElementById('import-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.games || !Array.isArray(data.games) || data.games.length !== 5) {
+        alert('Invalid file: expected a tournament snapshot with 5 games.');
+        return;
+      }
+      const hasVersions = data.versions && typeof data.versions === 'object' && Object.keys(data.versions).length > 0;
+      const versionCount = hasVersions ? Object.keys(data.versions).length : 0;
+      const msg = hasVersions
+        ? `Replace current plan AND import ${versionCount} named version${versionCount === 1 ? '' : 's'}?\n\nCurrent auto-saved state will be overwritten. Existing named versions will be merged (same names get overwritten).`
+        : 'Replace current plan with the imported snapshot? Your current state will be overwritten.';
+      if (!confirm(msg)) return;
+
+      state = data.games;
+      included = Array.isArray(data.included) ? data.included.slice(0, 5) : DEFAULT_INCLUDED.slice();
+      while (included.length < 5) included.push(true);
+      if (data.showBenches !== undefined) {
+        showBenches = !!data.showBenches;
+        const toggle = document.getElementById('show-benches-toggle');
+        if (toggle) toggle.checked = showBenches;
+      }
+      currentVersionName = data.currentVersionName || null;
+
+      if (hasVersions) {
+        // Merge imported versions into existing map (imported wins on name collision)
+        const existing = loadVersions();
+        const merged = { ...existing, ...data.versions };
+        saveVersionsMap(merged);
+      }
+
+      saveAll();
+      renderTabs();
+      renderGame();
+      renderTotals();
+      updateCurrentVersionLabel();
+      alert(hasVersions
+        ? `Imported current plan + ${versionCount} named version${versionCount === 1 ? '' : 's'} successfully.`
+        : 'Imported plan successfully.');
+    } catch (err) {
+      alert('Could not parse file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// ───── Named versions ─────
+const VERSIONS_KEY = 'matchops-planner-versions-v1';
+
+function loadVersions() {
+  try {
+    const raw = localStorage.getItem(VERSIONS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch (e) { /* ignore */ }
+  return {};
+}
+function saveVersionsMap(map) {
+  localStorage.setItem(VERSIONS_KEY, JSON.stringify(map));
+}
+function makeSnapshot() {
+  return {
+    games: JSON.parse(JSON.stringify(state)),
+    included: included.slice(),
+    showBenches,
+    savedAt: new Date().toISOString(),
+  };
+}
+function saveVersion(name, silent) {
+  const map = loadVersions();
+  if (!silent && map[name] && !confirm(`"${name}" already exists. Overwrite?`)) return false;
+  map[name] = makeSnapshot();
+  saveVersionsMap(map);
+  return true;
+}
+function saveChangesToCurrent() {
+  if (!currentVersionName) return;
+  saveVersion(currentVersionName, true); // silent overwrite
+  renderVersionsMenu();
+}
+function saveAsNewCopy() {
+  const suggested = currentVersionName ? `${currentVersionName} (copy)` : `Plan ${new Date().toLocaleString()}`;
+  const input = prompt('Save as:', suggested);
+  if (!input) return;
+  const trimmed = input.trim();
+  if (!trimmed) return;
+  if (!saveVersion(trimmed)) return;
+  currentVersionName = trimmed;
+  saveAll();
+  renderVersionsMenu();
+}
+function deleteVersion(name) {
+  if (!confirm(`Delete "${name}"?`)) return;
+  const map = loadVersions();
+  delete map[name];
+  saveVersionsMap(map);
+  if (name === currentVersionName) {
+    currentVersionName = null;
+    saveAll();
+  }
+  renderVersionsMenu();
+}
+function renameVersion(oldName) {
+  const map = loadVersions();
+  if (!map[oldName]) return;
+  const input = prompt(`Rename "${oldName}" to:`, oldName);
+  if (input === null) return;
+  const newName = input.trim();
+  if (!newName || newName === oldName) return;
+  if (map[newName] && !confirm(`"${newName}" already exists. Overwrite?`)) return;
+  map[newName] = map[oldName];
+  delete map[oldName];
+  saveVersionsMap(map);
+  if (currentVersionName === oldName) {
+    currentVersionName = newName;
+    saveAll();
+  }
+  renderVersionsMenu();
+}
+function applyVersion(name) {
+  const map = loadVersions();
+  const v = map[name];
+  if (!v) return;
+  if (!confirm(`Load "${name}"? The current auto-saved state will be replaced (save it as a version first if you want to keep it).`)) return;
+  state = JSON.parse(JSON.stringify(v.games));
+  included = (v.included || DEFAULT_INCLUDED).slice(0, 5);
+  while (included.length < 5) included.push(true);
+  showBenches = v.showBenches !== undefined ? v.showBenches : true;
+  document.getElementById('show-benches-toggle').checked = showBenches;
+  highlightedPlayers.clear();
+  currentVersionName = name;
+  saveAll();
+  renderTabs();
+  renderGame();
+  renderTotals();
+  closeVersionsMenu();
+}
+function renderVersionsMenu() {
+  const menu = document.getElementById('versions-menu');
+  const map = loadVersions();
+  const names = Object.keys(map).sort((a, b) => {
+    return new Date(map[b].savedAt) - new Date(map[a].savedAt); // newest first
+  });
+  let html = '';
+  if (currentVersionName && map[currentVersionName]) {
+    const safeCur = currentVersionName.replace(/"/g, '&quot;').replace(/</g,'&lt;');
+    html += `<div class="versions-item save-row" id="versions-save-changes">💾 Save changes to "${safeCur}"</div>`;
+    html += `<div class="versions-item save-row" id="versions-save-as">💾 Save as new copy…</div>`;
+  } else {
+    html += `<div class="versions-item save-row" id="versions-save-row">💾 Save current as…</div>`;
+  }
+  if (names.length === 0) {
+    html += `<div class="versions-empty">No saved versions yet.</div>`;
+  } else {
+    html += names.map(name => {
+      const v = map[name];
+      const d = new Date(v.savedAt);
+      const time = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      const safeName = name.replace(/"/g, '&quot;').replace(/</g,'&lt;');
+      const isCurrent = name === currentVersionName;
+      return `
+        <div class="versions-item ${isCurrent ? 'current' : ''}" data-action="load" data-name="${encodeURIComponent(name)}">
+          <span class="version-name" title="${safeName}">${safeName}</span>
+          <span class="version-time">${time}</span>
+          <button class="version-rename" data-action="rename" data-name="${encodeURIComponent(name)}" title="Rename version">✎</button>
+          <button class="version-delete" data-action="delete" data-name="${encodeURIComponent(name)}" title="Delete version">✕</button>
+        </div>
+      `;
+    }).join('');
+  }
+  menu.innerHTML = html;
+
+  const saveRow = menu.querySelector('#versions-save-row');
+  if (saveRow) {
+    saveRow.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const name = prompt('Save version as:', `Plan ${new Date().toLocaleString()}`);
+      if (!name) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (saveVersion(trimmed)) {
+        currentVersionName = trimmed;
+        saveAll();
+        renderVersionsMenu();
+      }
+    });
+  }
+  const saveChanges = menu.querySelector('#versions-save-changes');
+  if (saveChanges) {
+    saveChanges.addEventListener('click', (e) => {
+      e.stopPropagation();
+      saveChangesToCurrent();
+    });
+  }
+  const saveAs = menu.querySelector('#versions-save-as');
+  if (saveAs) {
+    saveAs.addEventListener('click', (e) => {
+      e.stopPropagation();
+      saveAsNewCopy();
+    });
+  }
+  menu.querySelectorAll('[data-action="load"]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="delete"]') || e.target.closest('[data-action="rename"]')) return;
+      applyVersion(decodeURIComponent(el.dataset.name));
+    });
+  });
+  menu.querySelectorAll('[data-action="rename"]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      renameVersion(decodeURIComponent(el.dataset.name));
+    });
+  });
+  menu.querySelectorAll('[data-action="delete"]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteVersion(decodeURIComponent(el.dataset.name));
+    });
+  });
+}
+function openVersionsMenu() {
+  document.querySelector('.versions-wrap').classList.add('open');
+  renderVersionsMenu();
+}
+function closeVersionsMenu() {
+  document.querySelector('.versions-wrap').classList.remove('open');
+}
+document.getElementById('versions-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const wrap = document.querySelector('.versions-wrap');
+  if (wrap.classList.contains('open')) closeVersionsMenu();
+  else openVersionsMenu();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.versions-wrap')) closeVersionsMenu();
+});
+
+// Show-benches toggle
+const benchesToggle = document.getElementById('show-benches-toggle');
+benchesToggle.checked = showBenches;
+benchesToggle.addEventListener('change', (e) => {
+  showBenches = e.target.checked;
+  saveAll();
+  renderGame();
+});
+
+renderTabs();
+renderGame();
+renderTotals();
+updateCurrentVersionLabel();
+</script>
+</body>
+</html>

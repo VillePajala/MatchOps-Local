@@ -1,5 +1,7 @@
 # Tournament Planner — Rebuild Plan (parity with standalone)
 
+> **Status note, 2026-05-18:** This is now a supporting reference. For the current canonical planner roadmap, branch policy, and release boundary, start with [planner-roadmap.md](./planner-roadmap.md).
+
 **Status:** PR-A in flight (review converging) — PRs B–F not yet started
 **Author:** drafted after the pass-10 review of PR #404 surfaced the divergence
 **Source of truth for the target UX:** `tournament-planner/planner.html` (1450-line standalone HTML+JS app, the planner Ville built and uses today)

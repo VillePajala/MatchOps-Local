@@ -1,5 +1,7 @@
 # Tournament Planner Integration — Design Plan
 
+> **Status note, 2026-05-18:** This is now a supporting reference. For the current canonical planner roadmap, branch policy, and release boundary, start with [planner-roadmap.md](./planner-roadmap.md).
+
 **Status:** in execution · **Last updated:** 2026-04-28 · **Owner:** @valoraami
 **Companion docs:**
 - [tournament-planner-integration-survey.md](./tournament-planner-integration-survey.md) — technical findings from the MatchOps-Local code base

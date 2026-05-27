@@ -1,7 +1,7 @@
 # Master Execution Guide: Play Store Readiness and Monetization
 
 Status: Authoritative (execution sequence)
-Last Updated: January 26, 2026
+Last Updated: May 19, 2026
 
 Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Local from today's state to a production‑grade release on the Play Store with a sustainable monetization path. This master guide links to the canonical sub‑plans and relevant documentation.
 
@@ -17,7 +17,8 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 | **4** | Business Setup (Toiminimi, Bank, Google Payments) | 🔲 PENDING |
 | **5** | Enable `PREMIUM_ENFORCEMENT_ENABLED` | 🔲 AFTER Business Setup |
 | **6** | TWA Rebuild with Play Billing | 🔲 PENDING |
-| **7** | Production Release | 🔲 PENDING |
+| **7** | Closed tester feedback follow-up | 📋 PRODUCTION ACCESS |
+| **8** | Production Release | 🔲 PENDING |
 
 **See**: [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) for full priority breakdown
 
@@ -40,7 +41,23 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 **P5 Breakdown**:
 - P5.1: TWA Build & Internal Testing ✅ Done (Dec 10)
 - P5.2: Store Listing & Declarations ⏳ In Progress
-- P5.3: Production Release 📋 Pending
+- P5.2a: Closed Tester Feedback Follow-up 📋 In Progress
+- P5.3: Production Access Form 📋 Pending
+- P5.4: Production Release 📋 Pending
+
+### Closed Tester Feedback Follow-up
+
+**Canonical tracker**: [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md#-priority-1-play-store-release)  
+**Detailed plan**: [tester-feedback-roadmap.md](./tester-feedback-roadmap.md)  
+**Source analysis**: [../10-analysis/tester-feedback-analysis-2026-05-19.md](../10-analysis/tester-feedback-analysis-2026-05-19.md)
+
+Before submitting the Play Console production access form:
+
+- Rewrite production access answers so they do not overclaim completed work.
+- Verify the Android package is a proper TWA and asset links match production signing / Play App Signing.
+- Refresh ASO/store copy in English and Finnish.
+- Update the store listing checklist to reflect existing screenshots and feature graphic.
+- Keep native rewrite out of v1 unless Play review or performance evidence requires it.
 
 ### Branching Strategy
 

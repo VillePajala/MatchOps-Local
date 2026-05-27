@@ -9,28 +9,404 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Last Updated**: February 2026
 
 ### Quick Stats
-- ✅ **~4,500+ tests** passing across 220+ suites
+- ✅ **~4,500+ tests** passing
 - ✅ **0 security vulnerabilities**
-- ✅ **Next.js 16.0.10 + React 19.2 + Supabase**
+- ✅ **Next.js 16 + React 19 + Supabase**
 - ✅ **Dual-mode**: Local (IndexedDB) + Cloud (Supabase)
 - ✅ **Auth**: Email/password via Supabase Auth
 - ✅ **Edge Functions**: verify-subscription, delete-account
 
 ### What's Complete
 - All P0/P1/P2 refactoring
-- NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16)
-- **Next.js 16.0.10 + React 19.2 upgrade**
+- NPM security updates (xlsx, Sentry, React Query, Jest 30, react-i18next 16)
+- **Next.js 16 + React 19 upgrade**
 - Layer 3 performance polish
-- Test coverage improvement
-- **Supabase Cloud Backend** - PRs 1-12, DataStore interface, SyncedDataStore, Auth UI
-- **Local-First Sync** - SyncQueue, SyncEngine (PR #324)
+- Test coverage improvement (+694 tests)
+- **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory
+- **Supabase Cloud Backend PRs 1-12** ✅ - See PR Summary below
+- **Local-First Cloud Sync** ✅ - SyncQueue, SyncEngine, SyncedDataStore (PR #324)
 
 ### What's Next
 - **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
 
+### High Priority: Supabase Data API Grants
+
+Supabase is changing default Data API exposure for tables in the `public` schema:
+
+- **May 30, 2026**: New Supabase projects do not expose new `public` tables to PostgREST, GraphQL, or `supabase-js` unless explicit table grants exist.
+- **October 30, 2026**: The same behavior is enforced for new tables in existing projects.
+
+This project currently relies on RLS policies but the migration set does not consistently include explicit table-level `GRANT` statements. Before creating a new Supabase project, before adding any new public table, and before October 30, 2026, add a Supabase migration that explicitly grants the intended Data API privileges for app tables. Keep grants narrow: user-facing tables should be exposed to `authenticated` and protected by RLS; do not grant broad table access to `anon` unless the table is intentionally public. Continue explicit `GRANT EXECUTE` / `REVOKE` handling for RPC functions.
+
+Reference: https://github.com/orgs/supabase/discussions/45329
+
+### ⚠️ Quality Bar: Production-Ready (Not MVP)
+
+**This project is past MVP stage.** We are preparing for Play Store release with paid subscriptions.
+
+**What this means for development:**
+- **Billing/Auth/Security**: Production-grade quality required. No shortcuts, no "good enough for MVP".
+- **Error Messages**: Must be sanitized - never leak implementation details (mock modes, config state, stack traces).
+- **Edge Functions**: Must have tests and proper error handling.
+- **Feature Code**: Can be "launch-ready" (not perfect, but solid for initial user scale).
+
+**Do NOT defer issues with these justifications:**
+- ❌ "Acceptable for MVP"
+- ❌ "Can fix later before launch"
+- ❌ "Good enough for now"
+
+**Instead, use these criteria:**
+- ✅ "Safe for production with paying users"
+- ✅ "Handles edge cases gracefully"
+- ✅ "Follows security best practices"
+
 ### Essential Reading
-- **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** ⭐ **Single source of truth**
+- **[supabase-implementation-guide.md](./docs/02-technical/supabase-implementation-guide.md)** ⭐ **Implementation reference**
+- **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — Single source of truth
 - **[master-execution-guide.md](./docs/03-active-plans/master-execution-guide.md)** — Play Store release plan
+
+---
+
+## Reference: Supabase Cloud Backend
+
+### Read Before Supabase Maintenance Work
+
+The Supabase cloud backend implementation is complete (all 12 PRs merged). The rules and references below remain valuable for ongoing maintenance, bug fixes, and future enhancements to the cloud backend.
+
+#### Reference Reading (in order)
+1. **[supabase-implementation-guide.md](./docs/02-technical/supabase-implementation-guide.md)** — Master plan with code examples
+2. **[supabase-preflight-checklist.md](./docs/08-archived/completed-active-plans/supabase-preflight-checklist.md)** — PR-by-PR checklists
+3. **[supabase-verification-matrix.md](./docs/08-archived/completed-active-plans/supabase-verification-matrix.md)** — Field-by-field type mappings
+4. **[supabase-schema.md](./docs/02-technical/database/supabase-schema.md)** — PostgreSQL schema
+
+#### Before Starting ANY PR
+```bash
+# 1. Run automated verification (catches plan/code drift)
+npx ts-node scripts/verify-supabase-plan.ts
+
+# 2. Ensure tests pass
+npm test
+
+# 3. Read the preflight checklist for your specific PR
+```
+
+---
+
+### Critical Implementation Rules (MEMORIZE THESE)
+
+#### Rule 1: Game Transform — Empty String ↔ NULL (10 Fields)
+
+**Forward (App → DB)**: Empty string becomes NULL
+```typescript
+season_id: game.seasonId === '' ? null : game.seasonId,
+tournament_id: game.tournamentId === '' ? null : game.tournamentId,
+tournament_series_id: game.tournamentSeriesId === '' ? null : game.tournamentSeriesId,
+tournament_level: game.tournamentLevel === '' ? null : game.tournamentLevel,
+team_id: game.teamId === '' ? null : game.teamId,
+game_time: game.gameTime === '' ? null : game.gameTime,
+game_location: game.gameLocation === '' ? null : game.gameLocation,
+age_group: game.ageGroup === '' ? null : game.ageGroup,
+league_id: game.leagueId === '' ? null : game.leagueId,
+custom_league_name: game.customLeagueName === '' ? null : game.customLeagueName,
+```
+
+**Reverse (DB → App)**: NULL becomes empty string
+```typescript
+seasonId: game.season_id ?? '',
+tournamentId: game.tournament_id ?? '',
+// ... same pattern for all 10 fields
+```
+
+#### Rule 2: Legacy Defaults (CRITICAL for test data compatibility)
+
+```typescript
+// These defaults MUST match LocalDataStore.ts lines 1337 and 1342
+home_or_away: game.homeOrAway ?? 'home',  // NOT || 'home'
+is_played: game.isPlayed ?? true,          // undefined → true (legacy games)
+```
+
+#### Rule 3: Player Array Normalization
+
+**The three arrays have this relationship**: `playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers`
+
+```typescript
+// Forward transform: Normalize is_selected when on_field
+is_selected: isSelected || isOnField,  // If on field, MUST be selected
+
+// Reverse transform: Reconstruct from game_players table
+availablePlayers = ALL game_players (no relX/relY)
+playersOnField = game_players WHERE on_field = true (WITH relX/relY)
+selectedPlayerIds = game_players WHERE is_selected = true
+```
+
+#### Rule 4: Event Ordering via order_index
+
+```typescript
+// Forward: Array index becomes order_index
+events: game.gameEvents.map((e, index) => ({
+  ...e,
+  order_index: index,  // CRITICAL: preserves insertion order
+})),
+
+// Reverse: Sort by order_index, then map back to array
+const gameEvents = events
+  .sort((a, b) => a.order_index - b.order_index)
+  .map(e => ({ id: e.id, type: e.event_type, time: e.time_seconds, ... }));
+```
+
+#### Rule 5: Assessment Slider Flattening
+
+```typescript
+// Forward: Flatten nested sliders object
+intensity: a.sliders.intensity,
+courage: a.sliders.courage,
+duels: a.sliders.duels,
+technique: a.sliders.technique,
+creativity: a.sliders.creativity,
+decisions: a.sliders.decisions,
+awareness: a.sliders.awareness,
+teamwork: a.sliders.teamwork,
+fair_play: a.sliders.fair_play,
+impact: a.sliders.impact,
+
+// Reverse: Reconstruct nested object
+sliders: {
+  intensity: a.intensity,
+  courage: a.courage,
+  // ... all 10 fields
+},
+```
+
+#### Rule 6: Composite Uniqueness (App-Level Validation)
+
+Schema uses simple `UNIQUE(user_id, name)`. **SupabaseDataStore MUST implement these composite checks to match LocalDataStore**:
+
+- **Teams**: name + boundSeasonId + boundTournamentId + boundTournamentSeriesId + gameType
+- **Seasons**: name + clubSeason + gameType + gender + ageGroup + leagueId
+- **Tournaments**: name + clubSeason + gameType + gender + ageGroup
+
+#### Rule 7: Cascade Delete for Personnel
+
+When `removePersonnelMember(id)` is called, MUST also remove that ID from all games' `gamePersonnel` arrays. See LocalDataStore.ts lines 1223-1291.
+
+#### Rule 8: Tactical JSONB Defaults
+
+```typescript
+// Forward: Use ?? to preserve null but default undefined
+tactical_discs: game.tacticalDiscs ?? [],
+tactical_drawings: game.tacticalDrawings ?? [],
+tactical_ball_position: game.tacticalBallPosition ?? null,  // null is valid!
+completed_interval_durations: game.completedIntervalDurations ?? [],
+
+// Reverse: Same pattern
+tacticalDiscs: tacticalData.tactical_discs ?? [],
+tacticalBallPosition: tacticalData.tactical_ball_position ?? null,
+```
+
+#### Rule 9: Personnel certifications Field
+
+```typescript
+// MUST include in all Personnel transforms - don't drop this field!
+certifications: personnel.certifications ?? [],  // text[] array
+```
+
+#### Rule 10: createGame() Defaults
+
+**SupabaseDataStore.createGame() MUST provide these defaults** to ensure consistent behavior with LocalDataStore:
+
+```typescript
+periodDurationMinutes: 10,       // Schema has DEFAULT 10, but app should set explicitly
+subIntervalMinutes: 5,
+showPlayerNames: true,
+tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+lastSubConfirmationTimeSeconds: 0,
+// See implementation guide Section 5.0.1 for full list
+```
+
+Note: The schema provides `DEFAULT 10` for `period_duration_minutes` as a safety net, but the app layer should always provide the value explicitly for clarity and consistency.
+
+#### Rule 11: Event CRUD Uses Full-Save
+
+**addGameEvent/updateGameEvent/removeGameEvent all save the ENTIRE game** (not incremental updates):
+
+```typescript
+// This ensures order_index stays contiguous [0, 1, 2, ...]
+async removeGameEvent(gameId, eventIndex) {
+  const game = await this.getGameById(gameId);
+  game.gameEvents.splice(eventIndex, 1);  // Reindex in memory
+  return this.saveGame(gameId, game);      // Full save
+}
+```
+
+#### Rule 12: Cloud Mode Uses Local-First Sync (SyncedDataStore)
+
+Cloud mode uses **SyncedDataStore** which writes to local IndexedDB first, then syncs to Supabase in the background via SyncQueue/SyncEngine. This means:
+
+- Changes are saved locally immediately (works offline)
+- Background sync pushes changes to cloud when online
+- If offline, changes queue locally and sync when connectivity returns
+- Conflict resolution: Last-write-wins
+
+```typescript
+// SyncedDataStore wraps LocalDataStore + SupabaseDataStore:
+// 1. Write to local IndexedDB immediately
+await this.localStore.saveGame(id, game);
+// 2. Queue sync operation for background push to cloud
+this.syncQueue.enqueue({ type: 'saveGame', id, data: game });
+```
+
+Note: The pure SupabaseDataStore (online-only) is wrapped by SyncedDataStore -- direct cloud operations still require connectivity, but the user-facing experience is local-first.
+
+#### Rule 13: Tournament Level Migration (getTournaments)
+
+**Apply same runtime migration as LocalDataStore** when loading tournaments:
+
+```typescript
+// Converts legacy 'level' to 'series[]'
+const migrateTournamentLevel = (tournament: Tournament): Tournament => {
+  if (tournament.series?.length > 0) return tournament;  // Skip if has series
+  if (tournament.level) {
+    return {
+      ...tournament,
+      series: [{
+        id: `series_${tournament.id}_${tournament.level.toLowerCase().replace(/\s+/g, '-')}`,
+        level: tournament.level,
+      }]
+    };
+  }
+  return tournament;
+};
+
+// Apply on read
+return tournaments.map(migrateTournamentLevel);
+```
+
+#### Rule 14: Game Validation Parity (saveGame)
+
+**Reuse LocalDataStore's validateGame** - extract to shared module:
+
+```typescript
+// src/datastore/validation.ts (extract from LocalDataStore)
+import { validateGame } from './validation';
+
+// In SupabaseDataStore.saveGame()
+async saveGame(id: string, game: AppState): Promise<AppState> {
+  validateGame(game);  // Same validation as LocalDataStore
+  // ... rest of save logic
+}
+```
+
+#### Rule 15: RPC game_id Injection
+
+**RPC must override game_id in child rows** (not just user_id):
+
+```sql
+-- In save_game_with_relations, for each child table:
+jsonb_set(
+  jsonb_set(elem, '{user_id}', to_jsonb(v_user_id::text)),
+  '{game_id}', to_jsonb(v_game_id)  -- Force correct game_id
+)
+```
+
+Prevents client from injecting wrong game_id in child rows.
+
+#### Rule 16: clubSeason Computation on Read
+
+**Compute clubSeason if missing** (matches LocalDataStore):
+
+```typescript
+// In getSeasons() and getTournaments()
+clubSeason: entity.clubSeason ?? calculateClubSeason(entity.startDate, start, end)
+```
+
+#### Rule 17: Supabase Concurrency (No Locks Needed)
+
+**PostgreSQL handles concurrency** - no app-level locks:
+- Single operations: PostgreSQL row-level locks
+- Multi-table operations: RPC with transactions
+- Conflict resolution: Last-write-wins
+
+#### Rule 18: Migration Uses DataStore Getters
+
+**Use DataStore getters** (not raw storage keys) to apply legacy migrations:
+
+```typescript
+const tournaments = await localDataStore.getTournaments(true);  // Applies migrateTournamentLevel
+const seasons = await localDataStore.getSeasons(true);          // Computes clubSeason
+```
+
+#### Rule 19: Data Scale Strategy
+
+**For 500+ games**, use paging:
+- Prefetch recent 100 games on initialize
+- Load older games on demand
+- UI virtualization for large lists
+
+#### Rule 20: save_game_with_relations RPC — Full Replacement on Every Change
+
+**Any new column on `games` requires a full `CREATE OR REPLACE FUNCTION save_game_with_relations(...)` migration**, including the entire ON CONFLICT DO UPDATE SET clause.
+
+**Why:** Postgres `CREATE OR REPLACE FUNCTION` substitutes the whole body — there is no inheritance from prior definitions. The RPC's ON CONFLICT clause is an explicit column list (NOT `SET (col1, col2, ...) = (EXCLUDED.col1, EXCLUDED.col2, ...)`); columns omitted from the list are silently dropped on every update after the first insert. Migration history showed this trap with `went_to_overtime` (021), `show_position_labels` (022), and `scheduled_subs` (030).
+
+**How to apply:**
+1. New column added on `games` → write a new migration that does `CREATE OR REPLACE FUNCTION save_game_with_relations` with the FULL existing body plus the new column in BOTH the upsert source AND the ON CONFLICT DO UPDATE SET clause.
+2. Reference the prior body explicitly in the migration header (`@see migrations/NNN_*.sql for prior body`).
+3. Add a verification SQL file under `supabase/migrations/__tests__/` that asserts the new column survives an INSERT-then-UPDATE round-trip.
+
+The verification approach guards the regression class without requiring every reviewer to remember Rule 20.
+
+---
+
+### Branching Strategy
+
+All Supabase work happened on `feature/supabase-cloud-backend`. Sub-PRs (e.g., `supabase/pr12-*`) targeted the feature branch, not master.
+
+**Note:** All 12 sub-PRs have been merged to the feature branch, and the feature branch has been integrated into master. The branching strategy below is preserved for historical reference.
+
+**Final Merge Criteria** (before `feature/supabase-cloud-backend` → `master`):
+- [x] All sub-PRs merged to feature branch
+- [x] `npm test` passes
+- [x] `npm run build` passes
+- [x] Manual test: Local mode, cloud mode, migration, mode switching
+
+### Review Process (IMPORTANT)
+
+**⚠️ USER REVIEWS AND APPROVES EVERY PR - TWICE:**
+
+1. **Before CREATING the PR**: User says "review changes"
+   - Perform a senior software engineer code review of all changes
+   - Check code quality, patterns, and consistency
+   - Verify all acceptance criteria from the plan are met
+   - Ensure tests are adequate
+   - Look for security issues, edge cases, and potential bugs
+   - Confirm no regressions to local mode
+   - **Verify transforms match the 19 rules above**
+   - Provide detailed review summary with any concerns
+   - **DO NOT create the PR until user explicitly approves**
+
+2. **Before MERGING the PR**: User reviews on GitHub and approves
+   - User will review the PR on GitHub
+   - User may request additional changes
+   - **DO NOT merge until user explicitly says to merge**
+
+**NEVER auto-create or auto-merge PRs. Always wait for explicit user approval at each step.**
+
+### PR Summary
+
+| PR | Status | Description |
+|----|--------|-------------|
+| 1 | ✅ | Foundation - backendConfig.ts, mode detection |
+| 2 | ✅ | Supabase client singleton, lazy loading |
+| 3 | ✅ | SupabaseDataStore core CRUD (players, teams, seasons, etc.) |
+| 4 | ✅ | SupabaseDataStore games - transforms, all DataStore methods |
+| 5 | ✅ | SupabaseAuthService + Auth UI |
+| 6 | ✅ | Migration service (local → cloud) |
+| 7 | ✅ | QueryProvider optimization |
+| 8 | ✅ | Integration & final polish |
+| 9 | ✅ | Infrastructure & Migration UI (SQL migrations, MigrationWizard) |
+| 10 | ✅ | Cloud Data Management (clear cloud data, migration modes) |
+| 11 | ✅ | Reverse Migration & Cloud Account (cloud → local, WelcomeScreen) |
+| 12 | ✅ | Migration Wizard Simplified (2 buttons: Sync/Not Now, CloudModeImportModal deleted) |
 
 ---
 
@@ -42,28 +418,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm test` - Run all Jest tests (executes `jest`)
-- `npm run test:unit` - Alias for `npm test`
+- `npm run test:unit` - Run unit tests in src/ (CI mode, single worker, 8s timeout)
 - `npm run generate:i18n-types` - Generate TypeScript types for translations
 
 ### Build Process
-The build process includes a custom manifest generation step that runs before Next.js build:
+The build process includes custom generation steps that run before Next.js build:
+- `node scripts/generate-changelog.mjs` - Generates changelog from git history
 - `node scripts/generate-manifest.mjs` - Generates PWA manifest based on branch
 - Manifest configuration varies by branch (master vs development) for different app names and themes
 
 ## Architecture Overview
 
 ### Tech Stack
-- **Next.js 16.0.7** with App Router
-- **React 19.2** with TypeScript
+- **Next.js 16** with App Router
+- **React 19** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
-- **Browser IndexedDB** for data persistence
+- **Dual-mode data persistence**:
+  - **Local**: Browser IndexedDB (offline-first, no account required)
+  - **Cloud**: Supabase PostgreSQL (cross-device sync, requires auth)
+- **Supabase** for cloud backend:
+  - Auth (email/password)
+  - PostgreSQL database with RLS
+  - Edge Functions (subscription verification, account deletion)
 - **React Query** for state management
 - **i18next** for internationalization (English/Finnish)
+- **xlsx** for Excel export (CDN tarball: SheetJS removed npm registry access, CDN is official distribution)
 
 ### Core Architecture
 
 **Data Flow**: The app's data layer relies on **React Query** to fetch, cache, and manage server-side state (persisted in IndexedDB). Asynchronous storage operations in `src/utils/storage.ts` provide IndexedDB access through a unified adapter layer.
+
+**⚠️ React Query Configuration (Issue #262 - Needs Reinvestigation)**: Currently using React Query defaults. Attempted optimization (reduced retries, longer staleTime) caused mobile data loading failures - IndexedDB on mobile has transient failures that require multiple retry attempts. Any future tuning must preserve `retry: 3` or test extensively on mobile devices. See `src/app/QueryProvider.tsx`.
 
 **PWA Structure**: Full PWA with custom service worker (`public/sw.js`), dynamic manifest generation, install prompts and update notifications.
 
@@ -75,17 +461,21 @@ The build process includes a custom manifest generation step that runs before Ne
 - **`useState`**: Local UI state within components (modal visibility, etc.)
 
 **Key Components**:
-- `SoccerField` - Interactive drag-and-drop field
+- `SoccerField` - Interactive player positioning field
 - `PlayerBar` - Player roster management
 - `ControlBar` - Main app controls
 - Various modals for game settings, stats, and management
 
-**Data Persistence**: All data stored in browser IndexedDB via DataStore abstraction:
+**Data Persistence**: Dual-mode architecture via DataStore abstraction:
 - **DataStore Interface**: `src/interfaces/DataStore.ts` (backend-agnostic contract)
 - **LocalDataStore**: `src/datastore/LocalDataStore.ts` (IndexedDB implementation)
-- **Factory**: `src/datastore/factory.ts` (singleton access via `getDataStore()`)
+- **SupabaseDataStore**: `src/datastore/SupabaseDataStore.ts` (Supabase/PostgreSQL implementation)
+- **Factory**: `src/datastore/factory.ts` (singleton access via `getDataStore()`, mode-aware)
+- **AuthService Interface**: `src/interfaces/AuthService.ts` (auth abstraction)
+- **LocalAuthService**: `src/auth/LocalAuthService.ts` (no-op for local mode)
+- **SupabaseAuthService**: `src/auth/SupabaseAuthService.ts` (Supabase Auth)
 - Player roster, games, seasons, tournaments, personnel, settings
-- Legacy utilities (`src/utils/savedGames.ts`, etc.) now delegate to DataStore
+- Migration service for local ↔ cloud data transfer
 
 **Game Types**: Supports both soccer and futsal games via `gameType: 'soccer' | 'futsal'` field on games, seasons, and tournaments. Legacy games without `gameType` default to soccer. See `docs/04-features/game-type-support.md`.
 
@@ -96,6 +486,8 @@ The build process includes a custom manifest generation step that runs before Ne
 - No localStorage fallback (insufficient for 100+ games)
 - Private/incognito mode not supported (IndexedDB disabled/restricted)
 - Automatic migration on first load after upgrade
+
+**Known Limitation - Multi-Tab Usage**: Storage locks (`src/utils/lockManager.ts`, `src/utils/storageKeyLock.ts`) are in-memory only (single tab). Multi-tab scenarios (multiple browser tabs or PWA + web version simultaneously) may experience race conditions. This is acceptable for the typical single-user, single-tab usage pattern. Future enhancement: Consider `BroadcastChannel` or `SharedWorker` for cross-tab coordination if needed.
 
 **Logging**: Centralized system in `src/utils/logger.ts` - Type-safe, environment-aware, replaces direct `console.*` usage.
 
@@ -109,23 +501,23 @@ The build process includes a custom manifest generation step that runs before Ne
 
 ## For Code Reviewers (AI or Human)
 
-### ⚠️ Critical: This is a Local-First PWA, NOT a Traditional Web App
+### ⚠️ Critical: This is a Local-First PWA with Optional Cloud Sync
 
-This is a **local-first Progressive Web App** for single-user soccer coaching with optional cloud sync. No multi-user features, no enterprise patterns needed.
+This is a **local-first Progressive Web App** for single-user soccer coaching with **optional** cloud backend for cross-device sync.
 
 ### Architecture Context
 
-**Single-User, Dual-Mode**
-- One coach per account, single-user (no team collaboration features)
-- **Local mode**: 100% browser-based, all data in IndexedDB, works offline
-- **Cloud mode**: Optional Supabase backend for cross-device sync with email/password auth
-- Minimal network in local mode: PWA updates, license validation, error reporting only
+**Dual-Mode Operation**
+- **Local mode**: Zero setup, all data in IndexedDB, works offline, no account needed
+- **Cloud mode**: Supabase backend for cross-device sync, requires authentication
+- User chooses mode at first launch; can migrate data between modes anytime
+- Single-user per account (no team collaboration features)
 
 **Data Scale & Privacy**
 - 1 user, 50-100 players, 50-100 games/season, <50MB storage
 - Soccer scores/stats only - NOT sensitive PII/financial/healthcare data
-- Data never leaves device (except opt-in error tracking)
-- Primary threat: physical device theft (mitigated by OS encryption)
+- **Local mode**: Data never leaves device
+- **Cloud mode**: Data stored in Supabase (EU region), protected by RLS policies
 
 **PWA Private Mode Behavior**
 - PWA installation IMPOSSIBLE in private/incognito (by design across all browsers)
@@ -176,27 +568,72 @@ This is a **local-first Progressive Web App** for single-user soccer coaching wi
 
 ### Quick Reference
 
-1. **Remember**: One user, one device, no server, no network
+1. **Remember**: One user per account, local-first with optional cloud sync
 2. **Data scale**: Hundreds of records, not millions
-3. **Security**: Browser sandboxing is the boundary
+3. **Security**: Local mode = browser sandbox; Cloud mode = Supabase RLS + auth
 4. **Performance**: Optimize for small datasets and single-user UX
 
-See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
+See `docs/01-project/overview.md` and `docs/01-project/local-first-philosophy.md` for details.
 
 ## Key Files to Understand
 
+**Core App:**
 - `src/app/page.tsx` - Main component orchestrating entire app (hooks, reducers, data fetching)
 - `src/hooks/useGameSessionReducer.ts` - Core game logic reducer (timer, score, status)
 - `src/hooks/useGameState.ts` - Interactive soccer field state management
 - `src/utils/masterRosterManager.ts` - Player CRUD operations
 - `src/config/queryKeys.ts` - React Query cache keys
 - `src/types/index.ts` - Core TypeScript interfaces
-- `src/utils/localStorage.ts` - Async localStorage wrapper
-- `src/utils/logger.ts` - Centralized logging utility
+
+**Data Layer (Dual-Mode):**
 - `src/interfaces/DataStore.ts` - Backend-agnostic data access interface
-- `src/datastore/LocalDataStore.ts` - IndexedDB implementation of DataStore
-- `src/datastore/factory.ts` - Singleton factory for DataStore/AuthService
-- `src/auth/LocalAuthService.ts` - No-op auth service for local mode
+- `src/datastore/LocalDataStore.ts` - IndexedDB implementation
+- `src/datastore/SupabaseDataStore.ts` - Supabase/PostgreSQL implementation
+- `src/datastore/factory.ts` - Mode-aware singleton factory
+- `src/config/backendConfig.ts` - Backend mode detection and configuration
+
+**Authentication:**
+- `src/interfaces/AuthService.ts` - Auth abstraction interface
+- `src/auth/LocalAuthService.ts` - No-op auth for local mode
+- `src/auth/SupabaseAuthService.ts` - Supabase Auth implementation
+- `src/datastore/supabase/client.ts` - Supabase client singleton
+
+**Cloud Infrastructure:**
+- `supabase/functions/verify-subscription/` - Edge Function for Play Store billing
+- `supabase/functions/delete-account/` - Edge Function for GDPR account deletion
+- `supabase/migrations/` - PostgreSQL schema migrations
+
+## Opportunistic Refactoring Policy
+
+**Large files are acceptable when they represent complex features.** Don't refactor for line count alone.
+
+### When to Extract Components
+
+Extract when you're **already touching the file** for a feature:
+- Adding a new tab to GameSettingsModal → extract existing tabs first
+- Adding new entity to LocalDataStore → consider splitting by entity
+- Adding new interaction mode to SoccerField → consider splitting rendering/events
+
+### When NOT to Refactor
+
+- Don't refactor in isolation (no standalone "cleanup" PRs)
+- Don't "fix" eslint-disables that have explanatory comments
+- Don't split working code that has no bugs
+
+### Files with Justified eslint-disables (DO NOT "FIX")
+
+| File | Disables | Reason |
+|------|----------|--------|
+| `useGameOrchestration.ts` | 12 | Hook call order + state/setter split pattern (5 hooks already extracted) |
+| `GameSettingsModal.tsx` | 2 | Ref-guarded effects preventing infinite loops |
+
+These patterns are intentional and documented. "Fixing" them would introduce bugs.
+
+### When Adding New eslint-disables
+
+1. First try to fix the underlying issue
+2. If disable is truly necessary, add a detailed comment explaining WHY
+3. Follow patterns already established in the codebase
 
 ## Testing Rules and Principles
 
@@ -288,17 +725,19 @@ await act(async () => {
 await waitFor(() => expect(result).toBe(true));
 ```
 
-**3. Issue-Masking Mechanisms (FORBIDDEN)**
+**3. Issue-Masking Mechanisms**
 ```typescript
-// ❌ FORBIDDEN in jest.config.js
-detectLeaks: false        // Masks memory leaks
-forceExit: true           // Masks resource leaks
---bail                    // Hides multiple failures
+// ❌ FORBIDDEN - These hide real issues
+forceExit: true           // Masks resource leaks - never use
 
-// ✅ REQUIRED - Expose and fix real issues
-detectLeaks: true
-detectOpenHandles: true
-forceExit: false
+// ✅ CURRENT CONFIGURATION (with rationale)
+detectOpenHandles: true   // Always enabled - catches resource leaks
+detectLeaks: false        // Disabled: high false-positive rate (31/80 suites flagged)
+                          // Real memory issues caught by detectOpenHandles + manual testing
+forceExit: false          // Never force exit - fix issues properly
+
+// ℹ️ CI uses --bail=1 for faster feedback on failures
+// This is acceptable tradeoff: fail fast, re-run to see all failures if needed
 ```
 
 **4. Console Noise Tolerance (FORBIDDEN)**
@@ -306,14 +745,15 @@ Tests automatically fail on unexpected console warnings/errors. See `src/setupTe
 
 ### Required Testing Infrastructure
 
-**jest.config.js:**
+**jest.config.js (actual configuration):**
 ```javascript
 {
-  detectOpenHandles: true,  // ✅ REQUIRED
-  detectLeaks: true,        // ✅ REQUIRED
-  forceExit: false,         // ✅ REQUIRED
-  testTimeout: 30000,       // ✅ REQUIRED
+  detectOpenHandles: true,  // ✅ Catches resources preventing Node exit
+  detectLeaks: false,       // Disabled due to false positives (see rationale above)
+  forceExit: false,         // ✅ Never force exit
+  testTimeout: 30000,       // 30 second default timeout
   maxWorkers: process.env.CI ? 2 : '50%',
+  slowTestThreshold: 5,     // Warn about tests > 5s
 }
 ```
 
@@ -359,10 +799,10 @@ test('user interaction', async () => {
 
 ### Flaky Test Management
 
-**Jest Retry Configuration (jest.config.js):**
-- `maxRetries: 2` - Retry failed tests up to 2 times
-- `retryImmediately: true` - Retry immediately
+**Flaky Test Tracking:**
+- Flaky tests are tracked via `tests/utils/flaky-test-tracker.js`
 - Reports generated in `test-results/flaky-tests-report.json`
+- No automatic retries configured - fix flaky tests at the source
 
 **Common Patterns and Fixes:**
 - **Timing**: Use `waitFor()` instead of `setTimeout()`
@@ -413,9 +853,8 @@ const largeDataset = Array.from({ length: 10000 }, () => createPlayer());
 - ✅ **Pass rate**: 100% (no failing tests in main/master)
 - ✅ **Flakiness**: 0% (consistent passes)
 - ✅ **Resource leaks**: 0 (detectOpenHandles catches all)
-- ✅ **Memory leaks**: 0 (detectLeaks catches all)
 - ✅ **Console warnings**: 0 (auto-fail on unexpected output)
-- ✅ **Coverage**: 85% lines, 85% functions, 80% branches
+- ✅ **Coverage thresholds**: 60% lines, 55% functions, 45% branches (enforced in jest.config.js)
 
 ### Anti-Pattern Detection Checklist
 
@@ -423,8 +862,8 @@ const largeDataset = Array.from({ length: 10000 }, () => createPlayer());
 - [ ] No `setTimeout` or fixed delays
 - [ ] All `fireEvent`/`userEvent` wrapped in `act()` or followed by `waitFor()`
 - [ ] All async operations awaited
-- [ ] No `--forceExit`, `--bail`, `--retries` in CI
-- [ ] `detectLeaks: true` and `detectOpenHandles: true` in config
+- [ ] No `--forceExit` in CI (`--bail=1` is acceptable for fast-fail)
+- [ ] `detectOpenHandles: true` in config
 - [ ] Proper cleanup in `beforeEach`/`afterEach`
 - [ ] No suppressed console warnings
 - [ ] Tests pass locally without retries
@@ -520,12 +959,17 @@ Code that works in dev may fail in Vercel due to stricter ESLint, different Type
 
 ## Environment Variables
 
-### Required Production
+### Cloud Backend (enables cloud mode)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon/public key
+
+### Error Reporting
 - `NEXT_PUBLIC_SENTRY_DSN` - Sentry DSN for error reporting (client-side)
 - `SENTRY_AUTH_TOKEN` - Sentry auth for source map uploads (server-side)
 
 ### Optional
 - `NEXT_PUBLIC_SENTRY_FORCE_ENABLE` - Force Sentry in dev (default: false)
+- `NEXT_PUBLIC_INTERNAL_TESTING` - Internal testing mode flag (validated in next.config.ts)
 - `SENTRY_ORG` - Sentry organization name
 - `SENTRY_PROJECT` - Sentry project name
 - `ANALYZE` - Enable bundle analysis during build
