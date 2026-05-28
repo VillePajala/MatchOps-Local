@@ -56,6 +56,12 @@ jest.mock('react-i18next', () => ({
         'settingsModal.restoreButton': 'Restore from Backup',
         'settingsModal.checkForUpdates': 'Check for Updates',
         'settingsModal.checkingUpdates': 'Checking...',
+        'settingsModal.sendFeedback': 'Send Feedback',
+        'settingsModal.sendFeedbackDesc': 'Share feedback, questions, or ideas.',
+        'settingsModal.sendFeedbackPrivacy': 'No game, roster, or player data is attached automatically.',
+        'settingsModal.feedbackEmailSubject': 'MatchOps feedback',
+        'settingsModal.feedbackEmailBody': 'Hi, I wanted to share feedback about MatchOps:\n\n\n\nApp version: 1.0.0',
+        'settingsModal.emailButton': 'Email',
         'settingsModal.updateAvailableTitle': 'Update Available',
         'settingsModal.updateAvailableConfirmSafe': 'Update available! Click Install to prepare the update. You can reload when convenient to apply it.',
         'settingsModal.installUpdate': 'Install',
@@ -160,6 +166,28 @@ describe('<SettingsModal />', () => {
     });
 
     expect(await screen.findByText(/1\.0 MB of 5\.0 MB used/)).toBeInTheDocument();
+  });
+
+  test('renders friendly feedback email link without attaching private data', () => {
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    navigateToTab('About');
+
+    expect(screen.getByText('Send Feedback')).toBeInTheDocument();
+    expect(screen.getByText('Share feedback, questions, or ideas.')).toBeInTheDocument();
+    expect(screen.getByText('No game, roster, or player data is attached automatically.')).toBeInTheDocument();
+
+    const emailLink = screen.getByRole('link', { name: /email/i });
+    const href = emailLink.getAttribute('href');
+
+    expect(href).toContain('mailto:support@match-ops.com');
+    expect(decodeURIComponent(href ?? '')).toContain('subject=MatchOps feedback');
+    expect(decodeURIComponent(href ?? '')).toContain('Hi, I wanted to share feedback about MatchOps:');
+    expect(decodeURIComponent(href ?? '')).toContain('App version: 1.0.0');
   });
 
   test('displays usage in KB when below 1 MB', async () => {

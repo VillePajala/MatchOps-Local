@@ -171,8 +171,9 @@ describe('backendConfig', () => {
       expect(getBackendMode()).toBe('local');
     });
 
-    it('overrides stored local mode to cloud in Play Store context', () => {
-      // Simulate Play Store context: Android + Digital Goods API
+    it('does not override stored local mode while Play Store context detection is disabled', () => {
+      // Simulate Android + Digital Goods API. Play Store context detection is
+      // intentionally disabled for the local-first closed-testing flow.
       const origNav = global.navigator;
       Object.defineProperty(global, 'navigator', {
         value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
@@ -191,19 +192,18 @@ describe('backendConfig', () => {
         // User previously chose local mode (pre-upgrade)
         localStorageMock.getItem.mockReturnValue('local');
 
-        // Play Store context should override stored local → cloud
-        expect(getBackendMode()).toBe('cloud');
+        expect(getBackendMode()).toBe('local');
 
-        // Should persist the correction
-        expect(localStorageMock.setItem).toHaveBeenCalledWith('matchops_backend_mode', 'cloud');
+        expect(localStorageMock.setItem).not.toHaveBeenCalledWith('matchops_backend_mode', 'cloud');
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
         Object.defineProperty(global, 'navigator', { value: origNav, configurable: true, writable: true });
       }
     });
 
-    it('defaults to cloud in Play Store context with no stored mode', () => {
-      // Simulate Play Store context: Android + Digital Goods API
+    it('defaults to local while Play Store context detection is disabled', () => {
+      // Simulate Android + Digital Goods API. Play Store context detection is
+      // intentionally disabled for the local-first closed-testing flow.
       const origNav = global.navigator;
       Object.defineProperty(global, 'navigator', {
         value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
@@ -221,7 +221,7 @@ describe('backendConfig', () => {
         // No stored mode (fresh install or cleared localStorage)
         localStorageMock.getItem.mockReturnValue(null);
 
-        expect(getBackendMode()).toBe('cloud');
+        expect(getBackendMode()).toBe('local');
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
         Object.defineProperty(global, 'navigator', { value: origNav, configurable: true, writable: true });
@@ -272,8 +272,9 @@ describe('backendConfig', () => {
       expect(result.success).toBe(true);
     });
 
-    it('returns failure in Play Store context', () => {
-      // Simulate Play Store context: Android + Digital Goods API
+    it('allows local mode while Play Store context detection is disabled', () => {
+      // Simulate Android + Digital Goods API. Play Store context detection is
+      // intentionally disabled for the local-first closed-testing flow.
       const origNav = global.navigator;
       Object.defineProperty(global, 'navigator', {
         value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
@@ -286,11 +287,8 @@ describe('backendConfig', () => {
 
       try {
         const result = disableCloudMode();
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.reason).toBe('play_store_restricted');
-        }
-        expect(localStorageMock.setItem).not.toHaveBeenCalled();
+        expect(result.success).toBe(true);
+        expect(localStorageMock.setItem).toHaveBeenCalledWith('matchops_backend_mode', 'local');
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
         Object.defineProperty(global, 'navigator', { value: origNav, configurable: true, writable: true });
