@@ -204,14 +204,14 @@ describe('platform detection utilities', () => {
       }
     });
 
-    it('returns true on Android with getDigitalGoodsService', () => {
+    it('returns false on Android with getDigitalGoodsService while disabled for closed testing', () => {
       Object.defineProperty(global, 'navigator', {
         value: { userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G960F) AppleWebKit/537.36' },
         configurable: true,
       });
       (window as unknown as { getDigitalGoodsService: () => void }).getDigitalGoodsService = jest.fn();
       try {
-        expect(isPlayStoreContext()).toBe(true);
+        expect(isPlayStoreContext()).toBe(false);
       } finally {
         delete (window as unknown as { getDigitalGoodsService?: unknown }).getDigitalGoodsService;
       }

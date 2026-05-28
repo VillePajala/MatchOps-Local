@@ -458,6 +458,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
   const inputStyle =
     'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
+  const feedbackSubject = t('settingsModal.feedbackEmailSubject', 'MatchOps feedback');
+  const feedbackBody = t(
+    'settingsModal.feedbackEmailBody',
+    'Hi, I wanted to share feedback about MatchOps:\n\n\n\nApp version: {{version}}',
+    { version: packageJson.version },
+  );
+  const feedbackHref = `mailto:support@match-ops.com?subject=${encodeURIComponent(feedbackSubject)}&body=${encodeURIComponent(feedbackBody)}`;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
@@ -949,11 +956,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {t('settingsModal.sendFeedback', 'Send Feedback')}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {t('settingsModal.sendFeedbackDesc', 'Report bugs or suggest improvements.')}
+                    {t('settingsModal.sendFeedbackDesc', 'Share feedback, questions, or ideas.')}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {t('settingsModal.sendFeedbackPrivacy', 'No game, roster, or player data is attached automatically.')}
                   </p>
                 </div>
                 <a
-                  href={`mailto:valoraami@gmail.com?subject=${encodeURIComponent('MatchOps Feedback – v' + packageJson.version)}`}
+                  href={feedbackHref}
                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
                 >
                   ✉ {t('settingsModal.emailButton', 'Email')}
