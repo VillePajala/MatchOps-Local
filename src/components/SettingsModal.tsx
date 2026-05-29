@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
-import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown } from 'react-icons/hi2';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument } from 'react-icons/hi2';
 import { importFullBackup } from '@/utils/fullBackup';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
@@ -465,6 +465,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     { version: packageJson.version },
   );
   const feedbackHref = `mailto:support@match-ops.com?subject=${encodeURIComponent(feedbackSubject)}&body=${encodeURIComponent(feedbackBody)}`;
+  const getDisplayMode = () => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return t('settingsModal.appInfoDisplayUnknown', 'Unknown');
+    }
+
+    return window.matchMedia('(display-mode: standalone)').matches
+      ? t('settingsModal.appInfoDisplayStandalone', 'Standalone')
+      : t('settingsModal.appInfoDisplayBrowser', 'Browser');
+  };
+  const buildAppInfo = () => [
+    t('settingsModal.appInfoTitle', 'MatchOps app info'),
+    `${t('settingsModal.appInfoVersion', 'Version')}: ${packageJson.version}`,
+    `${t('settingsModal.appInfoLanguage', 'Language')}: ${language}`,
+    `${t('settingsModal.appInfoMode', 'Mode')}: ${authMode === 'cloud' ? t('settingsModal.appInfoModeCloud', 'Cloud') : t('settingsModal.appInfoModeLocal', 'Local')}`,
+    `${t('settingsModal.appInfoDisplayMode', 'Display mode')}: ${getDisplayMode()}`,
+    `${t('settingsModal.appInfoPlatform', 'Platform')}: ${navigator.platform || t('settingsModal.appInfoUnknown', 'Unknown')}`,
+    `${t('settingsModal.appInfoBrowser', 'Browser')}: ${navigator.userAgent || t('settingsModal.appInfoUnknown', 'Unknown')}`,
+  ].join('\n');
+  const handleCopyAppInfo = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable');
+      }
+
+      await navigator.clipboard.writeText(buildAppInfo());
+      showToast(t('settingsModal.copyAppInfoSuccess', 'App info copied'), 'success');
+    } catch (error) {
+      logger.warn('[SettingsModal] Failed to copy app info:', error);
+      showToast(t('settingsModal.copyAppInfoFailed', 'Could not copy app info'), 'error');
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('settingsModal.title', 'App Settings')}>
@@ -968,6 +999,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   ✉ {t('settingsModal.emailButton', 'Email')}
                 </a>
+              </div>
+
+              {/* Copy App Info */}
+              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-200">
+                    {t('settingsModal.copyAppInfo', 'Copy app info')}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {t('settingsModal.copyAppInfoDesc', 'Copy version and device details you can paste into feedback.')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyAppInfo}
+                  className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+                >
+                  <HiOutlineClipboardDocument className="h-5 w-5" />
+                  {t('settingsModal.copyAppInfoButton', 'Copy')}
+                </button>
               </div>
 
               {/* Legal Links */}

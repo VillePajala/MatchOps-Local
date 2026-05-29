@@ -28,7 +28,7 @@ Use completed work only. Candidate points once shipped or verified:
 - Store listing copy reviewed and confirmed to already be coach-focused and accurate.
 - Existing Play Store screenshots reviewed and confirmed to already show the app workflows.
 - Existing first-run guidance reviewed and confirmed: welcome/start screens, first-game field overlay, help modal, and guide reset path are already present.
-- Existing in-app feedback entry point reviewed and confirmed: Settings includes a "Send Feedback" email action.
+- In-app feedback path improved and verified: Settings includes a friendly "Send Feedback" email action plus a "Copy app info" action for version, language, mode, display mode, platform, and browser details. No game, roster, or player data is attached or copied automatically.
 - Sentry checked before submission; as of 2026-05-27 manual dashboard review showed no current tickets.
 
 ### Packaging Statement
@@ -77,7 +77,7 @@ Testers did not report blocking crashes or broken core functionality. Some repor
 
 Final answer should list only shipped changes. Use this template after the AAB is built:
 
-> Based on tester feedback and our own review, we verified that the Play Store listing, screenshots, first-run guidance, and in-app feedback path already describe and support the product accurately. We also reviewed production error monitoring before submission; Sentry showed no current tickets at the time of review.
+> Based on tester feedback and our own review, we verified that the Play Store listing, screenshots, and first-run guidance already describe and support the product accurately. We also improved the Settings feedback path with a friendly email action and optional copyable app info so testers can include version/device details without attaching game, roster, or player data. We reviewed production error monitoring before submission; Sentry showed no current tickets at the time of review.
 
 ### How Is The App Ready For Production?
 
@@ -91,5 +91,5 @@ This document covers the production-access evidence workstream only. The impleme
 
 1. Play Store listing/screenshot verification against the assets already uploaded in Play Console.
 2. Existing first-run guidance verification.
-3. Existing in-app feedback entry point verification.
+3. Improved in-app feedback entry point verification.
 4. Verification: `npm run lint`, `npm test`, `npm run build`, Android/TWA smoke test.

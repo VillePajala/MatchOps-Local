@@ -62,6 +62,24 @@ jest.mock('react-i18next', () => ({
         'settingsModal.feedbackEmailSubject': 'MatchOps feedback',
         'settingsModal.feedbackEmailBody': 'Hi, I wanted to share feedback about MatchOps:\n\n\n\nApp version: 1.0.0',
         'settingsModal.emailButton': 'Email',
+        'settingsModal.copyAppInfo': 'Copy app info',
+        'settingsModal.copyAppInfoDesc': 'Copy version and device details you can paste into feedback.',
+        'settingsModal.copyAppInfoButton': 'Copy',
+        'settingsModal.copyAppInfoSuccess': 'App info copied',
+        'settingsModal.copyAppInfoFailed': 'Could not copy app info',
+        'settingsModal.appInfoTitle': 'MatchOps app info',
+        'settingsModal.appInfoVersion': 'Version',
+        'settingsModal.appInfoLanguage': 'Language',
+        'settingsModal.appInfoMode': 'Mode',
+        'settingsModal.appInfoModeLocal': 'Local',
+        'settingsModal.appInfoModeCloud': 'Cloud',
+        'settingsModal.appInfoDisplayMode': 'Display mode',
+        'settingsModal.appInfoDisplayStandalone': 'Standalone',
+        'settingsModal.appInfoDisplayBrowser': 'Browser',
+        'settingsModal.appInfoDisplayUnknown': 'Unknown',
+        'settingsModal.appInfoPlatform': 'Platform',
+        'settingsModal.appInfoBrowser': 'Browser',
+        'settingsModal.appInfoUnknown': 'Unknown',
         'settingsModal.updateAvailableTitle': 'Update Available',
         'settingsModal.updateAvailableConfirmSafe': 'Update available! Click Install to prepare the update. You can reload when convenient to apply it.',
         'settingsModal.installUpdate': 'Install',
@@ -188,6 +206,46 @@ describe('<SettingsModal />', () => {
     expect(decodeURIComponent(href ?? '')).toContain('subject=MatchOps feedback');
     expect(decodeURIComponent(href ?? '')).toContain('Hi, I wanted to share feedback about MatchOps:');
     expect(decodeURIComponent(href ?? '')).toContain('App version: 1.0.0');
+  });
+
+  test('copies app info without including match data', async () => {
+    const writeTextMock = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(global.navigator, 'clipboard', {
+      value: { writeText: writeTextMock },
+      configurable: true,
+    });
+    Object.defineProperty(window, 'matchMedia', {
+      value: jest.fn().mockReturnValue({ matches: true }),
+      configurable: true,
+    });
+
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    navigateToTab('About');
+
+    expect(screen.getByText('Copy app info')).toBeInTheDocument();
+    expect(screen.getByText('Copy version and device details you can paste into feedback.')).toBeInTheDocument();
+
+    const copyLabel = screen.getByText('Copy app info');
+    const card = copyLabel.closest('.flex.items-center')!;
+    fireEvent.click(within(card as HTMLElement).getByRole('button', { name: /copy/i }));
+
+    await waitFor(() => {
+      expect(writeTextMock).toHaveBeenCalledTimes(1);
+    });
+
+    const copiedText = writeTextMock.mock.calls[0][0] as string;
+    expect(copiedText).toContain('MatchOps app info');
+    expect(copiedText).toContain('Version: 1.0.0');
+    expect(copiedText).toContain('Language: en');
+    expect(copiedText).toContain('Mode: Local');
+    expect(copiedText).toContain('Display mode: Standalone');
+    expect(copiedText).not.toMatch(/player|roster|match notes|goal/i);
+    expect(await screen.findByText('App info copied')).toBeInTheDocument();
   });
 
   test('displays usage in KB when below 1 MB', async () => {
