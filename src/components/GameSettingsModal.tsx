@@ -326,6 +326,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // seasons/tournaments when opening game settings for existing games.
   const appliedSeasonRef = useRef<string | null>(seasonId || null);
   const appliedTournamentRef = useRef<string | null>(tournamentId || null);
+  const pendingSeasonPrefillRef = useRef<string | null>(null);
+  const pendingTournamentPrefillRef = useRef<string | null>(null);
   // Track if component is mounted to prevent setState on unmounted component
   const isMountedRef = useRef<boolean>(true);
   const mutationSequenceRef = useRef<number>(0);
@@ -339,6 +341,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       prevGameIdRef.current = currentGameId;
       appliedSeasonRef.current = seasonId || null;
       appliedTournamentRef.current = tournamentId || null;
+      pendingSeasonPrefillRef.current = null;
+      pendingTournamentPrefillRef.current = null;
     }
   }, [currentGameId, seasonId, tournamentId]);
 
@@ -712,6 +716,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       // use the season's defaults. Only modal close/reopen preserves overrides.
       if (!seasonId) {
         appliedSeasonRef.current = null;
+        pendingSeasonPrefillRef.current = null;
       }
       return;
     }
@@ -725,6 +730,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // Skip if we've already applied updates for this season to prevent infinite loop
     if (appliedSeasonRef.current === seasonId) {
       logger.log('[GameSettingsModal] Skipping season prefill - already applied for', seasonId);
+      return;
+    }
+
+    if (pendingSeasonPrefillRef.current !== seasonId) {
+      logger.log('[GameSettingsModal] Skipping season prefill - association was not selected in this modal session', seasonId);
+      appliedSeasonRef.current = seasonId;
       return;
     }
 
@@ -813,6 +824,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
       // Mark this season as applied AFTER handlers succeed to allow retry on failure
       appliedSeasonRef.current = seasonId;
+      pendingSeasonPrefillRef.current = null;
     } catch (error) {
       logger.error('[GameSettingsModal] Error calling season prefill handlers:', error);
       // Don't set ref on error, allowing retry
@@ -851,6 +863,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
           // Reset ref on error so it can be retried
           appliedSeasonRef.current = null;
+          pendingSeasonPrefillRef.current = targetSeasonId;
         }
       });
 
@@ -873,6 +886,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       // which would overwrite user's manual date/settings changes.
       if (!tournamentId) {
         appliedTournamentRef.current = null;
+        pendingTournamentPrefillRef.current = null;
       }
       return;
     }
@@ -886,6 +900,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // Skip if we've already applied updates for this tournament to prevent infinite loop
     if (appliedTournamentRef.current === tournamentId) {
       logger.log('[GameSettingsModal] Skipping tournament prefill - already applied for', tournamentId);
+      return;
+    }
+
+    if (pendingTournamentPrefillRef.current !== tournamentId) {
+      logger.log('[GameSettingsModal] Skipping tournament prefill - association was not selected in this modal session', tournamentId);
+      appliedTournamentRef.current = tournamentId;
       return;
     }
 
@@ -938,6 +958,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
       // Mark this tournament as applied AFTER handlers succeed to allow retry on failure
       appliedTournamentRef.current = tournamentId;
+      pendingTournamentPrefillRef.current = null;
     } catch (error) {
       logger.error('[GameSettingsModal] Error calling tournament prefill handlers:', error);
       // Don't set ref on error, allowing retry
@@ -975,6 +996,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           setError(t('gameSettingsModal.errors.tournamentUpdateFailed', 'Failed to apply tournament settings'));
           // Reset ref on error so it can be retried
           appliedTournamentRef.current = null;
+          pendingTournamentPrefillRef.current = targetTournamentId;
         }
       });
 
@@ -994,6 +1016,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     const newSeasonId = value || ''; // Use empty string instead of undefined for JSON consistency
+    pendingSeasonPrefillRef.current = newSeasonId || null;
     onSeasonIdChange(newSeasonId);
 
     // Only clear tournament if setting a non-empty season (mutual exclusivity)
@@ -1030,6 +1053,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     const newTournamentId = value || ''; // Use empty string instead of undefined for JSON consistency
+    pendingTournamentPrefillRef.current = newTournamentId || null;
     onTournamentIdChange(newTournamentId);
 
     // Only clear season if setting a non-empty tournament (mutual exclusivity)
@@ -1471,6 +1495,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (tab === 'none') {
       appliedSeasonRef.current = null;
       appliedTournamentRef.current = null;
+      pendingSeasonPrefillRef.current = null;
+      pendingTournamentPrefillRef.current = null;
       onSeasonIdChange('');
       onTournamentIdChange('');
       mutateGameDetails(

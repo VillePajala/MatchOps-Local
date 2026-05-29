@@ -184,6 +184,7 @@ const defaultProps: GameSettingsModalProps = {
   onGenderChange: jest.fn(),
   updateGameDetailsMutation: {
     mutate: jest.fn(),
+    mutateAsync: jest.fn().mockResolvedValue({ id: 'game123' }),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
   seasons: mockSeasons,
   tournaments: mockTournaments,
@@ -238,24 +239,30 @@ describe('<GameSettingsModal />', () => {
 
   describe('Season Prefill Regression', () => {
     test('applies season data to local handlers immediately when season changes', async () => {
+      const user = userEvent.setup();
       const onGameLocationChange = jest.fn();
       const onAgeGroupChange = jest.fn();
       const onNumPeriodsChange = jest.fn();
       const onPeriodDurationChange = jest.fn();
+      const onGameDateChange = jest.fn();
 
       const seasonProps = {
         ...defaultProps,
         seasons: [
-          { id: 'season-100', name: 'Elite League', location: 'North Dome', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
+          { id: 'season-100', name: 'Elite League', location: 'North Dome', startDate: '2024-08-01', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
         ],
         onGameLocationChange,
         onAgeGroupChange,
+        onGameDateChange,
         onNumPeriodsChange,
         onPeriodDurationChange,
       };
 
-      // Start without a season, then simulate user selecting one
+      // Start without a season, then simulate the user explicitly selecting one.
       const { rerender } = renderModal({ ...seasonProps, seasonId: '' });
+      await user.click(screen.getByText(t('gameSettingsModal.kausi')));
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await user.selectOptions(seasonSelect, 'season-100');
 
       rerender(
         <ToastProvider>
@@ -265,8 +272,46 @@ describe('<GameSettingsModal />', () => {
 
       await waitFor(() => expect(onGameLocationChange).toHaveBeenCalledWith('North Dome'));
       expect(onAgeGroupChange).toHaveBeenCalledWith('u13');
+      expect(onGameDateChange).toHaveBeenCalledWith('2024-08-01');
       expect(onNumPeriodsChange).toHaveBeenCalledWith(2);
       expect(onPeriodDurationChange).toHaveBeenCalledWith(30);
+    });
+
+    test('does not reapply season start date when an existing game roster selection changes', async () => {
+      const onGameDateChange = jest.fn();
+      const mutate = jest.fn();
+      const mutateAsync = jest.fn().mockResolvedValue({ id: 'game123' });
+      const seasonProps = {
+        ...defaultProps,
+        seasonId: '',
+        selectedPlayerIds: ['p1', 'p2'],
+        seasons: [
+          { id: 'season-100', name: 'Elite League', location: 'North Dome', startDate: '2024-08-01', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
+        ],
+        onGameDateChange,
+        updateGameDetailsMutation: {
+          mutate,
+          mutateAsync,
+        } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+      };
+
+      const { rerender } = renderModal(seasonProps);
+
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal
+            {...seasonProps}
+            seasonId="season-100"
+            selectedPlayerIds={['p1']}
+          />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
+      });
+      expect(onGameDateChange).not.toHaveBeenCalledWith('2024-08-01');
+      expect(mutateAsync).not.toHaveBeenCalled();
     });
   });
 
@@ -1098,11 +1143,17 @@ describe('<GameSettingsModal />', () => {
     });
 
     test('should auto-set filters when season has a league', async () => {
+      const user = userEvent.setup();
       // Start without a season, then simulate user selecting s1 which has leagueId: 'sm-sarja'
       const { rerender } = renderModal({
         ...leagueProps,
         seasonId: '',
       });
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
+      const seasonTab = within(section).getByText(t('gameSettingsModal.kausi'));
+      await user.click(seasonTab);
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await user.selectOptions(seasonSelect, 's1');
 
       rerender(
         <ToastProvider>
