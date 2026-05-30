@@ -137,8 +137,12 @@ export type GameSessionAction =
   | { type: 'LOAD_GAME_SESSION_STATE'; payload: Partial<GameSessionState> }
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
   | { type: 'LOAD_PERSISTED_GAME_DATA'; payload: Partial<GameSessionState> } // For loading GameData-like objects
-  | { type: 'PAUSE_TIMER_FOR_HIDDEN' }
+  | { type: 'PAUSE_TIMER_FOR_HIDDEN'; payload?: number }
   | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } };
+
+const safeElapsedSeconds = (value: unknown, fallback: number): number => {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
+};
 
 // --- Reducer Function ---
 export const gameSessionReducer = (state: GameSessionState, action: GameSessionAction): GameSessionState => {
@@ -238,11 +242,14 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'PAUSE_TIMER': {
       if (!state.isTimerRunning || !state.startTimestamp) return state;
-      // Use precise time from precision timer if provided, otherwise calculate from Date.now()
+      // Use precise time from precision timer if provided. If unavailable, keep
+      // the latest reducer time instead of adding wall-clock time again: while
+      // running, SET_TIMER_ELAPSED already advances timeElapsedInSeconds.
       const preciseTime = action.payload;
-      const timeElapsedAtPause = preciseTime !== undefined
-        ? preciseTime
-        : state.timeElapsedInSeconds + (Date.now() - state.startTimestamp) / 1000;
+      const timeElapsedAtPause = safeElapsedSeconds(
+        preciseTime,
+        safeElapsedSeconds(state.timeElapsedInSeconds, 0)
+      );
       return {
         ...state,
         isTimerRunning: false,
@@ -356,8 +363,14 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, isTimerRunning: action.payload };
     case 'PAUSE_TIMER_FOR_HIDDEN':
       if (state.isTimerRunning && state.gameStatus === 'inProgress' && state.startTimestamp) {
-        // Capture elapsed time and clear startTimestamp, matching PAUSE_TIMER pattern
-        const elapsedAtHide = state.timeElapsedInSeconds + (Date.now() - state.startTimestamp) / 1000;
+        // Capture the same precise elapsed value saved by the visibility handler.
+        // Do not add Date.now() - startTimestamp here: timeElapsedInSeconds is
+        // already updated while the timer runs, so adding the full run duration
+        // can double the timer when the screen locks or the app backgrounds.
+        const elapsedAtHide = safeElapsedSeconds(
+          action.payload,
+          safeElapsedSeconds(state.timeElapsedInSeconds, 0)
+        );
         return {
           ...state,
           isTimerRunning: false,

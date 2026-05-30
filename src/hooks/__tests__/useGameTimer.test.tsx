@@ -135,9 +135,17 @@ describe('useGameTimer', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockGetCurrentTime.mockReturnValue(0);
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
   });
 
   afterEach(() => {
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
     jest.useRealTimers();
   });
 
@@ -361,6 +369,44 @@ describe('useGameTimer', () => {
 
       // The reducer enforces minimum of 1, so nextSubDueTimeSeconds should be based on 1 minute
       expect(result.current.nextSubDueTimeSeconds).toBe(60);
+    });
+  });
+
+  describe('visibility handling', () => {
+    it('pauses at the precise current time when the app is hidden without double-counting', () => {
+      const { saveTimerState } = jest.requireMock('@/utils/timerStateManager');
+      const elapsed = 28 * 60 + 28;
+      const initialState = createInitialState({
+        gameStatus: 'inProgress',
+        isTimerRunning: true,
+        startTimestamp: Date.now() - elapsed * 1000,
+        timeElapsedInSeconds: elapsed,
+        periodDurationMinutes: 40,
+        numberOfPeriods: 1,
+      });
+
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        value: true,
+      });
+
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+
+      expect(result.current.isTimerRunning).toBe(false);
+      expect(result.current.timeElapsedInSeconds).toBe(elapsed);
+      expect(result.current.timeElapsedInSeconds).not.toBe(elapsed * 2);
+      expect(saveTimerState).toHaveBeenCalledWith(expect.objectContaining({
+        gameId: 'game-1',
+        timeElapsedInSeconds: elapsed,
+        wasRunning: true,
+      }));
     });
   });
 

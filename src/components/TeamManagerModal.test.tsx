@@ -64,9 +64,9 @@ jest.mock('react-i18next', () => ({
 }));
 
 const mockTeams: Team[] = [
-  { id: 't1', name: 'Team Alpha', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 't2', name: 'Team Beta', color: '#8B5CF6', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 't3', name: 'Team Gamma', color: '#10B981', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 't1', name: 'Team Alpha', color: '#6366F1', createdAt: '2025-01-03T00:00:00.000Z', updatedAt: '2025-01-03T00:00:00.000Z' },
+  { id: 't2', name: 'Team Beta', color: '#8B5CF6', createdAt: '2025-01-02T00:00:00.000Z', updatedAt: '2025-01-02T00:00:00.000Z' },
+  { id: 't3', name: 'Team Gamma', color: '#10B981', createdAt: '2025-01-01T00:00:00.000Z', updatedAt: '2025-01-01T00:00:00.000Z' },
 ];
 
 const createQueryClient = () =>

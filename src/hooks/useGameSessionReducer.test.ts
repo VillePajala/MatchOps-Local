@@ -735,12 +735,12 @@ describe('gameSessionReducer', () => {
   });
 
   describe('PAUSE_TIMER', () => {
-    it('should pause timer and calculate elapsed time', () => {
+    it('should pause timer using the latest reducer time if precise time is unavailable', () => {
       const startTime = Date.now() - 10000; // Started 10 seconds ago
       const state = createBaseState({
         isTimerRunning: true,
         startTimestamp: startTime,
-        timeElapsedInSeconds: 100, // Had 100 seconds elapsed before this run
+        timeElapsedInSeconds: 100,
       });
       const action: GameSessionAction = { type: 'PAUSE_TIMER' };
 
@@ -748,9 +748,22 @@ describe('gameSessionReducer', () => {
 
       expect(result.isTimerRunning).toBe(false);
       expect(result.startTimestamp).toBeNull();
-      // Elapsed should be roughly 100 + 10 = 110 (give or take a few ms)
-      expect(result.timeElapsedInSeconds).toBeGreaterThanOrEqual(109);
-      expect(result.timeElapsedInSeconds).toBeLessThanOrEqual(111);
+      expect(result.timeElapsedInSeconds).toBe(100);
+    });
+
+    it('should not double-count elapsed time when precise time is unavailable', () => {
+      const elapsed = 28 * 60 + 28;
+      const state = createBaseState({
+        isTimerRunning: true,
+        startTimestamp: Date.now() - elapsed * 1000,
+        timeElapsedInSeconds: elapsed,
+      });
+      const action: GameSessionAction = { type: 'PAUSE_TIMER' };
+
+      const result = gameSessionReducer(state, action);
+
+      expect(result.timeElapsedInSeconds).toBe(elapsed);
+      expect(result.timeElapsedInSeconds).not.toBe(elapsed * 2);
     });
 
     it('should use precise time from payload if provided', () => {
@@ -800,6 +813,38 @@ describe('gameSessionReducer', () => {
       const result = gameSessionReducer(state, action);
 
       expect(result.isTimerRunning).toBe(false);
+    });
+
+    it('should use precise elapsed payload when hiding the app', () => {
+      const state = createBaseState({
+        isTimerRunning: true,
+        gameStatus: 'inProgress',
+        startTimestamp: Date.now() - 10000,
+        timeElapsedInSeconds: 100,
+      });
+      const action: GameSessionAction = { type: 'PAUSE_TIMER_FOR_HIDDEN', payload: 123.456 };
+
+      const result = gameSessionReducer(state, action);
+
+      expect(result.isTimerRunning).toBe(false);
+      expect(result.timeElapsedInSeconds).toBe(123.456);
+    });
+
+    it('should not double-count elapsed time when hiding without a precise payload', () => {
+      const elapsed = 28 * 60 + 28;
+      const state = createBaseState({
+        isTimerRunning: true,
+        gameStatus: 'inProgress',
+        startTimestamp: Date.now() - elapsed * 1000,
+        timeElapsedInSeconds: elapsed,
+      });
+      const action: GameSessionAction = { type: 'PAUSE_TIMER_FOR_HIDDEN' };
+
+      const result = gameSessionReducer(state, action);
+
+      expect(result.isTimerRunning).toBe(false);
+      expect(result.timeElapsedInSeconds).toBe(elapsed);
+      expect(result.timeElapsedInSeconds).not.toBe(elapsed * 2);
     });
 
     it('should not change if timer not running', () => {
