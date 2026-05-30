@@ -166,15 +166,17 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       if (document.hidden) {
         // Save timer state when tab becomes hidden
         if (isTimerRunningRef.current) {
+          const elapsedAtHide = precisionTimerRef.current?.getCurrentTime() ?? stateRef.current.timeElapsedInSeconds;
           const timerState: TimerState = {
             gameId: currentGameId || '',
-            timeElapsedInSeconds: precisionTimerRef.current?.getCurrentTime() ?? stateRef.current.timeElapsedInSeconds,
+            timeElapsedInSeconds: elapsedAtHide,
             timestamp: Date.now(),
             wasRunning: true, // Track that timer should resume on return
           };
-          // Save immediately when tab becomes hidden
-          await saveTimerState(timerState);
-          dispatch({ type: 'PAUSE_TIMER_FOR_HIDDEN' });
+          // Pause local state immediately; do not wait on IndexedDB while the
+          // browser may be freezing the page.
+          dispatch({ type: 'PAUSE_TIMER_FOR_HIDDEN', payload: elapsedAtHide });
+          void saveTimerState(timerState);
         }
       } else {
         // Restore timer state when tab becomes visible

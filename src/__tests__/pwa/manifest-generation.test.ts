@@ -218,7 +218,7 @@ describe('Manifest Generation', () => {
         (s) => s.url === '/?action=newGame'
       );
       expect(newGameShortcut).toBeDefined();
-      expect(newGameShortcut!.name).toBe('New Game');
+      expect(newGameShortcut!.name).toBe('Uusi peli');
     });
 
     it('should have Stats shortcut', () => {
@@ -226,7 +226,7 @@ describe('Manifest Generation', () => {
         (s) => s.url === '/?action=stats'
       );
       expect(statsShortcut).toBeDefined();
-      expect(statsShortcut!.name).toBe('Player Stats');
+      expect(statsShortcut!.name).toBe('Pelaajatilastot');
     });
 
     it('should have Roster shortcut', () => {
@@ -234,7 +234,7 @@ describe('Manifest Generation', () => {
         (s) => s.url === '/?action=roster'
       );
       expect(rosterShortcut).toBeDefined();
-      expect(rosterShortcut!.name).toBe('Manage Roster');
+      expect(rosterShortcut!.name).toBe('Kokoonpano');
     });
 
     it('should have icons for all shortcuts', () => {
