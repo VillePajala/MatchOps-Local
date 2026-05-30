@@ -313,6 +313,46 @@ describe('<GameSettingsModal />', () => {
       expect(onGameDateChange).not.toHaveBeenCalledWith('2024-08-01');
       expect(mutateAsync).not.toHaveBeenCalled();
     });
+
+    test('preserves current game date when removing a player from an existing game roster selection', async () => {
+      const user = userEvent.setup();
+      const mutate = jest.fn();
+      const gameDate = '2024-09-14';
+
+      renderModal({
+        ...defaultProps,
+        gameDate,
+        seasonId: 'season-100',
+        selectedPlayerIds: ['p1', 'p2'],
+        seasons: [
+          { id: 'season-100', name: 'Elite League', location: 'North Dome', startDate: '2024-08-01', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
+        ],
+        updateGameDetailsMutation: {
+          mutate,
+          mutateAsync: jest.fn().mockResolvedValue({ id: 'game123' }),
+        } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+      });
+
+      await user.click(screen.getByLabelText(/Player Two/));
+
+      expect(mutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          gameId: 'game123',
+          updates: {
+            selectedPlayerIds: ['p1'],
+            gameDate,
+          },
+          meta: expect.objectContaining({
+            source: 'stateSync',
+            expectedState: {
+              selectedPlayerIds: ['p1'],
+              gameDate,
+            },
+          }),
+        }),
+        expect.any(Object)
+      );
+    });
   });
 
   describe('Game Notes Section', () => {

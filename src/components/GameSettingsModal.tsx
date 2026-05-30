@@ -1642,8 +1642,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 onSelectedPlayersChange={(playerIds: string[]) => {
                   onSelectedPlayersChange(playerIds);
                   mutateGameDetails(
-                    { selectedPlayerIds: playerIds },
-                    { source: 'stateSync', expectedState: { selectedPlayerIds: playerIds } }
+                    { selectedPlayerIds: playerIds, gameDate },
+                    { source: 'stateSync', expectedState: { selectedPlayerIds: playerIds, gameDate } }
                   );
                 }}
                 title={t('gameSettingsModal.selectPlayers', 'Select Players')}
