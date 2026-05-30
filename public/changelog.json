@@ -1,8 +1,8 @@
 {
-  "version": "00ae998b",
-  "date": "2026-02-09",
+  "version": "36f8f5ab",
+  "date": "2026-05-29",
   "notes": {
-    "en": "Production readiness fixes from round 8 review",
-    "fi": "Production readiness fixes from round 8 review"
+    "en": "Avoid date reset on roster-only updates",
+    "fi": "Avoid date reset on roster-only updates"
   }
 }
