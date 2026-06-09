@@ -46,11 +46,10 @@ export function canUsePlayBilling(): boolean {
  *
  * Requires Android: Desktop Chrome may expose getDigitalGoodsService for
  * installed PWAs, but desktop users must retain local-mode access.
- *
- * Temporarily disabled for closed testing — re-enable when Play Billing is configured.
  */
 export function isPlayStoreContext(): boolean {
-  return false;
+  if (typeof window === 'undefined') return false;
+  return isAndroid() && 'getDigitalGoodsService' in window;
 }
 
 /**
