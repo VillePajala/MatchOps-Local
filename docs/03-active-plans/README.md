@@ -1,61 +1,44 @@
 # Active Plans — START HERE
 
-**Last Updated**: February 2026
+**Last Updated**: 2026-06-10
+**Status**: 🚀 Live in production (Google Play, 2026-06-09) · **Free** (no billing)
 
 ---
 
 ## 🎯 Single Source of Truth
 
-**[UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md)** — All project work in one place
+**[UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md)** — all remaining work, prioritized P0→P4.
 
 ---
 
 ## Active Documents
 
-| File | Purpose | Status |
-|------|---------|--------|
-| **UNIFIED-ROADMAP.md** | Master roadmap with all tasks | ✅ Updated |
-| **master-execution-guide.md** | Play Store release details | 📋 Active |
-| **billing-implementation-plan.md** | Play Billing & subscriptions | ✅ Phases 1-7 Complete |
-| **PLAY-STORE-IMPLEMENTATION-PLAN.md** | Play Store distribution | 📋 Active |
-| **branch-review-findings.md** | Code review findings tracker | 📋 Reference |
-| **user-flow-testing-plan.md** | Manual testing plan | 📋 Pre-release |
-| **welcome-screen-simplification-plan.md** | Welcome screen UX | 📋 Reference |
-| **review-plan.md** | Pre-launch quality audit tracker | 📋 Active |
+| File | Purpose |
+|------|---------|
+| **UNIFIED-ROADMAP.md** | Prioritized roadmap (P0 live fixes → P4 big bets) |
+| **user-flow-testing-plan.md** | Manual QA checklist (post-launch verification) |
 
-**Note**: Completed plans (supabase-implementation-guide, local-first-sync, subscription, etc.) have been archived to `08-archived/completed-active-plans/`. The supabase-implementation-guide has been relocated to `02-technical/` as permanent reference.
+**Archived** (moved to `08-archived/completed-active-plans/`): Play Store plan, master-execution-guide, billing-implementation-plan, review-plan, branch-review-findings, welcome-screen, communication-infrastructure. Their still-open items were folded into the roadmap.
 
 ---
 
-## Current Status (February 2026)
+## Current Focus (P0)
 
-✅ **Supabase Cloud Backend** — PRs 1-12 Complete
-✅ **Local-First Sync** — PR #324 Merged
-✅ **Billing Infrastructure** — Phases 1-7 Complete
-✅ **Staging Environment** — Configured and tested
-✅ **Code Reviews** — 27 rounds complete, converged at R27 (zero findings)
-✅ **Documentation Review** — 6-agent review complete, all fixes applied
+1. **Store-listing accuracy** — listing/README still claim "offline / no account / optional cloud"; the Play build is cloud-only.
+2. **Stop publishing internal docs** — `copy-docs.js` publishes `11-blueprint` + archive tarball to the public site.
+3. **`get_user_consent` stale 'granted'** (#371) — make it status-aware.
 
-| Metric | Value |
-|--------|-------|
-| Tests | ~4,746 passing |
-| Vulnerabilities | 0 |
-| Framework | Next.js 16 + React 19 |
-| Cloud Backend | Supabase (PostgreSQL + Auth + Edge Functions) |
+Monetization is **parked** (going free). If we ever go paid, it needs a full replan — see archived `billing-implementation-plan.md`.
 
 ### Supabase Projects
 
 | Project | ID | Purpose |
 |---------|-------------|---------|
-| `matchops-cloud` | `aybjmnxxtgspqesdiqxd` | Production (real billing) |
-| `matchops-staging` | `hwcqpvvqnmetjrwvzlfr` | Preview/testing (mock billing) |
+| `matchops-cloud` | `aybjmnxxtgspqesdiqxd` | Production |
+| `matchops-staging` | `hwcqpvvqnmetjrwvzlfr` | Preview/testing |
 
-See [billing-implementation-plan.md](./billing-implementation-plan.md#staging-vs-production-architecture) for setup details.
+### Preserved code snapshots (git tags)
 
-**Next**:
-1. Business setup (Toiminimi, bank account, Google Payments)
-2. Enable `PREMIUM_ENFORCEMENT_ENABLED = true`
-3. Merge feature branch to master
-4. Rebuild TWA with Play Billing enabled
-
-See [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) for details.
+- `archive/pre-cloud-backup` — app state before cloud work
+- `archive/planner-integration` — scrapped Planner impl (replan: #369)
+- `archive/desktop-responsive-modals` — desktop UI ideas (rebuild: #360)
