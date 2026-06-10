@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## ✅ Project Status: Healthy
+## ✅ Project Status: Live in Production (Free)
 
-**Last Updated**: February 2026
+**Last Updated**: 2026-06-10
+**Released to Google Play**: 2026-06-09 — distributed as a cloud-only TWA (Play Store users must sign in; cloud mode required). The app is **free**; monetization is parked.
 
 ### Quick Stats
 - ✅ **~4,500+ tests** passing
@@ -27,11 +28,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Local-First Cloud Sync** ✅ - SyncQueue, SyncEngine, SyncedDataStore (PR #324)
 
 ### What's Next
-- **Play Store Release**: See master-execution-guide.md (blocked by business entity setup)
+- See **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — prioritized P0→P4. Current P0: store-listing accuracy, stop publishing internal docs, fix `get_user_consent` status bug (#371).
+- **Monetization is parked** (going free). Billing infrastructure exists but enforcement is off (`PREMIUM_ENFORCEMENT_ENABLED = false`); the plan is archived for an eventual replan if we ever go paid.
 
 ### ⚠️ Quality Bar: Production-Ready (Not MVP)
 
-**This project is past MVP stage.** We are preparing for Play Store release with paid subscriptions.
+**This project is past MVP stage — it is live in production.** Code must be production-grade.
 
 **What this means for development:**
 - **Billing/Auth/Security**: Production-grade quality required. No shortcuts, no "good enough for MVP".
@@ -50,9 +52,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ✅ "Follows security best practices"
 
 ### Essential Reading
+- **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — Single source of truth (prioritized roadmap)
 - **[supabase-implementation-guide.md](./docs/02-technical/supabase-implementation-guide.md)** ⭐ **Implementation reference**
-- **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** — Single source of truth
-- **[master-execution-guide.md](./docs/03-active-plans/master-execution-guide.md)** — Play Store release plan
+- Completed/parked plans (Play Store, billing, reviews) are archived under `docs/08-archived/completed-active-plans/`.
 
 ---
 
