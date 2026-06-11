@@ -2525,5 +2525,129 @@ describe('LocalDataStore', () => {
       // operations in a single lock for atomic read-modify-write operations.
       // See teams.ts:addPlayerToRoster, updatePlayerInRoster, removePlayerFromRoster.
     });
+
+    // ============================================================
+    // CR-C2: storage READ errors must propagate, never be treated
+    // as "no data". Otherwise read-modify-write paths (saveGame,
+    // createPlayer, ...) persist an empty collection over real data.
+    // ============================================================
+    describe('Storage read-error propagation (CR-C2)', () => {
+      const readError = new Error('Transient IndexedDB read failure');
+
+      const readErrorGame: AppState = {
+        playersOnField: [],
+        opponents: [],
+        drawings: [],
+        availablePlayers: [],
+        showPlayerNames: true,
+        teamName: 'My Team',
+        gameEvents: [],
+        opponentName: 'Opponent',
+        gameDate: '2025-01-01',
+        homeScore: 1,
+        awayScore: 0,
+        gameNotes: '',
+        homeOrAway: 'home',
+        numberOfPeriods: 2,
+        periodDurationMinutes: 10,
+        currentPeriod: 1,
+        gameStatus: 'notStarted',
+        isPlayed: true,
+        selectedPlayerIds: [],
+        assessments: {},
+        seasonId: '',
+        tournamentId: '',
+        tournamentLevel: '',
+        ageGroup: '',
+        gameLocation: '',
+        gameTime: '',
+        tacticalDiscs: [],
+        tacticalDrawings: [],
+        tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+        subIntervalMinutes: 5,
+        completedIntervalDurations: [],
+        lastSubConfirmationTimeSeconds: 0,
+        gamePersonnel: [],
+      };
+
+      /**
+       * A transient read failure during saveGame must abort the save,
+       * NOT write a games collection containing only the current game.
+       * @critical
+       */
+      it('saveGame aborts without writing when the games read fails', async () => {
+        // Key-targeted rejection (not a blind *Once queue) so the test is
+        // deterministic regardless of how many reads the operation performs.
+        mockGetStorageItem.mockImplementation((key: string) =>
+          key === 'savedSoccerGames' ? Promise.reject(readError) : Promise.resolve(null)
+        );
+
+        await expect(dataStore.saveGame('game_1', readErrorGame)).rejects.toThrow(
+          'Transient IndexedDB read failure'
+        );
+
+        const gamesWrites = mockSetStorageItem.mock.calls.filter(
+          (call) => call[0] === 'savedSoccerGames'
+        );
+        expect(gamesWrites).toHaveLength(0);
+      });
+
+      /**
+       * A transient read failure during createPlayer must abort,
+       * NOT overwrite the roster with a single-player array.
+       * @critical
+       */
+      it('createPlayer aborts without writing when the roster read fails', async () => {
+        mockGetStorageItem.mockImplementation((key: string) =>
+          key === 'soccerMasterRoster' ? Promise.reject(readError) : Promise.resolve(null)
+        );
+
+        await expect(
+          dataStore.createPlayer({ name: 'Test', jerseyNumber: '1' })
+        ).rejects.toThrow('Transient IndexedDB read failure');
+
+        const rosterWrites = mockSetStorageItem.mock.calls.filter(
+          (call) => call[0] === 'soccerMasterRoster'
+        );
+        expect(rosterWrites).toHaveLength(0);
+      });
+
+      it('getPlayers propagates storage read errors instead of returning []', async () => {
+        mockGetStorageItem.mockImplementation((key: string) =>
+          key === 'soccerMasterRoster' ? Promise.reject(readError) : Promise.resolve(null)
+        );
+
+        await expect(dataStore.getPlayers()).rejects.toThrow(
+          'Transient IndexedDB read failure'
+        );
+      });
+
+      it('getGames propagates storage read errors instead of returning {}', async () => {
+        mockGetStorageItem.mockImplementation((key: string) =>
+          key === 'savedSoccerGames' ? Promise.reject(readError) : Promise.resolve(null)
+        );
+
+        await expect(dataStore.getGames()).rejects.toThrow(
+          'Transient IndexedDB read failure'
+        );
+      });
+
+      /**
+       * Corruption recovery is unchanged: unparseable JSON (unrecoverable)
+       * still reads as empty rather than throwing.
+       * @edge-case
+       */
+      it('still treats corrupted JSON as empty data', async () => {
+        mockGetStorageItem.mockImplementation((key: string) =>
+          key === 'soccerMasterRoster' ? Promise.resolve('{not valid json') : Promise.resolve(null)
+        );
+        await expect(dataStore.getPlayers()).resolves.toEqual([]);
+
+        mockGetStorageItem.mockImplementation((key: string) =>
+          key === 'savedSoccerGames' ? Promise.resolve('{broken') : Promise.resolve(null)
+        );
+        await expect(dataStore.getGames()).resolves.toEqual({});
+      });
+    });
   });
 });
