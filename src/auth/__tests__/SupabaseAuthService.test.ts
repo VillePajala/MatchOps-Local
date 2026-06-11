@@ -996,6 +996,27 @@ describe('SupabaseAuthService', () => {
       await expect(authService.deleteAccount()).rejects.toThrow('temporarily unavailable');
     });
 
+    it('should explain possible prior success when edge function returns 401 (lost-response retry)', async () => {
+      // A 401 after the pre-call session refresh usually means a previous
+      // attempt already deleted the account but its response was lost.
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Edge Function returned a non-2xx status code', context: { status: 401 } },
+      });
+
+      await expect(authService.deleteAccount()).rejects.toThrow(AuthError);
+      await expect(authService.deleteAccount()).rejects.toThrow('may already be deleted');
+    });
+
+    it('should explain possible prior success on "Invalid or expired token" message', async () => {
+      mockFunctionsInvoke.mockResolvedValue({
+        data: null,
+        error: { message: 'Invalid or expired token' },
+      });
+
+      await expect(authService.deleteAccount()).rejects.toThrow('may already be deleted');
+    });
+
     it('should throw AuthError when Edge Function returns success=false', async () => {
       mockFunctionsInvoke.mockResolvedValue({
         data: { success: false, error: 'User not found' },
