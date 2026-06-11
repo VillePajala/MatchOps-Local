@@ -288,8 +288,7 @@ describe('backendConfig', () => {
 
       try {
         const result = disableCloudMode();
-        expect(result.success).toBe(false);
-        expect(result.reason).toBe('play_store_restricted');
+        expect(result).toMatchObject({ success: false, reason: 'play_store_restricted' });
         expect(localStorageMock.setItem).not.toHaveBeenCalledWith('matchops_backend_mode', 'local');
       } finally {
         delete (window as unknown as Record<string, unknown>).getDigitalGoodsService;
