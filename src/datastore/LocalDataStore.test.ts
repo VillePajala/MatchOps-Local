@@ -15,6 +15,7 @@ import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { AppSettings } from '@/types/settings';
+import { TestFixtures } from '../../tests/fixtures';
 
 // Create mock functions BEFORE jest.mock (so they can be referenced in mocks)
 const mockGetStorageItem = jest.fn();
@@ -2533,41 +2534,20 @@ describe('LocalDataStore', () => {
     // ============================================================
     describe('Storage read-error propagation (CR-C2)', () => {
       const readError = new Error('Transient IndexedDB read failure');
+      const readErrorGame = TestFixtures.games.newGame({ teamName: 'My Team', opponentName: 'Opponent' });
 
-      const readErrorGame: AppState = {
-        playersOnField: [],
-        opponents: [],
-        drawings: [],
-        availablePlayers: [],
-        showPlayerNames: true,
-        teamName: 'My Team',
-        gameEvents: [],
-        opponentName: 'Opponent',
-        gameDate: '2025-01-01',
-        homeScore: 1,
-        awayScore: 0,
-        gameNotes: '',
-        homeOrAway: 'home',
-        numberOfPeriods: 2,
-        periodDurationMinutes: 10,
-        currentPeriod: 1,
-        gameStatus: 'notStarted',
-        isPlayed: true,
-        selectedPlayerIds: [],
-        assessments: {},
-        seasonId: '',
-        tournamentId: '',
-        tournamentLevel: '',
-        ageGroup: '',
-        gameLocation: '',
-        gameTime: '',
-        tacticalDiscs: [],
-        tacticalDrawings: [],
-        tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-        subIntervalMinutes: 5,
-        completedIntervalDurations: [],
-        lastSubConfirmationTimeSeconds: 0,
-        gamePersonnel: [],
+      /** Reject reads of one storage key; all other keys read as missing. */
+      const failReadsOf = (failingKey: string) => {
+        mockGetStorageItem.mockImplementation((key: string) =>
+          key === failingKey ? Promise.reject(readError) : Promise.resolve(null)
+        );
+      };
+
+      /** Assert the operation rejected with the read error and never wrote the key. */
+      const expectAbortWithoutWrite = async (op: Promise<unknown>, key: string) => {
+        await expect(op).rejects.toThrow('Transient IndexedDB read failure');
+        const writes = mockSetStorageItem.mock.calls.filter((call) => call[0] === key);
+        expect(writes).toHaveLength(0);
       };
 
       /**
@@ -2576,20 +2556,11 @@ describe('LocalDataStore', () => {
        * @critical
        */
       it('saveGame aborts without writing when the games read fails', async () => {
-        // Key-targeted rejection (not a blind *Once queue) so the test is
-        // deterministic regardless of how many reads the operation performs.
-        mockGetStorageItem.mockImplementation((key: string) =>
-          key === 'savedSoccerGames' ? Promise.reject(readError) : Promise.resolve(null)
+        failReadsOf('savedSoccerGames');
+        await expectAbortWithoutWrite(
+          dataStore.saveGame('game_1', readErrorGame),
+          'savedSoccerGames'
         );
-
-        await expect(dataStore.saveGame('game_1', readErrorGame)).rejects.toThrow(
-          'Transient IndexedDB read failure'
-        );
-
-        const gamesWrites = mockSetStorageItem.mock.calls.filter(
-          (call) => call[0] === 'savedSoccerGames'
-        );
-        expect(gamesWrites).toHaveLength(0);
       });
 
       /**
@@ -2598,35 +2569,81 @@ describe('LocalDataStore', () => {
        * @critical
        */
       it('createPlayer aborts without writing when the roster read fails', async () => {
-        mockGetStorageItem.mockImplementation((key: string) =>
-          key === 'soccerMasterRoster' ? Promise.reject(readError) : Promise.resolve(null)
+        failReadsOf('soccerMasterRoster');
+        await expectAbortWithoutWrite(
+          dataStore.createPlayer({ name: 'Test', jerseyNumber: '1' }),
+          'soccerMasterRoster'
         );
+      });
 
-        await expect(
-          dataStore.createPlayer({ name: 'Test', jerseyNumber: '1' })
-        ).rejects.toThrow('Transient IndexedDB read failure');
-
-        const rosterWrites = mockSetStorageItem.mock.calls.filter(
-          (call) => call[0] === 'soccerMasterRoster'
+      it('createTeam aborts without writing when the teams index read fails', async () => {
+        failReadsOf('soccerTeamsIndex');
+        await expectAbortWithoutWrite(
+          dataStore.createTeam({ name: 'New Team', color: '#00FF00' }),
+          'soccerTeamsIndex'
         );
-        expect(rosterWrites).toHaveLength(0);
+      });
+
+      it('setTeamRoster aborts without writing when the rosters read fails', async () => {
+        failReadsOf('soccerTeamRosters');
+        await expectAbortWithoutWrite(
+          dataStore.setTeamRoster('team_123', []),
+          'soccerTeamRosters'
+        );
+        // setTeamRoster rewrites the teams index too - must also be untouched
+        const indexWrites = mockSetStorageItem.mock.calls.filter(
+          (call) => call[0] === 'soccerTeamsIndex'
+        );
+        expect(indexWrites).toHaveLength(0);
+      });
+
+      it('createSeason aborts without writing when the seasons read fails', async () => {
+        failReadsOf('soccerSeasons');
+        await expectAbortWithoutWrite(
+          dataStore.createSeason('Test Season'),
+          'soccerSeasons'
+        );
+      });
+
+      it('createTournament aborts without writing when the tournaments read fails', async () => {
+        failReadsOf('soccerTournaments');
+        await expectAbortWithoutWrite(
+          dataStore.createTournament('Test Tournament'),
+          'soccerTournaments'
+        );
+      });
+
+      it('addPersonnelMember aborts without writing when the personnel read fails', async () => {
+        failReadsOf('soccerPersonnel');
+        await expectAbortWithoutWrite(
+          dataStore.addPersonnelMember({ name: 'Coach Smith', role: 'head_coach' }),
+          'soccerPersonnel'
+        );
+      });
+
+      it('addPlayerAdjustment aborts without writing when the adjustments read fails', async () => {
+        failReadsOf('soccerPlayerAdjustments');
+        await expectAbortWithoutWrite(
+          dataStore.addPlayerAdjustment({
+            playerId: 'player_1',
+            seasonId: 'season_1',
+            gamesPlayedDelta: 1,
+            goalsDelta: 0,
+            assistsDelta: 0,
+          }),
+          'soccerPlayerAdjustments'
+        );
       });
 
       it('getPlayers propagates storage read errors instead of returning []', async () => {
-        mockGetStorageItem.mockImplementation((key: string) =>
-          key === 'soccerMasterRoster' ? Promise.reject(readError) : Promise.resolve(null)
-        );
-
+        failReadsOf('soccerMasterRoster');
         await expect(dataStore.getPlayers()).rejects.toThrow(
           'Transient IndexedDB read failure'
         );
       });
 
       it('getGames propagates storage read errors instead of returning {}', async () => {
-        mockGetStorageItem.mockImplementation((key: string) =>
-          key === 'savedSoccerGames' ? Promise.reject(readError) : Promise.resolve(null)
-        );
-
+        failReadsOf('savedSoccerGames');
         await expect(dataStore.getGames()).rejects.toThrow(
           'Transient IndexedDB read failure'
         );
