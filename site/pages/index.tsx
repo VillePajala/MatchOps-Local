@@ -9,6 +9,8 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 import { FaArrowUp } from 'react-icons/fa';
 
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.matchops.local';
+
 // Language-aware screenshot paths (matches marketing-assets.tsx)
 const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
@@ -337,13 +339,15 @@ export default function HomePage() {
               {t('info.cta.subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Image
-                src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
-                alt={t('info.cta.googlePlayAlt')}
-                width={688}
-                height={140}
-                className="w-32 md:w-36 h-auto opacity-80"
-              />
+              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+                <Image
+                  src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+                  alt={t('info.cta.googlePlayAlt')}
+                  width={688}
+                  height={140}
+                  className="w-32 md:w-36 h-auto opacity-80 hover:opacity-100 transition-opacity"
+                />
+              </a>
               <a href="mailto:hello@match-ops.com" className="text-slate-400 text-sm hover:text-primary transition-colors">hello@match-ops.com</a>
             </div>
           </div>
@@ -501,13 +505,15 @@ export default function HomePage() {
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
               {t('info.cta.title')}
             </h3>
-            <Image
-              src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
-              alt={t('info.cta.googlePlayAlt')}
-              width={688}
-              height={140}
-              className="mx-auto mb-6 w-40 md:w-48 h-auto opacity-80"
-            />
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-block mb-6">
+              <Image
+                src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+                alt={t('info.cta.googlePlayAlt')}
+                width={688}
+                height={140}
+                className="mx-auto w-40 md:w-48 h-auto opacity-80 hover:opacity-100 transition-opacity"
+              />
+            </a>
             <p className="text-slate-300 mb-6">
               {t('info.cta.subtitle')}
             </p>
