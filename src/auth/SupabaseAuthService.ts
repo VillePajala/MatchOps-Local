@@ -1388,12 +1388,22 @@ export class SupabaseAuthService implements AuthService {
 
         // Classify edge function errors for actionable user feedback:
         // - "not found" / relay error → function not deployed (config/deployment issue)
-        // - 401/403 patterns → auth issue despite session refresh above
+        // - 401 → likely a lost-response retry: a previous attempt may have already
+        //   deleted the account, so the retried request carries a token whose user
+        //   no longer exists (we refreshed the session above, so a stale JWT is unlikely)
         // - other → generic failure
         const msg = (error.message ?? '').toLowerCase();
         if (msg.includes('not found') || msg.includes('relay')) {
           throw new AuthError(
             'Account deletion is temporarily unavailable. Please try again later or contact support.'
+          );
+        }
+
+        const status = (error as { context?: { status?: number } }).context?.status;
+        if (status === 401 || msg.includes('invalid or expired token')) {
+          throw new AuthError(
+            'Could not confirm deletion — your account may already be deleted. ' +
+            'Try signing in to check; if you can still sign in, retry deletion.'
           );
         }
 

@@ -37,6 +37,8 @@ Real issues affecting production users / exposure right now. Small, high-leverag
 
 ## 🟡 P2 — UX & quality polish
 
+- [ ] **Play Store data-deletion declaration** (deferred 2026-06-11) — Data Safety form wrongly says the app offers no data deletion; full account deletion exists (Settings → Delete Account → `delete-account` Edge Function). Steps: 1) verify deletion flow end-to-end with a throwaway account, 2) add `/delete-account` page to marketing site (Google wants a web deletion-request URL), 3) update Data Safety form in Play Console.
+- [ ] **Local device-data wipe on account deletion** (added 2026-06-11) — account deletion removes cloud data + auth user but leaves the user-scoped IndexedDB mirror (`matchops_user_{id}`) and sync-queue DB on the device forever. Add best-effort `indexedDB.deleteDatabase()` for both after successful deletion (in `AuthProvider.deleteAccount`), and consider the same on the reverse-migration "delete cloud account" path. Orphaned storage + readable data on shared devices.
 - [ ] **Core accessibility** — color contrast, touch targets, keyboard nav, screen-reader support.
 - [ ] **Season League UX filters** — group the 34-league flat list by area (Itä/Länsi/Etelä) + age group in `SeasonDetailsModal`. ~1 week.
 - [ ] **Site polish** (bundled, ~15 min) — add 9 missing FI keys under `features.foundation.*` in `site/public/locales/fi/common.json`; fix `site/README.md` (says Next 15, actual 16).
