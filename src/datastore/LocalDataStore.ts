@@ -840,12 +840,16 @@ export class LocalDataStore implements DataStore {
         updatedAt: now,
       };
 
+      // Read rosters BEFORE the first write: a read failure here must abort
+      // the whole create, not leave a team persisted without roster init
+      // (a retry would then hit AlreadyExistsError). Initialize the roster
+      // directly — do NOT call this.setTeamRoster() here because it acquires
+      // the TEAMS_INDEX_KEY lock, causing a deadlock (lock is not reentrant).
+      const rostersIndex = await this.loadTeamRosters();
+
       teamsIndex[newTeam.id] = newTeam;
       await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
 
-      // Initialize empty roster directly — do NOT call this.setTeamRoster() here
-      // because it acquires TEAMS_INDEX_KEY lock, causing a deadlock (lock is not reentrant).
-      const rostersIndex = await this.loadTeamRosters();
       rostersIndex[newTeam.id] = [];
       await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
 
@@ -2515,28 +2519,36 @@ export class LocalDataStore implements DataStore {
     }
   }
 
-  private async loadPlayers(): Promise<Player[]> {
-    try {
-      const rosterJson = await this.storageGetItem(MASTER_ROSTER_KEY);
-      if (!rosterJson) {
-        return [];
-      }
+  // NOTE for all load* helpers below: storage READ errors must propagate.
+  // Swallowing them would make a transient IndexedDB failure look like
+  // "no data exists", and every read-modify-write caller (saveGame,
+  // upsertPlayer, setTeamRoster, ...) would then persist the empty
+  // collection over the user's real data (code review CR-C2).
+  // Only JSON corruption is tolerated: that data is unrecoverable anyway,
+  // so treating it as empty is the established recovery behavior.
 
+  private async loadPlayers(): Promise<Player[]> {
+    const rosterJson = await this.storageGetItem(MASTER_ROSTER_KEY);
+    if (!rosterJson) {
+      return [];
+    }
+
+    try {
       const parsed = JSON.parse(rosterJson);
       return Array.isArray(parsed) ? (parsed as Player[]) : [];
     } catch (error) {
-      logger.error('[LocalDataStore] Failed to load master roster', error);
+      logger.error('[LocalDataStore] Corrupted master roster JSON - treating as empty', error);
       return [];
     }
   }
 
   private async loadTeamsIndex(): Promise<TeamsIndex> {
-    try {
-      const json = await this.storageGetItem(TEAMS_INDEX_KEY);
-      if (!json) {
-        return {};
-      }
+    const json = await this.storageGetItem(TEAMS_INDEX_KEY);
+    if (!json) {
+      return {};
+    }
 
+    try {
       const parsed = JSON.parse(json);
       if (!isRecord(parsed)) {
         return {};
@@ -2544,18 +2556,18 @@ export class LocalDataStore implements DataStore {
 
       return parsed as TeamsIndex;
     } catch (error) {
-      logger.warn('[LocalDataStore] Failed to load teams index', { error });
+      logger.warn('[LocalDataStore] Corrupted teams index JSON - treating as empty', { error });
       return {};
     }
   }
 
   private async loadTeamRosters(): Promise<TeamRostersIndex> {
-    try {
-      const json = await this.storageGetItem(TEAM_ROSTERS_KEY);
-      if (!json) {
-        return {};
-      }
+    const json = await this.storageGetItem(TEAM_ROSTERS_KEY);
+    if (!json) {
+      return {};
+    }
 
+    try {
       const parsed = JSON.parse(json);
       if (!isRecord(parsed)) {
         return {};
@@ -2563,48 +2575,48 @@ export class LocalDataStore implements DataStore {
 
       return parsed as TeamRostersIndex;
     } catch (error) {
-      logger.warn('[LocalDataStore] Failed to load team rosters', { error });
+      logger.warn('[LocalDataStore] Corrupted team rosters JSON - treating as empty', { error });
       return {};
     }
   }
 
   private async loadSeasons(): Promise<Season[]> {
-    try {
-      const seasonsJson = await this.storageGetItem(SEASONS_LIST_KEY);
-      if (!seasonsJson) {
-        return [];
-      }
+    const seasonsJson = await this.storageGetItem(SEASONS_LIST_KEY);
+    if (!seasonsJson) {
+      return [];
+    }
 
+    try {
       const parsed = JSON.parse(seasonsJson);
       return Array.isArray(parsed) ? (parsed as Season[]) : [];
     } catch (error) {
-      logger.error('[LocalDataStore] Failed to load seasons', error);
+      logger.error('[LocalDataStore] Corrupted seasons JSON - treating as empty', error);
       return [];
     }
   }
 
   private async loadTournaments(): Promise<Tournament[]> {
-    try {
-      const tournamentsJson = await this.storageGetItem(TOURNAMENTS_LIST_KEY);
-      if (!tournamentsJson) {
-        return [];
-      }
+    const tournamentsJson = await this.storageGetItem(TOURNAMENTS_LIST_KEY);
+    if (!tournamentsJson) {
+      return [];
+    }
 
+    try {
       const parsed = JSON.parse(tournamentsJson);
       return Array.isArray(parsed) ? (parsed as Tournament[]) : [];
     } catch (error) {
-      logger.error('[LocalDataStore] Failed to load tournaments', error);
+      logger.error('[LocalDataStore] Corrupted tournaments JSON - treating as empty', error);
       return [];
     }
   }
 
   private async loadPersonnelCollection(): Promise<PersonnelCollection> {
-    try {
-      const personnelJson = await this.storageGetItem(PERSONNEL_KEY);
-      if (!personnelJson) {
-        return {};
-      }
+    const personnelJson = await this.storageGetItem(PERSONNEL_KEY);
+    if (!personnelJson) {
+      return {};
+    }
 
+    try {
       const parsed = JSON.parse(personnelJson);
       if (!isRecord(parsed)) {
         return {};
@@ -2612,18 +2624,18 @@ export class LocalDataStore implements DataStore {
 
       return parsed as PersonnelCollection;
     } catch (error) {
-      logger.error('[LocalDataStore] Failed to load personnel collection', error);
+      logger.error('[LocalDataStore] Corrupted personnel JSON - treating as empty', error);
       return {};
     }
   }
 
   private async loadSavedGames(): Promise<SavedGamesCollection> {
-    try {
-      const gamesJson = await this.storageGetItem(SAVED_GAMES_KEY);
-      if (!gamesJson) {
-        return {};
-      }
+    const gamesJson = await this.storageGetItem(SAVED_GAMES_KEY);
+    if (!gamesJson) {
+      return {};
+    }
 
+    try {
       const parsed = JSON.parse(gamesJson);
       if (!isRecord(parsed)) {
         return {};
@@ -2631,18 +2643,18 @@ export class LocalDataStore implements DataStore {
 
       return parsed as SavedGamesCollection;
     } catch (error) {
-      logger.error('[LocalDataStore] Failed to load saved games', error);
+      logger.error('[LocalDataStore] Corrupted saved games JSON - treating as empty', error);
       return {};
     }
   }
 
   private async loadPlayerAdjustments(): Promise<PlayerAdjustmentsIndex> {
-    try {
-      const json = await this.storageGetItem(PLAYER_ADJUSTMENTS_KEY);
-      if (!json) {
-        return {};
-      }
+    const json = await this.storageGetItem(PLAYER_ADJUSTMENTS_KEY);
+    if (!json) {
+      return {};
+    }
 
+    try {
       const parsed = JSON.parse(json);
       if (!isRecord(parsed)) {
         return {};
@@ -2650,7 +2662,7 @@ export class LocalDataStore implements DataStore {
 
       return parsed as PlayerAdjustmentsIndex;
     } catch (error) {
-      logger.warn('[LocalDataStore] Failed to load player adjustments', { error });
+      logger.warn('[LocalDataStore] Corrupted player adjustments JSON - treating as empty', { error });
       return {};
     }
   }
