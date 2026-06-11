@@ -22,18 +22,26 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const precisionTimerRef = useRef<{ getCurrentTime: () => number } | null>(null);
 
   // Destructure only the fields used by startPause to avoid recreation on every tick
-  const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes } = state;
+  const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes, timeElapsedInSeconds } = state;
 
   const startPause = useCallback(() => {
     if (gameStatus === 'notStarted') {
-      dispatch({
-        type: 'START_PERIOD',
-        payload: {
-          nextPeriod: 1,
-          periodDurationMinutes,
-          subIntervalMinutes,
-        },
-      });
+      if (timeElapsedInSeconds > 0) {
+        // A loaded in-progress game: LOAD_PERSISTED_GAME_DATA coerces
+        // 'inProgress' to 'notStarted' but preserves the clock. Resume at the
+        // saved time/period instead of START_PERIOD(1), which would reset the
+        // match clock and wipe interval history (CR-C1).
+        dispatch({ type: 'RESUME_GAME' });
+      } else {
+        dispatch({
+          type: 'START_PERIOD',
+          payload: {
+            nextPeriod: 1,
+            periodDurationMinutes,
+            subIntervalMinutes,
+          },
+        });
+      }
     } else if (gameStatus === 'periodEnd') {
       dispatch({
         type: 'START_PERIOD',
@@ -54,7 +62,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         dispatch({ type: 'START_TIMER' });
       }
     }
-  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes]);
+  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes, timeElapsedInSeconds]);
 
   const reset = useCallback(async () => {
     // Clear timer state from IndexedDB

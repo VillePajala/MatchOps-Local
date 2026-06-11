@@ -40,7 +40,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
-import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
+import { clearTimerState } from '@/utils/timerStateManager';
 import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
@@ -854,27 +854,23 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     
       // Determine overall initial load completion
       if (!gameDataManagement.isLoading) {
-        // --- TIMER RESTORATION LOGIC ---
+        // --- TIMER STATE CLEANUP (CR-C1) ---
+        // The persisted timer record is a visibility-restore aid for a LIVE
+        // session (hide → show while the timer runs). After a full reload it
+        // is stale: the game loads paused (LOAD_PERSISTED_GAME_DATA never
+        // produces 'inProgress'), the user resumes via Start (RESUME_GAME),
+        // and the in-game auto-save already holds the latest clock. Leaving
+        // the record behind is dangerous — once the user resumes, a later
+        // background/foreground cycle while paused would replay it via
+        // RESTORE_TIMER_STATE and jump the clock by the full offline duration.
+        // (The previous RESTORE_TIMER_STATE dispatch here was dead code: it
+        // only applies to 'inProgress', which boot can never produce.)
         try {
-          const lastGameId = gameDataManagement.currentGameIdSetting;
-          const savedTimerState = await loadTimerStateForGame(lastGameId || '', userId);
-
-          if (savedTimerState) {
-            const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
-            const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
-
-            // Use RESTORE_TIMER_STATE which atomically sets elapsed time + starts timer
-            // (SET_TIMER_ELAPSED is a no-op when timer is not running)
-            dispatchGameSession({ type: 'RESTORE_TIMER_STATE', payload: { savedTime: correctedElapsedSeconds, timestamp: Date.now() } });
-          } else {
-            // Clear any stale timer state (might be for a different game)
-            await clearTimerState(userId);
-          }
-        } catch (error) {
-          logger.error('[EFFECT init] Error restoring timer state:', error);
           await clearTimerState(userId);
+        } catch (error) {
+          logger.error('[EFFECT init] Error clearing stale timer state:', error);
         }
-        // --- END TIMER RESTORATION LOGIC ---
+        // --- END TIMER STATE CLEANUP ---
 
         // This is now the single source of truth for loading completion.
         setInitialLoadComplete(true);

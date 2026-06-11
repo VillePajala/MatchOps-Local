@@ -138,7 +138,8 @@ export type GameSessionAction =
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
   | { type: 'LOAD_PERSISTED_GAME_DATA'; payload: Partial<GameSessionState> } // For loading GameData-like objects
   | { type: 'PAUSE_TIMER_FOR_HIDDEN'; payload?: number }
-  | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } };
+  | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } }
+  | { type: 'RESUME_GAME' }; // Resume a loaded in-progress game at its saved clock/period
 
 const safeElapsedSeconds = (value: unknown, fallback: number): number => {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
@@ -236,6 +237,20 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       if (state.isTimerRunning) return state;
       return {
         ...state,
+        isTimerRunning: true,
+        startTimestamp: Date.now(),
+      };
+    }
+    case 'RESUME_GAME': {
+      // Resume a game restored from storage (CR-C1). LOAD_PERSISTED_GAME_DATA
+      // coerces 'inProgress' to 'notStarted' (never auto-start a timer on load)
+      // while preserving the clock, period, substitution tracking and interval
+      // history — so resuming must NOT go through START_PERIOD, which would
+      // reset all of those to period 1 / 0:00.
+      if (state.isTimerRunning) return state;
+      return {
+        ...state,
+        gameStatus: 'inProgress',
         isTimerRunning: true,
         startTimestamp: Date.now(),
       };

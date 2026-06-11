@@ -204,6 +204,34 @@ describe('useGameTimer', () => {
       expect(result.current.isTimerRunning).toBe(true);
     });
 
+    it('should resume a loaded in-progress game at its saved clock, not reset it (CR-C1)', () => {
+      // After a reload, LOAD_PERSISTED_GAME_DATA coerces 'inProgress' to
+      // 'notStarted' but preserves the clock. Start must resume mid-game,
+      // not dispatch START_PERIOD(1) (which wipes elapsed time, period and
+      // substitution tracking).
+      const initialState = createInitialState({
+        gameStatus: 'notStarted',
+        currentPeriod: 2,
+        timeElapsedInSeconds: 1600, // 26:40 into a 2x15 game
+        lastSubConfirmationTimeSeconds: 1500,
+        nextSubDueTimeSeconds: 1800,
+      });
+
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+
+      act(() => {
+        result.current.startPause();
+      });
+
+      expect(result.current.isTimerRunning).toBe(true);
+      expect(result.current.timeElapsedInSeconds).toBe(1600);
+      expect(result.current.lastSubConfirmationTimeSeconds).toBe(1500);
+      expect(result.current.nextSubDueTimeSeconds).toBe(1800);
+    });
+
     it('should start next period when at periodEnd', () => {
       const initialState = createInitialState({
         gameStatus: 'periodEnd',
