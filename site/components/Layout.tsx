@@ -149,13 +149,20 @@ export default function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="mt-20 border-t border-slate-700/20 bg-slate-900/40 backdrop-blur-sm relative z-10">
         <div className="container-custom py-8 text-center">
-          <Image
-            src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
-            alt="Google Play"
-            width={688}
-            height={140}
-            className="mx-auto mb-4 w-28 h-auto opacity-60"
-          />
+          <a
+            href="https://play.google.com/store/apps/details?id=com.matchops.local"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mb-4"
+          >
+            <Image
+              src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+              alt="Google Play"
+              width={688}
+              height={140}
+              className="mx-auto w-28 h-auto opacity-60 hover:opacity-100 transition-opacity"
+            />
+          </a>
           <p className="text-sm text-slate-300" suppressHydrationWarning>
             {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
