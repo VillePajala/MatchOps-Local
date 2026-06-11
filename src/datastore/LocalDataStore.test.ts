@@ -2584,6 +2584,21 @@ describe('LocalDataStore', () => {
         );
       });
 
+      it('createTeam aborts without persisting the team when the rosters read fails', async () => {
+        // Both collections are read before the first write, so a rosters read
+        // failure must not leave a half-created team in the index (which would
+        // make a retry fail with AlreadyExistsError).
+        failReadsOf('soccerTeamRosters');
+        await expectAbortWithoutWrite(
+          dataStore.createTeam({ name: 'New Team', color: '#00FF00' }),
+          'soccerTeamsIndex'
+        );
+        const rosterWrites = mockSetStorageItem.mock.calls.filter(
+          (call) => call[0] === 'soccerTeamRosters'
+        );
+        expect(rosterWrites).toHaveLength(0);
+      });
+
       it('setTeamRoster aborts without writing when the rosters read fails', async () => {
         failReadsOf('soccerTeamRosters');
         await expectAbortWithoutWrite(

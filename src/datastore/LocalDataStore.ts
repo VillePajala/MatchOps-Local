@@ -840,12 +840,16 @@ export class LocalDataStore implements DataStore {
         updatedAt: now,
       };
 
+      // Read rosters BEFORE the first write: a read failure here must abort
+      // the whole create, not leave a team persisted without roster init
+      // (a retry would then hit AlreadyExistsError). Initialize the roster
+      // directly — do NOT call this.setTeamRoster() here because it acquires
+      // the TEAMS_INDEX_KEY lock, causing a deadlock (lock is not reentrant).
+      const rostersIndex = await this.loadTeamRosters();
+
       teamsIndex[newTeam.id] = newTeam;
       await this.storageSetItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
 
-      // Initialize empty roster directly — do NOT call this.setTeamRoster() here
-      // because it acquires TEAMS_INDEX_KEY lock, causing a deadlock (lock is not reentrant).
-      const rostersIndex = await this.loadTeamRosters();
       rostersIndex[newTeam.id] = [];
       await this.storageSetItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
 
