@@ -40,7 +40,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
-import { clearTimerState } from '@/utils/timerStateManager';
+import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
 import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
@@ -285,6 +285,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameIdRef = useRef(currentGameId);
   // Track which game has been successfully loaded to prevent reload on auto-save
   const loadedGameIdRef = useRef<string | null>(null);
+  // CR-C1: clock correction consumed from the persisted timer record at boot,
+  // applied one-shot when the corresponding game loads (see loadGameStateFromData)
+  const pendingClockCorrectionRef = useRef<{ gameId: string; elapsed: number } | null>(null);
   // Track which initialAction has been processed to prevent re-processing
   const processedInitialActionRef = useRef<string | null>(null);
 
@@ -854,23 +857,29 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     
       // Determine overall initial load completion
       if (!gameDataManagement.isLoading) {
-        // --- TIMER STATE CLEANUP (CR-C1) ---
-        // The persisted timer record is a visibility-restore aid for a LIVE
-        // session (hide → show while the timer runs). After a full reload it
-        // is stale: the game loads paused (LOAD_PERSISTED_GAME_DATA never
-        // produces 'inProgress'), the user resumes via Start (RESUME_GAME),
-        // and the in-game auto-save already holds the latest clock. Leaving
-        // the record behind is dangerous — once the user resumes, a later
-        // background/foreground cycle while paused would replay it via
-        // RESTORE_TIMER_STATE and jump the clock by the full offline duration.
-        // (The previous RESTORE_TIMER_STATE dispatch here was dead code: it
-        // only applies to 'inProgress', which boot can never produce.)
+        // CR-C1: consume the persisted timer record, then clear it. If the
+        // timer was running when the app was hidden and a force-reload followed
+        // (useAppResume after >5 min background), the real match kept running —
+        // fold the background time into the loaded clock (same semantics as the
+        // in-session visibility restore). Clearing without consuming would drop
+        // that time; leaving the record behind would let a later background/
+        // foreground cycle replay it and jump the clock.
         try {
+          const lastGameId = gameDataManagement.currentGameIdSetting;
+          const savedTimerState = lastGameId
+            ? await loadTimerStateForGame(lastGameId, userId)
+            : null;
+          if (savedTimerState?.wasRunning && lastGameId) {
+            const offlineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
+            pendingClockCorrectionRef.current = {
+              gameId: lastGameId,
+              elapsed: Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds),
+            };
+          }
           await clearTimerState(userId);
         } catch (error) {
-          logger.error('[EFFECT init] Error clearing stale timer state:', error);
+          logger.error('[EFFECT init] Error consuming persisted timer state:', error);
         }
-        // --- END TIMER STATE CLEANUP ---
 
         // This is now the single source of truth for loading completion.
         setInitialLoadComplete(true);
@@ -965,6 +974,28 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         wentToOvertime: gameData.wentToOvertime,
         wentToPenalties: gameData.wentToPenalties,
       };
+
+      // CR-C1: apply the boot-time clock correction (one-shot). Only for the
+      // game that was live when the app was hidden and only if it loads as
+      // in-progress. Capped at the current period boundary — the first tick
+      // after resume then fires the period/game end normally.
+      const pendingCorrection = pendingClockCorrectionRef.current;
+      if (pendingCorrection) {
+        if (pendingCorrection.gameId === currentGameId && gameData.gameStatus === 'inProgress') {
+          const periodBoundarySeconds =
+            (gameData.currentPeriod ?? 1) * (gameData.periodDurationMinutes ?? 10) * 60;
+          const corrected = Math.min(pendingCorrection.elapsed, periodBoundarySeconds);
+          if (corrected > (gameData.timeElapsedInSeconds ?? 0)) {
+            logger.info('[LOAD GAME STATE] Applying hidden-session clock correction', {
+              storedElapsed: gameData.timeElapsedInSeconds,
+              correctedElapsed: corrected,
+            });
+            payload.timeElapsedInSeconds = corrected;
+          }
+        }
+        pendingClockCorrectionRef.current = null;
+      }
+
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
     } else {
       dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
@@ -1075,6 +1106,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Data dependencies (used as fallbacks - changes trigger callback recreation)
     // Note: initialState is a function parameter (outer scope), not a dep
     availablePlayers, gameDataManagement.masterRoster,
+    // CR-C1: clock-correction match check (refs are stable; id changes per load)
+    currentGameId,
   ]);
 
   // --- Effect to load game state when currentGameId changes or savedGames updates ---

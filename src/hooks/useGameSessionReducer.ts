@@ -247,7 +247,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       // while preserving the clock, period, substitution tracking and interval
       // history — so resuming must NOT go through START_PERIOD, which would
       // reset all of those to period 1 / 0:00.
-      if (state.isTimerRunning) return state;
+      // Only valid from the load-coerced 'notStarted' state; periodEnd/gameEnd
+      // have their own transitions.
+      if (state.isTimerRunning || state.gameStatus !== 'notStarted') return state;
       return {
         ...state,
         gameStatus: 'inProgress',

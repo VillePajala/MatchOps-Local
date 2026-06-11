@@ -22,11 +22,20 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const precisionTimerRef = useRef<{ getCurrentTime: () => number } | null>(null);
 
   // Destructure only the fields used by startPause to avoid recreation on every tick
-  const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes, timeElapsedInSeconds } = state;
+  const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes } = state;
+
+  const stateRef = useRef(state);
+
+  // Update ref in effect to comply with React 19 hooks rules
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   const startPause = useCallback(() => {
     if (gameStatus === 'notStarted') {
-      if (timeElapsedInSeconds > 0) {
+      // Read elapsed via ref: it changes on every tick and must not recreate
+      // this callback (see destructure note above).
+      if (stateRef.current.timeElapsedInSeconds > 0) {
         // A loaded in-progress game: LOAD_PERSISTED_GAME_DATA coerces
         // 'inProgress' to 'notStarted' but preserves the clock. Resume at the
         // saved time/period instead of START_PERIOD(1), which would reset the
@@ -62,7 +71,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         dispatch({ type: 'START_TIMER' });
       }
     }
-  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes, timeElapsedInSeconds]);
+  }, [dispatch, gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes]);
 
   const reset = useCallback(async () => {
     // Clear timer state from IndexedDB
@@ -85,13 +94,6 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     },
     [dispatch]
   );
-
-  const stateRef = useRef(state);
-
-  // Update ref in effect to comply with React 19 hooks rules
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
 
   const { handleVisibilityChange } = useTimerRestore();
 
