@@ -396,6 +396,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         };
       }
       return state;
+    // Used only by the in-session visibility-change path (tab returns to
+    // foreground without a reload). Boot-time recovery instead folds the
+    // record into the loaded game state before LOAD_PERSISTED_GAME_DATA.
     case 'RESTORE_TIMER_STATE': {
       if (state.gameStatus === 'inProgress') {
         const { savedTime } = action.payload;

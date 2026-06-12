@@ -1000,6 +1000,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
     } else {
+      // Consume any pending clock correction even when no game loads (e.g. the
+      // recorded game no longer exists) so it cannot apply to a later load.
+      pendingClockCorrectionRef.current = null;
       dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
       setIsPlayed(true);
     }
