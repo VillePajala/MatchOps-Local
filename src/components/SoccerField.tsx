@@ -1574,8 +1574,12 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     let tappedTargetType: 'player' | 'opponent' | 'tactical' | 'ball' | 'emptyPosition' | null = null;
     let emptyPositionCoords: { relX: number; relY: number } | undefined;
 
-    // Check for ball first, as it might be on top of other elements
-    if (isPointInBall(touch.clientX, touch.clientY)) {
+    // Check for ball first, as it might be on top of other elements.
+    // Only in tactics view (matching the mouse path): the ball is only drawn
+    // there, but its position is always defined — an ungated hit-test creates
+    // an invisible touch dead zone in normal view at the ball's position
+    // (default: center field, the kickoff spot).
+    if (isTacticsBoardView && isPointInBall(touch.clientX, touch.clientY)) {
       tappedTargetType = 'ball';
     } else if (isTacticsBoardView) {
       // Tactical disc interactions

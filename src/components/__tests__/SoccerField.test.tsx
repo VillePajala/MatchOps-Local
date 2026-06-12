@@ -1103,4 +1103,75 @@ describe('Empty Position Selection', () => {
       expect(canvas).toBeInTheDocument();
     });
   });
+
+  describe('Tactical ball touch hit-test gating', () => {
+    // The tactical ball position is always defined (FieldContainer defaults it
+    // to center field) but the ball is only drawn in tactics view. The touch
+    // hit-test must be gated to tactics view like the mouse path, or touches
+    // at the ball position in normal view silently drag the invisible ball.
+    const origGetBoundingClientRect = HTMLCanvasElement.prototype.getBoundingClientRect;
+
+    beforeEach(() => {
+      HTMLCanvasElement.prototype.getBoundingClientRect = jest.fn(() => ({
+        left: 0, top: 0, right: 800, bottom: 600,
+        width: 800, height: 600, x: 0, y: 0,
+        toJSON: () => ({}),
+      })) as unknown as typeof HTMLCanvasElement.prototype.getBoundingClientRect;
+    });
+
+    afterEach(() => {
+      HTMLCanvasElement.prototype.getBoundingClientRect = origGetBoundingClientRect;
+    });
+
+    const touchBallPositionAndDrag = () => {
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+      // Ball at relX/relY 0.5 of 800x600 canvas = (400, 300)
+      fireEvent.touchStart(canvas as Element, {
+        touches: [{ clientX: 400, clientY: 300, identifier: 0 }],
+        changedTouches: [{ clientX: 400, clientY: 300, identifier: 0 }],
+      });
+      fireEvent.touchMove(canvas as Element, {
+        touches: [{ clientX: 430, clientY: 320, identifier: 0 }],
+        changedTouches: [{ clientX: 430, clientY: 320, identifier: 0 }],
+      });
+    };
+
+    /**
+     * Touching the kickoff spot in normal view must not grab the invisible
+     * tactical ball (the dead-zone regression).
+     * @critical
+     */
+    it('does not drag the invisible ball in normal view', () => {
+      const onTacticalBallMove = jest.fn();
+      render(
+        <SoccerField
+          {...defaultProps}
+          isTacticsBoardView={false}
+          tacticalBallPosition={{ relX: 0.5, relY: 0.5 }}
+          onTacticalBallMove={onTacticalBallMove}
+        />
+      );
+
+      touchBallPositionAndDrag();
+
+      expect(onTacticalBallMove).not.toHaveBeenCalled();
+    });
+
+    it('still drags the ball by touch in tactics view', () => {
+      const onTacticalBallMove = jest.fn();
+      render(
+        <SoccerField
+          {...defaultProps}
+          isTacticsBoardView={true}
+          tacticalBallPosition={{ relX: 0.5, relY: 0.5 }}
+          onTacticalBallMove={onTacticalBallMove}
+        />
+      );
+
+      touchBallPositionAndDrag();
+
+      expect(onTacticalBallMove).toHaveBeenCalled();
+    });
+  });
 });
