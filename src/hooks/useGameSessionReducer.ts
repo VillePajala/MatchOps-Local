@@ -138,7 +138,8 @@ export type GameSessionAction =
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
   | { type: 'LOAD_PERSISTED_GAME_DATA'; payload: Partial<GameSessionState> } // For loading GameData-like objects
   | { type: 'PAUSE_TIMER_FOR_HIDDEN'; payload?: number }
-  | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } };
+  | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } }
+  | { type: 'RESUME_GAME' }; // Resume a loaded in-progress game at its saved clock/period
 
 const safeElapsedSeconds = (value: unknown, fallback: number): number => {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
@@ -236,6 +237,22 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       if (state.isTimerRunning) return state;
       return {
         ...state,
+        isTimerRunning: true,
+        startTimestamp: Date.now(),
+      };
+    }
+    case 'RESUME_GAME': {
+      // Resume a game restored from storage. LOAD_PERSISTED_GAME_DATA
+      // coerces 'inProgress' to 'notStarted' (never auto-start a timer on load)
+      // while preserving the clock, period, substitution tracking and interval
+      // history — so resuming must NOT go through START_PERIOD, which would
+      // reset all of those to period 1 / 0:00.
+      // Only valid from the load-coerced 'notStarted' state; periodEnd/gameEnd
+      // have their own transitions.
+      if (state.isTimerRunning || state.gameStatus !== 'notStarted') return state;
+      return {
+        ...state,
+        gameStatus: 'inProgress',
         isTimerRunning: true,
         startTimestamp: Date.now(),
       };
@@ -379,6 +396,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         };
       }
       return state;
+    // Used only by the in-session visibility-change path (tab returns to
+    // foreground without a reload). Boot-time recovery instead folds the
+    // record into the loaded game state before LOAD_PERSISTED_GAME_DATA.
     case 'RESTORE_TIMER_STATE': {
       if (state.gameStatus === 'inProgress') {
         const { savedTime } = action.payload;

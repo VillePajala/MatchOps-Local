@@ -68,6 +68,76 @@ describe('gameSessionReducer', () => {
     expect(state.nextSubDueTimeSeconds).toBe(4 * 60);
   });
 
+  /**
+   * CR-C1: resuming a reloaded in-progress game must continue at the saved
+   * clock/period, never reset to period 1 / 0:00.
+   * @critical
+   */
+  describe('RESUME_GAME', () => {
+    const intervalHistory = [{ period: 1, duration: 300, timestamp: 1000 }];
+    const loadedMidGame: GameSessionState = {
+      ...baseState,
+      gameStatus: 'notStarted', // what LOAD_PERSISTED_GAME_DATA produces for an in-progress game
+      currentPeriod: 2,
+      timeElapsedInSeconds: 1600, // 26:40 into a 2x15 game... using base 2x10: 16:40 into period 2
+      periodDurationMinutes: 15,
+      lastSubConfirmationTimeSeconds: 1500,
+      nextSubDueTimeSeconds: 1800,
+      completedIntervalDurations: intervalHistory,
+    };
+
+    test('resumes at the saved clock and period without wiping interval history', () => {
+      const state = gameSessionReducer(loadedMidGame, { type: 'RESUME_GAME' });
+
+      expect(state.gameStatus).toBe('inProgress');
+      expect(state.isTimerRunning).toBe(true);
+      expect(state.startTimestamp).not.toBeNull();
+      // Everything the old START_PERIOD(1) path destroyed must survive:
+      expect(state.timeElapsedInSeconds).toBe(1600);
+      expect(state.currentPeriod).toBe(2);
+      expect(state.completedIntervalDurations).toEqual(intervalHistory);
+      expect(state.lastSubConfirmationTimeSeconds).toBe(1500);
+      expect(state.nextSubDueTimeSeconds).toBe(1800);
+    });
+
+    test('is a no-op while the timer is already running', () => {
+      const running = { ...loadedMidGame, gameStatus: 'inProgress' as const, isTimerRunning: true };
+      expect(gameSessionReducer(running, { type: 'RESUME_GAME' })).toBe(running);
+    });
+
+    test('full reload scenario: LOAD_PERSISTED_GAME_DATA then RESUME_GAME restores the match', () => {
+      // An in-progress game as persisted by auto-save mid-period-2
+      const persisted = {
+        gameStatus: 'inProgress' as const,
+        currentPeriod: 2,
+        numberOfPeriods: 2 as const,
+        periodDurationMinutes: 15,
+        timeElapsedInSeconds: 1600,
+        lastSubConfirmationTimeSeconds: 1500,
+        subIntervalMinutes: 5,
+        completedIntervalDurations: intervalHistory,
+        teamName: 'My Team',
+        opponentName: 'Rivals',
+      };
+
+      const loaded = gameSessionReducer(baseState, { type: 'LOAD_PERSISTED_GAME_DATA', payload: persisted });
+      // Load coerces to notStarted (never auto-start) but preserves the clock
+      expect(loaded.gameStatus).toBe('notStarted');
+      expect(loaded.timeElapsedInSeconds).toBe(1600);
+      expect(loaded.currentPeriod).toBe(2);
+      expect(loaded.isTimerRunning).toBe(false);
+
+      const resumed = gameSessionReducer(loaded, { type: 'RESUME_GAME' });
+      expect(resumed.gameStatus).toBe('inProgress');
+      expect(resumed.isTimerRunning).toBe(true);
+      expect(resumed.timeElapsedInSeconds).toBe(1600);
+      expect(resumed.currentPeriod).toBe(2);
+      expect(resumed.completedIntervalDurations).toEqual(intervalHistory);
+      // Sub due time computed from last confirmation, not reset to interval start
+      expect(resumed.nextSubDueTimeSeconds).toBe(1500 + 5 * 60);
+    });
+  });
+
   test('LOAD_STATE_FROM_HISTORY restores complete session details', () => {
     const historySnapshot = {
       currentPeriod: 3 as const,
