@@ -285,7 +285,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameIdRef = useRef(currentGameId);
   // Track which game has been successfully loaded to prevent reload on auto-save
   const loadedGameIdRef = useRef<string | null>(null);
-  // CR-C1: clock correction consumed from the persisted timer record at boot,
+  // Clock correction consumed from the persisted timer record at boot,
   // applied one-shot when the corresponding game loads (see loadGameStateFromData)
   const pendingClockCorrectionRef = useRef<{ gameId: string; elapsed: number } | null>(null);
   // Track which initialAction has been processed to prevent re-processing
@@ -857,7 +857,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     
       // Determine overall initial load completion
       if (!gameDataManagement.isLoading) {
-        // CR-C1: consume the persisted timer record, then clear it. If the
+        // Consume the persisted timer record, then clear it. If the
         // timer was running when the app was hidden and a force-reload followed
         // (useAppResume after >5 min background), the real match kept running —
         // fold the background time into the loaded clock (same semantics as the
@@ -977,7 +977,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         wentToPenalties: gameData.wentToPenalties,
       };
 
-      // CR-C1: apply the boot-time clock correction (one-shot). Only for the
+      // Apply the boot-time clock correction (one-shot). Only for the
       // game that was live when the app was hidden and only if it loads as
       // in-progress. Capped at the current period boundary — the first tick
       // after resume then fires the period/game end normally.
@@ -1108,7 +1108,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Data dependencies (used as fallbacks - changes trigger callback recreation)
     // Note: initialState is a function parameter (outer scope), not a dep
     availablePlayers, gameDataManagement.masterRoster,
-    // CR-C1: clock-correction match check (refs are stable; id changes per load)
+    // Clock-correction match check (refs are stable; id changes per load)
     currentGameId,
   ]);
 
