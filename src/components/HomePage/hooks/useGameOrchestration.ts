@@ -285,6 +285,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const gameIdRef = useRef(currentGameId);
   // Track which game has been successfully loaded to prevent reload on auto-save
   const loadedGameIdRef = useRef<string | null>(null);
+  // Clock correction consumed from the persisted timer record at boot,
+  // applied one-shot when the corresponding game loads (see loadGameStateFromData)
+  const pendingClockCorrectionRef = useRef<{ gameId: string; elapsed: number } | null>(null);
   // Track which initialAction has been processed to prevent re-processing
   const processedInitialActionRef = useRef<string | null>(null);
 
@@ -854,27 +857,32 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     
       // Determine overall initial load completion
       if (!gameDataManagement.isLoading) {
-        // --- TIMER RESTORATION LOGIC ---
+        // Consume the persisted timer record, then clear it. If the
+        // timer was running when the app was hidden and a force-reload followed
+        // (useAppResume after >5 min background), the real match kept running —
+        // fold the background time into the loaded clock (same semantics as the
+        // in-session visibility restore). Clearing without consuming would drop
+        // that time; leaving the record behind would let a later background/
+        // foreground cycle replay it and jump the clock.
         try {
           const lastGameId = gameDataManagement.currentGameIdSetting;
-          const savedTimerState = await loadTimerStateForGame(lastGameId || '', userId);
-
-          if (savedTimerState) {
-            const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
-            const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
-
-            // Use RESTORE_TIMER_STATE which atomically sets elapsed time + starts timer
-            // (SET_TIMER_ELAPSED is a no-op when timer is not running)
-            dispatchGameSession({ type: 'RESTORE_TIMER_STATE', payload: { savedTime: correctedElapsedSeconds, timestamp: Date.now() } });
-          } else {
-            // Clear any stale timer state (might be for a different game)
-            await clearTimerState(userId);
+          const savedTimerState = lastGameId
+            ? await loadTimerStateForGame(lastGameId, userId)
+            : null;
+          if (savedTimerState?.wasRunning && lastGameId) {
+            const offlineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
+            pendingClockCorrectionRef.current = {
+              gameId: lastGameId,
+              elapsed: Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds),
+            };
           }
-        } catch (error) {
-          logger.error('[EFFECT init] Error restoring timer state:', error);
           await clearTimerState(userId);
+        } catch (error) {
+          logger.error('[EFFECT init] Error consuming persisted timer state:', error);
+          // Best-effort clear: a record we failed to read must still not
+          // survive to be replayed on a later boot or visibility change.
+          await clearTimerState(userId).catch(() => {});
         }
-        // --- END TIMER RESTORATION LOGIC ---
 
         // This is now the single source of truth for loading completion.
         setInitialLoadComplete(true);
@@ -896,7 +904,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     initialLoadComplete,
     initialAction, // Used to determine if instructions modal should show automatically
     savedGames, // Used to check if user has any saved games for instructions modal logic
-    dispatchGameSession, // Used for timer restoration
     userId, // User-scoped storage
     // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
@@ -969,8 +976,33 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         wentToOvertime: gameData.wentToOvertime,
         wentToPenalties: gameData.wentToPenalties,
       };
+
+      // Apply the boot-time clock correction (one-shot). Only for the
+      // game that was live when the app was hidden and only if it loads as
+      // in-progress. Capped at the current period boundary — the first tick
+      // after resume then fires the period/game end normally.
+      const pendingCorrection = pendingClockCorrectionRef.current;
+      if (pendingCorrection) {
+        if (pendingCorrection.gameId === currentGameId && gameData.gameStatus === 'inProgress') {
+          const periodBoundarySeconds =
+            (gameData.currentPeriod ?? 1) * (gameData.periodDurationMinutes ?? 10) * 60;
+          const corrected = Math.min(pendingCorrection.elapsed, periodBoundarySeconds);
+          if (corrected > (gameData.timeElapsedInSeconds ?? 0)) {
+            logger.info('[LOAD GAME STATE] Applying hidden-session clock correction', {
+              storedElapsed: gameData.timeElapsedInSeconds,
+              correctedElapsed: corrected,
+            });
+            payload.timeElapsedInSeconds = corrected;
+          }
+        }
+        pendingClockCorrectionRef.current = null;
+      }
+
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
     } else {
+      // Consume any pending clock correction even when no game loads (e.g. the
+      // recorded game no longer exists) so it cannot apply to a later load.
+      pendingClockCorrectionRef.current = null;
       dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
       setIsPlayed(true);
     }
@@ -1079,6 +1111,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Data dependencies (used as fallbacks - changes trigger callback recreation)
     // Note: initialState is a function parameter (outer scope), not a dep
     availablePlayers, gameDataManagement.masterRoster,
+    // Clock-correction match check (refs are stable; id changes per load)
+    currentGameId,
   ]);
 
   // --- Effect to load game state when currentGameId changes or savedGames updates ---

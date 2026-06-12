@@ -24,16 +24,38 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   // Destructure only the fields used by startPause to avoid recreation on every tick
   const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes } = state;
 
+  const stateRef = useRef(state);
+
+  // Keep a stable ref to the latest state for callbacks that must not
+  // re-create on every tick (mutating refs during render is unsafe)
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
   const startPause = useCallback(() => {
     if (gameStatus === 'notStarted') {
-      dispatch({
-        type: 'START_PERIOD',
-        payload: {
-          nextPeriod: 1,
-          periodDurationMinutes,
-          subIntervalMinutes,
-        },
-      });
+      // Read elapsed via ref: it changes on every tick and must not recreate
+      // this callback (see destructure note above).
+      // INVARIANT: 'notStarted' with elapsed > 0 only exists as the product of
+      // LOAD_PERSISTED_GAME_DATA's coercion of an in-progress game; every
+      // reset path zeroes the clock. If a new state source ever violates
+      // this, the resume discriminator below must be revisited.
+      if (stateRef.current.timeElapsedInSeconds > 0) {
+        // A loaded in-progress game: LOAD_PERSISTED_GAME_DATA coerces
+        // 'inProgress' to 'notStarted' but preserves the clock. Resume at the
+        // saved time/period instead of START_PERIOD(1), which would reset the
+        // match clock and wipe interval history.
+        dispatch({ type: 'RESUME_GAME' });
+      } else {
+        dispatch({
+          type: 'START_PERIOD',
+          payload: {
+            nextPeriod: 1,
+            periodDurationMinutes,
+            subIntervalMinutes,
+          },
+        });
+      }
     } else if (gameStatus === 'periodEnd') {
       dispatch({
         type: 'START_PERIOD',
@@ -77,13 +99,6 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     },
     [dispatch]
   );
-
-  const stateRef = useRef(state);
-
-  // Update ref in effect to comply with React 19 hooks rules
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
 
   const { handleVisibilityChange } = useTimerRestore();
 
