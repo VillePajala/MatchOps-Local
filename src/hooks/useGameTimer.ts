@@ -39,7 +39,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         // A loaded in-progress game: LOAD_PERSISTED_GAME_DATA coerces
         // 'inProgress' to 'notStarted' but preserves the clock. Resume at the
         // saved time/period instead of START_PERIOD(1), which would reset the
-        // match clock and wipe interval history (CR-C1).
+        // match clock and wipe interval history.
         dispatch({ type: 'RESUME_GAME' });
       } else {
         dispatch({

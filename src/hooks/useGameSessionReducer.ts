@@ -242,7 +242,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       };
     }
     case 'RESUME_GAME': {
-      // Resume a game restored from storage (CR-C1). LOAD_PERSISTED_GAME_DATA
+      // Resume a game restored from storage. LOAD_PERSISTED_GAME_DATA
       // coerces 'inProgress' to 'notStarted' (never auto-start a timer on load)
       // while preserving the clock, period, substitution tracking and interval
       // history — so resuming must NOT go through START_PERIOD, which would
