@@ -99,9 +99,13 @@ export async function bootstrapGetItem(key: string): Promise<string | null> {
 
     return null;
   } catch (error) {
+    // Propagate infrastructure errors: returning null here would make
+    // "the read failed" indistinguishable from "the key was never written",
+    // and config consumers would fall back to defaults that re-trigger the
+    // localStorage -> IndexedDB migration over live data. Callers that can
+    // degrade gracefully (storageConfigManager) catch this themselves.
     logger.error('Bootstrap getItem failed', { key, error });
-    // In bootstrap phase, fail gracefully
-    return null;
+    throw error;
   }
 }
 

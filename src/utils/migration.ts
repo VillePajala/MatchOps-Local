@@ -179,12 +179,58 @@ async function performAppDataMigration(): Promise<void> {
 }
 
 /**
+ * Sentinel key marking the localStorage -> IndexedDB migration as completed.
+ * Stored in IndexedDB itself (bootstrap store, same DB the migration writes to)
+ * so the decision does not depend on the storage config: a transient config
+ * read failure falls back to DEFAULT_STORAGE_CONFIG (mode 'localStorage'),
+ * which would otherwise re-run this migration and overwrite live IndexedDB
+ * data with the stale localStorage snapshot kept as a backup.
+ * Prefixed 'migration_' so the copy loop below never transfers it.
+ */
+const INDEXEDDB_MIGRATION_SENTINEL_KEY = 'migration_indexeddb_completed';
+
+/**
  * Perform simplified IndexedDB migration
  */
 async function performIndexedDbMigration(): Promise<void> {
   try {
+    const { bootstrapGetItem, bootstrapSetItem } = await import('./storageBootstrap');
+
+    // Guard 1: sentinel check. If the sentinel read throws (storage
+    // infrastructure failing), the outer catch aborts the migration —
+    // never copy when completion cannot be positively ruled out.
+    const sentinel = await bootstrapGetItem(INDEXEDDB_MIGRATION_SENTINEL_KEY);
+    if (sentinel) {
+      logger.log('[Migration] Sentinel present - migration already completed, repairing config only');
+      await updateStorageConfig({
+        mode: 'indexedDB',
+        version: INDEXEDDB_STORAGE_VERSION,
+        migrationState: 'completed'
+      });
+      return;
+    }
+
     // Create IndexedDB adapter only (read from localStorage directly)
     const targetAdapter = await createStorageAdapter('indexedDB');
+
+    // Guard 2: if IndexedDB already holds core app data, the migration ran
+    // before (sentinel predates this guard or was lost) or the user has live
+    // data — overwriting it with the localStorage snapshot would roll the
+    // user back to migration day. Mark complete instead of copying.
+    const [existingGames, existingRoster] = await Promise.all([
+      targetAdapter.getItem(SAVED_GAMES_KEY),
+      targetAdapter.getItem(MASTER_ROSTER_KEY),
+    ]);
+    if (existingGames !== null || existingRoster !== null) {
+      logger.warn('[Migration] Target IndexedDB already has app data - skipping copy to protect live data');
+      await bootstrapSetItem(INDEXEDDB_MIGRATION_SENTINEL_KEY, new Date().toISOString());
+      await updateStorageConfig({
+        mode: 'indexedDB',
+        version: INDEXEDDB_STORAGE_VERSION,
+        migrationState: 'completed'
+      });
+      return;
+    }
 
     // Get all localStorage keys
     const allKeys = Object.keys(localStorage).filter(key =>
@@ -236,6 +282,10 @@ async function performIndexedDbMigration(): Promise<void> {
     if (errors.length > 0) {
       logger.warn(`[Migration] Completed with ${errors.length} errors (${successRate.toFixed(1)}% success rate)`);
     }
+
+    // Write the sentinel FIRST: it is the durable completion marker the
+    // guards above consult, independent of the (default-on-error) config.
+    await bootstrapSetItem(INDEXEDDB_MIGRATION_SENTINEL_KEY, new Date().toISOString());
 
     // Update storage configuration to use IndexedDB
     await updateStorageConfig({

@@ -18,7 +18,8 @@ import {
 } from '@/config/migrationConfig';
 import {
   APP_DATA_VERSION_KEY,
-  MASTER_ROSTER_KEY
+  MASTER_ROSTER_KEY,
+  SAVED_GAMES_KEY
 } from '@/config/storageKeys';
 
 // Mock localStorage
@@ -62,6 +63,14 @@ jest.mock('./storageFactory', () => ({
     getAllKeys: jest.fn().mockResolvedValue([])
   }),
   updateStorageConfig: jest.fn().mockResolvedValue(undefined)
+}));
+
+// Mock storageBootstrap (sentinel reads/writes for the IndexedDB migration guards)
+const mockBootstrapGetItem = jest.fn().mockResolvedValue(null);
+const mockBootstrapSetItem = jest.fn().mockResolvedValue(undefined);
+jest.mock('./storageBootstrap', () => ({
+  bootstrapGetItem: (...args: unknown[]) => mockBootstrapGetItem(...args),
+  bootstrapSetItem: (...args: unknown[]) => mockBootstrapSetItem(...args),
 }));
 
 jest.mock('./logger', () => ({
@@ -184,6 +193,114 @@ describe('Simplified Migration System', () => {
       expect(teams.addTeam).toHaveBeenCalled();
       expect(teams.setTeamRoster).toHaveBeenCalled();
       expect(mockSetLocalStorageItem).toHaveBeenCalledWith(APP_DATA_VERSION_KEY, CURRENT_DATA_VERSION.toString());
+    });
+  });
+
+  describe('IndexedDB migration guards (stale-snapshot protection)', () => {
+    const indexedDbMigrationConfig = {
+      mode: 'localStorage',
+      version: 1,
+      forceMode: null,
+      migrationState: 'not-started'
+    };
+
+    /** Fresh adapter mock per test so getItem/setItem call counts are isolated */
+    const installAdapter = async (existing: Record<string, string> = {}) => {
+      const adapter = {
+        getItem: jest.fn(async (key: string) => existing[key] ?? null),
+        setItem: jest.fn().mockResolvedValue(undefined),
+        getAllKeys: jest.fn().mockResolvedValue([]),
+      };
+      const storageFactory = await import('./storageFactory');
+      (storageFactory.createStorageAdapter as jest.Mock).mockResolvedValue(adapter);
+      (storageFactory.getStorageConfig as jest.Mock).mockResolvedValue(indexedDbMigrationConfig);
+      return adapter;
+    };
+
+    beforeEach(() => {
+      // App-data migration not needed; only the IndexedDB path runs
+      mockGetLocalStorageItem.mockReturnValue(CURRENT_DATA_VERSION.toString());
+    });
+
+    /**
+     * A present sentinel proves the migration already ran: never copy again,
+     * only repair the (defaulted) config.
+     * @critical
+     */
+    it('skips the copy and repairs config when the sentinel is present', async () => {
+      const adapter = await installAdapter();
+      mockBootstrapGetItem.mockResolvedValue('2026-01-01T00:00:00.000Z');
+
+      await runMigration();
+
+      expect(adapter.setItem).not.toHaveBeenCalled();
+      const storageFactory = await import('./storageFactory');
+      expect(storageFactory.updateStorageConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'indexedDB', migrationState: 'completed' })
+      );
+    });
+
+    /**
+     * Live app data in IndexedDB must never be overwritten by the stale
+     * localStorage snapshot, even when sentinel and config are both missing.
+     * @critical
+     */
+    it('skips the copy when IndexedDB already holds app data', async () => {
+      const adapter = await installAdapter({ [SAVED_GAMES_KEY]: '{"game_1":{}}' });
+      mockBootstrapGetItem.mockResolvedValue(null);
+
+      await runMigration();
+
+      expect(adapter.setItem).not.toHaveBeenCalled();
+      // Sentinel written so future boots short-circuit at guard 1
+      expect(mockBootstrapSetItem).toHaveBeenCalledWith(
+        'migration_indexeddb_completed',
+        expect.any(String)
+      );
+      const storageFactory = await import('./storageFactory');
+      expect(storageFactory.updateStorageConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'indexedDB', migrationState: 'completed' })
+      );
+    });
+
+    /**
+     * If the sentinel cannot be read (storage infrastructure failing), the
+     * migration must abort: completion cannot be ruled out, and copying could
+     * overwrite live data.
+     * @critical
+     */
+    it('aborts without copying when the sentinel read fails', async () => {
+      const adapter = await installAdapter();
+      mockBootstrapGetItem.mockRejectedValue(new Error('Transient IndexedDB failure'));
+
+      await runMigration(); // must not throw - app continues
+
+      expect(adapter.setItem).not.toHaveBeenCalled();
+      const storageFactory = await import('./storageFactory');
+      // The failure handler may record migrationState 'failed', but completion
+      // must never be recorded when the sentinel could not be read
+      expect(storageFactory.updateStorageConfig).not.toHaveBeenCalledWith(
+        expect.objectContaining({ migrationState: 'completed' })
+      );
+      expect(mockBootstrapSetItem).not.toHaveBeenCalled();
+    });
+
+    it('writes the sentinel after a successful first migration', async () => {
+      const adapter = await installAdapter(); // empty target
+      mockBootstrapGetItem.mockResolvedValue(null);
+      mockLocalStorage.getItem.mockReturnValue('legacy-value'); // every key copies
+
+      await runMigration();
+
+      expect(adapter.setItem).toHaveBeenCalled();
+      expect(mockBootstrapSetItem).toHaveBeenCalledWith(
+        'migration_indexeddb_completed',
+        expect.any(String)
+      );
+      const storageFactory = await import('./storageFactory');
+      expect(storageFactory.updateStorageConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'indexedDB', migrationState: 'completed' })
+      );
     });
   });
 
