@@ -10,10 +10,10 @@
  */
 
 import React from 'react';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGameOrchestration } from '../useGameOrchestration';
-import type { Player, AppState } from '@/types';
+import type { AppState } from '@/types';
 
 /** Time needed for React Query initialization and hook bootstrapping */
 const BOOTSTRAPPING_TIMEOUT_MS = 5000;
@@ -294,21 +294,24 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
    * loaded clock, paused, and the record cleared.
    */
   it('applies the background duration to the loaded clock and clears the record', async () => {
+    const recordTimestamp = Date.now() - BACKGROUND_MS;
     mockLoadTimerStateForGame.mockResolvedValue({
       gameId: GAME_ID,
       timeElapsedInSeconds: 900,
-      timestamp: Date.now() - BACKGROUND_MS,
+      timestamp: recordTimestamp,
       wasRunning: true,
     });
 
     const result = await renderOrchestration();
 
     await waitFor(() => {
-      expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeGreaterThanOrEqual(900 + 478);
+      expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeGreaterThanOrEqual(900 + BACKGROUND_MS / 1000);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
 
-    // ~900 + 480s of background time (small tolerance for test runtime)
-    expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeLessThanOrEqual(900 + 483);
+    // Upper bound derived from the actual wall clock at assertion time, so the
+    // test cannot flake on slow runners: correction <= 900 + full age of record.
+    const maxCorrected = 900 + Math.ceil((Date.now() - recordTimestamp) / 1000);
+    expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeLessThanOrEqual(maxCorrected);
     // Loaded paused, never auto-started
     expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('notStarted');
     expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
