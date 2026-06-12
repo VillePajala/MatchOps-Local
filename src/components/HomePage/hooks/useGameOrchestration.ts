@@ -879,6 +879,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           await clearTimerState(userId);
         } catch (error) {
           logger.error('[EFFECT init] Error consuming persisted timer state:', error);
+          // Best-effort clear: a record we failed to read must still not
+          // survive to be replayed on a later boot or visibility change.
+          await clearTimerState(userId).catch(() => {});
         }
 
         // This is now the single source of truth for loading completion.
@@ -901,7 +904,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     initialLoadComplete,
     initialAction, // Used to determine if instructions modal should show automatically
     savedGames, // Used to check if user has any saved games for instructions modal logic
-    dispatchGameSession, // Used for timer restoration
     userId, // User-scoped storage
     // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
