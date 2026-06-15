@@ -88,6 +88,29 @@ export const usePrecisionTimer = ({
     onTickRef.current(Math.floor(newStartTime));
   }, [stop]);
 
+  /**
+   * Re-anchor a RUNNING timer to an authoritative elapsed value WITHOUT stopping it.
+   *
+   * Used on return-from-background: the timer keeps running across backgrounding
+   * (it is never paused), but `performance.now()` can freeze during deep device
+   * sleep on some platforms, so the internal anchor may have under-counted. The
+   * caller computes the true elapsed from wall-clock (`Date.now()`) and calls this
+   * to snap the timer back onto real time and continue seamlessly.
+   *
+   * If the timer is not currently running, this just updates the starting offset
+   * for the next start(). Fires onTick immediately so the UI/reducer reflect the
+   * corrected value (and so period-end is detected right away if it was reached).
+   */
+  const reanchor = useCallback((newElapsedSeconds: number) => {
+    initialTimeRef.current = newElapsedSeconds;
+    lastTickRef.current = Math.floor(newElapsedSeconds);
+    if (startTimestampRef.current !== null) {
+      // Running: reset the wall-clock origin to now so elapsed = newElapsed going forward
+      startTimestampRef.current = performance.now();
+    }
+    onTickRef.current(Math.floor(newElapsedSeconds));
+  }, []);
+
   // Handle isRunning changes
   useEffect(() => {
     if (isRunning) {
@@ -117,8 +140,9 @@ export const usePrecisionTimer = ({
     start,
     stop,
     reset,
+    reanchor,
     getCurrentTime,
-  }), [start, stop, reset, getCurrentTime]);
+  }), [start, stop, reset, reanchor, getCurrentTime]);
 };
 
 /**

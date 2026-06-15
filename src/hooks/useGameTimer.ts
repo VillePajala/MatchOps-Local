@@ -1,8 +1,8 @@
 import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { flushSync } from 'react-dom';
-import { saveTimerState, loadTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
+import { saveTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
 import { useWakeLock } from './useWakeLock';
-import { usePrecisionTimer, useTimerRestore } from './usePrecisionTimer';
+import { usePrecisionTimer } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
 
 interface UseGameTimerArgs {
@@ -18,8 +18,16 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const SAVE_DEBOUNCE_MS = 2000; // 2 second debounce
 
-  // Store precision timer reference for precise pause timing
-  const precisionTimerRef = useRef<{ getCurrentTime: () => number } | null>(null);
+  // Store precision timer reference for precise pause timing and background re-anchoring
+  const precisionTimerRef = useRef<{
+    getCurrentTime: () => number;
+    reanchor: (newElapsedSeconds: number) => void;
+  } | null>(null);
+
+  // Captures the running clock at the moment the app is backgrounded, so the
+  // timer can be re-anchored to wall-clock time on return WITHOUT pausing.
+  // null whenever the timer was not running when hidden (e.g. user paused).
+  const hiddenWhileRunningRef = useRef<{ elapsedAtHide: number; hiddenAt: number } | null>(null);
 
   // Destructure only the fields used by startPause to avoid recreation on every tick
   const { gameStatus, isTimerRunning, currentPeriod, periodDurationMinutes, subIntervalMinutes } = state;
@@ -100,15 +108,16 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     [dispatch]
   );
 
-  const { handleVisibilityChange } = useTimerRestore();
-
   // Precision timer callback
   const handleTimerTick = useCallback((elapsedSeconds: number) => {
     const s = stateRef.current;
     const periodEnd = s.currentPeriod * s.periodDurationMinutes * 60;
 
-    // Save timer state with debouncing to reduce IndexedDB writes
-    if (currentGameId) {
+    // Save timer state with debouncing to reduce IndexedDB writes.
+    // Skip while hidden: the hide handler writes an authoritative wasRunning
+    // marker, and a throttled background tick must not overwrite it with a
+    // record that lacks wasRunning (which would break reload-time recovery).
+    if (currentGameId && !(typeof document !== 'undefined' && document.hidden)) {
       const timerState: TimerState = {
         gameId: currentGameId,
         timeElapsedInSeconds: elapsedSeconds,
@@ -177,50 +186,57 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   useEffect(() => { isTimerRunningRef.current = state.isTimerRunning; }, [state.isTimerRunning]);
 
   useEffect(() => {
-    const handleDocumentVisibilityChange = async () => {
+    const handleDocumentVisibilityChange = () => {
       if (document.hidden) {
-        // Save timer state when tab becomes hidden
+        // App going to background. The timer is NOT paused — a match clock keeps
+        // running while the phone is locked or the app is backgrounded. We only
+        // capture the running clock so we can re-anchor to wall-clock time on
+        // return (robust against deep-sleep, where performance.now() may freeze),
+        // and persist a marker for the reload-recovery path (>5min → useAppResume
+        // force-reload → consumed at boot). Pausing only ever happens on the
+        // explicit Start/Pause control.
         if (isTimerRunningRef.current) {
           const elapsedAtHide = precisionTimerRef.current?.getCurrentTime() ?? stateRef.current.timeElapsedInSeconds;
-          const timerState: TimerState = {
+          hiddenWhileRunningRef.current = { elapsedAtHide, hiddenAt: Date.now() };
+
+          // Cancel any pending debounced tick-save so it can't overwrite the
+          // wasRunning marker below with a record that lacks the flag.
+          if (saveTimerRef.current) {
+            clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = null;
+          }
+          void saveTimerState({
             gameId: currentGameId || '',
             timeElapsedInSeconds: elapsedAtHide,
             timestamp: Date.now(),
-            wasRunning: true, // Track that timer should resume on return
-          };
-          // Pause local state immediately; do not wait on IndexedDB while the
-          // browser may be freezing the page.
-          dispatch({ type: 'PAUSE_TIMER_FOR_HIDDEN', payload: elapsedAtHide });
-          void saveTimerState(timerState);
+            wasRunning: true,
+          });
         }
       } else {
-        // Restore timer state when tab becomes visible
-        const savedTimerState = await loadTimerState();
+        // Returning to foreground. If the timer was running when hidden and the
+        // game is still in progress, re-anchor to wall-clock truth and keep
+        // running — no pause, no resume dance, no IndexedDB read dependency.
+        const hidden = hiddenWhileRunningRef.current;
+        hiddenWhileRunningRef.current = null;
 
-        if (savedTimerState && savedTimerState.wasRunning && savedTimerState.gameId === currentGameId) {
-          // Use the precision restore utility
-          handleVisibilityChange(
-            savedTimerState.timestamp,
-            savedTimerState.timeElapsedInSeconds,
-            (restoredTime) => {
-              // Use flushSync to ensure stableStartTime is updated synchronously
-              // before the dispatch. This prevents the precision timer from starting
-              // with a stale value (e.g., 0) when returning from background, which
-              // caused a brief "00:00" flash in the UI.
-              flushSync(() => {
-                setStableStartTime(restoredTime);
-              });
-
-              dispatch({
-                type: 'RESTORE_TIMER_STATE',
-                payload: {
-                  savedTime: restoredTime,
-                  timestamp: savedTimerState.timestamp,
-                },
-              });
-            }
+        if (hidden && stateRef.current.gameStatus === 'inProgress') {
+          const trueElapsed = Math.floor(
+            hidden.elapsedAtHide + (Date.now() - hidden.hiddenAt) / 1000
           );
+          // flushSync so the display anchor is updated before the re-anchor's
+          // onTick lands, preventing a one-frame flash of the pre-background time.
+          flushSync(() => {
+            setStableStartTime(trueElapsed);
+          });
+          // reanchor fires onTick(trueElapsed) → handleTimerTick, which advances
+          // the reducer clock (SET_TIMER_ELAPSED) or ends the period/game if the
+          // clock passed the period boundary while backgrounded.
+          precisionTimerRef.current?.reanchor(trueElapsed);
         }
+
+        // The persisted marker is only needed by the reload-recovery path; once
+        // we've handled an in-session return, drop it so it can't be replayed.
+        void clearTimerState();
       }
     };
 
@@ -235,7 +251,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     };
   // Note: precisionTimerRef is used via ref (not as dependency) to avoid re-registering
   // the visibility listener on every tick (precisionTimer changes frequently)
-  }, [currentGameId, dispatch, handleVisibilityChange, setStableStartTime]);
+  }, [currentGameId, dispatch, setStableStartTime]);
 
   return useMemo(() => ({
     timeElapsedInSeconds: state.timeElapsedInSeconds,
