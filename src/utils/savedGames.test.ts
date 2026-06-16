@@ -520,6 +520,65 @@ describe('Saved Games Utilities', () => {
 
       await expect(updateGameDetails('game_123', updates)).rejects.toThrow('Storage failure');
     });
+
+    // Regression: the Home/Away toggle persists only { homeOrAway }. Because
+    // homeScore/awayScore are positional, flipping orientation must swap the
+    // tallies — otherwise away games get their result inverted and goals
+    // for/against swapped (confirmed data corruption across multiple games).
+    describe('homeOrAway flip swaps positional scores', () => {
+      // mockBaseAppState: homeOrAway 'home', homeScore 1, awayScore 0 (a 1-0 home win)
+      it('swaps homeScore/awayScore when homeOrAway flips with no explicit scores', async () => {
+        mockDataStore.getGameById.mockResolvedValue(mockGame1_AppState);
+        mockDataStore.saveGame.mockImplementation(async (_id, g) => g);
+
+        await updateGameDetails('game_123', { homeOrAway: 'away' });
+
+        // Result must be preserved: was a 1-0 home win → now away with our
+        // score = awayScore = 1 (still a 1-0 win), so the tallies swap.
+        expect(mockDataStore.saveGame).toHaveBeenCalledWith(
+          'game_123',
+          expect.objectContaining({ homeOrAway: 'away', homeScore: 0, awayScore: 1 })
+        );
+      });
+
+      it('does NOT swap when homeOrAway flips but scores are provided explicitly', async () => {
+        mockDataStore.getGameById.mockResolvedValue(mockGame1_AppState);
+        mockDataStore.saveGame.mockImplementation(async (_id, g) => g);
+
+        await updateGameDetails('game_123', { homeOrAway: 'away', homeScore: 3, awayScore: 2 });
+
+        expect(mockDataStore.saveGame).toHaveBeenCalledWith(
+          'game_123',
+          expect.objectContaining({ homeOrAway: 'away', homeScore: 3, awayScore: 2 })
+        );
+      });
+
+      it('swaps in the away→home direction too (symmetric)', async () => {
+        const awayGame = { ...mockGame1_AppState, homeOrAway: 'away' as const, homeScore: 2, awayScore: 5 };
+        mockDataStore.getGameById.mockResolvedValue(awayGame);
+        mockDataStore.saveGame.mockImplementation(async (_id, g) => g);
+
+        await updateGameDetails('game_123', { homeOrAway: 'home' });
+
+        // away win 5-2 (our=awayScore=5) → home, our=homeScore must stay 5
+        expect(mockDataStore.saveGame).toHaveBeenCalledWith(
+          'game_123',
+          expect.objectContaining({ homeOrAway: 'home', homeScore: 5, awayScore: 2 })
+        );
+      });
+
+      it('does NOT swap when homeOrAway is unchanged', async () => {
+        mockDataStore.getGameById.mockResolvedValue(mockGame1_AppState);
+        mockDataStore.saveGame.mockImplementation(async (_id, g) => g);
+
+        await updateGameDetails('game_123', { homeOrAway: 'home', gameNotes: 'no swap' });
+
+        expect(mockDataStore.saveGame).toHaveBeenCalledWith(
+          'game_123',
+          expect.objectContaining({ homeOrAway: 'home', homeScore: 1, awayScore: 0 })
+        );
+      });
+    });
   });
 
   describe('Edge Cases', () => {
