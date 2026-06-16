@@ -73,6 +73,12 @@ jest.mock('../usePrecisionTimer', () => ({
 
     return {
       getCurrentTime: () => timeRef.current,
+      // Mirror the real reanchor: snap to the given elapsed and fire onTick so
+      // the reducer clock updates (or the period ends) immediately.
+      reanchor: (newElapsed: number) => {
+        timeRef.current = newElapsed;
+        onTick(Math.floor(newElapsed));
+      },
     };
   },
   useTimerRestore: () => ({
@@ -400,10 +406,23 @@ describe('useGameTimer', () => {
     });
   });
 
-  describe('visibility handling', () => {
-    it('pauses at the precise current time when the app is hidden without double-counting', () => {
+  describe('visibility handling (timer keeps running across background)', () => {
+    const hide = () => {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    };
+    const show = () => {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+      act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    };
+
+    /**
+     * The reported incident: backgrounding must NOT pause the match clock.
+     * @critical
+     */
+    it('does NOT pause the timer when the app is backgrounded', () => {
       const { saveTimerState } = jest.requireMock('@/utils/timerStateManager');
-      const elapsed = 28 * 60 + 28;
+      const elapsed = 100;
       const initialState = createInitialState({
         gameStatus: 'inProgress',
         isTimerRunning: true,
@@ -418,23 +437,110 @@ describe('useGameTimer', () => {
         return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
       });
 
-      Object.defineProperty(document, 'hidden', {
-        configurable: true,
-        value: true,
+      hide();
+
+      // Timer stays running; a wasRunning marker is persisted for reload recovery.
+      expect(result.current.isTimerRunning).toBe(true);
+      expect(saveTimerState).toHaveBeenCalledWith(expect.objectContaining({
+        gameId: 'game-1',
+        wasRunning: true,
+      }));
+    });
+
+    /**
+     * On return, the clock is re-anchored to wall-clock truth and keeps running —
+     * the background duration is counted, not lost.
+     * @critical
+     */
+    it('re-anchors the clock to wall-clock time on return and keeps running', () => {
+      const elapsed = 100;
+      const initialState = createInitialState({
+        gameStatus: 'inProgress',
+        isTimerRunning: true,
+        startTimestamp: Date.now() - elapsed * 1000,
+        timeElapsedInSeconds: elapsed,
+        periodDurationMinutes: 40, // periodEnd = 2400s, far above
+        numberOfPeriods: 1,
       });
 
-      act(() => {
-        document.dispatchEvent(new Event('visibilitychange'));
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
       });
+
+      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
+
+      hide();
+      // 90 seconds pass while backgrounded
+      act(() => { jest.setSystemTime(Date.now() + 90_000); });
+      show();
+
+      expect(result.current.isTimerRunning).toBe(true);
+      expect(result.current.timeElapsedInSeconds).toBe(elapsed + 90);
+      // The wasRunning marker is consumed on return so it can't be replayed.
+      expect(clearTimerState).toHaveBeenCalled();
+    });
+
+    /**
+     * If the user explicitly paused before backgrounding, return must NOT resume.
+     * @edge-case
+     */
+    it('does not resume a timer that was explicitly paused before backgrounding', () => {
+      const elapsed = 100;
+      const initialState = createInitialState({
+        gameStatus: 'inProgress',
+        isTimerRunning: false, // explicitly paused
+        timeElapsedInSeconds: elapsed,
+        periodDurationMinutes: 40,
+        numberOfPeriods: 1,
+      });
+
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+
+      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
+
+      hide();
+      act(() => { jest.setSystemTime(Date.now() + 90_000); });
+      show();
 
       expect(result.current.isTimerRunning).toBe(false);
       expect(result.current.timeElapsedInSeconds).toBe(elapsed);
-      expect(result.current.timeElapsedInSeconds).not.toBe(elapsed * 2);
-      expect(saveTimerState).toHaveBeenCalledWith(expect.objectContaining({
-        gameId: 'game-1',
+      // No marker was written (timer wasn't running when hidden), so persisted
+      // timer state must be left intact for the reload-recovery path.
+      expect(clearTimerState).not.toHaveBeenCalled();
+    });
+
+    /**
+     * If the clock passed the period boundary while backgrounded, the period
+     * ends at the boundary on return (no runaway clock).
+     * @edge-case
+     */
+    it('ends the period at the boundary if it elapsed while backgrounded', () => {
+      const elapsed = 100;
+      const initialState = createInitialState({
+        gameStatus: 'inProgress',
+        isTimerRunning: true,
+        startTimestamp: Date.now() - elapsed * 1000,
         timeElapsedInSeconds: elapsed,
-        wasRunning: true,
-      }));
+        periodDurationMinutes: 2, // periodEnd = 120s
+        numberOfPeriods: 1,
+      });
+
+      const { result } = renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, initialState);
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+
+      hide();
+      // Locked for 5 minutes — well past the 120s period boundary
+      act(() => { jest.setSystemTime(Date.now() + 300_000); });
+      show();
+
+      expect(result.current.isTimerRunning).toBe(false);
+      expect(result.current.timeElapsedInSeconds).toBe(120); // clamped to boundary
     });
   });
 
