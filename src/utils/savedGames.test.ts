@@ -553,6 +553,20 @@ describe('Saved Games Utilities', () => {
         );
       });
 
+      it('swaps in the away→home direction too (symmetric)', async () => {
+        const awayGame = { ...mockGame1_AppState, homeOrAway: 'away' as const, homeScore: 2, awayScore: 5 };
+        mockDataStore.getGameById.mockResolvedValue(awayGame);
+        mockDataStore.saveGame.mockImplementation(async (_id, g) => g);
+
+        await updateGameDetails('game_123', { homeOrAway: 'home' });
+
+        // away win 5-2 (our=awayScore=5) → home, our=homeScore must stay 5
+        expect(mockDataStore.saveGame).toHaveBeenCalledWith(
+          'game_123',
+          expect.objectContaining({ homeOrAway: 'home', homeScore: 5, awayScore: 2 })
+        );
+      });
+
       it('does NOT swap when homeOrAway is unchanged', async () => {
         mockDataStore.getGameById.mockResolvedValue(mockGame1_AppState);
         mockDataStore.saveGame.mockImplementation(async (_id, g) => g);
