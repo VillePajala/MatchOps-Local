@@ -292,6 +292,23 @@ export const updateGameDetails = async (
     ...updateData,
   };
 
+  // homeScore/awayScore are POSITIONAL (home team's tally vs away team's tally);
+  // "our" score is derived via homeOrAway. The reducer's SET_HOME_OR_AWAY swaps
+  // the two tallies whenever homeOrAway flips, so the result and goals-for/against
+  // stay correct. A partial update that flips homeOrAway WITHOUT supplying scores
+  // (e.g. the Home/Away toggle, which persists only { homeOrAway }) must do the
+  // same swap here — otherwise the stored game keeps the old tallies under the new
+  // orientation, inverting the result and swapping goals for/against on away games.
+  if (
+    updateData.homeOrAway !== undefined &&
+    updateData.homeOrAway !== game.homeOrAway &&
+    updateData.homeScore === undefined &&
+    updateData.awayScore === undefined
+  ) {
+    updatedGame.homeScore = game.awayScore;
+    updatedGame.awayScore = game.homeScore;
+  }
+
   return dataStore.saveGame(gameId, updatedGame);
 };
 
