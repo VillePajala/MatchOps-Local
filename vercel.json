@@ -8,7 +8,6 @@
     "enabled": true,
     "autoAlias": true
   },
-  "public": false,
   "headers": [
     {
       "source": "/sw.js",
