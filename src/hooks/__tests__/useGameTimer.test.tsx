@@ -468,6 +468,8 @@ describe('useGameTimer', () => {
         return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
       });
 
+      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
+
       hide();
       // 90 seconds pass while backgrounded
       act(() => { jest.setSystemTime(Date.now() + 90_000); });
@@ -475,6 +477,8 @@ describe('useGameTimer', () => {
 
       expect(result.current.isTimerRunning).toBe(true);
       expect(result.current.timeElapsedInSeconds).toBe(elapsed + 90);
+      // The wasRunning marker is consumed on return so it can't be replayed.
+      expect(clearTimerState).toHaveBeenCalled();
     });
 
     /**
@@ -496,12 +500,17 @@ describe('useGameTimer', () => {
         return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
       });
 
+      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
+
       hide();
       act(() => { jest.setSystemTime(Date.now() + 90_000); });
       show();
 
       expect(result.current.isTimerRunning).toBe(false);
       expect(result.current.timeElapsedInSeconds).toBe(elapsed);
+      // No marker was written (timer wasn't running when hidden), so persisted
+      // timer state must be left intact for the reload-recovery path.
+      expect(clearTimerState).not.toHaveBeenCalled();
     });
 
     /**

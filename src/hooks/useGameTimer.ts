@@ -117,7 +117,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     // Skip while hidden: the hide handler writes an authoritative wasRunning
     // marker, and a throttled background tick must not overwrite it with a
     // record that lacks wasRunning (which would break reload-time recovery).
-    if (currentGameId && !(typeof document !== 'undefined' && document.hidden)) {
+    if (currentGameId && !document.hidden) {
       const timerState: TimerState = {
         gameId: currentGameId,
         timeElapsedInSeconds: elapsedSeconds,
@@ -219,24 +219,30 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         const hidden = hiddenWhileRunningRef.current;
         hiddenWhileRunningRef.current = null;
 
-        if (hidden && stateRef.current.gameStatus === 'inProgress') {
-          const trueElapsed = Math.floor(
-            hidden.elapsedAtHide + (Date.now() - hidden.hiddenAt) / 1000
-          );
-          // flushSync so the display anchor is updated before the re-anchor's
-          // onTick lands, preventing a one-frame flash of the pre-background time.
-          flushSync(() => {
-            setStableStartTime(trueElapsed);
-          });
-          // reanchor fires onTick(trueElapsed) → handleTimerTick, which advances
-          // the reducer clock (SET_TIMER_ELAPSED) or ends the period/game if the
-          // clock passed the period boundary while backgrounded.
-          precisionTimerRef.current?.reanchor(trueElapsed);
-        }
+        // Only act when the timer was running when hidden. If the user had
+        // explicitly paused before backgrounding, we wrote no marker and must
+        // NOT touch persisted timer state — clearing it would wipe state the
+        // reload-recovery path may still need.
+        if (hidden) {
+          if (stateRef.current.gameStatus === 'inProgress') {
+            const trueElapsed = Math.floor(
+              hidden.elapsedAtHide + (Date.now() - hidden.hiddenAt) / 1000
+            );
+            // flushSync so the display anchor is updated before the re-anchor's
+            // onTick lands, preventing a one-frame flash of the pre-background time.
+            flushSync(() => {
+              setStableStartTime(trueElapsed);
+            });
+            // reanchor fires onTick(trueElapsed) → handleTimerTick, which advances
+            // the reducer clock (SET_TIMER_ELAPSED) or ends the period/game if the
+            // clock passed the period boundary while backgrounded.
+            precisionTimerRef.current?.reanchor(trueElapsed);
+          }
 
-        // The persisted marker is only needed by the reload-recovery path; once
-        // we've handled an in-session return, drop it so it can't be replayed.
-        void clearTimerState();
+          // We wrote a wasRunning marker on hide; consume it now that the
+          // in-session return is handled so it can't be replayed at reload.
+          void clearTimerState();
+        }
       }
     };
 
