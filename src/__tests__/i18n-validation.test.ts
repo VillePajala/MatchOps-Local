@@ -279,16 +279,19 @@ describe('Translation File Validation', () => {
       // Common keys: done, retry
       // Sync details: resume, pause, resumeTitle, pauseTitle, pausedWarning, cloudNotConnected
       // Multi-tab prevention: alreadyOpen, alreadyOpenDesc
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421 → 2442
       // Settings feedback: friendly email path plus copyable app info
-      expect(enKeys.length).toBe(2442);
+      // Goal log source of truth: unknownScorer, scoreMismatch, recalculateScoreButton,
+      // recalculateScoreTitle, recalculateScoreConfirm, recalculateConfirmButton (+6)
+      expect(enKeys.length).toBe(2448);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
       // Update this number when intentionally adding/removing keys
-      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421
+      // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421 → 2442
       // Settings feedback: friendly email path plus copyable app info
-      expect(fiKeys.length).toBe(2442);
+      // Goal log source of truth (+6, see EN above)
+      expect(fiKeys.length).toBe(2448);
     });
   });
 });
