@@ -1847,6 +1847,68 @@ describe('LocalDataStore', () => {
           const result = await dataStore.removeGameEvent('game_1', 5);
           expect(result).toBeNull();
         });
+
+        // Removing a goal event must decrement the score (it was decoupled,
+        // so deleting a goal removed the event but left the score unchanged).
+        it('decrements OUR score (home game) when a goal is removed', async () => {
+          const game = {
+            ...mockGame, homeOrAway: 'home' as const, homeScore: 2, awayScore: 0,
+            gameEvents: [mockEvent, { ...mockEvent, id: 'e2' }],
+          };
+          mockGetStorageItem.mockResolvedValue(JSON.stringify({ game_1: game }));
+
+          const updated = await dataStore.removeGameEvent('game_1', 0);
+          expect(updated?.gameEvents).toHaveLength(1);
+          expect(updated?.homeScore).toBe(1);
+          expect(updated?.awayScore).toBe(0);
+        });
+
+        it('decrements OUR score from awayScore when our goal is removed in an away game', async () => {
+          const game = {
+            ...mockGame, homeOrAway: 'away' as const, homeScore: 1, awayScore: 2,
+            gameEvents: [{ ...mockEvent, type: 'goal' as const }],
+          };
+          mockGetStorageItem.mockResolvedValue(JSON.stringify({ game_1: game }));
+
+          const updated = await dataStore.removeGameEvent('game_1', 0);
+          expect(updated?.awayScore).toBe(1); // our tally
+          expect(updated?.homeScore).toBe(1); // their tally unchanged
+        });
+
+        it('decrements OPPONENT score when an opponentGoal is removed (away game)', async () => {
+          const game = {
+            ...mockGame, homeOrAway: 'away' as const, homeScore: 3, awayScore: 1,
+            gameEvents: [{ ...mockEvent, type: 'opponentGoal' as const }],
+          };
+          mockGetStorageItem.mockResolvedValue(JSON.stringify({ game_1: game }));
+
+          const updated = await dataStore.removeGameEvent('game_1', 0);
+          expect(updated?.homeScore).toBe(2); // their tally (away game → home position)
+          expect(updated?.awayScore).toBe(1); // our tally unchanged
+        });
+
+        it('does NOT change the score when a non-goal event is removed', async () => {
+          const game = {
+            ...mockGame, homeOrAway: 'home' as const, homeScore: 2, awayScore: 1,
+            gameEvents: [{ ...mockEvent, type: 'substitution' as const }],
+          };
+          mockGetStorageItem.mockResolvedValue(JSON.stringify({ game_1: game }));
+
+          const updated = await dataStore.removeGameEvent('game_1', 0);
+          expect(updated?.homeScore).toBe(2);
+          expect(updated?.awayScore).toBe(1);
+        });
+
+        it('never drops the score below zero', async () => {
+          const game = {
+            ...mockGame, homeOrAway: 'home' as const, homeScore: 0, awayScore: 0,
+            gameEvents: [{ ...mockEvent, type: 'goal' as const }],
+          };
+          mockGetStorageItem.mockResolvedValue(JSON.stringify({ game_1: game }));
+
+          const updated = await dataStore.removeGameEvent('game_1', 0);
+          expect(updated?.homeScore).toBe(0);
+        });
       });
     });
   });

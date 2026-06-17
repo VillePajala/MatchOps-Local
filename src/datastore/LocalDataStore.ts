@@ -28,6 +28,7 @@ import {
 } from '@/interfaces/DataStoreErrors';
 import { validateGame, normalizeOptionalString } from '@/datastore/validation';
 import { normalizeWarmupPlanForSave } from '@/datastore/normalizers';
+import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import { validateUserId } from '@/datastore/userDatabase';
 import {
   APP_SETTINGS_KEY,
@@ -1927,10 +1928,20 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
+      const removed = events[eventIndex];
       events.splice(eventIndex, 1);
+
+      // Decrement the score for a removed goal so the stored score stays
+      // consistent with the events. Mirrors DELETE_GAME_EVENT_WITH_SCORE in the
+      // reducer; homeScore/awayScore are positional, so "our" goal maps via
+      // homeOrAway. Without this the event vanishes but the score never drops.
+      const { homeScore, awayScore } = adjustScoreForRemovedEvent(game, removed);
+
       const updatedGame: AppState = {
         ...game,
         gameEvents: events,
+        homeScore,
+        awayScore,
       };
 
       games[gameId] = updatedGame;

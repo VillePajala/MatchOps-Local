@@ -29,6 +29,7 @@ import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import { DEFAULT_APP_SETTINGS } from '@/types/settings';
+import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
@@ -3851,11 +3852,18 @@ export class SupabaseDataStore implements DataStore {
     }
 
     // Splice removes the event and reindexes remaining
+    const removed = events[eventIndex];
     events.splice(eventIndex, 1);
+
+    // Decrement the score for a removed goal so it stays consistent with the
+    // events (parity with LocalDataStore / the reducer).
+    const { homeScore, awayScore } = adjustScoreForRemovedEvent(game, removed);
 
     const updatedGame: AppState = {
       ...game,
       gameEvents: events,
+      homeScore,
+      awayScore,
     };
 
     await this.saveGame(gameId, updatedGame);
