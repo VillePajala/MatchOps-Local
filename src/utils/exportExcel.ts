@@ -234,7 +234,7 @@ export const exportCurrentGameExcel = (
     [translate('export.type', 'Type')]: event.type === 'goal' ? translate('export.goal', 'Goal') : translate('export.opponentGoal', 'Opponent Goal'),
     [translate('export.scorer', 'Scorer')]:
       event.type === 'goal'
-        ? selectedPlayers.find((p) => p.id === event.scorerId)?.name || event.scorerId || ''
+        ? selectedPlayers.find((p) => p.id === event.scorerId)?.name || event.scorerId || translate('export.unknownScorer', 'Unknown')
         : game.opponentName || translate('export.opponent', 'Opponent'),
     [translate('export.assister', 'Assister')]:
       event.type === 'goal' && event.assisterId

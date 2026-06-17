@@ -6,6 +6,7 @@ import { Player } from '@/types';
 import type { GameEvent } from '@/types/game';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { updateGameEvent } from '@/utils/savedGames';
+import { computeScoreFromEvents } from '@/datastore/gameEventScore';
 import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
 
@@ -16,18 +17,26 @@ import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 // Re-export shared types for backward compatibility with test imports
 export type { GameEvent, GameEventType } from '@/types/game';
 
+// UI sentinel for the scorer dropdown meaning "team goal, scorer unknown".
+// Mapped to an undefined scorerId when the goal is logged (never persisted).
+const UNKNOWN_SCORER = '__unknown__';
+
 interface GoalLogModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogGoal: (scorerId: string, assisterId?: string) => void; // For logging own team's goal
+  onLogGoal: (scorerId: string | undefined, assisterId?: string) => void; // For logging own team's goal (undefined scorer = Unknown)
   onLogOpponentGoal: (time: number) => void; // Handler for opponent goal
   availablePlayers: Player[];
   currentTime: number; // timeElapsedInSeconds
   // Event management props
   currentGameId: string | null;
   gameEvents: GameEvent[];
+  homeScore: number;
+  awayScore: number;
+  homeOrAway: 'home' | 'away';
   onUpdateGameEvent: (event: GameEvent) => void;
   onDeleteGameEvent: (eventId: string) => Promise<boolean>;
+  onRecalculateScore: () => void; // Snap the score to the goal log
 }
 
 // Helper to get event description
@@ -64,13 +73,18 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   currentTime,
   currentGameId,
   gameEvents,
+  homeScore,
+  awayScore,
+  homeOrAway,
   onUpdateGameEvent,
   onDeleteGameEvent,
+  onRecalculateScore,
 }) => {
   const { t } = useTranslation();
   // Form state
   const [scorerId, setScorerId] = useState<string>('');
   const [assisterId, setAssisterId] = useState<string>(''); // Empty string means no assist
+  const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
 
   // Event editing state
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
@@ -82,6 +96,22 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [goalTimeError, setGoalTimeError] = useState<string | null>(null);
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
+
+  // Score derived purely from the goal log (events are the source of truth),
+  // compared against the stored score so we can offer to reconcile a mismatch.
+  const goalLogScore = useMemo(() => {
+    // Reuse the same helper the recalculate action uses, so the mismatch check
+    // and the repair can never drift apart.
+    const { homeScore: derivedHome, awayScore: derivedAway } =
+      computeScoreFromEvents({ homeOrAway, gameEvents });
+    return {
+      our: homeOrAway === 'home' ? derivedHome : derivedAway,
+      opponent: homeOrAway === 'home' ? derivedAway : derivedHome,
+      currentOur: homeOrAway === 'home' ? homeScore : awayScore,
+      currentTheir: homeOrAway === 'home' ? awayScore : homeScore,
+      mismatch: derivedHome !== homeScore || derivedAway !== awayScore,
+    };
+  }, [gameEvents, homeOrAway, homeScore, awayScore]);
 
   // Confirmation modal state
   const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
@@ -129,7 +159,11 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
 
   const handleLogOwnGoalClick = () => {
     if (scorerId) {
-      onLogGoal(scorerId, assisterId || undefined); // Pass undefined if assisterId is empty
+      // UNKNOWN_SCORER is a UI sentinel for "we scored but don't know who" —
+      // map it to an undefined scorer so the goal counts for the team but isn't
+      // attributed to any player.
+      const resolvedScorer = scorerId === UNKNOWN_SCORER ? undefined : scorerId;
+      onLogGoal(resolvedScorer, assisterId || undefined); // Pass undefined if assisterId is empty
       onClose();
     }
   };
@@ -145,7 +179,9 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   const handleEditGoal = (goal: GameEvent) => {
     setEditingGoalId(goal.id);
     setEditGoalTime(formatTime(goal.time)); // Use MM:SS format for editing time
-    setEditGoalScorerId(goal.scorerId || '');
+    // No scorer = an Unknown-scorer goal: surface the sentinel so the dropdown
+    // shows "Unknown" and a plain save doesn't silently attribute it to a player.
+    setEditGoalScorerId(goal.scorerId ? goal.scorerId : UNKNOWN_SCORER);
     setEditGoalAssisterId(goal.assisterId || undefined);
     setGoalTimeError(null);
   };
@@ -199,7 +235,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
       ...originalEvent,
       id: goalId,
       time: timeInSeconds,
-      scorerId: editGoalScorerId,
+      // UNKNOWN_SCORER (and any empty value) maps back to an undefined scorerId.
+      scorerId: editGoalScorerId && editGoalScorerId !== UNKNOWN_SCORER ? editGoalScorerId : undefined,
       assisterId: editGoalAssisterId || undefined,
     };
 
@@ -353,8 +390,12 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         id="scorerSelect"
                         value={scorerId}
                         onChange={(e) => {
-                          setScorerId(e.target.value);
-                          if (e.target.value && e.target.value === assisterId) {
+                          const value = e.target.value;
+                          setScorerId(value);
+                          // Only clear the assister if it would collide with the
+                          // scorer. An Unknown-scorer goal can still keep a known
+                          // assister (e.g. a scramble: you saw the pass, not the finish).
+                          if (value && value !== UNKNOWN_SCORER && value === assisterId) {
                             setAssisterId('');
                           }
                         }}
@@ -362,6 +403,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                       >
                         <option value="" disabled>{t('goalLogModal.selectPlaceholder', '-- Select Scorer --')}</option>
                         {playerOptions}
+                        <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
                       </select>
                     </div>
 
@@ -402,6 +444,30 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         {t('goalLogModal.logOpponentGoalButtonShort', 'Opponent +1')}
                       </button>
                     </div>
+
+                    {/* Score reconciliation: shown only when the stored score
+                        disagrees with the goal log (events are the source of truth). */}
+                    {goalLogScore.mismatch && (
+                      <div className="mt-3 pt-3 border-t border-slate-700/60 space-y-2">
+                        <p className="text-xs text-amber-300">
+                          {t(
+                            'goalLogModal.scoreMismatch',
+                            'Saved score ({{cur}}) doesn\'t match the goal log ({{log}}).',
+                            {
+                              cur: `${goalLogScore.currentOur}–${goalLogScore.currentTheir}`,
+                              log: `${goalLogScore.our}–${goalLogScore.opponent}`,
+                            },
+                          )}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowRecalcConfirm(true)}
+                          className="w-full px-4 py-2 rounded-md font-semibold text-white bg-amber-600 hover:bg-amber-500 transition-colors shadow-sm"
+                        >
+                          {t('goalLogModal.recalculateScoreButton', 'Recalculate score from log')}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -465,6 +531,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                   {availablePlayers.map(player => (
                                     <option key={player.id} value={player.id}>{player.name}</option>
                                   ))}
+                                  <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
                                 </select>
                                 <select
                                   value={editGoalAssisterId}
@@ -572,6 +639,26 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
         }}
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
+      />
+
+      {/* Recalculate score from goal log */}
+      <ConfirmationModal
+        isOpen={showRecalcConfirm}
+        title={t('goalLogModal.recalculateScoreTitle', 'Recalculate Score')}
+        message={t(
+          'goalLogModal.recalculateScoreConfirm',
+          'Set the score to match the goal log? Current: {{cur}} → From log: {{log}}.',
+          {
+            cur: `${goalLogScore.currentOur}–${goalLogScore.currentTheir}`,
+            log: `${goalLogScore.our}–${goalLogScore.opponent}`,
+          },
+        )}
+        onConfirm={() => {
+          onRecalculateScore();
+          setShowRecalcConfirm(false);
+        }}
+        onCancel={() => setShowRecalcConfirm(false)}
+        confirmLabel={t('goalLogModal.recalculateConfirmButton', 'Recalculate')}
       />
     </div>
   );

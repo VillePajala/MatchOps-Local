@@ -118,7 +118,7 @@ export const exportCsv = (
       const timeFormatted = formatTime(event.time);
       const type = event.type === 'goal' ? 'Goal' : 'Opponent Goal';
       const scorerName = event.type === 'goal'
-        ? selectedPlayers.find((p) => p.id === event.scorerId)?.name ?? event.scorerId
+        ? selectedPlayers.find((p) => p.id === event.scorerId)?.name ?? event.scorerId ?? 'Unknown'
         : game.opponentName || 'Opponent';
       const assisterName = event.type === 'goal' && event.assisterId
         ? selectedPlayers.find((p) => p.id === event.assisterId)?.name ?? event.assisterId

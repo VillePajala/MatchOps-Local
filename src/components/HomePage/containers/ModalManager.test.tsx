@@ -149,6 +149,7 @@ const createProps = (): ModalManagerProps => ({
     toggleGoalLogModal: noop,
     addGoalEvent: noop,
     logOpponentGoal: noop,
+    recalculateScore: noop,
     updateGameEvent: noop,
     deleteGameEvent: async () => true,
     toggleGameStatsModal: noop,

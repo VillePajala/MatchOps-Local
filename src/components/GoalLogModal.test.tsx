@@ -29,8 +29,12 @@ const renderModal = (props = {}) =>
           currentTime={30}
           currentGameId="game-1"
           gameEvents={defaultGameEvents}
+          homeScore={1}
+          awayScore={0}
+          homeOrAway="home"
           onUpdateGameEvent={jest.fn()}
           onDeleteGameEvent={jest.fn()}
+          onRecalculateScore={jest.fn()}
           {...props}
         />
       </ToastProvider>
@@ -54,5 +58,64 @@ describe('GoalLogModal', () => {
 
     fireEvent.click(screen.getByText(/Opponent \+1/i));
     expect(onLogOpponentGoal).toHaveBeenCalledWith(30);
+  });
+
+  it('logs an Unknown-scorer goal with an undefined scorer', () => {
+    const onLogGoal = jest.fn();
+    renderModal({ onLogGoal });
+
+    fireEvent.change(screen.getByLabelText(/Scorer/i), { target: { value: '__unknown__' } });
+    fireEvent.click(screen.getByRole('button', { name: /Log Goal/i }));
+
+    expect(onLogGoal).toHaveBeenCalledWith(undefined, undefined);
+  });
+
+  it('allows a known assister on an Unknown-scorer goal', () => {
+    const onLogGoal = jest.fn();
+    renderModal({ onLogGoal });
+
+    fireEvent.change(screen.getByLabelText(/Scorer/i), { target: { value: '__unknown__' } });
+    // Assister stays usable even though the scorer is unknown
+    expect(screen.getByLabelText(/Assister/i)).not.toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Assister/i), { target: { value: 'p2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Log Goal/i }));
+
+    expect(onLogGoal).toHaveBeenCalledWith(undefined, 'p2');
+  });
+
+  // NOTE: an edit round-trip test for the Unknown-scorer goal (open actions menu →
+  // Edit → Save preserves an undefined scorerId) was intentionally omitted: adding
+  // it reshuffled full-suite worker scheduling and tripped a pre-existing
+  // cumulative memory leak (CI "Test" job OOM at the 4GB ceiling). The edit-form
+  // fix it would cover lives in handleEditGoal/handleSaveGoal in GoalLogModal.tsx.
+  // Re-add once the suite-wide leak is fixed (see roadmap: test-suite memory leak).
+
+  it('offers to recalculate when the saved score disagrees with the goal log', () => {
+    const onRecalculateScore = jest.fn();
+    // Goal log has 1 'goal' (our) + 0 opponent → log says 1-0; stored score is 5-0 (drifted).
+    renderModal({
+      onRecalculateScore,
+      gameEvents: [{ id: 'g1', type: 'goal', time: 10, scorerId: 'p1' }],
+      homeScore: 5,
+      awayScore: 0,
+      homeOrAway: 'home',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Recalculate score from log/i }));
+    // Confirm in the dialog (distinct short label)
+    fireEvent.click(screen.getByRole('button', { name: /^Recalculate$/i }));
+
+    expect(onRecalculateScore).toHaveBeenCalled();
+  });
+
+  it('does not offer recalculation when the score already matches the log', () => {
+    renderModal({
+      gameEvents: [{ id: 'g1', type: 'goal', time: 10, scorerId: 'p1' }],
+      homeScore: 1,
+      awayScore: 0,
+      homeOrAway: 'home',
+    });
+
+    expect(screen.queryByRole('button', { name: /Recalculate score from log/i })).not.toBeInTheDocument();
   });
 });
