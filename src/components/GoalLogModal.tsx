@@ -179,7 +179,9 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   const handleEditGoal = (goal: GameEvent) => {
     setEditingGoalId(goal.id);
     setEditGoalTime(formatTime(goal.time)); // Use MM:SS format for editing time
-    setEditGoalScorerId(goal.scorerId || '');
+    // No scorer = an Unknown-scorer goal: surface the sentinel so the dropdown
+    // shows "Unknown" and a plain save doesn't silently attribute it to a player.
+    setEditGoalScorerId(goal.scorerId ? goal.scorerId : UNKNOWN_SCORER);
     setEditGoalAssisterId(goal.assisterId || undefined);
     setGoalTimeError(null);
   };
@@ -233,7 +235,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
       ...originalEvent,
       id: goalId,
       time: timeInSeconds,
-      scorerId: editGoalScorerId,
+      // UNKNOWN_SCORER (and any empty value) maps back to an undefined scorerId.
+      scorerId: editGoalScorerId && editGoalScorerId !== UNKNOWN_SCORER ? editGoalScorerId : undefined,
       assisterId: editGoalAssisterId || undefined,
     };
 
@@ -528,6 +531,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                   {availablePlayers.map(player => (
                                     <option key={player.id} value={player.id}>{player.name}</option>
                                   ))}
+                                  <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
                                 </select>
                                 <select
                                   value={editGoalAssisterId}
