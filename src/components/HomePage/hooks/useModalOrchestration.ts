@@ -571,6 +571,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       toggleGoalLogModal: timerManagement.handleToggleGoalLogModal,
       addGoalEvent: timerManagement.handleAddGoalEvent,
       logOpponentGoal: timerManagement.handleLogOpponentGoal,
+      recalculateScore: timerManagement.handleRecalculateScoreFromEvents,
       updateGameEvent: handleUpdateGameEvent,
       deleteGameEvent: persistence.handleDeleteGameEvent,
       toggleGameStatsModal: handleToggleGameStatsModal,

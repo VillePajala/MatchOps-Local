@@ -532,7 +532,13 @@
     "logOpponentButton": "Kirjaa Vastustajan Maali",
     "logOpponentGoalButtonShort": "Vastustaja +1",
     "logOpponentGoalTooltip": "Kirjaa vastustajalle maali nykyiseen aikaan",
-    "logGoalButton": "Kirjaa maali"
+    "logGoalButton": "Kirjaa maali",
+    "unknownScorer": "Tuntematon / en ole varma",
+    "scoreMismatch": "Tallennettu tulos ({{cur}}) ei täsmää maalikirjanpidon kanssa ({{log}}).",
+    "recalculateScoreButton": "Laske tulos maalikirjanpidosta",
+    "recalculateScoreTitle": "Laske tulos uudelleen",
+    "recalculateScoreConfirm": "Asetetaanko tulos vastaamaan maalikirjanpitoa? Nykyinen: {{cur}} → Kirjanpidosta: {{log}}.",
+    "recalculateConfirmButton": "Laske uudelleen"
   },
   "trainingResourcesModal": {
     "title": "Harjoitusmateriaalit",

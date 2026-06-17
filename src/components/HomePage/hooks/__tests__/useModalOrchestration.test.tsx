@@ -159,6 +159,7 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
     handleToggleGoalLogModal: jest.fn(),
     handleAddGoalEvent: jest.fn(),
     handleLogOpponentGoal: jest.fn(),
+    handleRecalculateScoreFromEvents: jest.fn(),
     timerInteractions: {
       toggleLargeOverlay: jest.fn(),
       toggleGoalLogModal: jest.fn(),
@@ -821,6 +822,7 @@ describe('useModalOrchestration', () => {
         handleToggleGoalLogModal: jest.fn(),
         handleAddGoalEvent: jest.fn(),
         handleLogOpponentGoal: jest.fn(),
+        handleRecalculateScoreFromEvents: jest.fn(),
         timerInteractions: {
           toggleLargeOverlay: jest.fn(),
           toggleGoalLogModal: jest.fn(),
