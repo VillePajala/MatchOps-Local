@@ -70,6 +70,19 @@ describe('GoalLogModal', () => {
     expect(onLogGoal).toHaveBeenCalledWith(undefined, undefined);
   });
 
+  it('allows a known assister on an Unknown-scorer goal', () => {
+    const onLogGoal = jest.fn();
+    renderModal({ onLogGoal });
+
+    fireEvent.change(screen.getByLabelText(/Scorer/i), { target: { value: '__unknown__' } });
+    // Assister stays usable even though the scorer is unknown
+    expect(screen.getByLabelText(/Assister/i)).not.toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Assister/i), { target: { value: 'p2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Log Goal/i }));
+
+    expect(onLogGoal).toHaveBeenCalledWith(undefined, 'p2');
+  });
+
   it('offers to recalculate when the saved score disagrees with the goal log', () => {
     const onRecalculateScore = jest.fn();
     // Goal log has 1 'goal' (our) + 0 opponent → log says 1-0; stored score is 5-0 (drifted).

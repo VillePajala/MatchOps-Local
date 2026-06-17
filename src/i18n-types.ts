@@ -579,6 +579,7 @@ export type TranslationKey =
   | 'export.tournament'
   | 'export.tournamentLevel'
   | 'export.type'
+  | 'export.unknownScorer'
   | 'export.value'
   | 'export.wePlayed'
   | 'export.wePlayedAs'

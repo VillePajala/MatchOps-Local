@@ -1735,6 +1735,7 @@
     "goal": "Goal",
     "opponentGoal": "Opponent Goal",
     "scorer": "Scorer",
+    "unknownScorer": "Unknown",
     "assister": "Assister",
     "opponent": "Opponent",
     "message": "Message",
