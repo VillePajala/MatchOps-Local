@@ -83,6 +83,28 @@ describe('GoalLogModal', () => {
     expect(onLogGoal).toHaveBeenCalledWith(undefined, 'p2');
   });
 
+  it('preserves an Unknown scorer when editing a goal event', () => {
+    const onUpdateGameEvent = jest.fn();
+    renderModal({
+      onUpdateGameEvent,
+      gameEvents: [{ id: 'goal-x', type: 'goal', time: 20, scorerId: undefined }],
+    });
+
+    fireEvent.click(screen.getByLabelText(/Event actions/i));
+    // Test i18n runs in Finnish; accept either label for the menu/save buttons.
+    fireEvent.click(screen.getByText(/^(Edit|Muokkaa)$/i));
+
+    // The edit scorer dropdown surfaces the Unknown sentinel rather than a blank
+    expect(screen.getByDisplayValue('Unknown / not sure')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^(Save|Tallenna)$/i }));
+
+    // Saving must keep scorerId undefined — not coerce it to '' or a player
+    expect(onUpdateGameEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'goal-x', type: 'goal', scorerId: undefined }),
+    );
+  });
+
   it('offers to recalculate when the saved score disagrees with the goal log', () => {
     const onRecalculateScore = jest.fn();
     // Goal log has 1 'goal' (our) + 0 opponent → log says 1-0; stored score is 5-0 (drifted).
