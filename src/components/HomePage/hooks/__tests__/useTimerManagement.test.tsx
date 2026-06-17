@@ -299,6 +299,80 @@ describe('useTimerManagement', () => {
       expect(eventIds[0]).not.toBe(eventIds[1]);
       expect(new Set(eventIds).size).toBe(2);
     });
+
+    it('should log an Unknown-scorer goal with an undefined scorerId', () => {
+      const { result } = renderHook(() => useTimerManagement(defaultProps));
+
+      act(() => {
+        result.current.handleAddGoalEvent(undefined);
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'ADD_GAME_EVENT',
+        payload: expect.objectContaining({
+          type: 'goal',
+          scorerId: undefined,
+        }),
+      });
+    });
+  });
+
+  /**
+   * Recalculate score from the goal log (events are the source of truth).
+   * @critical - repair path for games whose stored score drifted from events
+   */
+  describe('Recalculate Score From Events', () => {
+    it('dispatches home/away scores derived from the goal log (home game)', () => {
+      const props = {
+        ...defaultProps,
+        gameSessionState: {
+          ...mockGameSessionState,
+          homeOrAway: 'home' as const,
+          homeScore: 5, // drifted
+          awayScore: 0,
+          gameEvents: [
+            { id: 'g1', type: 'goal' as const, time: 1, scorerId: 'player1' },
+            { id: 'g2', type: 'goal' as const, time: 2, scorerId: undefined },
+            { id: 'o1', type: 'opponentGoal' as const, time: 3, scorerId: 'opponent' },
+          ],
+        },
+      };
+      const { result } = renderHook(() => useTimerManagement(props));
+
+      act(() => {
+        result.current.handleRecalculateScoreFromEvents();
+      });
+
+      // 2 own goals → home, 1 opponent goal → away
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'SET_HOME_SCORE', payload: 2 });
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'SET_AWAY_SCORE', payload: 1 });
+    });
+
+    it('maps our goals to awayScore for an away game', () => {
+      const props = {
+        ...defaultProps,
+        gameSessionState: {
+          ...mockGameSessionState,
+          homeOrAway: 'away' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameEvents: [
+            { id: 'g1', type: 'goal' as const, time: 1, scorerId: 'player1' },
+            { id: 'o1', type: 'opponentGoal' as const, time: 2, scorerId: 'opponent' },
+            { id: 'o2', type: 'opponentGoal' as const, time: 3, scorerId: 'opponent' },
+          ],
+        },
+      };
+      const { result } = renderHook(() => useTimerManagement(props));
+
+      act(() => {
+        result.current.handleRecalculateScoreFromEvents();
+      });
+
+      // our 1 → away, opponent 2 → home
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'SET_HOME_SCORE', payload: 2 });
+      expect(mockDispatch).toHaveBeenCalledWith({ type: 'SET_AWAY_SCORE', payload: 1 });
+    });
   });
 
   /**

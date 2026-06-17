@@ -6,6 +6,7 @@ import { Player } from '@/types';
 import type { GameEvent } from '@/types/game';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { updateGameEvent } from '@/utils/savedGames';
+import { computeScoreFromEvents } from '@/datastore/gameEventScore';
 import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
 
@@ -99,13 +100,13 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   // Score derived purely from the goal log (events are the source of truth),
   // compared against the stored score so we can offer to reconcile a mismatch.
   const goalLogScore = useMemo(() => {
-    const our = gameEvents.filter(e => e.type === 'goal').length;
-    const opponent = gameEvents.filter(e => e.type === 'opponentGoal').length;
-    const derivedHome = homeOrAway === 'home' ? our : opponent;
-    const derivedAway = homeOrAway === 'home' ? opponent : our;
+    // Reuse the same helper the recalculate action uses, so the mismatch check
+    // and the repair can never drift apart.
+    const { homeScore: derivedHome, awayScore: derivedAway } =
+      computeScoreFromEvents({ homeOrAway, gameEvents });
     return {
-      our,
-      opponent,
+      our: homeOrAway === 'home' ? derivedHome : derivedAway,
+      opponent: homeOrAway === 'home' ? derivedAway : derivedHome,
       currentOur: homeOrAway === 'home' ? homeScore : awayScore,
       currentTheir: homeOrAway === 'home' ? awayScore : homeScore,
       mismatch: derivedHome !== homeScore || derivedAway !== awayScore,
@@ -386,8 +387,12 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         id="scorerSelect"
                         value={scorerId}
                         onChange={(e) => {
-                          setScorerId(e.target.value);
-                          if (e.target.value && e.target.value === assisterId) {
+                          const value = e.target.value;
+                          setScorerId(value);
+                          // Only clear the assister if it would collide with the
+                          // scorer. An Unknown-scorer goal can still keep a known
+                          // assister (e.g. a scramble: you saw the pass, not the finish).
+                          if (value && value !== UNKNOWN_SCORER && value === assisterId) {
                             setAssisterId('');
                           }
                         }}
