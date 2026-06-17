@@ -602,7 +602,13 @@
     "logOpponentButton": "Log Opponent Goal",
     "logOpponentGoalButtonShort": "Opponent +1",
     "logOpponentGoalTooltip": "Record a goal for the opponent at the current time",
-    "logGoalButton": "Log Goal"
+    "logGoalButton": "Log Goal",
+    "unknownScorer": "Unknown / not sure",
+    "scoreMismatch": "Saved score ({{cur}}) doesn't match the goal log ({{log}}).",
+    "recalculateScoreButton": "Recalculate score from log",
+    "recalculateScoreTitle": "Recalculate Score",
+    "recalculateScoreConfirm": "Set the score to match the goal log? Current: {{cur}} → From log: {{log}}.",
+    "recalculateConfirmButton": "Recalculate"
   },
   "trainingResourcesModal": {
     "title": "Training Resources",

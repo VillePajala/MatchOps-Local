@@ -118,8 +118,9 @@ interface ModalManagerHandlers {
   closePersonnelManager: () => void;
   closeTeamManagerModal: () => void;
   toggleGoalLogModal: () => void;
-  addGoalEvent: (playerId: string, assistId?: string) => void;
+  addGoalEvent: (playerId: string | undefined, assistId?: string) => void;
   logOpponentGoal: (timeSeconds: number) => void;
+  recalculateScore: () => void;
   updateGameEvent: (event: GameEvent) => void;
   deleteGameEvent: (eventId: string) => Promise<boolean>;
   toggleGameStatsModal: () => void;
@@ -275,8 +276,12 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           currentTime={data.gameSessionState.timeElapsedInSeconds}
           currentGameId={data.currentGameId}
           gameEvents={data.gameSessionState.gameEvents}
+          homeScore={data.gameSessionState.homeScore}
+          awayScore={data.gameSessionState.awayScore}
+          homeOrAway={data.gameSessionState.homeOrAway}
           onUpdateGameEvent={handlers.updateGameEvent}
           onDeleteGameEvent={handlers.deleteGameEvent}
+          onRecalculateScore={handlers.recalculateScore}
         />
 
         {state.isGameStatsModalOpen && (

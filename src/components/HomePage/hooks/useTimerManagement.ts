@@ -26,6 +26,7 @@ import { useState, useCallback, useMemo, useRef, useEffect, Dispatch } from 'rea
 import { useGameTimer } from '@/hooks/useGameTimer';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { GameEvent, Player, SubAlertLevel } from '@/types';
+import { computeScoreFromEvents } from '@/datastore/gameEventScore';
 import type { TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
 import logger from '@/utils/logger';
 
@@ -71,8 +72,10 @@ export interface UseTimerManagementReturn {
   handleToggleGoalLogModal: () => void;
 
   // Goal event handlers
-  handleAddGoalEvent: (scorerId: string, assisterId?: string) => void;
+  handleAddGoalEvent: (scorerId: string | undefined, assisterId?: string) => void;
   handleLogOpponentGoal: (time: number) => void;
+  /** Recalculate the score from the goal log (events are the source of truth) */
+  handleRecalculateScoreFromEvents: () => void;
 
   // Timer interactions object
   timerInteractions: TimerInteractions;
@@ -136,25 +139,31 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
    * @param scorerId - Player ID who scored
    * @param assisterId - Optional player ID who assisted
    */
-  const handleAddGoalEvent = useCallback((scorerId: string, assisterId?: string) => {
+  const handleAddGoalEvent = useCallback((scorerId: string | undefined, assisterId?: string) => {
     // Prefer current game's availablePlayers; fall back to master roster if empty
     const playerPool = (availablePlayers && availablePlayers.length > 0)
       ? availablePlayers
       : (masterRoster || []);
 
-    const scorer = playerPool.find(p => p.id === scorerId);
-    const assister = assisterId ? playerPool.find(p => p.id === assisterId) : undefined;
-
-    if (!scorer) {
-      logger.error("Scorer not found!");
-      return;
+    // scorerId undefined = "Unknown" goal: it counts toward the team score but
+    // is not attributed to any player. Only resolve/validate when a scorer is given.
+    let resolvedScorerId: string | undefined;
+    if (scorerId) {
+      const scorer = playerPool.find(p => p.id === scorerId);
+      if (!scorer) {
+        logger.error("Scorer not found!");
+        return;
+      }
+      resolvedScorerId = scorer.id;
     }
+
+    const assister = assisterId ? playerPool.find(p => p.id === assisterId) : undefined;
 
     const newEvent: GameEvent = {
       id: `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type: 'goal',
       time: Math.round(elapsedRef.current * 100) / 100, // Round to 2 decimal places
-      scorerId: scorer.id,
+      scorerId: resolvedScorerId,
       assisterId: assister?.id,
     };
 
@@ -185,6 +194,16 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'opponentGoal', action: 'add' } });
     setIsGoalLogModalOpen(false);
   }, [dispatchGameSession, setIsGoalLogModalOpen]);
+
+  // Recalculate the score from the goal log. Events are the source of truth, so
+  // this snaps homeScore/awayScore to the goal tally and persists via the normal
+  // reducer → auto-save path (local + queued cloud sync). Used to repair a game
+  // whose stored score drifted from its events.
+  const handleRecalculateScoreFromEvents = useCallback(() => {
+    const { homeScore, awayScore } = computeScoreFromEvents(gameSessionState);
+    dispatchGameSession({ type: 'SET_HOME_SCORE', payload: homeScore });
+    dispatchGameSession({ type: 'SET_AWAY_SCORE', payload: awayScore });
+  }, [gameSessionState, dispatchGameSession]);
 
   // --- Timer Interactions Object ---
   const timerInteractions = useMemo<TimerInteractions>(() => ({
@@ -228,6 +247,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     // Goal event handlers
     handleAddGoalEvent,
     handleLogOpponentGoal,
+    handleRecalculateScoreFromEvents,
 
     // Timer interactions object
     timerInteractions,

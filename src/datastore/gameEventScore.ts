@@ -10,6 +10,23 @@
 import type { AppState } from '@/types';
 import type { GameEvent } from '@/types/game';
 
+/**
+ * Recompute the positional score purely from the goal events — the events are
+ * the source of truth. our goals = count of 'goal' events, opponent goals =
+ * count of 'opponentGoal'; mapped to home/away via homeOrAway. Used by the
+ * "recalculate score from goal log" action.
+ */
+export function computeScoreFromEvents(
+  game: Pick<AppState, 'homeOrAway'> & { gameEvents?: GameEvent[] },
+): { homeScore: number; awayScore: number } {
+  const events = game.gameEvents ?? [];
+  const ourGoals = events.filter((e) => e.type === 'goal').length;
+  const opponentGoals = events.filter((e) => e.type === 'opponentGoal').length;
+  return game.homeOrAway === 'home'
+    ? { homeScore: ourGoals, awayScore: opponentGoals }
+    : { homeScore: opponentGoals, awayScore: ourGoals };
+}
+
 export function adjustScoreForRemovedEvent(
   game: Pick<AppState, 'homeScore' | 'awayScore' | 'homeOrAway'>,
   removed: GameEvent | undefined,
