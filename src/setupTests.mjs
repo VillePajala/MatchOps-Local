@@ -136,6 +136,23 @@ const handleUnhandledRejection = (event) => {
   }
 };
 
+// Enhanced uncaught exception handler. Module-scoped + named so afterAll can
+// remove it: jest re-runs this setup file per test file in the same worker, so
+// an un-removed listener would accumulate (~one per suite), closing over the
+// growing list of prior listeners — the source of the full-suite heap growth
+// and the "MaxListenersExceededWarning: 11 uncaughtException listeners" notice.
+let priorUncaughtExceptionListeners = [];
+const handleUncaughtException = (error, origin) => {
+  console.error('🚨 UNCAUGHT EXCEPTION in test:', { error: error.message, stack: error.stack, origin });
+
+  // Call the handlers that were present before ours (preserves prior behavior)
+  priorUncaughtExceptionListeners.forEach(handler => {
+    if (typeof handler === 'function') {
+      handler(error, origin);
+    }
+  });
+};
+
 // Set up global error handlers for tests
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', handleUnhandledRejection);
@@ -154,18 +171,10 @@ if (typeof window !== 'undefined') {
 if (typeof process !== 'undefined') {
   process.on('unhandledRejection', handleUnhandledRejection);
 
-  // Handle uncaught exceptions too
-  const originalUncaughtException = process.listeners('uncaughtException');
-  process.on('uncaughtException', (error, origin) => {
-    console.error('🚨 UNCAUGHT EXCEPTION in test:', { error: error.message, stack: error.stack, origin });
-
-    // Call original handlers
-    originalUncaughtException.forEach(handler => {
-      if (typeof handler === 'function') {
-        handler(error, origin);
-      }
-    });
-  });
+  // Handle uncaught exceptions too — capture the pre-existing listeners, then
+  // register ours (removed in afterAll to avoid per-file accumulation).
+  priorUncaughtExceptionListeners = process.listeners('uncaughtException');
+  process.on('uncaughtException', handleUncaughtException);
 }
 
 // Console monitoring to catch warnings and errors in tests
@@ -391,6 +400,8 @@ afterAll(() => {
 
   if (typeof process !== 'undefined') {
     process.removeListener('unhandledRejection', handleUnhandledRejection);
+    process.removeListener('uncaughtException', handleUncaughtException);
+    priorUncaughtExceptionListeners = [];
   }
 
   // Restore original console methods
