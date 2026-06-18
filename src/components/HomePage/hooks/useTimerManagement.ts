@@ -199,11 +199,14 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   // this snaps homeScore/awayScore to the goal tally and persists via the normal
   // reducer → auto-save path (local + queued cloud sync). Used to repair a game
   // whose stored score drifted from its events.
+  const { homeOrAway, gameEvents } = gameSessionState;
   const handleRecalculateScoreFromEvents = useCallback(() => {
-    const { homeScore, awayScore } = computeScoreFromEvents(gameSessionState);
+    // Depend only on the fields computeScoreFromEvents reads, so the callback
+    // reference is stable across timer ticks (homeScore/elapsed/etc. churn).
+    const { homeScore, awayScore } = computeScoreFromEvents({ homeOrAway, gameEvents });
     dispatchGameSession({ type: 'SET_HOME_SCORE', payload: homeScore });
     dispatchGameSession({ type: 'SET_AWAY_SCORE', payload: awayScore });
-  }, [gameSessionState, dispatchGameSession]);
+  }, [homeOrAway, gameEvents, dispatchGameSession]);
 
   // --- Timer Interactions Object ---
   const timerInteractions = useMemo<TimerInteractions>(() => ({
