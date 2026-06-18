@@ -10,7 +10,7 @@ interface UpdateBannerProps {
   onInstall: () => void;
   onReload: () => void;
   onDismiss?: () => void;
-  notes?: string;
+  notes?: string[];
 }
 
 const UpdateBanner: React.FC<UpdateBannerProps> = ({ phase, onInstall, onReload, onDismiss, notes }) => {
@@ -89,10 +89,15 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ phase, onInstall, onReload,
                 ? t("updateBanner.readyMessage", "Lataa sivu uudelleen ottaaksesi päivityksen käyttöön.")
                 : t("updateBanner.message", "Uusia ominaisuuksia ja parannuksia.")}
             </p>
-            {notes && phase !== 'ready' ? (
-              <p className="mt-1 text-xs font-medium text-sky-100/90">
-                {notes}
-              </p>
+            {notes && notes.length > 0 && phase !== 'ready' ? (
+              <ul className="mt-1 inline-block space-y-0.5 text-left text-xs font-medium text-sky-100/90">
+                {notes.map((note, i) => (
+                  <li key={i} className="flex gap-1.5">
+                    <span aria-hidden="true" className="text-sky-300/70">•</span>
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </div>
 

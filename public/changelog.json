@@ -1,8 +1,14 @@
 {
-  "version": "e13c7f45",
-  "date": "2026-05-30",
+  "version": "d9547743",
+  "date": "2026-06-18",
   "notes": {
-    "en": "Preserve date on roster selection",
-    "fi": "Preserve date on roster selection"
+    "en": [
+      "Log a goal even when you're not sure who scored",
+      "Recalculate a game's score from its goal log if the result looks wrong"
+    ],
+    "fi": [
+      "Kirjaa maali, vaikket olisi varma kuka sen teki",
+      "Laske ottelun tulos uudelleen maalikirjanpidosta, jos tulos näyttää väärältä"
+    ]
   }
 }

@@ -1,93 +1,88 @@
 /**
- * Generate changelog.json from the latest git commit
+ * Generate public/changelog.json from the curated release-notes.json.
  *
- * This script runs at build time and creates a changelog.json file
- * with the latest commit message as release notes.
+ * The in-app update banner reads public/changelog.json and shows the `notes`
+ * bullets to end users. We DO NOT derive these from git commit messages — those
+ * are developer-speak. Instead, edit release-notes.json by hand (newest entry
+ * first); this script copies the top entry's bullets into changelog.json.
  *
- * To provide bilingual notes, use this commit message format:
- * feat: English description here | Finnish description here
- *
- * Or for single-language commits, the same message is used for both.
+ * If release-notes.json is missing/empty/malformed, we emit a generic localized
+ * fallback so the banner never shows nothing (and never shows commit messages).
+ * A CI guard (.github/workflows/release-notes-guard.yml) is what actually stops
+ * us from forgetting to add a note before merging to master.
  */
 
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-// Get the latest commit message (first line only)
-function getLatestCommitMessage() {
-  try {
-    const message = execSync('git log -1 --pretty=%s', { encoding: 'utf-8' }).trim();
-    return message;
-  } catch {
-    return 'App update';
-  }
-}
+const GENERIC_FALLBACK = {
+  en: ['Improvements and bug fixes'],
+  fi: ['Parannuksia ja korjauksia'],
+};
 
-// Get the latest commit date
-function getLatestCommitDate() {
-  try {
-    const date = execSync('git log -1 --pretty=%cs', { encoding: 'utf-8' }).trim();
-    return date;
-  } catch {
-    return new Date().toISOString().split('T')[0];
-  }
-}
-
-// Get short commit hash as version
+// Internal build identity (NOT shown to users) — handy for debugging which build
+// a changelog.json came from. Falls back gracefully outside a git checkout.
 function getCommitHash() {
   try {
-    const hash = execSync('git log -1 --pretty=%h', { encoding: 'utf-8' }).trim();
-    return hash;
+    return execSync('git log -1 --pretty=%h', { encoding: 'utf-8' }).trim();
   } catch {
     return 'unknown';
   }
 }
 
-// Parse commit message for bilingual notes
-// Format: "type: English message | Finnish message"
-// Or just: "type: Message" (same for both languages)
-function parseCommitMessage(message) {
-  // Remove conventional commit prefix (feat:, fix:, etc.)
-  const cleaned = message.replace(/^(feat|fix|chore|docs|style|refactor|test|build|ci|perf|revert)(\(.+\))?:\s*/i, '');
-
-  // Check for bilingual format with |
-  if (cleaned.includes(' | ')) {
-    const [en, fi] = cleaned.split(' | ').map(s => s.trim());
-    return { en, fi };
+function getCommitDate() {
+  try {
+    return execSync('git log -1 --pretty=%cs', { encoding: 'utf-8' }).trim();
+  } catch {
+    return new Date().toISOString().split('T')[0];
   }
-
-  // Single language - use for both
-  return { en: cleaned, fi: cleaned };
 }
 
-// Make the message user-friendly (capitalize first letter, etc.)
-function formatNote(note) {
-  if (!note) return 'App update';
-  // Capitalize first letter
-  return note.charAt(0).toUpperCase() + note.slice(1);
+// Read the top (newest) curated release entry, or null if unavailable/invalid.
+function getLatestCuratedRelease() {
+  try {
+    const raw = fs.readFileSync(path.join(process.cwd(), 'release-notes.json'), 'utf-8');
+    const parsed = JSON.parse(raw);
+    const releases = Array.isArray(parsed?.releases) ? parsed.releases : [];
+    const latest = releases[0];
+    if (!latest) return null;
+
+    const clean = (arr) =>
+      Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : [];
+    const en = clean(latest.en);
+    const fi = clean(latest.fi);
+
+    // Require at least one bullet in each language to count as a real note.
+    if (en.length === 0 || fi.length === 0) {
+      const missing = [en.length === 0 && 'en', fi.length === 0 && 'fi'].filter(Boolean).join(' + ');
+      console.warn(`  ⚠ Top release-notes.json entry is missing ${missing} bullets — falling back to a generic note.`);
+      return null;
+    }
+    return { date: typeof latest.date === 'string' ? latest.date : null, en, fi };
+  } catch {
+    return null;
+  }
 }
 
-// Main
-const commitMessage = getLatestCommitMessage();
-const commitDate = getLatestCommitDate();
-const commitHash = getCommitHash();
-const notes = parseCommitMessage(commitMessage);
+const curated = getLatestCuratedRelease();
+const usingFallback = curated === null;
 
 const changelog = {
-  version: commitHash,
-  date: commitDate,
-  notes: {
-    en: formatNote(notes.en),
-    fi: formatNote(notes.fi)
-  }
+  // version is internal-only (not rendered in the banner); kept for debugging.
+  version: getCommitHash(),
+  date: curated?.date || getCommitDate(),
+  notes: usingFallback ? GENERIC_FALLBACK : { en: curated.en, fi: curated.fi },
 };
 
 const outputPath = path.join(process.cwd(), 'public', 'changelog.json');
 fs.writeFileSync(outputPath, JSON.stringify(changelog, null, 2) + '\n');
 
-console.log(`✓ Generated changelog.json`);
-console.log(`  Version: ${changelog.version}`);
+console.log('✓ Generated public/changelog.json');
+console.log(`  Source: ${usingFallback ? 'GENERIC FALLBACK (no curated note found)' : 'release-notes.json'}`);
 console.log(`  Date: ${changelog.date}`);
-console.log(`  EN: ${changelog.notes.en}`);
-console.log(`  FI: ${changelog.notes.fi}`);
+console.log(`  EN: ${changelog.notes.en.join(' / ')}`);
+console.log(`  FI: ${changelog.notes.fi.join(' / ')}`);
+if (usingFallback) {
+  console.warn('  ⚠ release-notes.json was missing/empty/invalid — emitted a generic note.');
+}
