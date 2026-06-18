@@ -19,7 +19,7 @@ jest.mock('@/i18n', () => ({
 
 // Mock UpdateBanner - capture props for testing
 const mockUpdateBannerProps = {
-  notes: undefined as string | undefined,
+  notes: undefined as string[] | undefined,
   phase: 'available' as string,
   onInstall: undefined as (() => void) | undefined,
   onReload: undefined as (() => void) | undefined,
@@ -30,13 +30,13 @@ jest.mock('../UpdateBanner', () => {
     onInstall: () => void;
     onReload: () => void;
     onDismiss?: () => void;
-    notes?: string;
+    notes?: string[];
   }) {
     mockUpdateBannerProps.notes = props.notes;
     mockUpdateBannerProps.phase = props.phase;
     mockUpdateBannerProps.onInstall = props.onInstall;
     mockUpdateBannerProps.onReload = props.onReload;
-    return <div data-testid="update-banner">{props.notes || 'Update Available'}</div>;
+    return <div data-testid="update-banner">{props.notes?.join(', ') || 'Update Available'}</div>;
   };
 });
 
@@ -98,8 +98,8 @@ describe('ServiceWorkerRegistration', () => {
         version: 'test123',
         date: '2025-12-14',
         notes: {
-          en: 'Test release notes EN',
-          fi: 'Test release notes'
+          en: ['Test release notes EN', 'Second note EN'],
+          fi: ['Test release notes', 'Second note FI']
         }
       }),
     });
@@ -185,7 +185,7 @@ describe('ServiceWorkerRegistration', () => {
 
     // Verify notes are passed to UpdateBanner (uses i18n.language which defaults to 'en' in tests)
     await waitFor(() => {
-      expect(mockUpdateBannerProps.notes).toBe('Test release notes EN');
+      expect(mockUpdateBannerProps.notes).toEqual(['Test release notes EN', 'Second note EN']);
     });
   });
 
