@@ -20,10 +20,11 @@ describe('UpdateBanner', () => {
   it('renders release notes when provided in available phase', () => {
     render(
       <I18nextProvider i18n={i18n}>
-        <UpdateBanner {...defaultProps} notes="Some fixes" />
+        <UpdateBanner {...defaultProps} notes={["Some fixes", "Another fix"]} />
       </I18nextProvider>
     );
     expect(screen.getByText('Some fixes')).toBeInTheDocument();
+    expect(screen.getByText('Another fix')).toBeInTheDocument();
   });
 
   it('does not render notes when not provided', () => {
@@ -85,7 +86,7 @@ describe('UpdateBanner', () => {
     it('does not show release notes in ready phase', () => {
       render(
         <I18nextProvider i18n={i18n}>
-          <UpdateBanner {...defaultProps} phase="ready" notes="Some fixes" />
+          <UpdateBanner {...defaultProps} phase="ready" notes={["Some fixes"]} />
         </I18nextProvider>
       );
       expect(screen.queryByText('Some fixes')).not.toBeInTheDocument();

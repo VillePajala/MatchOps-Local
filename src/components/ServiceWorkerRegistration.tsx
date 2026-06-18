@@ -9,8 +9,8 @@ interface ChangelogData {
   version: string;
   date: string;
   notes: {
-    en: string;
-    fi: string;
+    en: string[];
+    fi: string[];
   };
 }
 
@@ -19,7 +19,7 @@ export type UpdatePhase = 'available' | 'installing' | 'ready';
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
-  const [releaseNotes, setReleaseNotes] = useState<string | undefined>();
+  const [releaseNotes, setReleaseNotes] = useState<string[] | undefined>();
   const [updatePhase, setUpdatePhase] = useState<UpdatePhase>('available');
 
   // Fetch changelog when update is detected
@@ -34,7 +34,9 @@ export default function ServiceWorkerRegistration() {
           // This avoids DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
           const lang = i18n.language || 'fi';
           const note = data.notes[lang as keyof typeof data.notes] || data.notes.fi;
-          setReleaseNotes(note);
+          // Tolerate the legacy single-string shape just in case a stale
+          // changelog.json is cached; always hand the banner an array.
+          setReleaseNotes(Array.isArray(note) ? note : note ? [note] : undefined);
         }
       }
     } catch {
