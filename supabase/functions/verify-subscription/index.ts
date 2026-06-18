@@ -112,8 +112,10 @@ Deno.serve(async (req: Request) => {
     });
 
     // Distributed rate limiting via PostgreSQL (works across all Edge Function instances)
-    const clientIP = req.headers.get('cf-connecting-ip')
-      || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    // Prefer x-forwarded-for (platform-set) over the client-forgeable cf-connecting-ip
+    // so the rate-limit key can't be rotated to bypass the limit (CR-M8).
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('cf-connecting-ip')
       || 'unknown';
 
     const { data: isAllowed, error: rateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
