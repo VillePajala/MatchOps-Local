@@ -189,6 +189,31 @@ describe('ServiceWorkerRegistration', () => {
     });
   });
 
+  it('normalizes a legacy single-string changelog into an array', async () => {
+    // A stale cached changelog.json may still use the old { en: string } shape.
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        version: 'legacy1',
+        date: '2025-12-14',
+        notes: { en: 'Legacy string', fi: 'Vanha teksti' },
+      }),
+    }) as jest.Mock;
+
+    const waitingWorker = { state: 'installed', postMessage: jest.fn() } as Partial<ServiceWorker>;
+    Object.defineProperty(mockRegistration, 'waiting', {
+      value: waitingWorker as ServiceWorker,
+      writable: true,
+      configurable: true,
+    });
+
+    render(<ServiceWorkerRegistration />);
+
+    await waitFor(() => {
+      expect(mockUpdateBannerProps.notes).toEqual(['Legacy string']);
+    });
+  });
+
   it('should handle release notes fetch failure gracefully', async () => {
     // Make fetch fail
     global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
