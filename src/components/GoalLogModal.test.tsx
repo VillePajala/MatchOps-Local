@@ -7,6 +7,13 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n.test';
 import { ToastProvider } from '@/contexts/ToastProvider';
 
+// GoalLogModal.handleSaveGoal persists via the real updateGameEvent (IndexedDB),
+// which isn't available in jsdom. Mock it so the edit round-trip test exercises
+// the component logic without a real async storage write.
+jest.mock('@/utils/savedGames', () => ({
+  updateGameEvent: jest.fn().mockResolvedValue(true),
+}));
+
 const players: Player[] = [
   { id: 'p1', name: 'John Doe', nickname: 'John', color: '#fff', isGoalie: false },
   { id: 'p2', name: 'Jane Smith', nickname: 'Jane', color: '#000', isGoalie: false },
@@ -83,12 +90,27 @@ describe('GoalLogModal', () => {
     expect(onLogGoal).toHaveBeenCalledWith(undefined, 'p2');
   });
 
-  // NOTE: an edit round-trip test for the Unknown-scorer goal (open actions menu →
-  // Edit → Save preserves an undefined scorerId) was intentionally omitted: adding
-  // it reshuffled full-suite worker scheduling and tripped a pre-existing
-  // cumulative memory leak (CI "Test" job OOM at the 4GB ceiling). The edit-form
-  // fix it would cover lives in handleEditGoal/handleSaveGoal in GoalLogModal.tsx.
-  // Re-add once the suite-wide leak is fixed (see roadmap: test-suite memory leak).
+  it('preserves an Unknown scorer when editing a goal event', () => {
+    const onUpdateGameEvent = jest.fn();
+    renderModal({
+      onUpdateGameEvent,
+      gameEvents: [{ id: 'goal-x', type: 'goal', time: 20, scorerId: undefined }],
+    });
+
+    fireEvent.click(screen.getByLabelText(/Event actions/i));
+    // Test i18n runs in Finnish; accept either label for the menu/save buttons.
+    fireEvent.click(screen.getByText(/^(Edit|Muokkaa)$/i));
+
+    // The edit scorer dropdown surfaces the Unknown sentinel rather than a blank
+    expect(screen.getByDisplayValue('Unknown / not sure')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^(Save|Tallenna)$/i }));
+
+    // Saving must keep scorerId undefined — not coerce it to '' or a player
+    expect(onUpdateGameEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'goal-x', type: 'goal', scorerId: undefined }),
+    );
+  });
 
   it('offers to recalculate when the saved score disagrees with the goal log', () => {
     const onRecalculateScore = jest.fn();
