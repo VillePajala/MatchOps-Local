@@ -107,10 +107,12 @@ export function createHandler(deps: Deps): (req: Request) => Promise<Response> {
       const supabaseAdmin = deps.createAdminClient(supabaseUrl, serviceRoleKey);
 
       // Distributed rate limiting via PostgreSQL (works across all Edge Function instances)
-      // The 'unknown' fallback shares one bucket across all IP-less clients, but the
-      // Supabase Edge platform always sets x-forwarded-for, so it's unreachable in practice.
-      const clientIP = req.headers.get('cf-connecting-ip')
-        || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      // Prefer x-forwarded-for (set by the Supabase Edge platform) over cf-connecting-ip:
+      // a client can forge cf-connecting-ip to rotate its rate-limit key and bypass the
+      // limit, so it must not be trusted first (CR-M8). The 'unknown' fallback shares one
+      // bucket across IP-less clients, but the platform always sets x-forwarded-for.
+      const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || req.headers.get('cf-connecting-ip')
         || 'unknown';
 
       const { data: isAllowed, error: rateLimitError } = await supabaseAdmin.rpc('check_rate_limit', {
