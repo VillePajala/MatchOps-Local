@@ -1,0 +1,16 @@
+{
+  "_comment": "User-facing release notes shown in the in-app update banner. Edit this when you ship to master: add a NEW entry at the TOP of releases[]. Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI. CI blocks PRs to master that don't touch this file unless they carry the 'skip-release-notes' label.",
+  "releases": [
+    {
+      "date": "2026-06-18",
+      "en": [
+        "Log a goal even when you're not sure who scored",
+        "Recalculate a game's score from its goal log if the result looks wrong"
+      ],
+      "fi": [
+        "Kirjaa maali, vaikket olisi varma kuka sen teki",
+        "Laske ottelun tulos uudelleen maalikirjanpidosta, jos tulos näyttää väärältä"
+      ]
+    }
+  ]
+}
