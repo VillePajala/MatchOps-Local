@@ -19,6 +19,7 @@ MatchOps-Local is built for coaches who need privacy, offline reliability, and s
 
 - **Local mode**: All data on-device (IndexedDB) — works offline, no account needed
 - **Cloud mode**: Optional Supabase backend for cross-device sync with local-first caching
+  - **Note**: the Google Play build is distributed **cloud-only** (Play Store users sign in; cloud mode required). Local mode is available in the web/PWA version.
 - **Auth**: Email/password authentication via Supabase Auth
 - **Performance**: Sub-second operations with IndexedDB + React Query caching
 - **PWA**: Installable, full offline support, auto-update detection
