@@ -83,7 +83,7 @@ Found by a 7-agent whole-app review; top claims hand-verified against code.
 - [ ] **Core accessibility** — color contrast, touch targets, keyboard nav, screen-reader support.
 - [ ] **Season League UX filters** — group the 34-league flat list by area (Itä/Länsi/Etelä) + age group in `SeasonDetailsModal`. ~1 week.
 - [ ] **Site polish** (bundled, ~15 min) — add 9 missing FI keys under `features.foundation.*` in `site/public/locales/fi/common.json`; fix `site/README.md` (says Next 15, actual 16).
-- [ ] **PR #431 review nits** (Minor, from claude-review) — 1) `handleRecalculateScoreFromEvents` (`useTimerManagement.ts`) depends on the whole `gameSessionState`, so its reference changes every timer tick; narrow deps to `homeOrAway` + `gameEvents`. 2) CSV export hardcodes the literal `'Unknown'` (`exportGames.ts`) while the Excel export uses the `export.unknownScorer` i18n key — the whole CSV exporter is hardcoded English, so optionally i18n it for consistency. Neither blocks anything.
+- [x] **PR #431 review nits** (Minor, from claude-review) — ✅ **DONE 2026-06-18**. 1) `handleRecalculateScoreFromEvents` (`useTimerManagement.ts`) now depends only on `homeOrAway` + `gameEvents` (the fields `computeScoreFromEvents` reads), so its reference is stable across timer ticks. 2) CSV "Unknown" label — **closed as won't-fix**: `exportCsv` is intentionally all-English (40+ hardcoded literals, takes no `translate`); i18n-ing one word would make it the *only* translated string and more inconsistent, not less. The structural choice (CSV English-only vs Excel i18n) is out of scope for a nit.
 
 ---
 
