@@ -49,9 +49,9 @@ Statistics & Analytics
 • Parents coaching their child's team
 • Anyone managing soccer or futsal games
 
-📱 WORKS OFFLINE
+📱 WORKS AT THE FIELD
 
-MatchOps is a local-first app - all your data stays on your device by default. No account required. Optional cloud sync lets you access your data across devices. Perfect for fields with poor connectivity.
+Sign in with a free account and MatchOps keeps working even when connectivity is poor — your game runs locally on your device and syncs to your secure cloud account when you're back online, so your data is safe and available across devices. Perfect for fields with spotty signal.
 
 ✨ WHY COACHES LOVE MATCHOPS
 
@@ -60,11 +60,11 @@ MatchOps is a local-first app - all your data stays on your device by default. N
 • Simple, focused interface - no clutter
 • Fast and responsive
 • No ads interrupting your coaching
-• Privacy-focused - your data stays on your device
+• Privacy-focused - no ads, we never sell your data
 
 🔒 YOUR DATA, YOUR CONTROL
 
-All game data, rosters, and statistics are stored locally on your device. We don't collect personal information or require account creation. Optional error reporting helps us improve the app while keeping your coaching data private.
+A free account is required. Your game data, rosters, and statistics are stored in your private, secure cloud account and synced across your devices. We don't sell your data or show ads, and you can export or permanently delete your data and account at any time. Optional error reporting helps us improve the app.
 
 Download MatchOps today and transform how you manage your team's games!
 
@@ -103,5 +103,5 @@ Version 1.0.0
 • Interactive tactics board
 • Player roster management
 • Statistics tracking
-• Offline support
+• Works offline at the field, syncs when back online
 ```
