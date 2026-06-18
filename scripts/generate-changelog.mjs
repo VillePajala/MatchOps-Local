@@ -54,7 +54,11 @@ function getLatestCuratedRelease() {
     const fi = clean(latest.fi);
 
     // Require at least one bullet in each language to count as a real note.
-    if (en.length === 0 || fi.length === 0) return null;
+    if (en.length === 0 || fi.length === 0) {
+      const missing = [en.length === 0 && 'en', fi.length === 0 && 'fi'].filter(Boolean).join(' + ');
+      console.warn(`  ⚠ Top release-notes.json entry is missing ${missing} bullets — falling back to a generic note.`);
+      return null;
+    }
     return { date: typeof latest.date === 'string' ? latest.date : null, en, fi };
   } catch {
     return null;
