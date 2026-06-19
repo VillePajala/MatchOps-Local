@@ -1,14 +1,12 @@
 {
-  "version": "d9547743",
-  "date": "2026-06-18",
+  "version": "3d9c5f39",
+  "date": "2026-06-19",
   "notes": {
     "en": [
-      "Log a goal even when you're not sure who scored",
-      "Recalculate a game's score from its goal log if the result looks wrong"
+      "The match clock now keeps running when you reopen the app after a long break — no need to tap Start again"
     ],
     "fi": [
-      "Kirjaa maali, vaikket olisi varma kuka sen teki",
-      "Laske ottelun tulos uudelleen maalikirjanpidosta, jos tulos näyttää väärältä"
+      "Otteluajastin jatkaa nyt käyntiä, kun avaat sovelluksen pitkän tauon jälkeen — Käynnistä-painiketta ei tarvitse painaa uudelleen"
     ]
   }
 }

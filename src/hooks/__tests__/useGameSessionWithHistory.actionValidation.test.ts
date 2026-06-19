@@ -72,6 +72,7 @@ const ALL_ACTION_TYPES = new Set([
   'LOAD_PERSISTED_GAME_DATA',
   'PAUSE_TIMER_FOR_HIDDEN',
   'RESTORE_TIMER_STATE',
+  'RESUME_GAME',
 ]);
 
 describe('useGameSessionWithHistory action type validation', () => {

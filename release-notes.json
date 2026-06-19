@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. Edit this when you ship to master: add a NEW entry at the TOP of releases[]. Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI. CI blocks PRs to master that don't touch this file unless they carry the 'skip-release-notes' label.",
   "releases": [
     {
+      "date": "2026-06-19",
+      "en": [
+        "The match clock now keeps running when you reopen the app after a long break — no need to tap Start again"
+      ],
+      "fi": [
+        "Otteluajastin jatkaa nyt käyntiä, kun avaat sovelluksen pitkän tauon jälkeen — Käynnistä-painiketta ei tarvitse painaa uudelleen"
+      ]
+    },
+    {
       "date": "2026-06-18",
       "en": [
         "Log a goal even when you're not sure who scored",
