@@ -286,8 +286,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Track which game has been successfully loaded to prevent reload on auto-save
   const loadedGameIdRef = useRef<string | null>(null);
   // Clock correction consumed from the persisted timer record at boot,
-  // applied one-shot when the corresponding game loads (see loadGameStateFromData)
-  const pendingClockCorrectionRef = useRef<{ gameId: string; elapsed: number } | null>(null);
+  // applied one-shot when the corresponding game loads (see loadGameStateFromData).
+  // `resume` is set when the timer was running at hide time (wasRunning), so the
+  // boot path can continue the clock without a tap after a >5 min force-reload.
+  const pendingClockCorrectionRef = useRef<{ gameId: string; elapsed: number; resume: boolean } | null>(null);
   // Track which initialAction has been processed to prevent re-processing
   const processedInitialActionRef = useRef<string | null>(null);
 
@@ -874,6 +876,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             pendingClockCorrectionRef.current = {
               gameId: lastGameId,
               elapsed: Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds),
+              resume: true,
             };
           }
           await clearTimerState(userId);
@@ -982,8 +985,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // in-progress. Capped at the current period boundary — the first tick
       // after resume then fires the period/game end normally.
       const pendingCorrection = pendingClockCorrectionRef.current;
+      let shouldAutoResume = false;
       if (pendingCorrection) {
         if (pendingCorrection.gameId === currentGameId && gameData.gameStatus === 'inProgress') {
+          // The game was live when the app was hidden and a force-reload followed.
           const periodBoundarySeconds =
             (gameData.currentPeriod ?? 1) * (gameData.periodDurationMinutes ?? 10) * 60;
           const corrected = Math.min(pendingCorrection.elapsed, periodBoundarySeconds);
@@ -994,11 +999,29 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             });
             payload.timeElapsedInSeconds = corrected;
           }
+          // Auto-resume only if the period did NOT end during the background gap.
+          // If the corrected clock reached the period boundary (phone locked past
+          // the period), leave it paused so the user taps to acknowledge the period
+          // end — we never silently auto-advance periods.
+          shouldAutoResume = pendingCorrection.resume && corrected < periodBoundarySeconds;
         }
         pendingClockCorrectionRef.current = null;
       }
 
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
+
+      // Auto-resume a game that was running when the app was hidden/force-reloaded
+      // (>5 min background, via useAppResume) and is still mid-period. LOAD_PERSISTED_
+      // GAME_DATA coerces inProgress→notStarted and never auto-starts the timer; for a
+      // game that WAS running we continue the clock so the match timer never silently
+      // pauses awaiting a tap. RESUME_GAME acts only from the coerced notStarted state
+      // and preserves the corrected clock/period (it does NOT reset to period 1 /
+      // 0:00); the resetHistory() below sets the undo baseline from the loaded game.
+      // This is the same transition a manual Start tap produces — just automatic.
+      if (shouldAutoResume) {
+        logger.info('[LOAD GAME STATE] Auto-resuming clock (timer was running before reload)');
+        dispatchGameSession({ type: 'RESUME_GAME' });
+      }
     } else {
       // Consume any pending clock correction even when no game loads (e.g. the
       // recorded game no longer exists) so it cannot apply to a later load.
