@@ -1,12 +1,12 @@
 {
-  "version": "a5136056",
+  "version": "249a8266",
   "date": "2026-06-19",
   "notes": {
     "en": [
-      "Update notices now always describe what's new in each update"
+      "If the app reopens during a match, you're taken straight back to the game instead of the start screen"
     ],
     "fi": [
-      "Päivitysilmoitukset kertovat nyt aina, mitä kussakin päivityksessä on uutta"
+      "Jos sovellus avautuu uudelleen ottelun aikana, pääset suoraan takaisin peliin aloitusnäytön sijaan"
     ]
   }
 }
