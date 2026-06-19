@@ -90,6 +90,10 @@ export const NO_HISTORY_ACTIONS = new Set([
   'SET_TIMER_RUNNING',
   'PAUSE_TIMER_FOR_HIDDEN',
   'RESTORE_TIMER_STATE',
+  // Resuming a loaded in-progress game (manual Start tap or boot auto-resume).
+  // Continues the loaded clock/period; the undo baseline is set by resetHistory
+  // after the load, so resume itself must not push a separate history entry.
+  'RESUME_GAME',
   // Resets (covered by other mechanisms)
   'RESET_TIMER_AND_GAME_PROGRESS',
   'RESET_TIMER_ONLY',

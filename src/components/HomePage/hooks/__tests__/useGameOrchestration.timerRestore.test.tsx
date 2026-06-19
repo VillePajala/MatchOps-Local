@@ -290,10 +290,11 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
 
   /**
    * @critical - A wasRunning record means the real match continued while the
-   * app was backgrounded; the background duration must be folded into the
-   * loaded clock, paused, and the record cleared.
+   * app was backgrounded; the background duration is folded into the loaded
+   * clock and, because the period has NOT ended, the timer auto-resumes so the
+   * match clock never silently pauses awaiting a tap. The record is cleared.
    */
-  it('applies the background duration to the loaded clock and clears the record', async () => {
+  it('folds in the background duration and auto-resumes the clock (still mid-period)', async () => {
     const recordTimestamp = Date.now() - BACKGROUND_MS;
     mockLoadTimerStateForGame.mockResolvedValue({
       gameId: GAME_ID,
@@ -304,26 +305,30 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
 
     const result = await renderOrchestration();
 
+    // Clock floor = stored + background (8 min); period boundary is 1800 (period
+    // 2 of 2x15), so the corrected clock (~1380) is still mid-period.
     await waitFor(() => {
       expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeGreaterThanOrEqual(900 + BACKGROUND_MS / 1000);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
-
-    // Upper bound derived from the actual wall clock at assertion time, so the
-    // test cannot flake on slow runners: correction <= 900 + full age of record.
-    const maxCorrected = 900 + Math.ceil((Date.now() - recordTimestamp) / 1000);
-    expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeLessThanOrEqual(maxCorrected);
-    // Loaded paused, never auto-started
-    expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('notStarted');
-    expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
+    // Still below the period boundary (the running timer ticks up but won't reach
+    // 1800 within the test window).
+    expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeLessThan(1800);
+    // Auto-resumed: continues running, no tap needed
+    await waitFor(() => {
+      expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('inProgress');
+      expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(true);
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     // Record consumed and cleared - can never be replayed
     expect(mockClearTimerState).toHaveBeenCalled();
   });
 
   /**
    * @edge-case - Correction is capped at the current period boundary so a
-   * phone locked for hours shows the period end, not a runaway clock.
+   * phone locked for hours shows the period end, not a runaway clock. Because
+   * the period ended during the gap, we do NOT auto-resume: it stays paused so
+   * the user taps to acknowledge the period end (never silently auto-advance).
    */
-  it('caps the corrected clock at the current period boundary', async () => {
+  it('caps at the period boundary and stays paused (does not auto-resume past period end)', async () => {
     mockLoadTimerStateForGame.mockResolvedValue({
       gameId: GAME_ID,
       timeElapsedInSeconds: 900,
@@ -338,6 +343,7 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
       expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBe(1800);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('notStarted');
+    expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
   });
 
   /**
@@ -357,6 +363,9 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
     await waitFor(() => {
       expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBe(900);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    // No wasRunning marker → not auto-resumed (the timer was intentionally paused)
+    expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('notStarted');
+    expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
     expect(mockClearTimerState).toHaveBeenCalled();
   });
 
