@@ -4,6 +4,15 @@
     {
       "date": "2026-06-19",
       "en": [
+        "Locking your phone during a match no longer interrupts the game — you stay on the game screen and the clock keeps running"
+      ],
+      "fi": [
+        "Puhelimen lukitseminen ottelun aikana ei enää keskeytä peliä — pysyt pelinäkymässä ja kello käy edelleen"
+      ]
+    },
+    {
+      "date": "2026-06-19",
+      "en": [
         "The match clock now keeps running when you reopen the app after a long break — no need to tap Start again"
       ],
       "fi": [
