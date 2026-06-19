@@ -1,12 +1,12 @@
 {
-  "version": "3d9c5f39",
+  "version": "0900828a",
   "date": "2026-06-19",
   "notes": {
     "en": [
-      "The match clock now keeps running when you reopen the app after a long break — no need to tap Start again"
+      "Locking your phone during a match no longer interrupts the game — you stay on the game screen and the clock keeps running"
     ],
     "fi": [
-      "Otteluajastin jatkaa nyt käyntiä, kun avaat sovelluksen pitkän tauon jälkeen — Käynnistä-painiketta ei tarvitse painaa uudelleen"
+      "Puhelimen lukitseminen ottelun aikana ei enää keskeytä peliä — pysyt pelinäkymässä ja kello käy edelleen"
     ]
   }
 }
