@@ -79,6 +79,10 @@ export default function Home() {
   const legacyMigrationCheckedRef = useRef(false);
   // Ref to track if checkAppState has been triggered post-login (prevents premature postLoginCheckComplete)
   const checkAppStateTriggeredRef = useRef(false);
+  // Ref so we auto-enter an in-progress game only on the first state check (a
+  // reload/relaunch mid-match), not on later checks — otherwise a refresh while
+  // the user is intentionally on the start screen would yank them back into the game.
+  const didInitialResumeRef = useRef(false);
   // Ref to track previous value of isCheckingState (for detecting true→false transitions)
   const prevIsCheckingStateRef = useRef(false);
   // State to track if post-login data loading has completed (migration/hydration check)
@@ -158,6 +162,10 @@ export default function Home() {
 
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
+    // Consume the "first check" slot once per page load (boot / WebView recreation),
+    // regardless of outcome, so later refreshTrigger re-runs can't auto-resume.
+    const isFirstCheck = !didInitialResumeRef.current;
+    didInitialResumeRef.current = true;
     try {
       // Run IndexedDB migration to ensure legacy data is converted to IndexedDB.
       // App settings migration happens automatically in getAppSettings() when needed.
@@ -174,6 +182,14 @@ export default function Home() {
         // Extract gameType from last game to prevent field color flash on mount
         // (avoids defaulting to soccer green when last game was futsal blue)
         setLastGameType(games[lastId].gameType);
+        // On the first check after launch (boot / OS WebView recreation mid-game),
+        // restore straight into an in-progress match instead of dropping the user
+        // on the start screen with a "Continue" button.
+        if (isFirstCheck && games[lastId].gameStatus === 'inProgress') {
+          logger.info('[page.tsx] In-progress game detected on launch — restoring into the game view');
+          setAction('resumeGame');
+          setScreen('home');
+        }
       } else {
         // Fallback: if currentGameId is missing or stale but there are games, select the latest game
         const ids = Object.keys(games || {}).filter(id => id !== 'unsaved_game');
@@ -206,7 +222,7 @@ export default function Home() {
     } finally {
       setIsCheckingState(false);
     }
-  }, [userId]);
+  }, [userId, setAction]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 

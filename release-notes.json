@@ -4,6 +4,15 @@
     {
       "date": "2026-06-19",
       "en": [
+        "If the app reopens during a match, you're taken straight back to the game instead of the start screen"
+      ],
+      "fi": [
+        "Jos sovellus avautuu uudelleen ottelun aikana, pääset suoraan takaisin peliin aloitusnäytön sijaan"
+      ]
+    },
+    {
+      "date": "2026-06-19",
+      "en": [
         "Update notices now always describe what's new in each update"
       ],
       "fi": [
