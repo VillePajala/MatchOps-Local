@@ -16,6 +16,7 @@ import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useAppResume } from '../useAppResume';
+import { setMatchTimerRunning } from '@/utils/matchTimerSignal';
 
 // Mock logger
 jest.mock('@/utils/logger', () => ({
@@ -53,6 +54,9 @@ describe('useAppResume', () => {
   });
 
   beforeEach(() => {
+    // Default: no live match (existing tests expect force-reload to happen).
+    setMatchTimerRunning(false);
+
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -533,6 +537,58 @@ describe('useAppResume', () => {
       360, // 360 seconds = 6 minutes
       'seconds - forcing page reload'
     );
+  });
+
+  /**
+   * @critical - During a live match the force-reload must be suppressed so the
+   * user isn't dropped to the start screen with a paused clock; the timer's own
+   * reanchor keeps it running. We instead soft-resume.
+   */
+  it('does NOT force reload after forceReloadTime when a match clock is running (visibilitychange)', async () => {
+    const logger = require('@/utils/logger').default;
+    setMatchTimerRunning(true);
+    const onResume = jest.fn();
+
+    renderHook(() => useAppResume({ forceReloadTime: 300000, onResume }), { wrapper });
+
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+
+    mockNow += 360000; // 6 minutes — past the threshold
+
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    await act(async () => {});
+
+    // No force reload...
+    expect(logger.debug).not.toHaveBeenCalledWith(
+      '[useAppResume] App was in background for',
+      360,
+      'seconds - forcing page reload'
+    );
+    expect(reloadMock).not.toHaveBeenCalled();
+    // ...soft resume instead (so data refetches and the reanchor path runs)
+    await act(async () => {});
+    expect(onResume).toHaveBeenCalled();
+  });
+
+  it('does NOT force reload on pageshow after forceReloadTime when a match clock is running', async () => {
+    const logger = require('@/utils/logger').default;
+    setMatchTimerRunning(true);
+
+    renderHook(() => useAppResume({ forceReloadTime: 300000 }), { wrapper });
+
+    act(() => { window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })); });
+    mockNow += 360000;
+    act(() => { window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); });
+    await act(async () => {});
+
+    expect(logger.debug).not.toHaveBeenCalledWith(
+      '[useAppResume] bfcache restore for',
+      360,
+      'seconds - forcing page reload'
+    );
+    expect(reloadMock).not.toHaveBeenCalled();
   });
 
   /**

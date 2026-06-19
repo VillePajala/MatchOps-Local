@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { saveTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
+import { setMatchTimerRunning } from '@/utils/matchTimerSignal';
 import { useWakeLock } from './useWakeLock';
 import { usePrecisionTimer } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
@@ -184,6 +185,14 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   // re-registering the listener on every tick (was 20x/sec)
   const isTimerRunningRef = useRef(state.isTimerRunning);
   useEffect(() => { isTimerRunningRef.current = state.isTimerRunning; }, [state.isTimerRunning]);
+
+  // Publish whether a match clock is actively running so useAppResume can skip
+  // its >5min force-reload during a live match (the reanchor below keeps the
+  // clock going; reloading would drop the user to the start screen, paused).
+  useEffect(() => {
+    setMatchTimerRunning(state.isTimerRunning && state.gameStatus === 'inProgress');
+    return () => setMatchTimerRunning(false);
+  }, [state.isTimerRunning, state.gameStatus]);
 
   useEffect(() => {
     const handleDocumentVisibilityChange = () => {
