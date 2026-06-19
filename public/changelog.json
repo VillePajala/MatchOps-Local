@@ -1,12 +1,12 @@
 {
-  "version": "0900828a",
+  "version": "a5136056",
   "date": "2026-06-19",
   "notes": {
     "en": [
-      "Locking your phone during a match no longer interrupts the game — you stay on the game screen and the clock keeps running"
+      "Update notices now always describe what's new in each update"
     ],
     "fi": [
-      "Puhelimen lukitseminen ottelun aikana ei enää keskeytä peliä — pysyt pelinäkymässä ja kello käy edelleen"
+      "Päivitysilmoitukset kertovat nyt aina, mitä kussakin päivityksessä on uutta"
     ]
   }
 }
