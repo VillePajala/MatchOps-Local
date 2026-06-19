@@ -8,8 +8,8 @@
  *
  * If release-notes.json is missing/empty/malformed, we emit a generic localized
  * fallback so the banner never shows nothing (and never shows commit messages).
- * A CI guard (.github/workflows/release-notes-guard.yml) is what actually stops
- * us from forgetting to add a note before merging to master.
+ * A CI guard (.github/workflows/release-notes-guard.yml) requires every PR to
+ * master to add a fresh entry — every build ships a user-friendly note.
  */
 
 import { execSync } from 'child_process';
