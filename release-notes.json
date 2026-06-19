@@ -1,6 +1,15 @@
 {
-  "_comment": "User-facing release notes shown in the in-app update banner. Edit this when you ship to master: add a NEW entry at the TOP of releases[]. Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI. CI blocks PRs to master that don't touch this file unless they carry the 'skip-release-notes' label.",
+  "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
+    {
+      "date": "2026-06-19",
+      "en": [
+        "Update notices now always describe what's new in each update"
+      ],
+      "fi": [
+        "Päivitysilmoitukset kertovat nyt aina, mitä kussakin päivityksessä on uutta"
+      ]
+    },
     {
       "date": "2026-06-19",
       "en": [

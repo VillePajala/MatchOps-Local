@@ -1,9 +1,11 @@
 name: Release Notes Guard
 
-# Forces a user-facing release note before anything reaches master (and thus a
-# new production build / in-app update banner). A PR to master must either edit
-# release-notes.json, or carry the 'skip-release-notes' label for genuinely
-# internal changes (docs, refactors, CI, tests).
+# One concept: every merge to master ships a new build, and every build must tell
+# users what changed. So every PR to master MUST add a brand-new entry at the TOP
+# of release-notes.json (plain-language EN + FI). No exceptions, no skip label.
+#
+# This checks for a genuinely NEW top entry — not just that the file was touched —
+# so editing the comment, tweaking an old entry, or reordering can't satisfy it.
 #
 # To make this binding, mark "Release Notes Guard" as a required status check in
 # the master branch protection rules.
@@ -11,7 +13,7 @@ name: Release Notes Guard
 on:
   pull_request:
     branches: [master]
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened]
 
 jobs:
   require-release-note:
@@ -22,21 +24,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require release-notes.json update or skip label
+      - name: Require a NEW top entry in release-notes.json
         env:
-          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if printf ',%s,' "$LABELS" | grep -q ',skip-release-notes,'; then
-            echo "✓ 'skip-release-notes' label present — internal change, no note required."
-            exit 0
+          # Extract releases[0] (the entry users will see) from a given revision.
+          # Note: node -e runs in a context where a top-level `return` is illegal,
+          # so keep this a single try/catch with no early return.
+          top_entry() {
+            git show "$1:release-notes.json" 2>/dev/null | node -e '
+              try {
+                const s = require("fs").readFileSync(0, "utf8");
+                const r = JSON.parse(s).releases;
+                process.stdout.write(r && r[0] ? JSON.stringify(r[0]) : "");
+              } catch { process.stdout.write(""); }
+            '
+          }
+
+          NEW=$(top_entry "$HEAD_SHA")
+          OLD=$(top_entry "$BASE_SHA")
+
+          if [ -z "$NEW" ]; then
+            echo "::error::release-notes.json has no top entry. Add a new entry (plain-language EN + FI bullets) at the top of releases[]."
+            exit 1
           fi
 
-          if git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -qx 'release-notes.json'; then
-            echo "✓ release-notes.json was updated in this PR."
-            exit 0
+          if [ "$NEW" = "$OLD" ]; then
+            echo "::error::Every PR to master must add a NEW user-facing update note. The top entry of release-notes.json is unchanged — add a new entry at the TOP of releases[] (plain-language EN + FI bullets). For an internal-only change (CI, deps, refactor, docs) write something honest and user-friendly, e.g. \"Behind-the-scenes improvements\" / \"Taustaparannuksia\"."
+            exit 1
           fi
 
-          echo "::error::No release note for this change. Add a user-facing entry to the top of release-notes.json (EN + FI bullets), or add the 'skip-release-notes' label if this PR has nothing users would notice."
-          exit 1
+          echo "✓ New top entry present in release-notes.json."
