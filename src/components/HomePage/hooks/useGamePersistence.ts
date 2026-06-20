@@ -200,6 +200,11 @@ export function useGamePersistence({
   const [isGameDeleting, setIsGameDeleting] = useState(false);
   const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
   const [processingGameId, setProcessingGameId] = useState<string | null>(null);
+  // CR-H6: in-flight guard for event deletion. A double-tapped delete confirm could
+  // call handleDeleteGameEvent twice while the first await is pending; the second
+  // call used the (now stale) index and deleted the WRONG event + double-decremented
+  // the score. Tracking in-flight goalIds rejects the concurrent repeat.
+  const deletingEventIdsRef = useRef<Set<string>>(new Set());
 
   // --- Helper: Create AppState Snapshot ---
   /**
@@ -675,6 +680,14 @@ export function useGamePersistence({
    * @returns true if successful, false otherwise
    */
   const handleDeleteGameEvent = useCallback(async (goalId: string): Promise<boolean> => {
+    // CR-H6: reject a concurrent repeat for the same event (double-tapped confirm).
+    // Without this, the second call ran with a stale index and deleted the wrong
+    // event and decremented the score twice.
+    if (deletingEventIdsRef.current.has(goalId)) {
+      logger.debug('[useGamePersistence] Delete already in flight for event, ignoring repeat:', goalId);
+      return false;
+    }
+
     // Find event index (single lookup for both validation and storage deletion)
     const eventIndex = gameSessionState.gameEvents.findIndex((e: GameEvent) => e.id === goalId);
     if (eventIndex === -1) {
@@ -689,8 +702,11 @@ export function useGamePersistence({
       return false;
     }
 
+    deletingEventIdsRef.current.add(goalId);
     try {
       // Storage FIRST - remove from storage using the index we already found
+      // (safe: the in-flight guard above ensures this is the only call for this
+      // event, so the index computed from current state is the one to delete).
 
       // Remove from storage
       const updatedGame = await removeGameEvent(currentGameId, eventIndex, userId);
@@ -715,6 +731,8 @@ export function useGamePersistence({
     } catch (error) {
       logger.error("Failed to delete game event:", error);
       return false;
+    } finally {
+      deletingEventIdsRef.current.delete(goalId);
     }
   }, [gameSessionState.gameEvents, currentGameId, queryClient, dispatchGameSession, userId]);
 
