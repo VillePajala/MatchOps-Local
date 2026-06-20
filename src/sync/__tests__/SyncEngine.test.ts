@@ -807,6 +807,32 @@ describe('SyncEngine', () => {
 
       await reset();
     });
+
+    /**
+     * CR-H2: a stale store's late close() must not dispose a newer user's live engine.
+     * resetSyncEngine({ engine }) only resets when the singleton IS that engine.
+     * @critical
+     */
+    it('does not dispose the current singleton when reset with a different owned engine (CR-H2)', async () => {
+      const { getSyncEngine, resetSyncEngine: reset } = await import('../SyncEngine');
+      await reset();
+
+      // Current singleton — e.g. the engine the NEW user installed after a switch.
+      const current = getSyncEngine(queue);
+
+      // A stale store owns a DIFFERENT engine instance.
+      const staleEngine = new SyncEngine(queue);
+
+      // The stale store's close() resets with its own engine — must be a no-op.
+      await reset({ engine: staleEngine });
+      expect(getSyncEngine()).toBe(current); // singleton survived
+
+      // Resetting with the OWNING engine disposes it as normal.
+      await reset({ engine: current });
+      expect(() => getSyncEngine()).toThrow('SyncEngine not initialized');
+
+      await staleEngine.dispose();
+    });
   });
 
   describe('server circuit breaker', () => {
