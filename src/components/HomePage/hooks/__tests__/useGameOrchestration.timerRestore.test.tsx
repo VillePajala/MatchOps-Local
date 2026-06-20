@@ -251,6 +251,7 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // The durable timer anchor lives in localStorage; isolate it per test.
     window.localStorage.clear();
     queryClient = new QueryClient({
       defaultOptions: {
@@ -396,6 +397,54 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
       expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(true);
     }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
     // Anchor consumed so it can't be replayed.
+    expect(window.localStorage.getItem('matchops_timer_anchor')).toBeNull();
+  });
+
+  /**
+   * @edge-case - The anchor takes precedence over the IndexedDB record (it's the
+   * more reliable source). With both present, the anchor's value wins.
+   */
+  it('prefers the anchor over the IndexedDB record when both exist', async () => {
+    // IDB record says 1000s; anchor says 900s + 30s gap = 930s. Anchor should win.
+    mockLoadTimerStateForGame.mockResolvedValue({
+      gameId: GAME_ID,
+      timeElapsedInSeconds: 1000,
+      timestamp: Date.now(),
+      wasRunning: true,
+    });
+    window.localStorage.setItem(
+      'matchops_timer_anchor',
+      JSON.stringify({ gameId: GAME_ID, elapsedSeconds: 900, wallClockMs: Date.now() - 30_000 })
+    );
+
+    const result = await renderOrchestration();
+
+    await waitFor(() => {
+      const t = result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds;
+      expect(t).toBeGreaterThanOrEqual(930);
+      expect(t).toBeLessThan(960); // anchor (~930), not the IDB 1000
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+  });
+
+  /**
+   * @edge-case - A stale anchor left by a DIFFERENT game must not correct/resume
+   * the loaded game; it is ignored (and cleared).
+   */
+  it('ignores an anchor whose gameId does not match the loaded game', async () => {
+    mockLoadTimerStateForGame.mockResolvedValue(null);
+    window.localStorage.setItem(
+      'matchops_timer_anchor',
+      JSON.stringify({ gameId: 'some-other-game', elapsedSeconds: 5000, wallClockMs: Date.now() })
+    );
+
+    const result = await renderOrchestration();
+
+    await waitFor(() => {
+      // Loads at the stored 900, NOT the foreign anchor's 5000, and stays paused.
+      expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBe(900);
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
+    // Stale foreign anchor consumed so it can't linger.
     expect(window.localStorage.getItem('matchops_timer_anchor')).toBeNull();
   });
 
