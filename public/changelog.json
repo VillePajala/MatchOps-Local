@@ -1,12 +1,12 @@
 {
-  "version": "484aa491",
+  "version": "444f0e7b",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "The app now recovers on its own from temporary storage hiccups instead of getting stuck until you reload"
+      "If moving your data to a cloud account is interrupted, it now safely resumes and finishes the rest without duplicating or overwriting anything"
     ],
     "fi": [
-      "Sovellus toipuu nyt itsestään tilapäisistä tallennushäiriöistä sen sijaan että se jumiutuisi uudelleenlataukseen asti"
+      "Jos tietojesi siirto pilvitilille keskeytyy, se jatkuu nyt turvallisesti ja viimeistelee loput ilman että mitään kahdentuu tai korvautuu"
     ]
   }
 }
