@@ -247,6 +247,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(resolvedUser);
         setSession(currentSession);
 
+        // CR-H4: init completed — clear any timeout flag. If the 20s safety timeout
+        // fired but init then resolved late (slow getCurrentUser, no retry), the user
+        // would otherwise stay on the "Connection Timeout" retry screen while actually
+        // signed in. Always clear on a successful init.
+        setInitTimedOut(false);
+
         // Exit grace period if init succeeded with a real session.
         // Always call setIsAuthGracePeriod(false) when we have a session — safe even if not in grace period.
         if (currentSession) {
@@ -430,13 +436,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Mirror triggers 1/2: if a cached session exists in cloud mode, let the user
         // into their local data instead of hard-locking them at the LoginScreen. The
         // real session takes over once connectivity returns (onAuthStateChange / retry).
+        let enteredGracePeriod = false;
         if (mounted && currentMode === 'cloud' && isCloudAvailable()) {
           const cached = getCachedUserIdentity();
           if (cached) {
             logger.info('[AuthProvider] Grace period: init error with cached session for', cached.email);
             setIsAuthGracePeriod(true);
             setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+            enteredGracePeriod = true;
           }
+        }
+
+        // CR-H4: if init threw and we couldn't recover (no cached session, e.g. a
+        // chunk-load failure post-deploy or a fresh user offline), the user would be
+        // stranded — authService is never set, so signIn() returns "Auth not
+        // initialized" forever and there's no UI affordance. Surface the retry screen
+        // (initTimedOut drives it in cloud mode) so retryAuthInit() can re-run init.
+        // Cloud-gated to match the retry screen's UI gating (no-op in local mode).
+        if (mounted && !enteredGracePeriod && currentMode === 'cloud') {
+          setInitTimedOut(true);
         }
       } finally {
         if (mounted) {
