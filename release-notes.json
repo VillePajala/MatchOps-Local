@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "Internal cleanup of unused timer code (no change to how the app behaves)"
+      ],
+      "fi": [
+        "Ajastimen käyttämättömän koodin sisäistä siivousta (ei vaikuta sovelluksen toimintaan)"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "The cloud-sync icon no longer flickers every second during a match — the clock now syncs when it stops, not on every tick"
       ],
       "fi": [
