@@ -1046,13 +1046,9 @@ export class SyncEngine {
         return;
       }
 
-      // CR-H1: Re-read the operation after marking it 'syncing'. Between getPending()
-      // (which snapshots op.data) and markSyncing(), a concurrent enqueue can
-      // dedup-replace this still-'pending' op's data under the SAME id (e.g. a second
-      // goal logged during a slow push). markSyncing preserves the latest data, and
-      // once status is 'syncing' no further dedup-replace can occur — so the re-read
-      // captures the freshest data. Executing the snapshot instead would push stale
-      // data and then markCompleted() would delete the newer write (lost update).
+      // CR-H1: re-read after markSyncing — a concurrent enqueue can dedup-replace a
+      // still-'pending' op's data under the same id between getPending() and here;
+      // execute the fresh copy so markCompleted() can't drop the newer write.
       const freshOp = await this.queue.getById(op.id);
       const opToExecute = freshOp ?? op;
 
