@@ -44,6 +44,7 @@ import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManage
 import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import { reportTimerDiag } from '@/utils/timerDiagnostics';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 import { usePremium } from '@/hooks/usePremium';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
@@ -871,14 +872,28 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           const savedTimerState = lastGameId
             ? await loadTimerStateForGame(lastGameId, userId)
             : null;
+          let correctedElapsed: number | undefined;
           if (savedTimerState?.wasRunning && lastGameId) {
             const offlineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
+            correctedElapsed = Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds);
             pendingClockCorrectionRef.current = {
               gameId: lastGameId,
-              elapsed: Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds),
+              elapsed: correctedElapsed,
               resume: true,
             };
           }
+          // TEMP diagnostic: what did the reload/boot path actually find? Distinguishes
+          // "no record", "stale tick-save (no wasRunning → no correction)", and the
+          // healthy wasRunning case — the key to the lock-resume under-count bug.
+          reportTimerDiag('boot-correction', {
+            lastGameId: lastGameId || null,
+            recordFound: !!savedTimerState,
+            wasRunning: savedTimerState?.wasRunning ?? false,
+            recordElapsed: savedTimerState?.timeElapsedInSeconds,
+            recordTimestamp: savedTimerState?.timestamp,
+            offlineSec: savedTimerState ? Math.round((Date.now() - savedTimerState.timestamp) / 1000) : undefined,
+            correctedElapsed,
+          });
           await clearTimerState(userId);
         } catch (error) {
           logger.error('[EFFECT init] Error consuming persisted timer state:', error);
