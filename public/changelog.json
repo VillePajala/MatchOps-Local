@@ -1,12 +1,12 @@
 {
-  "version": "249a8266",
-  "date": "2026-06-19",
+  "version": "8b5a4f2b",
+  "date": "2026-06-20",
   "notes": {
     "en": [
-      "If the app reopens during a match, you're taken straight back to the game instead of the start screen"
+      "Behind-the-scenes diagnostics to help us track down a match-timer issue after locking your phone"
     ],
     "fi": [
-      "Jos sovellus avautuu uudelleen ottelun aikana, pääset suoraan takaisin peliin aloitusnäytön sijaan"
+      "Taustadiagnostiikkaa, jonka avulla jäljitämme otteluajastimen ongelmaa puhelimen lukituksen jälkeen"
     ]
   }
 }
