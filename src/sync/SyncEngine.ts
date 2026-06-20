@@ -1465,11 +1465,8 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
 }
 
 /**
- * Reset the singleton (for testing and user transitions).
- * Calls dispose() to stop engine AND clear all listeners, preventing memory leaks.
- */
-/**
- * Reset the SyncEngine singleton.
+ * Reset the SyncEngine singleton (for testing and user transitions). Calls
+ * dispose() to stop the engine and clear listeners, preventing memory leaks.
  *
  * @param options.skipWait - If true, don't wait for in-flight sync to complete.
  *                           Use during force-close scenarios (user switch) for faster cleanup.
