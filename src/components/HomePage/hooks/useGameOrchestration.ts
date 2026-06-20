@@ -45,6 +45,7 @@ import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { reportTimerDiag } from '@/utils/timerDiagnostics';
+import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 import { usePremium } from '@/hooks/usePremium';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
@@ -872,28 +873,42 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           const savedTimerState = lastGameId
             ? await loadTimerStateForGame(lastGameId, userId)
             : null;
+          // Prefer the durable, synchronous localStorage anchor — it survives the
+          // Android WebView freeze/kill that the async IndexedDB record does not.
+          const anchor = readTimerAnchor();
           let correctedElapsed: number | undefined;
-          if (savedTimerState?.wasRunning && lastGameId) {
+          let source: string = 'none';
+          if (anchor && lastGameId && anchor.gameId === lastGameId) {
+            const offlineSeconds = (Date.now() - anchor.wallClockMs) / 1000;
+            correctedElapsed = Math.round(anchor.elapsedSeconds + offlineSeconds);
+            source = 'anchor';
+            pendingClockCorrectionRef.current = {
+              gameId: lastGameId,
+              elapsed: correctedElapsed,
+              resume: true,
+            };
+          } else if (savedTimerState?.wasRunning && lastGameId) {
             const offlineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
             correctedElapsed = Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds);
+            source = 'idb-record';
             pendingClockCorrectionRef.current = {
               gameId: lastGameId,
               elapsed: correctedElapsed,
               resume: true,
             };
           }
-          // TEMP diagnostic: what did the reload/boot path actually find? Distinguishes
-          // "no record", "stale tick-save (no wasRunning → no correction)", and the
-          // healthy wasRunning case — the key to the lock-resume under-count bug.
+          // TEMP diagnostic: which recovery source the boot path used and the values.
           reportTimerDiag('boot-correction', {
             lastGameId: lastGameId || null,
+            source,
+            anchorFound: !!anchor,
+            anchorElapsed: anchor?.elapsedSeconds,
+            anchorOfflineSec: anchor ? Math.round((Date.now() - anchor.wallClockMs) / 1000) : undefined,
             recordFound: !!savedTimerState,
             wasRunning: savedTimerState?.wasRunning ?? false,
-            recordElapsed: savedTimerState?.timeElapsedInSeconds,
-            recordTimestamp: savedTimerState?.timestamp,
-            offlineSec: savedTimerState ? Math.round((Date.now() - savedTimerState.timestamp) / 1000) : undefined,
             correctedElapsed,
           });
+          clearTimerAnchor();
           await clearTimerState(userId);
         } catch (error) {
           logger.error('[EFFECT init] Error consuming persisted timer state:', error);
