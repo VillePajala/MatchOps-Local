@@ -1,12 +1,12 @@
 {
-  "version": "f2f67a40",
+  "version": "9a0a04a4",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "Internal cleanup of unused timer code (no change to how the app behaves)"
+      "Fixed a rare cloud-sync issue where a quick change (e.g. a second goal) made during an in-progress sync could be skipped"
     ],
     "fi": [
-      "Ajastimen käyttämättömän koodin sisäistä siivousta (ei vaikuta sovelluksen toimintaan)"
+      "Korjattu harvinainen pilvisynkronoinnin ongelma, jossa synkronoinnin aikana tehty nopea muutos (esim. toinen maali) saattoi jäädä synkronoimatta"
     ]
   }
 }

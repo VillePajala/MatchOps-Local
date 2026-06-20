@@ -1046,6 +1046,16 @@ export class SyncEngine {
         return;
       }
 
+      // CR-H1: Re-read the operation after marking it 'syncing'. Between getPending()
+      // (which snapshots op.data) and markSyncing(), a concurrent enqueue can
+      // dedup-replace this still-'pending' op's data under the SAME id (e.g. a second
+      // goal logged during a slow push). markSyncing preserves the latest data, and
+      // once status is 'syncing' no further dedup-replace can occur — so the re-read
+      // captures the freshest data. Executing the snapshot instead would push stale
+      // data and then markCompleted() would delete the newer write (lost update).
+      const freshOp = await this.queue.getById(op.id);
+      const opToExecute = freshOp ?? op;
+
       // Execute the sync with timeout to prevent hung operations blocking all syncing
       // Note: 90 seconds needed for large games with many events/players/related data
       // and to account for potential cold starts on first request after inactivity.
@@ -1061,7 +1071,7 @@ export class SyncEngine {
       const execStartTime = Date.now();
       logger.info(`[SyncEngine] Marked syncing, executing: ${opInfo}`, {
         operationId: op.id.slice(0, 8),
-        hasData: !!op.data,
+        hasData: !!opToExecute.data,
       });
 
       // Use AbortController for timeout so the error is a proper AbortError,
@@ -1076,7 +1086,7 @@ export class SyncEngine {
       try {
         // Race the executor against the abort signal
         await Promise.race([
-          executor(op),
+          executor(opToExecute),
           new Promise<never>((_resolve, reject) => {
             // If already aborted (shouldn't happen, but defensive)
             if (abortController.signal.aborted) {
