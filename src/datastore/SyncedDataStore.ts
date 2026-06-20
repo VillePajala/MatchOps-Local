@@ -232,9 +232,13 @@ export class SyncedDataStore implements DataStore {
     if (this.syncEngine) {
       logger.info('[SyncedDataStore] Resetting sync engine...');
       // Null the reference BEFORE reset to prevent race conditions where
-      // setExecutor() is called on the old engine during dispose
+      // setExecutor() is called on the old engine during dispose.
+      // CR-H2: pass the owned engine so a stale store's late close() (after an
+      // account switch already installed a new engine) doesn't dispose the new
+      // user's live engine — resetSyncEngine only resets if it still owns the singleton.
+      const ownedEngine = this.syncEngine;
       this.syncEngine = null;
-      await resetSyncEngine();
+      await resetSyncEngine({ engine: ownedEngine });
       logger.info('[SyncedDataStore] Sync engine reset', { elapsedMs: Date.now() - closeStartTime });
     }
 
