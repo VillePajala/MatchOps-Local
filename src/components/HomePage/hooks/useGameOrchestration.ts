@@ -293,6 +293,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // `resume` is set when the timer was running at hide time (wasRunning), so the
   // boot path can continue the clock without a tap after a >5 min force-reload.
   const pendingClockCorrectionRef = useRef<{ gameId: string; elapsed: number; resume: boolean } | null>(null);
+  // Set when the boot path wants to auto-resume a loaded in-progress game. Consumed
+  // by a dedicated effect ONE render after LOAD_PERSISTED_GAME_DATA commits, so the
+  // precision timer's stableStartTime has synced to the recovered clock before
+  // RESUME_GAME starts it — mirroring the working manual Start-tap flow (dispatching
+  // RESUME in the same batch as LOAD starts the timer from a stale anchor / fails).
+  const pendingAutoResumeRef = useRef(false);
   // Track which initialAction has been processed to prevent re-processing
   const processedInitialActionRef = useRef<string | null>(null);
 
@@ -1066,14 +1072,15 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // 0:00); the resetHistory() below sets the undo baseline from the loaded game.
       // This is the same transition a manual Start tap produces — just automatic.
       if (shouldAutoResume) {
-        logger.info('[LOAD GAME STATE] Auto-resuming clock (timer was running before reload)');
-        dispatchGameSession({ type: 'RESUME_GAME' });
-        // TEMP diagnostic: did the timer actually end up running ~1.5s later?
-        // Distinguishes "RESUME_GAME not dispatched" from "dispatched but the
-        // precision timer never started" (isMatchTimerRunning is set by useGameTimer).
+        logger.info('[LOAD GAME STATE] Auto-resume armed (timer was running before reload)');
+        // Defer the actual RESUME_GAME to a dedicated effect that fires AFTER this
+        // LOAD render commits (see pendingAutoResumeRef declaration), so the timer
+        // starts from the recovered clock rather than a stale anchor.
+        pendingAutoResumeRef.current = true;
+        // TEMP diagnostic: did the timer actually end up running ~2.5s later?
         setTimeout(() => {
           reportTimerDiag('auto-resume', { phase2: 'post-dispatch', timerRunning: isMatchTimerRunning() });
-        }, 1500);
+        }, 2500);
       }
     } else {
       // Consume any pending clock correction even when no game loads (e.g. the
@@ -1228,8 +1235,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           setPlayersOnField([]);
         }
 
+        // Mark as loaded BEFORE the await: loadGameStateFromData is async, and the
+        // effect can re-fire during it (savedGames/callback identity changes). If the
+        // guard is set only after the await, the second run dispatches a second
+        // LOAD_PERSISTED_GAME_DATA that re-pauses the game after the first run already
+        // consumed the one-shot resume — leaving the timer paused.
+        loadedGameIdRef.current = currentGameId;
         await loadGameStateFromData(gameToLoad);
-        loadedGameIdRef.current = currentGameId; // Mark as loaded
         return;
       }
 
@@ -1243,6 +1255,24 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // The loadedGameIdRef guard prevents duplicate loads for the same game.
   // setPlayersOnField is a stable React setter used for defensive field clearing.
   }, [currentGameId, initialLoadComplete, savedGames, loadGameStateFromData, setPlayersOnField]);
+
+  // Deferred boot auto-resume: fires the render AFTER LOAD_PERSISTED_GAME_DATA has
+  // coerced the recovered in-progress game to 'notStarted' with the recovered clock.
+  // By then useGameTimer's stableStartTime has synced to that clock, so RESUME_GAME
+  // starts the precision timer from the correct time — exactly like a manual Start
+  // tap. Dispatching RESUME in the same batch as LOAD (the previous approach) left
+  // the device timer paused. One-shot via pendingAutoResumeRef.
+  useEffect(() => {
+    if (
+      pendingAutoResumeRef.current &&
+      gameSessionState.gameStatus === 'notStarted' &&
+      gameSessionState.timeElapsedInSeconds > 0
+    ) {
+      pendingAutoResumeRef.current = false;
+      logger.info('[LOAD GAME STATE] Auto-resuming clock (deferred, post-load)');
+      dispatchGameSession({ type: 'RESUME_GAME' });
+    }
+  }, [gameSessionState.gameStatus, gameSessionState.timeElapsedInSeconds, dispatchGameSession]);
 
   // Effect to prompt for setup if default game ID is loaded
   useEffect(() => {
