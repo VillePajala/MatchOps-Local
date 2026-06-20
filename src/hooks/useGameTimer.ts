@@ -2,7 +2,6 @@ import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react'
 import { flushSync } from 'react-dom';
 import { saveTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
 import { setMatchTimerRunning } from '@/utils/matchTimerSignal';
-import { reportTimerDiag } from '@/utils/timerDiagnostics';
 import { writeTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { useWakeLock } from './useWakeLock';
 import { usePrecisionTimer } from './usePrecisionTimer';
@@ -240,12 +239,6 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
             timestamp: hideTimestamp,
             wasRunning: true,
           });
-          // TEMP diagnostic: record what we captured at lock time.
-          reportTimerDiag('hide', {
-            gameId: currentGameId || '',
-            elapsedAtHide,
-            hiddenAt: hideTimestamp,
-          });
         }
       } else {
         // Returning to foreground. If the timer was running when hidden and the
@@ -259,9 +252,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         // NOT touch persisted timer state — clearing it would wipe state the
         // reload-recovery path may still need.
         if (hidden) {
-          const gapSec = (Date.now() - hidden.hiddenAt) / 1000;
-          const trueElapsed = Math.floor(hidden.elapsedAtHide + gapSec);
           if (stateRef.current.gameStatus === 'inProgress') {
+            const trueElapsed = Math.floor(
+              hidden.elapsedAtHide + (Date.now() - hidden.hiddenAt) / 1000
+            );
             // flushSync so the display anchor is updated before the re-anchor's
             // onTick lands, preventing a one-frame flash of the pre-background time.
             flushSync(() => {
@@ -272,17 +266,6 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
             // clock passed the period boundary while backgrounded.
             precisionTimerRef.current?.reanchor(trueElapsed);
           }
-
-          // TEMP diagnostic: in-session foreground (no reload). Tells us whether the
-          // reanchor path ran and how much wall-clock the WebView actually saw.
-          reportTimerDiag('resume', {
-            gameId: currentGameId || '',
-            elapsedAtHide: hidden.elapsedAtHide,
-            gapSec: Math.round(gapSec),
-            trueElapsed,
-            gameStatus: stateRef.current.gameStatus,
-            reanchored: stateRef.current.gameStatus === 'inProgress',
-          });
 
           // We wrote a wasRunning marker on hide; consume it now that the
           // in-session return is handled so it can't be replayed at reload.
