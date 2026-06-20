@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "More behind-the-scenes diagnostics to confirm the match-timer fix after locking your phone"
+      ],
+      "fi": [
+        "Lisää taustadiagnostiikkaa otteluajastimen korjauksen varmistamiseksi puhelimen lukituksen jälkeen"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "Fixed the match clock pausing and losing time after the phone is locked for a while — it now keeps running and shows the correct time when you return"
       ],
       "fi": [

@@ -1,12 +1,12 @@
 {
-  "version": "6ec4fda5",
+  "version": "f997eab4",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "Fixed the match clock pausing and losing time after the phone is locked for a while — it now keeps running and shows the correct time when you return"
+      "More behind-the-scenes diagnostics to confirm the match-timer fix after locking your phone"
     ],
     "fi": [
-      "Korjattu otteluajastimen pysähtyminen ja ajan katoaminen, kun puhelin on ollut hetken lukittuna — ajastin jatkaa nyt käyntiä ja näyttää oikean ajan kun palaat"
+      "Lisää taustadiagnostiikkaa otteluajastimen korjauksen varmistamiseksi puhelimen lukituksen jälkeen"
     ]
   }
 }
