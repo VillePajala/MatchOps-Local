@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { saveTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
 import { setMatchTimerRunning } from '@/utils/matchTimerSignal';
 import { reportTimerDiag } from '@/utils/timerDiagnostics';
+import { writeTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { useWakeLock } from './useWakeLock';
 import { usePrecisionTimer } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
@@ -82,6 +83,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         // Get precise current time from precision timer to prevent race conditions
         const preciseTime = precisionTimerRef.current?.getCurrentTime();
         dispatch({ type: 'PAUSE_TIMER', payload: preciseTime });
+        // Explicit pause: drop the wall-clock anchor so a later reload doesn't
+        // auto-resume a clock the user intentionally stopped.
+        clearTimerAnchor();
       } else {
         dispatch({ type: 'START_TIMER' });
       }
@@ -91,6 +95,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const reset = useCallback(async () => {
     // Clear timer state from IndexedDB
     await clearTimerState();
+    clearTimerAnchor();
     // Clear any pending debounced save
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
@@ -126,6 +131,13 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         timestamp: Date.now(),
       };
 
+      // Refresh the durable wall-clock anchor synchronously every tick. Cheap
+      // (one localStorage write) and means a freeze/kill at any moment leaves a
+      // fresh anchor for boot to recover from. The hide handler also writes it.
+      if (elapsedSeconds < periodEnd) {
+        writeTimerAnchor(currentGameId, elapsedSeconds);
+      }
+
       // Clear existing debounce timer
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
@@ -146,6 +158,8 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       }
       // Clear timer state asynchronously
       clearTimerState();
+      // Period/game ended — drop the anchor so boot won't resume past the end.
+      clearTimerAnchor();
       if (s.currentPeriod === s.numberOfPeriods) {
         dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'gameEnd', finalTime: periodEnd } });
       } else {
@@ -216,6 +230,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
             saveTimerRef.current = null;
           }
           const hideTimestamp = Date.now();
+          // Durable, SYNCHRONOUS anchor — completes before the OS can freeze the
+          // WebView. This is the primary recovery record (the async IndexedDB
+          // write below does not reliably flush on Android lock).
+          writeTimerAnchor(currentGameId || '', elapsedAtHide);
           void saveTimerState({
             gameId: currentGameId || '',
             timeElapsedInSeconds: elapsedAtHide,

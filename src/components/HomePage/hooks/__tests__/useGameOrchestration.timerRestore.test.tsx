@@ -251,6 +251,7 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.clear();
     queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false, gcTime: 0 },
@@ -367,6 +368,35 @@ describe('useGameOrchestration - hidden-session timer restore', () => {
     expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('notStarted');
     expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(false);
     expect(mockClearTimerState).toHaveBeenCalled();
+  });
+
+  /**
+   * @critical - The durable localStorage anchor is the primary recovery path
+   * after an Android WebView freeze/kill (the async IndexedDB record does not
+   * survive). With only an anchor present (no IndexedDB record), boot must fold
+   * the wall-clock gap into the loaded clock and auto-resume the running timer.
+   */
+  it('recovers from the localStorage anchor when no IndexedDB record survived', async () => {
+    mockLoadTimerStateForGame.mockResolvedValue(null); // async record lost on freeze
+    // Anchor written synchronously at lock: 900s elapsed, 60s of real time ago.
+    window.localStorage.setItem(
+      'matchops_timer_anchor',
+      JSON.stringify({ gameId: GAME_ID, elapsedSeconds: 900, wallClockMs: Date.now() - 60_000 })
+    );
+
+    const result = await renderOrchestration();
+
+    // 900 + 60 = 960, still below the 1800 period boundary → auto-resume running.
+    await waitFor(() => {
+      expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeGreaterThanOrEqual(960);
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    expect(result.current.modalManagerProps.data.gameSessionState.timeElapsedInSeconds).toBeLessThan(1800);
+    await waitFor(() => {
+      expect(result.current.modalManagerProps.data.gameSessionState.gameStatus).toBe('inProgress');
+      expect(result.current.modalManagerProps.data.gameSessionState.isTimerRunning).toBe(true);
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
+    // Anchor consumed so it can't be replayed.
+    expect(window.localStorage.getItem('matchops_timer_anchor')).toBeNull();
   });
 
   /**
