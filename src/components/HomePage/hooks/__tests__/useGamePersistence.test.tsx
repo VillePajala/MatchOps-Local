@@ -606,6 +606,70 @@ describe('useGamePersistence', () => {
     });
 
     /**
+     * Regression for CR-H7 / sync-icon flicker: a running clock ticks
+     * timeElapsedInSeconds every second, but that must NOT trigger an auto-save
+     * (and cloud sync) on every tick. The clock is saved when the timer STOPS
+     * (isTimerRunning flips), not on each tick.
+     * @critical
+     */
+    it('does NOT auto-save on a timer tick, but DOES when the timer stops', async () => {
+      jest.useFakeTimers();
+
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        initialLoadComplete: true,
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ isTimerRunning: true, timeElapsedInSeconds: 10 }),
+      });
+
+      const { rerender } = renderHook(
+        (props) => useGamePersistence(props),
+        { initialProps: params, wrapper: createWrapper() }
+      );
+      setSavedGames.mockClear();
+
+      // A tick: only timeElapsedInSeconds advances. Must NOT trigger a save.
+      act(() => {
+        rerender({
+          ...params,
+          gameSessionState: createMockGameSessionState({ isTimerRunning: true, timeElapsedInSeconds: 11 }),
+        });
+      });
+      act(() => { jest.runAllTimers(); });
+      expect(setSavedGames).not.toHaveBeenCalled();
+
+      // Timer stops (pause): isTimerRunning flips → immediate save fires.
+      act(() => {
+        rerender({
+          ...params,
+          gameSessionState: createMockGameSessionState({ isTimerRunning: false, timeElapsedInSeconds: 11 }),
+        });
+      });
+      act(() => { jest.runAllTimers(); });
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
+      // Timer starts/resumes: isTimerRunning flips true → immediate save fires
+      // (persists the recovered clock on boot auto-resume).
+      setSavedGames.mockClear();
+      act(() => {
+        rerender({
+          ...params,
+          gameSessionState: createMockGameSessionState({ isTimerRunning: true, timeElapsedInSeconds: 11 }),
+        });
+      });
+      act(() => { jest.runAllTimers(); });
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
+      jest.useRealTimers();
+    });
+
+    /**
      * Tests that auto-save debounces non-critical changes
      * @integration
      */
