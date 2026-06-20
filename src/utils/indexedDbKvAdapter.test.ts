@@ -325,6 +325,24 @@ describe('IndexedDBKvAdapter', () => {
       // Second close should not throw
       await expect(adapter.close()).resolves.not.toThrow();
     });
+
+    it('resets the terminated flag on close so the adapter can recover (CR-H8)', async () => {
+      await adapter.setItem('test', 'value'); // initialize
+
+      // Simulate an unexpected connection termination: the terminated() callback
+      // sets connectionTerminated=true and handleConnectionTermination() nulls db.
+      const internal = adapter as unknown as { connectionTerminated: boolean; db: unknown };
+      internal.connectionTerminated = true;
+      internal.db = null;
+
+      // close() must reset state even though db is already null — otherwise
+      // connectionTerminated stays true and initialize() throws forever.
+      await adapter.close();
+
+      // Adapter is reusable again (not permanently wedged).
+      await expect(adapter.setItem('test2', 'value2')).resolves.not.toThrow();
+      expect(await adapter.getItem('test2')).toBe('value2');
+    });
   });
 
   describe('Storage Integration', () => {

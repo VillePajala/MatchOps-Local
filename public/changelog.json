@@ -1,12 +1,12 @@
 {
-  "version": "7c51229c",
+  "version": "484aa491",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "Restoring a backup is now safe: if the restore can't finish, your existing data is automatically recovered instead of lost"
+      "The app now recovers on its own from temporary storage hiccups instead of getting stuck until you reload"
     ],
     "fi": [
-      "Varmuuskopion palautus on nyt turvallinen: jos palautusta ei saada valmiiksi, olemassa olevat tietosi palautetaan automaattisesti eivätkä katoa"
+      "Sovellus toipuu nyt itsestään tilapäisistä tallennushäiriöistä sen sijaan että se jumiutuisi uudelleenlataukseen asti"
     ]
   }
 }

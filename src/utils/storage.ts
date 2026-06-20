@@ -515,6 +515,10 @@ const ADAPTER_TTL = parseInt(
 const MAX_RETRY_ATTEMPTS = 3;      // Maximum number of retry attempts before giving up
 const BASE_RETRY_DELAY = 1000;     // 1 second - initial retry delay
 const MAX_RETRY_DELAY = 10000;     // 10 seconds - maximum delay to prevent excessive waiting
+// CR-H8: after this cooldown since the last failure, the retry lockout clears so a
+// wedged adapter can recover without a full page reload. Longer than MAX_RETRY_DELAY
+// so it only kicks in once the normal backoff cycle is genuinely exhausted.
+const RETRY_LOCKOUT_RESET_MS = 30000; // 30 seconds
 
 /**
  * Security limits for storage keys and values
@@ -688,6 +692,23 @@ function canRetryNow(): boolean {
 }
 
 /**
+ * CR-H8: clear the retry lockout after a cooldown.
+ *
+ * After MAX_RETRY_ATTEMPTS, canRetryNow() returns false permanently — and the retry
+ * state is only reset on a SUCCESSFUL adapter creation, which can never happen while
+ * locked. That wedged the whole app (every storage access threw "temporarily
+ * unavailable") until a full page reload. Once enough time has passed since the last
+ * failure, reset the retry state so a fresh attempt cycle is allowed.
+ */
+function maybeResetRetryLockout(): void {
+  if (lastFailureTime && Date.now() - lastFailureTime >= RETRY_LOCKOUT_RESET_MS) {
+    logger.debug('Storage adapter retry lockout cooldown elapsed — resetting retry state for a fresh attempt');
+    adapterRetryCount = 0;
+    lastFailureTime = null;
+  }
+}
+
+/**
  * Get IndexedDB storage adapter (IndexedDB-only, no localStorage fallback)
  * Implements TTL-based caching to prevent memory leaks and ensure fresh connections.
  * Uses MutexManager for proper thread-safe adapter creation.
@@ -720,6 +741,10 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
         // Continue with new adapter creation even if cleanup fails
       }
     }
+
+    // CR-H8: clear a stuck lockout after the cooldown so the app can recover without
+    // a reload (must run before the canRetryNow gate below).
+    maybeResetRetryLockout();
 
     // Check if we can retry now (respects exponential backoff)
     if (!canRetryNow()) {
