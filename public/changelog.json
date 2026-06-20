@@ -1,12 +1,12 @@
 {
-  "version": "088cbea0",
+  "version": "7e463630",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "Minor cleanup of temporary timer diagnostics now that the lock-screen fix is confirmed"
+      "The cloud-sync icon no longer flickers every second during a match — the clock now syncs when it stops, not on every tick"
     ],
     "fi": [
-      "Pientä siivousta väliaikaisista ajastindiagnostiikoista, kun lukitusnäytön korjaus on varmistettu"
+      "Pilvisynkronoinnin kuvake ei enää vilku joka sekunti ottelun aikana — kello synkronoidaan nyt kun se pysähtyy, ei joka sekunti"
     ]
   }
 }

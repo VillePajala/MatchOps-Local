@@ -470,8 +470,14 @@ export function useGamePersistence({
         gameEvents: gameSessionState.gameEvents,
         homeScore: gameSessionState.homeScore,
         awayScore: gameSessionState.awayScore,
-        // Timer progress is critical - must be saved to preserve when switching games
-        timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
+        // Save the clock when the timer STOPS/STARTS (isTimerRunning flips), not on
+        // every tick. timeElapsedInSeconds was here, but it changes every second, so
+        // a running match fired a full save + cloud sync ~once/second (CR-H7 — the
+        // sync icon flickered constantly). The save always persists the precise
+        // timeElapsedInSeconds; we just no longer trigger it on each tick. Crash/
+        // reload recovery of the live clock is covered by the timer-state record
+        // (IndexedDB) + the localStorage wall-clock anchor.
+        isTimerRunning: gameSessionState.isTimerRunning,
       },
       delay: 0,
     },
