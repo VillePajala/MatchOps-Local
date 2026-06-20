@@ -174,22 +174,6 @@ function hasLegacyContent(data: LegacyData): boolean {
   );
 }
 
-/**
- * Count total entities for migration result.
- */
-function countEntities(data: LegacyData): number {
-  return (
-    data.players.length +
-    Object.keys(data.games).length +
-    data.seasons.length +
-    data.tournaments.length +
-    Object.keys(data.teams).length +
-    Object.keys(data.personnel).length +
-    (data.warmupPlan ? 1 : 0) +
-    (data.settings ? 1 : 0)
-  );
-}
-
 // =============================================================================
 // MAIN MIGRATION FUNCTION
 // =============================================================================
@@ -254,36 +238,105 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
       return { status: 'no_legacy_data' };
     }
 
-    // Step 3: Check if user already has data (idempotent check)
+    // Step 3: Resumable, NON-DESTRUCTIVE idempotency (CR-H8c).
+    //
+    // The old check was `existingPlayers.length > 0 → already_migrated`. Because the
+    // migration is not transactional and writes players FIRST, a run that wrote some
+    // players then failed (e.g. at games) would latch PERMANENTLY: every retry saw
+    // players present and skipped everything, so games/seasons never arrived.
+    //
+    // Instead we compute, per entity, what the user is MISSING and migrate only that.
+    // Existing entities are never re-written, so anything the user edited after a
+    // partial migration is preserved (no stale-legacy overwrite). This makes the
+    // migration safely resumable.
     const userStore = await getDataStore(userId);
-    const existingPlayers = await userStore.getPlayers();
 
-    if (existingPlayers.length > 0) {
-      logger.info('[LegacyMigration] User already has data, skipping migration', {
-        userId,
-        existingPlayerCount: existingPlayers.length,
-      });
+    const [
+      existingPlayers,
+      existingGames,
+      existingSeasons,
+      existingTournaments,
+      existingTeams,
+      existingPersonnel,
+      existingAdjustmentsMap,
+      existingWarmupPlan,
+    ] = await Promise.all([
+      userStore.getPlayers(),
+      userStore.getGames(),
+      userStore.getSeasons(true),
+      userStore.getTournaments(true),
+      userStore.getTeams(true),
+      userStore.getAllPersonnel(),
+      userStore.getAllPlayerAdjustments(),
+      userStore.getWarmupPlan(),
+    ]);
+
+    const existingPlayerIds = new Set(existingPlayers.map((p) => p.id));
+    const existingGameIds = new Set(Object.keys(existingGames));
+    const existingSeasonIds = new Set(existingSeasons.map((s) => s.id));
+    const existingTournamentIds = new Set(existingTournaments.map((t) => t.id));
+    const existingTeamIds = new Set(existingTeams.map((t) => t.id));
+    const existingPersonnelIds = new Set(existingPersonnel.map((p) => p.id));
+    // Adjustments resume at the INDIVIDUAL adjustment level, not the player level: a
+    // partial write of player A's adjustments must still complete A's remaining ones
+    // on resume (I1). upsertPlayerAdjustment is idempotent by id, so skipping only the
+    // already-written ids is both safe and complete.
+    const existingAdjustmentIds = new Set<string>();
+    for (const adjustments of existingAdjustmentsMap.values()) {
+      for (const adjustment of adjustments) existingAdjustmentIds.add(adjustment.id);
+    }
+
+    // What's missing (id-keyed entities — skip anything already present).
+    const playersToMigrate = legacyData.players.filter((p) => !existingPlayerIds.has(p.id));
+    const seasonsToMigrate = legacyData.seasons.filter((s) => !existingSeasonIds.has(s.id));
+    const tournamentsToMigrate = legacyData.tournaments.filter((t) => !existingTournamentIds.has(t.id));
+    const teamEntriesToMigrate = Object.entries(legacyData.teams).filter(([id]) => !existingTeamIds.has(id));
+    const personnelToMigrate = (Object.values(legacyData.personnel) as Personnel[]).filter((p) => !existingPersonnelIds.has(p.id));
+    const gameEntriesToMigrate = Object.entries(legacyData.games).filter(([id]) => !existingGameIds.has(id));
+    const adjustmentsToMigrate = Object.values(legacyData.playerAdjustments)
+      .flat()
+      .filter((a) => !existingAdjustmentIds.has(a.id));
+    const warmupPlanToMigrate = legacyData.warmupPlan && !existingWarmupPlan ? legacyData.warmupPlan : null;
+
+    // Settings is a singleton with no id. Only write it on a FRESH migration (the user
+    // has no games or players yet) so we never clobber settings the user may have
+    // changed after a partial migration. Settings are written LAST in a normal run, so
+    // a partial failure never reached them — the user simply keeps defaults on resume.
+    const isFreshMigration = existingGameIds.size === 0 && existingPlayerIds.size === 0;
+
+    const migratedEntityCount =
+      playersToMigrate.length +
+      seasonsToMigrate.length +
+      tournamentsToMigrate.length +
+      teamEntriesToMigrate.length +
+      personnelToMigrate.length +
+      gameEntriesToMigrate.length +
+      adjustmentsToMigrate.length +
+      (warmupPlanToMigrate ? 1 : 0);
+
+    if (migratedEntityCount === 0 && !isFreshMigration) {
+      logger.info('[LegacyMigration] All legacy data already present in user database, nothing to migrate', { userId });
       return { status: 'already_migrated' };
     }
 
-    // Step 4: Migrate data to user's database
-    // NOTE: Migration is NOT transactional. On failure, some data may be migrated.
-    // This is acceptable given:
+    // Step 4: Migrate the MISSING data to the user's database.
+    // NOTE: Migration is NOT transactional. On failure, some data may be migrated —
+    // but it is now safely resumable: a later run completes whatever is still missing
+    // without overwriting what already arrived. Given:
     // 1. Single-user context (no concurrent writes from other sources)
     // 2. Small data scale (~100 entities typical for soccer coaching app)
-    // 3. User can retry migration or manually import from backup
-    // 4. Worst case: partial data + error toast prompts support contact
-    // 5. Legacy data is preserved (non-destructive) for manual recovery
+    // 3. Legacy data is preserved (non-destructive) for manual recovery
     const migrationStartTime = Date.now();
-    logger.info('[LegacyMigration] Starting data migration', {
+    logger.info('[LegacyMigration] Starting data migration (resumable)', {
       userId,
-      counts: {
-        players: legacyData.players.length,
-        games: Object.keys(legacyData.games).length,
-        seasons: legacyData.seasons.length,
-        tournaments: legacyData.tournaments.length,
-        teams: Object.keys(legacyData.teams).length,
-        personnel: Object.keys(legacyData.personnel).length,
+      isFreshMigration,
+      toMigrate: {
+        players: playersToMigrate.length,
+        games: gameEntriesToMigrate.length,
+        seasons: seasonsToMigrate.length,
+        tournaments: tournamentsToMigrate.length,
+        teams: teamEntriesToMigrate.length,
+        personnel: personnelToMigrate.length,
       },
     });
 
@@ -291,34 +344,34 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
     // On failure, logs which type failed so support can advise on recovery
 
     try {
-      for (const player of legacyData.players) {
+      for (const player of playersToMigrate) {
         await userStore.upsertPlayer(player);
       }
     } catch (error) {
-      logger.error('[LegacyMigration] Players migration failed', { count: legacyData.players.length, error });
+      logger.error('[LegacyMigration] Players migration failed', { count: playersToMigrate.length, error });
       throw error;
     }
 
     try {
-      for (const season of legacyData.seasons) {
+      for (const season of seasonsToMigrate) {
         await userStore.upsertSeason(season);
       }
     } catch (error) {
-      logger.error('[LegacyMigration] Seasons migration failed', { count: legacyData.seasons.length, error });
+      logger.error('[LegacyMigration] Seasons migration failed', { count: seasonsToMigrate.length, error });
       throw error;
     }
 
     try {
-      for (const tournament of legacyData.tournaments) {
+      for (const tournament of tournamentsToMigrate) {
         await userStore.upsertTournament(tournament);
       }
     } catch (error) {
-      logger.error('[LegacyMigration] Tournaments migration failed', { count: legacyData.tournaments.length, error });
+      logger.error('[LegacyMigration] Tournaments migration failed', { count: tournamentsToMigrate.length, error });
       throw error;
     }
 
     try {
-      for (const [teamId, team] of Object.entries(legacyData.teams)) {
+      for (const [teamId, team] of teamEntriesToMigrate) {
         await userStore.upsertTeam(team);
         const roster = legacyData.teamRosters[teamId];
         if (roster && roster.length > 0) {
@@ -326,53 +379,50 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
         }
       }
     } catch (error) {
-      logger.error('[LegacyMigration] Teams migration failed', { count: Object.keys(legacyData.teams).length, error });
+      logger.error('[LegacyMigration] Teams migration failed', { count: teamEntriesToMigrate.length, error });
       throw error;
     }
 
     try {
-      for (const personnel of Object.values(legacyData.personnel)) {
-        await userStore.upsertPersonnelMember(personnel as Personnel);
+      for (const personnel of personnelToMigrate) {
+        await userStore.upsertPersonnelMember(personnel);
       }
     } catch (error) {
-      logger.error('[LegacyMigration] Personnel migration failed', { count: Object.keys(legacyData.personnel).length, error });
+      logger.error('[LegacyMigration] Personnel migration failed', { count: personnelToMigrate.length, error });
       throw error;
     }
 
     try {
-      for (const [gameId, game] of Object.entries(legacyData.games)) {
+      for (const [gameId, game] of gameEntriesToMigrate) {
         await userStore.saveGame(gameId, game);
       }
     } catch (error) {
-      logger.error('[LegacyMigration] Games migration failed', { count: Object.keys(legacyData.games).length, error });
+      logger.error('[LegacyMigration] Games migration failed', { count: gameEntriesToMigrate.length, error });
       throw error;
     }
 
     try {
-      for (const [_playerId, adjustments] of Object.entries(legacyData.playerAdjustments)) {
-        for (const adjustment of adjustments) {
-          await userStore.upsertPlayerAdjustment(adjustment);
-        }
+      for (const adjustment of adjustmentsToMigrate) {
+        await userStore.upsertPlayerAdjustment(adjustment);
       }
     } catch (error) {
-      logger.error('[LegacyMigration] Player adjustments migration failed', { error });
+      logger.error('[LegacyMigration] Player adjustments migration failed', { count: adjustmentsToMigrate.length, error });
       throw error;
     }
 
     try {
-      if (legacyData.warmupPlan) {
-        await userStore.saveWarmupPlan(legacyData.warmupPlan);
+      if (warmupPlanToMigrate) {
+        await userStore.saveWarmupPlan(warmupPlanToMigrate);
       }
     } catch (error) {
       logger.error('[LegacyMigration] Warmup plan migration failed', { error });
       throw error;
     }
 
-    // Import settings
-    // NOTE: Settings are saved AFTER games. If any game save failed above, we would
-    // have thrown and never reached here. Therefore, validating currentGameId against
-    // legacyData.games is sufficient - all those games have been successfully saved.
-    if (legacyData.settings) {
+    // Import settings — only on a fresh migration (see isFreshMigration rationale
+    // above). Settings reference currentGameId; the games it points to were just
+    // migrated above (a game-save failure would have thrown before reaching here).
+    if (isFreshMigration && legacyData.settings) {
       const currentGameId = legacyData.settings.currentGameId;
       const validGameId = currentGameId && legacyData.games[currentGameId]
         ? currentGameId
@@ -384,26 +434,26 @@ export async function migrateLegacyData(userId: string): Promise<LegacyMigration
       });
     }
 
-    const entityCount = countEntities(legacyData);
-
+    // Report what was ACTUALLY migrated this run (migratedEntityCount, not the full
+    // legacy totals) so a resume reflects only the entities it completed.
     logger.info('[LegacyMigration] Migration completed successfully', {
       userId,
-      entityCount,
+      entityCount: migratedEntityCount,
       durationMs: Date.now() - migrationStartTime,
     });
 
     return {
       status: 'migrated',
-      entityCount,
+      entityCount: migratedEntityCount,
       counts: {
-        players: legacyData.players.length,
-        games: Object.keys(legacyData.games).length,
-        seasons: legacyData.seasons.length,
-        tournaments: legacyData.tournaments.length,
-        teams: Object.keys(legacyData.teams).length,
-        personnel: Object.keys(legacyData.personnel).length,
-        warmupPlan: !!legacyData.warmupPlan,
-        settings: !!legacyData.settings,
+        players: playersToMigrate.length,
+        games: gameEntriesToMigrate.length,
+        seasons: seasonsToMigrate.length,
+        tournaments: tournamentsToMigrate.length,
+        teams: teamEntriesToMigrate.length,
+        personnel: personnelToMigrate.length,
+        warmupPlan: !!warmupPlanToMigrate,
+        settings: isFreshMigration && !!legacyData.settings,
       },
     };
   } catch (error) {

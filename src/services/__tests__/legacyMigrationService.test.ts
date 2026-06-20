@@ -114,11 +114,14 @@ function createMockDataStore(existingPlayers: unknown[] = []): DataStore {
     upsertPlayerAdjustment: jest.fn().mockResolvedValue(undefined),
     saveWarmupPlan: jest.fn().mockResolvedValue(true),
     saveSettings: jest.fn().mockResolvedValue(undefined),
-    // Other methods not used in migration
+    // Existing-data getters used by the resumable (skip-if-exists) idempotency check.
     getGames: jest.fn().mockResolvedValue({}),
     getSeasons: jest.fn().mockResolvedValue([]),
     getTournaments: jest.fn().mockResolvedValue([]),
     getTeams: jest.fn().mockResolvedValue([]),
+    getAllPersonnel: jest.fn().mockResolvedValue([]),
+    getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
+    getWarmupPlan: jest.fn().mockResolvedValue(null),
   } as unknown as DataStore;
 }
 
@@ -209,6 +212,115 @@ describe('legacyMigrationService', () => {
       const result = await migrateLegacyData(TEST_USER_ID);
 
       expect(result.status).toBe('already_migrated');
+    });
+
+    /**
+     * CR-H8c: a prior migration that wrote the player then failed must RESUME —
+     * the still-missing games/seasons get migrated on the next run, instead of
+     * latching into 'already_migrated' forever just because a player exists.
+     * @critical
+     */
+    it('resumes a partial migration — completes missing entities without re-writing existing ones', async () => {
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        soccerSeasons: JSON.stringify([mockSeason]),
+        savedSoccerGames: JSON.stringify({ 'game-1': mockGame }),
+      }));
+      // Prior partial migration already wrote the player; games/seasons never arrived.
+      const mockStore = createMockDataStore([mockPlayer]);
+      mockGetDataStore.mockResolvedValue(mockStore);
+
+      const result = await migrateLegacyData(TEST_USER_ID);
+
+      expect(result.status).toBe('migrated');
+      // Missing entities are migrated...
+      expect(mockStore.upsertSeason).toHaveBeenCalledWith(mockSeason);
+      expect(mockStore.saveGame).toHaveBeenCalledWith('game-1', mockGame);
+      // ...but the already-present player is NOT re-written.
+      expect(mockStore.upsertPlayer).not.toHaveBeenCalled();
+      expect(result.counts?.players).toBe(0);
+      expect(result.counts?.seasons).toBe(1);
+      expect(result.counts?.games).toBe(1);
+    });
+
+    /**
+     * CR-H8c: recovery must be NON-DESTRUCTIVE — a legacy entity whose id already
+     * exists in the user DB (e.g. edited after a partial migration) must NOT be
+     * overwritten with the stale legacy version.
+     * @critical
+     */
+    it('does not overwrite an entity that already exists in the user database', async () => {
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        soccerSeasons: JSON.stringify([mockSeason]), // new → should migrate
+        savedSoccerGames: JSON.stringify({ 'game-1': mockGame }), // already present → skip
+      }));
+      const mockStore = createMockDataStore([mockPlayer]);
+      // The user already has game-1 (possibly edited since the partial migration).
+      (mockStore.getGames as jest.Mock).mockResolvedValue({ 'game-1': { ...mockGame, gameNotes: 'edited' } });
+      mockGetDataStore.mockResolvedValue(mockStore);
+
+      const result = await migrateLegacyData(TEST_USER_ID);
+
+      expect(result.status).toBe('migrated');
+      // The new season is migrated...
+      expect(mockStore.upsertSeason).toHaveBeenCalledWith(mockSeason);
+      // ...but the existing game is left untouched (no stale-legacy overwrite).
+      expect(mockStore.saveGame).not.toHaveBeenCalled();
+      expect(result.counts?.games).toBe(0);
+    });
+
+    /**
+     * CR-H8c (I2): settings (a no-id singleton) must NOT be re-written on a resume —
+     * only on a fresh migration — so a resume can't clobber settings the user changed.
+     * @critical
+     */
+    it('does not migrate settings on a resume run', async () => {
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        soccerSeasons: JSON.stringify([mockSeason]), // new → forces a 'migrated' run
+        soccerAppSettings: JSON.stringify({ currentGameId: 'whatever' }),
+      }));
+      // User already has a player → this is a resume, not a fresh migration.
+      const mockStore = createMockDataStore([mockPlayer]);
+      mockGetDataStore.mockResolvedValue(mockStore);
+
+      const result = await migrateLegacyData(TEST_USER_ID);
+
+      expect(result.status).toBe('migrated');
+      expect(mockStore.saveSettings).not.toHaveBeenCalled();
+      expect(result.counts?.settings).toBe(false);
+    });
+
+    /**
+     * CR-H8c (I1): adjustments resume at the individual-adjustment level — if a prior
+     * run wrote one adjustment for a player, the remaining ones still migrate.
+     * @critical
+     */
+    it('resumes player adjustments at the individual-adjustment level', async () => {
+      const adjA = { id: 'adj-1', playerId: 'player-1', value: 1 };
+      const adjB = { id: 'adj-2', playerId: 'player-1', value: 2 };
+      mockLegacyDatabaseExists.mockResolvedValue(true);
+      mockCreateLegacyAdapter.mockResolvedValue(createMockLegacyAdapter({
+        soccerMasterRoster: JSON.stringify([mockPlayer]),
+        soccerPlayerAdjustments: JSON.stringify({ 'player-1': [adjA, adjB] }),
+      }));
+      const mockStore = createMockDataStore([mockPlayer]);
+      // Prior partial run already wrote adj-1 for player-1; adj-2 never arrived.
+      (mockStore.getAllPlayerAdjustments as jest.Mock).mockResolvedValue(
+        new Map([['player-1', [adjA]]])
+      );
+      mockGetDataStore.mockResolvedValue(mockStore);
+
+      const result = await migrateLegacyData(TEST_USER_ID);
+
+      expect(result.status).toBe('migrated');
+      // Only the missing adjustment is written; the existing one is not re-written.
+      expect(mockStore.upsertPlayerAdjustment).toHaveBeenCalledTimes(1);
+      expect(mockStore.upsertPlayerAdjustment).toHaveBeenCalledWith(adjB);
     });
 
     it('should migrate data when legacy has content and user has no data', async () => {
