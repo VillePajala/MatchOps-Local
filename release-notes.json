@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "Fixed a rare cloud-sync issue where a quick change (e.g. a second goal) made during an in-progress sync could be skipped"
+      ],
+      "fi": [
+        "Korjattu harvinainen pilvisynkronoinnin ongelma, jossa synkronoinnin aikana tehty nopea muutos (esim. toinen maali) saattoi jäädä synkronoimatta"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "Internal cleanup of unused timer code (no change to how the app behaves)"
       ],
       "fi": [
