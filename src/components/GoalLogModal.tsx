@@ -639,6 +639,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
         }}
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
+        isConfirming={isProcessing}
       />
 
       {/* Recalculate score from goal log */}
