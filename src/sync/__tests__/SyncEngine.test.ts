@@ -264,6 +264,49 @@ describe('SyncEngine', () => {
       expect(op?.retryCount).toBe(1);
     });
 
+    /**
+     * CR-H1: lost-update via dedup id reuse.
+     * If a pending op's data is replaced (under the same id) in the window between
+     * getPending()'s snapshot and markSyncing(), the executor must push the LATEST
+     * data — not the stale snapshot — otherwise markCompleted() drops the newer write.
+     * @critical
+     */
+    it('executes the latest data when a pending op is replaced before markSyncing (CR-H1)', async () => {
+      // Initial write D1 for the entity.
+      await queue.enqueue(createTestOperation({
+        entityType: 'game',
+        entityId: 'game_1',
+        operation: 'update',
+        data: { goals: 1 },
+      }));
+
+      // Simulate the race: a concurrent enqueue lands in the window between the
+      // getPending() snapshot and markSyncing(), replacing the still-pending op's
+      // data (under the same id) with D2. We inject it by hooking markSyncing.
+      const realMarkSyncing = queue.markSyncing.bind(queue);
+      jest.spyOn(queue, 'markSyncing').mockImplementationOnce(async (opId: string) => {
+        await queue.enqueue(createTestOperation({
+          entityType: 'game',
+          entityId: 'game_1',
+          operation: 'update',
+          data: { goals: 2 },
+        }));
+        return realMarkSyncing(opId);
+      });
+
+      let receivedData: unknown;
+      mockExecutor.mockImplementation(async (op) => { receivedData = op.data; });
+
+      engine.start();
+      await flushAllAsync();
+
+      // The executor must have pushed the LATEST data (goals: 2), not the stale snapshot.
+      expect(receivedData).toEqual({ goals: 2 });
+      // And the newer write must not survive as an unsynced leftover.
+      const remaining = await queue.getPending();
+      expect(remaining).toHaveLength(0);
+    });
+
     it('should respect batch size', async () => {
       // Add 10 operations, batch size is 5
       for (let i = 0; i < 10; i++) {
