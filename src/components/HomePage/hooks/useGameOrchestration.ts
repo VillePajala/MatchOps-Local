@@ -1241,7 +1241,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // LOAD_PERSISTED_GAME_DATA that re-pauses the game after the first run already
         // consumed the one-shot resume — leaving the timer paused.
         loadedGameIdRef.current = currentGameId;
-        await loadGameStateFromData(gameToLoad);
+        try {
+          await loadGameStateFromData(gameToLoad);
+        } catch (err) {
+          // If the load failed, clear the guard so the effect can retry this game
+          // rather than leaving it permanently "loaded" but unapplied.
+          loadedGameIdRef.current = null;
+          logger.error('[EFFECT game load] loadGameStateFromData failed; will retry', err);
+        }
         return;
       }
 
