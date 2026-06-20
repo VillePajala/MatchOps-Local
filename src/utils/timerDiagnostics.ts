@@ -18,7 +18,8 @@ import * as Sentry from '@sentry/nextjs';
 export type TimerDiagPhase =
   | 'hide' // app backgrounded while a match clock was running
   | 'resume' // in-session foreground reanchor (no reload happened)
-  | 'boot-correction'; // boot path consumed the persisted timer record after a reload
+  | 'boot-correction' // boot path consumed the persisted timer record after a reload
+  | 'auto-resume'; // the load-game auto-resume decision (why it did/didn't resume)
 
 export function reportTimerDiag(
   phase: TimerDiagPhase,
