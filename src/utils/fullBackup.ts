@@ -460,6 +460,11 @@ export const exportCloudDataDownload = async (
  * const result = await importFullBackup(jsonContent, undefined, showToast, true, true, userId);
  * // Show results modal, then manually trigger reload when user closes modal
  */
+// CR-H6: a restore clears ALL data then rewrites it. Two concurrent restores
+// (e.g. a double-tapped confirm, or two triggers) could interleave clear+write and
+// corrupt/lose data. This module-level guard rejects a concurrent restore.
+let restoreInProgress = false;
+
 export const importFullBackup = async (
   jsonContent: string,
   onImportSuccess?: () => void,
@@ -469,6 +474,17 @@ export const importFullBackup = async (
   userId?: string
 ): Promise<BackupRestoreResult | null> => {
   logger.log("Starting full backup import...");
+
+  // CR-H6: reject a concurrent restore — never interleave two clear+write cycles.
+  if (restoreInProgress) {
+    logger.warn("[importFullBackup] A restore is already in progress — ignoring concurrent call.");
+    if (showToast) {
+      showToast(i18n.t("fullBackup.restoreInProgress", "A restore is already in progress."), 'info');
+    }
+    return null;
+  }
+  restoreInProgress = true;
+
   let mappingReportData: BackupRestoreResult['mappingReport'] | undefined;
 
   // Initialize statistics
@@ -873,5 +889,7 @@ export const importFullBackup = async (
       alert(i18n.t("fullBackup.restoreError", { error: errorMessage }));
     }
     return null; // Indicate failure
+  } finally {
+    restoreInProgress = false;
   }
 };
