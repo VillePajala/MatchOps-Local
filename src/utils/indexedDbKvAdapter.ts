@@ -509,11 +509,18 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       }
 
       this.db.close();
-      this.db = null;
-      this.initPromise = null;
-      this.pendingOperations.clear();
-      this.connectionTerminated = false; // Reset for potential reuse
     }
+
+    // CR-H8: reset state UNCONDITIONALLY — not only when this.db is set.
+    // The terminated() callback nulls this.db before close() runs, so guarding the
+    // reset behind `if (this.db)` left connectionTerminated stuck true forever:
+    // initialize() then always threw "connection terminated and cannot be reused"
+    // and the adapter was wedged until a full page reload. Resetting here lets a
+    // fresh initialize() recover after a termination.
+    this.db = null;
+    this.initPromise = null;
+    this.pendingOperations.clear();
+    this.connectionTerminated = false; // Reset for potential reuse
   }
 
   /**

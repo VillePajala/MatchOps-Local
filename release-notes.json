@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "The app now recovers on its own from temporary storage hiccups instead of getting stuck until you reload"
+      ],
+      "fi": [
+        "Sovellus toipuu nyt itsestään tilapäisistä tallennushäiriöistä sen sijaan että se jumiutuisi uudelleenlataukseen asti"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "Restoring a backup is now safe: if the restore can't finish, your existing data is automatically recovered instead of lost"
       ],
       "fi": [
