@@ -144,26 +144,3 @@ export const usePrecisionTimer = ({
     getCurrentTime,
   }), [start, stop, reset, reanchor, getCurrentTime]);
 };
-
-/**
- * Timer restoration helper for handling visibility changes
- */
-export const useTimerRestore = () => {
-  const handleVisibilityChange = useCallback(
-    (
-      savedTimestamp: number,
-      currentElapsed: number,
-      onRestore: (newElapsed: number) => void
-    ) => {
-      if (!document.hidden) {
-        const now = Date.now();
-        const timeSinceLastSave = (now - savedTimestamp) / 1000;
-        const restoredTime = currentElapsed + timeSinceLastSave;
-        onRestore(Math.floor(restoredTime));
-      }
-    },
-    []
-  );
-
-  return { handleVisibilityChange };
-};
