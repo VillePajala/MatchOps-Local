@@ -698,6 +698,34 @@ describe("importFullBackup", () => {
     });
   });
 
+  describe("Concurrent restore guard (CR-H6)", () => {
+    it("rejects a second restore while one is already in progress", async () => {
+      const validBackupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: [{ id: "p1", name: "Player 1" }],
+        },
+      };
+      const json = JSON.stringify(validBackupData);
+
+      const clearSpy = mockDataStore.clearAllUserData as jest.Mock;
+      clearSpy.mockClear();
+
+      // Fire both before awaiting — simulates a double-trigger / double-tapped confirm.
+      // confirmed=true skips window.confirm so both proceed past validation synchronously
+      // until the first hits an await (by then the in-flight flag is set).
+      const p1 = importFullBackup(json, undefined, undefined, true);
+      const p2 = importFullBackup(json, undefined, undefined, true);
+      const [r1, r2] = await Promise.all([p1, p2]);
+
+      // First runs; the concurrent second is rejected by the guard.
+      expect(r1).not.toBeNull();
+      expect(r2).toBeNull();
+      // Data was cleared exactly once — no interleaved double clear+write.
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("User Cancellation", () => {
     it("should return false and not modify localStorage when user cancels import", async () => {
       // Arrange
