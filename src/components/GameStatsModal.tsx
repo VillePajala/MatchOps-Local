@@ -1133,6 +1133,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           onCancel={() => goalEditorHook.setShowDeleteConfirm(false)}
           confirmLabel={t('common.delete', 'Delete')}
           variant="danger"
+          isConfirming={goalEditorHook.isDeletingEvent}
         />
       </div>
     </div>

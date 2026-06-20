@@ -480,6 +480,40 @@ describe('useGamePersistence', () => {
     });
 
     /**
+     * CR-H6: a double-tapped delete confirm must not delete twice. The second
+     * concurrent call for the same event is rejected by the in-flight guard, so
+     * storage removal and the score-adjusting dispatch each happen exactly once.
+     * @critical
+     */
+    it('ignores a concurrent duplicate delete for the same event (CR-H6)', async () => {
+      const savedGames = require('@/utils/savedGames');
+      const dispatchGameSession = jest.fn();
+      const goalEvent = { id: 'event1', type: 'goal' as const, time: 60 };
+      const params = createMockParams({
+        currentGameId: 'game123',
+        gameSessionState: createMockGameSessionState({ gameEvents: [goalEvent] }),
+        dispatchGameSession,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      let r1: boolean = false;
+      let r2: boolean = true;
+      await act(async () => {
+        // Fire both before awaiting — simulates a rapid double-tap of the confirm.
+        const p1 = result.current.handleDeleteGameEvent('event1');
+        const p2 = result.current.handleDeleteGameEvent('event1');
+        [r1, r2] = await Promise.all([p1, p2]);
+      });
+
+      // First succeeds, second is rejected by the guard.
+      expect(r1).toBe(true);
+      expect(r2).toBe(false);
+      // Storage removal and score dispatch each happened exactly once.
+      expect(savedGames.removeGameEvent).toHaveBeenCalledTimes(1);
+      expect(dispatchGameSession).toHaveBeenCalledTimes(1);
+    });
+
+    /**
      * Tests that non-goal events use atomic action but don't adjust score
      * @integration
      */
