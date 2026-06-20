@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "Fixed cloud sync sometimes stopping after switching accounts (no longer needs an app restart)"
+      ],
+      "fi": [
+        "Korjattu pilvisynkronoinnin satunnainen pysähtyminen tilin vaihdon jälkeen (ei enää vaadi sovelluksen uudelleenkäynnistystä)"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "Fixed a rare cloud-sync issue where a quick change (e.g. a second goal) made during an in-progress sync could be skipped"
       ],
       "fi": [
