@@ -2563,6 +2563,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         }}
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
+        isConfirming={isProcessing}
       />
     </div>
   );

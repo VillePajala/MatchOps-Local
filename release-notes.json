@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "Deleting a goal is now safe against accidental double-taps — it can no longer remove the wrong event or change the score twice"
+      ],
+      "fi": [
+        "Maalin poistaminen kestää nyt vahingossa tehdyt tuplanapautukset — se ei voi enää poistaa väärää tapahtumaa tai muuttaa tulosta kahdesti"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "If signing in can't start (e.g. right after an app update), you now get a Retry button instead of a stuck screen"
       ],
       "fi": [

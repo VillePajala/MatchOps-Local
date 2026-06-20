@@ -32,6 +32,7 @@ interface UseGoalEditorResult {
   confirmDeleteEvent: () => Promise<void>;
   showDeleteConfirm: boolean;
   setShowDeleteConfirm: (show: boolean) => void;
+  isDeletingEvent: boolean;
   goalIdToDelete: string | null;
   setEditGoalTime: (time: string) => void;
   setEditGoalScorerId: (scorerId: string) => void;
@@ -61,6 +62,9 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
   const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [goalIdToDelete, setGoalIdToDelete] = useState<string | null>(null);
+  // CR-H6: disables the confirm button while a delete is in flight (UX guard; the
+  // hard guard against double-deletes lives in handleDeleteGameEvent).
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
 
   const handleStartEditGoal = (goal: GameEvent) => {
@@ -140,6 +144,8 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
   };
 
   const confirmDeleteEvent = async () => {
+    if (isDeletingEvent) return; // ignore a double-tapped confirm
+    setIsDeletingEvent(true);
     try {
       if (goalIdToDelete && onDeleteGameEvent) {
         const result = await onDeleteGameEvent(goalIdToDelete);
@@ -152,6 +158,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
       logger.error('[useGoalEditor] Failed to delete event:', error);
       showToast(t('gameStatsModal.deleteEventFailed', 'Failed to delete event. Please try again.'), 'error');
     } finally {
+      setIsDeletingEvent(false);
       setShowDeleteConfirm(false);
       setGoalIdToDelete(null);
     }
@@ -171,6 +178,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     confirmDeleteEvent,
     showDeleteConfirm,
     setShowDeleteConfirm,
+    isDeletingEvent,
     goalIdToDelete,
     setEditGoalTime,
     setEditGoalScorerId,
