@@ -452,7 +452,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // stranded — authService is never set, so signIn() returns "Auth not
         // initialized" forever and there's no UI affordance. Surface the retry screen
         // (initTimedOut drives it in cloud mode) so retryAuthInit() can re-run init.
-        if (mounted && !enteredGracePeriod) {
+        // Cloud-gated to match the retry screen's UI gating (no-op in local mode).
+        if (mounted && !enteredGracePeriod && currentMode === 'cloud') {
           setInitTimedOut(true);
         }
       } finally {
