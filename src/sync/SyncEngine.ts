@@ -1046,6 +1046,12 @@ export class SyncEngine {
         return;
       }
 
+      // CR-H1: re-read after markSyncing — a concurrent enqueue can dedup-replace a
+      // still-'pending' op's data under the same id between getPending() and here;
+      // execute the fresh copy so markCompleted() can't drop the newer write.
+      const freshOp = await this.queue.getById(op.id);
+      const opToExecute = freshOp ?? op;
+
       // Execute the sync with timeout to prevent hung operations blocking all syncing
       // Note: 90 seconds needed for large games with many events/players/related data
       // and to account for potential cold starts on first request after inactivity.
@@ -1061,7 +1067,7 @@ export class SyncEngine {
       const execStartTime = Date.now();
       logger.info(`[SyncEngine] Marked syncing, executing: ${opInfo}`, {
         operationId: op.id.slice(0, 8),
-        hasData: !!op.data,
+        hasData: !!opToExecute.data,
       });
 
       // Use AbortController for timeout so the error is a proper AbortError,
@@ -1076,7 +1082,7 @@ export class SyncEngine {
       try {
         // Race the executor against the abort signal
         await Promise.race([
-          executor(op),
+          executor(opToExecute),
           new Promise<never>((_resolve, reject) => {
             // If already aborted (shouldn't happen, but defensive)
             if (abortController.signal.aborted) {
