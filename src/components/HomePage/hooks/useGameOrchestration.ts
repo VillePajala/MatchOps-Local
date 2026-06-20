@@ -44,9 +44,7 @@ import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManage
 import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
-import { reportTimerDiag } from '@/utils/timerDiagnostics';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
-import { isMatchTimerRunning } from '@/utils/matchTimerSignal';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 import { usePremium } from '@/hooks/usePremium';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
@@ -883,41 +881,24 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // Prefer the durable, synchronous localStorage anchor — it survives the
           // Android WebView freeze/kill that the async IndexedDB record does not.
           const anchor = readTimerAnchor();
-          let correctedElapsed: number | undefined;
-          let source: string = 'none';
           // Note: the period-boundary cap is applied downstream in
           // loadGameStateFromData (Math.min(elapsed, periodBoundary)); this just
           // computes the raw wall-clock-corrected elapsed.
           if (anchor && lastGameId && anchor.gameId === lastGameId) {
             const offlineSeconds = (Date.now() - anchor.wallClockMs) / 1000;
-            correctedElapsed = Math.round(anchor.elapsedSeconds + offlineSeconds);
-            source = 'anchor';
             pendingClockCorrectionRef.current = {
               gameId: lastGameId,
-              elapsed: correctedElapsed,
+              elapsed: Math.round(anchor.elapsedSeconds + offlineSeconds),
               resume: true,
             };
           } else if (savedTimerState?.wasRunning && lastGameId) {
             const offlineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
-            correctedElapsed = Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds);
-            source = 'idb-record';
             pendingClockCorrectionRef.current = {
               gameId: lastGameId,
-              elapsed: correctedElapsed,
+              elapsed: Math.round(savedTimerState.timeElapsedInSeconds + offlineSeconds),
               resume: true,
             };
           }
-          // TEMP diagnostic: which recovery source the boot path used and the values.
-          reportTimerDiag('boot-correction', {
-            lastGameId: lastGameId || null,
-            source,
-            anchorFound: !!anchor,
-            anchorElapsed: anchor?.elapsedSeconds,
-            anchorOfflineSec: anchor ? Math.round((Date.now() - anchor.wallClockMs) / 1000) : undefined,
-            recordFound: !!savedTimerState,
-            wasRunning: savedTimerState?.wasRunning ?? false,
-            correctedElapsed,
-          });
           // Consume both recovery records unconditionally so a stale anchor/record
           // (incl. one for a different game) can never be replayed on a later boot.
           clearTimerAnchor();
@@ -1047,18 +1028,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // end — we never silently auto-advance periods.
           shouldAutoResume = pendingCorrection.resume && corrected < periodBoundarySeconds;
         }
-        // TEMP diagnostic: capture exactly why the boot path did/didn't auto-resume.
-        reportTimerDiag('auto-resume', {
-          pendingPresent: true,
-          gameIdMatch: pendingCorrection.gameId === currentGameId,
-          loadedGameStatus: gameData.gameStatus,
-          pendingElapsed: pendingCorrection.elapsed,
-          pendingResume: pendingCorrection.resume,
-          shouldAutoResume,
-        });
         pendingClockCorrectionRef.current = null;
-      } else {
-        reportTimerDiag('auto-resume', { pendingPresent: false, loadedGameStatus: gameData.gameStatus });
       }
 
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
@@ -1077,10 +1047,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // LOAD render commits (see pendingAutoResumeRef declaration), so the timer
         // starts from the recovered clock rather than a stale anchor.
         pendingAutoResumeRef.current = true;
-        // TEMP diagnostic: did the timer actually end up running ~2.5s later?
-        setTimeout(() => {
-          reportTimerDiag('auto-resume', { phase2: 'post-dispatch', timerRunning: isMatchTimerRunning() });
-        }, 2500);
       }
     } else {
       // Consume any pending clock correction even when no game loads (e.g. the
