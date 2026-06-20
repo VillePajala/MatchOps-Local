@@ -355,6 +355,13 @@ describe('<GameSettingsModal />', () => {
       expect(mutate).not.toHaveBeenCalled();
       // ...and it stays selected even though the new filter would exclude it.
       expect(leagueSelect.value).toBe('aluesarja-1-etela');
+
+      // Same for the level filter (symmetric code path).
+      const levelFilter = container.querySelector('#league-level-filter-game') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'national');
+      expect(onLeagueIdChange).not.toHaveBeenCalled();
+      expect(mutate).not.toHaveBeenCalled();
+      expect(leagueSelect.value).toBe('aluesarja-1-etela');
     });
 
     test('preserves current game date when removing a player from an existing game roster selection', async () => {
