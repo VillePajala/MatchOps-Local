@@ -652,6 +652,20 @@ describe('useGamePersistence', () => {
         expect(setSavedGames).toHaveBeenCalled();
       });
 
+      // Timer starts/resumes: isTimerRunning flips true → immediate save fires
+      // (persists the recovered clock on boot auto-resume).
+      setSavedGames.mockClear();
+      act(() => {
+        rerender({
+          ...params,
+          gameSessionState: createMockGameSessionState({ isTimerRunning: true, timeElapsedInSeconds: 11 }),
+        });
+      });
+      act(() => { jest.runAllTimers(); });
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
       jest.useRealTimers();
     });
 
