@@ -137,8 +137,6 @@ export type GameSessionAction =
   | { type: 'LOAD_GAME_SESSION_STATE'; payload: Partial<GameSessionState> }
   | { type: 'RESET_GAME_SESSION_STATE'; payload: GameSessionState } // Action to reset to a specific state
   | { type: 'LOAD_PERSISTED_GAME_DATA'; payload: Partial<GameSessionState> } // For loading GameData-like objects
-  | { type: 'PAUSE_TIMER_FOR_HIDDEN'; payload?: number }
-  | { type: 'RESTORE_TIMER_STATE'; payload: { savedTime: number; timestamp: number } }
   | { type: 'RESUME_GAME' }; // Resume a loaded in-progress game at its saved clock/period
 
 const safeElapsedSeconds = (value: unknown, fallback: number): number => {
@@ -378,41 +376,6 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'SET_TIMER_RUNNING':
       return { ...state, isTimerRunning: action.payload };
-    case 'PAUSE_TIMER_FOR_HIDDEN':
-      if (state.isTimerRunning && state.gameStatus === 'inProgress' && state.startTimestamp) {
-        // Capture the same precise elapsed value saved by the visibility handler.
-        // Do not add Date.now() - startTimestamp here: timeElapsedInSeconds is
-        // already updated while the timer runs, so adding the full run duration
-        // can double the timer when the screen locks or the app backgrounds.
-        const elapsedAtHide = safeElapsedSeconds(
-          action.payload,
-          safeElapsedSeconds(state.timeElapsedInSeconds, 0)
-        );
-        return {
-          ...state,
-          isTimerRunning: false,
-          startTimestamp: null,
-          timeElapsedInSeconds: elapsedAtHide,
-        };
-      }
-      return state;
-    // Used only by the in-session visibility-change path (tab returns to
-    // foreground without a reload). Boot-time recovery instead folds the
-    // record into the loaded game state before LOAD_PERSISTED_GAME_DATA.
-    case 'RESTORE_TIMER_STATE': {
-      if (state.gameStatus === 'inProgress') {
-        const { savedTime } = action.payload;
-        // savedTime is already corrected by handleVisibilityChange (savedTime + offline duration)
-        // Don't calculate offline time again to avoid double-counting
-        return {
-          ...state,
-          timeElapsedInSeconds: Math.round(savedTime),
-          isTimerRunning: true,
-          startTimestamp: Date.now(),
-        };
-      }
-      return state;
-    }
     case 'SET_SUB_INTERVAL': {
         const newIntervalMinutes = Math.max(1, action.payload);
         const currentElapsedTime = state.timeElapsedInSeconds;

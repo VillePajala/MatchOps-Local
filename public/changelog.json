@@ -1,12 +1,12 @@
 {
-  "version": "7e463630",
+  "version": "f2f67a40",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "The cloud-sync icon no longer flickers every second during a match — the clock now syncs when it stops, not on every tick"
+      "Internal cleanup of unused timer code (no change to how the app behaves)"
     ],
     "fi": [
-      "Pilvisynkronoinnin kuvake ei enää vilku joka sekunti ottelun aikana — kello synkronoidaan nyt kun se pysähtyy, ei joka sekunti"
+      "Ajastimen käyttämättömän koodin sisäistä siivousta (ei vaikuta sovelluksen toimintaan)"
     ]
   }
 }
