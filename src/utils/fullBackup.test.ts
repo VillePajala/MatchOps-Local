@@ -726,6 +726,42 @@ describe("importFullBackup", () => {
     });
   });
 
+  describe("Restore failure recovery (CR-H6b-2)", () => {
+    it("recovers the user's original data when the restore write fails after clearing", async () => {
+      // Original data the user already has.
+      mockStore[MASTER_ROSTER_KEY] = [{ id: "origP", name: "Original Player" }];
+      mockStore[SAVED_GAMES_KEY] = { origGame: { id: "origGame", teamName: "Orig" } } as unknown as SavedGamesCollection;
+
+      // A different backup the user is restoring.
+      const backupB = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: [{ id: "newP", name: "New Player" }],
+          [SAVED_GAMES_KEY]: { newGame: { id: "newGame", teamName: "New" } },
+        },
+      };
+
+      // Inject a failure on the FIRST upsertPlayer call — the forward write of the
+      // backup — so the restore fails AFTER clearAllUserData already wiped data.
+      // Subsequent upsertPlayer calls (the recovery) use the default implementation.
+      (mockDataStore.upsertPlayer as jest.Mock).mockRejectedValueOnce(new Error("simulated write failure"));
+
+      const showToast = jest.fn();
+      const result = await importFullBackup(JSON.stringify(backupB), undefined, showToast, true);
+
+      // Import failed...
+      expect(result).toBeNull();
+      // ...but the ORIGINAL data was recovered — not lost, and not the failed backup's.
+      expect(mockStore[MASTER_ROSTER_KEY]).toEqual([{ id: "origP", name: "Original Player" }]);
+      expect(mockStore[SAVED_GAMES_KEY]).toEqual({ origGame: { id: "origGame", teamName: "Orig" } });
+      // User was told recovery succeeded.
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringMatching(/original data was recovered/i),
+        'error'
+      );
+    });
+  });
+
   describe("User Cancellation", () => {
     it("should return false and not modify localStorage when user cancels import", async () => {
       // Arrange
@@ -1343,9 +1379,11 @@ describe("importFullBackup", () => {
         // Assert: Check results
         expect(result).toBeNull(); // Function should indicate failure
         expect(mockDataStore.saveAllGames).toHaveBeenCalled();
-        // The actual error message from the implementation contains a different text
+        // CR-H6b-2: the write failure now triggers recovery from the pre-restore
+        // snapshot (the injected rejection is one-shot, so the rollback's saveAllGames
+        // succeeds). The user is told their original data was recovered.
         expect(alertMock).toHaveBeenCalledWith(
-          expect.stringContaining("Failed to restore"),
+          expect.stringMatching(/original data was recovered/i),
         );
         if (jest.isMockFunction(window.location.reload)) {
           expect(window.location.reload).not.toHaveBeenCalled();
