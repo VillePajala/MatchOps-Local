@@ -33,7 +33,7 @@ jest.mock('@sentry/nextjs', () => ({
 
 import { getStorageAdapter, clearAdapterCache } from './storage';
 import { createStorageAdapter } from './storageFactory';
-import type { StorageAdapter } from './storageFactory';
+import type { StorageAdapter } from './storageAdapter';
 
 const mockCreate = createStorageAdapter as jest.Mock;
 
