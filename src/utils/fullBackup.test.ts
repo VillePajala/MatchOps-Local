@@ -760,6 +760,30 @@ describe("importFullBackup", () => {
         'error'
       );
     });
+
+    it("reports recovery failure when the rollback itself cannot complete", async () => {
+      mockStore[MASTER_ROSTER_KEY] = [{ id: "origP", name: "Original Player" }];
+
+      const backupB = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [MASTER_ROSTER_KEY]: [{ id: "newP", name: "New Player" }],
+        },
+      };
+
+      // upsertPlayer ALWAYS fails — the forward write fails AND every recovery
+      // attempt fails, so the rollback cannot complete.
+      (mockDataStore.upsertPlayer as jest.Mock).mockRejectedValue(new Error("persistent write failure"));
+
+      const showToast = jest.fn();
+      const result = await importFullBackup(JSON.stringify(backupB), undefined, showToast, true);
+
+      expect(result).toBeNull();
+      expect(showToast).toHaveBeenCalledWith(
+        expect.stringMatching(/recovery did not complete/i),
+        'error'
+      );
+    }, 15000);
   });
 
   describe("User Cancellation", () => {
