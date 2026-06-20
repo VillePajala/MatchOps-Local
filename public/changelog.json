@@ -1,12 +1,12 @@
 {
-  "version": "4bde3904",
+  "version": "088cbea0",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "The match clock now actually keeps running (not just shows the right time) after you reopen the app during a game"
+      "Minor cleanup of temporary timer diagnostics now that the lock-screen fix is confirmed"
     ],
     "fi": [
-      "Otteluajastin jatkaa nyt todella käyntiä (eikä vain näytä oikeaa aikaa), kun avaat sovelluksen uudelleen ottelun aikana"
+      "Pientä siivousta väliaikaisista ajastindiagnostiikoista, kun lukitusnäytön korjaus on varmistettu"
     ]
   }
 }
