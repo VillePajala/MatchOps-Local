@@ -65,15 +65,20 @@ export function readCachedSupabaseSession(): CachedSupabaseSession | null {
 
 /**
  * Get cached user identity (userId + email) for grace period display.
- * Rejects expired tokens — stale sessions don't justify grace period access.
  *
- * @returns User identity or null if no valid cached session
+ * Access tokens are short-lived (~1h). A cold start after >1h offline has an
+ * EXPIRED access token but a still-valid refresh token — which is exactly the
+ * "locked out at the field" case (CR-H3). So an expired access token only
+ * disqualifies the session when there is no refresh token to recover it; with a
+ * refresh token present we still grant grace-period access (the session is
+ * re-validated/refreshed once connectivity returns).
+ *
+ * @returns User identity or null if no usable cached session
  */
 export function getCachedUserIdentity(): { userId: string; email: string } | null {
   const session = readCachedSupabaseSession();
   if (!session) return null;
 
-  // Reject expired tokens
   const expiresAt = session.expires_at;
   if (typeof expiresAt === 'number') {
     // Plausibility: reject values that look like milliseconds (> 1e12) or negative.
@@ -83,8 +88,9 @@ export function getCachedUserIdentity(): { userId: string; email: string } | nul
       logger.debug('[cachedSession] expires_at looks implausible (ms? negative?):', expiresAt);
       return null;
     }
-    if (expiresAt < Date.now() / 1000) {
-      return null; // Expired
+    if (expiresAt < Date.now() / 1000 && !session.refresh_token) {
+      // Access token expired AND no refresh token → genuinely stale/unusable.
+      return null;
     }
   }
   // If expires_at is missing/non-numeric, proceed — better to grant grace period
