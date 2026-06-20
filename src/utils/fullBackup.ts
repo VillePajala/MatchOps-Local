@@ -465,6 +465,75 @@ export const exportCloudDataDownload = async (
 // corrupt/lose data. This module-level guard rejects a concurrent restore.
 let restoreInProgress = false;
 
+/**
+ * CR-H6b-2: write a previously-captured snapshot's entities back to the DataStore.
+ *
+ * Used ONLY to recover the user's original data after a restore's write phase fails
+ * (the restore already cleared existing data, so a partial/failed write would
+ * otherwise be total loss). This deliberately does NOT clear first — it only ADDS
+ * data back via idempotent upserts (and a full games replace), so recovery can never
+ * remove more than the failed restore already did. A failed restore may leave a few
+ * orphan entities behind; that is not data loss and is far preferable to risking a
+ * second destructive clear. Kept separate from the forward write path so it stays
+ * dead-simple and cannot regress normal restores.
+ */
+async function restoreSnapshotEntities(
+  dataStore: DataStore,
+  ls: FullBackupData['localStorage'],
+): Promise<void> {
+  const players = ls[MASTER_ROSTER_KEY];
+  if (Array.isArray(players)) {
+    for (const player of players) await dataStore.upsertPlayer(player);
+  }
+
+  const seasons = ls[SEASONS_LIST_KEY];
+  if (Array.isArray(seasons)) {
+    for (const season of seasons) await dataStore.upsertSeason(season);
+  }
+
+  const tournaments = ls[TOURNAMENTS_LIST_KEY];
+  if (Array.isArray(tournaments)) {
+    for (const tournament of tournaments) await dataStore.upsertTournament(tournament);
+  }
+
+  const teams = ls[TEAMS_INDEX_KEY];
+  if (teams && typeof teams === 'object') {
+    for (const teamId of Object.keys(teams)) await dataStore.upsertTeam(teams[teamId]);
+  }
+
+  const teamRosters = ls[TEAM_ROSTERS_KEY];
+  if (teamRosters && typeof teamRosters === 'object') {
+    for (const teamId of Object.keys(teamRosters)) await dataStore.setTeamRoster(teamId, teamRosters[teamId]);
+  }
+
+  const personnel = ls[PERSONNEL_KEY];
+  if (personnel && typeof personnel === 'object') {
+    for (const personnelId of Object.keys(personnel)) await dataStore.upsertPersonnelMember(personnel[personnelId]);
+  }
+
+  // Full replace — cleanly removes any games the failed restore wrote.
+  const games = ls[SAVED_GAMES_KEY];
+  if (games && typeof games === 'object') {
+    await dataStore.saveAllGames(games);
+  }
+
+  const adjustments = ls[PLAYER_ADJUSTMENTS_KEY];
+  if (adjustments && typeof adjustments === 'object') {
+    for (const playerId of Object.keys(adjustments)) {
+      const playerAdjustments = adjustments[playerId];
+      if (Array.isArray(playerAdjustments)) {
+        for (const adjustment of playerAdjustments) await dataStore.upsertPlayerAdjustment(adjustment);
+      }
+    }
+  }
+
+  const settings = ls[APP_SETTINGS_KEY];
+  if (settings) await dataStore.saveSettings(settings);
+
+  const warmupPlan = ls[WARMUP_PLAN_KEY];
+  if (warmupPlan) await dataStore.saveWarmupPlan(warmupPlan);
+}
+
 export const importFullBackup = async (
   jsonContent: string,
   onImportSuccess?: () => void,
@@ -486,6 +555,9 @@ export const importFullBackup = async (
   restoreInProgress = true;
 
   let mappingReportData: BackupRestoreResult['mappingReport'] | undefined;
+  // Set when the rollback path has already shown a precise message, so the outer
+  // catch doesn't double-toast with the generic restore error.
+  let errorAlreadyReported = false;
 
   // Initialize statistics
   const statistics: BackupRestoreResult['statistics'] = {
@@ -563,6 +635,17 @@ export const importFullBackup = async (
       currentRosterBeforeClear = await dataStore.getPlayers();
     } catch (error) {
       logger.warn('Could not get current roster before clear:', error);
+    }
+
+    // --- CR-H6b-2: snapshot ALL current data BEFORE clearing, so a failed write
+    // can be rolled back instead of leaving the user with wiped data. Best-effort:
+    // if the snapshot can't be captured, we proceed without rollback (prior behavior)
+    // rather than blocking a restore the user explicitly requested. ---
+    let preRestoreSnapshot: FullBackupData | null = null;
+    try {
+      preRestoreSnapshot = JSON.parse(await generateFullBackupJson(userId, dataStore)) as FullBackupData;
+    } catch (error) {
+      logger.warn('[importFullBackup] Could not capture pre-restore snapshot — rollback unavailable:', error);
     }
 
     // --- Clear all existing app data for a clean restore ---
@@ -739,6 +822,37 @@ export const importFullBackup = async (
 
     } catch (innerError) {
       logger.error('Error restoring data:', innerError);
+
+      // CR-H6b-2: the clear already wiped existing data, so a failed/partial write
+      // leaves the user with corrupted data. Recover their original data from the
+      // pre-restore snapshot. The recovery only ADDS data back (no second clear).
+      if (preRestoreSnapshot) {
+        logger.error('[importFullBackup] Restore write failed — recovering original data from pre-restore snapshot');
+        let recovered = false;
+        try {
+          await retryWithBackoff(
+            () => restoreSnapshotEntities(dataStore, preRestoreSnapshot!.localStorage),
+            { operationName: 'rollbackRestore', maxRetries: 3, initialDelayMs: 500 }
+          );
+          recovered = true;
+          logger.log('[importFullBackup] Original data recovered after failed restore');
+        } catch (rollbackError) {
+          logger.error('[importFullBackup] CRITICAL: recovery of original data did not complete', rollbackError);
+        }
+        const message = recovered
+          ? i18n.t('fullBackup.restoreFailedDataRecovered', 'Restore failed, but your original data was recovered.')
+          : i18n.t('fullBackup.restoreFailedRecoveryFailed', 'Restore failed and automatic recovery did not complete. Please re-import your backup file.');
+        if (showToast) {
+          showToast(message, 'error');
+        } else {
+          alert(message);
+        }
+        errorAlreadyReported = true;
+        throw new Error(recovered
+          ? 'Failed to restore backup; original data recovered.'
+          : 'Failed to restore backup; recovery incomplete.');
+      }
+
       if (showToast) {
         showToast(i18n.t("fullBackup.restoreKeyError", { key: 'data' }), 'error');
       } else {
@@ -881,12 +995,15 @@ export const importFullBackup = async (
     return result;
   } catch (error) {
     logger.error("Failed to import full backup:", error);
-    // Type check for error before accessing message
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (showToast) {
-      showToast(i18n.t("fullBackup.restoreError", { error: errorMessage }), 'error');
-    } else {
-      alert(i18n.t("fullBackup.restoreError", { error: errorMessage }));
+    // Skip the generic toast if the rollback path already showed a precise message.
+    if (!errorAlreadyReported) {
+      // Type check for error before accessing message
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (showToast) {
+        showToast(i18n.t("fullBackup.restoreError", { error: errorMessage }), 'error');
+      } else {
+        alert(i18n.t("fullBackup.restoreError", { error: errorMessage }));
+      }
     }
     return null; // Indicate failure
   } finally {
