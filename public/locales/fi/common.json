@@ -1689,6 +1689,7 @@
     "restoreKeyError": "Kohteen {{key}} palautus epäonnistui. Tuonti peruttiin.",
     "restoreSuccess": "Varmuuskopio palautettu. Sovellus latautuu uudelleen...",
     "restoreError": "Virhe varmuuskopion tuonnissa: {{error}}",
+    "restoreInProgress": "Palautus on jo käynnissä.",
     "currentGameWarning": "Varmuuskopio palautettu, mutta nykyisen pelin valintaa ei voitu päivittää automaattisesti. Valitse peli manuaalisesti.",
     "migrationFlagWarning": "Varmuuskopio palautetaan, mutta pilvisynkronointikehote ei ehkä näy automaattisesti. Voit synkronoida Asetuksista myöhemmin.",
     "cloudDownloadSuccess": "Pilvitiedot ladattu onnistuneesti.",

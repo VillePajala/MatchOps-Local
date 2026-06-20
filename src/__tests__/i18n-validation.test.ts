@@ -284,7 +284,7 @@ describe('Translation File Validation', () => {
       // Goal log source of truth: unknownScorer, scoreMismatch, recalculateScoreButton,
       // recalculateScoreTitle, recalculateScoreConfirm, recalculateConfirmButton (+6)
       // plus export.unknownScorer (+1)
-      expect(enKeys.length).toBe(2449);
+      expect(enKeys.length).toBe(2450);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -292,7 +292,7 @@ describe('Translation File Validation', () => {
       // Previous: 2055 → ... → 2282 → 2323 → 2372 → 2418 → 2419 → 2420 → 2421 → 2442
       // Settings feedback: friendly email path plus copyable app info
       // Goal log source of truth (+6, see EN above)
-      expect(fiKeys.length).toBe(2449);
+      expect(fiKeys.length).toBe(2450);
     });
   });
 });

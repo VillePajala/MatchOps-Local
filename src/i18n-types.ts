@@ -680,6 +680,7 @@ export type TranslationKey =
   | 'fullBackup.exportSuccess'
   | 'fullBackup.migrationFlagWarning'
   | 'fullBackup.restoreError'
+  | 'fullBackup.restoreInProgress'
   | 'fullBackup.restoreKeyError'
   | 'fullBackup.restoreSuccess'
   | 'gameResult.overtime'
