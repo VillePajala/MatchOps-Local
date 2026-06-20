@@ -113,12 +113,24 @@ describe('cachedSession', () => {
       expect(getCachedUserIdentity()).toBeNull();
     });
 
-    it('returns null when token is expired', () => {
-      const expired = {
+    it('returns identity when access token is expired but a refresh token is present (CR-H3)', () => {
+      // Cold start after >1h offline: access token expired, refresh token still valid.
+      // Must still grant grace-period access rather than locking the user out.
+      const expiredWithRefresh = {
         ...validSession,
         expires_at: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(expired));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expiredWithRefresh));
+      expect(getCachedUserIdentity()).toEqual({ userId: 'user-123-abc', email: 'test@example.com' });
+    });
+
+    it('returns null when token is expired AND no refresh token', () => {
+      const expiredNoRefresh = {
+        ...validSession,
+        refresh_token: undefined,
+        expires_at: Math.floor(Date.now() / 1000) - 3600, // 1 hour ago
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expiredNoRefresh));
       expect(getCachedUserIdentity()).toBeNull();
     });
 

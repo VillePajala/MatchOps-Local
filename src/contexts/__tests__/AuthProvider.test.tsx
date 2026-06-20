@@ -998,6 +998,40 @@ describe('AuthProvider', () => {
     });
 
     /**
+     * CR-H3: offline cold start where init THROWS (e.g. NetworkError from getCurrentUser).
+     * The init catch must enter grace period (trigger 4) so the user isn't hard-locked
+     * at the LoginScreen — the "locked out at the field" case.
+     * @critical
+     */
+    it('should enter grace period when init throws with a cached token (CR-H3, trigger 4)', async () => {
+      const cachedSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        refresh_token: 'refresh_xyz',
+        user: { id: 'cached-user-789', email: 'offline@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedSession));
+
+      // Simulate offline cold start: getCurrentUser rejects → lands in the init catch.
+      mockAuthService.getCurrentUser = jest.fn().mockRejectedValue(new Error('Failed to fetch'));
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-789');
+    });
+
+    /**
      * Supabase may store session in wrapped { currentSession: ... } format.
      * getCachedUserIdentity() must handle both direct and wrapped formats.
      * @edge-case
