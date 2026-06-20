@@ -1465,16 +1465,23 @@ export function getSyncEngine(queue?: SyncQueue): SyncEngine {
 }
 
 /**
- * Reset the singleton (for testing and user transitions).
- * Calls dispose() to stop engine AND clear all listeners, preventing memory leaks.
- */
-/**
- * Reset the SyncEngine singleton.
+ * Reset the SyncEngine singleton (for testing and user transitions). Calls
+ * dispose() to stop the engine and clear listeners, preventing memory leaks.
  *
  * @param options.skipWait - If true, don't wait for in-flight sync to complete.
  *                           Use during force-close scenarios (user switch) for faster cleanup.
+ * @param options.engine - Ownership guard (CR-H2): if provided, only reset when the
+ *                         current singleton IS this engine. A stale store's late close()
+ *                         must not dispose a newer user's live engine (sync dead until
+ *                         reload). Omit for a deliberate unconditional teardown.
  */
-export async function resetSyncEngine(options: { skipWait?: boolean } = {}): Promise<void> {
+export async function resetSyncEngine(options: { skipWait?: boolean; engine?: SyncEngine } = {}): Promise<void> {
+  if (options.engine && syncEngineInstance !== options.engine) {
+    // The current singleton belongs to someone else (e.g. the next user after an
+    // account switch) — do not dispose it.
+    logger.debug('[SyncEngine] resetSyncEngine skipped: current singleton is not the owned engine');
+    return;
+  }
   if (syncEngineInstance) {
     // CRITICAL: Null the singleton FIRST, then dispose.
     // This prevents race conditions where getSyncEngine() is called during disposal
