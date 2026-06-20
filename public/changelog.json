@@ -1,12 +1,12 @@
 {
-  "version": "16b46363",
+  "version": "bc8fc2af",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "You stay signed in to your data even after a long time offline — no more being locked out when reopening the app without a connection"
+      "If signing in can't start (e.g. right after an app update), you now get a Retry button instead of a stuck screen"
     ],
     "fi": [
-      "Pysyt kirjautuneena tietoihisi pitkänkin offline-ajan jälkeen — sovellus ei enää lukitse sinua ulos, kun avaat sen ilman yhteyttä"
+      "Jos kirjautumista ei voida käynnistää (esim. heti sovelluspäivityksen jälkeen), saat nyt Yritä uudelleen -painikkeen jumiutuneen näytön sijaan"
     ]
   }
 }

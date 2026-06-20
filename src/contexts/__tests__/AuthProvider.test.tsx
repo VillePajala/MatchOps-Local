@@ -1032,6 +1032,69 @@ describe('AuthProvider', () => {
     });
 
     /**
+     * CR-H4: init throws with NO cached session (e.g. chunk-load failure post-deploy,
+     * or a fresh user offline). The user would otherwise be stranded — authService
+     * unset, signIn() returns "Auth not initialized" forever. The retry screen must
+     * surface (initTimedOut) so retryAuthInit() can re-run init.
+     * @critical
+     */
+    it('surfaces the retry screen when init throws with no cached session (CR-H4)', async () => {
+      // No cached session in localStorage.
+      mockAuthService.getCurrentUser = jest.fn().mockRejectedValue(new Error('Failed to fetch'));
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      await act(async () => {
+        jest.advanceTimersByTime(100);
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+      expect(screen.getByTestId('timed-out')).toHaveTextContent('yes');
+    });
+
+    /**
+     * CR-H4: if the 20s safety timeout fires (initTimedOut=true) but init then
+     * resolves late, the timeout/retry screen must clear so the user isn't stuck on
+     * "Connection Timeout" while actually signed in.
+     * @critical
+     */
+    it('clears the retry screen when init succeeds after the safety timeout fired (CR-H4)', async () => {
+      // getCurrentUser hangs until we resolve it, so the 20s timeout fires first.
+      let resolveGetUser: (v: unknown) => void = () => {};
+      mockAuthService.getCurrentUser = jest.fn().mockReturnValue(
+        new Promise((res) => { resolveGetUser = res; })
+      );
+      mockAuthService.getSession = jest.fn().mockResolvedValue(null);
+
+      render(
+        <AuthProvider>
+          <GracePeriodTestComponent />
+        </AuthProvider>
+      );
+
+      // Advance past the 20s safety timeout → retry screen shows (no cached session).
+      await act(async () => {
+        jest.advanceTimersByTime(20001);
+      });
+      expect(screen.getByTestId('timed-out')).toHaveTextContent('yes');
+
+      // Init resolves late → success path must clear the timeout flag.
+      await act(async () => {
+        resolveGetUser(null);
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('timed-out')).toHaveTextContent('no');
+      });
+    });
+
+    /**
      * Supabase may store session in wrapped { currentSession: ... } format.
      * getCachedUserIdentity() must handle both direct and wrapped formats.
      * @edge-case
