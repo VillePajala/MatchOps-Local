@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "Browsing the league filters in Game Settings no longer clears the league you already picked"
+      ],
+      "fi": [
+        "Liigasuodattimien selaaminen pelin asetuksissa ei enää tyhjennä jo valitsemaasi liigaa"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "If moving your data to a cloud account is interrupted, it now safely resumes and finishes the rest without duplicating or overwriting anything"
       ],
       "fi": [
