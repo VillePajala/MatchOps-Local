@@ -46,6 +46,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { reportTimerDiag } from '@/utils/timerDiagnostics';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
+import { isMatchTimerRunning } from '@/utils/matchTimerSignal';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 import { usePremium } from '@/hooks/usePremium';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
@@ -1040,7 +1041,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           // end — we never silently auto-advance periods.
           shouldAutoResume = pendingCorrection.resume && corrected < periodBoundarySeconds;
         }
+        // TEMP diagnostic: capture exactly why the boot path did/didn't auto-resume.
+        reportTimerDiag('auto-resume', {
+          pendingPresent: true,
+          gameIdMatch: pendingCorrection.gameId === currentGameId,
+          loadedGameStatus: gameData.gameStatus,
+          pendingElapsed: pendingCorrection.elapsed,
+          pendingResume: pendingCorrection.resume,
+          shouldAutoResume,
+        });
         pendingClockCorrectionRef.current = null;
+      } else {
+        reportTimerDiag('auto-resume', { pendingPresent: false, loadedGameStatus: gameData.gameStatus });
       }
 
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
@@ -1056,6 +1068,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       if (shouldAutoResume) {
         logger.info('[LOAD GAME STATE] Auto-resuming clock (timer was running before reload)');
         dispatchGameSession({ type: 'RESUME_GAME' });
+        // TEMP diagnostic: did the timer actually end up running ~1.5s later?
+        // Distinguishes "RESUME_GAME not dispatched" from "dispatched but the
+        // precision timer never started" (isMatchTimerRunning is set by useGameTimer).
+        setTimeout(() => {
+          reportTimerDiag('auto-resume', { phase2: 'post-dispatch', timerRunning: isMatchTimerRunning() });
+        }, 1500);
       }
     } else {
       // Consume any pending clock correction even when no game loads (e.g. the
