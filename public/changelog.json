@@ -1,12 +1,12 @@
 {
-  "version": "fb49619c",
+  "version": "16b46363",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "Fixed cloud sync sometimes stopping after switching accounts (no longer needs an app restart)"
+      "You stay signed in to your data even after a long time offline — no more being locked out when reopening the app without a connection"
     ],
     "fi": [
-      "Korjattu pilvisynkronoinnin satunnainen pysähtyminen tilin vaihdon jälkeen (ei enää vaadi sovelluksen uudelleenkäynnistystä)"
+      "Pysyt kirjautuneena tietoihisi pitkänkin offline-ajan jälkeen — sovellus ei enää lukitse sinua ulos, kun avaat sen ilman yhteyttä"
     ]
   }
 }

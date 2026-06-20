@@ -424,6 +424,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // Sentry failure is acceptable
         }
+
+        // Grace period trigger 4: init THREW (e.g. NetworkError from getCurrentUser on
+        // an offline cold start, the headline "locked out at the field" case — CR-H3).
+        // Mirror triggers 1/2: if a cached session exists in cloud mode, let the user
+        // into their local data instead of hard-locking them at the LoginScreen. The
+        // real session takes over once connectivity returns (onAuthStateChange / retry).
+        if (mounted && currentMode === 'cloud' && isCloudAvailable()) {
+          const cached = getCachedUserIdentity();
+          if (cached) {
+            logger.info('[AuthProvider] Grace period: init error with cached session for', cached.email);
+            setIsAuthGracePeriod(true);
+            setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+          }
+        }
       } finally {
         if (mounted) {
           setIsLoading(false);
