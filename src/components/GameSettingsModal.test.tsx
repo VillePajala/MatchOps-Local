@@ -314,6 +314,49 @@ describe('<GameSettingsModal />', () => {
       expect(mutateAsync).not.toHaveBeenCalled();
     });
 
+    /**
+     * CR-M4: changing a league FILTER is a browse action and must not clear or
+     * persist away the saved league. Previously the filter onChange immediately
+     * called onLeagueIdChange(undefined) + persisted it, destroying the selection.
+     * @critical
+     */
+    test('changing a league filter does not clear the saved league (CR-M4)', async () => {
+      const user = userEvent.setup();
+      const onLeagueIdChange = jest.fn();
+      const mutate = jest.fn();
+      const { container } = renderModal({
+        ...defaultProps,
+        seasonId: 's1',
+        leagueId: 'aluesarja-1-etela', // regional / etela
+        onLeagueIdChange,
+        updateGameDetailsMutation: {
+          mutate,
+          mutateAsync: jest.fn().mockResolvedValue({ id: 'game123' }),
+        } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+      });
+
+      const leagueSelect = await waitFor(() => {
+        const el = container.querySelector('#leagueSelectGameSettings') as HTMLSelectElement | null;
+        expect(el).not.toBeNull();
+        return el as HTMLSelectElement;
+      });
+      expect(leagueSelect.value).toBe('aluesarja-1-etela');
+
+      // Isolate the assertion to the filter interaction only.
+      onLeagueIdChange.mockClear();
+      mutate.mockClear();
+
+      // Browse: change the area filter to one that EXCLUDES the saved league.
+      const areaFilter = container.querySelector('#league-area-filter-game') as HTMLSelectElement;
+      await user.selectOptions(areaFilter, 'lansi');
+
+      // The saved league must NOT be cleared or persisted away by a browse action...
+      expect(onLeagueIdChange).not.toHaveBeenCalled();
+      expect(mutate).not.toHaveBeenCalled();
+      // ...and it stays selected even though the new filter would exclude it.
+      expect(leagueSelect.value).toBe('aluesarja-1-etela');
+    });
+
     test('preserves current game date when removing a player from an existing game roster selection', async () => {
       const user = userEvent.setup();
       const mutate = jest.fn();
