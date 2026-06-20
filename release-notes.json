@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "Restoring a backup is now safe: if the restore can't finish, your existing data is automatically recovered instead of lost"
+      ],
+      "fi": [
+        "Varmuuskopion palautus on nyt turvallinen: jos palautusta ei saada valmiiksi, olemassa olevat tietosi palautetaan automaattisesti eivätkä katoa"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "Restoring a backup is now protected against accidental double-taps — a restore can't be started twice at once"
       ],
       "fi": [
