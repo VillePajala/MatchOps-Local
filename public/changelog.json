@@ -1,12 +1,12 @@
 {
-  "version": "eea08aaf",
+  "version": "a0cbed6f",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "Deleting a goal is now safe against accidental double-taps — it can no longer remove the wrong event or change the score twice"
+      "Restoring a backup is now protected against accidental double-taps — a restore can't be started twice at once"
     ],
     "fi": [
-      "Maalin poistaminen kestää nyt vahingossa tehdyt tuplanapautukset — se ei voi enää poistaa väärää tapahtumaa tai muuttaa tulosta kahdesti"
+      "Varmuuskopion palautus on nyt suojattu vahingossa tehdyiltä tuplanapautuksilta — palautusta ei voi käynnistää kahdesti yhtä aikaa"
     ]
   }
 }

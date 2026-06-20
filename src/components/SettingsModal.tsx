@@ -1067,6 +1067,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         confirmLabel={t('common.restore', 'Restore')}
         cancelLabel={t('common.cancel', 'Cancel')}
         variant="danger"
+        isConfirming={isRestoring}
       />
 
       {/* Backup Restore Results Modal */}
