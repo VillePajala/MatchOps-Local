@@ -1690,6 +1690,8 @@
     "restoreSuccess": "Backup restored. Reloading app...",
     "restoreError": "Error importing backup: {{error}}",
     "restoreInProgress": "A restore is already in progress.",
+    "restoreFailedDataRecovered": "Restore failed, but your original data was recovered.",
+    "restoreFailedRecoveryFailed": "Restore failed and automatic recovery did not complete. Please re-import your backup file.",
     "currentGameWarning": "Backup restored, but we could not update the current game selection automatically. Please select a game manually.",
     "migrationFlagWarning": "Backup will be restored, but cloud sync prompt may not appear automatically. You can sync via Settings later.",
     "cloudDownloadSuccess": "Cloud data downloaded successfully.",

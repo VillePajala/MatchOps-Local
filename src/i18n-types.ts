@@ -680,6 +680,8 @@ export type TranslationKey =
   | 'fullBackup.exportSuccess'
   | 'fullBackup.migrationFlagWarning'
   | 'fullBackup.restoreError'
+  | 'fullBackup.restoreFailedDataRecovered'
+  | 'fullBackup.restoreFailedRecoveryFailed'
   | 'fullBackup.restoreInProgress'
   | 'fullBackup.restoreKeyError'
   | 'fullBackup.restoreSuccess'
