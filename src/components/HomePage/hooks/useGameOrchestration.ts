@@ -878,6 +878,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           const anchor = readTimerAnchor();
           let correctedElapsed: number | undefined;
           let source: string = 'none';
+          // Note: the period-boundary cap is applied downstream in
+          // loadGameStateFromData (Math.min(elapsed, periodBoundary)); this just
+          // computes the raw wall-clock-corrected elapsed.
           if (anchor && lastGameId && anchor.gameId === lastGameId) {
             const offlineSeconds = (Date.now() - anchor.wallClockMs) / 1000;
             correctedElapsed = Math.round(anchor.elapsedSeconds + offlineSeconds);
@@ -908,6 +911,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
             wasRunning: savedTimerState?.wasRunning ?? false,
             correctedElapsed,
           });
+          // Consume both recovery records unconditionally so a stale anchor/record
+          // (incl. one for a different game) can never be replayed on a later boot.
           clearTimerAnchor();
           await clearTimerState(userId);
         } catch (error) {
