@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "If moving your data to a cloud account is interrupted, it now safely resumes and finishes the rest without duplicating or overwriting anything"
+      ],
+      "fi": [
+        "Jos tietojesi siirto pilvitilille keskeytyy, se jatkuu nyt turvallisesti ja viimeistelee loput ilman että mitään kahdentuu tai korvautuu"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "The app now recovers on its own from temporary storage hiccups instead of getting stuck until you reload"
       ],
       "fi": [
