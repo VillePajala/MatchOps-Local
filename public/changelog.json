@@ -1,12 +1,12 @@
 {
-  "version": "444f0e7b",
+  "version": "e1fae7d3",
   "date": "2026-06-20",
   "notes": {
     "en": [
-      "If moving your data to a cloud account is interrupted, it now safely resumes and finishes the rest without duplicating or overwriting anything"
+      "Browsing the league filters in Game Settings no longer clears the league you already picked"
     ],
     "fi": [
-      "Jos tietojesi siirto pilvitilille keskeytyy, se jatkuu nyt turvallisesti ja viimeistelee loput ilman että mitään kahdentuu tai korvautuu"
+      "Liigasuodattimien selaaminen pelin asetuksissa ei enää tyhjennä jo valitsemaasi liigaa"
     ]
   }
 }
