@@ -4,6 +4,15 @@
     {
       "date": "2026-06-20",
       "en": [
+        "The match clock now actually keeps running (not just shows the right time) after you reopen the app during a game"
+      ],
+      "fi": [
+        "Otteluajastin jatkaa nyt todella käyntiä (eikä vain näytä oikeaa aikaa), kun avaat sovelluksen uudelleen ottelun aikana"
+      ]
+    },
+    {
+      "date": "2026-06-20",
+      "en": [
         "More behind-the-scenes diagnostics to confirm the match-timer fix after locking your phone"
       ],
       "fi": [
