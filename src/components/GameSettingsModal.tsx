@@ -1775,14 +1775,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                             id="league-level-filter-game"
                             value={leagueLevelFilter}
                             onChange={(e) => {
+                              // CR-M4: filters are a BROWSE control — they only narrow the
+                              // visible list. Do NOT clear/persist the saved league here, or
+                              // just looking around would silently wipe it. The current
+                              // selection stays shown via the option rendered below.
                               setLeagueLevelFilter(e.target.value as LeagueLevelFilter);
-                              // Clear league selection when changing filters
-                              onLeagueIdChange(undefined);
-                              onCustomLeagueNameChange(undefined);
-                              mutateGameDetails(
-                                { leagueId: undefined, customLeagueName: undefined },
-                                { source: 'stateSync' }
-                              );
                             }}
                             className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
                           >
@@ -1801,14 +1798,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                             id="league-area-filter-game"
                             value={leagueAreaFilter}
                             onChange={(e) => {
+                              // CR-M4: see the level filter above — browsing filters must
+                              // not clear/persist the saved league.
                               setLeagueAreaFilter(e.target.value as LeagueAreaFilter);
-                              // Clear league selection when changing filters
-                              onLeagueIdChange(undefined);
-                              onCustomLeagueNameChange(undefined);
-                              mutateGameDetails(
-                                { leagueId: undefined, customLeagueName: undefined },
-                                { source: 'stateSync' }
-                              );
                             }}
                             className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
                           >
@@ -1842,6 +1834,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                       >
                         <option value="">{t('gameSettingsModal.selectLeague', '-- Select League --')}</option>
+                        {/* CR-M4: keep the saved league visible even when the current
+                            filters would exclude it, so changing a filter never makes the
+                            selection "disappear" (and never tempts a clear-on-filter). */}
+                        {(() => {
+                          const selected = leagueId && leagueId !== CUSTOM_LEAGUE_ID ? getLeagueById(leagueId) : undefined;
+                          if (selected && !filteredLeagues.some(l => l.id === selected.id)) {
+                            return <option key={selected.id} value={selected.id}>{selected.name}</option>;
+                          }
+                          return null;
+                        })()}
                         {filteredLeagues.map(league => (
                           <option key={league.id} value={league.id}>{league.name}</option>
                         ))}
