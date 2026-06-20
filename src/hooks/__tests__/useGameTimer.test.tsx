@@ -81,14 +81,6 @@ jest.mock('../usePrecisionTimer', () => ({
       },
     };
   },
-  useTimerRestore: () => ({
-    handleVisibilityChange: jest.fn((timestamp: number, savedTime: number, callback: (time: number) => void) => {
-      // Calculate time difference and call callback
-      const now = Date.now();
-      const elapsed = (now - timestamp) / 1000;
-      callback(savedTime + elapsed);
-    }),
-  }),
 }));
 
 // Mock logger

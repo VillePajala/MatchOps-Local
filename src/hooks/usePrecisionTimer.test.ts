@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { usePrecisionTimer, useTimerRestore } from './usePrecisionTimer';
+import { usePrecisionTimer } from './usePrecisionTimer';
 
 describe('usePrecisionTimer', () => {
   beforeEach(() => {
@@ -185,35 +185,5 @@ describe('usePrecisionTimer', () => {
       setIntervalSpy.mockRestore();
       clearIntervalSpy.mockRestore();
     });
-  });
-});
-
-describe('useTimerRestore', () => {
-  it('should provide handleVisibilityChange function', () => {
-    const { result } = renderHook(() =>
-      useTimerRestore()
-    );
-
-    expect(typeof result.current.handleVisibilityChange).toBe('function');
-  });
-
-  it('should handle visibility change without errors', () => {
-    const { result } = renderHook(() =>
-      useTimerRestore()
-    );
-
-    const mockOnRestore = jest.fn();
-    
-    // Should not throw when calling handleVisibilityChange
-    expect(() => {
-      result.current.handleVisibilityChange(
-        Date.now() - 5000, // 5 seconds ago
-        10, // was at 10 seconds
-        mockOnRestore
-      );
-    }).not.toThrow();
-
-    // Should call the restore callback
-    expect(mockOnRestore).toHaveBeenCalled();
   });
 });
