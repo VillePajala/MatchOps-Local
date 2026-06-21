@@ -569,6 +569,35 @@ describe('SupabaseDataStore', () => {
         expect(mockQueryBuilder.upsert).toHaveBeenCalled();
       });
 
+      it('preserves the original created_at on upsert (sync push must not reset it)', async () => {
+        await dataStore.upsertPlayer({
+          id: 'player_123',
+          name: 'Existing Player',
+          isGoalie: false,
+          receivedFairPlayCard: false,
+          createdAt: '2020-05-05T00:00:00.000Z',
+        });
+
+        expect(mockQueryBuilder.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ created_at: '2020-05-05T00:00:00.000Z' }),
+          expect.anything()
+        );
+      });
+
+      it('defaults created_at to now for a brand-new player (no createdAt)', async () => {
+        await dataStore.upsertPlayer({
+          id: 'player_new',
+          name: 'New Player',
+          isGoalie: false,
+          receivedFairPlayCard: false,
+        });
+
+        const payload = mockQueryBuilder.upsert.mock.calls[0][0] as { created_at: string; updated_at: string };
+        // A new row with no createdAt falls back to `now` — created_at === updated_at.
+        expect(payload.created_at).toBe(payload.updated_at);
+        expect(Number.isNaN(Date.parse(payload.created_at))).toBe(false);
+      });
+
       it('should throw ValidationError for empty name', async () => {
         await expect(
           dataStore.upsertPlayer({
@@ -1526,6 +1555,29 @@ describe('SupabaseDataStore', () => {
         expect(mockQueryBuilder.upsert).toHaveBeenCalled();
       });
 
+      it('preserves the original created_at on upsert (sync push must not reset it)', async () => {
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        await dataStore.upsertSeason({
+          id: 'season_123',
+          name: 'Existing Season',
+          createdAt: '2020-05-05T00:00:00.000Z',
+        });
+
+        expect(mockQueryBuilder.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ created_at: '2020-05-05T00:00:00.000Z' }),
+          expect.anything()
+        );
+      });
+
       it('should throw ValidationError for empty season name', async () => {
         await expect(
           dataStore.upsertSeason({
@@ -2064,6 +2116,30 @@ describe('SupabaseDataStore', () => {
         expect(mockQueryBuilder.upsert).toHaveBeenCalled();
       });
 
+      it('preserves the original created_at on upsert (sync push must not reset it)', async () => {
+        (mockSupabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+          if (table === 'user_settings') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }
+          return mockQueryBuilder;
+        });
+
+        await dataStore.upsertTournament({
+          id: 'tournament_123',
+          name: 'Existing Tournament',
+          gameType: 'soccer',
+          createdAt: '2020-05-05T00:00:00.000Z',
+        });
+
+        expect(mockQueryBuilder.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({ created_at: '2020-05-05T00:00:00.000Z' }),
+          expect.anything()
+        );
+      });
+
       it('should throw ValidationError for empty tournament name', async () => {
         await expect(
           dataStore.upsertTournament({
@@ -2345,6 +2421,9 @@ describe('SupabaseDataStore', () => {
         expect(settings.hasSeenAppGuide).toBe(true);
         expect(settings.currentGameId).toBe('game_123');
         expect(settings.isDrawingModeEnabled).toBe(true);
+        // updated_at must be carried through so settings conflict resolution has a
+        // real timestamp to compare (otherwise it always resolved local-wins).
+        expect(settings.updatedAt).toBe('2024-01-01T00:00:00.000Z');
       });
 
       it('should preserve isDrawingModeEnabled setting', async () => {
