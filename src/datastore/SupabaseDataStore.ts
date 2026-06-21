@@ -1028,7 +1028,9 @@ export class SupabaseDataStore implements DataStore {
       color: player.color ?? null,
       notes: player.notes ?? null,
       received_fair_play_card: player.receivedFairPlayCard ?? false,
-      created_at: now,
+      // Preserve the original creation time on sync push / upsert (only default to
+      // now for genuinely new rows) — matches teams/personnel. updated_at is always now.
+      created_at: player.createdAt ?? now,
       updated_at: now,
     };
   }
@@ -1930,7 +1932,8 @@ export class SupabaseDataStore implements DataStore {
       color: season.color ?? null,
       badge: season.badge ?? null,
       team_placements: normalizeTeamPlacements(season.teamPlacements),
-      created_at: now,
+      // Preserve original creation time on sync push / upsert (matches teams/personnel).
+      created_at: season.createdAt ?? now,
       updated_at: now,
     };
   }
@@ -2311,7 +2314,8 @@ export class SupabaseDataStore implements DataStore {
       team_placements: normalizeTeamPlacements(tournament.teamPlacements),
       series: (tournament.series as unknown as Json) ?? null,
       archived: tournament.archived ?? false,
-      created_at: now,
+      // Preserve original creation time on sync push / upsert (matches teams/personnel).
+      created_at: tournament.createdAt ?? now,
       updated_at: now,
     };
   }
@@ -2765,6 +2769,9 @@ export class SupabaseDataStore implements DataStore {
       clubSeasonStartDate: row.club_season_start_date ?? DEFAULT_APP_SETTINGS.clubSeasonStartDate,
       clubSeasonEndDate: row.club_season_end_date ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate,
       isDrawingModeEnabled: row.is_drawing_mode_enabled ?? false,
+      // Carry the row's updated_at through so settings conflict resolution has a
+      // real timestamp to compare (without it, settings always resolved local-wins).
+      updatedAt: row.updated_at ?? undefined,
     };
   }
 
