@@ -1073,9 +1073,14 @@ export class SyncedDataStore implements DataStore {
 
     logger.info('[SyncedDataStore] Starting bulk push to cloud (with retry)...');
 
-    // Pause sync engine to prevent queue processing during bulk push
-    if (this.syncEngine) {
-      this.syncEngine.pause();
+    // Pause sync engine to prevent queue processing during bulk push, then wait
+    // for any in-flight op to drain (pause alone is not a barrier) so a stray
+    // write can't race the queue clear below. Only resume what WE paused.
+    const engine = this.syncEngine;
+    const wasPaused = engine ? engine.getIsPaused() : false;
+    if (engine) {
+      engine.pause();
+      await engine.waitForIdle();
     }
 
     try {
@@ -1452,9 +1457,10 @@ export class SyncedDataStore implements DataStore {
 
       return summary;
     } finally {
-      // Always resume sync engine
-      if (this.syncEngine) {
-        this.syncEngine.resume();
+      // Resume only if we were the ones who paused it (don't un-pause an engine
+      // that an outer operation had already paused).
+      if (engine && !wasPaused) {
+        engine.resume();
       }
     }
   }
@@ -1463,9 +1469,14 @@ export class SyncedDataStore implements DataStore {
     // Pause sync engine (not stop) so new operations can be queued after clear.
     // Stopping the engine prevents nudge() from triggering processing,
     // which breaks backup import flow where operations are queued after clear.
-    const wasRunning = this.syncEngine?.isEngineRunning() ?? false;
-    if (this.syncEngine) {
-      this.syncEngine.pause();
+    const engine = this.syncEngine;
+    const wasRunning = engine?.isEngineRunning() ?? false;
+    const wasPaused = engine ? engine.getIsPaused() : false;
+    if (engine) {
+      engine.pause();
+      // Barrier: wait for any in-flight op to drain before clearing, so a stray
+      // write can't land in the just-cleared local/cloud store.
+      await engine.waitForIdle();
       logger.info('[SyncedDataStore] Sync engine paused for data clear');
     }
 
@@ -1497,9 +1508,10 @@ export class SyncedDataStore implements DataStore {
       throw cloudError;
     }
 
-    // Resume sync engine only if everything succeeded
-    if (wasRunning && this.syncEngine) {
-      this.syncEngine.resume();
+    // Resume sync engine only if everything succeeded, it was running, and WE
+    // paused it (don't un-pause an engine an outer operation had already paused).
+    if (wasRunning && !wasPaused && engine) {
+      engine.resume();
       logger.info('[SyncedDataStore] Sync engine resumed after data clear');
     }
 
