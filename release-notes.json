@@ -4,6 +4,15 @@
     {
       "date": "2026-06-21",
       "en": [
+        "Cloud sync fix: if you edit and then delete the same player, season, or tournament while offline, the deletion now reliably reaches the cloud instead of occasionally being skipped"
+      ],
+      "fi": [
+        "Pilvisynkronoinnin korjaus: jos muokkaat ja sitten poistat saman pelaajan, kauden tai turnauksen offline-tilassa, poisto välittyy nyt luotettavasti pilveen sen sijaan että se joskus jäisi tekemättä"
+      ]
+    },
+    {
+      "date": "2026-06-21",
+      "en": [
         "Cloud sync now keeps the original creation dates of your players, seasons, and tournaments, so they no longer jump around in lists after syncing, and settings sync more reliably across devices"
       ],
       "fi": [

@@ -310,12 +310,13 @@ describe('SyncedDataStore', () => {
       const result = await store.upsertPlayer(mockPlayer);
 
       expect(localStoreSpy.upsertPlayer).toHaveBeenCalledWith(mockPlayer);
-      // Uses 'create' for upsert to ensure correct deduplication (CREATE + DELETE = nothing)
+      // Upsert queues as 'update' (not 'create') so a later DELETE coalesces to
+      // DELETE instead of cancelling — an upsert may target a server-existing row.
       expect(queueEnqueueSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           entityType: 'player',
           entityId: mockPlayer.id,
-          operation: 'create',
+          operation: 'update',
         })
       );
       expect(result).toEqual(mockPlayer);
