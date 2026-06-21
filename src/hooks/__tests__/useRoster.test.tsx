@@ -420,10 +420,13 @@ describe('useRoster', () => {
 
       expect(result.current.availablePlayers).toHaveLength(2);
 
+      let removed: boolean | undefined;
       await act(async () => {
-        await result.current.handleRemovePlayer('p1');
+        removed = await result.current.handleRemovePlayer('p1');
       });
 
+      // Returns true on success so callers can cascade (e.g. remove from field).
+      expect(removed).toBe(true);
       expect(result.current.availablePlayers).toHaveLength(1);
       expect(result.current.availablePlayers[0].id).toBe('p2');
       expect(result.current.rosterError).toBeNull();
@@ -439,10 +442,13 @@ describe('useRoster', () => {
         { wrapper }
       );
 
+      let removed: boolean | undefined;
       await act(async () => {
-        await result.current.handleRemovePlayer('p1');
+        removed = await result.current.handleRemovePlayer('p1');
       });
 
+      // Returns false on failure so callers skip the cascade.
+      expect(removed).toBe(false);
       expect(result.current.availablePlayers).toHaveLength(1);
       expect(result.current.rosterError).toBe('Failed to remove player');
     });
