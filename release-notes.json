@@ -4,9 +4,11 @@
     {
       "date": "2026-06-21",
       "en": [
+        "Goalie marking is now rock-solid: dragging a player into the goal spot makes them keeper, moving players around never accidentally clears your goalie, and deleting a player also removes them from the field",
         "Fixed several small input glitches: the goalie button no longer double-taps itself on touch screens, period length only saves once you finish typing, and editing a goal's time now safely undoes itself if the save fails"
       ],
       "fi": [
+        "Maalivahdin merkitseminen on nyt vakaa: pelaajan vetäminen maalipaikalle tekee hänestä maalivahdin, pelaajien siirtely ei enää vahingossa poista maalivahtimerkintää, ja pelaajan poistaminen poistaa hänet myös kentältä",
         "Korjattu pieniä syöttövirheitä: maalivahtinappi ei enää reagoi kahdesti kosketusnäytöllä, erän pituus tallentuu vasta kun lopetat kirjoittamisen, ja maalin ajan muokkaus peruuntuu turvallisesti, jos tallennus epäonnistuu"
       ]
     },

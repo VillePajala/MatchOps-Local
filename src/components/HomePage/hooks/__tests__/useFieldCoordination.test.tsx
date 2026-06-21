@@ -1317,10 +1317,12 @@ describe('useFieldCoordination', () => {
     });
 
     /**
-     * Tests that goalie status is updated based on position after swap
+     * Swapping a player INTO the goalie spot promotes them and clears the previous
+     * goalie (single-goalie). Position changes only PROMOTE; the swap updater moves
+     * positions, then handlePlayerMoveEnd applies the promote-only goalie logic.
      * @critical - Goalie status management
      */
-    it('should update goalie status based on position after swap', () => {
+    it('promotes the player swapped into the goalie spot and clears the previous goalie', () => {
       const mockSetPlayersOnField = jest.fn();
       const player1 = TestFixtures.players.goalkeeper({ id: 'p1', relX: 0.5, relY: 0.95, isGoalie: true });
       const player2 = TestFixtures.players.fieldPlayer({ id: 'p2', relX: 0.3, relY: 0.5, isGoalie: false });
@@ -1337,16 +1339,51 @@ describe('useFieldCoordination', () => {
         result.current.handlePlayersSwap('p1', 'p2');
       });
 
-      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
-      const updatedPlayers = updaterFn([player1, player2]);
+      // First setState: swap positions only (goalie flags unchanged).
+      const swapUpdater = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
+      const swapped = swapUpdater([player1, player2]);
+      // Second setState (handlePlayerMoveEnd): promote-only goalie-by-position.
+      const promoteUpdater = mockSetPlayersOnField.mock.calls[1][0] as (prev: any[]) => any[];
+      const updatedPlayers = promoteUpdater(swapped);
 
-      // Player 2 is now at goalie position, should have isGoalie: true
+      // Player 2 swapped into the goalie position → promoted to goalie.
       const updatedP2 = updatedPlayers.find((p: { id: string }) => p.id === 'p2');
       expect(updatedP2.isGoalie).toBe(true);
-
-      // Player 1 is no longer at goalie position, should have isGoalie: false
+      // Player 1 (the previous goalie) is cleared because a new goalie was assigned.
       const updatedP1 = updatedPlayers.find((p: { id: string }) => p.id === 'p1');
       expect(updatedP1.isGoalie).toBe(false);
+    });
+
+    /**
+     * Non-destructive guarantee: moving players around must NEVER unset an existing
+     * goalie. Only the explicit toggle button (or promoting a NEW keeper) clears one.
+     * @critical - Goalie status management
+     */
+    it('does not unset the goalie when a non-keeper player moves (no one new enters the spot)', () => {
+      const mockSetPlayersOnField = jest.fn();
+      // Goalie sits OFF the keeper spot (e.g. set via the toggle button); a field
+      // player moves elsewhere. Neither ends up in the keeper zone.
+      const goalie = TestFixtures.players.goalkeeper({ id: 'p1', relX: 0.4, relY: 0.4, isGoalie: true });
+      const mover = TestFixtures.players.fieldPlayer({ id: 'p2', relX: 0.6, relY: 0.6, isGoalie: false });
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [goalie, mover],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlayerMoveEnd();
+      });
+
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: any[]) => any[];
+      const updatedPlayers = updaterFn([goalie, mover]);
+
+      // Goalie flag preserved despite not being in the keeper spot.
+      expect(updatedPlayers.find((p: { id: string }) => p.id === 'p1').isGoalie).toBe(true);
+      expect(updatedPlayers.find((p: { id: string }) => p.id === 'p2').isGoalie).toBe(false);
     });
 
     /**
