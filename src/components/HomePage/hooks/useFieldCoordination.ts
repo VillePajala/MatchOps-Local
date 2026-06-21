@@ -390,6 +390,9 @@ export function useFieldCoordination({
     if (inZone.length === 0 || inZone.some(p => p.isGoalie)) {
       return { players, newGoalieId: null };
     }
+    // Tie-break: if two players somehow occupy the keeper zone at once, the first
+    // in array order becomes goalie (single-goalie invariant). This is rare given
+    // the tight ±0.05 threshold around a single spot.
     const newGoalieId = inZone[0].id;
     logger.log(`[Goalie] Player ${inZone[0].name} promoted to goalie by position`);
     // Set the new goalie, clear everyone else (single goalie per game).
@@ -413,7 +416,10 @@ export function useFieldCoordination({
     setPlayersOnField(currentPlayers => {
       // Promote-only goalie assignment based on final positions (never demotes).
       const { players: updatedPlayers, newGoalieId } = promoteGoalieByPosition(currentPlayers);
-      // Store current state in ref for the effect to use
+      // NOTE: writing refs inside a state updater assumes the updater runs once
+      // before the playerMoveEndVersion effect fires. That holds in production
+      // (React 19, non-Strict). This mirrors the existing pendingPlayerMoveEndRef
+      // pattern below and is read by the post-commit effect.
       pendingPlayerMoveEndRef.current = updatedPlayers;
       // Record a position-driven promotion so the effect can notify the parent.
       pendingGoalieAssignRef.current = newGoalieId;
