@@ -8,7 +8,7 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useGameOrchestration } from '../useGameOrchestration';
+import { useGameOrchestration, normalizeSingleGoalie } from '../useGameOrchestration';
 import type { Player, AppState } from '@/types';
 
 /** Time needed for React Query initialization and hook bootstrapping */
@@ -378,5 +378,27 @@ describe('useGameOrchestration - Goalie Toggle Save Path', () => {
     expect(invalidateQueriesSpy).toBeDefined();
 
     invalidateQueriesSpy.mockRestore();
+  });
+});
+
+describe('normalizeSingleGoalie', () => {
+  const p = (id: string, isGoalie: boolean): Player => createMockPlayer({ id, isGoalie });
+
+  it('keeps the first goalie and clears any extras', () => {
+    const result = normalizeSingleGoalie([p('a', true), p('b', false), p('c', true)]);
+    expect(result.map(x => x.isGoalie)).toEqual([true, false, false]);
+  });
+
+  it('returns the same array reference when already valid (0 or 1 goalie)', () => {
+    const one = [p('a', false), p('b', true)];
+    expect(normalizeSingleGoalie(one)).toBe(one);
+
+    const none = [p('a', false), p('b', false)];
+    expect(normalizeSingleGoalie(none)).toBe(none);
+  });
+
+  it('handles an empty array', () => {
+    const empty: Player[] = [];
+    expect(normalizeSingleGoalie(empty)).toBe(empty);
   });
 });

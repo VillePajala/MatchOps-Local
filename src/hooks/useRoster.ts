@@ -116,7 +116,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     }
   }, [userId, queryClient]);
 
-  const handleRemovePlayer = useCallback(async (playerId: string) => {
+  const handleRemovePlayer = useCallback(async (playerId: string): Promise<boolean> => {
     setIsRosterUpdating(true);
     // Capture snapshot synchronously from ref before the batched state update
     const rollbackSnapshot = playersRef.current;
@@ -126,15 +126,17 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       if (!success) {
         setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to remove player');
-      } else {
-        setRosterError(null);
-        // Invalidate React Query cache so TeamRosterModal gets fresh data (user-scoped)
-        await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
+        return false;
       }
+      setRosterError(null);
+      // Invalidate React Query cache so TeamRosterModal gets fresh data (user-scoped)
+      await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
+      return true;
     } catch (error) {
       logger.warn('Failed to remove player from roster', { playerId, error });
       setAvailablePlayers(rollbackSnapshot);
       setRosterError('Failed to remove player');
+      return false;
     } finally {
       setIsRosterUpdating(false);
     }

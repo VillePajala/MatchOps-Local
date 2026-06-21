@@ -116,6 +116,29 @@ export interface UseGameOrchestrationReturn {
   isResetting: boolean;
 }
 
+/**
+ * Defensive single-goalie normalization for a loaded field array.
+ *
+ * A game should never have more than one goalie, but a hand-edited, migrated, or
+ * legacy save could. When duplicates exist we keep the FIRST goalie and clear the
+ * rest, so loaded games always satisfy the single-goalie invariant. Returns the
+ * same array reference when already valid (no needless re-render).
+ */
+export function normalizeSingleGoalie(players: Player[]): Player[] {
+  let seenGoalie = false;
+  let changed = false;
+  const normalized = players.map(p => {
+    if (!p.isGoalie) return p;
+    if (!seenGoalie) {
+      seenGoalie = true;
+      return p;
+    }
+    changed = true;
+    return { ...p, isGoalie: false };
+  });
+  return changed ? normalized : players;
+}
+
 export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen, initialGameType }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
@@ -182,6 +205,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
   });
 
+  // Bridge from field coordination (position-driven goalie promotion) to the
+  // authoritative goalie handler. The handler (applyGoalieStatus) is defined far
+  // below and depends on field coordination, so we route through a ref to break
+  // the definition-order cycle. handleAssignGoalieByPosition is stable (empty deps)
+  // so it's safe to pass into useFieldCoordination at creation time.
+  const assignGoalieByPositionRef = useRef<((playerId: string) => void) | null>(null);
+  const handleAssignGoalieByPosition = useCallback((playerId: string) => {
+    assignGoalieByPositionRef.current?.(playerId);
+  }, []);
+  // Serializes goalie updates so concurrent requests can't corrupt the single-goalie invariant.
+  const goalieUpdateInProgressRef = useRef(false);
+
   // --- Field Coordination (Extracted to Hook) ---
   const fieldCoordination = useFieldCoordination({
     initialState,
@@ -194,6 +229,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     tacticalHistory,
     showToast,
     t,
+    onAssignGoalieByPosition: handleAssignGoalieByPosition,
   });
 
   // Extract stable setters for use in effects
@@ -1062,7 +1098,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Don't apply position-based goalie detection when loading saved games.
     // Position-based detection is for: (1) formation picker, (2) player movement.
     // Saved games already have correct isGoalie status stored - preserve it.
-    const loadedPlayers = gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []);
+    const rawLoadedPlayers = gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []);
+    // Defensively enforce single-goalie on load (handles legacy/edited/migrated saves).
+    const loadedPlayers = normalizeSingleGoalie(rawLoadedPlayers);
     logger.info('[LOAD GAME STATE] Setting playersOnField', {
       loadedPlayersCount: loadedPlayers.length,
       isInitialDefaultLoad,
@@ -1592,12 +1630,22 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setRosterError(null);
 
       try {
-        await handleRemovePlayer(playerId);
+        const removed = await handleRemovePlayer(playerId);
         logger.log(`[Page.tsx] player removed: ${playerId}.`);
+        // Cascade: a deleted roster player must not linger on the field or in the
+        // game's selection (which would leave an orphaned player — and possibly an
+        // orphaned goalie flag — in the active game).
+        if (removed) {
+          setPlayersOnField(current => current.filter(p => p.id !== playerId));
+          dispatchGameSession({
+            type: 'SET_SELECTED_PLAYER_IDS',
+            payload: gameSessionState.selectedPlayerIds.filter(id => id !== playerId),
+          });
+        }
       } catch (error) {
         logger.error(`[Page.tsx] Exception during removal of ${playerId}:`, error);
       }
-    }, [handleRemovePlayer, setRosterError]);
+    }, [handleRemovePlayer, setRosterError, setPlayersOnField, dispatchGameSession, gameSessionState.selectedPlayerIds]);
 
     // ... (rest of the code remains unchanged)
 
@@ -1647,16 +1695,29 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
     // ... (rest of the code remains unchanged)
 
-  const handleToggleGoalieForModal = useCallback(async (playerId: string) => {
+  // Authoritative per-game goalie setter, shared by the manual toggle button and
+  // position-driven promotion. Enforces a single goalie across BOTH availablePlayers
+  // and playersOnField, then persists. Serialized via an in-flight guard so two
+  // rapid requests can't read the same stale roster and corrupt the invariant
+  // (last-write-wins).
+  const applyGoalieStatus = useCallback(async (playerId: string, targetGoalieStatus: boolean) => {
     const player = availablePlayers.find(p => p.id === playerId);
     if (!player) {
-        logger.error(`[Page.tsx] Player ${playerId} not found in availablePlayers for goalie toggle.`);
+        logger.error(`[Page.tsx] Player ${playerId} not found in availablePlayers for goalie change.`);
         setRosterError(t('rosterSettingsModal.errors.playerNotFound', 'Player not found. Cannot toggle goalie status.'));
         return;
     }
-    const targetGoalieStatus = !player.isGoalie;
-    logger.log(`[Page.tsx] handleToggleGoalieForModal per-game toggle for ID: ${playerId}, target status: ${targetGoalieStatus}`);
-    
+    // Already in the desired state (e.g. position promote for the current goalie) — nothing to do.
+    if (player.isGoalie === targetGoalieStatus) {
+      return;
+    }
+    if (goalieUpdateInProgressRef.current) {
+      logger.debug(`[Page.tsx] goalie update already in progress, ignoring request for ${playerId}`);
+      return;
+    }
+    goalieUpdateInProgressRef.current = true;
+    logger.log(`[Page.tsx] applyGoalieStatus per-game change for ID: ${playerId}, target status: ${targetGoalieStatus}`);
+
     setRosterError(null); // Clear previous specific errors
 
     try {
@@ -1752,9 +1813,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
       }
 
-      logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
+      logger.log(`[Page.tsx] per-game goalie change success for ${playerId}.`);
     } catch (error) {
-      logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
+      logger.error(`[Page.tsx] Exception during per-game goalie change of ${playerId}:`, error);
+    } finally {
+      goalieUpdateInProgressRef.current = false;
     }
   }, [
     // Data dependencies (values that change the function's behavior)
@@ -1763,6 +1826,25 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setAvailablePlayers, setRosterError, queryClient, setPlayersOnField,
     // fieldStateRef provides playersOnField/opponents/etc. at call time (no dep needed for ref)
   ]);
+
+  // Manual toggle button: flip the current player's goalie status.
+  const handleToggleGoalieForModal = useCallback(async (playerId: string) => {
+    const player = availablePlayers.find(p => p.id === playerId);
+    if (!player) {
+      logger.error(`[Page.tsx] Player ${playerId} not found in availablePlayers for goalie toggle.`);
+      setRosterError(t('rosterSettingsModal.errors.playerNotFound', 'Player not found. Cannot toggle goalie status.'));
+      return;
+    }
+    await applyGoalieStatus(playerId, !player.isGoalie);
+  }, [availablePlayers, applyGoalieStatus, setRosterError, t]);
+
+  // Wire the position-promotion bridge to the authoritative setter. Position
+  // changes only ever PROMOTE (target = true); they never clear a goalie.
+  useEffect(() => {
+    assignGoalieByPositionRef.current = (playerId: string) => {
+      void applyGoalieStatus(playerId, true);
+    };
+  }, [applyGoalieStatus]);
 
   // --- END Roster Management Handlers ---
 
