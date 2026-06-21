@@ -584,6 +584,20 @@ describe('SupabaseDataStore', () => {
         );
       });
 
+      it('defaults created_at to now for a brand-new player (no createdAt)', async () => {
+        await dataStore.upsertPlayer({
+          id: 'player_new',
+          name: 'New Player',
+          isGoalie: false,
+          receivedFairPlayCard: false,
+        });
+
+        const payload = mockQueryBuilder.upsert.mock.calls[0][0] as { created_at: string; updated_at: string };
+        // A new row with no createdAt falls back to `now` — created_at === updated_at.
+        expect(payload.created_at).toBe(payload.updated_at);
+        expect(Number.isNaN(Date.parse(payload.created_at))).toBe(false);
+      });
+
       it('should throw ValidationError for empty name', async () => {
         await expect(
           dataStore.upsertPlayer({
