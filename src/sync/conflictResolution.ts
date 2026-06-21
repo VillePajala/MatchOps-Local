@@ -112,7 +112,7 @@ export interface ResolutionResult {
  * edited at the same moment, preferring the local edit avoids losing the work in
  * front of the user. (User-chosen strategy: "prefer my latest edit".)
  */
-const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000; // 5 minutes
+export const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * ConflictResolver - Resolves conflicts between local and cloud data.

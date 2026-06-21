@@ -6,6 +6,7 @@ import {
   ConflictResolver,
   isAutoResolvableConflict,
   isNotFoundError,
+  CLOCK_SKEW_TOLERANCE_MS,
   type ConflictResolverOptions,
   type CloudRecord,
 } from '../conflictResolution';
@@ -24,7 +25,9 @@ describe('ConflictResolver', () => {
   const NOW = 1700000000000; // Fixed timestamp for tests
   const OLDER = NOW - 10000; // 10 seconds older (WITHIN clock-skew tolerance → local still wins)
   const NEWER = NOW + 10000; // 10 seconds newer
-  const MUCH_OLDER = NOW - 10 * 60 * 1000; // 10 min older (BEYOND 5-min tolerance → cloud wins)
+  // Derive from the real tolerance so these stay correct if the constant changes.
+  const MUCH_OLDER = NOW - (CLOCK_SKEW_TOLERANCE_MS + 60 * 1000); // clearly BEYOND tolerance → cloud wins
+  const TOLERANCE_EDGE = NOW - CLOCK_SKEW_TOLERANCE_MS; // exactly at the edge (>= → local wins)
 
   beforeEach(() => {
     mockFetchFromCloud = jest.fn();
@@ -138,6 +141,17 @@ describe('ConflictResolver', () => {
       expect(mockWriteToLocal).not.toHaveBeenCalled();
     });
 
+    it('lets local win at exactly the tolerance edge (>= is inclusive)', async () => {
+      const op = createOperation({ timestamp: TOLERANCE_EDGE });
+      const cloudRecord = createCloudRecord({ updatedAt: new Date(NOW).toISOString() });
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(mockWriteToCloud).toHaveBeenCalled();
+    });
+
     it('should include timestamps in resolution', async () => {
       const op = createOperation({ timestamp: OLDER });
       const cloudRecord = createCloudRecord({
@@ -239,6 +253,24 @@ describe('ConflictResolver', () => {
         cloudRecord
       );
       expect(mockDeleteFromCloud).not.toHaveBeenCalled();
+    });
+
+    it('lets local delete win when only slightly older than cloud (within clock-skew tolerance)', async () => {
+      // Symmetry with the write path: a drifted clock must not turn a real local
+      // delete into an unwanted resurrection from cloud.
+      const op = createOperation({
+        operation: 'delete',
+        timestamp: OLDER,
+        data: null,
+      });
+      const cloudRecord = createCloudRecord({ updatedAt: new Date(NOW).toISOString() });
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(mockDeleteFromCloud).toHaveBeenCalled();
+      expect(mockWriteToLocal).not.toHaveBeenCalled();
     });
 
     it('should report no action when both local and cloud have deleted', async () => {
