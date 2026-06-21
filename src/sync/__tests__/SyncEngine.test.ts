@@ -479,6 +479,12 @@ describe('SyncEngine', () => {
     });
   });
 
+  describe('waitForIdle', () => {
+    it('resolves true immediately when the engine is idle (nothing syncing)', async () => {
+      await expect(engine.waitForIdle()).resolves.toBe(true);
+    });
+  });
+
   describe('status', () => {
     it('should report synced when queue is empty', async () => {
       engine.start();
