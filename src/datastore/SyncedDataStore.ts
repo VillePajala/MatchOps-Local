@@ -1080,7 +1080,13 @@ export class SyncedDataStore implements DataStore {
     const wasPaused = engine ? engine.getIsPaused() : false;
     if (engine) {
       engine.pause();
-      await engine.waitForIdle();
+      // Best-effort barrier: if the in-flight op doesn't drain within the timeout
+      // we proceed anyway — blocking the bulk push indefinitely would be worse than
+      // the small residual race. waitForIdle() already logs a warning on timeout.
+      const idle = await engine.waitForIdle();
+      if (!idle) {
+        logger.warn('[SyncedDataStore] Proceeding with bulk push despite in-flight sync (waitForIdle timed out)');
+      }
     }
 
     try {
@@ -1475,9 +1481,13 @@ export class SyncedDataStore implements DataStore {
     if (engine) {
       engine.pause();
       // Barrier: wait for any in-flight op to drain before clearing, so a stray
-      // write can't land in the just-cleared local/cloud store.
-      await engine.waitForIdle();
-      logger.info('[SyncedDataStore] Sync engine paused for data clear');
+      // write can't land in the just-cleared local/cloud store. Best-effort —
+      // proceed on timeout rather than hang the clear (waitForIdle logs a warning).
+      const idle = await engine.waitForIdle();
+      if (!idle) {
+        logger.warn('[SyncedDataStore] Proceeding with data clear despite in-flight sync (waitForIdle timed out)');
+      }
+      logger.info('[SyncedDataStore] Sync engine paused and idle, proceeding with data clear');
     }
 
     // Clear the sync queue (pending operations will be discarded)

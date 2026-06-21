@@ -164,6 +164,33 @@ describe('SyncedDataStore.pushAllToCloud', () => {
     return store;
   }
 
+  describe('sync barrier and pause-state', () => {
+    it('pauses, waits for idle, THEN clears the queue (barrier ordering)', async () => {
+      const store = createSyncedDataStore();
+      const engine = (store as unknown as { syncEngine: { pause: jest.Mock; waitForIdle: jest.Mock } }).syncEngine;
+      const queue = (store as unknown as { syncQueue: { clear: jest.Mock } }).syncQueue;
+
+      await store.pushAllToCloud();
+
+      expect(engine.pause).toHaveBeenCalled();
+      expect(engine.waitForIdle).toHaveBeenCalled();
+      // pause → waitForIdle → clear: without the wait, an in-flight write could
+      // land in the just-cleared queue/cloud.
+      expect(engine.pause.mock.invocationCallOrder[0]).toBeLessThan(engine.waitForIdle.mock.invocationCallOrder[0]);
+      expect(engine.waitForIdle.mock.invocationCallOrder[0]).toBeLessThan(queue.clear.mock.invocationCallOrder[0]);
+    });
+
+    it('does not resume an engine that was already paused (no pause-state leak)', async () => {
+      const store = createSyncedDataStore();
+      const engine = (store as unknown as { syncEngine: { resume: jest.Mock; getIsPaused: jest.Mock } }).syncEngine;
+      engine.getIsPaused.mockReturnValue(true);
+
+      await store.pushAllToCloud();
+
+      expect(engine.resume).not.toHaveBeenCalled();
+    });
+  });
+
   describe('successful push', () => {
     it('should push all entities and return correct summary', async () => {
       syncedDataStore = createSyncedDataStore();

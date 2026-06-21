@@ -1148,6 +1148,19 @@ describe('SyncedDataStore', () => {
       expect(pauseSpy.mock.invocationCallOrder[0]).toBeLessThan(waitSpy.mock.invocationCallOrder[0]);
       expect(waitSpy.mock.invocationCallOrder[0]).toBeLessThan(clearQueueSpy.mock.invocationCallOrder[0]);
     });
+
+    it('does not resume an engine that was already paused (no pause-state leak)', async () => {
+      localStoreSpy.clearAllUserData.mockResolvedValue(undefined);
+
+      const storeAny = store as unknown as Record<string, unknown>;
+      const engine = storeAny.syncEngine as SyncEngine;
+      jest.spyOn(engine, 'getIsPaused').mockReturnValue(true);
+      const resumeSpy = jest.spyOn(engine, 'resume');
+
+      await store.clearAllUserData();
+
+      expect(resumeSpy).not.toHaveBeenCalled();
+    });
   });
 
   // ==========================================================================

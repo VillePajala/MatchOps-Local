@@ -462,6 +462,8 @@ export class SyncEngine {
    * @returns true if the engine became idle, false if the timeout elapsed.
    */
   async waitForIdle(timeoutMs = 5000): Promise<boolean> {
+    // Tighter poll than dispose()'s 100ms loop — this gates user-facing bulk
+    // import / clear-all, so we release as soon as the in-flight op finishes.
     const POLL_INTERVAL_MS = 50;
     let waited = 0;
     while (this.isSyncing && waited < timeoutMs) {
