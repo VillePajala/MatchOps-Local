@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Cloud sync now protects your latest edits even if your device's clock is a little off — a recent change you made on this device won't be silently overwritten by an older cloud copy just because of clock drift"
+      ],
+      "fi": [
+        "Pilvisynkronointi suojaa nyt viimeisimmät muutoksesi vaikka laitteesi kello olisi hieman väärässä — tällä laitteella tekemääsi tuoretta muutosta ei enää hiljaisesti ylikirjoiteta vanhemmalla pilviversiolla pelkän kellopoikkeaman vuoksi"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "More reliable cloud import and reset: bulk 'push everything to cloud' and 'clear all data' now wait for any in-progress background sync to finish first, preventing rare cases where a stray sync could overwrite freshly imported or cleared data"
       ],
       "fi": [
