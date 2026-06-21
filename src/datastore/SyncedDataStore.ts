@@ -563,9 +563,12 @@ export class SyncedDataStore implements DataStore {
 
   async upsertPlayer(player: Player): Promise<Player> {
     const result = await this.localStore.upsertPlayer(player);
-    // Queue as 'create' - the cloud store uses upsert which handles both create and update.
-    // Using 'create' ensures correct deduplication: CREATE + DELETE = nothing (entity never synced)
-    await this.queueSync('player', player.id, 'create', result);
+    // Queue as 'update' — the cloud executor uses upsert for both create and update,
+    // so the op type only affects queue coalescing. An upsert can target an entity
+    // that ALREADY exists on the server, so it must NOT use 'create' (CREATE + DELETE
+    // coalesces to nothing, silently dropping a needed delete). 'update' coalesces
+    // UPDATE + DELETE → DELETE, which correctly reaches the server.
+    await this.queueSync('player', player.id, 'update', result);
     return result;
   }
 
@@ -605,8 +608,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertTeam(team: Team): Promise<Team> {
     const result = await this.localStore.upsertTeam(team);
-    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
-    await this.queueSync('team', team.id, 'create', result);
+    // Queue as 'update' so UPDATE + DELETE coalesces to DELETE (see upsertPlayer).
+    await this.queueSync('team', team.id, 'update', result);
     return result;
   }
 
@@ -662,8 +665,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertSeason(season: Season): Promise<Season> {
     const result = await this.localStore.upsertSeason(season);
-    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
-    await this.queueSync('season', season.id, 'create', result);
+    // Queue as 'update' so UPDATE + DELETE coalesces to DELETE (see upsertPlayer).
+    await this.queueSync('season', season.id, 'update', result);
     return result;
   }
 
@@ -702,8 +705,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertTournament(tournament: Tournament): Promise<Tournament> {
     const result = await this.localStore.upsertTournament(tournament);
-    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
-    await this.queueSync('tournament', tournament.id, 'create', result);
+    // Queue as 'update' so UPDATE + DELETE coalesces to DELETE (see upsertPlayer).
+    await this.queueSync('tournament', tournament.id, 'update', result);
     return result;
   }
 
@@ -767,8 +770,8 @@ export class SyncedDataStore implements DataStore {
 
   async upsertPersonnelMember(personnel: Personnel): Promise<Personnel> {
     const result = await this.localStore.upsertPersonnelMember(personnel);
-    // Queue as 'create' - cloud uses upsert, ensures correct deduplication
-    await this.queueSync('personnel', personnel.id, 'create', result);
+    // Queue as 'update' so UPDATE + DELETE coalesces to DELETE (see upsertPlayer).
+    await this.queueSync('personnel', personnel.id, 'update', result);
     return result;
   }
 
@@ -916,8 +919,8 @@ export class SyncedDataStore implements DataStore {
     }
   ): Promise<PlayerStatAdjustment> {
     const result = await this.localStore.upsertPlayerAdjustment(adjustment);
-    // Queue as 'create' - cloud uses upsert, ensures correct deduplication (CREATE + DELETE = nothing)
-    await this.queueSync('playerAdjustment', result.id, 'create', result);
+    // Queue as 'update' so UPDATE + DELETE coalesces to DELETE (see upsertPlayer).
+    await this.queueSync('playerAdjustment', result.id, 'update', result);
     return result;
   }
 
