@@ -76,11 +76,14 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
 
   // --- Goalie Toggle Icon Handler (Keep this) ---
   const handleToggleGoalieClick = (e: React.MouseEvent | React.TouchEvent) => {
-    // preventDefault stops the synthetic click that follows touchEnd on touch
-    // devices — without it the toggle fires twice (touchEnd + click) and cancels
-    // itself out. stopPropagation keeps the tap from selecting the disk.
-    e.preventDefault();
-    e.stopPropagation();
+    // On touch devices a touchEnd is followed by a synthetic click; without
+    // preventDefault the toggle fires twice and cancels itself out. Only
+    // suppress that on the touch event — calling preventDefault on the click
+    // (incl. keyboard-driven clicks) is unnecessary and semantically off.
+    if ('touches' in e) {
+      e.preventDefault();
+    }
+    e.stopPropagation(); // keeps the tap from selecting the disk
     if (onToggleGoalie) {
       onToggleGoalie(id);
     }

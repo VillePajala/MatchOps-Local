@@ -137,15 +137,18 @@ describe('GoalLogModal', () => {
     fireEvent.change(screen.getByDisplayValue('00:15'), { target: { value: '00:30' } });
     fireEvent.click(screen.getByRole('button', { name: /^(Save|Tallenna)$/i }));
 
-    await waitFor(() => {
-      // Optimistic update propagates the edit (time 30), then the failed write
-      // rolls back — so the LAST propagated event is the original (time 15).
-      expect(onUpdateGameEvent).toHaveBeenLastCalledWith(
-        expect.objectContaining({ id: 'goal-1', time: 15 }),
-      );
-    });
-
-    consoleSpy.mockRestore();
+    try {
+      await waitFor(() => {
+        // Optimistic update propagates the edit (time 30), then the failed write
+        // rolls back — so the LAST propagated event is the original (time 15).
+        expect(onUpdateGameEvent).toHaveBeenLastCalledWith(
+          expect.objectContaining({ id: 'goal-1', time: 15 }),
+        );
+      });
+    } finally {
+      // Restore even if the assertion throws, so the spy never leaks into other tests.
+      consoleSpy.mockRestore();
+    }
   });
 
   it('rejects an out-of-range MM:SS time and does not persist', async () => {

@@ -211,7 +211,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     if (timeParts.length === 2) {
       const minutes = parseInt(timeParts[0], 10);
       const seconds = parseInt(timeParts[1], 10);
-      if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && minutes <= 120 && seconds >= 0 && seconds < 60) {
+      // Cap at 200 min to comfortably allow extra time + long stoppage, while still rejecting garbage.
+      if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && minutes <= 200 && seconds >= 0 && seconds < 60) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
         setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
