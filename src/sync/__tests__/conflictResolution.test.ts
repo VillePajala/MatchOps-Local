@@ -22,8 +22,9 @@ describe('ConflictResolver', () => {
 
   // Test timestamps
   const NOW = 1700000000000; // Fixed timestamp for tests
-  const OLDER = NOW - 10000; // 10 seconds older
+  const OLDER = NOW - 10000; // 10 seconds older (WITHIN clock-skew tolerance → local still wins)
   const NEWER = NOW + 10000; // 10 seconds newer
+  const MUCH_OLDER = NOW - 10 * 60 * 1000; // 10 min older (BEYOND 5-min tolerance → cloud wins)
 
   beforeEach(() => {
     mockFetchFromCloud = jest.fn();
@@ -102,8 +103,8 @@ describe('ConflictResolver', () => {
       expect(mockWriteToCloud).toHaveBeenCalled();
     });
 
-    it('should let cloud win when cloud timestamp is newer', async () => {
-      const op = createOperation({ timestamp: OLDER });
+    it('should let cloud win when cloud timestamp is substantially newer (beyond tolerance)', async () => {
+      const op = createOperation({ timestamp: MUCH_OLDER });
       const cloudRecord = createCloudRecord({
         updatedAt: new Date(NOW).toISOString(),
       });
@@ -119,6 +120,22 @@ describe('ConflictResolver', () => {
         cloudRecord
       );
       expect(mockWriteToCloud).not.toHaveBeenCalled();
+    });
+
+    it('should let local win when it is only slightly older than cloud (within clock-skew tolerance)', async () => {
+      // A drifted device clock could make a fresh local edit look ~10s old.
+      // Prefer the local edit so a skewed clock can't silently discard the user's work.
+      const op = createOperation({ timestamp: OLDER });
+      const cloudRecord = createCloudRecord({
+        updatedAt: new Date(NOW).toISOString(),
+      });
+      mockFetchFromCloud.mockResolvedValue(cloudRecord);
+
+      const result = await resolver.resolve(op);
+
+      expect(result.resolution.winner).toBe('local');
+      expect(mockWriteToCloud).toHaveBeenCalled();
+      expect(mockWriteToLocal).not.toHaveBeenCalled();
     });
 
     it('should include timestamps in resolution', async () => {
@@ -201,10 +218,10 @@ describe('ConflictResolver', () => {
       expect(mockDeleteFromCloud).toHaveBeenCalled();
     });
 
-    it('should resurrect locally when cloud update is newer than local delete', async () => {
+    it('should resurrect locally when cloud update is substantially newer than local delete (beyond tolerance)', async () => {
       const op = createOperation({
         operation: 'delete',
-        timestamp: OLDER,
+        timestamp: MUCH_OLDER,
         data: null,
       });
       const cloudRecord = createCloudRecord({
@@ -795,10 +812,11 @@ describe('AlreadyExistsError Handling', () => {
     });
 
     it('should not call writeToCloud when cloud wins (no AlreadyExistsError possible)', async () => {
-      // When cloud is newer, we write to local, not to cloud
+      // When cloud is substantially newer (beyond clock-skew tolerance), we write
+      // to local, not to cloud.
       const cloudRecord: CloudRecord = {
         id: 'player-1',
-        updatedAt: new Date(NOW + 10000).toISOString(), // Cloud is newer
+        updatedAt: new Date(NOW + 10 * 60 * 1000).toISOString(), // Cloud 10 min newer
       };
       mockFetchFromCloud.mockResolvedValue(cloudRecord);
 

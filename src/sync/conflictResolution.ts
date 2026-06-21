@@ -102,18 +102,33 @@ export interface ResolutionResult {
 }
 
 /**
+ * Clock-skew tolerance for last-write-wins comparison.
+ *
+ * The local op.timestamp is the DEVICE wall clock; the cloud updatedAt is the
+ * SERVER clock. A drifted device clock (common after being offline) could make a
+ * genuinely-fresh local edit look "older" than cloud and be silently discarded.
+ * So we bias toward the local edit: the cloud only wins when it is newer by MORE
+ * than this tolerance. For a single user across a few devices that are rarely
+ * edited at the same moment, preferring the local edit avoids losing the work in
+ * front of the user. (User-chosen strategy: "prefer my latest edit".)
+ */
+const CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
  * ConflictResolver - Resolves conflicts between local and cloud data.
  *
- * Strategy: Last-Write-Wins
- * - Compares timestamps of local operation and cloud record
- * - Newer timestamp wins
+ * Strategy: Last-Write-Wins, biased toward the local edit
+ * - Compares the local operation timestamp against the cloud record timestamp
+ * - The local edit wins unless the cloud is newer by more than the clock-skew
+ *   tolerance (see CLOCK_SKEW_TOLERANCE_MS) — this protects fresh local edits
+ *   from a drifted device clock
  * - Special handling for deletions
  *
  * Edge Cases:
  * - Record deleted in cloud: Local operation wins (resurrection)
- * - Record deleted locally: Push delete to cloud if local is newer
+ * - Record deleted locally: Push delete to cloud if local is not substantially older
  * - Both deleted: No conflict (both agree on deletion)
- * - Same timestamp: Local wins (user's most recent action takes priority)
+ * - Same timestamp (or within tolerance): Local wins (user's most recent action takes priority)
  *
  * ## Concurrency Note (Multi-Device Sync)
  *
@@ -273,8 +288,9 @@ export class ConflictResolver {
   ): Promise<ResolutionResult> {
     const { entityType, entityId, timestamp } = op;
 
-    // Local delete is newer or same time - delete from cloud
-    if (timestamp >= cloudTimestamp) {
+    // Local delete wins unless the cloud version is newer by more than the
+    // clock-skew tolerance (prefer the user's local action over a drifted clock).
+    if (timestamp >= cloudTimestamp - CLOCK_SKEW_TOLERANCE_MS) {
       logger.info('[ConflictResolver] Local delete wins', {
         entityType,
         entityId,
@@ -329,8 +345,9 @@ export class ConflictResolver {
   ): Promise<ResolutionResult> {
     const { entityType, entityId, data, timestamp } = op;
 
-    // Local is newer or same time - push to cloud (local wins ties)
-    if (timestamp >= cloudTimestamp) {
+    // Local write wins unless the cloud version is newer by more than the
+    // clock-skew tolerance (prefer the user's local edit over a drifted clock).
+    if (timestamp >= cloudTimestamp - CLOCK_SKEW_TOLERANCE_MS) {
       logger.info('[ConflictResolver] Local write wins', {
         entityType,
         entityId,
