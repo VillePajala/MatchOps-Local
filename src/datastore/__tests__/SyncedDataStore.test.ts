@@ -16,7 +16,7 @@ import 'fake-indexeddb/auto';
 import { SyncedDataStore } from '../SyncedDataStore';
 import { LocalDataStore } from '../LocalDataStore';
 import { SyncQueue, SyncEngine, resetSyncEngine } from '@/sync';
-import type { Player, Team, Season, Tournament, TeamPlayer } from '@/types';
+import type { Player, Team, Season, Tournament, TeamPlayer, PlayerStatAdjustment } from '@/types';
 import type { AppState } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -310,15 +310,47 @@ describe('SyncedDataStore', () => {
       const result = await store.upsertPlayer(mockPlayer);
 
       expect(localStoreSpy.upsertPlayer).toHaveBeenCalledWith(mockPlayer);
-      // Uses 'create' for upsert to ensure correct deduplication (CREATE + DELETE = nothing)
+      // Upsert queues as 'update' (not 'create') so a later DELETE coalesces to
+      // DELETE instead of cancelling — an upsert may target a server-existing row.
       expect(queueEnqueueSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           entityType: 'player',
           entityId: mockPlayer.id,
-          operation: 'create',
+          operation: 'update',
         })
       );
       expect(result).toEqual(mockPlayer);
+    });
+  });
+
+  describe('Upsert ops queue as update (so a later delete coalesces to DELETE, not nothing)', () => {
+    it('upsertTeam/Season/Tournament/PersonnelMember/PlayerAdjustment all enqueue operation: update', async () => {
+      localStoreSpy.upsertTeam.mockResolvedValue({ id: 'team_1' } as unknown as Team);
+      localStoreSpy.upsertSeason.mockResolvedValue({ id: 'season_1' } as unknown as Season);
+      localStoreSpy.upsertTournament.mockResolvedValue({ id: 'tournament_1' } as unknown as Tournament);
+      localStoreSpy.upsertPersonnelMember.mockResolvedValue({ id: 'personnel_1' } as unknown as Personnel);
+      localStoreSpy.upsertPlayerAdjustment.mockResolvedValue({ id: 'adj_1' } as unknown as PlayerStatAdjustment);
+
+      await store.upsertTeam({ id: 'team_1' } as unknown as Team);
+      await store.upsertSeason({ id: 'season_1' } as unknown as Season);
+      await store.upsertTournament({ id: 'tournament_1' } as unknown as Tournament);
+      await store.upsertPersonnelMember({ id: 'personnel_1' } as unknown as Personnel);
+      await store.upsertPlayerAdjustment(
+        { id: 'adj_1' } as unknown as Parameters<typeof store.upsertPlayerAdjustment>[0]
+      );
+
+      const expected: Array<[string, string]> = [
+        ['team', 'team_1'],
+        ['season', 'season_1'],
+        ['tournament', 'tournament_1'],
+        ['personnel', 'personnel_1'],
+        ['playerAdjustment', 'adj_1'],
+      ];
+      for (const [entityType, entityId] of expected) {
+        expect(queueEnqueueSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ entityType, entityId, operation: 'update' })
+        );
+      }
     });
   });
 
