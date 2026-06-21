@@ -526,6 +526,24 @@ describe('<GameSettingsModal />', () => {
       // Instead of checking the exact value, just verify it was called
       expect(mockOnPeriodDurationChange).toHaveBeenCalled();
     });
+
+    test('does not persist intermediate duration values while typing — commits clamped value on blur', async () => {
+      const user = userEvent.setup();
+      renderModal();
+
+      const durationInput = screen.getByLabelText(t('gameSettingsModal.periodDurationLabel'));
+
+      // Changing 15 → 25 must NOT persist transient values like "1"/"12"/"125"
+      // as the user edits. Nothing is committed until blur.
+      await user.clear(durationInput);
+      await user.type(durationInput, '25');
+      expect(mockOnPeriodDurationChange).not.toHaveBeenCalled();
+
+      // Blur commits exactly once with the final clamped value.
+      await user.tab();
+      expect(mockOnPeriodDurationChange).toHaveBeenCalledTimes(1);
+      expect(mockOnPeriodDurationChange).toHaveBeenCalledWith(25);
+    });
   });
   
   describe('Home/Away Toggle', () => {
