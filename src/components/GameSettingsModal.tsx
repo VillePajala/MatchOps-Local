@@ -464,6 +464,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [goalTimeError, setGoalTimeError] = useState<string | null>(null);
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
 
+  // Local string buffer for the period-duration input. Editing is kept local
+  // while typing so intermediate values (e.g. "1" then "12" then "125" when
+  // changing 15→25) are never persisted/synced — we commit a clamped value on
+  // blur only. Synced from the prop so external changes still reflect here.
+  const [periodDurationInput, setPeriodDurationInput] = useState<string>(String(periodDurationMinutes));
+  useEffect(() => {
+    setPeriodDurationInput(String(periodDurationMinutes));
+  }, [periodDurationMinutes]);
+
   // State for inline editing UI control
   const [inlineEditingField, setInlineEditingField] = useState<
     'team' | 'opponent' | 'date' | 'location' | 'time' | 'duration' | 'notes' | null
@@ -2265,14 +2274,20 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   inputMode="numeric"
                   pattern="[0-9]*"
                   id="periodDurationInput"
-                  value={periodDurationMinutes}
+                  value={periodDurationInput}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    const numericValue = value.replace(/[^0-9]/g, '');
-                    // Allow reasonable period durations (1-999 minutes)
-                    const duration = parseInt(numericValue, 10);
-                    if (numericValue === '' || (duration >= 1 && duration <= 999)) {
-                      const finalDuration = numericValue === '' ? 1 : duration;
+                    // Local-only while typing: keep digits, never persist
+                    // intermediate values. Commit happens on blur.
+                    setPeriodDurationInput(e.target.value.replace(/[^0-9]/g, ''));
+                  }}
+                  onBlur={() => {
+                    const parsed = parseInt(periodDurationInput, 10);
+                    // Empty/invalid reverts to the current value; otherwise clamp 1-999.
+                    const finalDuration = isNaN(parsed)
+                      ? periodDurationMinutes
+                      : Math.min(999, Math.max(1, parsed));
+                    setPeriodDurationInput(String(finalDuration));
+                    if (finalDuration !== periodDurationMinutes) {
                       onPeriodDurationChange(finalDuration);
                       mutateGameDetails(
                         { periodDurationMinutes: finalDuration },
@@ -2416,7 +2431,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                               ))}
                             </select>
                             <select
-                              value={editGoalAssisterId}
+                              value={editGoalAssisterId ?? ''}
                               onChange={(e) => setEditGoalAssisterId(e.target.value || undefined)}
                               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm appearance-none"
                             >

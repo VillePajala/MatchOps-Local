@@ -211,7 +211,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     if (timeParts.length === 2) {
       const minutes = parseInt(timeParts[0], 10);
       const seconds = parseInt(timeParts[1], 10);
-      if (!isNaN(minutes) && !isNaN(seconds)) {
+      if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && minutes <= 120 && seconds >= 0 && seconds < 60) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
         setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
@@ -255,14 +255,29 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
         } else {
           logger.error(`[GoalLogModal] Failed to update event ${goalId}`);
           setError(t('gameSettingsModal.errors.updateFailed', 'Failed to update event. Please try again.'));
+          // Revert optimistic update on failure so UI never shows unsaved edits.
+          setLocalGameEvents(prevEvents =>
+            prevEvents.map(event => (event.id === goalId ? originalEvent : event))
+          );
+          onUpdateGameEvent(originalEvent);
         }
       } else {
         logger.error(`[GoalLogModal] Event ${goalId} not found`);
         setError(t('gameSettingsModal.errors.eventNotFound', 'Original event not found for saving.'));
+        // Revert optimistic update — event not found in props for persistence.
+        setLocalGameEvents(prevEvents =>
+          prevEvents.map(event => (event.id === goalId ? originalEvent : event))
+        );
+        onUpdateGameEvent(originalEvent);
       }
     } catch (err) {
       logger.error(`[GoalLogModal] Error updating event ${goalId}:`, err);
       setError(t('gameSettingsModal.errors.genericSaveError', 'An unexpected error occurred while saving the event.'));
+      // Revert optimistic update on error.
+      setLocalGameEvents(prevEvents =>
+        prevEvents.map(event => (event.id === goalId ? originalEvent : event))
+      );
+      onUpdateGameEvent(originalEvent);
     } finally {
       setIsProcessing(false);
     }
@@ -534,7 +549,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                   <option value={UNKNOWN_SCORER}>{t('goalLogModal.unknownScorer', 'Unknown / not sure')}</option>
                                 </select>
                                 <select
-                                  value={editGoalAssisterId}
+                                  value={editGoalAssisterId ?? ''}
                                   onChange={(e) => setEditGoalAssisterId(e.target.value || undefined)}
                                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                                 >

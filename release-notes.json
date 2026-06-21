@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-06-21",
+      "en": [
+        "Fixed several small input glitches: the goalie button no longer double-taps itself on touch screens, period length only saves once you finish typing, and editing a goal's time now safely undoes itself if the save fails"
+      ],
+      "fi": [
+        "Korjattu pieniä syöttövirheitä: maalivahtinappi ei enää reagoi kahdesti kosketusnäytöllä, erän pituus tallentuu vasta kun lopetat kirjoittamisen, ja maalin ajan muokkaus peruuntuu turvallisesti, jos tallennus epäonnistuu"
+      ]
+    },
+    {
       "date": "2026-06-20",
       "en": [
         "Browsing the league filters in Game Settings no longer clears the league you already picked"

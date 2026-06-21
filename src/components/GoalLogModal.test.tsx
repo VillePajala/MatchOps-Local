@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import GoalLogModal, { type GameEvent } from './GoalLogModal';
+import { updateGameEvent } from '@/utils/savedGames';
 import { Player } from '@/types';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n.test';
@@ -13,6 +14,13 @@ import { ToastProvider } from '@/contexts/ToastProvider';
 jest.mock('@/utils/savedGames', () => ({
   updateGameEvent: jest.fn().mockResolvedValue(true),
 }));
+
+const mockUpdateGameEvent = updateGameEvent as jest.Mock;
+
+beforeEach(() => {
+  mockUpdateGameEvent.mockReset();
+  mockUpdateGameEvent.mockResolvedValue(true);
+});
 
 const players: Player[] = [
   { id: 'p1', name: 'John Doe', nickname: 'John', color: '#fff', isGoalie: false },
@@ -110,6 +118,52 @@ describe('GoalLogModal', () => {
     expect(onUpdateGameEvent).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'goal-x', type: 'goal', scorerId: undefined }),
     );
+  });
+
+  it('reverts the optimistic edit when the persistence write fails', async () => {
+    // Storage write fails: the UI must not keep showing the unsaved edit.
+    // The failed-write path logs an expected error — silence it for this test.
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpdateGameEvent.mockResolvedValue(false);
+    const onUpdateGameEvent = jest.fn();
+    renderModal({
+      onUpdateGameEvent,
+      gameEvents: [{ id: 'goal-1', type: 'goal', time: 15, scorerId: 'p1', assisterId: 'p2' }],
+    });
+
+    fireEvent.click(screen.getByLabelText(/Event actions/i));
+    fireEvent.click(screen.getByText(/^(Edit|Muokkaa)$/i));
+
+    fireEvent.change(screen.getByDisplayValue('00:15'), { target: { value: '00:30' } });
+    fireEvent.click(screen.getByRole('button', { name: /^(Save|Tallenna)$/i }));
+
+    await waitFor(() => {
+      // Optimistic update propagates the edit (time 30), then the failed write
+      // rolls back — so the LAST propagated event is the original (time 15).
+      expect(onUpdateGameEvent).toHaveBeenLastCalledWith(
+        expect.objectContaining({ id: 'goal-1', time: 15 }),
+      );
+    });
+
+    consoleSpy.mockRestore();
+  });
+
+  it('rejects an out-of-range MM:SS time and does not persist', async () => {
+    const onUpdateGameEvent = jest.fn();
+    renderModal({
+      onUpdateGameEvent,
+      gameEvents: [{ id: 'goal-1', type: 'goal', time: 15, scorerId: 'p1' }],
+    });
+
+    fireEvent.click(screen.getByLabelText(/Event actions/i));
+    fireEvent.click(screen.getByText(/^(Edit|Muokkaa)$/i));
+
+    // 99 seconds is invalid (must be 0-59) — save must be blocked before any write.
+    fireEvent.change(screen.getByDisplayValue('00:15'), { target: { value: '00:99' } });
+    fireEvent.click(screen.getByRole('button', { name: /^(Save|Tallenna)$/i }));
+
+    expect(mockUpdateGameEvent).not.toHaveBeenCalled();
+    expect(onUpdateGameEvent).not.toHaveBeenCalled();
   });
 
   it('offers to recalculate when the saved score disagrees with the goal log', () => {

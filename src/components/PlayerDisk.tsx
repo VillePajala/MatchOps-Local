@@ -76,7 +76,11 @@ const PlayerDisk: React.FC<PlayerDiskProps> = React.memo(({
 
   // --- Goalie Toggle Icon Handler (Keep this) ---
   const handleToggleGoalieClick = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation(); // IMPORTANT: Prevent click from triggering disk selection
+    // preventDefault stops the synthetic click that follows touchEnd on touch
+    // devices — without it the toggle fires twice (touchEnd + click) and cancels
+    // itself out. stopPropagation keeps the tap from selecting the disk.
+    e.preventDefault();
+    e.stopPropagation();
     if (onToggleGoalie) {
       onToggleGoalie(id);
     }
