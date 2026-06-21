@@ -1128,6 +1128,39 @@ describe('SyncedDataStore', () => {
       expect(clearQueueSpy).toHaveBeenCalled();
       expect(localStoreSpy.clearAllUserData).toHaveBeenCalled();
     });
+
+    it('waits for in-flight sync (waitForIdle) AFTER pausing and BEFORE clearing the queue', async () => {
+      localStoreSpy.clearAllUserData.mockResolvedValue(undefined);
+
+      const storeAny = store as unknown as Record<string, unknown>;
+      const syncQueue = storeAny.syncQueue as SyncQueue;
+      const engine = storeAny.syncEngine as SyncEngine;
+      const pauseSpy = jest.spyOn(engine, 'pause');
+      const waitSpy = jest.spyOn(engine, 'waitForIdle');
+      const clearQueueSpy = jest.spyOn(syncQueue, 'clear');
+
+      await store.clearAllUserData();
+
+      expect(pauseSpy).toHaveBeenCalled();
+      expect(waitSpy).toHaveBeenCalled();
+      // Barrier ordering: pause → waitForIdle → clear queue. Without the wait, an
+      // in-flight write could land in the just-cleared store.
+      expect(pauseSpy.mock.invocationCallOrder[0]).toBeLessThan(waitSpy.mock.invocationCallOrder[0]);
+      expect(waitSpy.mock.invocationCallOrder[0]).toBeLessThan(clearQueueSpy.mock.invocationCallOrder[0]);
+    });
+
+    it('does not resume an engine that was already paused (no pause-state leak)', async () => {
+      localStoreSpy.clearAllUserData.mockResolvedValue(undefined);
+
+      const storeAny = store as unknown as Record<string, unknown>;
+      const engine = storeAny.syncEngine as SyncEngine;
+      jest.spyOn(engine, 'getIsPaused').mockReturnValue(true);
+      const resumeSpy = jest.spyOn(engine, 'resume');
+
+      await store.clearAllUserData();
+
+      expect(resumeSpy).not.toHaveBeenCalled();
+    });
   });
 
   // ==========================================================================

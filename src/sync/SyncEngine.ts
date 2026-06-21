@@ -452,6 +452,32 @@ export class SyncEngine {
   }
 
   /**
+   * Wait for any in-flight sync operation to finish (isSyncing → false).
+   *
+   * pause() only stops NEW processing; a batch already running keeps going until
+   * it drains. Callers that are about to clear the queue or wipe cloud data must
+   * await this AFTER pause() so an in-flight write can't land in a just-cleared
+   * store (the pause-isn't-a-barrier race).
+   *
+   * @returns true if the engine became idle, false if the timeout elapsed.
+   */
+  async waitForIdle(timeoutMs = 5000): Promise<boolean> {
+    // Tighter poll than dispose()'s 100ms loop — this gates user-facing bulk
+    // import / clear-all, so we release as soon as the in-flight op finishes.
+    const POLL_INTERVAL_MS = 50;
+    let waited = 0;
+    while (this.isSyncing && waited < timeoutMs) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      waited += POLL_INTERVAL_MS;
+    }
+    if (this.isSyncing) {
+      logger.warn('[SyncEngine] waitForIdle timed out - sync operation still in progress');
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Get the current sync status.
    * Returns a safe default if queue is not yet initialized.
    */
@@ -973,6 +999,12 @@ export class SyncEngine {
         }
         if (this.isServerPaused) {
           logger.info('[SyncEngine] Server circuit breaker tripped, stopping batch');
+          break;
+        }
+        if (this.isPaused) {
+          // User paused mid-batch (e.g. bulk push / clear-all). Stop now so the
+          // barrier (waitForIdle) can release quickly without finishing the batch.
+          logger.info('[SyncEngine] Paused mid-batch, stopping');
           break;
         }
       }

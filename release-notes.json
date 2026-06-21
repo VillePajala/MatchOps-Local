@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-06-22",
+      "en": [
+        "More reliable cloud import and reset: bulk 'push everything to cloud' and 'clear all data' now wait for any in-progress background sync to finish first, preventing rare cases where a stray sync could overwrite freshly imported or cleared data"
+      ],
+      "fi": [
+        "Luotettavampi pilveen vienti ja nollaus: 'vie kaikki pilveen' ja 'tyhjennä kaikki tiedot' odottavat nyt käynnissä olevan taustasynkronoinnin valmistumista, mikä estää harvinaiset tilanteet joissa irrallinen synkronointi saattoi ylikirjoittaa juuri tuodut tai tyhjennetyt tiedot"
+      ]
+    },
+    {
       "date": "2026-06-21",
       "en": [
         "Cloud sync fix: if you edit and then delete the same player, team, season, tournament, or staff member while offline, the deletion now reliably reaches the cloud instead of occasionally being skipped"
