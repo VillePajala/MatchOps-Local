@@ -4,6 +4,15 @@
     {
       "date": "2026-06-21",
       "en": [
+        "Cloud sync now keeps the original creation dates of your players, seasons, and tournaments, so they no longer jump around in lists after syncing, and settings sync more reliably across devices"
+      ],
+      "fi": [
+        "Pilvisynkronointi säilyttää nyt pelaajien, kausien ja turnausten alkuperäiset luontipäivät, joten ne eivät enää hyppi listoissa synkronoinnin jälkeen, ja asetukset synkronoituvat luotettavammin laitteiden välillä"
+      ]
+    },
+    {
+      "date": "2026-06-21",
+      "en": [
         "Goalie marking is now rock-solid: dragging a player into the goal spot makes them keeper, moving players around never accidentally clears your goalie, and deleting a player also removes them from the field",
         "Fixed several small input glitches: the goalie button no longer double-taps itself on touch screens, period length only saves once you finish typing, and editing a goal's time now safely undoes itself if the save fails"
       ],
