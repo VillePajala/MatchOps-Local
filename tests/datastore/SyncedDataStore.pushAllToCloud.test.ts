@@ -52,6 +52,8 @@ jest.mock('@/sync', () => ({
     pause: jest.fn(),
     resume: jest.fn(),
     isEngineRunning: jest.fn().mockReturnValue(true),
+    getIsPaused: jest.fn().mockReturnValue(false),
+    waitForIdle: jest.fn().mockResolvedValue(true),
   }),
   resetSyncEngine: jest.fn(),
   SyncEngine: jest.fn(),
@@ -153,9 +155,11 @@ describe('SyncedDataStore.pushAllToCloud', () => {
     (store as unknown as { syncQueue: { clear: () => Promise<void> } }).syncQueue = {
       clear: jest.fn().mockResolvedValue(undefined),
     };
-    (store as unknown as { syncEngine: { pause: () => void; resume: () => void } | null }).syncEngine = {
+    (store as unknown as { syncEngine: { pause: () => void; resume: () => void; getIsPaused: () => boolean; waitForIdle: () => Promise<boolean> } | null }).syncEngine = {
       pause: jest.fn(),
       resume: jest.fn(),
+      getIsPaused: jest.fn().mockReturnValue(false),
+      waitForIdle: jest.fn().mockResolvedValue(true),
     };
     return store;
   }
