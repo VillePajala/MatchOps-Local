@@ -3560,9 +3560,34 @@ export class SupabaseDataStore implements DataStore {
       assessmentsCount: tables.assessments.length,
     });
 
-    // Get expected version for optimistic locking (Issue #330)
-    // undefined = new game or version not yet cached (skip version check)
-    const expectedVersion = this.gameVersionCache.get(id);
+    // Get expected version for optimistic locking (Issue #330 / CR-M3 #2).
+    // The cache is populated when a game is loaded (getGameById/getGames). A COLD
+    // cache (e.g. saving a game not loaded this session) previously passed null,
+    // which the RPC treats as "skip the version check" → an unguarded overwrite.
+    // Instead, fetch the current cloud version and pass it: the RPC (FOR UPDATE,
+    // migration 030) then validates it atomically, so a concurrent change since the
+    // fetch still conflicts rather than being silently clobbered. A genuinely new
+    // game (no cloud row) leaves expectedVersion undefined → RPC creates it at v1.
+    let expectedVersion = this.gameVersionCache.get(id);
+    if (expectedVersion === undefined) {
+      try {
+        const { data: existing } = await this.getClient()
+          .from('games')
+          .select('version')
+          .eq('user_id', userId)
+          .eq('id', id)
+          .maybeSingle();
+        const fetchedVersion = (existing as { version?: number } | null)?.version;
+        if (typeof fetchedVersion === 'number') {
+          expectedVersion = fetchedVersion;
+          this.cacheGameVersion(id, fetchedVersion);
+        }
+      } catch (versionFetchError) {
+        // Best-effort: on fetch failure, fall back to the prior behaviour (skip the
+        // check) rather than blocking the save. No worse than before this fix.
+        logger.warn('[SupabaseDataStore] Cold-cache version fetch failed; saving without version check', versionFetchError);
+      }
+    }
 
     // Use RPC for atomic 5-table write within a single PostgreSQL transaction
     // Type assertion needed: RPC functions are not in generated Supabase types until deployed
@@ -3611,10 +3636,14 @@ export class SupabaseDataStore implements DataStore {
     if (error) {
       const errorMessage = error.message.toLowerCase();
 
-      // Issue #330: Detect optimistic locking conflict
-      // PostgreSQL raises serialization_failure (SQLSTATE 40001) for version mismatch
-      // We check error code only - our migration uses ERRCODE = 'serialization_failure'
-      const isConflict = error.code === '40001';
+      // Issue #330 / CR-M3: Detect optimistic locking conflict.
+      // The RPC raises the version-mismatch conflict with SQLSTATE 'PT409'
+      // (migration 030) → PostgREST returns HTTP 409 immediately. Previously it
+      // used 'serialization_failure' (40001), which PostgREST auto-retries as a
+      // transient failure until the gateway times out — so the conflict never
+      // surfaced. We accept both: 'PT409' for the current RPC, '40001' for the
+      // window before migration 030 is deployed to a given environment.
+      const isConflict = error.code === 'PT409' || error.code === '40001';
 
       if (isConflict) {
         // DATA SAFETY: Backup the unsaved game data before throwing

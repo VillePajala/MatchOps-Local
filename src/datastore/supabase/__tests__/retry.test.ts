@@ -79,6 +79,18 @@ describe('retry utility', () => {
       expect(isTransientError(new Error('serialization_failure'))).toBe(false);
     });
 
+    /**
+     * CR-M3: the RPC now raises optimistic-locking conflicts with SQLSTATE 'PT409'
+     * (→ HTTP 409) instead of 40001, because PostgREST auto-retries 40001 as a
+     * transient serialization failure (which timed conflicts out). PT409 must also
+     * NOT be treated as transient, or the same silent-retry problem returns.
+     */
+    it('should return false for optimistic locking conflicts raised as PT409 (HTTP 409)', () => {
+      expect(isTransientError({ code: 'PT409' })).toBe(false);
+      expect(isTransientError({ code: 'PT409', message: 'Conflict: game was modified by another session' })).toBe(false);
+      expect(isTransientError({ code: 'PT409', status: 409 })).toBe(false);
+    });
+
     it('should return false for null/undefined', () => {
       expect(isTransientError(null)).toBe(false);
       expect(isTransientError(undefined)).toBe(false);

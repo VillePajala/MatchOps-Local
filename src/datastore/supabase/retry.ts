@@ -64,9 +64,11 @@ export function isTransientError(error: unknown): boolean {
     // PostgrestError code
     const code = errorObj.code;
 
-    // Explicitly NOT transient: optimistic locking conflicts (40001)
-    // Must NOT be retried — symmetric with src/utils/retry.ts guard
-    if (code === '40001') {
+    // Explicitly NOT transient: optimistic locking conflicts.
+    // 'PT409' is the current code (migration 030 → HTTP 409); '40001' is the
+    // legacy serialization_failure code. Neither must be retried — a retry would
+    // re-trigger the same conflict. Symmetric with src/utils/retry.ts guard.
+    if (code === 'PT409' || code === '40001') {
       return false;
     }
 

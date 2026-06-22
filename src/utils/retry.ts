@@ -47,8 +47,9 @@ export function isTransientError(error: unknown): boolean {
       return true;
     }
 
-    // Explicitly NOT transient: optimistic locking conflicts (40001)
-    if (code === '40001') {
+    // Explicitly NOT transient: optimistic locking conflicts.
+    // 'PT409' (migration 030 → HTTP 409) and legacy '40001' must not be retried.
+    if (code === 'PT409' || code === '40001') {
       return false;
     }
   }
