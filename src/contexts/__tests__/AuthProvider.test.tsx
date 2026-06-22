@@ -1143,6 +1143,27 @@ describe('AuthProvider', () => {
       expect(localStorage.getItem('matchops-password-reset-in-progress')).toBeNull();
     });
 
+    it('does not surface the recovery session (and keeps the flag) if signOut fails on reload (#4)', async () => {
+      // signOut fails during the init guard — the recovery session is still in storage.
+      mockAuthService = createMockCloudAuthService(true);
+      jest.spyOn(mockAuthService, 'signOut').mockRejectedValue(new Error('signOut failed'));
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      localStorage.setItem('matchops-password-reset-in-progress', '1');
+
+      render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+
+      // Even though signOut failed, the recovery session must NOT be surfaced as a
+      // sign-in, and we must not fall into grace period either — user lands on login.
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+      expect(screen.getByTestId('grace-period')).toHaveTextContent('no');
+      expect(screen.getByTestId('has-session')).toHaveTextContent('no');
+      // Flag kept so the next reload retries clearing the recovery session.
+      expect(localStorage.getItem('matchops-password-reset-in-progress')).toBe('1');
+    });
+
     /**
      * CR-H3: offline cold start where init THROWS (e.g. NetworkError from getCurrentUser).
      * The init catch must enter grace period (trigger 4) so the user isn't hard-locked

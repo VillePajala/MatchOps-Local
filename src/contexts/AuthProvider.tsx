@@ -253,23 +253,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // persisted recovery session must NOT be treated as a normal sign-in (that
         // would sign the user in without ever changing the password). Clear the
         // recovery session so the user lands on login — their password is unchanged,
-        // so they can sign in normally or restart the reset. Self-healing: the flag
-        // is cleared here regardless, so it can't affect a future normal session.
+        // so they can sign in normally or restart the reset.
+        let recoverySessionCleared = false;
         if (isPasswordResetInProgress()) {
           logger.info('[AuthProvider] Password reset was in progress on reload — clearing lingering recovery session');
-          setPasswordResetInProgress(false);
           isPasswordResetFlowRef.current = false;
+          recoverySessionCleared = true;
           try {
             await service.signOut();
+            // Only drop the flag once signOut actually removed the recovery session.
+            setPasswordResetInProgress(false);
           } catch (e) {
-            logger.warn('[AuthProvider] Failed to clear recovery session on reload:', e);
+            // Keep the flag set so the next reload retries clearing it. Regardless,
+            // this load must NOT surface the recovery session as a sign-in (handled
+            // below by forcing the no-session path), so a signOut failure can't leak
+            // an unwanted login.
+            logger.warn('[AuthProvider] Failed to clear recovery session on reload (will retry next load):', e);
           }
           if (!mounted) return;
         }
 
-        // Get initial state
-        const currentUser = await service.getCurrentUser();
-        const currentSession = await service.getSession();
+        // Get initial state. When we just cleared (or tried to clear) a recovery
+        // session, force the no-session path regardless of what getSession returns —
+        // a failed signOut would otherwise still hand us the recovery session here.
+        const currentUser = recoverySessionCleared ? null : await service.getCurrentUser();
+        const currentSession = recoverySessionCleared ? null : await service.getSession();
 
         if (!mounted) return;
 
@@ -284,7 +292,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Compute grace period identity BEFORE calling setUser to avoid queuing two user state
         // updates (setUser(null) then setUser(cached)) — call setUser once with the resolved value.
         let resolvedUser = currentUser;
-        if (!currentSession && currentMode === 'cloud' && isCloudAvailable()) {
+        // Skip grace period when we just cleared a recovery session: the user should
+        // land on login (to finish the reset or sign in), not be kept logged-in from
+        // the cached recovery identity.
+        if (!recoverySessionCleared && !currentSession && currentMode === 'cloud' && isCloudAvailable()) {
           const cached = getCachedUserIdentity();
           if (cached) {
             logger.info('[AuthProvider] Grace period: offline with cached session for', cached.email);
