@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Deleting a tournament now correctly warns you when games are linked to it through one of its series, instead of letting you delete it and leave those games orphaned"
+      ],
+      "fi": [
+        "Turnauksen poistaminen varoittaa nyt oikein, kun siihen on liitetty otteluita jonkin sen sarjan kautta, sen sijaan että antaisi poistaa sen ja jättäisi nuo ottelut orvoiksi"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Cloud sync now flags a real problem instead of hiding it: if two items end up with the same name and one can't sync because of it, the sync surfaces as failed (so you can rename and fix it) rather than silently dropping your item"
       ],
       "fi": [

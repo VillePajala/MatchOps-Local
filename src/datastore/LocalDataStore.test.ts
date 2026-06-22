@@ -1180,6 +1180,32 @@ describe('LocalDataStore', () => {
         expect(savedTournaments.find((t: Tournament) => t.id === 'tournament_456').name).toBe('Another');
       });
     });
+
+    describe('getTournamentReferences', () => {
+      it('counts a game linked to the tournament only via a series (blocks deletion)', async () => {
+        // Route storage reads by key: one game linked by series (not tournamentId),
+        // a tournament that owns that series, no teams/adjustments.
+        mockGetStorageItem.mockImplementation((key: string) => {
+          if (key === 'savedSoccerGames') {
+            return Promise.resolve(JSON.stringify({
+              game_series: { tournamentId: '', tournamentSeriesId: 'series_x', teamName: 'A', opponentName: 'B', gameDate: '2025-01-01' },
+            }));
+          }
+          if (key === 'soccerTournaments') {
+            return Promise.resolve(JSON.stringify([
+              { id: 'tourn_1', name: 'T', series: [{ id: 'series_x', level: 'A' }] },
+            ]));
+          }
+          return Promise.resolve(null); // no teams, no player adjustments
+        });
+
+        const refs = await dataStore.getTournamentReferences('tourn_1');
+
+        // Before the fix the series-linked game was missed → canDelete=true (orphan risk).
+        expect(refs.counts.games).toBe(1);
+        expect(refs.canDelete).toBe(false);
+      });
+    });
   });
 
   // ============================================================
