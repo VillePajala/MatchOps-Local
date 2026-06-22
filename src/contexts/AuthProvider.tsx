@@ -259,17 +259,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthGracePeriod(false);
         }
 
-        // Fetch marketing consent status if authenticated (non-blocking)
-        if (currentSession && isCloudAvailable()) {
-          try {
-            const mcStatus = await service.getMarketingConsentStatus();
-            if (mounted) setMarketingConsentState(mcStatus);
-          } catch (mcError) {
-            logger.warn('[AuthProvider] Failed to fetch marketing consent status on init:', mcError);
-          }
-        }
-
-        // Subscribe to auth changes (cloud mode fires events, local mode is no-op)
+        // Subscribe to auth changes BEFORE any further awaits below, so:
+        //  - events that fire during init (e.g. token refresh) aren't missed, and
+        //  - the subscription is assigned before the next interruptible await, so the
+        //    effect's cleanup reliably unsubscribes it (no per-retry-cycle leak / no
+        //    orphaned listener double-handling events).
+        // (cloud mode fires events, local mode is no-op)
         unsubscribe = service.onAuthStateChange(async (state: AuthState, newSession: Session | null) => {
           logger.debug('[AuthProvider] Auth state changed:', state, { hasSession: !!newSession });
 
@@ -412,6 +407,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         });
+
+        // Fetch marketing consent status if authenticated (non-blocking).
+        // Moved AFTER subscribing so the listener is already active during this await.
+        if (mounted && currentSession && isCloudAvailable()) {
+          try {
+            const mcStatus = await service.getMarketingConsentStatus();
+            if (mounted) setMarketingConsentState(mcStatus);
+          } catch (mcError) {
+            logger.warn('[AuthProvider] Failed to fetch marketing consent status on init:', mcError);
+          }
+        }
 
         logger.info('[AuthProvider] Initialized', { mode: currentMode, authenticated: !!currentSession });
       } catch (error) {

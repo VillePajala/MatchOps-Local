@@ -307,6 +307,27 @@ describe('AuthProvider', () => {
       expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
     });
 
+    it('registers exactly one auth listener and unsubscribes it on unmount (no leak)', async () => {
+      const { unmount } = render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      // Exactly one active listener after init (registered before the consent await,
+      // so it can't be missed or double-registered).
+      expect(authCallbacks).toHaveLength(1);
+
+      unmount();
+
+      // The effect cleanup must unsubscribe it — no orphaned listener left behind.
+      expect(authCallbacks).toHaveLength(0);
+    });
+
     it('should show not authenticated when no session', async () => {
       mockAuthService = createMockCloudAuthService(false);
 
