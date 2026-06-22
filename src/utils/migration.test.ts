@@ -194,6 +194,32 @@ describe('Simplified Migration System', () => {
       expect(teams.setTeamRoster).toHaveBeenCalled();
       expect(mockSetLocalStorageItem).toHaveBeenCalledWith(APP_DATA_VERSION_KEY, CURRENT_DATA_VERSION.toString());
     });
+
+    it('runs the IndexedDB copy BEFORE app-data migration when both are needed (CR-M7 ordering)', async () => {
+      // Both migrations needed: v1 app data AND a pending localStorage→IndexedDB copy.
+      mockGetLocalStorageItem.mockReturnValue('1'); // app data version 1
+      const storageFactory = await import('./storageFactory');
+      (storageFactory.getStorageConfig as jest.Mock).mockResolvedValue({
+        mode: 'localStorage',
+        version: 1,
+        forceMode: null,
+        migrationState: 'not-started',
+      });
+
+      await runMigration();
+
+      const teams = await import('./teams');
+      const createStorageAdapter = storageFactory.createStorageAdapter as jest.Mock;
+      const addTeam = teams.addTeam as jest.Mock;
+
+      expect(createStorageAdapter).toHaveBeenCalled();
+      expect(addTeam).toHaveBeenCalled();
+      // The IndexedDB migration (createStorageAdapter) must run before the app-data
+      // migration (addTeam). Otherwise app-data reads an empty IndexedDB roster and
+      // builds the default team with no players.
+      expect(createStorageAdapter.mock.invocationCallOrder[0])
+        .toBeLessThan(addTeam.mock.invocationCallOrder[0]);
+    });
   });
 
   describe('IndexedDB migration guards (stale-snapshot protection)', () => {

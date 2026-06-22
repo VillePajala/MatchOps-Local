@@ -669,6 +669,23 @@ export const importFullBackup = async (
       logger.log("Proceeding with restore despite cloud clear failure — data will sync after import");
     }
 
+    // Normalize legacy keys (best-effort). Some old exports might use different names.
+    // ORDER MATTERS (CR-M7): this MUST run before the player-mapping step below,
+    // which reads backupData.localStorage[SAVED_GAMES_KEY]. A legacy backup stores
+    // games under 'savedGames'; without normalizing first, SAVED_GAMES_KEY is empty
+    // at mapping time, so the remap is skipped and a legacy import keeps stale
+    // player IDs that don't match the restored roster.
+    try {
+      // Legacy: 'savedGames' -> SAVED_GAMES_KEY
+      const anyLocal = backupData.localStorage as Record<string, unknown>;
+      if (!anyLocal[SAVED_GAMES_KEY] && anyLocal['savedGames']) {
+        anyLocal[SAVED_GAMES_KEY] = anyLocal['savedGames'] as unknown;
+        logger.log('Normalized legacy key: savedGames -> savedSoccerGames');
+      }
+    } catch (e) {
+      logger.warn('Legacy key normalization failed (non-fatal)', e);
+    }
+
     // --- Process games to ensure proper player mapping ---
     let processedSavedGames = backupData.localStorage[SAVED_GAMES_KEY];
 
@@ -705,18 +722,6 @@ export const importFullBackup = async (
         logger.error('Error processing imported games for player mapping:', error);
         // Continue with import even if processing fails
       }
-    }
-
-    // Normalize legacy keys (best-effort). Some old exports might use different names.
-    try {
-      // Legacy: 'savedGames' -> SAVED_GAMES_KEY
-      const anyLocal = backupData.localStorage as Record<string, unknown>;
-      if (!anyLocal[SAVED_GAMES_KEY] && anyLocal['savedGames']) {
-        anyLocal[SAVED_GAMES_KEY] = anyLocal['savedGames'] as unknown;
-        logger.log('Normalized legacy key: savedGames -> savedSoccerGames');
-      }
-    } catch (e) {
-      logger.warn('Legacy key normalization failed (non-fatal)', e);
     }
 
     // --- Restore data using DataStore methods ---

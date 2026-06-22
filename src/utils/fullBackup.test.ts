@@ -696,6 +696,34 @@ describe("importFullBackup", () => {
       // Verify restore success message
       // Note: Alert no longer shown on success - result object indicates success
     });
+
+    it("remaps players for a LEGACY backup that stores games under the old 'savedGames' key (CR-M7)", async () => {
+      // Current roster present before clear (read via getPlayers → currentRosterBeforeClear).
+      // 'Alice' exists with a DIFFERENT id than the legacy game references.
+      mockStore[MASTER_ROSTER_KEY] = [{ id: "currentAlice", name: "Alice" }];
+
+      // Legacy backup: games under the OLD 'savedGames' key, and NO roster in the backup.
+      const legacyGame = createTestAppState({
+        availablePlayers: [{ id: "oldAlice", name: "Alice" } as Player],
+      });
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          savedGames: { game1: legacyGame }, // legacy key, NOT SAVED_GAMES_KEY
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // The legacy key must be normalized BEFORE the player-mapping step, so remapping
+      // runs and produces a mapping report. Without the fix, SAVED_GAMES_KEY is empty at
+      // mapping time and the remap is skipped (mappingReport would be undefined).
+      expect(result?.success).toBe(true);
+      expect(result?.mappingReport).toBeDefined();
+      // Games were normalized onto the canonical key and restored.
+      expect(mockStore[SAVED_GAMES_KEY]).toBeDefined();
+    });
   });
 
   describe("Concurrent restore guard (CR-H6)", () => {
