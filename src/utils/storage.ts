@@ -799,14 +799,19 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       const nextDelay = calculateRetryDelay(adapterRetryCount);
       const errName = error instanceof DOMException ? error.name : (error instanceof Error ? error.name : 'Unknown');
       const errMsg = error instanceof Error ? error.message : 'Unknown error';
-      logger.error(`Storage adapter creation failed (attempt ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS}, ${errName}). Next retry in ${nextDelay}ms`, error);
+      // Warn while retries remain; reserve error (→ Sentry) for the final attempt that
+      // exhausts MAX_RETRY_ATTEMPTS and locks the adapter out — recovered transient
+      // failures shouldn't each become a Sentry issue.
+      const isFinalAdapterAttempt = adapterRetryCount >= MAX_RETRY_ATTEMPTS;
+      const creationFailMsg = `Storage adapter creation failed (attempt ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS}, ${errName}). Next retry in ${nextDelay}ms`;
+      if (isFinalAdapterAttempt) { logger.error(creationFailMsg, error); } else { logger.warn(creationFailMsg, error); }
 
       // Add Sentry breadcrumb with original error details before wrapping in user-friendly message
       try {
         Sentry.addBreadcrumb({
           category: 'storage',
           message: `IndexedDB adapter failed: ${errName}: ${errMsg}`,
-          level: 'error',
+          level: isFinalAdapterAttempt ? 'error' : 'warning',
           data: {
             attempt: adapterRetryCount,
             errorName: errName,
@@ -863,7 +868,10 @@ export async function getStorageItem(
       const adapter = await getStorageAdapter();
       return adapter.getItem(key);
     } catch (error) {
-      logger.error(`IndexedDB read failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`, error);
+      // Non-final retries are usually recovered transient IndexedDB failures — log at
+      // warn so they don't flood Sentry; only the final failure (which throws) is error.
+      const readFailMsg = `IndexedDB read failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`;
+      if (attempt === retryCount) { logger.error(readFailMsg, error); } else { logger.warn(readFailMsg, error); }
 
       // If this is the last attempt, throw error (IndexedDB-only, no fallback)
       if (attempt === retryCount) {
@@ -905,7 +913,10 @@ export async function setStorageItem(
       const adapter = await getStorageAdapter();
       return adapter.setItem(key, value);
     } catch (error) {
-      logger.error(`IndexedDB write failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`, error);
+      // Non-final retries are usually recovered transient failures — warn (no Sentry);
+      // only the final failure (which throws) logs error.
+      const writeFailMsg = `IndexedDB write failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`;
+      if (attempt === retryCount) { logger.error(writeFailMsg, error); } else { logger.warn(writeFailMsg, error); }
 
       // If this is the last attempt, throw the error
       if (attempt === retryCount) {
@@ -942,7 +953,10 @@ export async function removeStorageItem(
       const adapter = await getStorageAdapter();
       return adapter.removeItem(key);
     } catch (error) {
-      logger.error(`IndexedDB remove failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`, error);
+      // Non-final retries are usually recovered transient failures — warn (no Sentry);
+      // only the final failure (which throws) logs error.
+      const removeFailMsg = `IndexedDB remove failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`;
+      if (attempt === retryCount) { logger.error(removeFailMsg, error); } else { logger.warn(removeFailMsg, error); }
 
       // If this is the last attempt, throw the error
       if (attempt === retryCount) {
@@ -974,7 +988,10 @@ export async function clearStorage(
       const adapter = await getStorageAdapter();
       return adapter.clear();
     } catch (error) {
-      logger.error(`IndexedDB clear failed (attempt ${attempt + 1}/${retryCount + 1}):`, error);
+      // Non-final retries are usually recovered transient failures — warn (no Sentry);
+      // only the final failure (which throws) logs error.
+      const clearFailMsg = `IndexedDB clear failed (attempt ${attempt + 1}/${retryCount + 1}):`;
+      if (attempt === retryCount) { logger.error(clearFailMsg, error); } else { logger.warn(clearFailMsg, error); }
 
       // If this is the last attempt, throw the error
       if (attempt === retryCount) {
