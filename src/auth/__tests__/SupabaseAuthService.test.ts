@@ -138,6 +138,21 @@ describe('SupabaseAuthService', () => {
       expect(mockAuth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     });
 
+    it('keeps the cached session when validation RETURNS a network/abort error (no spurious logout)', async () => {
+      mockAuth.getSession.mockResolvedValue({ data: { session: mockSession }, error: null });
+      // getUser RETURNS (does not throw) an AbortError — "couldn't reach the server",
+      // not "server rejected the session". On flaky mobile this is common; clearing
+      // here would wrongly log the user out.
+      mockAuth.getUser.mockResolvedValue({ data: { user: null }, error: { name: 'AbortError', message: 'aborted' } });
+
+      await authService.initialize();
+
+      expect(authService.isInitialized()).toBe(true);
+      // Session is trusted, not cleared.
+      expect(authService.isAuthenticated()).toBe(true);
+      expect(mockAuth.signOut).not.toHaveBeenCalled();
+    });
+
     it('should handle initialization error gracefully', async () => {
       mockAuth.getSession.mockResolvedValue({
         data: { session: null },
