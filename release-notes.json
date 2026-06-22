@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Behind-the-scenes: fixed the database setup scripts so the cloud backend can be rebuilt cleanly from scratch (no change to your data or the app)"
+      ],
+      "fi": [
+        "Taustalla: korjattu tietokannan asennusskriptit niin että pilvitausta voidaan rakentaa puhtaasti alusta (ei muutoksia tietoihisi tai sovellukseen)"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Duplicate-season detection now behaves the same in local and cloud mode for older seasons, so you won't see a season accepted in one mode but rejected as a duplicate in the other"
       ],
       "fi": [

@@ -91,6 +91,13 @@ GRANT EXECUTE ON FUNCTION get_marketing_consent_status TO authenticated;
 -- Step 5: Update record_user_consent to accept optional status parameter
 -- ============================================================================
 
+-- Drop the prior 4-arg overload first. Adding p_status creates a NEW signature
+-- (5 args) rather than replacing the 4-arg one, leaving two overloads — which makes
+-- the bare-name REVOKE/GRANT below (and callers) ambiguous on a fresh schema. The
+-- new 5-arg version is backward-compatible (p_status defaults to 'granted') for any
+-- 4-arg caller, so dropping the old overload is safe.
+DROP FUNCTION IF EXISTS record_user_consent(text, text, text, text);
+
 CREATE OR REPLACE FUNCTION record_user_consent(
   p_consent_type text,
   p_policy_version text,
