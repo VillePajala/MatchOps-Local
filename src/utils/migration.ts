@@ -255,6 +255,7 @@ async function performIndexedDbMigration(): Promise<void> {
 
     // Transfer data with simple error handling
     const errors: string[] = [];
+    const failedKeys = new Set<string>();
 
     for (const key of allKeys) {
       try {
@@ -268,8 +269,19 @@ async function performIndexedDbMigration(): Promise<void> {
         const errorMsg = `Failed to migrate ${key}: ${error}`;
         logger.warn(errorMsg);
         errors.push(errorMsg);
+        failedKeys.add(key);
         // Continue with other keys even if one fails
       }
+    }
+
+    // Core user data is irreplaceable — if any of these failed to copy, the
+    // migration must FAIL rather than mark "complete". Otherwise the >=50%
+    // success-rate gate below could pass while games/roster silently vanished
+    // (the app reads IndexedDB after migration, so a missing core key = data loss).
+    const CORE_KEYS = [SAVED_GAMES_KEY, MASTER_ROSTER_KEY, SEASONS_LIST_KEY, TOURNAMENTS_LIST_KEY];
+    const failedCoreKeys = CORE_KEYS.filter(key => failedKeys.has(key));
+    if (failedCoreKeys.length > 0) {
+      throw new Error(`Migration failed: core data did not transfer (${failedCoreKeys.join(', ')})`);
     }
 
     // Check if migration was successful enough

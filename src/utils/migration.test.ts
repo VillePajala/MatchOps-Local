@@ -302,6 +302,43 @@ describe('Simplified Migration System', () => {
         expect.objectContaining({ mode: 'indexedDB', migrationState: 'completed' })
       );
     });
+
+    /**
+     * Core user data is irreplaceable: if a core key (games) fails to copy, the
+     * migration must FAIL — not mark "complete" — so the app doesn't switch to an
+     * IndexedDB store that's missing the user's games (silent data loss).
+     * @critical
+     */
+    it('fails (never marks complete) when a core key cannot be copied', async () => {
+      const adapter = await installAdapter(); // empty target → copy proceeds
+      mockBootstrapGetItem.mockResolvedValue(null); // no sentinel
+
+      // Make the core games key a discoverable localStorage key with data...
+      (mockLocalStorage as unknown as Record<string, unknown>)[SAVED_GAMES_KEY] = 'present';
+      mockLocalStorage.getItem.mockImplementation((k: string) =>
+        k === SAVED_GAMES_KEY ? '{"game_1":{}}' : 'legacy-value'
+      );
+      // ...and fail the IndexedDB write for that core key.
+      adapter.setItem.mockImplementation(async (key: string) => {
+        if (key === SAVED_GAMES_KEY) throw new Error('IndexedDB write failed');
+      });
+
+      try {
+        await runMigration(); // runMigration records failure but does not rethrow
+
+        const storageFactory = await import('./storageFactory');
+        // Must NOT mark complete (would switch the app to an IndexedDB store missing games)...
+        expect(storageFactory.updateStorageConfig).not.toHaveBeenCalledWith(
+          expect.objectContaining({ migrationState: 'completed' })
+        );
+        // ...and must record the failure (core-key guard threw → caught → 'failed').
+        expect(storageFactory.updateStorageConfig).toHaveBeenCalledWith(
+          expect.objectContaining({ migrationState: 'failed' })
+        );
+      } finally {
+        delete (mockLocalStorage as unknown as Record<string, unknown>)[SAVED_GAMES_KEY];
+      }
+    });
   });
 
   describe('getMigrationStatus', () => {

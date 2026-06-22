@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Safer first-time storage upgrade: if your games or roster can't be copied during the one-time move to the app's newer storage, the upgrade now stops and reports a failure instead of completing with your data missing"
+      ],
+      "fi": [
+        "Turvallisempi ensimmäinen tallennuspäivitys: jos ottelusi tai kokoonpanosi eivät kopioidu kertaluonteisessa siirrossa sovelluksen uudempaan tallennustilaan, päivitys pysähtyy nyt ja ilmoittaa virheestä sen sijaan että viimeistelisi tiedot puuttuen"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Offline storage now stays lean: the app no longer keeps a separate offline copy of every link variation you visit, preventing the offline cache from slowly growing over time"
       ],
       "fi": [
