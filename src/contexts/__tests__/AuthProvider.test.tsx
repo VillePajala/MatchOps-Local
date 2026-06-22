@@ -557,6 +557,57 @@ describe('AuthProvider', () => {
       });
     });
 
+    it('does not show the app logged-in via the SIGNED_IN event before re-consent is resolved (race fix)', async () => {
+      // Start with no session so the user begins unauthenticated.
+      mockAuthService = createMockCloudAuthService(false);
+      const backendConfig = require('@/config/backendConfig');
+      backendConfig.getBackendMode.mockReturnValue('cloud');
+
+      // Control when the consent check resolves, and fire a SIGNED_IN event mid-check
+      // (this is the event that previously set user/session before needsReConsent).
+      let resolveConsent: (v: { policyVersion: string; consentedAt: string }) => void;
+      const consentGate = new Promise<{ policyVersion: string; consentedAt: string }>((r) => { resolveConsent = r; });
+      mockAuthService.signIn = jest.fn().mockResolvedValue({ user: mockCloudUser, session: mockSession });
+      mockAuthService.getLatestConsent = jest.fn().mockImplementation(async () => {
+        // Simulate the SIGNED_IN auth event arriving during the consent await.
+        authCallbacks.forEach((cb) => cb('signed_in' as AuthState, mockSession));
+        return consentGate;
+      });
+
+      function ConsentRaceComponent() {
+        const { needsReConsent, isLoading, isAuthenticated, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <span data-testid="needs-reconsent">{needsReConsent ? 'yes' : 'no'}</span>
+            <button onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+          </div>
+        );
+      }
+
+      render(<AuthProvider><ConsentRaceComponent /></AuthProvider>);
+      await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+
+      // Start sign-in; it parks on the consent gate after firing the SIGNED_IN event.
+      await act(async () => { screen.getByText('Sign In').click(); });
+
+      // The event fired during the consent await must NOT have logged the user in —
+      // signIn() owns state-setting and sets needsReConsent first.
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+
+      // Resolve consent with an OLD policy version → re-consent required.
+      await act(async () => {
+        resolveConsent({ policyVersion: '2024-01', consentedAt: new Date().toISOString() });
+      });
+
+      await waitFor(() => expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes'));
+      // signIn() itself then sets the authoritative state — the user IS logged in
+      // (the guard defers to signIn, it doesn't swallow the state-set).
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+    });
+
     it('should not set needsReConsent when user has current policy version', async () => {
       // Mock current policy version
       mockAuthService.getLatestConsent = jest.fn().mockResolvedValue({
