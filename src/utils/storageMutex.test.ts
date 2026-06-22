@@ -70,6 +70,29 @@ describe('MutexManager', () => {
       mutex.release();
       expect(mutex.isLocked()).toBe(false);
     });
+
+    /**
+     * Documents the hazard that storage.ts call sites guard against: a caller whose
+     * acquire() TIMED OUT must NOT call release(), because release() only short-circuits
+     * when the mutex is fully free — while another owner holds it, a stray release()
+     * hands that owner's lock to the next waiter. Callers therefore track an `acquired`
+     * flag and only release when they actually acquired.
+     * @edge-case
+     */
+    it('release() by a non-owner steals the current owners lock (callers must guard with an acquired flag)', async () => {
+      // Owner acquires and holds the lock.
+      await mutex.acquire();
+      expect(mutex.isLocked()).toBe(true);
+
+      // A second caller times out waiting (owner still holds it).
+      await expect(mutex.acquire(10)).rejects.toThrow();
+      expect(mutex.isLocked()).toBe(true); // owner still holds it
+
+      // If that timed-out caller wrongly calls release(), it frees the OWNER's lock —
+      // this is the corruption storage.ts avoids by only releasing what it acquired.
+      mutex.release();
+      expect(mutex.isLocked()).toBe(false);
+    });
   });
 
   describe('Concurrent Access', () => {
