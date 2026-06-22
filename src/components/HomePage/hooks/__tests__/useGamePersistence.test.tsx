@@ -236,6 +236,46 @@ describe('useGamePersistence', () => {
     });
   });
 
+  describe('Quick save: undo preservation + cache (CR-H7)', () => {
+    it('does NOT reset undo history on a silent auto-save', async () => {
+      const params = createMockParams();
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true); // silent (auto-save)
+      });
+
+      // The undo stack must survive auto-save; otherwise undo only ever reaches the
+      // single most-recent change during a match.
+      expect(params.resetHistory).not.toHaveBeenCalled();
+    });
+
+    it('resets undo history on an explicit (manual) save', async () => {
+      const params = createMockParams();
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(false); // manual save
+      });
+
+      expect(params.resetHistory).toHaveBeenCalled();
+    });
+
+    it('keeps the saved-games cache fresh via setQueryData, not invalidateQueries (no per-save refetch)', async () => {
+      const params = createMockParams();
+      const invalidateSpy = jest.spyOn(params.queryClient, 'invalidateQueries');
+      const setDataSpy = jest.spyOn(params.queryClient, 'setQueryData');
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true); // silent (auto-save)
+      });
+
+      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(setDataSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('Load Game Behavior', () => {
     /**
      * Tests that load game calls the callback
