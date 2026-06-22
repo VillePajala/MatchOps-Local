@@ -964,6 +964,19 @@ describe('LocalDataStore', () => {
           dataStore.updateSeason({ ...mockSeason, name: '   ' })
         ).rejects.toThrow(ValidationError);
       });
+
+      it('treats a legacy season (no stored clubSeason) as a duplicate when updating another season to the same computed clubSeason', async () => {
+        // Legacy season has a startDate but no stored clubSeason; another season exists to edit.
+        const legacy = { id: 'season_legacy', name: 'Test Season', startDate: '2024-12-01' };
+        const target = { id: 'season_target', name: 'Other Season', startDate: '2024-12-01' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([legacy, target]));
+
+        // Renaming target to collide with legacy (same name + same computed clubSeason)
+        // must be rejected — matching Cloud, which computes the legacy clubSeason.
+        await expect(
+          dataStore.updateSeason({ id: 'season_target', name: 'Test Season', startDate: '2024-12-01' })
+        ).rejects.toThrow(AlreadyExistsError);
+      });
     });
 
     describe('deleteSeason', () => {
