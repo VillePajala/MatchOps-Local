@@ -119,6 +119,11 @@ self.addEventListener('fetch', (event) => {
   // Network-first for HTML documents with offline fallback
   // Cache HTML for offline use, but always try network first to get updates
   if (request.destination === 'document' || request.mode === 'navigate') {
+    // Cache documents under a query-stripped key (origin + pathname). Without this,
+    // every distinct query string for the same route created its own cache entry,
+    // growing the cache without bound. Routes are finite, so pathname-keyed caching
+    // is bounded, and query variants of a route share one offline-fallback entry.
+    const documentCacheKey = url.origin + url.pathname;
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -126,7 +131,7 @@ self.addEventListener('fetch', (event) => {
           if (response.ok && request.method === 'GET') {
             const clone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, clone);
+              cache.put(documentCacheKey, clone);
             }).catch((err) => {
               logError('[SW] Cache put failed for document:', err);
             });
@@ -134,8 +139,8 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Offline: try to serve cached HTML first
-          return caches.match(request).then((cached) => {
+          // Offline: try to serve the cached HTML for this route (same query-stripped key)
+          return caches.match(documentCacheKey).then((cached) => {
             if (cached) {
               return cached;
             }

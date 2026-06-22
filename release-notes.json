@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Offline storage now stays lean: the app no longer keeps a separate offline copy of every link variation you visit, preventing the offline cache from slowly growing over time"
+      ],
+      "fi": [
+        "Offline-tallennus pysyy nyt kevyenä: sovellus ei enää säilytä erillistä offline-kopiota jokaisesta käymästäsi linkkimuunnelmasta, mikä estää offline-välimuistia kasvamasta hitaasti ajan myötä"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Improved storage reliability under heavy use: fixed a rare locking issue that could let two storage operations run at once after a timeout, which could cause sporadic errors"
       ],
       "fi": [
