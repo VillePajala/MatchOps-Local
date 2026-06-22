@@ -1146,6 +1146,8 @@ describe('AuthProvider', () => {
 
       expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
       expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-789');
+      // Grace-period invariant: no live session on the init-error path either.
+      expect(screen.getByTestId('has-session')).toHaveTextContent('no');
     });
 
     /**
@@ -1328,6 +1330,8 @@ describe('AuthProvider', () => {
           expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
           expect(screen.getByTestId('timed-out')).toHaveTextContent('no'); // Grace period supersedes timeout
           expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-789');
+          // Grace-period invariant: no live session on the timeout path either.
+          expect(screen.getByTestId('has-session')).toHaveTextContent('no');
         });
 
         // Verify no infinite loop: initCallCount should be exactly 2 (initial + one retry)
