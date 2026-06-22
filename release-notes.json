@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Internal cleanup to the offline grace period: when your session drops while you're offline, the app keeps you working on your local data but no longer holds onto an expired login token behind the scenes"
+      ],
+      "fi": [
+        "Sisäinen siivous offline-armonaikaan: kun istuntosi katkeaa ollessasi offline-tilassa, sovellus antaa sinun jatkaa paikallisten tietojesi parissa mutta ei enää säilytä vanhentunutta kirjautumistunnusta taustalla"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "When an updated privacy policy needs your renewed consent, signing in now shows the consent screen immediately instead of briefly flashing the app first"
       ],
       "fi": [

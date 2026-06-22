@@ -936,7 +936,7 @@ describe('AuthProvider', () => {
      * Test component that exposes grace period state
      */
     function GracePeriodTestComponent() {
-      const { isLoading, isAuthenticated, isAuthGracePeriod, initTimedOut, user, signOut } = useAuth();
+      const { isLoading, isAuthenticated, isAuthGracePeriod, initTimedOut, user, session, signOut } = useAuth();
       return (
         <div>
           <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
@@ -944,6 +944,7 @@ describe('AuthProvider', () => {
           <span data-testid="grace-period">{isAuthGracePeriod ? 'yes' : 'no'}</span>
           <span data-testid="timed-out">{initTimedOut ? 'yes' : 'no'}</span>
           <span data-testid="user-id">{user?.id ?? 'none'}</span>
+          <span data-testid="has-session">{session ? 'yes' : 'no'}</span>
           <button data-testid="sign-out-btn" onClick={signOut}>Sign Out</button>
         </div>
       );
@@ -1067,6 +1068,50 @@ describe('AuthProvider', () => {
       expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
       expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
       expect(screen.getByTestId('user-id')).toHaveTextContent('cached-user-456');
+      // Grace-period invariant: no live session (user is kept from cache).
+      expect(screen.getByTestId('has-session')).toHaveTextContent('no');
+    });
+
+    /**
+     * Trigger 3 (mid-session): a signed_out event while offline must enter grace
+     * period AND clear the now-invalid session — without logging the user out
+     * (isAuthenticated falls back to isAuthGracePeriod). Previously the stale
+     * session was left in state, violating the invariant.
+     */
+    it('clears the stale session when entering grace period mid-session (trigger 3)', async () => {
+      // Start signed in: init provides a live session (not an interactive signIn,
+      // so the signed_out event isn't ignored by the "signed in this session" guard).
+      mockAuthService = createMockCloudAuthService(true);
+      const factory = require('@/datastore/factory');
+      factory.getAuthService.mockImplementation(() => Promise.resolve(mockAuthService));
+      const validSession = {
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cloud-user-123', email: 'cloud@example.com' },
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validSession));
+
+      render(<AuthProvider><GracePeriodTestComponent /></AuthProvider>);
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('ready'));
+
+      // Live session after init.
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-session')).toHaveTextContent('yes');
+
+      // Go offline and receive a mid-session signed_out (token expiry while offline).
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      try {
+        await act(async () => {
+          authCallbacks.forEach((cb) => cb('signed_out' as AuthState, null));
+        });
+
+        expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'); // not logged out
+        expect(screen.getByTestId('has-session')).toHaveTextContent('no');    // stale session cleared
+      } finally {
+        if (originalOnLine) Object.defineProperty(navigator, 'onLine', originalOnLine);
+      }
     });
 
     /**
