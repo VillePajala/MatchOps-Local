@@ -29,6 +29,14 @@ describe('Service Worker Configuration', () => {
       expect(swContent).toContain('caches.match(request)');
     });
 
+    it('should cache documents under a query-stripped key to bound cache growth', () => {
+      // Documents are cached/matched by origin+pathname (not the full URL), so
+      // infinitely-varying query strings for one route can't grow the cache unbounded.
+      expect(swContent).toContain('const documentCacheKey = url.origin + url.pathname');
+      expect(swContent).toContain('cache.put(documentCacheKey');
+      expect(swContent).toContain('caches.match(documentCacheKey)');
+    });
+
     it('should have offline assets in precache list', () => {
       expect(swContent).toContain("'/offline.html'");
       expect(swContent).toContain("'/offline.css'");
