@@ -23,10 +23,19 @@ describe('Service Worker Configuration', () => {
       // Check that HTML/navigate requests are handled
       expect(swContent).toContain("request.destination === 'document'");
       expect(swContent).toContain("request.mode === 'navigate'");
-      // Network-first: try fetch, cache response, fallback to cache on failure
+      // Network-first: try fetch, cache response, fallback to cache on failure.
+      // (Document cache/match key specifics are asserted in the dedicated
+      // query-stripped-key test below — the document handler no longer uses the
+      // raw request as the cache key.)
       expect(swContent).toContain('fetch(request)');
-      expect(swContent).toContain('cache.put(request');
-      expect(swContent).toContain('caches.match(request)');
+    });
+
+    it('should cache documents under a query-stripped key to bound cache growth', () => {
+      // Documents are cached/matched by origin+pathname (not the full URL), so
+      // infinitely-varying query strings for one route can't grow the cache unbounded.
+      expect(swContent).toContain('const documentCacheKey = url.origin + url.pathname');
+      expect(swContent).toContain('cache.put(documentCacheKey');
+      expect(swContent).toContain('caches.match(documentCacheKey)');
     });
 
     it('should have offline assets in precache list', () => {
