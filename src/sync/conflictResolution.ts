@@ -260,7 +260,20 @@ export class ConflictResolver {
       // if still absent it's (b) and we surface the error so the conflict is visible
       // (the op fails/retries) instead of being silently swallowed.
       if (error instanceof AlreadyExistsError || isAutoResolvableConflict(error)) {
-        const nowInCloud = await this.fetchFromCloud(entityType, entityId, data);
+        let nowInCloud;
+        try {
+          nowInCloud = await this.fetchFromCloud(entityType, entityId, data);
+        } catch (refetchError) {
+          // The re-fetch itself failed (e.g. transient network) — we can't tell a
+          // race from a name-collision. Surface the ORIGINAL already-exists error so
+          // upstream retry sees a consistent error type rather than the re-fetch's.
+          logger.warn('[ConflictResolver] re-fetch after already-exists failed; surfacing the original error', {
+            entityType,
+            entityId,
+            refetchError: refetchError instanceof Error ? refetchError.message : String(refetchError),
+          });
+          throw error;
+        }
         if (!nowInCloud) {
           logger.warn('[ConflictResolver] writeToCloud reported already-exists but our id is still absent — likely a name/unique collision; surfacing instead of acking', {
             entityType,

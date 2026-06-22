@@ -766,6 +766,26 @@ describe('AlreadyExistsError Handling', () => {
 
       try {
         await expect(resolver.resolve(op)).rejects.toThrow(AlreadyExistsError);
+        // Initial fetch (→ null, missing) + re-fetch by id (→ still null) = 2 calls.
+        expect(mockFetchFromCloud).toHaveBeenCalledTimes(2);
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it('surfaces the original already-exists error if the re-fetch itself fails', async () => {
+      // Initial fetch → missing; writeToCloud → already-exists; re-fetch → throws.
+      // We must surface the ORIGINAL error type, not the re-fetch failure.
+      mockFetchFromCloud
+        .mockResolvedValueOnce(null)
+        .mockRejectedValue(new Error('network blip'));
+      mockWriteToCloud.mockRejectedValue(new AlreadyExistsError('player', 'player-1'));
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const op = createOperation({ operation: 'create' });
+
+      try {
+        await expect(resolver.resolve(op)).rejects.toThrow(AlreadyExistsError);
       } finally {
         warnSpy.mockRestore();
       }
