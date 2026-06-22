@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "When an updated privacy policy needs your renewed consent, signing in now shows the consent screen immediately instead of briefly flashing the app first"
+      ],
+      "fi": [
+        "Kun päivitetty tietosuojakäytäntö vaatii uuden suostumuksesi, sisäänkirjautuminen näyttää nyt suostumusnäytön heti sen sijaan että vilauttaisi ensin sovellusta"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Internal reliability improvement to how the app tracks sign-in changes at startup (prevents a minor resource leak and missed login events)"
       ],
       "fi": [
