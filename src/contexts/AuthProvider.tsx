@@ -344,7 +344,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               logger.info('[AuthProvider] Grace period: mid-session offline signout with cached session for', cached.email);
               setIsAuthGracePeriod(true);
               setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
-              // Don't clear the session — preserve grace period state
+              // Clear the now-invalid session: the signed_out event means the token is
+              // gone. Grace period keeps the user visible (isAuthenticated falls back to
+              // isAuthGracePeriod), so this can't log them out — but leaving the stale
+              // session violated the grace-period invariant and could feed a dead token
+              // to callers. Connectivity recovery sets a fresh session via onAuthStateChange.
+              setSession(null);
               return;
             }
           }
@@ -463,6 +468,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             logger.info('[AuthProvider] Grace period: init error with cached session for', cached.email);
             setIsAuthGracePeriod(true);
             setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+            setSession(null); // grace-period invariant: user from cache, no live session
             enteredGracePeriod = true;
           }
         }
@@ -513,6 +519,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Satisfies User interface: id (string), email (string|null), isAnonymous (boolean).
             // Optional fields (displayName, avatarUrl) omitted — not needed for grace period.
             setUser({ id: cached.userId, email: cached.email, isAnonymous: false });
+            setSession(null); // grace-period invariant: user from cache, no live session
             setIsLoading(false);
             // Do NOT set initTimedOut — grace period supersedes the timeout screen
             return; // Skip the normal timeout handling below
