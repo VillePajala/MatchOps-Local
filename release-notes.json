@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Privacy hardening: your consent records can no longer be altered directly from the client — they're only written through the validated consent flow, keeping the consent history trustworthy"
+      ],
+      "fi": [
+        "Tietosuojan vahvistus: suostumustietojasi ei voi enää muuttaa suoraan asiakassovelluksesta — ne kirjoitetaan vain vahvistetun suostumusprosessin kautta, mikä pitää suostumushistorian luotettavana"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Undo now works through a whole match: auto-save no longer quietly clears your undo history, so you can step back through multiple changes during a game"
       ],
       "fi": [
