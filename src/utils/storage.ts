@@ -306,8 +306,10 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
   // The mutex overhead (~microseconds) is negligible compared to IndexedDB operations (~milliseconds).
 
   // Use mutex to prevent concurrent adapter creation AND cache access races
+  let acquired = false;
   try {
     await userAdapterCreationMutex.acquire();
+    acquired = true;
 
     // Check for cached adapter (mutex-protected)
     const cached = userAdapterCache.get(trimmedUserId);
@@ -401,7 +403,12 @@ export async function getUserStorageAdapter(userId: string): Promise<StorageAdap
 
     return promise;
   } finally {
-    userAdapterCreationMutex.release();
+    // Only release if WE actually acquired it. If acquire() threw (timeout or
+    // queue-full) the lock is held by another owner — releasing here would hand
+    // their lock to the next waiter and corrupt mutual exclusion.
+    if (acquired) {
+      userAdapterCreationMutex.release();
+    }
   }
 }
 
@@ -722,8 +729,10 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
   }
 
   // Use mutex to ensure only one adapter creation happens at a time
+  let acquired = false;
   try {
     await adapterCreationMutex.acquire();
+    acquired = true;
 
     // Double-check after acquiring mutex (another call might have created it)
     if (adapterPromise && !isAdapterExpired()) {
@@ -820,8 +829,11 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
 
     return adapterPromise;
   } finally {
-    // Always release the mutex
-    adapterCreationMutex.release();
+    // Only release if WE acquired it — if acquire() threw (timeout/queue-full) the
+    // lock belongs to another owner and releasing would corrupt mutual exclusion.
+    if (acquired) {
+      adapterCreationMutex.release();
+    }
   }
 }
 
