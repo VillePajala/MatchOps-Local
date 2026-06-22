@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Behind-the-scenes: internal developer documentation update (no change to the app)"
+      ],
+      "fi": [
+        "Taustalla: sisäisen kehittäjädokumentaation päivitys (ei muutoksia sovellukseen)"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Upgrade & restore fixes: when upgrading from a very old version, your default team now keeps all its players; and restoring an older backup file correctly re-links players in your saved games"
       ],
       "fi": [

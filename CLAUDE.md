@@ -60,6 +60,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Reference: Supabase Cloud Backend
 
+### Supabase Projects (org: `VillePajala's Org`, region `eu-north-1`)
+
+| Project | Ref / URL | Role |
+|---------|-----------|------|
+| **matchops-cloud** | `aybjmnxxtgspqesdiqxd` — `https://aybjmnxxtgspqesdiqxd.supabase.co` | **PRODUCTION**. Never test against it; never apply unverified migrations. |
+| **matchops-staging** | `uncyxrffqrloypgjalzz` — `https://uncyxrffqrloypgjalzz.supabase.co` | **STAGING** (created 2026-06-22, free tier). Full mirror of prod schema. Safe for testing sync/auth/migrations. |
+
+- **`npm run dev` points at staging** via `.env.development` (anon key is public-by-design and committed there). Production env vars live in Vercel.
+- **Staging has email auto-confirm ON** (`mailer_autoconfirm`) so sign-up creates an instantly-usable account — convenient for local/E2E testing. Prod does NOT.
+- **Applying migrations / SQL** (when the Supabase CLI `db push`/`db dump` is unavailable because they need Docker): use the Management API directly with the CLI's cached token —
+  ```bash
+  TOKEN=$(cat ~/.supabase/access-token); REF=<project_ref>
+  curl -s -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    --data-binary "$(jq -Rs '{query: .}' < supabase/migrations/<file>.sql)"
+  ```
+  The endpoint runs each query in a transaction (rolls back fully on error).
+- **Before applying a migration that recreates an existing object to PROD**, diff prod's current definition (`pg_get_functiondef(...)`) against the migration's base — prod was bootstrapped from a different history than the migration files, so they can drift. Apply to prod only when the only differences are comments/whitespace (functionally identical).
+- **`supabase/migrations` must apply cleanly from scratch** (CI / new envs / staging) — they're never re-run on prod, so from-scratch breakage stays latent. Test a fresh apply against staging when touching schema.
+- **Testing the RPC end-to-end without a browser**: get a user JWT (`POST {url}/auth/v1/token?grant_type=password` with the anon key as `apikey`), then call `POST {url}/rest/v1/rpc/<fn>` with `Authorization: Bearer <jwt>`. Use `--http1.1` (Supabase's HTTP/2 can stream-error on some PostgREST error responses).
+
 ### Read Before Supabase Maintenance Work
 
 The Supabase cloud backend implementation is complete (all 12 PRs merged). The rules and references below remain valuable for ongoing maintenance, bug fixes, and future enhancements to the cloud backend.
