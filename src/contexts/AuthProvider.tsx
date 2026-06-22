@@ -88,6 +88,33 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Persisted across reloads (unlike isPasswordResetFlowRef, which is in-memory only).
+// Set when a password-reset recovery session is established; if the app reloads
+// before the new password is set, init uses this to clear the lingering recovery
+// session instead of treating it as a normal sign-in (CR-M5 #4).
+const PASSWORD_RESET_IN_PROGRESS_KEY = 'matchops-password-reset-in-progress';
+const setPasswordResetInProgress = (on: boolean): void => {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- Auth-flow state that must persist across reload and pair with Supabase's localStorage-based recovery session (not app data)
+    if (typeof localStorage === 'undefined') return;
+    // eslint-disable-next-line no-restricted-globals -- see above
+    if (on) localStorage.setItem(PASSWORD_RESET_IN_PROGRESS_KEY, '1');
+    // eslint-disable-next-line no-restricted-globals -- see above
+    else localStorage.removeItem(PASSWORD_RESET_IN_PROGRESS_KEY);
+  } catch {
+    // Storage unavailable (private mode etc.) — non-fatal; the in-memory ref still guards
+    // the within-session flow, only the reload-recovery case is unprotected.
+  }
+};
+const isPasswordResetInProgress = (): boolean => {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- see setPasswordResetInProgress
+    return typeof localStorage !== 'undefined' && localStorage.getItem(PASSWORD_RESET_IN_PROGRESS_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Hook to access authentication context.
  *
@@ -221,6 +248,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Note: service.initialize() already called by factory
 
         if (!mounted) return;
+
+        // CR-M5 #4: If a password reset was in progress when the app reloaded, the
+        // persisted recovery session must NOT be treated as a normal sign-in (that
+        // would sign the user in without ever changing the password). Clear the
+        // recovery session so the user lands on login — their password is unchanged,
+        // so they can sign in normally or restart the reset. Self-healing: the flag
+        // is cleared here regardless, so it can't affect a future normal session.
+        if (isPasswordResetInProgress()) {
+          logger.info('[AuthProvider] Password reset was in progress on reload — clearing lingering recovery session');
+          setPasswordResetInProgress(false);
+          isPasswordResetFlowRef.current = false;
+          try {
+            await service.signOut();
+          } catch (e) {
+            logger.warn('[AuthProvider] Failed to clear recovery session on reload:', e);
+          }
+          if (!mounted) return;
+        }
 
         // Get initial state
         const currentUser = await service.getCurrentUser();
@@ -1038,6 +1083,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Set BEFORE the call — verifyOtp fires onAuthStateChange synchronously
     isPasswordResetFlowRef.current = true;
+    // Persist across reloads: if the app reloads before the new password is set,
+    // init clears the recovery session instead of auto-signing-in (CR-M5 #4).
+    setPasswordResetInProgress(true);
 
     try {
       await authService.verifyPasswordResetOtp(email, token);
@@ -1045,6 +1093,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       // Clear on failure — no recovery session was created
       isPasswordResetFlowRef.current = false;
+      setPasswordResetInProgress(false);
       return { error: error instanceof Error ? error.message : 'Verification failed' };
     }
   }, [authService]);
@@ -1063,6 +1112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear the password reset flow flag BEFORE sign-out so the sign-out
       // event is processed normally by onAuthStateChange
       isPasswordResetFlowRef.current = false;
+      setPasswordResetInProgress(false); // reset complete — no longer in progress
 
       // Sign out the recovery session — user must sign in with their new password.
       // Uses authService.signOut() directly (not AuthProvider's signOut) because this
@@ -1089,6 +1139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       passwordResetTimeoutRef.current = setTimeout(() => {
         if (isPasswordResetFlowRef.current) {
           isPasswordResetFlowRef.current = false;
+          setPasswordResetInProgress(false);
           logger.warn('[AuthProvider] Password reset flow flag auto-cleared after timeout');
         }
         passwordResetTimeoutRef.current = null;
