@@ -920,6 +920,19 @@ describe('LocalDataStore', () => {
         expect(season.ageGroup).toBe('U12');
         expect(season.gameType).toBe('soccer');
       });
+
+      it('treats a legacy season (startDate but no stored clubSeason) as a duplicate when the computed clubSeason matches', async () => {
+        // Legacy row: has a startDate but no clubSeason field (created before the field existed).
+        const legacySeason = { id: 'season_legacy', name: 'Test Season', startDate: '2024-12-01' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([legacySeason]));
+
+        // New season, same name, same startDate → same computed clubSeason (24/25).
+        // Previously Local saw the legacy clubSeason as blank → allowed (while Cloud
+        // rejected) — now Local computes it too, so this is correctly a duplicate.
+        await expect(
+          dataStore.createSeason('Test Season', { startDate: '2024-12-01' })
+        ).rejects.toThrow(AlreadyExistsError);
+      });
     });
 
     describe('updateSeason', () => {
@@ -950,6 +963,19 @@ describe('LocalDataStore', () => {
         await expect(
           dataStore.updateSeason({ ...mockSeason, name: '   ' })
         ).rejects.toThrow(ValidationError);
+      });
+
+      it('treats a legacy season (no stored clubSeason) as a duplicate when updating another season to the same computed clubSeason', async () => {
+        // Legacy season has a startDate but no stored clubSeason; another season exists to edit.
+        const legacy = { id: 'season_legacy', name: 'Test Season', startDate: '2024-12-01' };
+        const target = { id: 'season_target', name: 'Other Season', startDate: '2024-12-01' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([legacy, target]));
+
+        // Renaming target to collide with legacy (same name + same computed clubSeason)
+        // must be rejected — matching Cloud, which computes the legacy clubSeason.
+        await expect(
+          dataStore.updateSeason({ id: 'season_target', name: 'Test Season', startDate: '2024-12-01' })
+        ).rejects.toThrow(AlreadyExistsError);
       });
     });
 

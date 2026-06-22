@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Duplicate-season detection now behaves the same in local and cloud mode for older seasons, so you won't see a season accepted in one mode but rejected as a duplicate in the other"
+      ],
+      "fi": [
+        "Kausien kaksoiskappaleiden tunnistus toimii nyt samalla tavalla paikallisessa ja pilvitilassa vanhemmille kausille, joten kausi ei enää hyväksytä yhdessä tilassa mutta hylätä kaksoiskappaleena toisessa"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Password reset is safer: if you reload the page in the middle of resetting your password, the app no longer signs you in on the half-finished reset — it returns you to the login screen so you can finish the reset or sign in normally"
       ],
       "fi": [
