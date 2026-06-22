@@ -388,8 +388,19 @@ export class SupabaseAuthService implements AuthService {
               timeoutPromise,
             ]).finally(() => { if (timeoutId) clearTimeout(timeoutId); });
 
-            if (userError || !validatedUser) {
-              // Session is invalid on server - clear it locally
+            if (userError && isNetworkError(userError)) {
+              // getUser() can RETURN (not throw) a network/abort error on flaky mobile
+              // networks (notably the Chrome Mobile AbortError path). That means "couldn't
+              // reach the server", NOT "server rejected the session" — clearing here would
+              // wrongly log out a valid user. Trust the cached session instead (consistent
+              // with the timeout/network handling in the catch block below). A genuinely
+              // revoked session is caught on the next real API call (or next cold start).
+              logger.warn('[SupabaseAuthService] Network/abort error returned validating session, trusting cached session:', userError.message);
+              this.currentSession = transformSession(session);
+              this.currentUser = this.currentSession.user;
+            } else if (userError || !validatedUser) {
+              // Definitive: the server rejected the session (e.g. 401/403) or returned no
+              // user with no network issue. This is a genuinely stale/revoked session - clear it.
               logger.warn('[SupabaseAuthService] Session validation failed, clearing stale session:', userError?.message || 'no user returned');
               try {
                 await this.client.auth.signOut({ scope: 'local' });
