@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Internal reliability improvement to how the app tracks sign-in changes at startup (prevents a minor resource leak and missed login events)"
+      ],
+      "fi": [
+        "Sisäinen luotettavuusparannus siihen, miten sovellus seuraa kirjautumismuutoksia käynnistyksessä (estää pienen resurssivuodon ja huomaamatta jääneet kirjautumistapahtumat)"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Fewer surprise sign-outs on mobile: when a network hiccup interrupts checking your login at startup, the app now keeps you signed in instead of logging you out — it only signs you out when the server actually says your session is no longer valid"
       ],
       "fi": [
