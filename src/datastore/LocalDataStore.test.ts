@@ -920,6 +920,19 @@ describe('LocalDataStore', () => {
         expect(season.ageGroup).toBe('U12');
         expect(season.gameType).toBe('soccer');
       });
+
+      it('treats a legacy season (startDate but no stored clubSeason) as a duplicate when the computed clubSeason matches', async () => {
+        // Legacy row: has a startDate but no clubSeason field (created before the field existed).
+        const legacySeason = { id: 'season_legacy', name: 'Test Season', startDate: '2024-12-01' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([legacySeason]));
+
+        // New season, same name, same startDate → same computed clubSeason (24/25).
+        // Previously Local saw the legacy clubSeason as blank → allowed (while Cloud
+        // rejected) — now Local computes it too, so this is correctly a duplicate.
+        await expect(
+          dataStore.createSeason('Test Season', { startDate: '2024-12-01' })
+        ).rejects.toThrow(AlreadyExistsError);
+      });
     });
 
     describe('updateSeason', () => {

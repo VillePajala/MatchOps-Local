@@ -1091,7 +1091,10 @@ export class LocalDataStore implements DataStore {
       const duplicateExists = currentSeasons.some(
         (season) => createSeasonCompositeKey(
           season.name,
-          season.clubSeason,
+          // Compute clubSeason when missing (legacy rows), matching getSeasons()/the UI
+          // and SupabaseDataStore — without this, a legacy season with a blank clubSeason
+          // is treated as distinct here (so Local allows a create that Cloud rejects).
+          season.clubSeason ?? calculateClubSeason(season.startDate, start, end),
           season.gameType,
           season.gender,
           season.ageGroup,
@@ -1158,7 +1161,9 @@ export class LocalDataStore implements DataStore {
       const duplicateExists = currentSeasons.some(
         (item) => item.id !== season.id && createSeasonCompositeKey(
           item.name,
-          item.clubSeason,
+          // Compute clubSeason when missing (legacy rows), matching getSeasons()/the UI
+          // and SupabaseDataStore — keeps Local/Cloud uniqueness consistent.
+          item.clubSeason ?? calculateClubSeason(item.startDate, start, end),
           item.gameType,
           item.gender,
           item.ageGroup,
