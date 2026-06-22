@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Improved storage reliability under heavy use: fixed a rare locking issue that could let two storage operations run at once after a timeout, which could cause sporadic errors"
+      ],
+      "fi": [
+        "Parannettu tallennuksen luotettavuutta raskaassa käytössä: korjattu harvinainen lukitusongelma, joka saattoi aikakatkaisun jälkeen sallia kahden tallennusoperaation suorittamisen yhtä aikaa ja aiheuttaa satunnaisia virheitä"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Deleting a tournament now correctly warns you when games are linked to it through one of its series, instead of letting you delete it and leave those games orphaned"
       ],
       "fi": [
