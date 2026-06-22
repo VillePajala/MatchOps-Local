@@ -280,6 +280,78 @@ describe('SyncQueue', () => {
       expect(op?.operation).toBe('delete');
     });
 
+    // Mark an op failed (retries exhausted) regardless of the configured maxRetries.
+    const exhaustRetries = async (id: string) => {
+      for (let i = 0; i < 20; i++) {
+        const op = await queue.getById(id);
+        if (op?.status === 'failed') return;
+        await queue.markFailed(id, 'boom');
+      }
+    };
+
+    it('should merge a new edit into a FAILED op (no stale duplicate left to replay)', async () => {
+      // First op fails to exhaustion → status 'failed', holding a STALE snapshot.
+      const id1 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_failed_merge',
+        operation: 'update',
+        data: { name: 'Stale Name' },
+        timestamp: Date.now(),
+      });
+      await exhaustRetries(id1);
+      let op = await queue.getById(id1);
+      expect(op?.status).toBe('failed');
+
+      // A new edit for the same entity must MERGE into the failed op, not create a
+      // second op that could later replay the stale snapshot.
+      const id2 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_failed_merge',
+        operation: 'update',
+        data: { name: 'Fresh Name' },
+        timestamp: Date.now() + 1000,
+      });
+
+      expect(id2).toBe(id1); // reused, not a duplicate
+      const stats = await queue.getStats();
+      expect(stats.total).toBe(1);
+
+      op = await queue.getById(id2);
+      expect(op?.status).toBe('pending'); // reset for a fresh attempt
+      expect(op?.retryCount).toBe(0);
+      expect(op?.data).toEqual({ name: 'Fresh Name' }); // newest data wins
+    });
+
+    it('should merge a DELETE into a FAILED op (delete still reaches the server)', async () => {
+      const id1 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_failed_delete',
+        operation: 'update',
+        data: { name: 'Stale' },
+        timestamp: Date.now(),
+      });
+      await exhaustRetries(id1);
+      expect((await queue.getById(id1))?.status).toBe('failed');
+
+      // Deleting an entity whose last sync failed must merge into the failed op so
+      // the delete is actually sent (UPDATE + DELETE → DELETE), not left as a
+      // stale failed update beside a separate delete.
+      const id2 = await queue.enqueue({
+        entityType: 'player',
+        entityId: 'player_failed_delete',
+        operation: 'delete',
+        data: null,
+        timestamp: Date.now() + 1000,
+      });
+
+      expect(id2).toBe(id1);
+      const stats = await queue.getStats();
+      expect(stats.total).toBe(1);
+      const op = await queue.getById(id2);
+      expect(op?.operation).toBe('delete');
+      expect(op?.status).toBe('pending');
+    });
+
     it('should not deduplicate operations for different entities', async () => {
       await queue.enqueue({
         entityType: 'player',

@@ -325,25 +325,34 @@ export class SyncQueue {
         if (cursor) {
           const existing = cursor.value as SyncOperation;
 
-          // Only deduplicate pending operations
-          if (existing.status === 'pending') {
+          // Deduplicate/merge into pending OR failed ops — both are safe to replace
+          // because neither is in-flight. A 'failed' op (retries exhausted) holds a
+          // STALE data snapshot; without merging, a new edit creates a second op and
+          // the failed one can later replay its stale data over the newer write
+          // (e.g. via the user's "retry failed" action). We never touch 'syncing'
+          // ops — those are mid-flight and owned by the executor.
+          if (existing.status === 'pending' || existing.status === 'failed') {
             if (!existingOp) {
               existingOp = existing;
-              logger.debug('[SyncQueue] Found existing pending operation', {
+              logger.debug('[SyncQueue] Found existing mergeable operation', {
                 entityType: input.entityType,
                 entityId: input.entityId,
                 existingId: existing.id,
+                existingStatus: existing.status,
                 existingOperation: existing.operation,
                 newOperation: input.operation,
               });
-              // Use first pending op found, then continue cursor to clean up any orphan duplicates
+              // Merge into the first mergeable op found, then continue the cursor to
+              // clean up any other mergeable duplicates for this entity.
               resultId = this.performWriteInTransaction(store, input, existingOp);
             } else {
-              // Defense-in-depth: delete orphan pending duplicate (should not normally exist)
-              logger.warn('[SyncQueue] Removing orphan pending duplicate', {
+              // Defense-in-depth: collapse any other pending/failed duplicate into the
+              // single merged op above (its data is superseded by the new input).
+              logger.warn('[SyncQueue] Removing duplicate mergeable operation', {
                 entityType: input.entityType,
                 entityId: input.entityId,
                 orphanId: existing.id,
+                orphanStatus: existing.status,
               });
               cursor.delete();
             }

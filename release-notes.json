@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Cloud sync fix: if an item failed to sync and you then edit it again, your newer edit now correctly replaces the stale one instead of the old version sometimes coming back when sync retries"
+      ],
+      "fi": [
+        "Pilvisynkronoinnin korjaus: jos kohteen synkronointi epäonnistui ja muokkaat sitä sen jälkeen uudelleen, uudempi muutoksesi korvaa nyt vanhentuneen sen sijaan että vanha versio joskus palaisi synkronoinnin uudelleenyrityksessä"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Cloud sync now protects your latest edits even if your device's clock is a little off — a recent change you made on this device won't be silently overwritten by an older cloud copy just because of clock drift"
       ],
       "fi": [
