@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-06-23",
+      "en": [
+        "Behind-the-scenes: quieter error reporting for routine storage retries that recover on their own (no change to the app)"
+      ],
+      "fi": [
+        "Taustalla: hiljaisempi virheraportointi tavallisille tallennuksen uudelleenyrityksille jotka korjaantuvat itsestään (ei muutoksia sovellukseen)"
+      ]
+    },
+    {
       "date": "2026-06-22",
       "en": [
         "Privacy hardening: your consent records can no longer be altered directly from the client — they're only written through the validated consent flow, keeping the consent history trustworthy"
