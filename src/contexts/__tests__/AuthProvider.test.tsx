@@ -603,6 +603,9 @@ describe('AuthProvider', () => {
       });
 
       await waitFor(() => expect(screen.getByTestId('needs-reconsent')).toHaveTextContent('yes'));
+      // signIn() itself then sets the authoritative state — the user IS logged in
+      // (the guard defers to signIn, it doesn't swallow the state-set).
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
     });
 
     it('should not set needsReConsent when user has current policy version', async () => {
