@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Cloud sync now flags a real problem instead of hiding it: if two items end up with the same name and one can't sync because of it, the sync surfaces as failed (so you can rename and fix it) rather than silently dropping your item"
+      ],
+      "fi": [
+        "Pilvisynkronointi nostaa nyt esiin todellisen ongelman sen sijaan että piilottaisi sen: jos kahdella kohteella on sama nimi eikä toista voida synkronoida sen vuoksi, synkronointi näkyy epäonnistuneena (jotta voit nimetä uudelleen ja korjata) sen sijaan että kohteesi hiljaisesti katoaisi"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Cloud sync fix: if an item failed to sync and you then edit it again, your newer edit now correctly replaces the stale one instead of the old version sometimes coming back when sync retries"
       ],
       "fi": [
