@@ -2829,6 +2829,26 @@ describe('SupabaseDataStore', () => {
         }));
       });
 
+      it('still saves (without a version check) when the cold-cache version fetch fails (CR-M3 #2 fallback)', async () => {
+        // Cold cache + the version fetch errors (e.g. transient network): best-effort,
+        // must NOT block the save — falls back to the prior behaviour (no version check).
+        mockQueryBuilder.maybeSingle.mockRejectedValueOnce(new Error('network blip'));
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: 1, error: null });
+
+        const game = {
+          teamName: 'Test Team', opponentName: 'Opponent', gameDate: '2024-01-15',
+          homeOrAway: 'home' as const, numberOfPeriods: 2 as const, periodDurationMinutes: 10,
+          currentPeriod: 1, gameStatus: 'notStarted' as const, homeScore: 0, awayScore: 0,
+          gameNotes: '', showPlayerNames: true, playersOnField: [], availablePlayers: [],
+          selectedPlayerIds: [], gameEvents: [], assessments: {},
+        };
+
+        await expect(dataStore.saveGame('game_coldfail', game as unknown as AppState)).resolves.toBeDefined();
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.objectContaining({
+          p_expected_version: null,
+        }));
+      });
+
       it('should throw ValidationError for invalid game data', async () => {
         const invalidGame = {
           teamName: '',  // Required field missing
