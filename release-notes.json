@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Password reset is safer: if you reload the page in the middle of resetting your password, the app no longer signs you in on the half-finished reset — it returns you to the login screen so you can finish the reset or sign in normally"
+      ],
+      "fi": [
+        "Salasanan nollaus on turvallisempi: jos lataat sivun uudelleen kesken salasanan nollauksen, sovellus ei enää kirjaa sinua sisään keskeneräisellä nollauksella — se palauttaa sinut kirjautumisnäyttöön, jotta voit viimeistellä nollauksen tai kirjautua normaalisti"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Internal cleanup to the offline grace period: when your session drops while you're offline, the app keeps you working on your local data but no longer holds onto an expired login token behind the scenes"
       ],
       "fi": [
