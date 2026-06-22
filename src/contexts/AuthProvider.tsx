@@ -177,6 +177,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isPasswordResetFlowRef = useRef(false);
   const passwordResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // True while an interactive signIn() is running. signIn() checks consent and sets
+  // needsReConsent BEFORE user/session (so the re-consent modal shows immediately).
+  // The SIGNED_IN auth event races that: it would set user/session first (during
+  // signIn's consent await), briefly showing the app logged-in before the modal.
+  // While this is set, onAuthStateChange defers user/session setting to signIn().
+  const isInteractiveSignInRef = useRef(false);
+
   // Clean up password reset timeout on unmount
   useEffect(() => {
     return () => {
@@ -342,8 +349,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
-          setSession(newSession);
-          setUser(newSession?.user ?? null);
+          // While an interactive signIn() is in progress, let it own user/session
+          // state — it sets needsReConsent BEFORE user/session so the re-consent
+          // modal isn't bypassed. Setting them here first would briefly show the app
+          // logged-in during signIn's consent await (the re-consent race). signIn()
+          // sets the authoritative state right after; a later event re-sets it idempotently.
+          if (!isInteractiveSignInRef.current) {
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+          }
 
           // Clear grace period if we now have a valid session — connectivity restored.
           // Without this, the orange "offline" banner persists even after the auth
@@ -558,6 +572,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     if (!authService) return { error: 'Auth not initialized' };
 
+    // Mark interactive sign-in BEFORE calling signIn() — authService.signIn()
+    // fires the SIGNED_IN event, and onAuthStateChange must defer user/session
+    // setting to this flow (which orders needsReConsent before user/session).
+    isInteractiveSignInRef.current = true;
     try {
       const result = await authService.signIn(email, password);
 
@@ -632,6 +650,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return {};
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign in failed' };
+    } finally {
+      // Always clear — even on failure — so onAuthStateChange resumes owning
+      // user/session state for subsequent (non-interactive) events.
+      isInteractiveSignInRef.current = false;
     }
   }, [authService]);
 
