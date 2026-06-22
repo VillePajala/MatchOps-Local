@@ -2807,6 +2807,28 @@ describe('SupabaseDataStore', () => {
         }));
       });
 
+      it('fetches the cloud version on a cold cache and passes it to the RPC (CR-M3 #2)', async () => {
+        // Cold cache (game not loaded this session): the version fetch returns 7.
+        mockQueryBuilder.maybeSingle.mockResolvedValueOnce({ data: { version: 7 }, error: null });
+        (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({ data: 8, error: null });
+
+        const game = {
+          teamName: 'Test Team', opponentName: 'Opponent', gameDate: '2024-01-15',
+          homeOrAway: 'home' as const, numberOfPeriods: 2 as const, periodDurationMinutes: 10,
+          currentPeriod: 1, gameStatus: 'notStarted' as const, homeScore: 0, awayScore: 0,
+          gameNotes: '', showPlayerNames: true, playersOnField: [], availablePlayers: [],
+          selectedPlayerIds: [], gameEvents: [], assessments: {},
+        };
+
+        await dataStore.saveGame('game_cold', game as unknown as AppState);
+
+        // Must pass the fetched version (7), not null — otherwise the RPC skips the
+        // version check entirely and silently overwrites a newer cloud copy.
+        expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('save_game_with_relations', expect.objectContaining({
+          p_expected_version: 7,
+        }));
+      });
+
       it('should throw ValidationError for invalid game data', async () => {
         const invalidGame = {
           teamName: '',  // Required field missing
@@ -5051,6 +5073,17 @@ describe('SupabaseDataStore', () => {
       (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
         data: null,
         error: { code: '40001', message: 'version mismatch: expected 5, found 6' },
+      });
+
+      await expect(dataStore.saveGame('game_1', mockGameData)).rejects.toThrow(ConflictError);
+    });
+
+    it('should throw ConflictError when RPC returns PT409 (CR-M3 current conflict code)', async () => {
+      // Migration 030 raises conflicts with SQLSTATE PT409 (→ HTTP 409) so PostgREST
+      // returns them immediately instead of auto-retrying 40001 into a timeout.
+      (mockSupabaseClient.rpc as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { code: 'PT409', message: 'Conflict: game was modified by another session (expected version 1, found 2)' },
       });
 
       await expect(dataStore.saveGame('game_1', mockGameData)).rejects.toThrow(ConflictError);

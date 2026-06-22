@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Cloud sync: stronger protection when the same game is edited on two devices at once — a conflict is now caught and reported clearly instead of hanging, so you won't accidentally overwrite the other device's changes"
+      ],
+      "fi": [
+        "Pilvisynkronointi: vahvempi suojaus kun samaa ottelua muokataan kahdella laitteella yhtä aikaa — ristiriita havaitaan ja ilmoitetaan selkeästi sen sijaan että toiminto jumiutuisi, joten et vahingossa korvaa toisen laitteen muutoksia"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Behind-the-scenes: fixed the database setup scripts so the cloud backend can be rebuilt cleanly from scratch (no change to your data or the app)"
       ],
       "fi": [
