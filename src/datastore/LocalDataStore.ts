@@ -2466,9 +2466,12 @@ export class LocalDataStore implements DataStore {
     const tournament = tournaments.find(t => t.id === tournamentId);
     const seriesIds = new Set(tournament?.series?.map((s: { id: string }) => s.id) ?? []);
 
-    // Check both tournamentId and tournamentSeriesId (series belong to tournament)
+    // A game references the tournament directly (tournamentId) OR via one of its
+    // series. The second clause previously re-checked tournamentId (dead code), so a
+    // game linked ONLY by series did not block deletion → orphaned game on delete.
+    // Match the teams check below (and SupabaseDataStore) by testing seriesIds.
     const gameCount = Object.values(games).filter(
-      g => g.tournamentId === tournamentId || (g.tournamentSeriesId && g.tournamentId === tournamentId)
+      g => g.tournamentId === tournamentId || (!!g.tournamentSeriesId && seriesIds.has(g.tournamentSeriesId))
     ).length;
     const teamCount = teams.filter(
       t => t.boundTournamentId === tournamentId ||
