@@ -110,13 +110,15 @@ ALTER TABLE player_adjustments DROP CONSTRAINT IF EXISTS player_adjustments_pkey
 ALTER TABLE warmup_plans DROP CONSTRAINT IF EXISTS warmup_plans_pkey;
 ALTER TABLE team_players DROP CONSTRAINT IF EXISTS team_players_pkey;
 
--- Drop unique index if exists (may be created implicitly by UNIQUE constraint)
-DROP INDEX IF EXISTS game_tactical_data_game_id_key;
--- Drop the UNIQUE constraint on game_tactical_data.game_id
+-- Drop the UNIQUE constraint on game_tactical_data.game_id FIRST.
 -- Note: This is intentionally NOT recreated because the new composite PRIMARY KEY
 -- (user_id, game_id) already enforces uniqueness for this user/game combination.
 -- The original UNIQUE(game_id) was for global uniqueness which is no longer needed.
+-- Order matters: when the index backs the constraint (fresh schema), DROP INDEX
+-- fails until the constraint is gone — so drop the constraint, then the index
+-- (a no-op when the constraint owned it; handles the standalone-index case too).
 ALTER TABLE game_tactical_data DROP CONSTRAINT IF EXISTS game_tactical_data_game_id_key;
+DROP INDEX IF EXISTS game_tactical_data_game_id_key;
 
 -- ============================================================================
 -- STEP 3: Add composite primary keys
