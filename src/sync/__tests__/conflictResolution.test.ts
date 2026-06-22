@@ -736,9 +736,12 @@ describe('AlreadyExistsError Handling', () => {
 
   describe('handleMissingCloudRecord', () => {
     it('should treat AlreadyExistsError as success (race condition)', async () => {
-      // Simulate: cloud record missing on fetch, but writeToCloud fails with AlreadyExistsError
-      // This happens when another process creates the record between our fetch and write
-      mockFetchFromCloud.mockResolvedValue(null);
+      // Genuine ID race: cloud record missing on initial fetch, writeToCloud fails
+      // with AlreadyExistsError because another process created OUR id meanwhile —
+      // so the re-fetch by id now finds it → success.
+      mockFetchFromCloud
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue({ id: 'player-1', updatedAt: new Date(NOW).toISOString() });
       mockWriteToCloud.mockRejectedValue(new AlreadyExistsError('player', 'player-1'));
 
       const op = createOperation({ operation: 'create' });
@@ -750,10 +753,30 @@ describe('AlreadyExistsError Handling', () => {
       // No error should propagate - treated as success
     });
 
+    it('should surface (not swallow) an already-exists when our id is still absent (name collision)', async () => {
+      // A DIFFERENT record with the same name trips UNIQUE(user_id, name): our id is
+      // never written, so the re-fetch by id stays null → must throw, not silently ack
+      // (which would drop the local entity forever).
+      mockFetchFromCloud.mockResolvedValue(null); // both initial fetch and re-fetch
+      mockWriteToCloud.mockRejectedValue(new AlreadyExistsError('player', 'player-1'));
+      // The surfacing path logs an expected warning — silence it for this test.
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const op = createOperation({ operation: 'create' });
+
+      try {
+        await expect(resolver.resolve(op)).rejects.toThrow(AlreadyExistsError);
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
     it('should treat generic Error with "already exists" message as success (message fallback)', async () => {
       // Defensive: if a DataStore implementation throws a generic Error instead of AlreadyExistsError,
       // the message-based fallback via isAutoResolvableConflict should still handle it.
-      mockFetchFromCloud.mockResolvedValue(null);
+      mockFetchFromCloud
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue({ id: 'player-1', updatedAt: new Date(NOW).toISOString() });
       mockWriteToCloud.mockRejectedValue(new Error('Record already exists in database'));
 
       const op = createOperation({ operation: 'create' });
@@ -764,7 +787,9 @@ describe('AlreadyExistsError Handling', () => {
     });
 
     it('should treat generic Error with "duplicate key" message as success (message fallback)', async () => {
-      mockFetchFromCloud.mockResolvedValue(null);
+      mockFetchFromCloud
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue({ id: 'player-1', updatedAt: new Date(NOW).toISOString() });
       mockWriteToCloud.mockRejectedValue(new Error('duplicate key value violates unique constraint'));
 
       const op = createOperation({ operation: 'create' });

@@ -250,13 +250,25 @@ export class ConflictResolver {
     try {
       await this.writeToCloud(entityType, entityId, data);
     } catch (error) {
-      // Race condition: Another process created the record between our fetch and write.
-      // If the record now exists in cloud, that's our goal achieved - treat as success.
-      // This also handles edge cases where RPC UPSERT semantics are not perfect.
-      // Use both instanceof check and message-based fallback to handle any DataStore
-      // implementation that may throw a generic Error instead of AlreadyExistsError.
+      // An "already exists" here is ambiguous and must NOT be blindly acked:
+      //  (a) ID race — another device created THIS record (same id) between our
+      //      fetch and write → goal achieved.
+      //  (b) NAME collision — a DIFFERENT record (different id, same name) trips a
+      //      UNIQUE(user_id, name) constraint. Our record was NOT written; acking
+      //      would silently drop the local entity forever.
+      // Distinguish them by re-fetching BY ID: if our id is now present it's (a);
+      // if still absent it's (b) and we surface the error so the conflict is visible
+      // (the op fails/retries) instead of being silently swallowed.
       if (error instanceof AlreadyExistsError || isAutoResolvableConflict(error)) {
-        logger.info('[ConflictResolver] writeToCloud returned already exists - record created by another process', {
+        const nowInCloud = await this.fetchFromCloud(entityType, entityId, data);
+        if (!nowInCloud) {
+          logger.warn('[ConflictResolver] writeToCloud reported already-exists but our id is still absent — likely a name/unique collision; surfacing instead of acking', {
+            entityType,
+            entityId,
+          });
+          throw error;
+        }
+        logger.info('[ConflictResolver] writeToCloud already-exists and our id is present - record created by another process', {
           entityType,
           entityId,
         });
