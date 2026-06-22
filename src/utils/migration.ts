@@ -116,19 +116,25 @@ export const runMigration = async (): Promise<void> => {
       return;
     }
 
-    // Handle app data migration (v1 → v2)
+    // ORDER MATTERS (CR-M7): the IndexedDB copy must run BEFORE the app-data
+    // migration. The app-data migration reads the master roster via the storage
+    // adapter, which is IndexedDB-only. For a v1 user who also needs the
+    // localStorage→IndexedDB copy, running app-data first would read an empty
+    // IndexedDB and create the default team with NO players (the roster is only
+    // copied afterward). Copying first means the roster is in place when the
+    // default team is built.
+    if (needsIndexedDbMigration) {
+      logger.log('[Migration] Starting IndexedDB migration');
+      await performIndexedDbMigration();
+      logger.log('[Migration] IndexedDB migration completed');
+    }
+
+    // Handle app data migration (v1 → v2) — after the copy, so it reads real data
     if (needsAppMigration) {
       logger.log('[Migration] Starting app data migration');
       await performAppDataMigration();
       setAppDataVersion(CURRENT_DATA_VERSION);
       logger.log('[Migration] App data migration completed');
-    }
-
-    // Handle IndexedDB migration
-    if (needsIndexedDbMigration) {
-      logger.log('[Migration] Starting IndexedDB migration');
-      await performIndexedDbMigration();
-      logger.log('[Migration] IndexedDB migration completed');
     }
 
   } catch (error) {

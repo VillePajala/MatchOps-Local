@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Upgrade & restore fixes: when upgrading from a very old version, your default team now keeps all its players; and restoring an older backup file correctly re-links players in your saved games"
+      ],
+      "fi": [
+        "Päivitys- ja palautuskorjaukset: kun päivität hyvin vanhasta versiosta, oletusjoukkueeseen jäävät nyt kaikki pelaajat; ja vanhan varmuuskopion palautus yhdistää pelaajat oikein tallennettuihin otteluihisi"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Cloud sync: stronger protection when the same game is edited on two devices at once — a conflict is now caught and reported clearly instead of hanging, so you won't accidentally overwrite the other device's changes"
       ],
       "fi": [
