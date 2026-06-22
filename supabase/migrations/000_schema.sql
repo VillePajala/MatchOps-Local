@@ -63,7 +63,7 @@ CREATE TABLE seasons (
   team_placements jsonb DEFAULT '{}'::jsonb,
 
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 
   -- Uniqueness: App-level validation enforces composite uniqueness
   -- (name + clubSeason + gameType + gender + ageGroup + leagueId)
@@ -103,7 +103,7 @@ CREATE TABLE tournaments (
   series jsonb DEFAULT '[]'::jsonb,  -- [{ id: "series_...", level: "Elite" }, ...]
 
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 
   -- Uniqueness: App-level validation enforces composite uniqueness
   -- (name + clubSeason + gameType + gender + ageGroup)
@@ -191,7 +191,7 @@ CREATE TABLE teams (
   bound_tournament_series_id text, -- References tournament_series.id (no FK)
 
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 
   -- Uniqueness: App-level validation enforces composite uniqueness
   -- (name + boundSeasonId + boundTournamentId + boundTournamentSeriesId + gameType)
