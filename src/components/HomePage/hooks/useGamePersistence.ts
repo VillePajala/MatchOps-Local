@@ -310,13 +310,18 @@ export function useGamePersistence({
         await utilSaveGame(currentGameId, currentSnapshot, userId);
         await utilSaveCurrentGameIdSetting(currentGameId, userId);
 
-        // Invalidate React Query cache
-        queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+        // CR-H7: Keep the saved-games cache fresh by writing the data we just
+        // persisted, instead of invalidateQueries (which refetched storage on
+        // EVERY save — needless churn during a match, since auto-save fires on
+        // each meaningful change). The queryFn just reads storage, so setQueryData
+        // with the in-memory snapshot matches a refetch.
+        queryClient.setQueryData<SavedGamesCollection>([...queryKeys.savedGames, userId], updatedSavedGames);
 
-        // Reset history to reflect saved state (clears undo/redo)
-        resetHistory(currentSnapshot);
-
+        // CR-H7: Only clear undo/redo on an explicit (manual) save — "saved = clean
+        // baseline". Silent auto-saves must NOT wipe undo, or the user can never undo
+        // more than the single most-recent change during a match.
         if (!silent) {
+          resetHistory(currentSnapshot);
           showToast(t('loadGameModal.gameSaved', 'Game saved!'));
         }
 
@@ -362,13 +367,15 @@ export function useGamePersistence({
         setCurrentGameId(newGameId);
         await utilSaveCurrentGameIdSetting(newGameId, userId);
 
-        // Invalidate React Query cache
-        queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+        // CR-H7: keep the cache fresh without a refetch (see update branch above).
+        queryClient.setQueryData<SavedGamesCollection>(
+          [...queryKeys.savedGames, userId],
+          (old) => ({ ...(old ?? {}), [newGameId]: gameData })
+        );
 
-        // Reset history to new game state
-        resetHistory(gameData);
-
+        // CR-H7: only clear undo/redo on an explicit (manual) save, not silent auto-save.
         if (!silent) {
+          resetHistory(gameData);
           showToast(t('loadGameModal.newGameSaved', 'New game saved!'));
         }
 

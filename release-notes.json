@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Undo now works through a whole match: auto-save no longer quietly clears your undo history, so you can step back through multiple changes during a game"
+      ],
+      "fi": [
+        "Kumoaminen toimii nyt koko ottelun ajan: automaattitallennus ei enää tyhjennä kumoamishistoriaa, joten voit perua useita muutoksia ottelun aikana"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Behind-the-scenes: internal developer documentation update (no change to the app)"
       ],
       "fi": [
