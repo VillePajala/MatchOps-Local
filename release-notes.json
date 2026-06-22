@@ -4,6 +4,15 @@
     {
       "date": "2026-06-22",
       "en": [
+        "Fewer surprise sign-outs on mobile: when a network hiccup interrupts checking your login at startup, the app now keeps you signed in instead of logging you out — it only signs you out when the server actually says your session is no longer valid"
+      ],
+      "fi": [
+        "Vähemmän yllättäviä uloskirjautumisia mobiilissa: kun verkkohäiriö keskeyttää kirjautumisen tarkistuksen käynnistyksessä, sovellus pitää sinut nyt kirjautuneena sen sijaan että kirjaisi ulos — uloskirjaus tapahtuu vain kun palvelin todella ilmoittaa istuntosi vanhentuneen"
+      ]
+    },
+    {
+      "date": "2026-06-22",
+      "en": [
         "Safer first-time storage upgrade: if your games or roster can't be copied during the one-time move to the app's newer storage, the upgrade now stops and reports a failure instead of completing with your data missing"
       ],
       "fi": [
