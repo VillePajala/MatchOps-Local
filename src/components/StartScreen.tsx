@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import i18n, { saveLanguagePreference } from '@/i18n';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
-import InstructionsModal from '@/components/InstructionsModal';
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
@@ -53,7 +52,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // language (MATCHOPS-LOCAL-8K / MATCHOPS-LOCAL-3). The real value is adopted
   // post-hydration via useEffect below.
   const [language, setLanguage] = useState<string>('fi');
-  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
 
   // Recommended-setup card dismissal. Read post-hydration (SSR-safe, like language):
   // both server and first client render show nothing until setupHydrated flips true.
@@ -235,16 +233,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </button>
                 </div>
 
-                {/* Settings - subtle text link style */}
-                <button
-                  type="button"
-                  onClick={onOpenSettings}
-                  className="w-full py-3 text-slate-400 hover:text-slate-200 transition-all"
-                >
-                  <span className="text-sm">
-                    {t('startScreen.appSettings', 'Settings')}
-                  </span>
-                </button>
               </>
             )}
           </div>
@@ -254,14 +242,26 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <RecommendedSetupCard progress={setupProgress} onDismiss={handleDismissSetup} />
           )}
 
-          {/* User Guide — full online guide, including the recommended setup workflow.
-              The Start Screen is where every reload lands, so it's the key discovery point. */}
-          <div className="mt-6 text-center">
+          {/* Footer links: Settings + User Guide side by side. The Start Screen is where
+              every reload lands, so the full guide stays one tap away here. */}
+          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
+            {!isFirstTimeUser && (
+              <>
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  {t('startScreen.appSettings', 'Settings')}
+                </button>
+                <span className="text-slate-600" aria-hidden="true">·</span>
+              </>
+            )}
             <a
               href="https://www.match-ops.com/guide"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-slate-400 hover:text-amber-400 transition-colors underline-offset-2 hover:underline"
+              className="text-slate-400 hover:text-amber-400 transition-colors"
             >
               {t('controlBar.userGuide', 'User Guide')}
             </a>
@@ -326,12 +326,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
           ) : null}
         </div>
       </div>
-
-      {/* Instructions Modal */}
-      <InstructionsModal
-        isOpen={isInstructionsModalOpen}
-        onClose={() => setIsInstructionsModalOpen(false)}
-      />
     </div>
   );
 };
