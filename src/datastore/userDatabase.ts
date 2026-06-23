@@ -200,7 +200,11 @@ export function deleteUserLocalDatabases(userId: string): Promise<void> {
               logger.info('[userDatabase] Deleted local database on account deletion', { name });
               done();
             };
-            request.onerror = done; // best-effort — don't block deletion on a failure
+            request.onerror = () => {
+              // best-effort — don't block deletion on a failure, but log for observability
+              logger.warn('[userDatabase] Failed to delete local database on account deletion', { name });
+              done();
+            };
             request.onblocked = done; // an open connection completes the delete later
           } catch {
             done();
