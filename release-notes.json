@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "New accounts now start with cloud sync by default for a simpler setup. Existing local-only setups keep working exactly as before."
+      ],
+      "fi": [
+        "Uudet käyttäjät aloittavat nyt oletuksena pilvisynkronoinnilla, mikä yksinkertaistaa käyttöönottoa. Olemassa olevat vain-paikalliset asetukset toimivat täsmälleen kuten ennenkin."
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "The Delete Account screen now lets you export a backup first and clearly explains it erases your data everywhere — so you can keep your data if you only want to leave cloud sync"
       ],
       "fi": [

@@ -110,6 +110,18 @@ export default function Home() {
   const isPlayStoreCtxRef = useRef(isPlayStoreContext() && isCloudAvailable());
   const isPlayStoreCtx = isPlayStoreCtxRef.current;
 
+  // Cloud-first onboarding: hide the no-account local-mode entry points for NEW users
+  // whenever cloud is configured (web now matches the Play build). Local mode stays
+  // fully FUNCTIONAL — existing local users bypass these onboarding screens and boot
+  // straight into their data, and the in-app "Enable Cloud Sync" upgrade path remains.
+  // It is re-enabled for QA / future revival via NEXT_PUBLIC_INTERNAL_TESTING. When
+  // cloud is NOT configured, local mode is the only option and must stay visible.
+  // Stable by nature (env-derived) → useRef, like isPlayStoreCtx above.
+  const hideLocalModeEntryRef = useRef(
+    isCloudAvailable() && process.env.NEXT_PUBLIC_INTERNAL_TESTING !== 'true'
+  );
+  const hideLocalModeEntry = hideLocalModeEntryRef.current;
+
   // Compute post-login loading state synchronously (not via effect) to avoid race conditions
   // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
   // NOTE: Do NOT require !!userId here - user/session might be set at slightly different times
@@ -1193,7 +1205,7 @@ export default function Home() {
               onImportBackup={handleWelcomeImportBackup}
               isCloudAvailable={isCloudAvailable()}
               isImporting={isImportingBackup}
-              hideLocalModeOptions={isPlayStoreCtx}
+              hideLocalModeOptions={hideLocalModeEntry}
             />
           </ErrorBoundary>
         ) : initTimedOut && mode === 'cloud' ? (
@@ -1240,7 +1252,7 @@ export default function Home() {
           <ErrorBoundary>
             <LoginScreen
               onBack={isPlayStoreCtx ? undefined : handleLoginBack}
-              onUseLocalMode={isPlayStoreCtx ? undefined : handleLoginUseLocalMode}
+              onUseLocalMode={hideLocalModeEntry ? undefined : handleLoginUseLocalMode}
               allowRegistration={true}  // Account creation is free on all platforms
             />
           </ErrorBoundary>
