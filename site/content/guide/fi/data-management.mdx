@@ -1,58 +1,30 @@
 ---
 title: Datan hallinta
 description: Tallennustavat, synkronointi, vienti, palautus ja MatchOps-datan hallinta
-lastUpdated: "2026-02-06"
+lastUpdated: "2026-06-23"
 ---
 
-Datasi MatchOpsissa tallennetaan turvallisesti. Tämä opas kattaa käytettävissä olevat tallennusvaihtoehdot ja miten suojaat ja hallitset arvokasta otteludataasi.
+Datasi MatchOpsissa tallennetaan turvallisesti. Tämä opas kattaa miten datasi tallennetaan ja miten suojaat ja hallitset arvokasta otteludataasi.
 
-## Datan tallennusvaihtoehdot
+## Miten datasi tallennetaan
 
-MatchOps tarjoaa kaksi tapaa tallentaa datasi. Valitset haluamasi tilan, kun avaat sovelluksen ensimmäistä kertaa.
+MatchOps tallentaa datasi yksityiselle pilvitilillesi ja pitää kopion välimuistissa laitteellasi. Tämä tarkoittaa, että sovellus toimii täysin offline-tilassa ja synkronoituu taustalla aina kun olet verkossa.
 
-### Paikallinen tila (ei tiliä)
-
-Tallenna kaikki data vain laitteellesi:
-
-- **Tiliä ei tarvita** - Aloita käyttö heti
-- **Toimii täysin offline-tilassa** - Ei tarvitse internetiä
-- **Data pysyy laitteella** - Maksimaalinen yksityisyys
-- **Vain yksi laite** - Data ei synkronoidu laitteiden välillä
-
-<Callout type="info">
-Paikallinen tila sopii valmentajille, jotka käyttävät yhtä laitetta ja haluavat pitää datan täysin yksityisenä.
-</Callout>
-
-### Pilvi­tila (tili vaaditaan)
-
-Tallenna data pilveen automaattisella synkronoinnilla:
-
-- **Tili vaaditaan** - Rekisteröidy sähköpostilla ja salasanalla
+- **Tili vaaditaan** - Rekisteröidy sähköpostilla ja salasanalla (ilmainen)
 - **Synkronoi laitteiden välillä** - Käytä dataa miltä tahansa laitteelta
-- **Automaattinen synkronointi** - Data synkronoituu turvallisesti pilveen
-- **Toimii offline-tilassa** - Muutokset tallentuvat paikallisesti, synkronoituvat kun olet verkossa
+- **Varmuuskopioitu pilveen** - Datasi on turvassa vaikka menettäisit laitteesi
+- **Toimii offline-tilassa** - Muutokset tallentuvat laitteellesi ja synkronoituvat kun olet taas verkossa
 
 <Callout type="info">
-Pilvitila sopii valmentajille, jotka käyttävät useita laitteita tai haluavat automaattisen synkronoinnin.
+Datasi on salattu siirron aikana ja levossa, ja suojattu niin että vain sinä pääset siihen käsiksi.
 </Callout>
-
-### Tilan valitseminen
-
-Kun avaat MatchOpsin ensimmäistä kertaa, näet Tervetuloa-näytön kahdella vaihtoehdolla:
-
-1. **Jatka pilveen** - Luo tili tai kirjaudu sisään laitteiden väliseen synkronointiin
-2. **Jatka paikallisesti** - Aloita heti vain laitteen tallennuksella
-
-Voit vaihtaa tilaa myöhemmin Asetuksissa.
 
 ## Tilin hallinta
-
-*Tämä osio koskee vain Pilvitilan käyttäjiä.*
 
 ### Tilin luominen
 
 <Steps>
-<Step title="Valitse Pilvitila">
+<Step title="Avaa Tervetuloa-näyttö">
 Napauta Tervetuloa-näytöllä **Jatka pilveen**.
 </Step>
 
@@ -98,13 +70,9 @@ Kirjautuaksesi ulos pilvitililtäsi:
 Varmista ennen uloskirjautumista, että kaikki data on synkronoitu. Tarkista, että synkronointi-ilmaisin ei näytä odottavia muutoksia.
 </Callout>
 
-## Siirtyminen tilojen välillä
+## Olemassa olevan paikallisen datan siirto tilillesi
 
-Voit vaihtaa paikallisen ja pilvitilan välillä milloin tahansa.
-
-### Paikallisesta pilveen siirtyminen
-
-Siirrä paikallinen datasi pilveen:
+Jos käytit MatchOpsia ilman tiliä ennen tilin luomista, voit ladata laitteellasi olevan datan tilillesi, jotta se synkronoituu laitteidesi välillä.
 
 <Steps>
 <Step title="Avaa Asetukset">
@@ -115,50 +83,26 @@ Avaa valikko (☰) ja valitse **Asetukset**.
 Etsi pilvi/synkronointi-osio.
 </Step>
 
-<Step title="Aloita siirto">
-Valitse vaihtoehto siirtyä pilvitilaan.
+<Step title="Aloita lataus">
+Valitse vaihtoehto siirtää datasi tilillesi.
 </Step>
 
 <Step title="Luo tili tai kirjaudu">
-Luo uusi pilvitili tai kirjaudu olemassa olevaan.
+Luo ilmainen tili tai kirjaudu olemassa olevaan.
 </Step>
 
-<Step title="Vahvista siirto">
-Tarkista mitä siirretään ja vahvista.
-</Step>
-</Steps>
-
-Paikallinen datasi ladataan pilvitilillesi.
-
-### Pilvestä paikalliseen siirtyminen
-
-Siirrä pilvidatasi vain paikalliseen tallennukseen:
-
-<Steps>
-<Step title="Avaa Asetukset">
-Avaa valikko (☰) ja valitse **Asetukset**.
-</Step>
-
-<Step title="Etsi Tila-vaihtoehdot">
-Etsi vaihtoehto siirtyä paikalliseen tilaan.
-</Step>
-
-<Step title="Vahvista siirto">
-Tarkista vaikutukset ja vahvista.
+<Step title="Vahvista">
+Tarkista mitä ladataan ja vahvista.
 </Step>
 </Steps>
 
-<Callout type="warning">
-Paikalliseen tilaan siirtymisen jälkeen datasi ei enää synkronoidu. Pilvidata säilyy tililläsi mutta ei päivity paikallisilla muutoksilla.
-</Callout>
+Olemassa oleva datasi ladataan tilillesi ja pidetään synkronoituna siitä eteenpäin.
 
 ## Synkronoinnin tila
 
-*Tämä osio koskee vain Pilvitilan käyttäjiä.*
-
 ### Synkronointi-ilmaisimet
 
-Käyttäessäsi pilvitilaa näet synkronoinnin tilan ilmaisimet:
+Näet synkronoinnin tilan ilmaisimet, jotka kertovat datasi tilasta:
 
 - **Synkronoitu** - Kaikki muutokset tallennettu pilveen
 - **Synkronoidaan** - Lataus käynnissä
@@ -167,7 +111,7 @@ Käyttäessäsi pilvitilaa näet synkronoinnin tilan ilmaisimet:
 
 ### Offline-käyttäytyminen
 
-Pilvitila toimii offline-tilassa:
+Sovellus toimii täysin offline-tilassa sisäänkirjautumisen jälkeen:
 
 1. Muutokset tallentuvat laitteellesi välittömästi
 2. Kun yhdistät uudelleen, muutokset synkronoituvat automaattisesti
@@ -195,7 +139,7 @@ Myös pilvisynkronoinnilla manuaaliset varmuuskopiot ovat arvokkaita:
 - **Lisäsuoja** - Vyö ja henkselit -lähestymistapa
 - **Ajankohtaiset tilannekuvat** - Palauta tiettyihin päivämääriin
 - **Siirrettävissä** - Jaa dataa muille
-- **Toimii molemmissa tiloissa** - Paikalliset ja pilvikäyttäjät hyötyvät
+- **Aina saatavilla** - Varmuuskopiotiedosto toimii tilanteessa kuin tilanteessa
 
 ### Varmuuskopion luominen
 
@@ -230,7 +174,7 @@ Varmuuskopiot tallennetaan JSON-tiedostoina sisältäen:
 4. **Ennen laitemuutoksia** - Välttämätöntä laitetta vaihdettaessa
 
 <Callout type="info">
-Pilvitilan käyttäjät: Datasi synkronoituu automaattisesti pilveen. Manuaaliset varmuuskopiot viennin kautta antavat lisäsuojaa ja joustavuutta.
+Datasi synkronoituu automaattisesti pilveen. Manuaaliset varmuuskopiot viennin kautta antavat lisäsuojaa ja joustavuutta.
 </Callout>
 
 ## Palautus
@@ -261,18 +205,15 @@ Palautus varmuuskopiosta korvaa kaiken nykyisen datan. Varmuuskopioi nykyinen da
 
 ### Siirto uuteen laitteeseen
 
-**Paikallisen tilan käyttäjät:**
-
-1. Luo täydellinen varmuuskopio vanhalla laitteella
-2. Siirrä varmuuskopiotiedosto uuteen laitteeseen (sähköposti, pilvi jne.)
-3. Asenna MatchOps uuteen laitteeseen
-4. Palauta varmuuskopiosta
-
-**Pilvitilan käyttäjät:**
+Uuteen laitteeseen siirtyminen on automaattista:
 
 1. Asenna MatchOps uuteen laitteeseen
 2. Kirjaudu sisään tilillesi
 3. Datasi synkronoituu automaattisesti
+
+<Callout type="info">
+Jos käytät vanhaa kokoonpanoa ilman tiliä, voit sen sijaan luoda täydellisen varmuuskopion vanhalla laitteella, siirtää tiedoston (sähköposti, pilvi jne.), asentaa MatchOpsin uuteen laitteeseen ja palauttaa varmuuskopiosta.
+</Callout>
 
 ## Vientivaihtoehdot
 
@@ -294,24 +235,20 @@ Vie dataa Exceliin:
 
 ## Tietosuoja
 
-### Paikallisen tilan yksityisyys
+### Miten datasi on suojattu
 
-Paikallisessa tilassa datasi on täysin yksityinen:
+Datasi tallennetaan turvallisesti ja pysyy yksityisenä:
 
-- Tiliä ei tarvita
-- Ei tiedonsiirtoa
-- Ei seurantaa tai analytiikkaa
-- Data ei poistu laitteeltasi
-
-### Pilvitilan yksityisyys
-
-Pilvitilassa datasi tallennetaan turvallisesti:
-
-- Data tallennetaan Supabaseen (EU-alue)
+- Kopio on välimuistissa laitteellasi, joten sovellus toimii täysin offline-tilassa
+- Synkronoitu kopio tallennetaan Supabaseen (EU-alue)
 - Suojattu tilitunnuksillasi
 - Rivitason suojaus varmistaa, että vain sinä pääset dataasi
 - Ei jakamista kolmansille osapuolille
 - Voit poistaa tilisi ja kaiken datan milloin tahansa
+
+<Callout type="info">
+Huomio vanhoille käyttäjille: jos käytät MatchOpsia ilman tiliä, datasi pysyy vain laitteellasi eikä sitä siirretä mihinkään.
+</Callout>
 
 ### Datan jakaminen
 
@@ -337,20 +274,18 @@ Asetusmodaali tarjoaa:
 - **Kieli** - Vaihda englannin ja suomen välillä
 - **Oletusjoukkueen nimi** - Esitäytä joukkueesi nimi uusiin peleihin
 - **Kauden ajankohta** - Mukauta kauden alkamis- ja päättymispäivät (oletus: lokakuu-toukokuu)
-- **Tili** (pilvitila) - Näytä tilitiedot ja kirjaudu ulos
+- **Tili** - Näytä tilitiedot ja kirjaudu ulos
 
 ### Datan tyhjentäminen
 
 Jos sinun täytyy tyhjentää dataa:
 
-- **Tyhjennä vanhat kaudet** - Poista päättyneet, arkistoidut kaudet
-- **Poista vanhoja pelejä** - Poista yksittäisiä pelejä
-- **Synkronoi uudelleen pilvestä** (pilvitila) - Tyhjennä paikallinen välimuisti ja lataa uudelleen pilvestä
-- **Tehdasnollaus** (pilvitila) - Tyhjennä kaikki data mukaan lukien pilvitallennus
-- **Täysi nollaus** (paikallinen tila) - Tyhjennä kaikki paikallinen data
+- **Poista yksittäisiä pelejä** - Avaa valikko (☰), valitse **Lataa peli...** ja käytä poistovaihtoehtoa pelin kohdalla
+- **Synkronoi uudelleen pilvestä** - Tyhjennä laitteella oleva kopio ja lataa uudelleen tililtäsi (Asetukset > Data ja yksityisyys > Vaaravyöhyke)
+- **Poista kaikki data** - Poista datasi pysyvästi kaikkialta, tältä laitteelta ja tililtäsi (Asetukset > Data ja yksityisyys > Vaaravyöhyke)
 
 <Callout type="tip">
-Arkistoi poistamisen sijaan aina kun mahdollista. Tallennustila on harvoin rajoittava tekijä.
+Vie varmuuskopio ennen datan poistamista. Tallennustila on harvoin rajoittava tekijä, joten harkitse datan säilyttämistä poistamisen sijaan.
 </Callout>
 
 ## Data-ongelmien vianetsintä

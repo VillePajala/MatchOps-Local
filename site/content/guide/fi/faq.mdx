@@ -1,7 +1,7 @@
 ---
 title: Usein kysytyt kysymykset
 description: Yleisimmät kysymykset ja vastaukset MatchOpsista
-lastUpdated: "2026-02-06"
+lastUpdated: "2026-06-23"
 ---
 
 Vastauksia yleisimpiin kysymyksiin MatchOpsista.
@@ -14,29 +14,21 @@ Avaa sovellus selaimessa. Sovellus kehottaa asentamaan sen - napauta "Asenna" ta
 
 ### Tarvitseeko minulla olla tili?
 
-Ei, tili on valinnainen. Voit käyttää MatchOpsia paikallisella tallennuksella (tiliä ei tarvita) tai luoda pilvitilin laitteiden väliseen synkronointiin. Valitse haluamasi tapa, kun avaat sovelluksen ensimmäistä kertaa.
+Kyllä. Luot ilmaisen tilin sähköpostilla ja salasanalla, kun avaat MatchOpsin ensimmäistä kertaa. Google Play -versio vaatii tilin. Tilisi pitää datasi synkronoituna laitteiden välillä ja varmuuskopioituna pilveen.
 
 ### Minne tietoni tallennetaan?
 
-Riippuu valitsemastasi tilasta:
-
-- **Paikallinen tila**: Data tallennetaan vain laitteellesi. Maksimaalinen yksityisyys.
-- **Pilvitila**: Data tallennetaan turvallisesti pilveen (Supabase, EU-alue) ja synkronoituu laitteiden välillä.
-
-Molemmat tilat toimivat offline-tilassa. Yksityisyytesi on suojattu suunnitteluperiaatteena.
+Datasi tallennetaan yksityiselle pilvitilillesi (Supabase, EU-alue) ja kopio pidetään välimuistissa laitteellasi. Tämä laitteella oleva kopio tarkoittaa, että sovellus toimii täysin offline-tilassa sisäänkirjautumisen jälkeen - muutokset synkronoituvat kun olet taas verkossa. Yksityisyytesi on suojattu suunnitteluperiaatteena.
 
 ### Onko pilvisynkronointia?
 
-Kyllä! Pilvisynkronointi on valinnainen. Luo tili synkronoidaksesi datasi automaattisesti useiden laitteiden välillä. Voit myös aloittaa paikallisella tilalla ja siirtyä pilveen myöhemmin.
+Kyllä - se on tapa, jolla sovellus toimii. Kun olet luonut tilisi, datasi synkronoituu automaattisesti kaikkien laitteidesi välillä ja varmuuskopioituu pilveen. Sovellus toimii silti täysin offline-tilassa; muutokset synkronoituvat kun olet taas verkossa.
 
 ## Pilvi ja synkronointi
 
 ### Voinko käyttää sovellusta usealla laitteella?
 
-Kyllä, kahdella vaihtoehdolla:
-
-- **Pilvitila (suositeltu)**: Luo tili ja datasi synkronoituu automaattisesti kaikkien laitteidesi välillä.
-- **Paikallinen tila**: Vie tiedot yhdeltä laitteelta ja tuo ne toiselle manuaalisesti.
+Kyllä. Kirjaudu sisään tililläsi jokaisella laitteella, niin datasi synkronoituu automaattisesti niiden kaikkien välillä.
 
 ### Mitä tapahtuu, jos olen offline-tilassa pilvitilin kanssa?
 
@@ -46,18 +38,15 @@ Sovellus toimii normaalisti! Kaikki muutokset tallentuvat laitteellesi välittö
 Voit seurata kokonaisen pelin ilman internetiä. Data synkronoituu, kun yhdistät uudelleen.
 </Callout>
 
-### Miten vaihdan paikallisen ja pilvitilan välillä?
+### Käytin sovellusta ennen tilin luomista. Voinko säilyttää sen datan?
 
-Avaa Asetukset ja etsi pilvi/synkronointi-vaihtoehdot. Voit:
+Kyllä. Jos sinulla on olemassa olevaa dataa MatchOpsin käytöstä ilman tiliä, avaa Asetukset ja etsi pilvi/synkronointi-vaihtoehto ladataksesi sen tilillesi. Siitä eteenpäin se synkronoituu laitteidesi välillä.
 
-- **Paikallinen → Pilvi**: Luo tili ja siirrä olemassa oleva datasi
-- **Pilvi → Paikallinen**: Vaihda vain paikalliseen tallennukseen (data säilyy pilvitililläsi mutta lakkaa synkronoitumasta)
+### Onko datani yksityinen?
 
-### Onko datani yksityinen pilvitilassa?
+Kyllä:
 
-Kyllä. Pilvitilassa:
-
-- Data tallennetaan Supabaseen (EU-alue)
+- Synkronoitu datasi tallennetaan Supabaseen (EU-alue)
 - Suojattu tilitunnuksillasi
 - Rivitason suojaus varmistaa, että vain sinä pääset dataasi
 - Ei jakamista kolmansille osapuolille
@@ -70,14 +59,12 @@ Kyllä. Pilvitilassa:
 Avaa valikko (☰) ja valitse **Varmuuskopiointi**. Käytä Vie-toimintoa luodaksesi JSON-tiedoston kaikista tiedoistasi.
 
 <Callout type="info">
-Pilvitilan käyttäjät: Datasi synkronoituu automaattisesti pilveen. Manuaaliset varmuuskopiot ovat silti suositeltavia lisäsuojaksi.
+Datasi synkronoituu automaattisesti pilveen. Manuaaliset varmuuskopiot ovat silti suositeltavia lisäsuojaksi.
 </Callout>
 
 ### Mitä tapahtuu, jos kadotan puhelimeni tai se hajoaa?
 
-**Pilvitilan käyttäjät**: Kirjaudu sisään uudella laitteella - kaikki datasi on siellä.
-
-**Paikallisen tilan käyttäjät**: Jos olet tehnyt säännöllisiä varmuuskopioita, voit tuoda tiedot uudelle laitteelle. Ilman varmuuskopioita tiedot menetetään laitteen mukana.
+Kirjaudu sisään uudella laitteella - kaikki datasi on siellä. (Jos käytät vanhaa kokoonpanoa ilman tiliä, tuo sen sijaan viimeisin varmuuskopiosi; ilman varmuuskopioita tiedot menetetään laitteen mukana.)
 
 <Callout type="tip">
 Tee varmuuskopio säännöllisesti, erityisesti tärkeiden otteluiden jälkeen tai kauden lopussa.
@@ -109,7 +96,7 @@ Sovellus päivittyy automaattisesti, kun avaat sen ja sinulla on internetyhteys.
 
 ### Toimiiko sovellus offline-tilassa?
 
-Kyllä! Ensimmäisen latauksen jälkeen sovellus toimii täysin ilman internetyhteyttä. Voit seurata pelejä ilman verkkoyhteyttä. Jos käytät pilvitilaa, data synkronoituu, kun yhdistät uudelleen.
+Kyllä! Ensimmäisen latauksen jälkeen sovellus toimii täysin ilman internetyhteyttä. Voit seurata pelejä ilman verkkoyhteyttä, ja datasi synkronoituu kun yhdistät uudelleen.
 
 ## Tarvitsetko lisäapua?
 
@@ -117,5 +104,5 @@ Jos et löydä vastausta kysymykseesi:
 
 - Tarkista [Vianetsintä](/guide/troubleshooting)-opas yleisiin ongelmiin
 - Tutustu [Vinkit ja parhaat käytännöt](/guide/tips-best-practices) -osioon
-- Lue [Datan hallinta](/guide/data-management) yksityiskohtaiseen tietoon tallennustiloista ja synkronoinnista
+- Lue [Datan hallinta](/guide/data-management) yksityiskohtaiseen tietoon tallennuksesta, varmuuskopioinnista ja synkronoinnista
 - Ota yhteyttä: hello@match-ops.com

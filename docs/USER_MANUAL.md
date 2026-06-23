@@ -24,14 +24,11 @@
 
 ### First Launch
 
-When you first open MatchOps, you'll see the **Welcome Screen** with a choice:
+When you first open MatchOps, the **Welcome Screen** invites you to create a free account or sign in. An account keeps your data synced across your devices and safely backed up in the cloud.
 
-1. **Use Locally** — All data stays on your device, no account needed
-2. **Use Cloud Sync** — Create an account for cross-device sync
+MatchOps still works fully offline after you sign in — your data is cached on your device and syncs in the background whenever you're online.
 
-**Local Mode** is free with no limits. **Cloud Mode** requires email/password sign-up.
-
-After choosing your mode, the **Start Screen** shows quick actions:
+After signing in, the **Start Screen** shows quick actions:
 - Continue last game
 - Start new game
 - Load saved game
@@ -429,17 +426,12 @@ If something goes wrong:
 
 ### Multi-Device Usage
 
-**With Cloud Mode (Recommended):**
-If you have a cloud account, your data syncs automatically across devices:
+Your data syncs automatically across devices through your account:
 1. Sign in with the same account on each device
 2. Changes sync in the background when online
-3. Cloud mode requires an internet connection — for offline work, use local mode
+3. The app works offline too — changes you make offline sync the next time you're online
 
-**With Local Mode (Manual):**
-In local mode, each device maintains separate data. To transfer:
-1. Create backup on Device A
-2. Transfer backup file (email, cloud storage)
-3. Restore backup on Device B
+To move data without syncing (for example, to archive it or hand it to someone else), export a backup from Settings on one device and restore it on another.
 
 ---
 

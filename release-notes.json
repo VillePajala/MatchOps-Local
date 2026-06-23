@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Refreshed the user guide and manual to match how the app works now (cloud sync), with clearer setup, backup, and data instructions"
+      ],
+      "fi": [
+        "Päivitetty käyttöopas ja käyttöohje vastaamaan sovelluksen nykyistä toimintaa (pilvisynkronointi), selkeämmillä käyttöönotto-, varmuuskopiointi- ja datajohjeilla"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Added a public help page explaining how to delete your account and data, including for people who can no longer open the app"
       ],
       "fi": [

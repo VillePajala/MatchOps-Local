@@ -1,7 +1,7 @@
 ---
 title: Vianetsintä
 description: Yleiset ongelmat ja ratkaisut MatchOpsille
-lastUpdated: "2026-02-06"
+lastUpdated: "2026-06-23"
 ---
 
 Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
@@ -27,9 +27,9 @@ Tämä opas auttaa sinua ratkaisemaan yleisiä ongelmia MatchOpsin kanssa.
 - Käytät eri laitetta kuin aiemmin
 
 **Palautus**:
-- **Pilvitilan käyttäjät**: Kirjaudu ulos ja takaisin sisään synkronoidaksesi pilvestä uudelleen
-- **Paikallisen tilan käyttäjät**: Palauta varmuuskopiosta jos saatavilla
+- Kirjaudu ulos ja takaisin sisään synkronoidaksesi tililtäsi uudelleen
 - Tarkista, oletko oikealla laitteella
+- Jos käytät vanhaa kokoonpanoa ilman tiliä, palauta varmuuskopiosta jos saatavilla
 - Ota yhteyttä tukeen jos datan pitäisi olla olemassa
 
 ### Tuonti/vienti ei toimi
@@ -219,7 +219,7 @@ Yleisiä ongelmia:
 Kerää nämä tiedot:
 1. Laitteen malli ja Android-versio
 2. Sovelluksen versio (löytyy Asetuksista)
-3. Tallennustila (paikallinen vai pilvi)
+3. Oletko kirjautunut sisään tilillesi
 4. Vaiheet ongelman toistamiseksi
 5. Mahdolliset virheilmoitukset
 6. Kuvakaappaus jos mahdollista
@@ -228,17 +228,12 @@ Kerää nämä tiedot:
 
 Jos ongelmat jatkuvat:
 
-**Pilvitilan käyttäjät:**
-1. **Synkronoi uudelleen pilvestä**: Asetuksissa, etsi vaihtoehto tyhjentää paikallinen data ja ladata uudelleen pilvestä
-2. **Kirjaudu ulos ja takaisin sisään**: Usein korjaa synkronointiongelmat
-3. **Tehdasnollaus**: Asetuksissa, tyhjentää sekä paikallisen että pilvidatan (viimeinen keino)
+1. **Kirjaudu ulos ja takaisin sisään**: Usein korjaa synkronointiongelmat
+2. **Synkronoi uudelleen pilvestä**: Asetuksissa, etsi vaihtoehto tyhjentää laitteella oleva kopio ja ladata uudelleen tililtäsi
+3. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti Androidin asetuksista, avaa uudelleen
+4. **Puhdas uudelleenasennus**: Poista ja asenna sovellus uudelleen, kirjaudu sitten takaisin sisään
+5. **Poista kaikki data**: Asetuksissa, tyhjentää datasi pysyvästi kaikkialta (viimeinen keino)
 
-**Paikallisen tilan käyttäjät:**
-1. **Pehmeä nollaus**: Tyhjennä sovelluksen välimuisti Androidin asetuksista, avaa uudelleen
-2. **Datan vienti**: Tallenna datasi ensin varmuuskopiolla
-3. **Puhdas uudelleenasennus**: Poista ja asenna sovellus uudelleen
-4. **Täysi nollaus**: Tyhjennä kaikki sovelluksen tiedot (viimeinen keino)
-
-<Callout type="warning">
-Varmuuskopioi aina datasi ennen mitään nollaustoimenpiteitä.
+<Callout type="info">
+Huomio vanhoille käyttäjille: jos käytät MatchOpsia ilman tiliä, vie varmuuskopio ennen mitään nollausta, sillä pilvikopiota ei ole josta synkronoida uudelleen.
 </Callout>
