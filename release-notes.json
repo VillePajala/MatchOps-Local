@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "The Delete Account screen now lets you export a backup first and clearly explains it erases your data everywhere — so you can keep your data if you only want to leave cloud sync"
+      ],
+      "fi": [
+        "Poista tili -näkymässä voit nyt viedä varmuuskopion ensin, ja se kertoo selkeästi poistavansa tietosi kaikkialta — joten voit säilyttää tietosi jos haluat vain lopettaa pilvisynkronoinnin"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Deleting your account now also removes that account's data from this device, not just from the cloud — so a copy isn't left behind on a shared device"
       ],
       "fi": [
