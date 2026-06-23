@@ -12,7 +12,7 @@ This Next.js site serves as:
 
 ## Tech Stack
 
-- **Next.js 15** (Pages Router)
+- **Next.js 16** (Pages Router)
 - **React 19**
 - **TypeScript**
 - **Tailwind CSS 4**

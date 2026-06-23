@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Behind-the-scenes: marketing-site Finnish translation fixes and documentation tidy-up (no change to the app)"
+      ],
+      "fi": [
+        "Taustalla: markkinointisivuston suomennoskorjauksia ja dokumentaation siistimistä (ei muutoksia sovellukseen)"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Behind-the-scenes: added an automated security gate so a build can't ship with a critical vulnerability in a shipped dependency (no change to the app)"
       ],
       "fi": [
