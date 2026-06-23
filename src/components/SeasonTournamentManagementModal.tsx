@@ -239,6 +239,13 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
                 <div className="space-y-3">
+                    {filtered.length === 0 && (
+                        <p className="text-sm text-slate-400 py-2">
+                            {type === 'season'
+                                ? t('seasonTournamentModal.noSeasonsNudge', 'No seasons yet. Create one, then link your teams and games to it to track season-level stats.')
+                                : t('seasonTournamentModal.noTournamentsNudge', 'No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.')}
+                        </p>
+                    )}
                     {filtered.map((item) => (
                         <div
                             key={item.id}

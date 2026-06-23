@@ -648,7 +648,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 )}
                 {!selectedTeamId && (
                   <p className="mt-1 text-xs text-slate-400">
-                    {t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
+                    {teams.some((team) => !team.archived)
+                      ? t('newGameSetupModal.selectTeamTip', 'Tip: pick a team to auto-fill its roster and linked competition.')
+                      : t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
                   </p>
                 )}
               </div>

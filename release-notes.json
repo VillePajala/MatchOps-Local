@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Added helpful hints when you have no teams or competitions yet, and a tip in New Game to pick a team (which auto-fills its roster and competition) — making the full stats workflow easier to discover"
+      ],
+      "fi": [
+        "Lisätty ohjevihjeitä kun sinulla ei vielä ole joukkueita tai kilpailuja, sekä vihje Uusi ottelu -näkymään joukkueen valitsemisesta (joka täyttää sen kokoonpanon ja kilpailun automaattisesti) — täysi tilastotyönkulku on nyt helpompi löytää"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Start Screen tidy-up: Settings and User Guide now sit side by side"
       ],
       "fi": [
