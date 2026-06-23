@@ -383,8 +383,11 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               return (
                 <div className="text-center py-8">
                   <HiOutlineUsers className="w-12 h-12 mx-auto text-slate-400 mb-3" />
-                  <p className="text-slate-400 mb-4">
+                  <p className="text-slate-400 mb-2">
                     {t('teamManager.noTeams', 'No teams yet. Create your first team to get started.')}
+                  </p>
+                  <p className="text-slate-500 text-sm max-w-md mx-auto">
+                    {t('teamManager.noTeamsNudge', 'Teams let you reuse a roster and link games to a competition, so your stats add up by team and competition.')}
                   </p>
                 </div>
               );

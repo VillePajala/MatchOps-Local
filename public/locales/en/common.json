@@ -808,7 +808,8 @@
     "leagueLabel": "League",
     "selectLeague": "-- Select League --",
     "customLeaguePlaceholder": "Enter league name",
-    "createGame": "Create Game"
+    "createGame": "Create Game",
+    "selectTeamTip": "Tip: pick a team to auto-fill its roster and linked competition."
   },
   "gameSettingsModal": {
     "eventActions": "Event actions",
@@ -1051,7 +1052,9 @@
     "statsGames": "Games",
     "statsGoals": "Goals",
     "editDetails": "Edit Details",
-    "searchPlaceholder": "Search..."
+    "searchPlaceholder": "Search...",
+    "noSeasonsNudge": "No seasons yet. Create one, then link your teams and games to it to track season-level stats.",
+    "noTournamentsNudge": "No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats."
   },
   "teamDetailsModal": {
     "createTitle": "Create Team",
@@ -1266,7 +1269,8 @@
     "ageGroupContext": "Age group: {{ageGroup}}",
     "seasonContext": "Season: {{name}}",
     "tournamentContext": "Tournament: {{name}}",
-    "gameTypeContext": "Game type: Futsal"
+    "gameTypeContext": "Game type: Futsal",
+    "noTeamsNudge": "Teams let you reuse a roster and link games to a competition, so your stats add up by team and competition."
   },
   "unifiedTeamModal": {
     "createTitle": "Create Team",

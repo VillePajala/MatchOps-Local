@@ -820,7 +820,8 @@
     "leagueLabel": "Sarja",
     "selectLeague": "-- Valitse sarja --",
     "customLeaguePlaceholder": "Kirjoita sarjan nimi",
-    "createGame": "Luo ottelu"
+    "createGame": "Luo ottelu",
+    "selectTeamTip": "Vinkki: valitse joukkue, niin sen kokoonpano ja liitetty kilpailu täyttyvät automaattisesti."
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Oivalla",
@@ -949,7 +950,9 @@
     "statsGames": "Ottelut",
     "statsGoals": "Maalit",
     "editDetails": "Muokkaa tietoja",
-    "searchPlaceholder": "Etsi..."
+    "searchPlaceholder": "Etsi...",
+    "noSeasonsNudge": "Ei vielä kausia. Luo kausi ja liitä siihen joukkueesi ja ottelusi seurataksesi kausitason tilastoja.",
+    "noTournamentsNudge": "Ei vielä turnauksia. Luo turnaus ja liitä siihen joukkueesi ja ottelusi seurataksesi turnaustason tilastoja."
   },
   "teamDetailsModal": {
     "createTitle": "Luo joukkue",
@@ -1164,7 +1167,8 @@
     "ageGroupContext": "Ikäluokka: {{ageGroup}}",
     "seasonContext": "Kausi: {{name}}",
     "tournamentContext": "Turnaus: {{name}}",
-    "gameTypeContext": "Pelityyppi: Futsal"
+    "gameTypeContext": "Pelityyppi: Futsal",
+    "noTeamsNudge": "Joukkueiden avulla voit käyttää samaa kokoonpanoa uudelleen ja liittää ottelut kilpailuun, jolloin tilastosi kertyvät joukkue- ja kilpailutasolla."
   },
   "unifiedTeamModal": {
     "createTitle": "Luo joukkue",
