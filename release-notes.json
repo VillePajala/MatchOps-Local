@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "New: a dismissible \"Recommended setup\" card on the Start Screen shows the steps to get full player, team, and competition stats (add players → create a competition → build a team → start a game from it), with live progress"
+      ],
+      "fi": [
+        "Uutta: aloitusnäytön ohitettava \"Suositeltu käyttöönotto\" -kortti näyttää vaiheet täysien pelaaja-, joukkue- ja kilpailutilastojen saamiseksi (lisää pelaajat → luo kilpailu → luo joukkue → aloita ottelu siitä), edistymisen kanssa"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Added a User Guide link to the Start Screen, so help (including the recommended setup workflow) is one tap away when you open the app"
       ],
       "fi": [
