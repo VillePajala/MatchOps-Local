@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Behind-the-scenes: added an automated security gate so a build can't ship with a critical vulnerability in a shipped dependency (no change to the app)"
+      ],
+      "fi": [
+        "Taustalla: lisätty automaattinen tietoturvaportti, jotta julkaisua ei voi tehdä jos toimitettavassa riippuvuudessa on kriittinen haavoittuvuus (ei muutoksia sovellukseen)"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "New accounts now start with cloud sync by default for a simpler setup. Existing local-only setups keep working exactly as before."
       ],
       "fi": [
