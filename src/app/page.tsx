@@ -234,23 +234,21 @@ export default function Home() {
       const roster = await getMasterRoster(userId);
       setHasPlayers(roster.length > 0);
 
-      // Recommended-setup signals for the Start Screen card (best-effort; never block boot)
-      try {
-        setHasTeamLinkedGame(
-          Object.values(games || {}).some(
-            (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
-          )
-        );
-        const [seasonsList, tournamentsList, teamsList] = await Promise.all([
-          getSeasons(userId),
-          getTournaments(userId),
-          getTeams(userId),
-        ]);
-        setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
-        setHasTeam(teamsList.length > 0);
-      } catch (setupErr) {
-        logger.warn('Failed to compute recommended-setup signals', { error: setupErr });
-      }
+      // Recommended-setup signals for the Start Screen card.
+      // teamLinkedGame uses the already-loaded games (synchronous). The extra reads
+      // are fire-and-forget — NOT awaited — so they never add to boot latency; the
+      // card simply populates a beat later when they resolve.
+      setHasTeamLinkedGame(
+        Object.values(games || {}).some(
+          (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
+        )
+      );
+      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId)])
+        .then(([seasonsList, tournamentsList, teamsList]) => {
+          setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
+          setHasTeam(teamsList.length > 0);
+        })
+        .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
       setCanResume(false);
