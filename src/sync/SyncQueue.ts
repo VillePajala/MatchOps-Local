@@ -27,7 +27,7 @@ import {
 } from './types';
 
 /** Base database name for sync queue (user ID is appended for user-scoped storage) */
-const SYNC_DB_NAME_PREFIX = 'matchops_sync_queue';
+export const SYNC_DB_NAME_PREFIX = 'matchops_sync_queue';
 
 /** Database version */
 const SYNC_DB_VERSION = 1;
