@@ -83,6 +83,10 @@
     "terms": {
       "title": "Terms of Service - MatchOps",
       "description": "Terms of service for MatchOps soccer coaching app."
+    },
+    "deleteAccount": {
+      "title": "Delete Your Account – MatchOps",
+      "description": "How to permanently delete your MatchOps account and all associated data."
     }
   },
   "footer": {
@@ -855,5 +859,23 @@
       "title": "No Professional Advice; Use at Your Own Risk",
       "content": "MatchOps is a coaching tool that records and displays information you provide. It does not give professional, medical, legal, or safety advice. All decisions you make using the app — including those affecting players' health, safety, or playing time — are your own, and you use the app at your own risk."
     }
+  },
+  "deleteAccount": {
+    "title": "Delete Your Account and Data",
+    "intro": "You can permanently delete your MatchOps account and all associated data at any time. Here's how.",
+    "inAppTitle": "Delete from within the app (recommended)",
+    "step1": "Open MatchOps and sign in to your account.",
+    "step2": "Go to Settings → Data → Delete Account.",
+    "step3": "Type DELETE and confirm.",
+    "inAppNote": "This permanently removes your account and all your data from our servers, and the copy cached on that device. It cannot be undone.",
+    "whatTitle": "What gets deleted",
+    "whatContent": "Your account and all data associated with it — players, teams, games, seasons, tournaments, personnel, and settings — both in the cloud and cached on your device. Consent records are retained only to the extent required for legal compliance (GDPR).",
+    "keepTitle": "Want to keep your data?",
+    "keepContent": "Before deleting, you can export a full backup from Settings → Backup. You can restore it later on another device or after creating a new account.",
+    "cantAccessTitle": "Can't access the app?",
+    "cantAccessContent": "If you can no longer open the app (for example, you uninstalled it), email us from the address associated with your account and we will delete your account and data for you.",
+    "emailLabel": "Email",
+    "timelineTitle": "Timeline",
+    "timelineContent": "In-app deletion is immediate. Email requests are processed within 30 days."
   }
 }
