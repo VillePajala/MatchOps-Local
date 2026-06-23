@@ -12,7 +12,7 @@ import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 // backendConfig import removed — migration flag is now handled entirely by importFullBackup
 import { useAuth } from '@/contexts/AuthProvider';
-import { ModalFooter, modalContainerStyle, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, modalContainerStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { queryKeys } from '@/config/queryKeys';
@@ -829,9 +829,30 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="text-sm text-red-200 mb-3">
                       {t(
                         'settingsModal.deleteAccountDescription',
-                        'Permanently delete your account and all cloud data. This action cannot be undone. You will need to create a new account to use cloud features again.'
+                        'Permanently delete your account and all of its data — both in the cloud and on this device. This action cannot be undone. You will need to create a new account to use cloud features again.'
                       )}
                     </p>
+                    {/* Keep-data affordance: let users who only want out of cloud export first */}
+                    <div className="mb-3 p-2 rounded-md bg-slate-800/60 border border-slate-700">
+                      <p className="text-xs text-slate-300 mb-2">
+                        {t(
+                          'settingsModal.deleteAccountKeepDataHint',
+                          'Want to keep your data? Export a backup first — you can restore it on another device or after creating a new account.'
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onCreateBackup();
+                        }}
+                        className={secondaryButtonStyle}
+                        disabled={isDeletingAccount}
+                      >
+                        {t('settingsModal.deleteAccountExportButton', 'Export backup first')}
+                      </button>
+                    </div>
                     <label htmlFor="delete-account-confirm" className={labelStyle}>
                       {t('settingsModal.confirmDeleteLabel', 'Type DELETE to confirm')}
                     </label>
