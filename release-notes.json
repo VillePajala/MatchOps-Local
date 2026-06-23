@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Behind-the-scenes: fixed the public privacy-policy web address so it always resolves (no change to the app)"
+      ],
+      "fi": [
+        "Taustalla: korjattu julkinen tietosuojakäytännön verkko-osoite niin että se aukeaa aina (ei muutoksia sovellukseen)"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Updated our Terms of Service and Privacy Policy (version 2026-06): clarified that cloud sync is now the default, and added standard liability and indemnification terms. Cloud users will be asked to review and re-accept on next sign-in."
       ],
       "fi": [

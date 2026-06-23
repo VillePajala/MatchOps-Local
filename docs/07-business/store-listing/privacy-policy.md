@@ -3,7 +3,7 @@
 **Last Updated**: June 2026
 **Policy Version**: 2026-06
 
-> **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission) — ⚠️ verify this resolves: the marketing site route is `/privacy`; confirm a `/privacy-policy` route/redirect exists or use the route Play actually links to.
+> **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission). `/privacy-policy` 301-redirects to the marketing-site privacy page at `/privacy` (`site/next.config.mjs`) — **takes effect on the next marketing-site deploy.**
 >
 > **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `privacyPolicy.*`), rendered at `/privacy-policy` (app) and `/privacy` (site). Keep this snapshot in sync with those.
 
