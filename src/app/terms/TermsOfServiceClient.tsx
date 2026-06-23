@@ -108,6 +108,16 @@ export function TermsOfServiceClient() {
         </section>
 
         <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.noAdvice.title')}</h2>
+          <p className="text-slate-300">{t('termsOfService.noAdvice.content')}</p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.indemnification.title')}</h2>
+          <p className="text-slate-300">{t('termsOfService.indemnification.content')}</p>
+        </section>
+
+        <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('termsOfService.thirdPartyServices.title')}</h2>
           <p className="text-slate-300 mb-2">{t('termsOfService.thirdPartyServices.intro')}</p>
           <ul className="list-disc list-inside text-slate-300 space-y-1">

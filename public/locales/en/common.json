@@ -1866,20 +1866,20 @@
   },
   "privacyPolicy": {
     "title": "Privacy Policy for MatchOps",
-    "version": "Policy Version: 2026-02",
-    "lastUpdated": "Last Updated: February 2026",
+    "version": "Policy Version: 2026-06",
+    "lastUpdated": "Last Updated: June 2026",
     "dataController": {
       "title": "Data Controller",
       "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. As the data controller, we are responsible for the processing of your personal data as described in this policy."
     },
     "overview": {
       "title": "Overview",
-      "content": "MatchOps (\"we\", \"our\", \"the app\") is a local-first soccer coaching application. This privacy policy explains how we handle your information."
+      "content": "MatchOps (\"we\", \"our\", \"the app\") is a soccer coaching application. New accounts use secure cloud sync by default, and an optional local-only mode is also available. This privacy policy explains how we handle your information."
     },
     "dataStorage": {
       "title": "Data Storage",
-      "localDataTitle": "Local Data (Default)",
-      "localDataIntro": "By default, all your data is stored locally on your device:",
+      "localDataTitle": "Local Mode (Optional)",
+      "localDataIntro": "If you use the optional local-only mode, all your data is stored locally on your device:",
       "localDataItems": {
         "playerRosters": "Player rosters and information",
         "gameRecords": "Game records and statistics",
@@ -1888,10 +1888,10 @@
         "personnelInfo": "Personnel information (names, roles, contact details if you choose to enter them)"
       },
       "localDataNote": "We do not have access to this data. It never leaves your device unless you explicitly export it or enable cloud sync.",
-      "noAccountTitle": "No Account Required (Local Mode)",
-      "noAccountContent": "MatchOps works entirely offline in local mode. No account creation, login, or personal information is required.",
-      "cloudDataTitle": "Cloud Sync (Optional)",
-      "cloudDataIntro": "If you enable Cloud Sync, your data is additionally stored on secure cloud servers:",
+      "noAccountTitle": "Accounts and Modes",
+      "noAccountContent": "New accounts use cloud sync by default and require signing in. An optional local-only mode (no account; your data stays on this device) is also available. The Google Play version requires an account.",
+      "cloudDataTitle": "Cloud Sync (Default)",
+      "cloudDataIntro": "When you use cloud sync — the default for new accounts — your data is stored on secure cloud servers:",
       "cloudDataItems": {
         "syncedData": "Copied to our secure EU-based servers (Supabase, hosted in EU)",
         "encryption": "Encrypted in transit (HTTPS/TLS) and at rest",
@@ -1940,7 +1940,7 @@
         "phone": "Phone number (optional)",
         "certifications": "Certifications (optional)"
       },
-      "personnelDataNote": "This data is stored locally on your device (local mode) or in our secure EU-based database accessible only to you (cloud mode). Personnel contact information (email, phone) is considered personally identifiable information (PII) under GDPR. You are responsible for ensuring you have appropriate grounds to store their contact details."
+      "personnelDataNote": "This data is stored locally on your device (local mode) or in our secure EU-based database accessible only to you (cloud mode). Personnel contact information (email, phone) is considered personally identifiable information (PII) under GDPR. You are responsible for ensuring you have appropriate grounds to store their contact details. For any personal data you enter about other people (such as players and personnel), you act as the data controller and are solely responsible for having a lawful basis and any required consent to store it."
     },
     "dataWeDoNotCollect": {
       "title": "Data We Do NOT Collect",
@@ -2021,22 +2021,22 @@
   },
   "termsOfService": {
     "title": "Terms of Service for MatchOps",
-    "version": "Terms Version: 2026-02",
-    "lastUpdated": "Last Updated: February 2026",
+    "version": "Terms Version: 2026-06",
+    "lastUpdated": "Last Updated: June 2026",
     "agreement": {
       "title": "Agreement to Terms",
       "content": "By downloading, installing, or using MatchOps (\"the app\"), you agree to these Terms of Service. If you do not agree, do not use the app."
     },
     "description": {
       "title": "Description of Service",
-      "intro": "MatchOps is a local-first soccer coaching application that helps coaches:",
+      "intro": "MatchOps is a soccer coaching application — cloud sync by default, with an optional local-only mode — that helps coaches:",
       "items": {
         "trackTime": "Track game time and scores",
         "manageRosters": "Manage player rosters",
         "recordStats": "Record player statistics",
         "organizeSeasons": "Organize seasons and tournaments"
       },
-      "note": "All data is stored locally on your device."
+      "note": "By default your data is stored in your private cloud account; an optional local-only mode keeps data on your device."
     },
     "license": {
       "title": "License Grant",
@@ -2170,7 +2170,15 @@
       "intro": "Most actions (data export, deletion, account management) can be done directly in the app under Settings. For questions about these terms:",
       "email": "Email"
     },
-    "footer": "These Terms of Service apply to the MatchOps application available on Google Play Store."
+    "footer": "These Terms of Service apply to the MatchOps application available on Google Play Store.",
+    "indemnification": {
+      "title": "Indemnification",
+      "content": "To the maximum extent permitted by applicable law (including mandatory consumer-protection law), you agree to indemnify, defend, and hold harmless the developer (Ville Pajala) from and against any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising out of or related to: (a) the data and content you enter into the app; (b) your violation of these terms or any applicable law; or (c) your storage or handling of other people's personal data, such as players and personnel. For any personal data you enter about third parties, you act as the data controller and are solely responsible for having a lawful basis and any required consents."
+    },
+    "noAdvice": {
+      "title": "No Professional Advice; Use at Your Own Risk",
+      "content": "MatchOps is a coaching tool that records and displays information you provide. It does not give professional, medical, legal, or safety advice. All decisions you make using the app — including those affecting players' health, safety, or playing time — are your own, and you use the app at your own risk."
+    }
   },
   "premium": {
     "freeVersionLimitReached": "Free version limit reached",

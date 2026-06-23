@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Updated our Terms of Service and Privacy Policy (version 2026-06): clarified that cloud sync is now the default, and added standard liability and indemnification terms. Cloud users will be asked to review and re-accept on next sign-in."
+      ],
+      "fi": [
+        "Päivitetty käyttöehdot ja tietosuojakäytäntö (versio 2026-06): selvennetty että pilvisynkronointi on nyt oletus, ja lisätty tavanomaiset vastuunrajoitus- ja korvausehdot. Pilvikäyttäjiä pyydetään tarkistamaan ja hyväksymään ne uudelleen seuraavalla kirjautumisella."
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Behind-the-scenes: verified end-to-end that deleting your account fully removes your account and data from our servers (no change to the app)"
       ],
       "fi": [
