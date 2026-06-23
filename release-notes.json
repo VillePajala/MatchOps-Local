@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Deleting your account now also removes that account's data from this device, not just from the cloud — so a copy isn't left behind on a shared device"
+      ],
+      "fi": [
+        "Tilin poistaminen poistaa nyt kyseisen tilin tiedot myös tältä laitteelta, ei vain pilvestä — joten kopiota ei jää jaetulle laitteelle"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Behind-the-scenes: quieter error reporting for routine storage retries that recover on their own (no change to the app)"
       ],
       "fi": [

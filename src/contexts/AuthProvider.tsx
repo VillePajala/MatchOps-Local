@@ -31,6 +31,7 @@ import * as Sentry from '@sentry/nextjs';
 import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
 import { getCachedUserIdentity } from '@/auth/cachedSession';
+import { deleteUserLocalDatabases } from '@/datastore/userDatabase';
 
 /**
  * Auth context value interface.
@@ -965,6 +966,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem(`matchops_marketing_prompt_seen_${deletedUserId}`);
         } catch {
           // non-critical
+        }
+      }
+
+      // Erase the on-device databases scoped to the deleted account: the data mirror
+      // and the sync queue. This honors the erasure request (a readable copy must not
+      // survive on the device) and removes the otherwise-orphaned, unreachable mirror.
+      // Runs AFTER the state clear above so the sign-out teardown has begun closing the
+      // adapter, letting the delete complete. The legacy local-mode DB is left intact.
+      if (deletedUserId) {
+        try {
+          await deleteUserLocalDatabases(deletedUserId);
+        } catch (error) {
+          logger.warn('[AuthProvider] Failed to delete local databases on account deletion:', error);
         }
       }
 

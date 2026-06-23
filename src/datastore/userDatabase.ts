@@ -41,6 +41,13 @@ export const LEGACY_DATABASE_NAME = 'MatchOpsLocal';
 const USER_DATABASE_PREFIX = 'matchops_user_';
 
 /**
+ * Prefix for the user-scoped sync-queue database.
+ * MUST match `SYNC_DB_NAME_PREFIX` in `src/sync/SyncQueue.ts` (asserted in tests).
+ * Full name format: `matchops_sync_queue_{userId}`.
+ */
+const USER_SYNC_QUEUE_DB_PREFIX = 'matchops_sync_queue';
+
+/**
  * Maximum allowed length for userId.
  * Supabase UUIDs are 36 characters (e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479').
  * We use 255 to allow for future flexibility while preventing DoS attacks
@@ -139,6 +146,74 @@ export function getUserDatabaseName(userId: string): string {
     throw new Error(result.error);
   }
   return `${USER_DATABASE_PREFIX}${result.trimmedId}`;
+}
+
+/**
+ * Best-effort deletion of all on-device databases scoped to a user: the data
+ * mirror (`matchops_user_{id}`) and the sync queue (`matchops_sync_queue_{id}`).
+ *
+ * Used on account deletion to honor erasure (GDPR) and remove the otherwise
+ * orphaned, unreachable cloud mirror left behind for the deleted userId.
+ *
+ * Deliberately does NOT touch the legacy local-mode database (`MatchOpsLocal`) —
+ * that is standalone local-first data that exists independently of any cloud
+ * account, and a signed-out user falls back to it.
+ *
+ * Best-effort and non-blocking: never rejects, never hangs. `deleteDatabase`
+ * fires `onblocked` while a connection is still open (the delete then completes
+ * once it closes — which the post-deletion sign-out teardown triggers), so we
+ * resolve on success/error/blocked and cap each request with a timeout.
+ *
+ * @param userId - The deleted user's ID (the same value used to open the DBs)
+ */
+export function deleteUserLocalDatabases(userId: string): Promise<void> {
+  if (typeof indexedDB === 'undefined' || !userId) {
+    return Promise.resolve();
+  }
+
+  const names: string[] = [];
+  try {
+    names.push(getUserDatabaseName(userId));
+  } catch {
+    // Invalid userId → nothing user-scoped to delete.
+    return Promise.resolve();
+  }
+  // Sync queue uses the raw userId (see SyncQueue constructor), matching on-disk name.
+  names.push(`${USER_SYNC_QUEUE_DB_PREFIX}_${userId}`);
+
+  return Promise.all(
+    names.map(
+      (name) =>
+        new Promise<void>((resolve) => {
+          let settled = false;
+          let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+          const done = () => {
+            if (!settled) {
+              settled = true;
+              if (timer) clearTimeout(timer);
+              resolve();
+            }
+          };
+          try {
+            const request = indexedDB.deleteDatabase(name);
+            request.onsuccess = () => {
+              logger.info('[userDatabase] Deleted local database on account deletion', { name });
+              done();
+            };
+            request.onerror = () => {
+              // best-effort — don't block deletion on a failure, but log for observability
+              logger.warn('[userDatabase] Failed to delete local database on account deletion', { name });
+              done();
+            };
+            request.onblocked = done; // an open connection completes the delete later
+          } catch {
+            done();
+          }
+          // Never hang the account-deletion flow.
+          timer = setTimeout(done, 3000);
+        })
+    )
+  ).then(() => undefined);
 }
 
 /**
