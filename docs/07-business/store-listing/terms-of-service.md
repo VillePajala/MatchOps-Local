@@ -1,9 +1,11 @@
 # Terms of Service for MatchOps
 
-**Last Updated**: February 2026
-**Terms Version**: 2026-02
+**Last Updated**: June 2026
+**Terms Version**: 2026-06
 
 > **Hosted URL**: https://match-ops.com/terms (use this URL for Play Store submission)
+>
+> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `termsOfService.*`), rendered at `/terms`. Keep this snapshot in sync with those.
 
 ## Agreement to Terms
 
@@ -11,7 +13,7 @@ By downloading, installing, or using MatchOps ("the app"), you agree to these Te
 
 ## Description of Service
 
-MatchOps is a local-first soccer coaching application that helps coaches:
+MatchOps is a soccer coaching application — cloud sync by default, with an optional local-only mode — that helps coaches:
 - Track game time and scores
 - Manage player rosters
 - Record player statistics
@@ -105,6 +107,14 @@ You acknowledge that:
 - Data is stored locally on your device (or in cloud if enabled)
 - We are not responsible for data loss due to device failure, app uninstallation, or any other cause
 - You should regularly export and backup important data
+
+## No Professional Advice; Use at Your Own Risk
+
+MatchOps is a coaching tool that records and displays information you provide. It does not give professional, medical, legal, or safety advice. All decisions you make using the app — including those affecting players' health, safety, or playing time — are your own, and you use the app at your own risk.
+
+## Indemnification
+
+To the maximum extent permitted by applicable law (including mandatory consumer-protection law), you agree to indemnify, defend, and hold harmless the developer (Ville Pajala) from and against any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising out of or related to: (a) the data and content you enter into the app; (b) your violation of these terms or any applicable law; or (c) your storage or handling of other people's personal data, such as players and personnel. For any personal data you enter about third parties, you act as the data controller and are solely responsible for having a lawful basis and any required consents.
 
 ## Third-Party Services
 
