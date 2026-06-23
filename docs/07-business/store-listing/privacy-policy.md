@@ -1,9 +1,11 @@
 # Privacy Policy for MatchOps
 
-**Last Updated**: February 2026
-**Policy Version**: 2026-02
+**Last Updated**: June 2026
+**Policy Version**: 2026-06
 
-> **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission)
+> **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission) — ⚠️ verify this resolves: the marketing site route is `/privacy`; confirm a `/privacy-policy` route/redirect exists or use the route Play actually links to.
+>
+> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `privacyPolicy.*`), rendered at `/privacy-policy` (app) and `/privacy` (site). Keep this snapshot in sync with those.
 
 ## Data Controller
 
@@ -11,13 +13,13 @@ MatchOps is developed and operated by Ville Pajala, based in Finland. As the dat
 
 ## Overview
 
-MatchOps ("we", "our", "the app") is a local-first soccer coaching application. This privacy policy explains how we handle your information.
+MatchOps ("we", "our", "the app") is a soccer coaching application. New accounts use secure cloud sync by default, and an optional local-only mode is also available. This privacy policy explains how we handle your information.
 
 ## Data Storage
 
-### Local Data (Default)
+### Local Mode (Optional)
 
-By default, all your data is stored locally on your device:
+If you use the optional local-only mode, all your data is stored locally on your device:
 - Player rosters and information
 - Game records and statistics
 - Settings and preferences
@@ -26,13 +28,13 @@ By default, all your data is stored locally on your device:
 
 **We do not have access to this data.** It never leaves your device unless you explicitly export it or enable cloud sync.
 
-### No Account Required (Local Mode)
+### Accounts and Modes
 
-MatchOps works entirely offline in local mode. No account creation, login, or personal information is required.
+New accounts use cloud sync by default and require signing in. An optional local-only mode (no account; your data stays on this device) is also available. The Google Play version requires an account.
 
-### Cloud Sync (Optional)
+### Cloud Sync (Default)
 
-If you enable Cloud Sync, your data is:
+When you use cloud sync — the default for new accounts — your data is:
 - Copied to our secure EU-based servers (Supabase, hosted in EU)
 - Encrypted in transit (HTTPS/TLS) and at rest
 - Protected by row-level security (only you can access your data)
