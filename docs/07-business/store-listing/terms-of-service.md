@@ -5,7 +5,7 @@
 
 > **Hosted URL**: https://match-ops.com/terms (use this URL for Play Store submission)
 >
-> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `termsOfService.*`), rendered at `/terms`. Keep this snapshot in sync with those.
+> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `termsOfService.*`), rendered at `/terms`. Keep this snapshot in sync with those; it may lag the live text in places.
 
 ## Agreement to Terms
 
@@ -13,13 +13,13 @@ By downloading, installing, or using MatchOps ("the app"), you agree to these Te
 
 ## Description of Service
 
-MatchOps is a soccer coaching application — cloud sync by default, with an optional local-only mode — that helps coaches:
+MatchOps is a soccer coaching application with cloud sync that helps coaches:
 - Track game time and scores
 - Manage player rosters
 - Record player statistics
 - Organize seasons and tournaments
 
-By default, all data is stored locally on your device. Cloud sync is available as an optional Premium feature.
+Your data is stored in your private cloud account and cached on your device for offline use.
 
 ## License Grant
 
@@ -42,7 +42,7 @@ You are responsible for:
 
 ## Data and Privacy
 
-Your data is stored locally on your device (local mode) or in our secure cloud database (cloud mode with subscription). See our [Privacy Policy](/privacy-policy) for details on data handling, security, GDPR rights, and what limited data we may collect.
+Your data is stored in your private cloud account and cached on your device for offline use. See our [Privacy Policy](/privacy-policy) for details on data handling, security, GDPR rights, and what limited data we may collect.
 
 ### Data Security Acknowledgment
 By using MatchOps, you acknowledge that:
@@ -52,7 +52,7 @@ By using MatchOps, you acknowledge that:
 - **Personnel data**: If you store personnel contact information (email, phone), it follows the same security model as other app data
 - **Your responsibility**: You are responsible for protecting access to your device and backup files
 
-For additional security, enable cloud sync which provides server-side encryption, encryption at rest, and row-level security.
+Your data is protected with server-side encryption, encryption at rest, and row-level security.
 
 ## Premium Features
 
@@ -104,7 +104,7 @@ Our total liability shall not exceed the amount you paid for the app (if any).
 ## Data Loss
 
 You acknowledge that:
-- Data is stored locally on your device (or in cloud if enabled)
+- Your data is stored in your private cloud account and cached on your device
 - We are not responsible for data loss due to device failure, app uninstallation, or any other cause
 - You should regularly export and backup important data
 
