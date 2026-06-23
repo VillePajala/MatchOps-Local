@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Help guide now uses the same menu names as the app (e.g. \"Competitions\", \"Teams\", \"All Players\"), so steps are easier to follow"
+      ],
+      "fi": [
+        "Ohje käyttää nyt samoja valikkonimiä kuin sovellus (esim. \"Kilpailut\", \"Joukkueet\", \"Kaikki pelaajat\"), joten ohjeita on helpompi seurata"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Refreshed the user guide and manual to match how the app works now (cloud sync), with clearer setup, backup, and data instructions"
       ],
       "fi": [

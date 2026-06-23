@@ -87,7 +87,7 @@ Once installed, MatchOps works offline and keeps your screen awake during games.
 ### Pre-Game Setup (5 minutes before)
 
 1. **Open the Menu** (hamburger icon)
-2. **Tap "New Game"**
+2. **Tap "Start New Game"**
 3. **Fill in game details:**
    - Your team name (auto-fills if set)
    - Opponent name
@@ -121,7 +121,7 @@ If you have saved team rosters:
 
 ### Adding Players
 
-1. **Menu → Manage Roster**
+1. **Menu → All Players**
 2. Tap **"+ Add Player"**
 3. Enter player details:
    - Name (required)
@@ -157,7 +157,7 @@ If you have player data from elsewhere:
 
 Organize players into teams (useful for coaching multiple teams):
 
-1. **Menu → Manage Teams**
+1. **Menu → Teams**
 2. Tap **"+ New Team"**
 3. Enter team name and color
 4. Add players to the team roster
@@ -172,7 +172,7 @@ When starting a new game:
 
 Track games by season or tournament:
 
-1. **Menu → Manage Seasons & Tournaments**
+1. **Menu → Competitions**
 2. Create a season (e.g., "Spring 2026")
 3. Create tournaments within seasons
 4. When creating games, assign them to season/tournament
@@ -295,7 +295,7 @@ Games auto-save as you play. To manually save:
 
 Rate player performance after games:
 
-1. **Menu → Assess Players**
+1. **Menu → Record Performance**
 2. Select a player
 3. Rate on 10 dimensions:
    - Intensity, Courage, Duels
@@ -452,16 +452,16 @@ Menu
 ├── Game Management
 │   ├── Save
 │   ├── Load Game
-│   └── New Game
+│   └── Start New Game
 ├── Setup & Configuration
 │   ├── Game Settings
-│   ├── Manage Roster
-│   ├── Manage Teams
+│   ├── All Players
+│   ├── Teams
 │   ├── Personnel Manager
-│   └── Seasons & Tournaments
+│   └── Competitions
 ├── Analysis & Tools
 │   ├── Stats
-│   ├── Assess Players
+│   ├── Record Performance
 │   ├── Training (Warmup Plan)
 │   ├── Rules
 │   └── Backup & Restore
