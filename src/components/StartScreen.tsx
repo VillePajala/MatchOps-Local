@@ -6,6 +6,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import InstructionsModal from '@/components/InstructionsModal';
+import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
 
@@ -25,6 +26,8 @@ interface StartScreenProps {
   hasSavedGames?: boolean;
   isFirstTimeUser?: boolean;
   isCloudAvailable?: boolean;
+  /** Completion signals for the recommended full-setup workflow card. */
+  setupProgress?: SetupProgress;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
@@ -40,6 +43,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   hasSavedGames = false,
   isFirstTimeUser = false,
   isCloudAvailable = false,
+  setupProgress,
 }) => {
   const { t } = useTranslation();
   const { user, mode, signOut } = useAuth();
@@ -51,7 +55,37 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const [language, setLanguage] = useState<string>('fi');
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
 
+  // Recommended-setup card dismissal. Read post-hydration (SSR-safe, like language):
+  // both server and first client render show nothing until setupHydrated flips true.
+  const [setupDismissed, setSetupDismissed] = useState(false);
+  const [setupHydrated, setSetupHydrated] = useState(false);
+  const setupDismissKey = `matchops_recommended_setup_dismissed_${user?.id ?? 'local'}`;
+
   const isCloudMode = mode === 'cloud' && user;
+
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line no-restricted-globals -- one-time UI dismissal flag, not app data
+      setSetupDismissed(localStorage.getItem(setupDismissKey) === '1');
+    } catch {
+      // localStorage unavailable — treat as not dismissed
+    }
+    setSetupHydrated(true);
+  }, [setupDismissKey]);
+
+  const handleDismissSetup = () => {
+    setSetupDismissed(true);
+    try {
+      // eslint-disable-next-line no-restricted-globals -- one-time UI dismissal flag, not app data
+      localStorage.setItem(setupDismissKey, '1');
+    } catch {
+      // localStorage unavailable — dismissal won't persist, acceptable
+    }
+  };
+
+  const setupComplete = !!setupProgress &&
+    setupProgress.players && setupProgress.competition && setupProgress.team && setupProgress.teamLinkedGame;
+  const showSetupCard = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
 
   // Adopt the real i18n language once on the client, after hydration has completed.
   useEffect(() => {
@@ -214,6 +248,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </>
             )}
           </div>
+
+          {/* Recommended setup card — teaches the fuller workflow to quick-path users */}
+          {showSetupCard && setupProgress && (
+            <RecommendedSetupCard progress={setupProgress} onDismiss={handleDismissSetup} />
+          )}
 
           {/* User Guide — full online guide, including the recommended setup workflow.
               The Start Screen is where every reload lands, so it's the key discovery point. */}

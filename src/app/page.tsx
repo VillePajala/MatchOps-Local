@@ -25,6 +25,9 @@ import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGam
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
+import { getSeasons } from '@/utils/seasons';
+import { getTournaments } from '@/utils/tournaments';
+import { getTeams } from '@/utils/teams';
 import { runMigration } from '@/utils/migration';
 import {
   hasMigrationCompleted,
@@ -59,6 +62,10 @@ export default function Home() {
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
+  // Recommended-setup signals for the Start Screen card (full-route discovery)
+  const [hasCompetition, setHasCompetition] = useState(false);
+  const [hasTeam, setHasTeam] = useState(false);
+  const [hasTeamLinkedGame, setHasTeamLinkedGame] = useState(false);
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
@@ -226,11 +233,30 @@ export default function Home() {
       // CRITICAL: Pass userId for user-scoped storage (cloud mode)
       const roster = await getMasterRoster(userId);
       setHasPlayers(roster.length > 0);
+
+      // Recommended-setup signals for the Start Screen card.
+      // teamLinkedGame uses the already-loaded games (synchronous). The extra reads
+      // are fire-and-forget — NOT awaited — so they never add to boot latency; the
+      // card simply populates a beat later when they resolve.
+      setHasTeamLinkedGame(
+        Object.values(games || {}).some(
+          (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
+        )
+      );
+      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId)])
+        .then(([seasonsList, tournamentsList, teamsList]) => {
+          setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
+          setHasTeam(teamsList.length > 0);
+        })
+        .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
       setCanResume(false);
       setHasSavedGames(false);
       setHasPlayers(false);
+      setHasCompetition(false);
+      setHasTeam(false);
+      setHasTeamLinkedGame(false);
     } finally {
       setIsCheckingState(false);
     }
@@ -1276,6 +1302,12 @@ export default function Home() {
               canResume={canResume}
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}
+              setupProgress={{
+                players: hasPlayers,
+                competition: hasCompetition,
+                team: hasTeam,
+                teamLinkedGame: hasTeamLinkedGame,
+              }}
               onEnableCloudSync={handleEnableCloudSync}
               onSignInExistingSubscriber={handleSignInExistingSubscriber}
               onShowWelcome={() => setShowWelcome(true)}

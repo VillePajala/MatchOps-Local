@@ -2862,5 +2862,16 @@
     "canRestore": "Allow you to restore it later",
     "deleteHint": "To permanently delete, first remove all references (reassign games to another {{type}} or delete them).",
     "archiveInstead": "Archive Instead"
+  },
+  "recommendedSetup": {
+    "title": "Get the most out of MatchOps",
+    "subtitle": "A quick setup unlocks player, team, and competition stats.",
+    "stepPlayers": "Add your players",
+    "stepCompetition": "Create a competition (league or tournament)",
+    "stepTeam": "Build a team",
+    "stepGame": "Start a game from that team",
+    "payoff": "Games started from a team pull in its roster and competition automatically — and your stats roll up by player, team, and competition.",
+    "showMeHow": "Show me how",
+    "dismiss": "Dismiss"
   }
 }
