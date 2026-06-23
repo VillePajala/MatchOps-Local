@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: Common issues and solutions for MatchOps
-lastUpdated: "2026-02-06"
+lastUpdated: "2026-06-23"
 ---
 
 This guide helps you resolve common issues with MatchOps.
@@ -27,9 +27,9 @@ This guide helps you resolve common issues with MatchOps.
 - Using a different device than before
 
 **Recovery**:
-- **Cloud mode users**: Sign out and sign back in to re-sync from cloud
-- **Local mode users**: Restore from backup if available
+- Sign out and sign back in to re-sync from your account
 - Check if you're on the correct device
+- If you use a legacy setup without an account, restore from a backup if available
 - Contact support if data should exist
 
 ### Import/Export Not Working
@@ -219,7 +219,7 @@ Common issues:
 Gather this information:
 1. Device model and Android version
 2. App version (found in Settings)
-3. Storage mode (local or cloud)
+3. Whether you're signed in to your account
 4. Steps to reproduce the issue
 5. Any error messages
 6. Screenshot if possible
@@ -228,16 +228,15 @@ Gather this information:
 
 If issues persist:
 
-**Cloud mode users:**
-1. **Re-sync from cloud**: In Settings, find the option to clear local data and re-download from cloud
-2. **Sign out and back in**: Often fixes sync issues
-3. **Factory reset**: In Settings, clears both local and cloud data (last resort)
+1. **Sign out and back in**: Often fixes sync issues
+2. **Re-sync from cloud**: In Settings, find the option to clear the on-device copy and re-download from your account
+3. **Soft reset**: Clear app cache in Android settings, then reopen
+4. **Clean reinstall**: Uninstall and reinstall the app, then sign back in
+5. **Delete All Data**: In Settings, permanently clears your data everywhere (last resort)
 
-**Local mode users:**
-1. **Soft reset**: Clear app cache in Android settings, reopen
-2. **Data export**: Save your data first via backup
-3. **Clean reinstall**: Uninstall and reinstall the app
-4. **Full reset**: Clear all app data (last resort)
+<Callout type="info">
+Legacy note: if you use MatchOps without an account, export a backup before any reset, since there is no cloud copy to re-sync from.
+</Callout>
 
 <Callout type="warning">
 Always backup your data before attempting any reset procedures.
