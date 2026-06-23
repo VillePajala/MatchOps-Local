@@ -1874,12 +1874,12 @@
     },
     "overview": {
       "title": "Yleiskatsaus",
-      "content": "MatchOps (\"me\", \"meidän\", \"sovellus\") on jalkapallovalmennussovellus. Uudet tilit käyttävät oletuksena turvallista pilvisynkronointia, ja valinnainen vain-paikallinen tila on myös käytettävissä. Tämä tietosuojakäytäntö selittää, miten käsittelemme tietojasi."
+      "content": "MatchOps (\"me\", \"meidän\", \"sovellus\") on jalkapallovalmennussovellus, joka käyttää turvallista pilvisynkronointia. Tämä tietosuojakäytäntö selittää, miten käsittelemme tietojasi."
     },
     "dataStorage": {
       "title": "Tietojen tallennus",
-      "localDataTitle": "Paikallinen tila (valinnainen)",
-      "localDataIntro": "Jos käytät valinnaista vain-paikallista tilaa, kaikki tietosi tallennetaan paikallisesti laitteellesi:",
+      "localDataTitle": "Laitteelle tallennetut tiedot",
+      "localDataIntro": "Tietosi tallennetaan myös laitteellesi offline-käyttöä varten, mukaan lukien:",
       "localDataItems": {
         "playerRosters": "Pelaajalistat ja -tiedot",
         "gameRecords": "Pelitallenteet ja tilastot",
@@ -1887,11 +1887,11 @@
         "seasonData": "Kausi- ja turnaustiedot",
         "personnelInfo": "Henkilöstötiedot (nimet, roolit, yhteystiedot jos valitset syöttää ne)"
       },
-      "localDataNote": "Meillä ei ole pääsyä näihin tietoihin. Ne eivät koskaan poistu laitteeltasi, ellet erikseen vie niitä tai ota käyttöön pilvisynkronointia.",
-      "noAccountTitle": "Tilit ja tilat",
-      "noAccountContent": "Uudet tilit käyttävät oletuksena pilvisynkronointia ja vaativat kirjautumisen. Käytettävissä on myös valinnainen vain-paikallinen tila (ei tiliä; tietosi pysyvät tällä laitteella). Google Play -versio vaatii tilin.",
-      "cloudDataTitle": "Pilvisynkronointi (oletus)",
-      "cloudDataIntro": "Kun käytät pilvisynkronointia – uusien tilien oletus – tietosi tallennetaan turvallisille pilvipalvelimille:",
+      "localDataNote": "Tämä laitteella oleva kopio on laitteesi suojaama, eikä se ole suoraan meidän käytettävissämme. Synkronoitu kopio tallennetaan yksityiselle pilvitilillesi (katso Pilvisynkronointi alla).",
+      "noAccountTitle": "Tilit",
+      "noAccountContent": "Sovelluksen käyttö edellyttää tilin luomista ja kirjautumista. Sähköpostiosoitteen antaminen tilin luomiseksi on välttämätöntä sovelluksen ja sen pilvisynkronoinnin tarjoamiseksi, eikä palvelua voida tarjota ilman sitä. Kaikki muut syöttämäsi henkilötiedot (pelaajat, henkilöstö, ottelutiedot) annat oman harkintasi mukaan.",
+      "cloudDataTitle": "Pilvisynkronointi",
+      "cloudDataIntro": "Tietosi tallennetaan turvallisille pilvipalvelimillemme:",
       "cloudDataItems": {
         "syncedData": "Kopioidaan turvallisille EU-palvelimille (Supabase, EU)",
         "encryption": "Salataan siirron aikana (HTTPS/TLS) ja tallennettuna palvelimella",
@@ -1908,7 +1908,7 @@
       "intro": "Käsittelemme henkilötietoja seuraavilla oikeusperusteilla:",
       "contract": "Sopimus (6(1)(b) art.): Pilvisynkronointipalvelun toteuttamiseksi välttämätön käsittely",
       "consent": "Suostumus (6(1)(a) art.): Käyttöehtojen ja tietosuojakäytännön hyväksyminen pilvitilan käyttäjille. Suostumustiedot tallennetaan vaatimustenmukaisuuden osoittamiseksi",
-      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Virheraportit Sentryn kautta sovelluksen laadun ylläpitämiseksi ja virheiden korjaamiseksi. Käsittely koskee vähäisiä anonymisoituja tietoja eikä sisällä profilointia tai seurantaa"
+      "legitimateInterest": "Oikeutettu etu (6(1)(f) art.): Virheraportit Sentryn kautta sovelluksen laadun ylläpitämiseksi ja virheiden korjaamiseksi. Käsittely koskee vähäisiä anonymisoituja tietoja eikä sisällä profilointia tai seurantaa Emme tee automaattista päätöksentekoa emmekä profilointia."
     },
     "dataWeCollect": {
       "title": "Tiedot, joita saatamme kerätä",
@@ -1940,7 +1940,7 @@
         "phone": "Puhelinnumero (valinnainen)",
         "certifications": "Pätevyydet (valinnainen)"
       },
-      "personnelDataNote": "Nämä tiedot tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen EU-tietokantaamme, johon vain sinä pääset (pilvitila). Henkilöstön yhteystiedot (sähköposti, puhelin) ovat GDPR:n mukaisia henkilötietoja. Olet vastuussa siitä, että sinulla on asianmukaiset perusteet yhteystietojen tallentamiselle. Kaikista muista henkilöistä (kuten pelaajista ja henkilöstöstä) syöttämistäsi henkilötiedoista toimit rekisterinpitäjänä ja olet yksin vastuussa siitä, että sinulla on laillinen peruste ja tarvittava suostumus niiden tallentamiseen."
+      "personnelDataNote": "Nämä tiedot tallennetaan laitteellesi ja synkronoidaan turvalliseen EU-pohjaiseen tietokantaamme, johon vain sinulla on pääsy. Henkilöstön yhteystiedot (sähköposti, puhelin) katsotaan GDPR:n mukaisiksi henkilötiedoiksi (PII). Olet vastuussa siitä, että sinulla on asianmukaiset perusteet näiden yhteystietojen tallentamiseen. Kaikista muista henkilöistä (kuten pelaajista ja henkilöstöstä) syöttämistäsi henkilötiedoista toimit rekisterinpitäjänä ja olet yksin vastuussa siitä, että sinulla on laillinen peruste ja tarvittava suostumus niiden tallentamiseen."
     },
     "dataWeDoNotCollect": {
       "title": "Tiedot, joita EMME kerää",
@@ -1976,8 +1976,8 @@
       "rectification": "Oikaisu (16 art.): Korjata virheelliset tiedot suoraan sovelluksessa",
       "erasure": "Poistaminen (17 art.): Poistaa paikalliset tai pilvitietosi milloin tahansa",
       "portability": "Siirrettävyys (20 art.): Viedä tietosi standardissa JSON-muodossa",
-      "restriction": "Rajoittaminen (18 art.): Vaihtaa vain paikalliseen tilaan lopettaaksesi pilvikäsittelyn",
-      "objection": "Vastustaminen (21 art.): Lopeta pilvikäsittely vaihtamalla paikalliseen tilaan",
+      "restriction": "Rajoittaminen (art. 18): Pyydä meitä rajoittamaan tietojesi käsittelyä, tai poista pilvitietosi milloin tahansa asetuksista.",
+      "objection": "Vastustaminen (art. 21): Voit poistaa valinnaisen virheraportoinnin käytöstä asetuksista; pysäyttääksesi kaiken pilvikäsittelyn poista tilisi.",
       "withdrawConsent": "Suostumuksen peruuttaminen: Poista pilvitilisi peruuttaaksesi suostumuksen pilvikäsittelyyn",
       "deleteLocal": "Paikallisille tiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
       "deleteCloud": "Pilvitiedoille: Käytä Asetukset → Tiedot → Tietojesi oikeudet",
@@ -1991,11 +1991,11 @@
     },
     "dataSecurity": {
       "title": "Tietoturva",
-      "localIntro": "Paikallisessa tilassa tietosi tallennetaan selaimesi IndexedDB-tietokantaan:",
+      "localIntro": "Laitteellasi tietosi tallennetaan selaimen IndexedDB-tietokantaan:",
       "localItems": {
         "deviceProtection": "Suojattu laitteesi pääsynvalvonnalla (näytön lukitus, salasana, biometriikka)",
         "noAdditionalEncryption": "Ei lisäsalausta tallennettuna laitteesi/selaimesi tarjoaman lisäksi",
-        "noTransmission": "Ei verkkolähetystä, ellet ota käyttöön pilvisynkronointia"
+        "noTransmission": "Laitteella oleva kopio siirretään vain synkronoitaessa yksityiselle pilvitilillesi salatun yhteyden kautta"
       },
       "localNote": "Laitteesi suojaus on ensisijainen suoja paikallisille tiedoillesi. Suosittelemme vahvan näytön lukituksen käyttöä.",
       "cloudIntro": "Pilvitilassa tietosi on suojattu:",
@@ -2029,14 +2029,14 @@
     },
     "description": {
       "title": "Palvelun kuvaus",
-      "intro": "MatchOps on jalkapallovalmennussovellus – oletuksena pilvisynkronointi, lisäksi valinnainen vain-paikallinen tila – joka auttaa valmentajia:",
+      "intro": "MatchOps on jalkapallovalmennussovellus, jossa on pilvisynkronointi ja joka auttaa valmentajia:",
       "items": {
         "trackTime": "Seuraamaan peliaikaa ja tuloksia",
         "manageRosters": "Hallitsemaan pelaajalistoja",
         "recordStats": "Tallentamaan pelaajatilastoja",
         "organizeSeasons": "Järjestämään kausia ja turnauksia"
       },
-      "note": "Tietosi tallennetaan oletuksena yksityiselle pilvitilillesi; valinnainen vain-paikallinen tila pitää tiedot laitteellasi."
+      "note": "Tietosi tallennetaan yksityiselle pilvitilillesi ja välimuistiin laitteellesi offline-käyttöä varten."
     },
     "license": {
       "title": "Käyttöoikeuden myöntäminen",
@@ -2062,17 +2062,17 @@
     },
     "dataAndPrivacy": {
       "title": "Tiedot ja yksityisyys",
-      "content": "Tietosi tallennetaan paikallisesti laitteellesi (paikallinen tila) tai turvalliseen pilvitietokantaamme (pilvitila). Katso tietosuojakäytännöstämme tarkemmat tiedot tietojen käsittelystä, turvallisuudesta, GDPR-oikeuksista ja siitä, mitä rajallisia tietoja saatamme kerätä.",
+      "content": "Tietosi tallennetaan yksityiselle pilvitilillesi ja välimuistiin laitteellesi offline-käyttöä varten. Katso tietosuojakäytännöstämme lisätietoja tietojen käsittelystä, turvallisuudesta, GDPR-oikeuksista ja siitä, mitä rajallisia tietoja saatamme kerätä.",
       "securityAcknowledgmentTitle": "Tietoturvatiedote",
       "securityAcknowledgmentIntro": "Käyttämällä MatchOpsia hyväksyt seuraavat:",
       "securityAcknowledgmentItems": {
-        "localMode": "Paikallinen tila: Tiedot tallennetaan selaimesi IndexedDB:hen ilman lisäsalausta laitteesi tarjoaman lisäksi",
+        "localMode": "Laitteen välimuisti: laitteellesi tallennetut tiedot säilytetään selaimen IndexedDB:ssä ilman lisäsalausta sen lisäksi, mitä laitteesi tarjoaa",
         "deviceSecurity": "Laitteen suojaus: Laitteesi pääsynvalvonta (näytön lukitus, salasana, biometriikka) on ensisijainen suoja paikallisille tiedoille",
         "backupFiles": "Varmuuskopiotiedostot: Viedyt varmuuskopiotiedostot sisältävät salaamatonta tietoa ja ne tulee säilyttää turvallisesti",
         "personnelData": "Henkilöstötiedot: Jos tallennat henkilöstön yhteystietoja (sähköposti, puhelin), ne noudattavat samaa turvamallia kuin muut sovellustiedot",
         "yourResponsibility": "Sinun vastuullasi: Olet vastuussa laitteesi ja varmuuskopiotiedostojesi pääsyn suojaamisesta"
       },
-      "securityAcknowledgmentNote": "Lisäturvallisuuden varmistamiseksi ota käyttöön pilvisynkronointi, joka tarjoaa palvelinpuolen salauksen, levyssä olevan salauksen ja rivitason suojauksen."
+      "securityAcknowledgmentNote": "Tietosi suojataan palvelinpuolen salauksella, levossa tapahtuvalla salauksella ja rivitason suojauksella."
     },
     "intellectualProperty": {
       "title": "Immateriaalioikeudet",
@@ -2130,7 +2130,7 @@
     },
     "cloudSync": {
       "title": "Pilvisynkronoinnin ehdot",
-      "intro": "Kun otat pilvisynkronoinnin käyttöön:",
+      "intro": "Kun käytät pilvisynkronointia:",
       "items": {
         "ownership": "Säilytät omistusoikeuden kaikkiin tietoihisi",
         "availability": "Pyrimme korkeaan käytettävyyteen, mutta emme takaa keskeytyksettömyyttä",

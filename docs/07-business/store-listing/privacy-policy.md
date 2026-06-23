@@ -5,7 +5,7 @@
 
 > **Hosted URL**: https://match-ops.com/privacy-policy (use this URL for Play Store submission). `/privacy-policy` 301-redirects to the marketing-site privacy page at `/privacy` (`site/next.config.mjs`) — **takes effect on the next marketing-site deploy.**
 >
-> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `privacyPolicy.*`), rendered at `/privacy-policy` (app) and `/privacy` (site). Keep this snapshot in sync with those.
+> **Canonical source**: the live text is in the locale files (`public/locales/{en,fi}/common.json` and `site/public/locales/...` → `privacyPolicy.*`), rendered at `/privacy-policy` (app) and `/privacy` (site). Keep this snapshot in sync with those; it may lag the live text in places.
 
 ## Data Controller
 
@@ -13,28 +13,28 @@ MatchOps is developed and operated by Ville Pajala, based in Finland. As the dat
 
 ## Overview
 
-MatchOps ("we", "our", "the app") is a soccer coaching application. New accounts use secure cloud sync by default, and an optional local-only mode is also available. This privacy policy explains how we handle your information.
+MatchOps ("we", "our", "the app") is a soccer coaching application that uses secure cloud sync. This privacy policy explains how we handle your information.
 
 ## Data Storage
 
-### Local Mode (Optional)
+### On-Device Data
 
-If you use the optional local-only mode, all your data is stored locally on your device:
+Your data is also stored on your device for offline use, including:
 - Player rosters and information
 - Game records and statistics
 - Settings and preferences
 - Season and tournament data
 - Personnel information (names, roles, contact details if you choose to enter them)
 
-**We do not have access to this data.** It never leaves your device unless you explicitly export it or enable cloud sync.
+This on-device copy is protected by your device and is not directly accessible to us. The synced copy is stored in your private cloud account (see Cloud Sync below).
 
-### Accounts and Modes
+### Accounts
 
-New accounts use cloud sync by default and require signing in. An optional local-only mode (no account; your data stays on this device) is also available. The Google Play version requires an account.
+Using the app requires creating an account and signing in. Providing your email address to create the account is necessary to deliver the app and its cloud sync, and the service cannot be provided without it. Any other personal data you enter (players, personnel, game records) is provided at your own discretion.
 
-### Cloud Sync (Default)
+### Cloud Sync
 
-When you use cloud sync — the default for new accounts — your data is:
+Your data is stored on our secure cloud servers:
 - Copied to our secure EU-based servers (Supabase, hosted in EU)
 - Encrypted in transit (HTTPS/TLS) and at rest
 - Protected by row-level security (only you can access your data)
@@ -56,7 +56,7 @@ We process personal data on the following legal bases:
 
 - **Contract (Art. 6(1)(b))**: Processing necessary for cloud sync service delivery (when you enable cloud mode).
 - **Consent (Art. 6(1)(a))**: Acceptance of Terms of Service and Privacy Policy for cloud mode users. Consent records are stored to demonstrate compliance.
-- **Legitimate interest (Art. 6(1)(f))**: Error reporting via Sentry to maintain app quality and fix bugs. This processing involves minimal anonymized data and does not involve profiling or tracking. You can opt out in settings at any time.
+- **Legitimate interest (Art. 6(1)(f))**: Error reporting via Sentry to maintain app quality and fix bugs. This processing involves minimal anonymized data and does not involve profiling or tracking. You can opt out in settings at any time. We do not carry out automated decision-making or profiling.
 
 ## Data We May Collect
 
@@ -134,8 +134,8 @@ Under GDPR and applicable data protection laws, you have the right to:
 - **Rectification** (Art. 16): Correct any inaccurate data directly in the app at any time
 - **Erasure** (Art. 17): Delete your local data or cloud data at any time (Settings → Data → Your Data Rights)
 - **Data portability** (Art. 20): Export your data in standard JSON format
-- **Restriction** (Art. 18): Switch to local-only mode to stop cloud processing
-- **Objection** (Art. 21): Stop cloud data processing by switching to local mode, or disable error reporting in settings
+- **Restriction** (Art. 18): Ask us to limit how we process your data, or delete your cloud data at any time from Settings
+- **Objection** (Art. 21): Turn off optional error reporting in settings; to stop all cloud processing, delete your account
 - **Withdraw consent**: Disable error reporting at any time in app settings; delete your cloud account to withdraw consent to cloud data processing
 
 **How to exercise your rights**: All data management options are available directly in the app under Settings → Data tab. No email request is needed — you can self-serve all GDPR rights through the app interface.
@@ -154,12 +154,12 @@ No age verification is required because the app collects data *from coaches abou
 
 ### Local Storage Security
 
-In local mode, your data is stored in your browser's IndexedDB database. This data:
+On your device, your data is stored in the browser's IndexedDB database. This data:
 - Is protected by your device's access controls (screen lock, password, biometrics)
 - Is NOT additionally encrypted at rest beyond what your device/browser provides
 - Could theoretically be accessed by someone with physical access to your unlocked device
 
-This is industry standard for local-first applications and is appropriate for coaching data. If you store personnel contact information (email, phone numbers), please be aware this data follows the same security model.
+This is industry standard for on-device storage and is appropriate for coaching data. If you store personnel contact information (email, phone numbers), please be aware this data follows the same security model.
 
 **Your device's security is your primary protection for local data.** We recommend using a strong screen lock.
 

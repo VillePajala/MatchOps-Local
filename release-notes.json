@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Behind-the-scenes: refined the Terms and Privacy Policy wording to accurately describe how the app works now (cloud sync) and added required privacy disclosures — no change to your rights"
+      ],
+      "fi": [
+        "Taustalla: tarkennettu käyttöehtojen ja tietosuojakäytännön sanamuotoa kuvaamaan sovelluksen nykyistä toimintaa (pilvisynkronointi) ja lisätty vaaditut tietosuojailmoitukset — ei muutoksia oikeuksiisi"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Behind-the-scenes: fixed the public privacy-policy web address so it always resolves (no change to the app)"
       ],
       "fi": [
