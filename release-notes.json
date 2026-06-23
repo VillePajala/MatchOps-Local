@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Added a public help page explaining how to delete your account and data, including for people who can no longer open the app"
+      ],
+      "fi": [
+        "Lisätty julkinen ohjesivu, jossa kerrotaan miten poistat tilisi ja tietosi — myös niille jotka eivät enää pääse avaamaan sovellusta"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Behind-the-scenes: refined the Terms and Privacy Policy wording to accurately describe how the app works now (cloud sync) and added required privacy disclosures — no change to your rights"
       ],
       "fi": [
