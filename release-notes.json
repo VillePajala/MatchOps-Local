@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Fixed a black bar that could appear at the bottom of the screen after opening and closing the User Guide"
+      ],
+      "fi": [
+        "Korjattu musta palkki, joka saattoi ilmestyä näytön alareunaan Käyttöohjeen avaamisen ja sulkemisen jälkeen"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Added helpful hints when you have no teams or competitions yet, and a tip in New Game to pick a team (which auto-fills its roster and competition) — making the full stats workflow easier to discover"
       ],
       "fi": [

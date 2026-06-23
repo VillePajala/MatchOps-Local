@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  /* slate-900 — the app is always dark-themed (StartScreen, login, modals all
+     use slate-900). Matching the body background to the app means that if the
+     dynamic viewport height (100dvh) briefly resolves shorter than the visible
+     area — e.g. after returning from an external tab like the User Guide — the
+     gap blends with the app instead of showing a black/white bar. */
+  --background: #0f172a;
   --foreground: #171717;
-  
+
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #0f172a;
     --foreground: #ededed;
   }
 }
@@ -19,6 +24,10 @@ html, body {
   padding: 0;
   margin: 0;
   overflow: hidden;
+  /* Paint the app background on html too, not just body: when the dynamic
+     viewport grows (e.g. returning from an external tab), the strip below the
+     100svh body would otherwise show the WebView's black canvas. */
+  background-color: var(--background);
 }
 
 body {
