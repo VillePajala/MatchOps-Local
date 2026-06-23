@@ -186,7 +186,7 @@ export function deleteUserLocalDatabases(userId: string): Promise<void> {
       (name) =>
         new Promise<void>((resolve) => {
           let settled = false;
-          let timer: ReturnType<typeof setTimeout> | undefined;
+          let timer: ReturnType<typeof setTimeout> | undefined = undefined;
           const done = () => {
             if (!settled) {
               settled = true;
