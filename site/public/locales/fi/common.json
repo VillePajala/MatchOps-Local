@@ -46,6 +46,25 @@
         "title": "Datan hallinta",
         "desc": "Luo varmuuskopio datastasi ja palauta sovelluksen tila tiedostosta tarvittaessa."
       }
+    },
+    "foundation": {
+      "title": "Rakennettu eri tavalla",
+      "offline": {
+        "title": "Toimii ilman internetiä",
+        "desc": ""
+      },
+      "private": {
+        "title": "Tietosi pysyvät yksityisinä",
+        "desc": ""
+      },
+      "backup": {
+        "title": "Varmuuskopioi tietosi",
+        "desc": ""
+      },
+      "i18n": {
+        "title": "Englannin- ja suomenkielinen tuki",
+        "desc": ""
+      }
     }
   },
   "seo": {
