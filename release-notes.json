@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Added a User Guide link to the Start Screen, so help (including the recommended setup workflow) is one tap away when you open the app"
+      ],
+      "fi": [
+        "Lisätty Käyttöohje-linkki aloitusnäytölle, joten ohje (mukaan lukien suositeltu käyttöönotto) on yhden napautuksen päässä kun avaat sovelluksen"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Help guide now uses the same menu names as the app (e.g. \"Competitions\", \"Teams\", \"All Players\"), so steps are easier to follow"
       ],
       "fi": [

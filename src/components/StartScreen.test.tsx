@@ -72,6 +72,11 @@ describe('StartScreen', () => {
     expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
 
+    // User Guide link points to the full online guide (Start Screen discovery point)
+    const guideLink = screen.getByRole('link', { name: 'User Guide' });
+    expect(guideLink).toHaveAttribute('href', 'https://www.match-ops.com/guide');
+    expect(guideLink).toHaveAttribute('target', '_blank');
+
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
 
