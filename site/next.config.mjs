@@ -35,6 +35,14 @@ const nextConfig = {
         permanent: false,
         locale: false,
       },
+      // The app and the Play Store listing reference /privacy-policy, but the
+      // marketing-site privacy page lives at /privacy. Redirect so that URL
+      // resolves (otherwise the Play Data Safety privacy URL 404s).
+      {
+        source: '/privacy-policy',
+        destination: '/privacy',
+        permanent: true,
+      },
     ];
   },
 };
