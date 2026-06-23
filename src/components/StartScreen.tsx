@@ -215,6 +215,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
           </div>
 
+          {/* User Guide — full online guide, including the recommended setup workflow.
+              The Start Screen is where every reload lands, so it's the key discovery point. */}
+          <div className="mt-6 text-center">
+            <a
+              href="https://www.match-ops.com/guide"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-slate-400 hover:text-amber-400 transition-colors underline-offset-2 hover:underline"
+            >
+              {t('controlBar.userGuide', 'User Guide')}
+            </a>
+          </div>
+
           {/* Mode footer */}
           {isCloudMode ? (
             <div className="mt-8 text-center text-sm text-slate-500">
