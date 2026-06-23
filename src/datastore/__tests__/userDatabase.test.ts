@@ -6,10 +6,12 @@ import {
   getUserDatabaseName,
   isUserScopedDatabase,
   extractUserIdFromDatabaseName,
+  deleteUserLocalDatabases,
   LEGACY_DATABASE_NAME,
   validateUserId,
   MAX_USER_ID_LENGTH,
 } from '../userDatabase';
+import { SYNC_DB_NAME_PREFIX } from '@/sync/SyncQueue';
 
 describe('userDatabase', () => {
   describe('getUserDatabaseName', () => {
@@ -183,6 +185,80 @@ describe('userDatabase', () => {
   describe('MAX_USER_ID_LENGTH', () => {
     it('should be 255', () => {
       expect(MAX_USER_ID_LENGTH).toBe(255);
+    });
+  });
+
+  describe('deleteUserLocalDatabases', () => {
+    let originalIndexedDB: typeof indexedDB | undefined;
+    let deletedNames: string[];
+
+    const installMockIndexedDB = (
+      behavior: 'success' | 'blocked' | 'error' | 'throw'
+    ) => {
+      deletedNames = [];
+      const deleteDatabase = jest.fn((name: string) => {
+        deletedNames.push(name);
+        if (behavior === 'throw') throw new Error('deleteDatabase unavailable');
+        const request: Record<string, ((...a: unknown[]) => void) | null> = {
+          onsuccess: null,
+          onerror: null,
+          onblocked: null,
+        };
+        // Fire the matching handler on the next tick.
+        setTimeout(() => {
+          const handler =
+            behavior === 'success' ? request.onsuccess
+            : behavior === 'blocked' ? request.onblocked
+            : request.onerror;
+          handler?.();
+        }, 0);
+        return request as unknown as IDBOpenDBRequest;
+      });
+      (globalThis as unknown as { indexedDB: unknown }).indexedDB = { deleteDatabase };
+      return deleteDatabase;
+    };
+
+    beforeEach(() => {
+      originalIndexedDB = (globalThis as unknown as { indexedDB?: typeof indexedDB }).indexedDB;
+    });
+    afterEach(() => {
+      (globalThis as unknown as { indexedDB?: typeof indexedDB }).indexedDB = originalIndexedDB;
+    });
+
+    it('deletes BOTH the data mirror and the sync-queue database for the user', async () => {
+      installMockIndexedDB('success');
+      await deleteUserLocalDatabases('user-123');
+      expect(deletedNames).toHaveLength(2);
+      expect(deletedNames).toEqual(
+        expect.arrayContaining([
+          'matchops_user_user-123',
+          `${SYNC_DB_NAME_PREFIX}_user-123`, // drift guard: matches SyncQueue's prefix
+        ])
+      );
+    });
+
+    it('does NOT delete the legacy local-mode database (MatchOpsLocal)', async () => {
+      installMockIndexedDB('success');
+      await deleteUserLocalDatabases('user-123');
+      expect(deletedNames).not.toContain(LEGACY_DATABASE_NAME);
+    });
+
+    it('resolves (does not hang) when a delete is blocked by an open connection', async () => {
+      installMockIndexedDB('blocked');
+      await expect(deleteUserLocalDatabases('user-123')).resolves.toBeUndefined();
+    });
+
+    it('resolves when deleteDatabase errors or throws (best-effort)', async () => {
+      installMockIndexedDB('error');
+      await expect(deleteUserLocalDatabases('user-123')).resolves.toBeUndefined();
+      installMockIndexedDB('throw');
+      await expect(deleteUserLocalDatabases('user-123')).resolves.toBeUndefined();
+    });
+
+    it('is a no-op for an empty userId', async () => {
+      const deleteDatabase = installMockIndexedDB('success');
+      await deleteUserLocalDatabases('');
+      expect(deleteDatabase).not.toHaveBeenCalled();
     });
   });
 });
