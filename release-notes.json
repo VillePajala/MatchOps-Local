@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Behind-the-scenes: verified end-to-end that deleting your account fully removes your account and data from our servers (no change to the app)"
+      ],
+      "fi": [
+        "Taustalla: varmistettu päästä päähän että tilin poistaminen poistaa tilisi ja tietosi kokonaan palvelimiltamme (ei muutoksia sovellukseen)"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "Behind-the-scenes: marketing-site Finnish translation fixes and documentation tidy-up (no change to the app)"
       ],
       "fi": [
