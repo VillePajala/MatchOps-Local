@@ -83,6 +83,10 @@
     "terms": {
       "title": "Käyttöehdot - MatchOps",
       "description": "MatchOps-jalkapallosovelluksen käyttöehdot."
+    },
+    "deleteAccount": {
+      "title": "Poista tilisi – MatchOps",
+      "description": "Näin poistat MatchOps-tilisi ja kaikki siihen liittyvät tiedot pysyvästi."
     }
   },
   "footer": {
@@ -855,5 +859,23 @@
       "title": "Ei ammatillista neuvontaa; käyttö omalla vastuulla",
       "content": "MatchOps on valmennustyökalu, joka tallentaa ja näyttää antamiasi tietoja. Se ei anna ammatillista, lääketieteellistä, oikeudellista tai turvallisuutta koskevaa neuvontaa. Kaikki sovelluksen avulla tekemäsi päätökset – mukaan lukien pelaajien terveyteen, turvallisuuteen tai peliaikaan vaikuttavat – ovat omiasi, ja käytät sovellusta omalla vastuullasi."
     }
+  },
+  "deleteAccount": {
+    "title": "Poista tilisi ja tietosi",
+    "intro": "Voit poistaa MatchOps-tilisi ja kaikki siihen liittyvät tiedot pysyvästi milloin tahansa. Näin se tehdään.",
+    "inAppTitle": "Poista sovelluksesta (suositeltu)",
+    "step1": "Avaa MatchOps ja kirjaudu tilillesi.",
+    "step2": "Siirry kohtaan Asetukset → Tiedot → Poista tili.",
+    "step3": "Kirjoita DELETE ja vahvista.",
+    "inAppNote": "Tämä poistaa pysyvästi tilisi ja kaikki tietosi palvelimiltamme sekä kyseiselle laitteelle tallennetun kopion. Toimintoa ei voi peruuttaa.",
+    "whatTitle": "Mitä poistetaan",
+    "whatContent": "Tilisi ja kaikki siihen liittyvät tiedot — pelaajat, joukkueet, ottelut, kaudet, turnaukset, henkilöstö ja asetukset — sekä pilvestä että laitteellesi tallennetusta välimuistista. Suostumustiedot säilytetään vain lakisääteisten vaatimusten (GDPR) edellyttämässä laajuudessa.",
+    "keepTitle": "Haluatko säilyttää tietosi?",
+    "keepContent": "Ennen poistamista voit viedä täyden varmuuskopion kohdasta Asetukset → Varmuuskopio. Voit palauttaa sen myöhemmin toisella laitteella tai uuden tilin luomisen jälkeen.",
+    "cantAccessTitle": "Etkö pääse sovellukseen?",
+    "cantAccessContent": "Jos et enää pääse avaamaan sovellusta (esimerkiksi poistit sen), lähetä meille sähköpostia tiliisi liitetystä osoitteesta, niin poistamme tilisi ja tietosi puolestasi.",
+    "emailLabel": "Sähköposti",
+    "timelineTitle": "Aikataulu",
+    "timelineContent": "Sovelluksessa tehty poisto on välitön. Sähköpostipyynnöt käsitellään 30 päivän kuluessa."
   }
 }
