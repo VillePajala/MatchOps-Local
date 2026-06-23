@@ -4,6 +4,15 @@
     {
       "date": "2026-06-23",
       "en": [
+        "Start Screen tidy-up: Settings and User Guide now sit side by side"
+      ],
+      "fi": [
+        "Aloitusnäytön siistiminen: Asetukset ja Käyttöohje ovat nyt vierekkäin"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "en": [
         "New: a dismissible \"Recommended setup\" card on the Start Screen shows the steps to get full player, team, and competition stats (add players → create a competition → build a team → start a game from it), with live progress"
       ],
       "fi": [
