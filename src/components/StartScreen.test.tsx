@@ -199,4 +199,77 @@ describe('StartScreen', () => {
     expect(screen.queryByText('Signed in as')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sign Out' })).not.toBeInTheDocument();
   });
+
+  describe('Recommended setup card', () => {
+    const baseHandlers = () => ({
+      onLoadGame: jest.fn(),
+      onResumeGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+    });
+
+    beforeEach(() => localStorage.clear());
+
+    it('shows the card for a returning user with incomplete setup', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      expect(await screen.findByText('Get the most out of MatchOps')).toBeInTheDocument();
+      expect(screen.getByText('Build a team')).toBeInTheDocument();
+    });
+
+    it('hides the card once all setup steps are complete', () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
+        />
+      );
+      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
+    });
+
+    it('does not show the card for first-time users', () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={false}
+          hasSavedGames={false}
+          isFirstTimeUser={true}
+          setupProgress={{ players: false, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
+    });
+
+    it('dismisses the card and keeps it dismissed on re-render', async () => {
+      const props = {
+        ...baseHandlers(),
+        canResume: true,
+        hasSavedGames: true,
+        isFirstTimeUser: false,
+        setupProgress: { players: false, competition: false, team: false, teamLinkedGame: false },
+      };
+      const { unmount } = render(<StartScreen {...props} />);
+      expect(await screen.findByText('Get the most out of MatchOps')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
+
+      unmount();
+      render(<StartScreen {...props} />);
+      // Persisted dismissal: the localStorage flag keeps the card hidden across renders.
+      // (Hidden in every state here — pre-hydration and post-effect — so no wait needed.)
+      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
+    });
+  });
 });

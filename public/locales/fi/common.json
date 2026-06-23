@@ -2862,5 +2862,16 @@
     "canRestore": "Voit palauttaa sen myöhemmin",
     "deleteHint": "Poistaaksesi pysyvästi, poista ensin kaikki viittaukset (siirrä pelit toiseen {{type}}n tai poista ne).",
     "archiveInstead": "Arkistoi sen sijaan"
+  },
+  "recommendedSetup": {
+    "title": "Hyödynnä MatchOps täysin",
+    "subtitle": "Nopea käyttöönotto avaa pelaaja-, joukkue- ja kilpailutilastot.",
+    "stepPlayers": "Lisää pelaajasi",
+    "stepCompetition": "Luo kilpailu (sarja tai turnaus)",
+    "stepTeam": "Luo joukkue",
+    "stepGame": "Aloita ottelu kyseisestä joukkueesta",
+    "payoff": "Joukkueesta aloitetut ottelut tuovat sen kokoonpanon ja kilpailun automaattisesti — ja tilastosi kootaan pelaaja-, joukkue- ja kilpailutasolla.",
+    "showMeHow": "Näytä miten",
+    "dismiss": "Ohita"
   }
 }
