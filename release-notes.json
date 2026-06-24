@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Fixed: penalty-shootout and overtime now actually save. Recording a shootout from the timer now persists, so the win/loss result sticks (previously it wasn't being saved)."
+      ],
+      "fi": [
+        "Korjattu: rangaistuspotkukilpailu ja jatkoaika tallentuvat nyt oikeasti. Potkukilpailun kirjaaminen ajastimesta tallentuu, joten voitto/tappio-tulos säilyy (aiemmin sitä ei tallennettu)."
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Fixed: a game won on penalties now correctly shows as a win (and a loss as a loss) — the result follows the logged shootout, so it no longer stays a draw"
       ],
       "fi": [
