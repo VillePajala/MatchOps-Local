@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Fixed: a game won on penalties now correctly shows as a win (and a loss as a loss) — the result follows the logged shootout, so it no longer stays a draw"
+      ],
+      "fi": [
+        "Korjattu: rangaistuspotkuilla voitettu ottelu näkyy nyt oikein voittona (ja tappio tappiona) — tulos seuraa kirjattua potkukilpailua, joten se ei jää enää tasapeliksi"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "The overtime and penalty-shootout buttons in the timer view are now always available, in any game state"
       ],
       "fi": [
