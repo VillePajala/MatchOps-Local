@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Behind-the-scenes: noted two future feature ideas in the roadmap (game captains; per-game position history)"
+      ],
+      "fi": [
+        "Taustalla: kirjattu kaksi tulevaa ideaa tiekarttaan (ottelun kapteenit; pelipaikkahistoria per ottelu)"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Behind-the-scenes: roadmap cleanup (dropped the Sentry alerting item)"
       ],
       "fi": [

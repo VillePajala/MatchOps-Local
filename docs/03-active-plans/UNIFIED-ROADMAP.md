@@ -109,6 +109,8 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 | Futsal Field Visualization | Med | Completes existing futsal support (smaller court, 5 players). |
 | Visual Analytics | Med | Charts, event timeline, goal-log filtering. |
 | Age-appropriate assessment profiles (#364) | Med | U8-U10 simplified, U13+ full. Aligns with youth focus. |
+| Game captains | Low | Record a captain (or captains) per game — not tracked at all today. Could surface in game info + per-player "times captain" stat. Idea captured 2026-06-24. |
+| Position history (per game) | ? / uncertain | Track where each player played. **Value unclear** — positions change constantly within a game, so a single per-game position may not be meaningful; would likely need time-segmented tracking to be useful. Captured 2026-06-24; revisit before committing. |
 
 ---
 
