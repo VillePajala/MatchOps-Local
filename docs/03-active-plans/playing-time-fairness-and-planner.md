@@ -125,3 +125,44 @@ reviewing/adjusting a multi-game plan without overwhelming the coach.
 - **Absorbs the Tournament Planner — full replan (#369)** — that's Part C / the
   forward half.
 - Sits in **P4 (big bets)**; this doc is the planning that P4 items require.
+
+## 10. Architecture — reconciling the standalone Planner MVP with the field/positional logic
+
+A **standalone Planner MVP exists as a separate project**, but it doesn't share
+MatchOps-Local's visual/positional engine (SoccerField, roster, formations) or
+its game/context data. How to reconcile is a core open decision. Two shapes:
+
+- **(A) Separate editor, launched from selected games.** Looser coupling; reuses
+  the standalone work as-is. But it would **duplicate the field/positional UI +
+  game model**, and can't easily read the in-app **context ledger** (already-played
+  share) without syncing. Risk: two sources of truth and a divergent UX.
+- **(B) Integrated planning *mode* inside the app.** A dedicated multi-game
+  planning surface that **reuses the existing SoccerField, roster, formations,
+  game model, and the playing-time/context data directly**, launched from a
+  selected set of games. More to build, but cohesive and data-native.
+
+**Lean: (B).** The planner's value is **positional *and* context-aware** — it
+plans *who plays where*, not just minutes, and must read the already-played
+share as its base. Both the positional engine and the ledger live in-app, so a
+disconnected external editor would constantly fight to stay in sync. Mine the
+standalone MVP for **ideas / algorithm / UX learnings**, but implement as an
+**in-app planning mode**. (Old in-app code: tag `archive/planner-integration`;
+the standalone MVP is a separate project — concepts, not runtime.)
+
+## 11. UX — multi-game planning is a back-and-forth, not a one-shot solve
+
+The optimizer handles the **measurable** (field-time share). But every game's
+plan also has to be "solid in other ways" that are **coach judgments the app does
+NOT measure**: formation/shape per game, who's paired with whom, position
+rotation & development, opponent matchups, covering a weak side, a kid's
+preferred role, etc.
+
+So the **core interaction is effortless game-to-game navigation**: flip across
+the set (game 1 → 2 → 3 → 4), each shown as a **full field/lineup** to inspect and
+tweak, while a **persistent cross-game balance** shows how a change in one game
+**ripples** the context share. The app's job is to make those unmeasured
+judgments **easy to eyeball and adjust** — not to score them. Minutes are
+auto-balanced by the optimizer; everything else is the coach's eye, supported by
+frictionless switching + live balance feedback. Getting this loop fluid (jump
+between games, see ripple, adjust, re-balance) is as important as the optimizer
+itself — arguably the make-or-break of the whole feature's usability.
