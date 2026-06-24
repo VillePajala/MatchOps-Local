@@ -369,19 +369,24 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           {/* Overtime / Penalties — reachable once the game has started, NOT gated on
               game-end or score (the timer is often behind reality at the real finish). */}
           {gameStatus !== 'notStarted' && (
-            <div className="flex flex-col gap-2 pt-2 border-t border-slate-700/60">
-              <label className="inline-flex items-center justify-center text-sm text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={!!wentToOvertime}
-                  onChange={(e) => onWentToOvertimeChange(e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500"
-                />
-                <span className="ml-2">{t('timerOverlay.wentToOvertime', 'Went to overtime')}</span>
-              </label>
+            <div className="flex gap-2 pt-2 border-t border-slate-700/60">
+              {/* OT as a toggle chip (matches the button UI), not a bare checkbox */}
               <button
+                type="button"
+                onClick={() => onWentToOvertimeChange(!wentToOvertime)}
+                aria-pressed={wentToOvertime}
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
+                  wentToOvertime
+                    ? 'bg-amber-600/80 border-amber-500 text-white'
+                    : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Went to overtime')}
+              </button>
+              <button
+                type="button"
                 onClick={onRecordShootout}
-                className={`${secondaryActionStyle} w-full`}
+                className={`${secondaryActionStyle} flex-1`}
               >
                 {t('timerOverlay.recordShootout', 'Record penalty shootout')}
               </button>
