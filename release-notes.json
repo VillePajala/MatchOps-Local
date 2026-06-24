@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Excel exports now count games decided by penalties as wins/losses, consistent with the rest of the app"
+      ],
+      "fi": [
+        "Excel-viennit laskevat nyt rangaistuspotkuilla ratkaistut ottelut voitoiksi/tappioiksi, yhdenmukaisesti muun sovelluksen kanssa"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "You can now record a penalty shootout for a game: log each kick (your shooters by name, opponent kicks too) in Game Settings. Games decided on penalties now correctly count as a win or loss, and the shootout score shows in stats."
       ],
       "fi": [
