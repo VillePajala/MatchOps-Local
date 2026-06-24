@@ -9,6 +9,7 @@ import {
   PlayerStatAdjustment,
 } from '@/types';
 import { formatTime } from './time';
+import { resolveGameResult } from '@/utils/gameResult';
 
 /**
  * Translation function type for Excel exports
@@ -141,12 +142,9 @@ const calculateRecord = (
     // Skip games explicitly marked as "not yet played" in game settings
     if (game.isPlayed === false) return;
 
-    const isHome = game.homeOrAway === 'home';
-    const ourScore = isHome ? game.homeScore : game.awayScore;
-    const theirScore = isHome ? game.awayScore : game.homeScore;
-
-    if (ourScore > theirScore) wins++;
-    else if (ourScore < theirScore) losses++;
+    const wld = resolveGameResult(game);
+    if (wld === 'W') wins++;
+    else if (wld === 'L') losses++;
     else ties++;
   });
 
@@ -253,8 +251,9 @@ export const exportCurrentGameExcel = (
   const theirScore = isHome ? game.awayScore : game.homeScore;
   let result = translate('export.notStarted', 'Not Started');
   if (game.isPlayed) {
-    if (ourScore > theirScore) result = translate('export.win', 'Win');
-    else if (ourScore < theirScore) result = translate('export.loss', 'Loss');
+    const wld = resolveGameResult(game);
+    if (wld === 'W') result = translate('export.win', 'Win');
+    else if (wld === 'L') result = translate('export.loss', 'Loss');
     else result = translate('export.tie', 'Tie');
   }
 
@@ -456,8 +455,9 @@ export const exportAggregateExcel = (
     const ourScore = isHome ? game.homeScore : game.awayScore;
     const theirScore = isHome ? game.awayScore : game.homeScore;
     let result = '';
-    if (ourScore > theirScore) result = translate('export.winShort', 'W');
-    else if (ourScore < theirScore) result = translate('export.lossShort', 'L');
+    const wld = resolveGameResult(game);
+    if (wld === 'W') result = translate('export.winShort', 'W');
+    else if (wld === 'L') result = translate('export.lossShort', 'L');
     else result = translate('export.tieShort', 'T');
 
     const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
@@ -517,8 +517,9 @@ export const exportAggregateExcel = (
     const theirScore = isHome ? game.awayScore : game.homeScore;
     stats.goalsFor += ourScore;
     stats.goalsAgainst += theirScore;
-    if (ourScore > theirScore) stats.wins++;
-    else if (ourScore < theirScore) stats.losses++;
+    const wld = resolveGameResult(game);
+    if (wld === 'W') stats.wins++;
+    else if (wld === 'L') stats.losses++;
     else stats.ties++;
 
     // Calculate player stats (goals/assists from events)
@@ -579,8 +580,9 @@ export const exportAggregateExcel = (
     const theirScore = isHome ? game.awayScore : game.homeScore;
     stats.goalsFor += ourScore;
     stats.goalsAgainst += theirScore;
-    if (ourScore > theirScore) stats.wins++;
-    else if (ourScore < theirScore) stats.losses++;
+    const wld = resolveGameResult(game);
+    if (wld === 'W') stats.wins++;
+    else if (wld === 'L') stats.losses++;
     else stats.ties++;
 
     // Calculate player stats (goals/assists from events)
@@ -826,8 +828,9 @@ export const exportPlayerExcel = (
       const ourScore = isHome ? game.homeScore : game.awayScore;
       const theirScore = isHome ? game.awayScore : game.homeScore;
       let result = '';
-      if (ourScore > theirScore) result = translate('export.winShort', 'W');
-      else if (ourScore < theirScore) result = translate('export.lossShort', 'L');
+      const wld = resolveGameResult(game);
+      if (wld === 'W') result = translate('export.winShort', 'W');
+      else if (wld === 'L') result = translate('export.lossShort', 'L');
       else result = translate('export.tieShort', 'T');
 
       const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
