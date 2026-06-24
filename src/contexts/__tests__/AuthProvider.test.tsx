@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { AuthProvider, useAuth } from '../AuthProvider';
 import type { AuthService } from '@/interfaces/AuthService';
 import type { AuthState, Session } from '@/interfaces/AuthTypes';
@@ -111,6 +111,11 @@ jest.mock('@/datastore/factory', () => ({
   getAuthService: jest.fn(() => Promise.resolve(mockAuthService)),
   getDataStore: jest.fn(() => Promise.resolve(mockDataStore)),
   isDataStoreInitialized: jest.fn(() => true),
+  closeDataStore: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock('@/datastore/userDatabase', () => ({
+  deleteUserLocalDatabases: jest.fn(() => Promise.resolve()),
 }));
 
 jest.mock('@/config/backendConfig', () => ({
@@ -151,6 +156,17 @@ function TestComponent() {
       <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
       <span data-testid="mode">{mode}</span>
       <span data-testid="user-id">{user?.id ?? 'none'}</span>
+    </div>
+  );
+}
+
+// Test component that can trigger account deletion
+function DeleteAccountTester() {
+  const { isLoading, deleteAccount } = useAuth();
+  return (
+    <div>
+      <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+      <button onClick={() => { void deleteAccount(); }}>delete-account</button>
     </div>
   );
 }
@@ -305,6 +321,62 @@ describe('AuthProvider', () => {
       expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
       expect(screen.getByTestId('mode')).toHaveTextContent('cloud');
       expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+    });
+
+    it('closes the DataStore BEFORE deleting local databases on account deletion (erasure not blocked)', async () => {
+      // Regression (review H1): account deletion must release the open IndexedDB
+      // connections (data mirror + sync queue) before indexedDB.deleteDatabase(),
+      // otherwise the delete is blocked and the local copy silently survives.
+      const { closeDataStore } = require('@/datastore/factory');
+      const { deleteUserLocalDatabases } = require('@/datastore/userDatabase');
+
+      render(
+        <AuthProvider>
+          <DeleteAccountTester />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('delete-account'));
+      });
+
+      await waitFor(() => {
+        expect(deleteUserLocalDatabases).toHaveBeenCalledWith('cloud-user-123');
+      });
+      expect(closeDataStore).toHaveBeenCalledWith({ force: true });
+      // Ordering is the whole point: close must run before the delete.
+      expect(closeDataStore.mock.invocationCallOrder[0])
+        .toBeLessThan(deleteUserLocalDatabases.mock.invocationCallOrder[0]);
+    });
+
+    it('still attempts the local DB delete (best-effort) if closing the DataStore fails', async () => {
+      // The close is the fix, but the delete must remain best-effort: a close
+      // failure must not skip the erasure attempt entirely.
+      const { closeDataStore } = require('@/datastore/factory');
+      const { deleteUserLocalDatabases } = require('@/datastore/userDatabase');
+      closeDataStore.mockRejectedValueOnce(new Error('close failed'));
+
+      render(
+        <AuthProvider>
+          <DeleteAccountTester />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('delete-account'));
+      });
+
+      await waitFor(() => {
+        expect(deleteUserLocalDatabases).toHaveBeenCalledWith('cloud-user-123');
+      });
     });
 
     it('registers exactly one auth listener and unsubscribes it on unmount (no leak)', async () => {
