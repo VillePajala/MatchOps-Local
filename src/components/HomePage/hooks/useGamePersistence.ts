@@ -482,6 +482,12 @@ export function useGamePersistence({
         gameEvents: gameSessionState.gameEvents,
         homeScore: gameSessionState.homeScore,
         awayScore: gameSessionState.awayScore,
+        // Shootout/overtime decide the W/L result and are logged rarely (once per
+        // game), so persist instantly — otherwise a recorded shootout wouldn't
+        // save (auto-save only fires on the fields watched here).
+        wentToOvertime: gameSessionState.wentToOvertime,
+        wentToPenalties: gameSessionState.wentToPenalties,
+        shootoutKicks: gameSessionState.shootoutKicks,
         // Save the clock when the timer STOPS/STARTS (isTimerRunning flips), not on
         // every tick. timeElapsedInSeconds was here, but it changes every second, so
         // a running match fired a full save + cloud sync ~once/second (CR-H7 — the
