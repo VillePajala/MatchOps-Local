@@ -27,6 +27,32 @@ export type GameType = 'soccer' | 'futsal';
  */
 export type Gender = 'boys' | 'girls';
 
+/**
+ * A single penalty-shootout kick. The shootout result is *constructed* from a
+ * free-form list of these (no fixed format enforced — handles best-of-3,
+ * single-pair sudden death, "only 3 rounds", etc.).
+ *
+ * @remarks
+ * - `scorerId` is set for your own players (from the roster); opponent kicks are
+ *   anonymous (no id), recorded only as scored/missed.
+ * - Shootout kicks are NEVER counted as goals anywhere — they only break a level
+ *   score to resolve the game result. See {@link resolveGameResult}.
+ * - Stored as JSONB in cloud, so future per-kick fields (e.g. goalkeeperId,
+ *   missType) are additive with no migration.
+ */
+export interface ShootoutKick {
+  /** Stable id for the kick (UI keys / edits). */
+  id: string;
+  /** Which side took the kick. */
+  team: 'home' | 'away';
+  /** Your player who took it; undefined for opponent (anonymous) kicks. */
+  scorerId?: string;
+  /** Whether the kick was scored. */
+  scored: boolean;
+  /** Order the kick was taken in (preserves sequence for display). */
+  order: number;
+}
+
 export interface Point {
   relX: number;
   relY: number;
@@ -158,10 +184,16 @@ export interface AppState {
    * Used for filtering and organizing games.
    */
   gender?: Gender;
-  /** Whether the game went to overtime/extra time */
+  /** Whether the game went to overtime/extra time (manual label; OT goals are logged as normal goals) */
   wentToOvertime?: boolean;
-  /** Whether the game was decided by penalty shootout */
+  /** Whether the game was decided by penalty shootout (derived from shootoutKicks when present) */
   wentToPenalties?: boolean;
+  /**
+   * Penalty-shootout kicks, in order. Present only for games decided by a
+   * shootout. The tally + winner are derived (see utils/shootout), and the
+   * winner breaks a level score in {@link resolveGameResult}. Never counted as goals.
+   */
+  shootoutKicks?: ShootoutKick[];
   /** Whether to show position labels (GK, CB, ST, etc.) on the field */
   showPositionLabels?: boolean;
   /**

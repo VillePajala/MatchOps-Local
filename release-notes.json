@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-06-24",
+      "en": [
+        "Groundwork for correctly counting cup games decided by penalties (internal: a single shared win/loss/draw resolver) - no visible change yet"
+      ],
+      "fi": [
+        "Pohjatyö rangaistuspotkuilla ratkaistujen cup-otteluiden oikealle laskennalle (sisäinen: yhtenäinen voitto/tappio/tasapeli-ratkaisija) - ei vielä näkyvää muutosta"
+      ]
+    },
+    {
       "date": "2026-06-23",
       "en": [
         "Fixed a black bar that could appear at the bottom of the screen after opening and closing the User Guide"
