@@ -16,6 +16,7 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { AppSettings } from '@/types/settings';
 import { TestFixtures } from '../../tests/fixtures';
+import { SAVED_GAMES_KEY } from '@/config/storageKeys';
 
 // Create mock functions BEFORE jest.mock (so they can be referenced in mocks)
 const mockGetStorageItem = jest.fn();
@@ -1705,6 +1706,43 @@ describe('LocalDataStore', () => {
         const invalidGame = { ...mockGame, gameDate: '' };
         await expect(dataStore.saveGame('game_1', invalidGame))
           .rejects.toThrow('Missing required game fields');
+      });
+
+      // Regression (review H2): a corrupt saved-games blob must NOT be silently
+      // treated as empty and then overwritten — that would wipe every other game.
+      describe('corruption safety', () => {
+        it('aborts instead of overwriting when the stored blob is invalid JSON', async () => {
+          mockGetStorageItem.mockResolvedValue('}{ not valid json');
+
+          await expect(dataStore.saveGame('game_1', mockGame))
+            .rejects.toThrow(/corrupt/i);
+
+          // The destructive overwrite must not happen: the main key is never written.
+          expect(mockSetStorageItem).not.toHaveBeenCalledWith(SAVED_GAMES_KEY, expect.anything());
+        });
+
+        it('aborts when the stored blob is a non-object (e.g. an array)', async () => {
+          mockGetStorageItem.mockResolvedValue(JSON.stringify([1, 2, 3]));
+
+          await expect(dataStore.saveGame('game_1', mockGame))
+            .rejects.toThrow(/corrupt/i);
+
+          expect(mockSetStorageItem).not.toHaveBeenCalledWith(SAVED_GAMES_KEY, expect.anything());
+        });
+
+        it('quarantines the corrupt blob to a recovery key', async () => {
+          const corrupt = '}{ not valid json';
+          mockGetStorageItem.mockResolvedValue(corrupt);
+
+          await expect(dataStore.saveGame('game_1', mockGame)).rejects.toThrow();
+
+          const quarantined = mockSetStorageItem.mock.calls.find(
+            ([key]: [string, string]) =>
+              typeof key === 'string' && key.startsWith(`${SAVED_GAMES_KEY}__corrupt_`)
+          );
+          expect(quarantined).toBeDefined();
+          expect(quarantined?.[1]).toBe(corrupt);
+        });
       });
     });
 
