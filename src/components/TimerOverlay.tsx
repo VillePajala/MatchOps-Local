@@ -366,32 +366,30 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             </div>
           </div>
 
-          {/* Overtime / Penalties — reachable once the game has started, NOT gated on
-              game-end or score (the timer is often behind reality at the real finish). */}
-          {gameStatus !== 'notStarted' && (
-            <div className="flex gap-2 pt-2 border-t border-slate-700/60">
-              {/* OT as a toggle chip (matches the button UI), not a bare checkbox */}
-              <button
-                type="button"
-                onClick={() => onWentToOvertimeChange(!wentToOvertime)}
-                aria-pressed={wentToOvertime}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
-                  wentToOvertime
-                    ? 'bg-amber-600/80 border-amber-500 text-white'
-                    : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Went to overtime')}
-              </button>
-              <button
-                type="button"
-                onClick={onRecordShootout}
-                className={`${secondaryActionStyle} flex-1`}
-              >
-                {t('timerOverlay.recordShootout', 'Record penalty shootout')}
-              </button>
-            </div>
-          )}
+          {/* Overtime / Penalties — ALWAYS visible (any game state), since the timer
+              is often behind reality and the coach may need these at any point. */}
+          <div className="flex gap-2 pt-2 border-t border-slate-700/60">
+            {/* OT as a toggle chip (matches the button UI), not a bare checkbox */}
+            <button
+              type="button"
+              onClick={() => onWentToOvertimeChange(!wentToOvertime)}
+              aria-pressed={wentToOvertime}
+              className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
+                wentToOvertime
+                  ? 'bg-amber-600/80 border-amber-500 text-white'
+                  : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Went to overtime')}
+            </button>
+            <button
+              type="button"
+              onClick={onRecordShootout}
+              className={`${secondaryActionStyle} flex-1`}
+            >
+              {t('timerOverlay.recordShootout', 'Record penalty shootout')}
+            </button>
+          </div>
         </div>
 
         {/* Play Time History - show recent items only to reduce clutter */}
