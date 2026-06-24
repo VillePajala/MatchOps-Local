@@ -24,7 +24,7 @@ import type {
   TeamPlacementInfo,
   PlayerStatAdjustment,
 } from '@/types';
-import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog } from '@/types/game';
+import type { AppState, SavedGamesCollection, GameEvent, Point, Opponent, TacticalDisc, IntervalLog, ShootoutKick } from '@/types/game';
 import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
@@ -3030,6 +3030,8 @@ export class SupabaseDataStore implements DataStore {
         went_to_overtime: game.wentToOvertime ?? false,
         went_to_penalties: game.wentToPenalties ?? false,
         show_position_labels: game.showPositionLabels ?? true,
+        // Penalty-shootout kicks (migration 032). Defensive: only persist an array.
+        shootout_kicks: (Array.isArray(game.shootoutKicks) ? game.shootoutKicks : null) as unknown as Json,
         // === Array/object fields ===
         game_personnel: Array.isArray(game.gamePersonnel)
           ? game.gamePersonnel.filter((id): id is string => typeof id === 'string' && id.trim() !== '')
@@ -3184,6 +3186,8 @@ export class SupabaseDataStore implements DataStore {
       wentToOvertime: game.went_to_overtime ?? undefined,
       wentToPenalties: game.went_to_penalties ?? undefined,
       showPositionLabels: game.show_position_labels ?? true,
+      // Penalty-shootout kicks (migration 032). Defensive: only accept an array.
+      shootoutKicks: Array.isArray(game.shootout_kicks) ? (game.shootout_kicks as unknown as ShootoutKick[]) : undefined,
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
       formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,

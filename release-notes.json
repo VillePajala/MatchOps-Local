@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Behind-the-scenes: storage support for penalty-shootout data (no visible change yet)"
+      ],
+      "fi": [
+        "Taustalla: tallennustuki rangaistuspotkukilpailun tiedoille (ei vielä näkyvää muutosta)"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Groundwork for correctly counting cup games decided by penalties (internal: a single shared win/loss/draw resolver) - no visible change yet"
       ],
       "fi": [
