@@ -99,9 +99,9 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 | Feature | Effort | Note |
 |---------|--------|------|
 | Player Milestones & Certificates | Low | Auto-detect 10/25/50/100 appearances; exportable. High youth-motivation value. |
-| Quick Post-Game Ratings | Low | 30s/player across 7 dimensions; better youth-dev signal than goals. |
-| Configurable Formations | Low | TODO in `useFieldCoordination.ts`. |
-| Overtime & penalty shootout (#273) | Low | Real gap for knockout games. |
+| Quick Post-Game Ratings | Low | Largely covered by the existing assessment system (`PlayerAssessmentCard`/`AssessmentSlider`); revisit only if a faster 30s flow is wanted. |
+| ~~Configurable Formations~~ | — | ✅ Already implemented (`FormationPicker` + `formationPresets.ts`); roadmap was stale. |
+| ~~Overtime & penalty shootout (#273)~~ | — | ✅ **DONE 2026-06-24** (PRs #502–505). OT needs no timer — extra-time goals are logged as normal goals (fold into the score). Penalties: free-form per-kick `ShootoutModal` (your shooters named, opponents anonymous; no fixed format), result derived via shared `resolveGameResult` so a penalty win counts as a Win across stats + Excel; `shootout_kicks jsonb` (migration 032, staging+prod). Future: format presets + deep per-player/keeper shootout stats; timed-OT clock gated behind a timer-hardening refactor. Plan: `overtime-penalty-shootout-plan.md`. |
 | Substitution "who came off" field (#381) | Low-Med | Substitution GameEvent lacks outgoing-player → blocks who-came-off stats. (Decoupled from the scrapped Planner.) |
 | Formation Templates (one-tap switch) | Med | Save/switch formations; ends 11-player drag pain. |
 | Moment Capture (tap-to-log) | Med | 2-tap logging of notable plays; goals/assists miss most player value. |

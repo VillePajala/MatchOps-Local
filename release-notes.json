@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Behind-the-scenes: roadmap updated (overtime/penalties shipped; corrected stale entries)"
+      ],
+      "fi": [
+        "Taustalla: tiekartta päivitetty (jatkoaika/rangaistuspotkut valmiit; korjattu vanhentuneet merkinnät)"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Excel exports now count games decided by penalties as wins/losses, consistent with the rest of the app"
       ],
       "fi": [
