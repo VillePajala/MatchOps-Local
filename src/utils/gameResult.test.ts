@@ -69,6 +69,7 @@ describe('resolveGameResult', () => {
       homeScore: 3,
       awayScore: 3,
       homeOrAway: 'home' as const,
+      wentToPenalties: true,
       shootoutKicks: [kick('home', true, 0), kick('away', false, 1)],
     };
     expect(resolveGameResult(game)).toBe('W');
@@ -79,10 +80,23 @@ describe('resolveGameResult', () => {
       homeScore: 2,
       awayScore: 2,
       homeOrAway: 'away' as const,
+      wentToPenalties: true,
       shootoutKicks: [kick('home', true, 0), kick('away', false, 1)],
     };
     // home won the shootout, but we are away → Loss
     expect(resolveGameResult(game)).toBe('L');
+  });
+
+  it('ignores the shootout when the game is NOT marked decided by penalties', () => {
+    const game = {
+      homeScore: 3,
+      awayScore: 3,
+      homeOrAway: 'home' as const,
+      wentToPenalties: false,
+      shootoutKicks: [kick('home', true, 0), kick('away', false, 1)],
+    };
+    // Un-marked → the logged kicks don't count → stays a Draw.
+    expect(resolveGameResult(game)).toBe('D');
   });
 
   it('a shootout never overrides a decided score', () => {

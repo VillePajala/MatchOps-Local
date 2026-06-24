@@ -1,4 +1,4 @@
-import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog } from '@/types';
+import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog, ShootoutKick } from '@/types';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -25,6 +25,7 @@ export interface GameSessionState {
   gender?: Gender; // Gender: 'boys' or 'girls' (optional for backward compatibility)
   wentToOvertime?: boolean; // Game went to overtime/extra time
   wentToPenalties?: boolean; // Game decided by penalty shootout
+  shootoutKicks?: ShootoutKick[]; // Penalty-shootout kicks (free-form log; result derived)
   ageGroup?: string;
   tournamentLevel?: string;
   tournamentSeriesId?: string;
@@ -116,6 +117,7 @@ export type GameSessionAction =
   | { type: 'SET_GENDER'; payload: Gender | undefined }
   | { type: 'SET_WENT_TO_OVERTIME'; payload: boolean }
   | { type: 'SET_WENT_TO_PENALTIES'; payload: boolean }
+  | { type: 'SET_SHOOTOUT_KICKS'; payload: ShootoutKick[] }
   | { type: 'SET_SHOW_POSITION_LABELS'; payload: boolean }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_GAME_TIME'; payload: string }
@@ -300,6 +302,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, wentToOvertime: action.payload ?? undefined };
     case 'SET_WENT_TO_PENALTIES':
       return { ...state, wentToPenalties: action.payload ?? undefined };
+    case 'SET_SHOOTOUT_KICKS':
+      return { ...state, shootoutKicks: action.payload };
     case 'SET_SHOW_POSITION_LABELS':
       return { ...state, showPositionLabels: action.payload };
     case 'SET_GAME_LOCATION':
@@ -496,6 +500,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const gender = loadedData.gender;
       const wentToOvertime = loadedData.wentToOvertime;
       const wentToPenalties = loadedData.wentToPenalties;
+      const shootoutKicks = loadedData.shootoutKicks;
       const ageGroup = loadedData.ageGroup;
       const tournamentLevel = loadedData.tournamentLevel;
       const gameLocation = loadedData.gameLocation ?? '';
@@ -557,6 +562,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         gender,
         wentToOvertime,
         wentToPenalties,
+        shootoutKicks,
         ageGroup,
         tournamentLevel,
         gameLocation,
