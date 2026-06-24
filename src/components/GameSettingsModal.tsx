@@ -6,7 +6,9 @@ import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
-import type { GameEvent } from '@/types/game';
+import type { GameEvent, ShootoutKick } from '@/types/game';
+import ShootoutModal from './ShootoutModal';
+import { getShootoutTally } from '@/utils/shootout';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -132,6 +134,8 @@ export interface GameSettingsModalProps {
   wentToPenalties?: boolean;
   onWentToOvertimeChange: (value: boolean) => void;
   onWentToPenaltiesChange: (value: boolean) => void;
+  shootoutKicks?: ShootoutKick[];
+  onShootoutKicksChange: (kicks: ShootoutKick[]) => void;
   gameType?: GameType;
   onGameTypeChange: (gameType: GameType) => void;
   gender?: Gender;
@@ -238,6 +242,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   wentToPenalties = false,
   onWentToOvertimeChange,
   onWentToPenaltiesChange,
+  shootoutKicks,
+  onShootoutKicksChange,
   gameType = 'soccer',
   onGameTypeChange,
   gender,
@@ -458,6 +464,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // State for event editing within the modal
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const [editGoalTime, setEditGoalTime] = useState<string>('');
   const [editGoalScorerId, setEditGoalScorerId] = useState<string>('');
   const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
@@ -2374,6 +2381,23 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   />
                   <span className="ml-2">{t('gameSettingsModal.wentToPenalties', 'Decided by penalties')}</span>
                 </label>
+                {/* Penalty shootout — log kicks; the result is derived and breaks a level score */}
+                <button
+                  type="button"
+                  onClick={() => setIsShootoutModalOpen(true)}
+                  className="inline-flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  {(() => {
+                    const kicks = shootoutKicks ?? [];
+                    if (kicks.length === 0) {
+                      return t('gameSettingsModal.recordShootout', 'Record penalty shootout →');
+                    }
+                    const tally = getShootoutTally(kicks);
+                    const yourSide = homeOrAway === 'away' ? 'away' : 'home';
+                    const oppSide = yourSide === 'home' ? 'away' : 'home';
+                    return `${t('gameSettingsModal.shootoutLabel', 'Shootout')}: ${tally[yourSide]}-${tally[oppSide]} ${t('gameSettingsModal.editShootout', '(edit)')}`;
+                  })()}
+                </button>
               </div>
             </div>
 
@@ -2582,6 +2606,23 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
         isConfirming={isProcessing}
+      />
+      <ShootoutModal
+        isOpen={isShootoutModalOpen}
+        onClose={() => setIsShootoutModalOpen(false)}
+        availablePlayers={availablePlayers}
+        initialKicks={shootoutKicks ?? []}
+        homeOrAway={homeOrAway}
+        onSave={(kicks) => {
+          onShootoutKicksChange(kicks);
+          // Persist kicks + keep the "decided by penalties" flag in sync.
+          const decided = kicks.length > 0;
+          onWentToPenaltiesChange(decided);
+          mutateGameDetails(
+            { shootoutKicks: kicks, wentToPenalties: decided },
+            { source: 'stateSync' }
+          );
+        }}
       />
     </div>
   );
