@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Behind-the-scenes: roadmap cleanup (dropped the Sentry alerting item)"
+      ],
+      "fi": [
+        "Taustalla: tiekartan siivous (poistettu Sentry-hälytykset-kohta)"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Behind-the-scenes: roadmap correction — the season league area/level filters were already shipped"
       ],
       "fi": [
