@@ -532,13 +532,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && inlineEditingField === null && !showDeleteEventConfirm && editingGoalId === null) {
+      if (e.key === 'Escape' && inlineEditingField === null && !showDeleteEventConfirm && editingGoalId === null && !isShootoutModalOpen) {
         onClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId]);
+  }, [isOpen, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId, isShootoutModalOpen]);
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -2615,13 +2615,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         homeOrAway={homeOrAway}
         onSave={(kicks) => {
           onShootoutKicksChange(kicks);
-          // Persist kicks + keep the "decided by penalties" flag in sync.
-          const decided = kicks.length > 0;
-          onWentToPenaltiesChange(decided);
-          mutateGameDetails(
-            { shootoutKicks: kicks, wentToPenalties: decided },
-            { source: 'stateSync' }
-          );
+          const updates: Partial<AppState> = { shootoutKicks: kicks };
+          // Recording a shootout marks the game as decided by penalties, but we
+          // only auto-CHECK it — we never silently uncheck the coach's flag, and
+          // the result gates on this flag (see resolveGameResult), so they stay
+          // in control of whether the shootout counts.
+          if (kicks.length > 0 && !wentToPenalties) {
+            onWentToPenaltiesChange(true);
+            updates.wentToPenalties = true;
+          }
+          mutateGameDetails(updates, { source: 'stateSync' });
         }}
       />
     </div>

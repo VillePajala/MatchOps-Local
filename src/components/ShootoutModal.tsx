@@ -87,11 +87,12 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="shootout-modal-title"
     >
       <div className="bg-slate-800 shadow-xl flex flex-col border-0 overflow-hidden h-full w-full relative">
         {/* Header */}
         <div className="flex justify-center items-center pt-10 pb-4 px-6 shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
+          <h2 id="shootout-modal-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {t('shootoutModal.title', 'Penalty Shootout')}
           </h2>
         </div>
