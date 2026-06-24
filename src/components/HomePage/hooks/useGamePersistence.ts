@@ -126,7 +126,8 @@ export interface UseGamePersistenceReturn {
   gameDeleteError: string | null;
 
   // Handlers
-  handleQuickSaveGame: (silent?: boolean) => Promise<void>;
+  // Returns true only if the game is now persisted (see implementation note).
+  handleQuickSaveGame: (silent?: boolean, suppressErrorToast?: boolean) => Promise<boolean>;
   handleLoadGame: (gameId: string) => Promise<void>;
   handleDeleteGame: (gameId: string) => Promise<void>;
   handleDeleteGameEvent: (goalId: string) => Promise<boolean>;
@@ -285,7 +286,10 @@ export function useGamePersistence({
    * @param silent - If true, suppresses success toast (for auto-save)
    * @param suppressErrorToast - If true, suppresses error toast (for auto-save retry logic)
    */
-  const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false) => {
+  // Returns true only if the game is now persisted; false if the save was skipped
+  // (transient empty-field state) or failed. Callers that discard/replace the
+  // current session (e.g. "Save before new game") MUST check this before proceeding.
+  const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false): Promise<boolean> => {
     // Create snapshot first (needed for both validation and save)
     const currentSnapshot = createGameSnapshot();
 
@@ -294,7 +298,7 @@ export function useGamePersistence({
     // Manual saves (silent=false) should still attempt save and show validation error to user
     if (silent && (!currentSnapshot.teamName || !currentSnapshot.opponentName || !currentSnapshot.gameDate)) {
       logger.log('[handleQuickSaveGame] Skipping auto-save: required fields empty (user editing)');
-      return;
+      return false; // nothing persisted (transient editing state)
     }
 
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
@@ -325,6 +329,7 @@ export function useGamePersistence({
           showToast(t('loadGameModal.gameSaved', 'Game saved!'));
         }
 
+        return true;
       } catch (error) {
         // Network errors are transient — warn only, don't flood Sentry
         if (error instanceof NetworkError) {
@@ -354,6 +359,7 @@ export function useGamePersistence({
         if (!suppressErrorToast) {
           showToast(t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'), 'error');
         }
+        return false;
       }
     } else {
       // No current game ID - create new saved game entry using utility
@@ -381,6 +387,7 @@ export function useGamePersistence({
 
         logger.log(`New game created with ID: ${newGameId}`);
 
+        return true;
       } catch (error) {
         // Network errors are transient — warn only, don't flood Sentry
         if (error instanceof NetworkError) {
@@ -409,6 +416,7 @@ export function useGamePersistence({
         if (!suppressErrorToast) {
           showToast(t('loadGameModal.errors.createGameFailed', 'Error creating new saved game.'), 'error');
         }
+        return false;
       }
     }
   }, [
@@ -438,7 +446,8 @@ export function useGamePersistence({
   useEffect(() => {
     // Auto-save with silent=true (no success toast) and suppressErrorToast=true
     // Errors are logged to Sentry but don't show intrusive toasts during auto-save
-    autoSaveFnRef.current = () => handleQuickSaveGame(true, true);
+    // Auto-save ignores the success boolean (errors are logged/Sentry'd, not surfaced).
+    autoSaveFnRef.current = () => handleQuickSaveGame(true, true).then(() => {});
   }, [handleQuickSaveGame]);
 
   // --- 3-Tier Debounced Auto-Save ---
