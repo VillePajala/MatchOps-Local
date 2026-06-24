@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Behind-the-scenes: drafted the planning doc for a future playing-time-fairness + multi-game sub-planner system"
+      ],
+      "fi": [
+        "Taustalla: laadittu suunnitteludokumentti tulevalle peliaikojen tasapuolisuus- ja monen ottelun vaihtosuunnittelujärjestelmälle"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Improved readability in sunlight: brightened faint secondary text in the timer's play-time history, the penalty-shootout log, and the load-game screen"
       ],
       "fi": [
