@@ -393,6 +393,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             // Calculate score display color using display scores
             // Determine win/loss/draw state via the shared resolver (shootout-aware),
             // using the display scores (which may reflect the live session).
+            // TODO(PR 2): when the shootout UI lands, pass live session shootoutKicks
+            // for the current game (not just the persisted ones) so the colour isn't
+            // computed from live score + stale kicks while the coach is logging.
             const displayResult = resolveGameResult({
               homeScore: displayHomeScore,
               awayScore: displayAwayScore,
