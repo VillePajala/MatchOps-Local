@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Behind-the-scenes: roadmap updated — overtime/penalties marked complete; timed-OT clock noted as a future item"
+      ],
+      "fi": [
+        "Taustalla: tiekartta päivitetty — jatkoaika/rangaistuspotkut merkitty valmiiksi; ajastettu jatkoaikakello kirjattu tulevaksi kohteeksi"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Fixed: penalty-shootout and overtime now actually save. Recording a shootout from the timer now persists, so the win/loss result sticks (previously it wasn't being saved)."
       ],
       "fi": [
