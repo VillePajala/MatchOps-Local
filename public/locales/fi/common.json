@@ -2901,6 +2901,8 @@
     "kickLog": "Potkut",
     "noKicks": "Ei vielä kirjattuja potkuja.",
     "removeKick": "Poista potku",
-    "instructions": "Kirjaa jokainen potku alla olevilla painikkeilla — jokainen napautus lisää potkun listaan ja päivittää tuloksen. Käytä samoja painikkeita jokaiselle potkaisijalle kunnes kilpailu ratkeaa."
+    "instructions": "Kirjaa jokainen potku alla olevilla painikkeilla — jokainen napautus lisää potkun listaan ja päivittää tuloksen. Käytä samoja painikkeita jokaiselle potkaisijalle kunnes kilpailu ratkeaa.",
+    "firstKick": "Ensimmäinen potku:",
+    "upNext": "Vuorossa"
   }
 }

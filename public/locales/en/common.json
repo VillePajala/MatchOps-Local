@@ -2901,6 +2901,8 @@
     "kickLog": "Kicks",
     "noKicks": "No kicks logged yet.",
     "removeKick": "Remove kick",
-    "instructions": "Log every kick with the buttons below — each tap adds a kick to the list and updates the score. Use the same controls for every shooter until it's decided."
+    "instructions": "Log every kick with the buttons below — each tap adds a kick to the list and updates the score. Use the same controls for every shooter until it's decided.",
+    "firstKick": "First kick:",
+    "upNext": "Up next"
   }
 }

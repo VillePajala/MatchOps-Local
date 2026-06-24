@@ -36,12 +36,16 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   const { t } = useTranslation();
   const [kicks, setKicks] = useState<ShootoutKick[]>(initialKicks);
   const [scorerId, setScorerId] = useState<string>('');
+  // Which side took the first kick (coin toss). Drives the alternation guide.
+  const [firstKick, setFirstKick] = useState<'you' | 'opponent'>('you');
 
   // Reset the working copy whenever the modal (re)opens.
   useEffect(() => {
     if (isOpen) {
       setKicks(initialKicks);
       setScorerId('');
+      const ys = homeOrAway === 'away' ? 'away' : 'home';
+      setFirstKick(initialKicks.length > 0 ? (initialKicks[0].team === ys ? 'you' : 'opponent') : 'you');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -55,6 +59,15 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   const winner = getShootoutWinner(kicks);
   const yourScore = tally[yourSide];
   const oppScore = tally[oppSide];
+
+  // Whose kick is up next, by strict alternation from the starter. Once kicks
+  // exist the starter is whoever actually kicked first. This is a guide only —
+  // either side's buttons stay tappable for unusual formats.
+  const starter: 'you' | 'opponent' =
+    kicks.length > 0 ? (kicks[0].team === yourSide ? 'you' : 'opponent') : firstKick;
+  const nextUp: 'you' | 'opponent' =
+    kicks.length % 2 === 0 ? starter : starter === 'you' ? 'opponent' : 'you';
+  const starterLocked = kicks.length > 0;
 
   const addKick = (team: 'home' | 'away', scored: boolean, kickScorerId?: string) => {
     setKicks((prev) => [
@@ -121,10 +134,31 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
             </div>
           </div>
 
+          {/* Who shoots first — sets the alternation guide (locked once kicks exist) */}
+          <div className="flex items-center justify-center gap-2 text-sm">
+            <span className="text-slate-400">{t('shootoutModal.firstKick', 'First kick:')}</span>
+            <div className="inline-flex rounded-md overflow-hidden border border-slate-600">
+              {(['you', 'opponent'] as const).map((side) => (
+                <button
+                  key={side}
+                  type="button"
+                  disabled={starterLocked}
+                  onClick={() => setFirstKick(side)}
+                  className={`px-3 py-1 font-medium transition-colors ${starter === side ? 'bg-indigo-600 text-white' : 'bg-slate-700/60 text-slate-300'} ${starterLocked ? 'opacity-70 cursor-default' : 'hover:bg-slate-700'}`}
+                >
+                  {side === 'you' ? t('shootoutModal.you', 'You') : t('shootoutModal.opponent', 'Opponent')}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Your team kick entry */}
-          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700 space-y-2">
-            <label htmlFor="shootoutScorer" className="block text-sm font-medium text-slate-300">
-              {t('shootoutModal.yourKick', 'Your kick')}
+          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'you' ? 'border-indigo-400 ring-2 ring-indigo-400/40' : 'border-slate-700'}`}>
+            <label htmlFor="shootoutScorer" className="flex items-center justify-between text-sm font-medium text-slate-300">
+              <span>{t('shootoutModal.yourKick', 'Your kick')}</span>
+              {nextUp === 'you' && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">{t('shootoutModal.upNext', 'Up next')}</span>
+              )}
             </label>
             <select
               id="shootoutScorer"
@@ -156,8 +190,13 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
           </div>
 
           {/* Opponent kick entry */}
-          <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700 space-y-2">
-            <span className="block text-sm font-medium text-slate-300">{t('shootoutModal.opponentKick', 'Opponent kick')}</span>
+          <div className={`bg-slate-900/50 rounded-lg p-3 border space-y-2 ${nextUp === 'opponent' ? 'border-indigo-400 ring-2 ring-indigo-400/40' : 'border-slate-700'}`}>
+            <span className="flex items-center justify-between text-sm font-medium text-slate-300">
+              <span>{t('shootoutModal.opponentKick', 'Opponent kick')}</span>
+              {nextUp === 'opponent' && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">{t('shootoutModal.upNext', 'Up next')}</span>
+              )}
+            </span>
             <div className="flex gap-2">
               <button
                 type="button"

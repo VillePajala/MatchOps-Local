@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Shootout polish: the timer overlay's overtime control is now a clear toggle button, and the shootout logger shows who shoots first plus highlights whose kick is up next."
+      ],
+      "fi": [
+        "Rangaistuspotkujen hiontaa: ajastinnäkymän jatkoaika-painike on nyt selkeä vaihtopainike, ja potkujen kirjaus näyttää kumpi aloittaa sekä korostaa kenen potku on vuorossa."
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "You can now mark overtime and record a penalty shootout straight from the timer overlay during the game — no need to dig into Game Settings. The shootout logger is also clearer: a short how-to and the newest kick highlighted so it's obvious each tap adds one."
       ],
       "fi": [
