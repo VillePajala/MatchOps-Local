@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "The overtime and penalty-shootout buttons in the timer view are now always available, in any game state"
+      ],
+      "fi": [
+        "Ajastinnäkymän jatkoaika- ja rangaistuspotku-painikkeet ovat nyt aina käytettävissä, ottelun tilasta riippumatta"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Shootout polish: the timer overlay's overtime control is now a clear toggle button, and the shootout logger shows who shoots first plus highlights whose kick is up next."
       ],
       "fi": [
