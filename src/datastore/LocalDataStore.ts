@@ -1855,6 +1855,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented false-on-missing.
       const games = await this.loadSavedGames();
       if (!games[id]) {
         return false;
@@ -1870,6 +1873,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented null-on-missing.
       const games = await this.loadSavedGames();
       const game = games[gameId];
 
@@ -1897,6 +1903,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented null-on-missing.
       const games = await this.loadSavedGames();
       const game = games[gameId];
 
@@ -1926,6 +1935,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented null-on-missing.
       const games = await this.loadSavedGames();
       const game = games[gameId];
 

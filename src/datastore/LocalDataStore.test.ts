@@ -1743,6 +1743,35 @@ describe('LocalDataStore', () => {
           expect(quarantined).toBeDefined();
           expect(quarantined?.[1]).toBe(corrupt);
         });
+
+        it('quarantines only once per instance (no key sprawl on repeated corrupt saves)', async () => {
+          mockGetStorageItem.mockResolvedValue('}{ corrupt');
+
+          await expect(dataStore.saveGame('game_1', mockGame)).rejects.toThrow();
+          await expect(dataStore.saveGame('game_1', mockGame)).rejects.toThrow();
+
+          const quarantineCalls = mockSetStorageItem.mock.calls.filter(
+            ([key]: [string, string]) =>
+              typeof key === 'string' && key.startsWith(`${SAVED_GAMES_KEY}__corrupt_`)
+          );
+          expect(quarantineCalls).toHaveLength(1);
+        });
+
+        it('lenient reads (getGames) also quarantine without overwriting the main key', async () => {
+          mockGetStorageItem.mockResolvedValue('}{ corrupt');
+
+          const games = await dataStore.getGames();
+
+          // Lenient: corruption surfaces as an empty collection, never throws.
+          expect(games).toEqual({});
+          // But it must not overwrite the main key, and it preserves the blob.
+          expect(mockSetStorageItem).not.toHaveBeenCalledWith(SAVED_GAMES_KEY, expect.anything());
+          const quarantined = mockSetStorageItem.mock.calls.find(
+            ([key]: [string, string]) =>
+              typeof key === 'string' && key.startsWith(`${SAVED_GAMES_KEY}__corrupt_`)
+          );
+          expect(quarantined).toBeDefined();
+        });
       });
     });
 
