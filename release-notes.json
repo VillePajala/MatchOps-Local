@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Behind-the-scenes: expanded the playing-time planner plan with architecture (integrate vs standalone) and multi-game navigation UX notes"
+      ],
+      "fi": [
+        "Taustalla: laajennettu peliaikasuunnittelun suunnitelmaa arkkitehtuuri- (integrointi vs erillinen) ja monen ottelun navigointi-UX-muistiinpanoilla"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Behind-the-scenes: drafted the planning doc for a future playing-time-fairness + multi-game sub-planner system"
       ],
       "fi": [
