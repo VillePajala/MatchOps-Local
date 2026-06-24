@@ -54,6 +54,7 @@ import {
   getStorageAdapter,
 } from '@/utils/storage';
 import type { StorageAdapter } from '@/utils/storageAdapter';
+import { StorageError, StorageErrorType } from '@/utils/storageAdapter';
 import { withKeyLock } from '@/utils/storageKeyLock';
 import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
@@ -329,6 +330,7 @@ type ParsedSettingsWithLegacy = AppSettings & {
  */
 export class LocalDataStore implements DataStore {
   private initialized = false;
+  private savedGamesCorruptionQuarantined = false;
   private settingsMigrated = false;
   private settingsMigrationPromise: Promise<void> | null = null;
   private seasonDatesCache: { start: string; end: string } | null = null;
@@ -1665,7 +1667,9 @@ export class LocalDataStore implements DataStore {
         // so they are unaffected by cascade delete and don't need backup.
         const backup = {
           personnel: await this.loadPersonnelCollection(),
-          games: await this.loadSavedGames(),
+          // strict: if games are corrupt, abort before any write/rollback (which
+          // would otherwise persist an empty backup and wipe the collection).
+          games: await this.loadSavedGames({ strict: true }),
         };
 
         try {
@@ -1806,7 +1810,8 @@ export class LocalDataStore implements DataStore {
     validateGame(game);
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
-      const games = await this.loadSavedGames();
+      // strict: never overwrite a corrupt blob — that would wipe every other game.
+      const games = await this.loadSavedGames({ strict: true });
       const now = new Date().toISOString();
       const existingGame = games[id];
 
@@ -1850,6 +1855,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented false-on-missing.
       const games = await this.loadSavedGames();
       if (!games[id]) {
         return false;
@@ -1865,6 +1873,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented null-on-missing.
       const games = await this.loadSavedGames();
       const game = games[gameId];
 
@@ -1892,6 +1903,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented null-on-missing.
       const games = await this.loadSavedGames();
       const game = games[gameId];
 
@@ -1921,6 +1935,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // Lenient read (no `strict`): returns early WITHOUT writing when the game is
+      // missing, so a corrupt blob (-> {}) can't cause an overwrite. Do NOT add
+      // `strict: true` here — it would throw instead of the documented null-on-missing.
       const games = await this.loadSavedGames();
       const game = games[gameId];
 
@@ -2648,22 +2665,64 @@ export class LocalDataStore implements DataStore {
     }
   }
 
-  private async loadSavedGames(): Promise<SavedGamesCollection> {
+  /**
+   * Load the saved-games collection.
+   *
+   * Corruption handling (review finding H2): every mutating method does a
+   * read-modify-write of the WHOLE SAVED_GAMES_KEY object. If a corrupt blob were
+   * silently treated as empty, the next `saveGame()` would overwrite the key with
+   * just the active game and PERMANENTLY destroy every other saved game (a whole
+   * season). So when the stored blob exists but is unreadable we:
+   *   1. preserve the raw blob under a quarantine key (once) so it is never silently lost;
+   *   2. in `strict` mode (write paths) THROW so the destructive overwrite is aborted.
+   * Read paths stay lenient (empty collection) — the real blob remains in storage
+   * and in quarantine for recovery.
+   */
+  private async loadSavedGames(options?: { strict?: boolean }): Promise<SavedGamesCollection> {
     const gamesJson = await this.storageGetItem(SAVED_GAMES_KEY);
     if (!gamesJson) {
       return {};
     }
 
+    let reason: string | null = null;
     try {
       const parsed = JSON.parse(gamesJson);
-      if (!isRecord(parsed)) {
-        return {};
+      if (isRecord(parsed)) {
+        return parsed as SavedGamesCollection;
       }
+      reason = 'not an object';
+    } catch {
+      reason = 'invalid JSON';
+    }
 
-      return parsed as SavedGamesCollection;
-    } catch (error) {
-      logger.error('[LocalDataStore] Corrupted saved games JSON - treating as empty', error);
-      return {};
+    await this.quarantineCorruptSavedGames(gamesJson, reason);
+
+    if (options?.strict) {
+      throw new StorageError(
+        StorageErrorType.CORRUPTED_DATA,
+        `Saved games data is corrupted (${reason}); aborting write to prevent data loss`
+      );
+    }
+    return {};
+  }
+
+  /**
+   * Copy an unreadable saved-games blob to a timestamped quarantine key so it can
+   * be recovered instead of being silently overwritten. Runs at most once per
+   * instance to avoid key sprawl on repeated reads.
+   */
+  private async quarantineCorruptSavedGames(rawBlob: string, reason: string | null): Promise<void> {
+    logger.error(`[LocalDataStore] Corrupted saved games JSON (${reason})`);
+    if (this.savedGamesCorruptionQuarantined) {
+      return;
+    }
+    this.savedGamesCorruptionQuarantined = true;
+    try {
+      const quarantineKey = `${SAVED_GAMES_KEY}__corrupt_${Date.now()}`;
+      await this.storageSetItem(quarantineKey, rawBlob);
+      logger.warn(`[LocalDataStore] Quarantined corrupt saved-games blob to "${quarantineKey}" for recovery`);
+    } catch (e) {
+      logger.error('[LocalDataStore] Failed to quarantine corrupt saved-games blob', e);
     }
   }
 

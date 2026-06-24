@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: if the saved-games store ever becomes unreadable, the app no longer wipes your other games on the next save - it aborts and quarantines the data for recovery"
+      ],
+      "fi": [
+        "Korjattu: jos tallennettujen pelien tiedosto vioittuu, sovellus ei enää pyyhi muita pelejäsi seuraavan tallennuksen yhteydessä - se keskeyttää ja eristää tiedot palautusta varten"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: deleting your account now fully erases the on-device copy of your data (previously the local database could survive the deletion)"
       ],
       "fi": [
