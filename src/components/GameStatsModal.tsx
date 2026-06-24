@@ -10,6 +10,7 @@ import { Player, PlayerStatRow, Season, Tournament, Team, Personnel, PlayerStatA
 import { GameEvent, SavedGamesCollection } from '@/types';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
+import { resolveGameResult } from '@/utils/gameResult';
 import { getTeams as utilGetTeams } from '@/utils/teams';
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
@@ -461,8 +462,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       goalsFor += ourScore;
       goalsAgainst += theirScore;
 
-      if (ourScore > theirScore) wins++;
-      else if (ourScore < theirScore) losses++;
+      // W/L/D via the shared resolver (shootout-aware); goalsFor/Against stay raw.
+      const result = resolveGameResult(game);
+      if (result === 'W') wins++;
+      else if (result === 'L') losses++;
       else ties++;
     });
 

@@ -1,6 +1,7 @@
 import { Player, Season, Tournament, PlayerStatAdjustment } from '@/types';
 import { AppState } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
+import { resolveGameResult } from '@/utils/gameResult';
 
 // Define a type for the processed stats
 export interface PlayerStats {
@@ -113,14 +114,10 @@ export const calculatePlayerStats = (
         performanceByTournament[game.tournamentId].isTournamentWinner = isTournamentWinner;
       }
 
-      let result: 'W' | 'L' | 'D' | 'N/A' = 'N/A';
-      if (game.homeScore > game.awayScore) {
-        result = game.homeOrAway === 'home' ? 'W' : 'L';
-      } else if (game.awayScore > game.homeScore) {
-        result = game.homeOrAway === 'home' ? 'L' : 'W';
-      } else if (game.homeScore === game.awayScore) {
-        result = 'D';
-      }
+      // Single source of truth for W/L/D — also breaks a level score via a
+      // penalty shootout (shootoutKicks). Identical to the old inline logic for
+      // games without a shootout.
+      const result: 'W' | 'L' | 'D' = resolveGameResult(game);
 
       gameByGameStats.push({
         gameId,

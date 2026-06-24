@@ -7,6 +7,7 @@ import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import type { TranslationKey } from '@/i18n-types';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
+import { resolveGameResult } from '@/utils/gameResult';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import { LEVELS } from '@/config/gameOptions';
@@ -390,12 +391,19 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               : (game.awayScore ?? 0);
 
             // Calculate score display color using display scores
-            // Determine win/loss/draw state
-            const isDraw = displayHomeScore === displayAwayScore;
-            const isWin = !isDraw && (
-              (game.homeOrAway === 'home' && displayHomeScore > displayAwayScore) ||
-              (game.homeOrAway === 'away' && displayAwayScore > displayHomeScore)
-            );
+            // Determine win/loss/draw state via the shared resolver (shootout-aware),
+            // using the display scores (which may reflect the live session).
+            // TODO(PR 2): when the shootout UI lands, pass live session shootoutKicks
+            // for the current game (not just the persisted ones) so the colour isn't
+            // computed from live score + stale kicks while the coach is logging.
+            const displayResult = resolveGameResult({
+              homeScore: displayHomeScore,
+              awayScore: displayAwayScore,
+              homeOrAway: game.homeOrAway,
+              shootoutKicks: game.shootoutKicks,
+            });
+            const isDraw = displayResult === 'D';
+            const isWin = displayResult === 'W';
             // Score color based on result
             const scoreColor = isDraw ? 'text-slate-300' : isWin ? 'text-green-400' : 'text-red-400';
 
