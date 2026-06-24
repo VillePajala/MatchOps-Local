@@ -234,7 +234,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           <div className="flex items-center justify-center gap-3 text-xl font-semibold">
             <span className="text-slate-400">{displayHomeTeamName}</span>
             <span className={`text-2xl font-bold ${homeScoreDisplayColor}`}>{homeScore}</span>
-            <span className="text-slate-500">-</span>
+            <span className="text-slate-400">-</span>
             <span className={`text-2xl font-bold ${awayScoreDisplayColor}`}>{awayScore}</span>
             {/* --- Opponent Name Display/Edit --- */}
             {isEditingOpponentName ? (
@@ -403,7 +403,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 const isLatest = displayIndex === 0;
 
                 // Simple color - latest bright, others dimmed
-                const colorClass = isLatest ? 'text-slate-200' : 'text-slate-500';
+                const colorClass = isLatest ? 'text-slate-200' : 'text-slate-400';
 
                 // Format time: show minutes only if > 0
                 const timeDisplay = minutes > 0

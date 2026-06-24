@@ -321,7 +321,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             <h3 className="text-lg font-medium text-slate-300 mb-2">
               {t('loadGameModal.noGamesMatchFilter', 'No games match your filter')}
             </h3>
-            <p className="text-slate-500 text-sm">
+            <p className="text-slate-400 text-sm">
               {t('loadGameModal.tryDifferentFilter', 'Try a different search term or clear the filter')}
             </p>
           </>
@@ -330,7 +330,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             <h3 className="text-lg font-medium text-slate-300 mb-2">
               {t('loadGameModal.noGamesSaved', 'No games saved yet')}
             </h3>
-            <p className="text-slate-500 text-sm text-center max-w-xs">
+            <p className="text-slate-400 text-sm text-center max-w-xs">
               {t('loadGameModal.startFirstGame', 'Start your first game from the home screen to begin tracking matches')}
             </p>
           </>
@@ -453,7 +453,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* Score - prominent display */}
                       <div className="text-right">
                         <div className={`text-2xl font-black tracking-tight ${scoreColor}`}>
-                          {displayHomeScore} <span className="text-slate-500">-</span> {displayAwayScore}
+                          {displayHomeScore} <span className="text-slate-400">-</span> {displayAwayScore}
                         </div>
                         {(game.wentToOvertime || game.wentToPenalties) && (
                           <div className="text-xs text-slate-400 font-medium">
@@ -546,7 +546,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                             </span>
                           )}
                           {game.numberOfPeriods && game.periodDurationMinutes && (
-                            <span className="text-slate-500 text-[10px]">
+                            <span className="text-slate-400 text-[10px]">
                               {game.numberOfPeriods}×{game.periodDurationMinutes}min
                             </span>
                           )}

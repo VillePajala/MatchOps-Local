@@ -221,7 +221,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
               {t('shootoutModal.kickLog', 'Kicks')}{kicks.length > 0 ? ` (${kicks.length})` : ''}
             </h3>
             {kicks.length === 0 ? (
-              <p className="text-sm text-slate-500">{t('shootoutModal.noKicks', 'No kicks logged yet.')}</p>
+              <p className="text-sm text-slate-400">{t('shootoutModal.noKicks', 'No kicks logged yet.')}</p>
             ) : (
               <ul className="space-y-1">
                 {[...kicks].reverse().map((kick) => {
@@ -232,18 +232,18 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
                       className={`flex items-center justify-between text-sm rounded px-3 py-1.5 transition-colors ${isNewest ? 'bg-indigo-500/15 ring-1 ring-indigo-400/40' : 'bg-slate-900/40'}`}
                     >
                       <span className={isNewest ? 'text-white' : 'text-slate-200'}>
-                        <span className="text-slate-500 mr-2">{kick.order + 1}.</span>
+                        <span className="text-slate-400 mr-2">{kick.order + 1}.</span>
                         {kick.team === yourSide ? playerName(kick.scorerId) : t('shootoutModal.opponent', 'Opponent')}
                       </span>
                       <span className="flex items-center gap-3">
-                        <span className={kick.scored ? 'text-green-400' : 'text-slate-500'}>
+                        <span className={kick.scored ? 'text-green-400' : 'text-slate-400'}>
                           {kick.scored ? t('shootoutModal.scored', 'Scored') : t('shootoutModal.missed', 'Missed')}
                         </span>
                         <button
                           type="button"
                           onClick={() => removeKick(kick.id)}
                           aria-label={t('shootoutModal.removeKick', 'Remove kick')}
-                          className="text-slate-500 hover:text-red-400 text-lg leading-none"
+                          className="text-slate-400 hover:text-red-400 text-lg leading-none"
                         >
                           ×
                         </button>

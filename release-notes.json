@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Improved readability in sunlight: brightened faint secondary text in the timer's play-time history, the penalty-shootout log, and the load-game screen"
+      ],
+      "fi": [
+        "Parannettu luettavuutta auringonvalossa: kirkastettu haalistunut toissijainen teksti ajastimen peliaikahistoriassa, rangaistuspotkulokissa ja tallennettujen pelien näkymässä"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Behind-the-scenes: noted two future feature ideas in the roadmap (game captains; per-game position history)"
       ],
       "fi": [
