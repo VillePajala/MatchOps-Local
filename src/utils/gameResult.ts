@@ -11,9 +11,7 @@ export interface ResolvableGame {
   homeScore: number;
   awayScore: number;
   homeOrAway: 'home' | 'away';
-  /** Whether the game is marked as decided by penalties (gates the shootout tie-break). */
-  wentToPenalties?: boolean;
-  /** Present only for games decided by a penalty shootout. */
+  /** The logged penalty-shootout kicks; a decided shootout breaks a level score. */
   shootoutKicks?: ShootoutKick[];
 }
 
@@ -26,15 +24,14 @@ export interface ResolvableGame {
  * Rules:
  * 1. Unequal score (which already includes any extra-time goals — OT goals are
  *    logged as normal goals) → win/loss by side.
- * 2. Level score, the game is marked decided by penalties (`wentToPenalties`),
- *    **and** the shootout has a winner → win/loss from the shootout winner. A
- *    penalty win counts as a Win (project decision). Gating on the flag means
- *    un-marking "decided by penalties" reverts the game to a draw even if the
- *    logged kicks are kept.
- * 3. Otherwise (incl. a tied/incomplete shootout, or not marked) → Draw.
+ * 2. Level score **and** a decided penalty shootout (logged kicks with a winner)
+ *    → win/loss from the shootout winner. A penalty win counts as a Win. The
+ *    kicks themselves are the authority — there is no separate flag to keep in
+ *    sync — so a recorded shootout always resolves the result.
+ * 3. Otherwise (incl. a tied/incomplete shootout, or no kicks) → Draw.
  *
- * Back-compat: for games without `shootoutKicks` this is identical to the old
- * inline comparisons, so existing stats are unchanged.
+ * Back-compat: games without `shootoutKicks` resolve exactly like the old inline
+ * comparisons, so existing stats are unchanged.
  */
 export const resolveGameResult = (game: ResolvableGame): GameResult => {
   const { homeScore, awayScore, homeOrAway } = game;
@@ -43,12 +40,9 @@ export const resolveGameResult = (game: ResolvableGame): GameResult => {
   if (homeScore > awayScore) return weAreHome ? 'W' : 'L';
   if (awayScore > homeScore) return weAreHome ? 'L' : 'W';
 
-  // Level score — a penalty shootout breaks the tie, but only when the game is
-  // marked as decided by penalties (the coach's authority).
-  if (game.wentToPenalties) {
-    const winner = getShootoutWinner(game.shootoutKicks);
-    if (winner) return (winner === 'home') === weAreHome ? 'W' : 'L';
-  }
+  // Level score — a decided penalty shootout breaks the tie.
+  const winner = getShootoutWinner(game.shootoutKicks);
+  if (winner) return (winner === 'home') === weAreHome ? 'W' : 'L';
 
   return 'D';
 };
