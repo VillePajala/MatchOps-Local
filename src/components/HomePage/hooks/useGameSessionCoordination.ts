@@ -24,7 +24,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
-import type { AppState } from '@/types';
+import type { AppState, ShootoutKick } from '@/types';
 import logger from '@/utils/logger';
 
 /**
@@ -90,6 +90,7 @@ export interface UseGameSessionCoordinationReturn {
     setGender: (gender: import('@/types').Gender | undefined) => void;
     setWentToOvertime: (value: boolean) => void;
     setWentToPenalties: (value: boolean) => void;
+    setShootoutKicks: (kicks: ShootoutKick[]) => void;
     setShowPositionLabels: (value: boolean) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
   };
@@ -295,6 +296,7 @@ export function useGameSessionCoordination({
       customLeagueName: state.customLeagueName,
       wentToOvertime: state.wentToOvertime,
       wentToPenalties: state.wentToPenalties,
+      shootoutKicks: state.shootoutKicks,
       tournamentSeriesId: state.tournamentSeriesId,
     } satisfies Partial<AppState>;
     return slice;
@@ -445,6 +447,10 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_WENT_TO_PENALTIES', payload: value });
   }, [dispatchGameSession]);
 
+  const handleSetShootoutKicks = useCallback((kicks: ShootoutKick[]) => {
+    dispatchGameSession({ type: 'SET_SHOOTOUT_KICKS', payload: kicks });
+  }, [dispatchGameSession]);
+
   const handleSetShowPositionLabels = useCallback((value: boolean) => {
     dispatchGameSession({ type: 'SET_SHOW_POSITION_LABELS', payload: value });
   }, [dispatchGameSession]);
@@ -520,6 +526,7 @@ export function useGameSessionCoordination({
         customLeagueName: state.customLeagueName,
         wentToOvertime: state.wentToOvertime,
         wentToPenalties: state.wentToPenalties,
+        shootoutKicks: state.shootoutKicks,
         tournamentSeriesId: state.tournamentSeriesId,
       }
     });
@@ -575,6 +582,7 @@ export function useGameSessionCoordination({
       setGender: handleSetGender,
       setWentToOvertime: handleSetWentToOvertime,
       setWentToPenalties: handleSetWentToPenalties,
+      setShootoutKicks: handleSetShootoutKicks,
       setShowPositionLabels: handleSetShowPositionLabels,
       setGamePersonnel: handleSetGamePersonnel,
     },

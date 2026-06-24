@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "You can now record a penalty shootout for a game: log each kick (your shooters by name, opponent kicks too) in Game Settings. Games decided on penalties now correctly count as a win or loss, and the shootout score shows in stats."
+      ],
+      "fi": [
+        "Voit nyt kirjata ottelun rangaistuspotkukilpailun: merkitse jokainen potku (omat potkaisijat nimellä, myös vastustajan potkut) Otteluasetuksissa. Rangaistuspotkuilla ratkaistut ottelut lasketaan nyt oikein voitoksi tai tappioksi, ja potkukilpailun tulos näkyy tilastoissa."
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Behind-the-scenes: storage support for penalty-shootout data (no visible change yet)"
       ],
       "fi": [

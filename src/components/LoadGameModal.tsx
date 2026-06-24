@@ -400,6 +400,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               homeScore: displayHomeScore,
               awayScore: displayAwayScore,
               homeOrAway: game.homeOrAway,
+              wentToPenalties: game.wentToPenalties,
               shootoutKicks: game.shootoutKicks,
             });
             const isDraw = displayResult === 'D';

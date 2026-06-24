@@ -29,7 +29,7 @@ import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import type { UseGamePersistenceReturn } from './useGamePersistence';
 import type { UseTimerManagementReturn } from './useTimerManagement';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
-import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState, UpdateGameDetailsMutationVariables } from '@/types';
+import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState, UpdateGameDetailsMutationVariables, ShootoutKick } from '@/types';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 /**
@@ -155,6 +155,7 @@ export interface ModalHandlers {
   handleSetGender: (gender: import('@/types').Gender | undefined) => void;
   handleSetWentToOvertime: (value: boolean) => void;
   handleSetWentToPenalties: (value: boolean) => void;
+  handleSetShootoutKicks: (kicks: ShootoutKick[]) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
@@ -305,6 +306,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetGender,
     handleSetWentToOvertime,
     handleSetWentToPenalties,
+    handleSetShootoutKicks,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
     handleSetGamePersonnel,
@@ -619,6 +621,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setGender: handleSetGender,
       setWentToOvertime: handleSetWentToOvertime,
       setWentToPenalties: handleSetWentToPenalties,
+      setShootoutKicks: handleSetShootoutKicks,
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,

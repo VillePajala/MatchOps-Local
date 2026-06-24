@@ -6,7 +6,9 @@ import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
-import type { GameEvent } from '@/types/game';
+import type { GameEvent, ShootoutKick } from '@/types/game';
+import ShootoutModal from './ShootoutModal';
+import { getShootoutTally } from '@/utils/shootout';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -132,6 +134,8 @@ export interface GameSettingsModalProps {
   wentToPenalties?: boolean;
   onWentToOvertimeChange: (value: boolean) => void;
   onWentToPenaltiesChange: (value: boolean) => void;
+  shootoutKicks?: ShootoutKick[];
+  onShootoutKicksChange: (kicks: ShootoutKick[]) => void;
   gameType?: GameType;
   onGameTypeChange: (gameType: GameType) => void;
   gender?: Gender;
@@ -238,6 +242,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   wentToPenalties = false,
   onWentToOvertimeChange,
   onWentToPenaltiesChange,
+  shootoutKicks,
+  onShootoutKicksChange,
   gameType = 'soccer',
   onGameTypeChange,
   gender,
@@ -458,6 +464,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // State for event editing within the modal
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const [editGoalTime, setEditGoalTime] = useState<string>('');
   const [editGoalScorerId, setEditGoalScorerId] = useState<string>('');
   const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
@@ -525,13 +532,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && inlineEditingField === null && !showDeleteEventConfirm && editingGoalId === null) {
+      if (e.key === 'Escape' && inlineEditingField === null && !showDeleteEventConfirm && editingGoalId === null && !isShootoutModalOpen) {
         onClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId]);
+  }, [isOpen, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId, isShootoutModalOpen]);
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -2374,6 +2381,23 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   />
                   <span className="ml-2">{t('gameSettingsModal.wentToPenalties', 'Decided by penalties')}</span>
                 </label>
+                {/* Penalty shootout — log kicks; the result is derived and breaks a level score */}
+                <button
+                  type="button"
+                  onClick={() => setIsShootoutModalOpen(true)}
+                  className="inline-flex items-center text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  {(() => {
+                    const kicks = shootoutKicks ?? [];
+                    if (kicks.length === 0) {
+                      return t('gameSettingsModal.recordShootout', 'Record penalty shootout →');
+                    }
+                    const tally = getShootoutTally(kicks);
+                    const yourSide = homeOrAway === 'away' ? 'away' : 'home';
+                    const oppSide = yourSide === 'home' ? 'away' : 'home';
+                    return `${t('gameSettingsModal.shootoutLabel', 'Shootout')}: ${tally[yourSide]}-${tally[oppSide]} ${t('gameSettingsModal.editShootout', '(edit)')}`;
+                  })()}
+                </button>
               </div>
             </div>
 
@@ -2582,6 +2606,26 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
         isConfirming={isProcessing}
+      />
+      <ShootoutModal
+        isOpen={isShootoutModalOpen}
+        onClose={() => setIsShootoutModalOpen(false)}
+        availablePlayers={availablePlayers}
+        initialKicks={shootoutKicks ?? []}
+        homeOrAway={homeOrAway}
+        onSave={(kicks) => {
+          onShootoutKicksChange(kicks);
+          const updates: Partial<AppState> = { shootoutKicks: kicks };
+          // Recording a shootout marks the game as decided by penalties, but we
+          // only auto-CHECK it — we never silently uncheck the coach's flag, and
+          // the result gates on this flag (see resolveGameResult), so they stay
+          // in control of whether the shootout counts.
+          if (kicks.length > 0 && !wentToPenalties) {
+            onWentToPenaltiesChange(true);
+            updates.wentToPenalties = true;
+          }
+          mutateGameDetails(updates, { source: 'stateSync' });
+        }}
       />
     </div>
   );

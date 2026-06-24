@@ -1037,6 +1037,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         tournamentSeriesId: gameData.tournamentSeriesId,
         wentToOvertime: gameData.wentToOvertime,
         wentToPenalties: gameData.wentToPenalties,
+        shootoutKicks: gameData.shootoutKicks,
       };
 
       // Apply the boot-time clock correction (one-shot). Only for the
@@ -1955,6 +1956,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleSetGender = sessionCoordination.handlers.setGender;
   const handleSetWentToOvertime = sessionCoordination.handlers.setWentToOvertime;
   const handleSetWentToPenalties = sessionCoordination.handlers.setWentToPenalties;
+  const handleSetShootoutKicks = sessionCoordination.handlers.setShootoutKicks;
   const handleSetShowPositionLabels = sessionCoordination.handlers.setShowPositionLabels;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
@@ -2487,6 +2489,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetGender,
       handleSetWentToOvertime,
       handleSetWentToPenalties,
+      handleSetShootoutKicks,
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
       handleSetGamePersonnel,

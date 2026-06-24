@@ -18,6 +18,8 @@ interface GameInfoCardProps {
   periodDurationMinutes?: number;
   wentToOvertime?: boolean;
   wentToPenalties?: boolean;
+  /** Penalty-shootout tally (home-away), if the game had a shootout. */
+  shootoutScore?: { home: number; away: number };
 }
 
 export function GameInfoCard({
@@ -32,6 +34,7 @@ export function GameInfoCard({
   periodDurationMinutes,
   wentToOvertime,
   wentToPenalties,
+  shootoutScore,
 }: GameInfoCardProps) {
   const { t } = useTranslation();
 
@@ -52,7 +55,9 @@ export function GameInfoCard({
                 <span className="text-sm text-slate-400 font-medium ml-2">
                   ({[
                     wentToOvertime && t('gameResult.overtime', 'OT'),
-                    wentToPenalties && t('gameResult.penalties', 'PKs'),
+                    wentToPenalties && (shootoutScore
+                      ? `${shootoutScore.home}-${shootoutScore.away} ${t('gameResult.penalties', 'PKs')}`
+                      : t('gameResult.penalties', 'PKs')),
                   ].filter(Boolean).join(', ')})
                 </span>
               )}

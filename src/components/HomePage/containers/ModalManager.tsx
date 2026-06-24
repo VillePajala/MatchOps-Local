@@ -31,6 +31,7 @@ import type {
   Personnel,
   PlayerAssessment,
   AppState,
+  ShootoutKick,
   UpdateGameDetailsMutationVariables,
 } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
@@ -192,6 +193,7 @@ interface ModalManagerHandlers {
   setGender: (gender: import('@/types').Gender | undefined) => void;
   setWentToOvertime: (value: boolean) => void;
   setWentToPenalties: (value: boolean) => void;
+  setShootoutKicks: (kicks: ShootoutKick[]) => void;
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
@@ -300,6 +302,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
             periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
             wentToOvertime={data.gameSessionState.wentToOvertime}
             wentToPenalties={data.gameSessionState.wentToPenalties}
+            shootoutKicks={data.gameSessionState.shootoutKicks}
             availablePlayers={data.playersForCurrentGame}
             gameEvents={data.gameSessionState.gameEvents}
             gameNotes={data.gameSessionState.gameNotes}
@@ -456,6 +459,8 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           wentToPenalties={data.gameSessionState.wentToPenalties}
           onWentToOvertimeChange={handlers.setWentToOvertime}
           onWentToPenaltiesChange={handlers.setWentToPenalties}
+          shootoutKicks={data.gameSessionState.shootoutKicks}
+          onShootoutKicksChange={handlers.setShootoutKicks}
           gameType={data.gameSessionState.gameType}
           onGameTypeChange={handlers.setGameType}
           gender={data.gameSessionState.gender}

@@ -8,6 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team, Personnel, PlayerStatAdjustment } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
+import type { ShootoutKick } from '@/types/game';
+import { getShootoutTally } from '@/utils/shootout';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
 import { resolveGameResult } from '@/utils/gameResult';
@@ -75,6 +77,7 @@ interface GameStatsModalProps {
   periodDurationMinutes?: number;
   wentToOvertime?: boolean;
   wentToPenalties?: boolean;
+  shootoutKicks?: ShootoutKick[];
   availablePlayers: Player[];
   gameEvents: GameEvent[];
   gameNotes?: string;
@@ -110,6 +113,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   periodDurationMinutes,
   wentToOvertime,
   wentToPenalties,
+  shootoutKicks,
   availablePlayers,
   gameEvents,
   gameNotes = '',
@@ -989,6 +993,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       periodDurationMinutes={periodDurationMinutes}
                       wentToOvertime={wentToOvertime}
                       wentToPenalties={wentToPenalties}
+                      shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                     />
                   )}
 

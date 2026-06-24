@@ -221,6 +221,7 @@ const createProps = (): ModalManagerProps => ({
     manageTeamRosterFromNewGame: noop,
     setWentToOvertime: noop,
     setWentToPenalties: noop,
+    setShootoutKicks: noop,
   },
 });
 

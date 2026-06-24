@@ -907,7 +907,10 @@
     "gameConfigLabel": "Game Configuration",
     "leagueLabel": "League",
     "selectLeague": "-- Select League --",
-    "customLeaguePlaceholder": "Enter league name"
+    "customLeaguePlaceholder": "Enter league name",
+    "recordShootout": "Record penalty shootout →",
+    "shootoutLabel": "Shootout",
+    "editShootout": "(edit)"
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",
@@ -2877,5 +2880,22 @@
     "payoff": "Games started from a team pull in its roster and competition automatically — and your stats roll up by player, team, and competition.",
     "showMeHow": "Show me how",
     "dismiss": "Dismiss"
+  },
+  "shootoutModal": {
+    "title": "Penalty Shootout",
+    "you": "You",
+    "opponent": "Opponent",
+    "tied": "Tied — keep logging until decided",
+    "youWin": "You win the shootout",
+    "youLose": "Opponent wins the shootout",
+    "yourKick": "Your kick",
+    "opponentKick": "Opponent kick",
+    "unknownShooter": "Shooter (optional)",
+    "yourPlayer": "Your player",
+    "scored": "Scored",
+    "missed": "Missed",
+    "kickLog": "Kicks",
+    "noKicks": "No kicks logged yet.",
+    "removeKick": "Remove kick"
   }
 }

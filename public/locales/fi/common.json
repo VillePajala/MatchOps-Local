@@ -1383,7 +1383,10 @@
     "gameConfigLabel": "Pelin asetukset",
     "leagueLabel": "Sarja",
     "selectLeague": "-- Valitse sarja --",
-    "customLeaguePlaceholder": "Kirjoita sarjan nimi"
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi",
+    "recordShootout": "Kirjaa rangaistuspotkukilpailu →",
+    "shootoutLabel": "Rangaistuspotkut",
+    "editShootout": "(muokkaa)"
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
@@ -2877,5 +2880,22 @@
     "payoff": "Joukkueesta aloitetut ottelut tuovat sen kokoonpanon ja kilpailun automaattisesti — ja tilastosi kootaan pelaaja-, joukkue- ja kilpailutasolla.",
     "showMeHow": "Näytä miten",
     "dismiss": "Ohita"
+  },
+  "shootoutModal": {
+    "title": "Rangaistuspotkukilpailu",
+    "you": "Me",
+    "opponent": "Vastustaja",
+    "tied": "Tasan — jatka kirjaamista kunnes ratkeaa",
+    "youWin": "Voitatte rangaistuspotkukilpailun",
+    "youLose": "Vastustaja voittaa rangaistuspotkukilpailun",
+    "yourKick": "Oma potku",
+    "opponentKick": "Vastustajan potku",
+    "unknownShooter": "Potkaisija (valinnainen)",
+    "yourPlayer": "Oma pelaaja",
+    "scored": "Maali",
+    "missed": "Ohi",
+    "kickLog": "Potkut",
+    "noKicks": "Ei vielä kirjattuja potkuja.",
+    "removeKick": "Poista potku"
   }
 }
