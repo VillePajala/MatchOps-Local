@@ -4,6 +4,15 @@
     {
       "date": "2026-06-24",
       "en": [
+        "Fixed the \"Went to overtime\" and \"Decided by penalties\" labels showing in English in the Finnish app"
+      ],
+      "fi": [
+        "Korjattu \"Meni jatkoajalle\"- ja \"Ratkaistu rangaistuspotkuilla\" -tekstit, jotka näkyivät englanniksi suomenkielisessä sovelluksessa"
+      ]
+    },
+    {
+      "date": "2026-06-24",
+      "en": [
         "Behind-the-scenes: roadmap updated (overtime/penalties shipped; corrected stale entries)"
       ],
       "fi": [
