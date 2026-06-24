@@ -21,7 +21,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { getAuthService, getDataStore, isDataStoreInitialized } from '@/datastore/factory';
+import { getAuthService, getDataStore, isDataStoreInitialized, closeDataStore } from '@/datastore/factory';
 import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
 import { POLICY_VERSION } from '@/config/constants';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
@@ -972,9 +972,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Erase the on-device databases scoped to the deleted account: the data mirror
       // and the sync queue. This honors the erasure request (a readable copy must not
       // survive on the device) and removes the otherwise-orphaned, unreachable mirror.
-      // Runs AFTER the state clear above so the sign-out teardown has begun closing the
-      // adapter, letting the delete complete. The legacy local-mode DB is left intact.
+      // The legacy local-mode DB is left intact.
       if (deletedUserId) {
+        // CRITICAL: close the DataStore FIRST so the open IndexedDB connections
+        // (the user data mirror + the sync-queue DB) are released. Nothing else in
+        // this flow closes the adapter, and indexedDB.deleteDatabase() against an open
+        // connection is blocked — deleteUserLocalDatabases treats that block as
+        // "done" and resolves, so without this the erasure would silently never
+        // complete and the local copy would survive. force:true because we are
+        // deleting the account, so discarding any pending sync is intended.
+        // If the close itself fails, the delete below is still attempted
+        // best-effort (it may then be blocked and fall through to its timeout).
+        try {
+          await closeDataStore({ force: true });
+        } catch (error) {
+          logger.warn('[AuthProvider] Failed to close DataStore before local deletion:', error);
+        }
         try {
           await deleteUserLocalDatabases(deletedUserId);
         } catch (error) {
