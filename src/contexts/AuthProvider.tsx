@@ -981,6 +981,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // "done" and resolves, so without this the erasure would silently never
         // complete and the local copy would survive. force:true because we are
         // deleting the account, so discarding any pending sync is intended.
+        // If the close itself fails, the delete below is still attempted
+        // best-effort (it may then be blocked and fall through to its timeout).
         try {
           await closeDataStore({ force: true });
         } catch (error) {

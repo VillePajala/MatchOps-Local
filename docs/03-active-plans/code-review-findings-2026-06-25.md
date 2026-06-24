@@ -10,7 +10,7 @@ Priority order: **data-loss / corruption / deletion / auth first**, then logic, 
 
 ## 🔴 HIGH
 
-### H1 · Account deletion never erases the local database (erasure silently fails)
+### H1 · Account deletion never erases the local database (erasure silently fails) — ✅ Fixed in #520
 **`src/contexts/AuthProvider.tsx:972-983`** + `src/datastore/userDatabase.ts:169-217`, `src/datastore/factory.ts:414-434`
 *(merges two confirmed findings with the same root cause.)*
 `deleteAccount()` calls `deleteUserLocalDatabases()` but never closes the open DataStore connection (no `closeDataStore()`/`resetFactory()`). `indexedDB.deleteDatabase()` on an **open** connection fires `onblocked`, which the code treats as success and resolves (3s timeout also resolves anyway) — so the delete never completes. The local mirror of all the user's data (`matchops_user_{id}`, `matchops_sync_queue_{id}`) survives on disk after they delete their account. The in-code comment claiming "sign-out teardown has begun closing the adapter" is factually false for this path. **Triggers on every cloud-mode account deletion.**

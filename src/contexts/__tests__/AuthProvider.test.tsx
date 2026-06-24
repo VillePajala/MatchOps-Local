@@ -353,6 +353,32 @@ describe('AuthProvider', () => {
         .toBeLessThan(deleteUserLocalDatabases.mock.invocationCallOrder[0]);
     });
 
+    it('still attempts the local DB delete (best-effort) if closing the DataStore fails', async () => {
+      // The close is the fix, but the delete must remain best-effort: a close
+      // failure must not skip the erasure attempt entirely.
+      const { closeDataStore } = require('@/datastore/factory');
+      const { deleteUserLocalDatabases } = require('@/datastore/userDatabase');
+      closeDataStore.mockRejectedValueOnce(new Error('close failed'));
+
+      render(
+        <AuthProvider>
+          <DeleteAccountTester />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('delete-account'));
+      });
+
+      await waitFor(() => {
+        expect(deleteUserLocalDatabases).toHaveBeenCalledWith('cloud-user-123');
+      });
+    });
+
     it('registers exactly one auth listener and unsubscribes it on unmount (no leak)', async () => {
       const { unmount } = render(
         <AuthProvider>
