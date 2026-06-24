@@ -37,6 +37,11 @@ describe('ShootoutModal', () => {
     expect(screen.queryByText('Penalty Shootout')).not.toBeInTheDocument();
   });
 
+  it('shows usage instructions so repeated logging is obvious', () => {
+    renderModal();
+    expect(screen.getByText(/each tap adds a kick/i)).toBeInTheDocument();
+  });
+
   it('builds the tally from logged kicks and shows the winner', () => {
     renderModal();
     // Your section is rendered before the opponent section, so index 0 = yours.

@@ -5,6 +5,7 @@ import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } f
 import SyncStatusIndicator from '@/components/SyncStatusIndicator';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
+import ShootoutModal from '@/components/ShootoutModal';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
@@ -16,7 +17,8 @@ import type {
   Tournament,
   TacticalDisc,
   Point,
-  AppState
+  AppState,
+  ShootoutKick
 } from '@/types';
 import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
@@ -135,6 +137,9 @@ export interface FieldContainerProps {
   onTeamNameChange: (name: string) => void;
   onOpponentNameChange: (name: string) => void;
   onTogglePositionLabels: (value: boolean) => void;
+  onWentToOvertimeChange: (value: boolean) => void;
+  onShootoutKicksChange: (kicks: ShootoutKick[]) => void;
+  onWentToPenaltiesChange: (value: boolean) => void;
   interactions: FieldInteractions;
   timerInteractions: TimerInteractions;
 }
@@ -158,11 +163,15 @@ export function FieldContainer({
   onTeamNameChange,
   onOpponentNameChange,
   onTogglePositionLabels,
+  onWentToOvertimeChange,
+  onShootoutKicksChange,
+  onWentToPenaltiesChange,
   interactions,
   timerInteractions,
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
   // Track if user has dismissed the first-game setup overlay
@@ -259,10 +268,26 @@ export function FieldContainer({
           gameStatus={gameSessionState.gameStatus}
           onOpponentNameChange={onOpponentNameChange}
           onTeamNameChange={onTeamNameChange}
+          wentToOvertime={gameSessionState.wentToOvertime}
+          onWentToOvertimeChange={onWentToOvertimeChange}
+          onRecordShootout={() => setIsShootoutModalOpen(true)}
           onClose={toggleLargeOverlay}
           isLoaded={tmInitialLoad}
         />
       )}
+
+      <ShootoutModal
+        isOpen={isShootoutModalOpen}
+        onClose={() => setIsShootoutModalOpen(false)}
+        availablePlayers={availablePlayers}
+        initialKicks={gameSessionState.shootoutKicks ?? []}
+        homeOrAway={gameSessionState.homeOrAway}
+        onSave={(kicks) => {
+          onShootoutKicksChange(kicks);
+          // Recording a shootout marks the game decided by penalties (auto-check only).
+          if (kicks.length > 0) onWentToPenaltiesChange(true);
+        }}
+      />
 
       <ErrorBoundary
         fallback={

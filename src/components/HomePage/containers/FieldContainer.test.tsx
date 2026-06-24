@@ -196,6 +196,9 @@ const baseProps = () => ({
     },
   },
   onTogglePositionLabels: jest.fn(),
+  onWentToOvertimeChange: jest.fn(),
+  onShootoutKicksChange: jest.fn(),
+  onWentToPenaltiesChange: jest.fn(),
   timerInteractions: {
     toggleLargeOverlay: jest.fn(),
     toggleGoalLogModal: jest.fn(),

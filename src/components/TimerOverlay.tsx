@@ -34,6 +34,10 @@ interface TimerOverlayProps {
   lastSubTime: number | null;
   onOpponentNameChange: (name: string) => void;
   onTeamNameChange: (name: string) => void;
+  /** Overtime / penalties — reachable from the overlay once the game has started */
+  wentToOvertime?: boolean;
+  onWentToOvertimeChange?: (value: boolean) => void;
+  onRecordShootout?: () => void;
   onClose?: () => void;
   isLoaded: boolean;
 }
@@ -63,6 +67,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   lastSubTime = null,
   onOpponentNameChange = () => { logger.warn('onOpponentNameChange handler not provided'); },
   onTeamNameChange = () => { logger.warn('onTeamNameChange handler not provided'); },
+  wentToOvertime = false,
+  onWentToOvertimeChange = () => {},
+  onRecordShootout = () => {},
   onClose,
   isLoaded,
 }) => {
@@ -358,6 +365,28 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Overtime / Penalties — reachable once the game has started, NOT gated on
+              game-end or score (the timer is often behind reality at the real finish). */}
+          {gameStatus !== 'notStarted' && (
+            <div className="flex flex-col gap-2 pt-2 border-t border-slate-700/60">
+              <label className="inline-flex items-center justify-center text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={!!wentToOvertime}
+                  onChange={(e) => onWentToOvertimeChange(e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500"
+                />
+                <span className="ml-2">{t('timerOverlay.wentToOvertime', 'Went to overtime')}</span>
+              </label>
+              <button
+                onClick={onRecordShootout}
+                className={`${secondaryActionStyle} w-full`}
+              >
+                {t('timerOverlay.recordShootout', 'Record penalty shootout')}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Play Time History - show recent items only to reduce clutter */}

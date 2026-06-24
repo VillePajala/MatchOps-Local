@@ -91,10 +91,13 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
     >
       <div className="bg-slate-800 shadow-xl flex flex-col border-0 overflow-hidden h-full w-full relative">
         {/* Header */}
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 shrink-0">
+        <div className="flex flex-col items-center pt-10 pb-4 px-6 shrink-0">
           <h2 id="shootout-modal-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {t('shootoutModal.title', 'Penalty Shootout')}
           </h2>
+          <p className="text-sm text-slate-400 text-center mt-2 max-w-sm">
+            {t('shootoutModal.instructions', 'Log every kick with the buttons below — each tap adds a kick to the list and updates the score. Use the same controls for every shooter until it’s decided.')}
+          </p>
         </div>
 
         {/* Scrollable body */}
@@ -173,34 +176,42 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
             </div>
           </div>
 
-          {/* Kick log */}
+          {/* Kick log — newest first, latest highlighted, so each tap visibly adds a row */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-300 mb-2">{t('shootoutModal.kickLog', 'Kicks')}</h3>
+            <h3 className="text-sm font-semibold text-slate-300 mb-2">
+              {t('shootoutModal.kickLog', 'Kicks')}{kicks.length > 0 ? ` (${kicks.length})` : ''}
+            </h3>
             {kicks.length === 0 ? (
               <p className="text-sm text-slate-500">{t('shootoutModal.noKicks', 'No kicks logged yet.')}</p>
             ) : (
               <ul className="space-y-1">
-                {kicks.map((kick, i) => (
-                  <li key={kick.id} className="flex items-center justify-between text-sm bg-slate-900/40 rounded px-3 py-1.5">
-                    <span className="text-slate-200">
-                      <span className="text-slate-500 mr-2">{i + 1}.</span>
-                      {kick.team === yourSide ? playerName(kick.scorerId) : t('shootoutModal.opponent', 'Opponent')}
-                    </span>
-                    <span className="flex items-center gap-3">
-                      <span className={kick.scored ? 'text-green-400' : 'text-slate-500'}>
-                        {kick.scored ? t('shootoutModal.scored', 'Scored') : t('shootoutModal.missed', 'Missed')}
+                {[...kicks].reverse().map((kick) => {
+                  const isNewest = kick.order === kicks.length - 1;
+                  return (
+                    <li
+                      key={kick.id}
+                      className={`flex items-center justify-between text-sm rounded px-3 py-1.5 transition-colors ${isNewest ? 'bg-indigo-500/15 ring-1 ring-indigo-400/40' : 'bg-slate-900/40'}`}
+                    >
+                      <span className={isNewest ? 'text-white' : 'text-slate-200'}>
+                        <span className="text-slate-500 mr-2">{kick.order + 1}.</span>
+                        {kick.team === yourSide ? playerName(kick.scorerId) : t('shootoutModal.opponent', 'Opponent')}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => removeKick(kick.id)}
-                        aria-label={t('shootoutModal.removeKick', 'Remove kick')}
-                        className="text-slate-500 hover:text-red-400 text-lg leading-none"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  </li>
-                ))}
+                      <span className="flex items-center gap-3">
+                        <span className={kick.scored ? 'text-green-400' : 'text-slate-500'}>
+                          {kick.scored ? t('shootoutModal.scored', 'Scored') : t('shootoutModal.missed', 'Missed')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeKick(kick.id)}
+                          aria-label={t('shootoutModal.removeKick', 'Remove kick')}
+                          className="text-slate-500 hover:text-red-400 text-lg leading-none"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

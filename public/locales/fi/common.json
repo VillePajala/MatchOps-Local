@@ -308,7 +308,9 @@
     "periodShort": "E",
     "fullTime": "LP",
     "decreaseInterval": "Lyhennä aikaväliä",
-    "increaseInterval": "Pidennä aikaväliä"
+    "increaseInterval": "Pidennä aikaväliä",
+    "wentToOvertime": "Meni jatkoajalle",
+    "recordShootout": "Kirjaa rangaistuspotkukilpailu"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
@@ -2898,6 +2900,7 @@
     "missed": "Ohi",
     "kickLog": "Potkut",
     "noKicks": "Ei vielä kirjattuja potkuja.",
-    "removeKick": "Poista potku"
+    "removeKick": "Poista potku",
+    "instructions": "Kirjaa jokainen potku alla olevilla painikkeilla — jokainen napautus lisää potkun listaan ja päivittää tuloksen. Käytä samoja painikkeita jokaiselle potkaisijalle kunnes kilpailu ratkeaa."
   }
 }

@@ -378,7 +378,9 @@
     "fullTime": "FT",
     "editOpponentNameTitle": "Click to edit opponent name",
     "decreaseInterval": "Decrease interval",
-    "increaseInterval": "Increase interval"
+    "increaseInterval": "Increase interval",
+    "wentToOvertime": "Went to overtime",
+    "recordShootout": "Record penalty shootout"
   },
   "instructionsModal": {
     "title": "How It Works",
@@ -2898,6 +2900,7 @@
     "missed": "Missed",
     "kickLog": "Kicks",
     "noKicks": "No kicks logged yet.",
-    "removeKick": "Remove kick"
+    "removeKick": "Remove kick",
+    "instructions": "Log every kick with the buttons below — each tap adds a kick to the list and updates the score. Use the same controls for every shooter until it's decided."
   }
 }
