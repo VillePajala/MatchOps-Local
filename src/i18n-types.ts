@@ -784,6 +784,8 @@ export type TranslationKey =
   | 'gameSettingsModal.turnaus'
   | 'gameSettingsModal.unknownPlayer'
   | 'gameSettingsModal.unplayedToggle'
+  | 'gameSettingsModal.wentToOvertime'
+  | 'gameSettingsModal.wentToPenalties'
   | 'gameStats.personnelEmpty'
   | 'gameStats.personnelSectionTitle'
   | 'gameStatsModal.activeFiltersHint'

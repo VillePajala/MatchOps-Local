@@ -910,7 +910,9 @@
     "customLeaguePlaceholder": "Enter league name",
     "recordShootout": "Record penalty shootout →",
     "shootoutLabel": "Shootout",
-    "editShootout": "(edit)"
+    "editShootout": "(edit)",
+    "wentToOvertime": "Went to overtime",
+    "wentToPenalties": "Decided by penalties"
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",

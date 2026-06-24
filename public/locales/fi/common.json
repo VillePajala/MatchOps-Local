@@ -1386,7 +1386,9 @@
     "customLeaguePlaceholder": "Kirjoita sarjan nimi",
     "recordShootout": "Kirjaa rangaistuspotkukilpailu →",
     "shootoutLabel": "Rangaistuspotkut",
-    "editShootout": "(muokkaa)"
+    "editShootout": "(muokkaa)",
+    "wentToOvertime": "Meni jatkoajalle",
+    "wentToPenalties": "Ratkaistu rangaistuspotkuilla"
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
