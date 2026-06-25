@@ -8,6 +8,7 @@ import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
 import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument } from 'react-icons/hi2';
 import { importFullBackup } from '@/utils/fullBackup';
+import type { SnapshotMeta } from '@/utils/backupSnapshots';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 // backendConfig import removed — migration flag is now handled entirely by importFullBackup
@@ -136,6 +137,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [resyncConfirm, setResyncConfirm] = useState('');
   const [factoryResetConfirm, setFactoryResetConfirm] = useState('');
   const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
+  // Data Safety - Layer 1: automatic restore points (loaded lazily when modal opens).
+  // null = still loading (avoids briefly flashing the "no restore points" state).
+  const [restorePoints, setRestorePoints] = useState<SnapshotMeta[] | null>(null);
   const { deleteAccount, mode: authMode } = useAuth();
 
   // Set initial tab when modal opens
@@ -144,6 +148,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       setActiveTab(initialTab);
     }
   }, [isOpen, initialTab]);
+
+  // Data Safety - Layer 1: load the list of automatic restore points when the
+  // modal opens. Best-effort and lazy (dynamic import keeps IndexedDB backup code
+  // out of the initial bundle); a failure just shows an empty list.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setRestorePoints(null); // show the loading state on each open
+    (async () => {
+      try {
+        const { listSnapshots } = await import('@/utils/backupSnapshots');
+        const list = await listSnapshots(userId);
+        if (!cancelled) setRestorePoints(list);
+      } catch (error) {
+        logger.warn('[SettingsModal] Failed to load restore points (non-fatal):', error);
+        if (!cancelled) setRestorePoints([]); // degrade to empty rather than spin forever
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, userId]);
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {
@@ -267,7 +291,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleRestore = () => {
     restoreFileInputRef.current?.click();
   };
-  
+
+  // Restore from an automatic restore point: load its JSON and route it through the
+  // SAME confirm + restore pipeline as a file restore (which snapshots the current
+  // state first, so this is itself undoable).
+  const handleRestoreSnapshot = async (id: string) => {
+    try {
+      const { getSnapshotJson } = await import('@/utils/backupSnapshots');
+      const json = await getSnapshotJson(userId, id);
+      if (!json) {
+        showToast(t('fullBackup.restoreFailed', 'Failed to restore backup. The file may be corrupted or invalid.'), 'error');
+        return;
+      }
+      setPendingRestoreContent(json);
+      setShowRestoreConfirm(true);
+    } catch (error) {
+      logger.error('[SettingsModal] Failed to load restore point:', error);
+      showToast(t('fullBackup.restoreError', 'An error occurred while restoring the backup.'), 'error');
+    }
+  };
+
+  // Localized label for why a snapshot was taken.
+  const restorePointReasonLabel = (reason: SnapshotMeta['reason']): string => {
+    switch (reason) {
+      case 'pre-clear': return t('settingsModal.restorePoints.reasonPreClear', 'Before reset');
+      case 'pre-restore': return t('settingsModal.restorePoints.reasonPreRestore', 'Before restore');
+      case 'manual': return t('settingsModal.restorePoints.reasonManual', 'Manual');
+      case 'auto':
+      default: return t('settingsModal.restorePoints.reasonAuto', 'Automatic');
+    }
+  };
+
   const handleRestoreFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -747,6 +801,53 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <HiOutlineDocumentArrowUp className="h-5 w-5" />
                   </button>
                 </div>
+              </div>
+
+              {/* Automatic Restore Points (Data Safety - Layer 1) */}
+              <div className="pt-3 mt-1 border-t border-slate-700/60 space-y-2">
+                <div>
+                  <p className="text-sm font-medium text-slate-200">
+                    {t('settingsModal.restorePoints.title', 'Automatic Restore Points')}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {t('settingsModal.restorePoints.description', 'The app automatically keeps recent on-device backups. Restore one if something goes wrong.')}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {restorePoints === null
+                      ? t('settingsModal.restorePoints.loading', 'Loading restore points...')
+                      : restorePoints.length > 0
+                        ? t('settingsModal.restorePoints.lastBackup', 'Last automatic backup: {{when}}', { when: new Date(restorePoints[0].createdAt).toLocaleString() })
+                        : t('settingsModal.restorePoints.lastBackupNever', 'No automatic backup yet.')}
+                  </p>
+                </div>
+                {restorePoints !== null && (restorePoints.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">
+                    {t('settingsModal.restorePoints.empty', 'No restore points yet - one is created automatically.')}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {restorePoints.map((snap) => (
+                      <li key={snap.id} className="flex items-start gap-3 p-3 bg-slate-800/50 rounded-md">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-200">
+                            {new Date(snap.createdAt).toLocaleString()}
+                            <span className="ml-2 text-xs text-slate-400">({restorePointReasonLabel(snap.reason)})</span>
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {t('settingsModal.restorePoints.summary', '{{games}} games, {{players}} players', { games: snap.summary.games, players: snap.summary.players })}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRestoreSnapshot(snap.id)}
+                          aria-label={t('settingsModal.restorePoints.restoreAriaLabel', 'Restore backup from {{when}}', { when: new Date(snap.createdAt).toLocaleString() })}
+                          className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors shrink-0"
+                        >
+                          {t('settingsModal.restorePoints.restore', 'Restore')}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ))}
               </div>
             </div>
 
