@@ -806,6 +806,47 @@ describe('useGamePersistence', () => {
     });
 
     /**
+     * Regression (review L2): confirming a substitution updates the sub log
+     * (completedIntervalDurations / lastSubConfirmationTimeSeconds). Those fields
+     * must be watched so the sub record persists immediately — otherwise it's lost
+     * if the app is killed before another watched field changes.
+     * @critical
+     */
+    it('auto-saves when a substitution is confirmed (sub-log fields change)', async () => {
+      jest.useFakeTimers();
+
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        initialLoadComplete: true,
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ lastSubConfirmationTimeSeconds: 0 }),
+      });
+
+      const { rerender } = renderHook(
+        (props) => useGamePersistence(props),
+        { initialProps: params, wrapper: createWrapper() }
+      );
+      setSavedGames.mockClear();
+
+      // A sub confirmation advances lastSubConfirmationTimeSeconds → immediate save.
+      act(() => {
+        rerender({
+          ...params,
+          gameSessionState: createMockGameSessionState({ lastSubConfirmationTimeSeconds: 300 }),
+        });
+      });
+      act(() => { jest.runAllTimers(); });
+
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
+      jest.useRealTimers();
+    });
+
+    /**
      * Tests that auto-save debounces non-critical changes
      * @integration
      */

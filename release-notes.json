@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: confirming a substitution now saves immediately, so the substitution log and sub-timer alerts survive even if the app closes before your next action"
+      ],
+      "fi": [
+        "Korjattu: vaihdon vahvistaminen tallentuu nyt välittömästi, joten vaihtoloki ja vaihtoajastimen hälytykset säilyvät vaikka sovellus suljettaisiin ennen seuraavaa toimintoasi"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: the per-player Excel export's Season and Tournament fair-play counts now reflect the actual per-game awards instead of repeating the player's current fair-play flag for every game"
       ],
       "fi": [
