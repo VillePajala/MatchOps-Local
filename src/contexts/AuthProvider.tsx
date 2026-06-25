@@ -89,6 +89,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// How long after a successful sign-in a signed_out event is treated as a spurious
+// race (and ignored) rather than a genuine revocation. Supabase's post-sign-in
+// session juggling resolves within a tick or two; a real server-side revocation
+// (password changed elsewhere, token revoked, account disabled) arrives much later.
+const SIGN_IN_RACE_WINDOW_MS = 3000;
+
 // Persisted across reloads (unlike isPasswordResetFlowRef, which is in-memory only).
 // Set when a password-reset recovery session is established; if the app reloads
 // before the new password is set, init uses this to clear the lingering recovery
@@ -187,6 +193,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Only explicit signOut() resets this flag
   const hasSignedInThisSessionRef = useRef(false);
 
+  // Timestamp (ms) of the last successful sign-in this session. Used to distinguish a
+  // spurious post-sign-in signed_out race (which we suppress) from a genuine later
+  // server-side revocation (which we must honor). Always stamped alongside
+  // hasSignedInThisSessionRef via markSignedInThisSession().
+  const lastSignInAtRef = useRef(0);
+
   // Track intentional sign-out to prevent grace period trigger 3 from re-entering
   // grace period when the user explicitly signs out while offline.
   // Set true BEFORE authService.signOut() so the onAuthStateChange handler sees it.
@@ -211,6 +223,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // signIn's consent await), briefly showing the app logged-in before the modal.
   // While this is set, onAuthStateChange defers user/session setting to signIn().
   const isInteractiveSignInRef = useRef(false);
+
+  // Record a successful sign-in: locks the session against spurious post-sign-in
+  // signed_out events AND stamps the time, so a later signed_out can be recognized
+  // as a genuine server-side revocation. Use this everywhere a real sign-in lands.
+  const markSignedInThisSession = useCallback(() => {
+    hasSignedInThisSessionRef.current = true;
+    lastSignInAtRef.current = Date.now();
+  }, []);
 
   // Clean up password reset timeout on unmount
   useEffect(() => {
@@ -366,21 +386,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
-          // EXTRA PROTECTION: If user signed in this session but we get signed_out event,
-          // this might be a false positive. Only clear if signed_out event has no session.
-          // Legitimate sign-out will come from our signOut() function which sets the ref to false.
+          // EXTRA PROTECTION: Supabase can fire a spurious signed_out during the brief
+          // race right after a successful sign-in. Suppress it ONLY within that short
+          // window. A signed_out that arrives LATER is a genuine server-side revocation
+          // (password changed elsewhere, token revoked, account disabled) and MUST be
+          // honored — otherwise the UI stays "logged in" while every API call 401s and
+          // sync silently fails until reload. Intentional sign-out via our signOut()
+          // sets hasSignedInThisSessionRef = false before the event fires, so it bypasses
+          // this guard entirely.
           if (state === 'signed_out' && hasSignedInThisSessionRef.current) {
-            logger.warn('[AuthProvider] Ignoring signed_out event - user signed in this session and has not called signOut()');
+            const msSinceSignIn = Date.now() - lastSignInAtRef.current;
+            if (msSinceSignIn < SIGN_IN_RACE_WINDOW_MS) {
+              logger.warn('[AuthProvider] Ignoring spurious signed_out event within post-sign-in race window');
+              try {
+                Sentry.addBreadcrumb({
+                  category: 'auth',
+                  message: 'Ignored spurious signed_out event (within post-sign-in race window)',
+                  level: 'warning',
+                });
+              } catch {
+                // Sentry failure acceptable
+              }
+              return;
+            }
+            // Outside the race window: treat as a real revocation. Drop the
+            // "signed in this session" lock and fall through to the normal
+            // signed_out handling (grace period if offline, otherwise clear).
+            logger.warn('[AuthProvider] Honoring signed_out event - likely server-side revocation (outside post-sign-in race window)');
             try {
               Sentry.addBreadcrumb({
                 category: 'auth',
-                message: 'Ignored spurious signed_out event (user still signed in)',
+                message: 'Honored signed_out event (likely server-side revocation)',
                 level: 'warning',
               });
             } catch {
               // Sentry failure acceptable
             }
-            return;
+            hasSignedInThisSessionRef.current = false;
           }
 
           if (!mounted) return;
@@ -696,7 +738,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Mark that user has signed in this session - prevents spurious sign-out events
       // from clearing the session (login loop protection)
-      hasSignedInThisSessionRef.current = true;
+      markSignedInThisSession();
       isPasswordResetFlowRef.current = false; // Clear in case user abandoned reset flow
       isIntentionalSignOutRef.current = false; // New session clears previous sign-out intent
       logger.info('[AuthProvider] Sign-in successful, session locked');
@@ -719,7 +761,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // user/session state for subsequent (non-interactive) events.
       isInteractiveSignInRef.current = false;
     }
-  }, [authService]);
+  }, [authService, markSignedInThisSession]);
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!authService) return { error: 'Auth not initialized' };
@@ -766,14 +808,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(result.session);
 
         // Mark that user has signed in this session - prevents spurious sign-out events
-        hasSignedInThisSessionRef.current = true;
+        markSignedInThisSession();
         logger.info('[AuthProvider] Sign-up successful (no confirmation needed), session locked');
       }
       return { confirmationRequired: result.confirmationRequired, existingUser: result.existingUser };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Sign up failed' };
     }
-  }, [authService]);
+  }, [authService, markSignedInThisSession]);
 
   const signOut = useCallback(async () => {
     if (!authService) {
@@ -1085,14 +1127,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(result.user);
       setSession(result.session);
-      hasSignedInThisSessionRef.current = true;
+      markSignedInThisSession();
       logger.info('[AuthProvider] OTP verification successful, session locked');
 
       return {};
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Verification failed' };
     }
-  }, [authService]);
+  }, [authService, markSignedInThisSession]);
 
   /**
    * Resend sign-up confirmation email with a new OTP code.
