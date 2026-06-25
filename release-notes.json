@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: double-tapping \"Save & Continue\" when starting a new game no longer creates a duplicate saved game"
+      ],
+      "fi": [
+        "Korjattu: \"Tallenna ja jatka\" -painikkeen kaksoisnapautus uutta peliä aloittaessa ei enää luo kahta samaa tallennettua peliä"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: switching to a different saved game no longer leaves behind a stale match-clock anchor, so reopening the app won't auto-resume the wrong elapsed time"
       ],
       "fi": [
