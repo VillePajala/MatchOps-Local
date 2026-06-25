@@ -37,6 +37,11 @@ jest.mock('@/utils/timerStateManager', () => ({
   clearTimerState: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock timerAnchor (localStorage wall-clock anchor)
+jest.mock('@/utils/timerAnchor', () => ({
+  clearTimerAnchor: jest.fn(),
+}));
+
 // Mock useDataStore for user-scoped storage
 const TEST_USER_ID = 'test-user-123';
 jest.mock('@/hooks/useDataStore', () => ({
@@ -334,6 +339,63 @@ describe('useGamePersistence', () => {
         expect(loadGameStateFromData).toHaveBeenCalledWith(mockGameData);
         expect(setCurrentGameId).toHaveBeenCalledTimes(1);
         expect(setCurrentGameId).toHaveBeenCalledWith('game456');
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    /**
+     * Regression: loading a game must clear the localStorage wall-clock anchor
+     * alongside the IndexedDB timer state. Otherwise a stale anchor from the
+     * previous game survives the switch and mis-resumes the clock on next boot.
+     * @edge-case
+     */
+    it('clears the timer anchor when loading a game', async () => {
+      const { clearTimerAnchor } = jest.requireMock('@/utils/timerAnchor');
+      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
+
+      const mockGameData: AppState = {
+        teamName: 'Anchor Team',
+        opponentName: 'Anchor Opp',
+        gameDate: '2026-06-25',
+        homeScore: 0,
+        awayScore: 0,
+        gameNotes: '',
+        homeOrAway: 'home',
+        numberOfPeriods: 2,
+        periodDurationMinutes: 45,
+        currentPeriod: 1,
+        gameStatus: 'inProgress',
+        selectedPlayerIds: [],
+        gamePersonnel: [],
+        seasonId: '',
+        tournamentId: '',
+        demandFactor: 5,
+        gameEvents: [],
+        playersOnField: [],
+        opponents: [],
+        drawings: [],
+        tacticalDiscs: [],
+        tacticalDrawings: [],
+        tacticalBallPosition: null,
+        availablePlayers: [],
+        assessments: {},
+        isPlayed: true,
+        showPlayerNames: true,
+      };
+
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const params = createMockParams({ savedGames: { 'game789': mockGameData } });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleLoadGame('game789');
+      });
+
+      await waitFor(() => {
+        expect(clearTimerState).toHaveBeenCalled();
+        expect(clearTimerAnchor).toHaveBeenCalled();
       });
 
       consoleErrorSpy.mockRestore();

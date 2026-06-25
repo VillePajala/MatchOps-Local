@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: switching to a different saved game no longer leaves behind a stale match-clock anchor, so reopening the app won't auto-resume the wrong elapsed time"
+      ],
+      "fi": [
+        "Korjattu: toiseen tallennettuun peliin vaihtaminen ei enää jätä vanhaa ottelukellon ankkuria, joten sovelluksen avaaminen ei jatka väärää kulunutta aikaa"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: a stat correction that adds goals/assists but no games no longer counts as a played game, so per-game averages stay accurate"
       ],
       "fi": [

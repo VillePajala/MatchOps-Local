@@ -39,7 +39,7 @@ The "Save Current Game?" path (new game from an unsaved scratch session) awaits 
 **`src/utils/playerStats.ts:226-233`** — `sum + (adj?.gamesPlayedDelta || 1)`. A legitimate goals/assists-only correction with `gamesPlayedDelta=0` evaluates `0 || 1 = 1`, inflating total games and skewing `avgGoalsPerGame`/`avgAssistsPerGame`. The per-season path just above correctly uses `|| 0`, so the two are inconsistent.
 **Fix:** `adj?.gamesPlayedDelta ?? 1` (nullish). *(confidence ~0.8)*
 
-### M2 · Stale timer anchor survives a game switch → mis-resumes the clock
+### M2 · Stale timer anchor survives a game switch → mis-resumes the clock — ✅ Fixed in #525
 **`src/components/HomePage/hooks/useGamePersistence.ts:551`** (and `useSavedGameManager.ts:222`). Load paths call `clearTimerState()` (IndexedDB) but not `clearTimerAnchor()` (the localStorage wall-clock anchor). Switch away from a running game without pausing, come back to it, reload → boot replays the stale anchor and attributes the inter-session gap as elapsed match time, auto-resuming a wrong clock. (Bounded by the period cap; affects only the live clock, not saved records.)
 **Fix:** `clearTimerAnchor()` alongside `clearTimerState()` in both load paths. *(confidence ~0.72)*
 
