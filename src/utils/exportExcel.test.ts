@@ -12,7 +12,7 @@ import {
   exportAggregateExcel,
   exportPlayerExcel,
 } from './exportExcel';
-import type { AppState, Player, Season, Tournament, PlayerStatRow, SavedGamesCollection } from '@/types';
+import type { AppState, Player, Season, Tournament, PlayerStatRow, SavedGamesCollection, PlayerStatAdjustment } from '@/types';
 
 // Mock dependencies
 jest.mock('./logger');
@@ -606,6 +606,34 @@ describe('Excel Export Utilities', () => {
         tacticalBallPosition: null,
       },
     };
+
+    // Regression (review H4): playerData already includes external-adjustment deltas
+    // (useGameStats merges them). The Player Summary must use those totals directly and
+    // NOT re-add the deltas, or the exported numbers double-count.
+    it('does not double-count external adjustments in the Player Summary', () => {
+      const externalAdjustments: PlayerStatAdjustment[] = [{
+        id: 'adj1',
+        playerId: 'player1',
+        gamesPlayedDelta: 1,
+        goalsDelta: 2,
+        assistsDelta: 1,
+        appliedAt: '2025-02-01T00:00:00.000Z',
+      }];
+
+      // mockPlayerData (gamesPlayed:2, goals:5, assists:3) already reflects this adjustment.
+      exportPlayerExcel(mockPlayerId, mockPlayerData, mockGames, [], [], externalAdjustments);
+
+      const jsonToSheetCalls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const summaryCall = jsonToSheetCalls.find(
+        (call) => Array.isArray(call[0]) && call[0][0] && 'Total Games' in call[0][0]
+      );
+      const summary = summaryCall![0][0];
+
+      expect(summary['Total Games']).toBe(2);
+      expect(summary['Total Goals']).toBe(5);
+      expect(summary['Total Assists']).toBe(3);
+      expect(summary['Total Points']).toBe(8);
+    });
 
     /**
      * Tests per-game fair play data accuracy
