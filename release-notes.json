@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Backup: added temporary diagnostics to the backup message to investigate why the share sheet does not open on some devices"
+      ],
+      "fi": [
+        "Varmuuskopiointi: lisätty väliaikainen diagnostiikka varmuuskopioviestiin, jotta selviää miksi jakovalikko ei avaudu joillakin laitteilla"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: backing up your data now correctly opens the share sheet on phones (Drive, Files, email...) instead of silently downloading to your Downloads folder; when it does download, it now tells you where the file went"
       ],
       "fi": [
