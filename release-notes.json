@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "New: the app now automatically keeps recent on-device backups of your data in the background, so it can be recovered after an accident or data problem (a way to restore from these is coming next)"
+      ],
+      "fi": [
+        "Uutta: sovellus pitää nyt automaattisesti taustalla tuoreita varmuuskopioita tiedoistasi laitteella, jotta ne voidaan palauttaa vahingon tai tieto-ongelman jälkeen (palautustapa näihin tulee seuraavaksi)"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: confirming a substitution now saves immediately, so the substitution log and sub-timer alerts survive even if the app closes before your next action"
       ],
       "fi": [
