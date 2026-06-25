@@ -4,6 +4,15 @@
     {
       "date": "2026-06-26",
       "en": [
+        "Backup: added more background diagnostics (build marker and timing) to pinpoint why the share sheet still does not open on some devices"
+      ],
+      "fi": [
+        "Varmuuskopiointi: lisätty lisää taustadiagnostiikkaa (build-merkki ja ajoitus), jotta selviää miksi jakovalikko ei vieläkään avaudu joillakin laitteilla"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "en": [
         "Fixed: the backup share sheet now opens reliably on phones - the backup file is prepared in advance so it can be shared straight to Drive, Files or email instead of just downloading"
       ],
       "fi": [
