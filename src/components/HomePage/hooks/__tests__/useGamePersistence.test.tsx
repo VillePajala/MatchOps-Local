@@ -80,6 +80,7 @@ const createMockGameSessionState = (overrides?: Partial<GameSessionState>): Game
   nextSubDueTimeSeconds: 900,
   subAlertLevel: 'none',
   lastSubConfirmationTimeSeconds: 0,
+  completedIntervalDurations: [], // Always [] in the real reducer initial state
   showPlayerNames: true,
   ...overrides,
 });
@@ -835,6 +836,47 @@ describe('useGamePersistence', () => {
         rerender({
           ...params,
           gameSessionState: createMockGameSessionState({ lastSubConfirmationTimeSeconds: 300 }),
+        });
+      });
+      act(() => { jest.runAllTimers(); });
+
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
+      jest.useRealTimers();
+    });
+
+    /**
+     * Regression (review L2): the interval log itself (completedIntervalDurations)
+     * must also trigger an immediate save when a sub appends a new interval.
+     * @critical
+     */
+    it('auto-saves when the substitution interval log grows', async () => {
+      jest.useFakeTimers();
+
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        initialLoadComplete: true,
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ completedIntervalDurations: [] }),
+      });
+
+      const { rerender } = renderHook(
+        (props) => useGamePersistence(props),
+        { initialProps: params, wrapper: createWrapper() }
+      );
+      setSavedGames.mockClear();
+
+      // A confirmed sub appends an interval → immediate save.
+      act(() => {
+        rerender({
+          ...params,
+          gameSessionState: createMockGameSessionState({
+            completedIntervalDurations: [{ period: 1, duration: 300, timestamp: 300 }],
+          }),
         });
       });
       act(() => { jest.runAllTimers(); });
