@@ -14,6 +14,7 @@ import {
   WARMUP_PLAN_KEY,
 } from "@/config/storageKeys";
 import logger from "@/utils/logger";
+import * as Sentry from '@sentry/nextjs';
 import i18n from "i18next";
 import { getDataStore } from '@/datastore/factory';
 import { getLatestGameId } from './savedGames';
@@ -406,10 +407,30 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  // TEMPORARY DIAGNOSTIC: why did we not open the share sheet? Surfaced in the
-  // download toast so it can be read off-device. Remove once the TWA share
-  // behavior is understood.
+  // TEMPORARY DIAGNOSTIC: why did we not open the share sheet? Reported to Sentry
+  // (the on-device toast is hidden behind Samsung's native download notification,
+  // so it can't be read off the screen). Remove once the TWA share behavior is
+  // understood.
   const debug = `cs=${canShareType} sh=${shareType} file=${fileType} csf=${canShareFiles} err=${shareErr || '-'}`;
+  try {
+    Sentry.captureMessage('backup-share-diagnostic', {
+      level: 'info',
+      tags: {
+        backup_share: 'downloaded',
+        canShare_type: canShareType,
+        share_type: shareType,
+        file_ctor: fileType,
+        canShare_files: canShareFiles,
+        share_err: shareErr || 'none',
+      },
+      extra: {
+        debug,
+        userAgent: hasNavigator ? navigator.userAgent : 'n/a',
+      },
+    });
+  } catch {
+    // Sentry is optional; never let diagnostics break the export.
+  }
   return { result: 'downloaded', debug };
 }
 
@@ -434,10 +455,8 @@ export const exportFullBackup = async (
       await markOffDeviceBackupNow();
       // When we fall back to a plain download, the share sheet never appeared,
       // so tell the user exactly where the file landed (avoids "where did it go?").
-      // TEMPORARY: append the share diagnostic so the TWA's capabilities are visible on-device.
       if (delivery.result === 'downloaded' && showToast) {
-        const base = i18n.t("fullBackup.exportDownloaded");
-        showToast(delivery.debug ? `${base} [${delivery.debug}]` : base, 'success');
+        showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
       }
       logger.log(`Full backup exported successfully as ${filename} (${delivery.result}) ${delivery.debug ?? ''}`);
     }
