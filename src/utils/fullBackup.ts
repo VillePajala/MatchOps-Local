@@ -356,17 +356,41 @@ interface BackupDeliveryResult {
 }
 
 /**
+ * TEMPORARY: bump this string whenever the share code changes, so a Sentry event
+ * proves WHICH bundle actually ran on-device (vs a stale service-worker cache).
+ */
+const SHARE_DIAG_BUILD = 'prewarm-2';
+
+/** Context captured upstream (prewarm state + generation timing) for diagnostics. */
+interface ShareDiagContext {
+  prewarmUsed: boolean;
+  genMs: number;
+}
+
+/**
  * Deliver a backup file to the user. On devices that support it (mobile / PWA),
  * open the native share sheet so the file can be saved to Drive/Files/email and
  * actually be found later; otherwise fall back to a normal download.
  */
-async function shareOrDownloadJson(jsonString: string, filename: string): Promise<BackupDeliveryResult> {
+async function shareOrDownloadJson(
+  jsonString: string,
+  filename: string,
+  diag: ShareDiagContext
+): Promise<BackupDeliveryResult> {
   const hasNavigator = typeof navigator !== 'undefined';
   const canShareType = hasNavigator ? typeof navigator.canShare : 'no-nav';
   const shareType = hasNavigator ? typeof navigator.share : 'no-nav';
   const fileType = typeof File;
   let canShareFiles = 'n/a';
   let shareErr = '';
+
+  // Common diagnostic tags so every event states which bundle ran, whether the
+  // prewarm was used, and how long generation blocked before share() was called.
+  const baseTags = {
+    diag_build: SHARE_DIAG_BUILD,
+    prewarm_used: String(diag.prewarmUsed),
+    gen_ms: String(diag.genMs),
+  };
 
   try {
     if (hasNavigator && typeof navigator.canShare === 'function' && typeof File !== 'undefined') {
@@ -386,7 +410,7 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
           try {
             Sentry.captureMessage('backup-share-diagnostic', {
               level: 'info',
-              tags: { backup_share: 'shared' },
+              tags: { backup_share: 'shared', ...baseTags },
             });
           } catch {
             // Sentry optional.
@@ -421,7 +445,7 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
   // (the on-device toast is hidden behind Samsung's native download notification,
   // so it can't be read off the screen). Remove once the TWA share behavior is
   // understood.
-  const debug = `cs=${canShareType} sh=${shareType} file=${fileType} csf=${canShareFiles} err=${shareErr || '-'}`;
+  const debug = `build=${SHARE_DIAG_BUILD} prewarm=${diag.prewarmUsed} genMs=${diag.genMs} cs=${canShareType} sh=${shareType} file=${fileType} csf=${canShareFiles} err=${shareErr || '-'}`;
   try {
     Sentry.captureMessage('backup-share-diagnostic', {
       level: 'info',
@@ -432,6 +456,7 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
         file_ctor: fileType,
         canShare_files: canShareFiles,
         share_err: shareErr || 'none',
+        ...baseTags,
       },
       extra: {
         debug,
@@ -464,7 +489,7 @@ export const prewarmBackup = (userId?: string): void => {
   // Swallow rejection here so an unused prewarm never becomes an unhandled
   // rejection; the real export re-generates and surfaces errors properly.
   promise.catch(() => { /* ignored; export path handles errors */ });
-  prewarmedBackup = { userId, startedAt: Date.now(), promise };
+  prewarmedBackup = { userId, startedAt: performance.now(), promise };
 };
 
 export const exportFullBackup = async (
@@ -476,25 +501,31 @@ export const exportFullBackup = async (
     // Use a fresh prewarmed backup when available: awaiting an already-resolved
     // promise is a microtask, so transient activation survives and the share
     // sheet can open. Otherwise generate now (may lose activation → download).
+    // genMs measures how long this blocks AFTER the tap (the activation killer).
+    const genStart = performance.now();
     let jsonString: string;
+    let prewarmUsed = false;
     const prewarm = prewarmedBackup;
     prewarmedBackup = null; // consume (one-shot)
-    if (prewarm && prewarm.userId === userId && Date.now() - prewarm.startedAt < PREWARM_TTL_MS) {
+    if (prewarm && prewarm.userId === userId && performance.now() - prewarm.startedAt < PREWARM_TTL_MS) {
+      prewarmUsed = true;
       try {
         jsonString = await prewarm.promise;
       } catch {
+        prewarmUsed = false;
         jsonString = await generateFullBackupJson(userId);
       }
     } else {
       jsonString = await generateFullBackupJson(userId);
     }
+    const genMs = Math.round(performance.now() - genStart);
 
     // Generate filename with timestamp
     const now = new Date();
     const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
     const filename = `MatchOpsLocal_Backup_${timestamp}.json`;
 
-    const delivery = await shareOrDownloadJson(jsonString, filename);
+    const delivery = await shareOrDownloadJson(jsonString, filename, { prewarmUsed, genMs });
     if (delivery.result === 'cancelled') {
       logger.log('Full backup export cancelled by user (share dismissed)');
     } else {
