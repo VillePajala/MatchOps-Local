@@ -679,6 +679,7 @@ export type TranslationKey =
   | 'fullBackup.confirmRestoreTitle'
   | 'fullBackup.confirmRestoreWarning'
   | 'fullBackup.currentGameWarning'
+  | 'fullBackup.exportDownloaded'
   | 'fullBackup.exportError'
   | 'fullBackup.exportSuccess'
   | 'fullBackup.migrationFlagWarning'

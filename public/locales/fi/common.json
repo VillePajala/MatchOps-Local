@@ -1715,6 +1715,7 @@
   },
   "fullBackup": {
     "exportSuccess": "Varmuuskopio vietiin onnistuneesti.",
+    "exportDownloaded": "Varmuuskopio tallennettiin Lataukset-kansioon.",
     "exportError": "Varmuuskopion vienti epäonnistui. Katso konsoli.",
     "confirmRestore": "Palautetaanko varmuuskopio? Tämä korvaa kaikki tiedot.",
     "confirmRestoreTitle": "Palauta varmuuskopiosta?",
