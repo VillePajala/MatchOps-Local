@@ -286,7 +286,8 @@ describe('Translation File Validation', () => {
       // plus export.unknownScorer (+1)
       // +2: deleteAccountKeepDataHint, deleteAccountExportButton (delete-account export affordance)
       // +13: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
-      expect(enKeys.length).toBe(2509);
+      // +3: backupReminder.* (Data Safety Layer 2 off-device backup reminder banner)
+      expect(enKeys.length).toBe(2512);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -296,7 +297,8 @@ describe('Translation File Validation', () => {
       // Goal log source of truth (+6, see EN above)
       // +2: deleteAccountKeepDataHint, deleteAccountExportButton (delete-account export affordance)
       // +13: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
-      expect(fiKeys.length).toBe(2509);
+      // +3: backupReminder.* (Data Safety Layer 2 off-device backup reminder banner)
+      expect(fiKeys.length).toBe(2512);
     });
   });
 });
