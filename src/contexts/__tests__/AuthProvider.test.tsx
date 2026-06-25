@@ -1597,6 +1597,141 @@ describe('AuthProvider', () => {
         }
       }
     });
+
+    /**
+     * M4: A signed_out event fired within the brief post-sign-in race window is
+     * spurious (Supabase session juggling) and must be ignored — the session stays.
+     * @edge-case
+     */
+    it('ignores a spurious signed_out within the post-sign-in race window', async () => {
+      // NOTE: jest.useFakeTimers() is set by the describe-level beforeEach, so
+      // advanceTimersByTime also drives Date.now() (used for the race-window math).
+      function SignInComponent() {
+        const { isAuthenticated, user, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <span data-testid="user-id">{user?.id ?? 'none'}</span>
+            <button data-testid="sign-in-btn" onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+          </div>
+        );
+      }
+
+      render(<AuthProvider><SignInComponent /></AuthProvider>);
+
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('no'));
+
+      // Interactive sign-in stamps the sign-in time and locks the session.
+      await act(async () => { screen.getByTestId('sign-in-btn').click(); });
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+
+      // A signed_out fired immediately afterwards is a spurious post-sign-in race.
+      await act(async () => {
+        authCallbacks.forEach(cb => cb('signed_out' as AuthState, null));
+      });
+
+      expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+      expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+    });
+
+    /**
+     * M4: A signed_out event that arrives AFTER the race window is a genuine
+     * server-side revocation (password changed elsewhere, token revoked, account
+     * disabled). While online it must log the user out — not be swallowed.
+     * @critical
+     */
+    it('honors a signed_out after the race window (server revocation) and logs out when online', async () => {
+      // NOTE: jest.useFakeTimers() is set by the describe-level beforeEach, so the
+      // advanceTimersByTime(5000) below pushes Date.now() past SIGN_IN_RACE_WINDOW_MS.
+      function SignInComponent() {
+        const { isAuthenticated, user, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <span data-testid="user-id">{user?.id ?? 'none'}</span>
+            <button data-testid="sign-in-btn" onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+          </div>
+        );
+      }
+
+      render(<AuthProvider><SignInComponent /></AuthProvider>);
+
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await act(async () => { screen.getByTestId('sign-in-btn').click(); });
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+
+      // Advance well past the race window, then a genuine revocation arrives.
+      // navigator.onLine defaults to true in jsdom, so there's no grace period.
+      await act(async () => { jest.advanceTimersByTime(5000); });
+      await act(async () => {
+        authCallbacks.forEach(cb => cb('signed_out' as AuthState, null));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('no');
+        expect(screen.getByTestId('user-id')).toHaveTextContent('none');
+      });
+    });
+
+    /**
+     * M4: A post-window revocation while OFFLINE must NOT hard-log-out — it falls
+     * through to the grace-period path (cached identity kept visible) so the coach
+     * can keep working with local data. Pins guard ordering against regressions.
+     * @critical
+     */
+    it('enters grace period (not hard logout) on a post-window revocation while offline', async () => {
+      // NOTE: jest.useFakeTimers() is set by the describe-level beforeEach, so the
+      // advanceTimersByTime(5000) below pushes Date.now() past SIGN_IN_RACE_WINDOW_MS.
+      function SignInGraceComponent() {
+        const { isAuthenticated, isAuthGracePeriod, user, signIn } = useAuth();
+        return (
+          <div>
+            <span data-testid="authenticated">{isAuthenticated ? 'yes' : 'no'}</span>
+            <span data-testid="grace-period">{isAuthGracePeriod ? 'yes' : 'no'}</span>
+            <span data-testid="user-id">{user?.id ?? 'none'}</span>
+            <button data-testid="sign-in-btn" onClick={() => signIn('test@example.com', 'password')}>Sign In</button>
+          </div>
+        );
+      }
+
+      // Cache a valid session so getCachedUserIdentity() can back the grace period.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'cloud-user-123', email: 'test@example.com' },
+      }));
+
+      render(<AuthProvider><SignInGraceComponent /></AuthProvider>);
+
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await act(async () => { screen.getByTestId('sign-in-btn').click(); });
+      await act(async () => { jest.advanceTimersByTime(100); });
+      await waitFor(() => expect(screen.getByTestId('authenticated')).toHaveTextContent('yes'));
+
+      const originalOnLine = Object.getOwnPropertyDescriptor(navigator, 'onLine');
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      try {
+        // Past the race window, offline, genuine revocation → grace period.
+        await act(async () => { jest.advanceTimersByTime(5000); });
+        await act(async () => {
+          authCallbacks.forEach(cb => cb('signed_out' as AuthState, null));
+        });
+
+        await waitFor(() => {
+          expect(screen.getByTestId('grace-period')).toHaveTextContent('yes');
+          expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
+          expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+        });
+      } finally {
+        if (originalOnLine) {
+          Object.defineProperty(navigator, 'onLine', originalOnLine);
+        } else {
+          Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        }
+      }
+    });
   });
 
   // ==========================================================================
