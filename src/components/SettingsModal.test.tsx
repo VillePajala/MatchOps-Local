@@ -357,9 +357,10 @@ describe('<SettingsModal />', () => {
     );
     navigateToTab('Data');
 
-    // The restore-points section + the loaded snapshot row render.
+    // The restore-points section + the loaded snapshot row render. The Restore
+    // button's accessible name is its aria-label ("Restore backup from ...").
     await screen.findByText('Automatic Restore Points');
-    const restoreBtn = await screen.findByRole('button', { name: 'Restore' });
+    const restoreBtn = await screen.findByRole('button', { name: /Restore backup from/ });
 
     fireEvent.click(restoreBtn);
 

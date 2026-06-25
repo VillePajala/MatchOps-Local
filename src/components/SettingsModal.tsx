@@ -138,7 +138,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [factoryResetConfirm, setFactoryResetConfirm] = useState('');
   const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
   // Data Safety - Layer 1: automatic restore points (loaded lazily when modal opens).
-  const [restorePoints, setRestorePoints] = useState<SnapshotMeta[]>([]);
+  // null = still loading (avoids briefly flashing the "no restore points" state).
+  const [restorePoints, setRestorePoints] = useState<SnapshotMeta[] | null>(null);
   const { deleteAccount, mode: authMode } = useAuth();
 
   // Set initial tab when modal opens
@@ -154,6 +155,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
+    setRestorePoints(null); // show the loading state on each open
     (async () => {
       try {
         const { listSnapshots } = await import('@/utils/backupSnapshots');
@@ -161,6 +163,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         if (!cancelled) setRestorePoints(list);
       } catch (error) {
         logger.warn('[SettingsModal] Failed to load restore points (non-fatal):', error);
+        if (!cancelled) setRestorePoints([]); // degrade to empty rather than spin forever
       }
     })();
     return () => { cancelled = true; };
@@ -810,12 +813,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {t('settingsModal.restorePoints.description', 'The app automatically keeps recent on-device backups. Restore one if something goes wrong.')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {restorePoints.length > 0
-                      ? t('settingsModal.restorePoints.lastBackup', 'Last automatic backup: {{when}}', { when: new Date(restorePoints[0].createdAt).toLocaleString() })
-                      : t('settingsModal.restorePoints.lastBackupNever', 'No automatic backup yet.')}
+                    {restorePoints === null
+                      ? t('settingsModal.restorePoints.loading', 'Loading restore points...')
+                      : restorePoints.length > 0
+                        ? t('settingsModal.restorePoints.lastBackup', 'Last automatic backup: {{when}}', { when: new Date(restorePoints[0].createdAt).toLocaleString() })
+                        : t('settingsModal.restorePoints.lastBackupNever', 'No automatic backup yet.')}
                   </p>
                 </div>
-                {restorePoints.length === 0 ? (
+                {restorePoints !== null && (restorePoints.length === 0 ? (
                   <p className="text-xs text-slate-500 italic">
                     {t('settingsModal.restorePoints.empty', 'No restore points yet - one is created automatically.')}
                   </p>
@@ -834,6 +839,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                         <button
                           onClick={() => handleRestoreSnapshot(snap.id)}
+                          aria-label={t('settingsModal.restorePoints.restoreAriaLabel', 'Restore backup from {{when}}', { when: new Date(snap.createdAt).toLocaleString() })}
                           className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-medium transition-colors shrink-0"
                         >
                           {t('settingsModal.restorePoints.restore', 'Restore')}
@@ -841,7 +847,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       </li>
                     ))}
                   </ul>
-                )}
+                ))}
               </div>
             </div>
 

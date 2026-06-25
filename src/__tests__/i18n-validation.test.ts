@@ -285,8 +285,8 @@ describe('Translation File Validation', () => {
       // recalculateScoreTitle, recalculateScoreConfirm, recalculateConfirmButton (+6)
       // plus export.unknownScorer (+1)
       // +2: deleteAccountKeepDataHint, deleteAccountExportButton (delete-account export affordance)
-      // +11: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
-      expect(enKeys.length).toBe(2507);
+      // +13: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
+      expect(enKeys.length).toBe(2509);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -295,8 +295,8 @@ describe('Translation File Validation', () => {
       // Settings feedback: friendly email path plus copyable app info
       // Goal log source of truth (+6, see EN above)
       // +2: deleteAccountKeepDataHint, deleteAccountExportButton (delete-account export affordance)
-      // +11: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
-      expect(fiKeys.length).toBe(2507);
+      // +13: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
+      expect(fiKeys.length).toBe(2509);
     });
   });
 });
