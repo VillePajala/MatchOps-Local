@@ -9,7 +9,7 @@ import {
   getBackupReminderDismissedTime,
   setBackupReminderDismissed,
 } from "@/utils/appSettings";
-import { exportFullBackup } from "@/utils/fullBackup";
+import { exportFullBackup, prewarmBackup } from "@/utils/fullBackup";
 import logger from "@/utils/logger";
 
 /**
@@ -60,6 +60,15 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
   useEffect(() => {
     evaluate();
   }, [evaluate]);
+
+  // Build the backup ahead of the tap so navigator.share() fires with a fresh
+  // user activation (otherwise it throws NotAllowedError and falls back to a
+  // plain download). Prewarm once the banner is actually shown.
+  useEffect(() => {
+    if (visible) {
+      prewarmBackup(userId);
+    }
+  }, [visible, userId]);
 
   const handleBackupNow = useCallback(async () => {
     setBusy(true);

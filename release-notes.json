@@ -4,6 +4,15 @@
     {
       "date": "2026-06-26",
       "en": [
+        "Fixed: the backup share sheet now opens reliably on phones - the backup file is prepared in advance so it can be shared straight to Drive, Files or email instead of just downloading"
+      ],
+      "fi": [
+        "Korjattu: varmuuskopion jakovalikko avautuu nyt luotettavasti puhelimissa - varmuuskopiotiedosto valmistellaan etukäteen, joten sen voi jakaa suoraan Driveen, Tiedostoihin tai sähköpostiin pelkän latauksen sijaan"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "en": [
         "Backup: the share-sheet diagnostic is now reported in the background instead of shown on screen, so it no longer clutters the backup message"
       ],
       "fi": [
