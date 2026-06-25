@@ -607,9 +607,12 @@ describe('Excel Export Utilities', () => {
       },
     };
 
-    // Regression (review H4): playerData already includes external-adjustment deltas
-    // (useGameStats merges them). The Player Summary must use those totals directly and
-    // NOT re-add the deltas, or the exported numbers double-count.
+    /**
+     * Regression (review H4): playerData already includes external-adjustment deltas
+     * (useGameStats merges them). The Player Summary must use those totals directly and
+     * NOT re-add the deltas, or the exported numbers double-count.
+     * @edge-case
+     */
     it('does not double-count external adjustments in the Player Summary', () => {
       const externalAdjustments: PlayerStatAdjustment[] = [{
         id: 'adj1',
@@ -627,6 +630,7 @@ describe('Excel Export Utilities', () => {
       const summaryCall = jsonToSheetCalls.find(
         (call) => Array.isArray(call[0]) && call[0][0] && 'Total Games' in call[0][0]
       );
+      expect(summaryCall).toBeDefined();
       const summary = summaryCall![0][0];
 
       expect(summary['Total Games']).toBe(2);
