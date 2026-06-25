@@ -903,7 +903,10 @@ export const exportPlayerExcel = (
       stats.games++;
       stats.goals += game.gameEvents.filter((e) => e.type === 'goal' && e.scorerId === playerId).length;
       stats.assists += game.gameEvents.filter((e) => e.type === 'goal' && e.assisterId === playerId).length;
-      if (playerData.receivedFairPlayCard) stats.fairPlay++;
+      // Use the per-game fair-play snapshot, not the roster-wide playerData flag
+      // (which would count fair-play for EVERY game, or none). Matches playerStats.ts.
+      const seasonPlayerInGame = [...(game.playersOnField || []), ...(game.availablePlayers || [])].find((p) => p.id === playerId);
+      if (seasonPlayerInGame?.receivedFairPlayCard) stats.fairPlay++;
     });
 
   if (seasonStats.size > 0) {
@@ -937,7 +940,9 @@ export const exportPlayerExcel = (
       stats.games++;
       stats.goals += game.gameEvents.filter((e) => e.type === 'goal' && e.scorerId === playerId).length;
       stats.assists += game.gameEvents.filter((e) => e.type === 'goal' && e.assisterId === playerId).length;
-      if (playerData.receivedFairPlayCard) stats.fairPlay++;
+      // Per-game fair-play snapshot (see Season Performance above for rationale).
+      const tournamentPlayerInGame = [...(game.playersOnField || []), ...(game.availablePlayers || [])].find((p) => p.id === playerId);
+      if (tournamentPlayerInGame?.receivedFairPlayCard) stats.fairPlay++;
     });
 
   if (tournamentStats.size > 0) {

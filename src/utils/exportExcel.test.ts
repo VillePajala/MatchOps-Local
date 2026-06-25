@@ -665,6 +665,30 @@ describe('Excel Export Utilities', () => {
     });
 
     /**
+     * Regression (review L4): the Season Performance sheet's Fair Play Awards must
+     * count the PER-GAME snapshot, not the roster-wide playerData flag (which would
+     * make the count equal games-played, or 0). game1 has fair-play, game2 doesn't,
+     * both in season1 → exactly 1.
+     * @edge-case
+     */
+    it('counts Season Performance fair-play per game, not roster-wide', () => {
+      const seasons: Season[] = [{ id: 'season1', name: 'Spring 2025' }];
+
+      exportPlayerExcel(mockPlayerId, mockPlayerData, mockGames, seasons, [], []);
+
+      const jsonToSheetCalls = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls;
+      const seasonCall = jsonToSheetCalls.find(
+        (call) => Array.isArray(call[0]) && call[0][0] && 'Season' in call[0][0] && 'Fair Play Awards' in call[0][0]
+      );
+      expect(seasonCall).toBeDefined();
+      const seasonRow = seasonCall![0][0];
+
+      expect(seasonRow['Games Played']).toBe(2);
+      // Only game1 had a fair-play card — NOT 2 (roster-wide true) and NOT 0.
+      expect(seasonRow['Fair Play Awards']).toBe(1);
+    });
+
+    /**
      * Tests player export filters to only include player's games
      * @critical - Validates data filtering
      */

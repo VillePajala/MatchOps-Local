@@ -64,7 +64,7 @@ The "Save Current Game?" path (new game from an unsaved scratch session) awaits 
 ### L3 · Modern CSP reports silently dropped — ✅ Fixed in #528
 **`src/app/api/csp-report/route.ts:46-47,85-88`** — endpoint only parses the legacy `report-uri` shape; modern Reporting API (`report-to`, which `next.config.ts` also emits) sends a JSON array → throws → caught → 204, never logged to Sentry. Chromium CSP violations aren't monitored. **Fix:** handle both payload shapes. *(confidence ~0.85)*
 
-### L4 · Excel season/tournament fair-play uses player-wide flag
+### L4 · Excel season/tournament fair-play uses player-wide flag — ✅ Fixed in #529
 **`src/utils/exportExcel.ts:913,947`** — accumulates `playerData.receivedFairPlayCard` (one roster-level boolean) for every game instead of the per-game snapshot, so the fair-play count equals games-played (or 0). The on-screen stats and the Game History sheet read it correctly per-game. **Fix:** read `game.availablePlayers?.find(p => p.id === playerId)?.receivedFairPlayCard` per game. *(confidence ~0.72)*
 
 ---
