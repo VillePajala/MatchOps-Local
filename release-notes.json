@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: the per-player Excel export's Season and Tournament fair-play counts now reflect the actual per-game awards instead of repeating the player's current fair-play flag for every game"
+      ],
+      "fi": [
+        "Korjattu: pelaajakohtaisen Excel-viennin kausi- ja turnauskohtaiset reilun pelin määrät vastaavat nyt todellisia ottelukohtaisia palkintoja sen sijaan että toistaisivat pelaajan nykyistä reilun pelin merkintää joka ottelussa"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Under the hood: security-policy violation reports from modern browsers are now captured for monitoring, so we can spot and fix blocked-content issues faster"
       ],
       "fi": [
