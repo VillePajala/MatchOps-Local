@@ -7,6 +7,7 @@ import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import BackupReminderBanner from '@/components/BackupReminderBanner';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -1315,16 +1316,19 @@ export default function Home() {
             />
           </ErrorBoundary>
         ) : (
-          <ErrorBoundary>
-            <HomePage
-              initialAction={initialAction ?? undefined}
-              skipInitialSetup
-              onDataImportSuccess={handleDataImportSuccess}
-              isFirstTimeUser={isFirstTimeUser}
-              onGoToStartScreen={handleGoToStartScreen}
-              initialGameType={lastGameType}
-            />
-          </ErrorBoundary>
+          <>
+            <BackupReminderBanner hasSavedGames={hasSavedGames} />
+            <ErrorBoundary>
+              <HomePage
+                initialAction={initialAction ?? undefined}
+                skipInitialSetup
+                onDataImportSuccess={handleDataImportSuccess}
+                isFirstTimeUser={isFirstTimeUser}
+                onGoToStartScreen={handleGoToStartScreen}
+                initialGameType={lastGameType}
+              />
+            </ErrorBoundary>
+          </>
         )}
         </div>
 

@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "New: a gentle reminder now appears if it's been over a month since your last off-device backup, with a one-tap button to back up - so your data stays safe even if your device is lost"
+      ],
+      "fi": [
+        "Uutta: näytämme nyt ystävällisen muistutuksen, jos edellisestä laitteen ulkopuolisesta varmuuskopiosta on yli kuukausi, ja mukana on yhden napautuksen varmuuskopiopainike - näin tietosi pysyvät turvassa vaikka laite katoaisi"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Improved: backing up your data now opens your device's share sheet (on phones), so you can save the backup straight to Google Drive, Files, or email and find it again easily"
       ],
       "fi": [
