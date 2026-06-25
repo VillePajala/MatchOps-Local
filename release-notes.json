@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: when your session is ended on the server (password changed on another device, access revoked), the app now signs you out properly instead of appearing logged in while syncing silently fails"
+      ],
+      "fi": [
+        "Korjattu: kun istuntosi päätetään palvelimella (salasana vaihdettu toisella laitteella, käyttöoikeus peruttu), sovellus kirjaa sinut nyt ulos asianmukaisesti sen sijaan että näyttäisit kirjautuneelta synkronoinnin hiljaa epäonnistuessa"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: double-tapping \"Save & Continue\" when starting a new game no longer creates a duplicate saved game"
       ],
       "fi": [

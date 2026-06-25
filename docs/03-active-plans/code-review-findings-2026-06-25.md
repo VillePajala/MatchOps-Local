@@ -47,7 +47,7 @@ The "Save Current Game?" path (new game from an unsaved scratch session) awaits 
 **`src/components/HomePage/containers/ModalManager.tsx:559-601`** — the noPlayers/hardReset/saveBeforeNew/startNew `ConfirmationModal`s don't pass `isConfirming`, so the confirm button isn't disabled while the async handler is in flight. A mobile double-tap on **saveBeforeNew** fires two concurrent `handleQuickSaveGame()` → two duplicate created games. (The other three are effectively idempotent.) The correct pattern already exists in `GameSettingsModal.tsx:2608`.
 **Fix:** pass an in-flight `isConfirming` flag, or set the show-flag `false` synchronously before awaiting. *(confidence ~0.6)*
 
-### M4 · Server-side sign-out can be ignored (UI stays "logged in")
+### M4 · Server-side sign-out can be ignored (UI stays "logged in") — ✅ Fixed in #527
 **`src/contexts/AuthProvider.tsx:372-384`** — `onAuthStateChange` ignores *any* `signed_out` event while `hasSignedInThisSessionRef` is true. This swallows **legitimate** server revocations (password changed elsewhere, token revoked, account disabled): the service clears its session but the provider keeps `isAuthenticated` true, so the UI shows logged-in while API calls 401 and sync silently fails until reload. (`updatePassword` already has a manual workaround for this exact guard — confirming it's known.)
 **Fix:** honor a genuine `SIGNED_OUT` event; only suppress spurious null-sessions in a narrow post-sign-in window. *(confidence ~0.5)*
 
