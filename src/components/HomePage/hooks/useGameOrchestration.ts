@@ -381,6 +381,28 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     utilGetLastHomeTeamName(userId).then((name) => setDefaultTeamNameSetting(name));
   }, [userId]);
 
+  // Data Safety - Layer 1: once data has loaded, request persistent storage (so the
+  // browser is less likely to evict IndexedDB) and take an automatic restore-point
+  // snapshot if the newest is older than 24h. Best-effort and one-shot per mount;
+  // a failure here must never affect the app. Dynamic import keeps the IndexedDB
+  // backup code out of the initial bundle.
+  const autoBackupStartedRef = useRef(false);
+  useEffect(() => {
+    if (!initialLoadComplete || autoBackupStartedRef.current) {
+      return;
+    }
+    autoBackupStartedRef.current = true;
+    (async () => {
+      try {
+        const { requestPersistentStorage, maybeCreateAutoSnapshot } = await import('@/utils/backupSnapshots');
+        await requestPersistentStorage();
+        await maybeCreateAutoSnapshot(userId);
+      } catch (error) {
+        logger.warn('[useGameOrchestration] Automatic backup snapshot failed (non-fatal):', error);
+      }
+    })();
+  }, [initialLoadComplete, userId]);
+
   useEffect(() => {
     i18n.changeLanguage(appLanguage);
     utilUpdateAppSettings({ language: appLanguage }).catch((error) => {
@@ -1459,6 +1481,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     try {
       logger.log('[handleFactoryReset] Starting factory reset...');
       setIsResetting(true);
+
+      // Data Safety - Layer 1: capture a restore point BEFORE wiping. Factory reset
+      // has no rollback of its own, so this is the user's recovery path if they
+      // reset by mistake. Kept in the separate backups DB (survives the clear).
+      try {
+        const { createSnapshot } = await import('@/utils/backupSnapshots');
+        await createSnapshot(userId, 'pre-clear');
+      } catch (snapshotError) {
+        logger.warn('[handleFactoryReset] Pre-clear snapshot failed (non-fatal):', snapshotError);
+      }
 
       // 1. Clear all data (cloud + local) via SyncedDataStore
       // SyncedDataStore.clearAllUserData() always clears local, even if cloud
