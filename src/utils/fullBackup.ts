@@ -344,41 +344,54 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
  * - 'shared': the OS share sheet handled it (Drive/Files/email/etc.)
  * - 'downloaded': fell back to a plain file download (lands in Downloads)
  * - 'cancelled': the user dismissed the share sheet (nothing saved)
+ *
+ * `debug` is a compact, human-readable string set ONLY on the download path,
+ * recording why the share sheet was not used. It is a temporary diagnostic to
+ * pin down why the Play Store TWA always downloads instead of sharing.
  */
-type BackupDelivery = 'shared' | 'downloaded' | 'cancelled';
+interface BackupDeliveryResult {
+  result: 'shared' | 'downloaded' | 'cancelled';
+  debug?: string;
+}
 
 /**
  * Deliver a backup file to the user. On devices that support it (mobile / PWA),
  * open the native share sheet so the file can be saved to Drive/Files/email and
  * actually be found later; otherwise fall back to a normal download.
  */
-async function shareOrDownloadJson(jsonString: string, filename: string): Promise<BackupDelivery> {
+async function shareOrDownloadJson(jsonString: string, filename: string): Promise<BackupDeliveryResult> {
+  const hasNavigator = typeof navigator !== 'undefined';
+  const canShareType = hasNavigator ? typeof navigator.canShare : 'no-nav';
+  const shareType = hasNavigator ? typeof navigator.share : 'no-nav';
+  const fileType = typeof File;
+  let canShareFiles = 'n/a';
+  let shareErr = '';
+
   try {
-    if (
-      typeof navigator !== 'undefined' &&
-      typeof navigator.canShare === 'function' &&
-      typeof File !== 'undefined'
-    ) {
+    if (hasNavigator && typeof navigator.canShare === 'function' && typeof File !== 'undefined') {
       // The Web Share API only accepts an allowlisted set of MIME types, and
-      // 'application/json' is NOT on it — canShare({files}) returns false for a
-      // JSON file, so the share sheet would silently never open (e.g. in the
-      // Play Store TWA). JSON is valid plain text, so we declare the file as
-      // 'text/plain' (which IS allowed); the .json filename is preserved so the
-      // file still re-imports cleanly (import reads file contents, not the type).
+      // 'application/json' is NOT on it. JSON is valid plain text, so we declare
+      // the file as 'text/plain' (which IS allowed); the .json filename is
+      // preserved so the file still re-imports cleanly (import reads contents,
+      // not the type).
       const file = new File([jsonString], filename, { type: 'text/plain' });
-      if (navigator.canShare({ files: [file] })) {
+      const ok = navigator.canShare({ files: [file] });
+      canShareFiles = String(ok);
+      if (ok) {
         try {
           await navigator.share({ files: [file], title: 'MatchOps Backup' });
-          return 'shared';
+          return { result: 'shared' };
         } catch (err) {
           // User dismissed the share sheet → not delivered; don't also download.
-          if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
+          if (err instanceof Error && err.name === 'AbortError') return { result: 'cancelled' };
           // Any other share failure → fall through to the download path.
+          shareErr = err instanceof Error ? err.name : 'unknown';
           logger.warn('[fullBackup] Web Share failed, falling back to download:', err);
         }
       }
     }
   } catch (err) {
+    shareErr = err instanceof Error ? err.name : 'unknown';
     logger.warn('[fullBackup] Web Share unavailable, using download:', err);
   }
 
@@ -392,7 +405,12 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  return 'downloaded';
+
+  // TEMPORARY DIAGNOSTIC: why did we not open the share sheet? Surfaced in the
+  // download toast so it can be read off-device. Remove once the TWA share
+  // behavior is understood.
+  const debug = `cs=${canShareType} sh=${shareType} file=${fileType} csf=${canShareFiles} err=${shareErr || '-'}`;
+  return { result: 'downloaded', debug };
 }
 
 export const exportFullBackup = async (
@@ -409,17 +427,19 @@ export const exportFullBackup = async (
     const filename = `MatchOpsLocal_Backup_${timestamp}.json`;
 
     const delivery = await shareOrDownloadJson(jsonString, filename);
-    if (delivery === 'cancelled') {
+    if (delivery.result === 'cancelled') {
       logger.log('Full backup export cancelled by user (share dismissed)');
     } else {
       // Record this off-device backup so the periodic reminder resets (Layer 2).
       await markOffDeviceBackupNow();
       // When we fall back to a plain download, the share sheet never appeared,
       // so tell the user exactly where the file landed (avoids "where did it go?").
-      if (delivery === 'downloaded' && showToast) {
-        showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
+      // TEMPORARY: append the share diagnostic so the TWA's capabilities are visible on-device.
+      if (delivery.result === 'downloaded' && showToast) {
+        const base = i18n.t("fullBackup.exportDownloaded");
+        showToast(delivery.debug ? `${base} [${delivery.debug}]` : base, 'success');
       }
-      logger.log(`Full backup exported successfully as ${filename} (${delivery})`);
+      logger.log(`Full backup exported successfully as ${filename} (${delivery.result}) ${delivery.debug ?? ''}`);
     }
     return jsonString;
   } catch (error) {
