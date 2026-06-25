@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
 import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument } from 'react-icons/hi2';
-import { importFullBackup } from '@/utils/fullBackup';
+import { importFullBackup, prewarmBackup } from '@/utils/fullBackup';
 import type { SnapshotMeta } from '@/utils/backupSnapshots';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
@@ -251,6 +251,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   React.useLayoutEffect(() => {
     setTeamName(defaultTeamName);
   }, [defaultTeamName]);
+
+  // Build the backup ahead of the user's "Create Backup" tap so navigator.share()
+  // fires with a fresh user activation (otherwise it throws NotAllowedError and
+  // silently falls back to a plain download). Generation is read-only.
+  useEffect(() => {
+    if (isOpen) {
+      prewarmBackup(userId);
+    }
+  }, [isOpen, userId]);
 
   useEffect(() => {
     if (isOpen) {

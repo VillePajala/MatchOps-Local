@@ -381,6 +381,16 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
       if (ok) {
         try {
           await navigator.share({ files: [file], title: 'MatchOps Backup' });
+          // TEMPORARY DIAGNOSTIC: positive confirmation that the share sheet
+          // opened (so the prewarm/activation fix can be verified via Sentry).
+          try {
+            Sentry.captureMessage('backup-share-diagnostic', {
+              level: 'info',
+              tags: { backup_share: 'shared' },
+            });
+          } catch {
+            // Sentry optional.
+          }
           return { result: 'shared' };
         } catch (err) {
           // User dismissed the share sheet → not delivered; don't also download.
@@ -434,13 +444,50 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
   return { result: 'downloaded', debug };
 }
 
+/**
+ * Pre-generated backup, kept ready so the eventual share() call fires while the
+ * user's tap is still "fresh" (transient activation). navigator.share() throws
+ * NotAllowedError if too much async work (cold datastore init + reads) happens
+ * between the tap and the share — so we build the file BEFORE the tap (when the
+ * backup UI appears) and just await the already-resolved promise at tap time.
+ */
+let prewarmedBackup: { userId?: string; startedAt: number; promise: Promise<string> } | null = null;
+const PREWARM_TTL_MS = 2 * 60 * 1000;
+
+/**
+ * Start building a backup ahead of the user's tap. Call this when the backup
+ * affordance becomes visible (Settings opens, reminder banner shows). Safe to
+ * call repeatedly and on any render — generation is read-only.
+ */
+export const prewarmBackup = (userId?: string): void => {
+  const promise = generateFullBackupJson(userId);
+  // Swallow rejection here so an unused prewarm never becomes an unhandled
+  // rejection; the real export re-generates and surfaces errors properly.
+  promise.catch(() => { /* ignored; export path handles errors */ });
+  prewarmedBackup = { userId, startedAt: Date.now(), promise };
+};
+
 export const exportFullBackup = async (
   showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
   userId?: string
 ): Promise<string> => {
   logger.log("Starting full backup export...");
   try {
-    const jsonString = await generateFullBackupJson(userId);
+    // Use a fresh prewarmed backup when available: awaiting an already-resolved
+    // promise is a microtask, so transient activation survives and the share
+    // sheet can open. Otherwise generate now (may lose activation → download).
+    let jsonString: string;
+    const prewarm = prewarmedBackup;
+    prewarmedBackup = null; // consume (one-shot)
+    if (prewarm && prewarm.userId === userId && Date.now() - prewarm.startedAt < PREWARM_TTL_MS) {
+      try {
+        jsonString = await prewarm.promise;
+      } catch {
+        jsonString = await generateFullBackupJson(userId);
+      }
+    } else {
+      jsonString = await generateFullBackupJson(userId);
+    }
 
     // Generate filename with timestamp
     const now = new Date();
