@@ -506,6 +506,12 @@ export function useGamePersistence({
         // reload recovery of the live clock is covered by the timer-state record
         // (IndexedDB) + the localStorage wall-clock anchor.
         isTimerRunning: gameSessionState.isTimerRunning,
+        // Substitution log. These change only when a sub is CONFIRMED (a discrete,
+        // infrequent action — no per-second churn), but if the app is killed before
+        // any other watched field changes, the interval log is lost and sub-due
+        // timing shifts on reload. Persist instantly so the sub record survives.
+        completedIntervalDurations: gameSessionState.completedIntervalDurations,
+        lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
       },
       delay: 0,
     },
