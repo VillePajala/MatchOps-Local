@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-06-26",
+      "en": [
+        "Backup: the share-sheet diagnostic is now reported in the background instead of shown on screen, so it no longer clutters the backup message"
+      ],
+      "fi": [
+        "Varmuuskopiointi: jakovalikon diagnostiikka raportoidaan nyt taustalla näytöllä näyttämisen sijaan, joten se ei enää sotke varmuuskopioviestiä"
+      ]
+    },
+    {
       "date": "2026-06-25",
       "en": [
         "Backup: added temporary diagnostics to the backup message to investigate why the share sheet does not open on some devices"
