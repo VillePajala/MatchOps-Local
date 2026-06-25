@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Improved: backing up your data now opens your device's share sheet (on phones), so you can save the backup straight to Google Drive, Files, or email and find it again easily"
+      ],
+      "fi": [
+        "Parannettu: tietojen varmuuskopiointi avaa nyt laitteesi jakovalikon (puhelimissa), joten voit tallentaa varmuuskopion suoraan Google Driveen, Tiedostoihin tai sähköpostiin ja löytää sen helposti uudelleen"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "New: Settings > Data now shows your automatic restore points - tap Restore to roll back to a recent automatic backup if something goes wrong (no files to find)"
       ],
       "fi": [
