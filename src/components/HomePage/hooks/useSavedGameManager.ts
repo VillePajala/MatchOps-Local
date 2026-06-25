@@ -12,6 +12,7 @@ import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { getTeam, getTeams } from '@/utils/teams';
 import { clearTimerState } from '@/utils/timerStateManager';
+import { clearTimerAnchor } from '@/utils/timerAnchor';
 import logger from '@/utils/logger';
 
 interface UseSavedGameManagerOptions {
@@ -220,6 +221,10 @@ export function useSavedGameManager({
       // Clear any existing timer state before loading a new game (user-scoped)
       // Note: clearTimerState() handles errors internally (non-critical), so no try/catch needed
       await clearTimerState(userId);
+      // Also clear the localStorage wall-clock anchor. Otherwise a stale anchor from the
+      // previously-loaded game survives the switch and, on next boot, replays the inter-session
+      // gap as elapsed match time - auto-resuming the wrong clock.
+      clearTimerAnchor();
 
       if (!isMountedRef.current) return;
 
