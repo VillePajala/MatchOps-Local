@@ -781,20 +781,13 @@ export const exportPlayerExcel = (
   const notesHeader = translate('export.notes', 'Notes');
 
   // Sheet 1: Player Summary
-  // Incorporate external adjustments (external games) to align with on-screen totals
-  const adjForPlayer = externalAdjustments.filter(a => a.playerId === playerId);
-  const adjTotals = adjForPlayer.reduce(
-    (acc, a) => {
-      acc.games += a.gamesPlayedDelta || 0;
-      acc.goals += a.goalsDelta || 0;
-      acc.assists += a.assistsDelta || 0;
-      return acc;
-    },
-    { games: 0, goals: 0, assists: 0 }
-  );
-  const totalGames = (playerData.gamesPlayed || 0) + adjTotals.games;
-  const totalGoals = (playerData.goals || 0) + adjTotals.goals;
-  const totalAssists = (playerData.assists || 0) + adjTotals.assists;
+  // playerData (a PlayerStatRow from useGameStats) ALREADY includes external-game
+  // adjustment deltas — useGameStats merges them into gamesPlayed/goals/assists. Use
+  // those totals directly; re-adding externalAdjustments here would double-count them
+  // (the raw adjustments are still listed separately in the "External Games" sheet).
+  const totalGames = playerData.gamesPlayed || 0;
+  const totalGoals = playerData.goals || 0;
+  const totalAssists = playerData.assists || 0;
   const totalPoints = totalGoals + totalAssists;
   const avgPoints = totalGames > 0 ? (totalPoints / totalGames) : 0;
 
