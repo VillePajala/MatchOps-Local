@@ -11,6 +11,8 @@ import {
   TEAM_ROSTERS_KEY,
   APP_DATA_VERSION_KEY,
   INSTALL_PROMPT_DISMISSED_KEY,
+  LAST_OFF_DEVICE_BACKUP_KEY,
+  BACKUP_REMINDER_DISMISSED_KEY,
 } from '@/config/storageKeys';
 import {
   getStorageItem,
@@ -299,6 +301,54 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
   } catch (error) {
     // Silent fail - dismissal tracking is not critical
     logger.debug('Failed to set install prompt dismissed (non-critical)', { error });
+  }
+};
+
+// ============================================
+// Off-Device Backup Reminder Utilities (Data Safety - Layer 2)
+// ============================================
+
+/** Timestamp (ms) of the last off-device backup (export/share), or null. */
+export const getLastOffDeviceBackupTime = async (): Promise<number | null> => {
+  try {
+    const value = await getStorageItem(LAST_OFF_DEVICE_BACKUP_KEY);
+    if (!value) return null;
+    const timestamp = Number(value);
+    return isNaN(timestamp) ? null : timestamp;
+  } catch (error) {
+    logger.debug('Failed to get last off-device backup time (non-critical)', { error });
+    return null;
+  }
+};
+
+/** Record that an off-device backup just happened (stores the current timestamp). */
+export const markOffDeviceBackupNow = async (): Promise<void> => {
+  try {
+    await setStorageItem(LAST_OFF_DEVICE_BACKUP_KEY, Date.now().toString());
+  } catch (error) {
+    logger.debug('Failed to record off-device backup time (non-critical)', { error });
+  }
+};
+
+/** Timestamp (ms) the backup reminder was last dismissed, or null. */
+export const getBackupReminderDismissedTime = async (): Promise<number | null> => {
+  try {
+    const value = await getStorageItem(BACKUP_REMINDER_DISMISSED_KEY);
+    if (!value) return null;
+    const timestamp = Number(value);
+    return isNaN(timestamp) ? null : timestamp;
+  } catch (error) {
+    logger.debug('Failed to get backup reminder dismissed time (non-critical)', { error });
+    return null;
+  }
+};
+
+/** Snooze the backup reminder (stores the current timestamp). */
+export const setBackupReminderDismissed = async (): Promise<void> => {
+  try {
+    await setStorageItem(BACKUP_REMINDER_DISMISSED_KEY, Date.now().toString());
+  } catch (error) {
+    logger.debug('Failed to set backup reminder dismissed (non-critical)', { error });
   }
 };
 

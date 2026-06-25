@@ -17,6 +17,7 @@ import logger from "@/utils/logger";
 import i18n from "i18next";
 import { getDataStore } from '@/datastore/factory';
 import { getLatestGameId } from './savedGames';
+import { markOffDeviceBackupNow } from './appSettings';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { DataStore } from '@/interfaces/DataStore';
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
@@ -338,6 +339,49 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
  * @param userId - User ID for user-scoped storage. Pass undefined for legacy storage.
  * @returns JSON string of backup data
  */
+/**
+ * Deliver a backup file to the user. On devices that support it (mobile / PWA),
+ * open the native share sheet so the file can be saved to Drive/Files/email and
+ * actually be found later; otherwise fall back to a normal download.
+ * Returns true if the file was delivered, false if the user cancelled the share.
+ */
+async function shareOrDownloadJson(jsonString: string, filename: string): Promise<boolean> {
+  try {
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.canShare === 'function' &&
+      typeof File !== 'undefined'
+    ) {
+      const file = new File([jsonString], filename, { type: 'application/json' });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'MatchOps Backup' });
+          return true;
+        } catch (err) {
+          // User dismissed the share sheet → not delivered; don't also download.
+          if (err instanceof Error && err.name === 'AbortError') return false;
+          // Any other share failure → fall through to the download path.
+          logger.warn('[fullBackup] Web Share failed, falling back to download:', err);
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn('[fullBackup] Web Share unavailable, using download:', err);
+  }
+
+  // Download fallback (desktop / unsupported browsers).
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
 export const exportFullBackup = async (
   showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
   userId?: string
@@ -345,21 +389,20 @@ export const exportFullBackup = async (
   logger.log("Starting full backup export...");
   try {
     const jsonString = await generateFullBackupJson(userId);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
 
     // Generate filename with timestamp
     const now = new Date();
     const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
-    a.download = `MatchOpsLocal_Backup_${timestamp}.json`;
+    const filename = `MatchOpsLocal_Backup_${timestamp}.json`;
 
-    a.href = url;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    logger.log(`Full backup exported successfully as ${a.download}`);
+    const delivered = await shareOrDownloadJson(jsonString, filename);
+    if (delivered) {
+      // Record this off-device backup so the periodic reminder resets (Layer 2).
+      await markOffDeviceBackupNow();
+      logger.log(`Full backup exported successfully as ${filename}`);
+    } else {
+      logger.log('Full backup export cancelled by user (share dismissed)');
+    }
     return jsonString;
   } catch (error) {
     logger.error("Failed to export full backup:", error);

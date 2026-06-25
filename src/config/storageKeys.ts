@@ -23,3 +23,9 @@ export const WARMUP_PLAN_KEY = 'soccerWarmupPlan';
 
 // UI state storage keys
 export const INSTALL_PROMPT_DISMISSED_KEY = 'installPromptDismissed';
+
+// Data Safety - Layer 2: timestamp (ms) of the last off-device backup (export/share),
+// used to drive the periodic "back up your data" reminder.
+export const LAST_OFF_DEVICE_BACKUP_KEY = 'lastOffDeviceBackupAt';
+// Timestamp (ms) the backup reminder was last dismissed (snooze the banner).
+export const BACKUP_REMINDER_DISMISSED_KEY = 'backupReminderDismissedAt';

@@ -10,6 +10,7 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
   WARMUP_PLAN_KEY,
+  LAST_OFF_DEVICE_BACKUP_KEY,
 } from "@/config/storageKeys";
 import { DEFAULT_GAME_ID } from "@/config/constants";
 import type { SavedGamesCollection, AppState } from "@/types/game";
@@ -28,7 +29,7 @@ jest.mock("@/datastore/factory");
 jest.mock("./storage");
 
 import { getDataStore } from "@/datastore/factory";
-import { getStorageJSON, setStorageJSON } from "./storage";
+import { getStorageJSON, setStorageJSON, setStorageItem } from "./storage";
 
 // Create mock store for DataStore data
 const mockStore: Record<string, unknown> = {};
@@ -1545,6 +1546,70 @@ describe("exportFullBackup", () => {
     // (error path still alerts via i18n.t("fullBackup.exportError"))
 
     // No need to restore dateSpy here, afterEach will handle it.
+  });
+
+  it("records the off-device backup time after a download (drives the reminder)", async () => {
+    await exportFullBackup();
+    expect(setStorageItem).toHaveBeenCalledWith(LAST_OFF_DEVICE_BACKUP_KEY, expect.any(String));
+  });
+
+  describe("Web Share (mobile)", () => {
+    let originalCanShare: PropertyDescriptor | undefined;
+    let originalShare: PropertyDescriptor | undefined;
+    let shareMock: jest.Mock;
+    let canShareMock: jest.Mock;
+
+    beforeEach(() => {
+      originalCanShare = Object.getOwnPropertyDescriptor(navigator, 'canShare');
+      originalShare = Object.getOwnPropertyDescriptor(navigator, 'share');
+      canShareMock = jest.fn().mockReturnValue(true);
+      shareMock = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'canShare', { value: canShareMock, configurable: true });
+      Object.defineProperty(navigator, 'share', { value: shareMock, configurable: true });
+    });
+
+    afterEach(() => {
+      if (originalCanShare) Object.defineProperty(navigator, 'canShare', originalCanShare);
+      else delete (navigator as unknown as { canShare?: unknown }).canShare;
+      if (originalShare) Object.defineProperty(navigator, 'share', originalShare);
+      else delete (navigator as unknown as { share?: unknown }).share;
+    });
+
+    it("opens the native share sheet and records the backup time (no download)", async () => {
+      await exportFullBackup();
+
+      expect(shareMock).toHaveBeenCalledTimes(1);
+      const shareArg = shareMock.mock.calls[0][0];
+      expect(Array.isArray(shareArg.files)).toBe(true);
+      expect(shareArg.files[0]).toBeInstanceOf(File);
+      // Shared, not downloaded.
+      expect(window.URL.createObjectURL).not.toHaveBeenCalled();
+      // Reminder timestamp recorded.
+      expect(setStorageItem).toHaveBeenCalledWith(LAST_OFF_DEVICE_BACKUP_KEY, expect.any(String));
+    });
+
+    it("does NOT record a backup (or download) when the user cancels the share sheet", async () => {
+      const abort = new Error('cancelled');
+      abort.name = 'AbortError';
+      shareMock.mockRejectedValueOnce(abort);
+
+      await exportFullBackup();
+
+      expect(shareMock).toHaveBeenCalledTimes(1);
+      expect(window.URL.createObjectURL).not.toHaveBeenCalled();
+      expect(setStorageItem).not.toHaveBeenCalledWith(LAST_OFF_DEVICE_BACKUP_KEY, expect.any(String));
+    });
+
+    it("falls back to a download when sharing fails for a non-cancel reason", async () => {
+      shareMock.mockRejectedValueOnce(new Error('share broke'));
+
+      await exportFullBackup();
+
+      expect(shareMock).toHaveBeenCalledTimes(1);
+      // Fell back to the download path, and still recorded the backup.
+      expect(window.URL.createObjectURL).toHaveBeenCalledTimes(1);
+      expect(setStorageItem).toHaveBeenCalledWith(LAST_OFF_DEVICE_BACKUP_KEY, expect.any(String));
+    });
   });
 
   it("should correctly structure backup data including meta and all localStorage keys", async () => {
