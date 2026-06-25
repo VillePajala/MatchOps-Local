@@ -227,7 +227,9 @@ export const calculatePlayerStats = (
     if (game.isExternal) {
       // Find the adjustment to get the actual games count
       const adj = adjustmentsForPlayer.find(a => `external-${a.id}` === game.gameId);
-      return sum + (adj?.gamesPlayedDelta || 1);
+      // ?? not ||: an explicit gamesPlayedDelta of 0 (a goals/assists-only correction)
+      // is valid and must count as 0 games; only a missing adjustment falls back to 1.
+      return sum + (adj?.gamesPlayedDelta ?? 1);
     }
     return sum + 1;
   }, 0);
