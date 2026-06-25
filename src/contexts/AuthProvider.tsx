@@ -90,9 +90,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 // How long after a successful sign-in a signed_out event is treated as a spurious
-// race (and ignored) rather than a genuine revocation. Supabase's post-sign-in
-// session juggling resolves within a tick or two; a real server-side revocation
-// (password changed elsewhere, token revoked, account disabled) arrives much later.
+// race (and ignored) rather than a genuine revocation. 3s is deliberately generous:
+// Supabase resolves its post-sign-in session juggling within a tick or two (<50ms in
+// practice), but slow mobile devices and cold-start JS execution can stretch that. A
+// real server-side revocation (password changed elsewhere, token revoked, account
+// disabled) always arrives much later, so the window won't swallow it.
 const SIGN_IN_RACE_WINDOW_MS = 3000;
 
 // Persisted across reloads (unlike isPasswordResetFlowRef, which is in-memory only).
@@ -1202,8 +1204,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // Non-critical: recovery session will expire naturally
       }
-      // Explicit state clear required — onAuthStateChange may ignore the signed_out
-      // event if hasSignedInThisSessionRef is true from a previous sign-in.
+      // Defensive explicit clear: onAuthStateChange now honors a signed_out fired
+      // outside the post-sign-in race window (which this one always is — the user
+      // just completed a full reset flow), so it would clear the session anyway.
+      // Clearing here makes the UI respond immediately, before the event callback.
       setUser(null);
       setSession(null);
 
