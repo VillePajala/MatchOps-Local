@@ -1588,6 +1588,30 @@ describe("exportFullBackup", () => {
       expect(setStorageItem).toHaveBeenCalledWith(LAST_OFF_DEVICE_BACKUP_KEY, expect.any(String));
     });
 
+    it("shares the file as text/plain so the Web Share allowlist accepts it (application/json is rejected)", async () => {
+      await exportFullBackup();
+
+      // canShare must be probed with a file the allowlist permits.
+      const canShareArg = canShareMock.mock.calls[0][0];
+      expect(canShareArg.files[0].type).toBe('text/plain');
+      // ...and the file actually shared carries the same allowed type.
+      const sharedFile = shareMock.mock.calls[0][0].files[0] as File;
+      expect(sharedFile.type).toBe('text/plain');
+      // Filename keeps the .json extension so it re-imports cleanly.
+      expect(sharedFile.name).toMatch(/\.json$/);
+    });
+
+    it("falls back to a download when the runtime cannot share files (canShare false)", async () => {
+      canShareMock.mockReturnValue(false);
+
+      await exportFullBackup();
+
+      // Never attempted the share sheet; went straight to download.
+      expect(shareMock).not.toHaveBeenCalled();
+      expect(window.URL.createObjectURL).toHaveBeenCalledTimes(1);
+      expect(setStorageItem).toHaveBeenCalledWith(LAST_OFF_DEVICE_BACKUP_KEY, expect.any(String));
+    });
+
     it("does NOT record a backup (or download) when the user cancels the share sheet", async () => {
       const abort = new Error('cancelled');
       abort.name = 'AbortError';

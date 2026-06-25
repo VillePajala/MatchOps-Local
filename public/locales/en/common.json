@@ -1715,6 +1715,7 @@
   },
   "fullBackup": {
     "exportSuccess": "Backup exported successfully.",
+    "exportDownloaded": "Backup saved to your Downloads folder.",
     "exportError": "Error exporting backup. Check the console.",
     "confirmRestore": "Restore from backup? This will replace all data.",
     "confirmRestoreTitle": "Restore from Backup?",

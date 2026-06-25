@@ -340,26 +340,39 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
  * @returns JSON string of backup data
  */
 /**
+ * How a backup file was delivered to the user.
+ * - 'shared': the OS share sheet handled it (Drive/Files/email/etc.)
+ * - 'downloaded': fell back to a plain file download (lands in Downloads)
+ * - 'cancelled': the user dismissed the share sheet (nothing saved)
+ */
+type BackupDelivery = 'shared' | 'downloaded' | 'cancelled';
+
+/**
  * Deliver a backup file to the user. On devices that support it (mobile / PWA),
  * open the native share sheet so the file can be saved to Drive/Files/email and
  * actually be found later; otherwise fall back to a normal download.
- * Returns true if the file was delivered, false if the user cancelled the share.
  */
-async function shareOrDownloadJson(jsonString: string, filename: string): Promise<boolean> {
+async function shareOrDownloadJson(jsonString: string, filename: string): Promise<BackupDelivery> {
   try {
     if (
       typeof navigator !== 'undefined' &&
       typeof navigator.canShare === 'function' &&
       typeof File !== 'undefined'
     ) {
-      const file = new File([jsonString], filename, { type: 'application/json' });
+      // The Web Share API only accepts an allowlisted set of MIME types, and
+      // 'application/json' is NOT on it — canShare({files}) returns false for a
+      // JSON file, so the share sheet would silently never open (e.g. in the
+      // Play Store TWA). JSON is valid plain text, so we declare the file as
+      // 'text/plain' (which IS allowed); the .json filename is preserved so the
+      // file still re-imports cleanly (import reads file contents, not the type).
+      const file = new File([jsonString], filename, { type: 'text/plain' });
       if (navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: 'MatchOps Backup' });
-          return true;
+          return 'shared';
         } catch (err) {
           // User dismissed the share sheet → not delivered; don't also download.
-          if (err instanceof Error && err.name === 'AbortError') return false;
+          if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
           // Any other share failure → fall through to the download path.
           logger.warn('[fullBackup] Web Share failed, falling back to download:', err);
         }
@@ -379,7 +392,7 @@ async function shareOrDownloadJson(jsonString: string, filename: string): Promis
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  return true;
+  return 'downloaded';
 }
 
 export const exportFullBackup = async (
@@ -395,13 +408,18 @@ export const exportFullBackup = async (
     const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
     const filename = `MatchOpsLocal_Backup_${timestamp}.json`;
 
-    const delivered = await shareOrDownloadJson(jsonString, filename);
-    if (delivered) {
+    const delivery = await shareOrDownloadJson(jsonString, filename);
+    if (delivery === 'cancelled') {
+      logger.log('Full backup export cancelled by user (share dismissed)');
+    } else {
       // Record this off-device backup so the periodic reminder resets (Layer 2).
       await markOffDeviceBackupNow();
-      logger.log(`Full backup exported successfully as ${filename}`);
-    } else {
-      logger.log('Full backup export cancelled by user (share dismissed)');
+      // When we fall back to a plain download, the share sheet never appeared,
+      // so tell the user exactly where the file landed (avoids "where did it go?").
+      if (delivery === 'downloaded' && showToast) {
+        showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
+      }
+      logger.log(`Full backup exported successfully as ${filename} (${delivery})`);
     }
     return jsonString;
   } catch (error) {
