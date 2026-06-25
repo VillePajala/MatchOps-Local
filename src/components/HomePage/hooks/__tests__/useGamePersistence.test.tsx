@@ -1141,4 +1141,47 @@ describe('useGamePersistence', () => {
       expect(setCurrentGameId).not.toHaveBeenCalled();
     });
   });
+
+  // Regression (review H3): callers that discard/replace the session ("Save before
+  // new game") must be able to tell whether the save actually succeeded.
+  describe('handleQuickSaveGame return contract', () => {
+    it('returns true when the save succeeds', async () => {
+      const { result } = renderHook(() => useGamePersistence(createMockParams()), {
+        wrapper: createWrapper(),
+      });
+
+      let outcome: boolean | undefined;
+      await act(async () => {
+        outcome = await result.current.handleQuickSaveGame();
+      });
+
+      expect(outcome).toBe(true);
+    });
+
+    it('returns false (and shows an error) when the underlying save throws', async () => {
+      // The catch path logs via logger.error; suppress the expected console.error
+      // so the global console guard doesn't fail this intentional-failure test.
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const savedGamesUtil = require('@/utils/savedGames');
+      savedGamesUtil.saveGame.mockRejectedValueOnce(new Error('storage failure'));
+      const showToast = jest.fn();
+
+      try {
+        const { result } = renderHook(
+          () => useGamePersistence(createMockParams({ showToast })),
+          { wrapper: createWrapper() }
+        );
+
+        let outcome: boolean | undefined;
+        await act(async () => {
+          outcome = await result.current.handleQuickSaveGame();
+        });
+
+        expect(outcome).toBe(false);
+        expect(showToast).toHaveBeenCalledWith(expect.any(String), 'error');
+      } finally {
+        consoleErrorSpy.mockRestore();
+      }
+    });
+  });
 });

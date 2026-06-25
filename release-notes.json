@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: when you choose to save before starting a new game, the app no longer discards your game if that save fails - it keeps the prompt open so you can retry"
+      ],
+      "fi": [
+        "Korjattu: kun valitset tallennuksen ennen uuden pelin aloittamista, sovellus ei enää hylkää peliäsi jos tallennus epäonnistuu - kehote jää auki, jotta voit yrittää uudelleen"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: if the saved-games store ever becomes unreadable, the app no longer wipes your other games on the next save - it aborts and quarantines the data for recovery"
       ],
       "fi": [

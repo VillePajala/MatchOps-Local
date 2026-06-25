@@ -2165,7 +2165,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Handler for "Save Before New" confirmation - user chooses to save
   const handleSaveBeforeNewConfirmed = useCallback(async () => {
-    await persistence.handleQuickSaveGame(); // Await save to ensure it completes
+    const saved = await persistence.handleQuickSaveGame(); // Await save to ensure it completes
+    // If the save did NOT succeed, keep the confirmation open (the error toast is
+    // already shown by handleQuickSaveGame) so the user can retry or cancel. Do NOT
+    // proceed to new-game setup, which would discard the just-played (unsaved) game.
+    if (!saved) {
+      return;
+    }
     setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
     setShowSaveBeforeNewConfirm(false);
     openNewGameViaReducer(); // Open setup modal after save completes
