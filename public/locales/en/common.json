@@ -1708,6 +1708,11 @@
     "installButton": "Install",
     "dismissButton": "Not now"
   },
+  "backupReminder": {
+    "message": "It's been a while since your last backup. Keep your data safe with an off-device copy.",
+    "backupNow": "Back up now",
+    "dismiss": "Dismiss"
+  },
   "fullBackup": {
     "exportSuccess": "Backup exported successfully.",
     "exportError": "Error exporting backup. Check the console.",

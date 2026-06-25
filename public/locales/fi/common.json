@@ -1708,6 +1708,11 @@
     "installButton": "Asenna",
     "dismissButton": "Ei nyt"
   },
+  "backupReminder": {
+    "message": "Edellisestä varmuuskopiosta on aikaa. Pidä tietosi turvassa ottamalla kopio laitteen ulkopuolelle.",
+    "backupNow": "Varmuuskopioi nyt",
+    "dismiss": "Sulje"
+  },
   "fullBackup": {
     "exportSuccess": "Varmuuskopio vietiin onnistuneesti.",
     "exportError": "Varmuuskopion vienti epäonnistui. Katso konsoli.",
