@@ -55,13 +55,13 @@ The "Save Current Game?" path (new game from an unsaved scratch session) awaits 
 
 ## 🟡 LOW
 
-### L1 · Fractional pause time not floored
+### L1 · Fractional pause time not floored — ⏭️ Won't fix (decided 2026-06-25: low value, ~0.35 confidence)
 **`src/hooks/useGameSessionReducer.ts:260-276`** — `PAUSE_TIMER` stores the un-floored precise time, leaving `timeElapsedInSeconds` non-integer (everything else uses floored seconds). Can cause a rare off-by-one in sub-due math and a fractional persisted value. **Fix:** `Math.floor(...)` the pause time. *(confidence ~0.35)*
 
 ### L2 · Confirmed substitution may not persist immediately
 **`src/components/HomePage/hooks/useGamePersistence.ts:478-531`** — `completedIntervalDurations` / `lastSubConfirmationTimeSeconds` aren't in the auto-save watch list, so a sub confirmed mid-running-timer isn't saved until some other watched field changes. If the app is killed first, the interval log is lost and sub alerts shift. **Fix:** add those two fields to the short/immediate watch tier. *(confidence ~0.62)*
 
-### L3 · Modern CSP reports silently dropped
+### L3 · Modern CSP reports silently dropped — ✅ Fixed in #528
 **`src/app/api/csp-report/route.ts:46-47,85-88`** — endpoint only parses the legacy `report-uri` shape; modern Reporting API (`report-to`, which `next.config.ts` also emits) sends a JSON array → throws → caught → 204, never logged to Sentry. Chromium CSP violations aren't monitored. **Fix:** handle both payload shapes. *(confidence ~0.85)*
 
 ### L4 · Excel season/tournament fair-play uses player-wide flag

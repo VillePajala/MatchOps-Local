@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Under the hood: security-policy violation reports from modern browsers are now captured for monitoring, so we can spot and fix blocked-content issues faster"
+      ],
+      "fi": [
+        "Konepellin alla: nykyaikaisten selainten turvakäytäntörikkomusraportit tallennetaan nyt seurantaa varten, joten estyneet sisältöongelmat havaitaan ja korjataan nopeammin"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: when your session is ended on the server (password changed on another device, access revoked), the app now signs you out properly instead of appearing logged in while syncing silently fails"
       ],
       "fi": [
