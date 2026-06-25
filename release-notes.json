@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: the per-player Excel export no longer double-counts external-game adjustments in the Player Summary (games/goals/assists were shown at double their real value)"
+      ],
+      "fi": [
+        "Korjattu: pelaajakohtainen Excel-vienti ei enää laske ulkoisten otteluiden korjauksia kahteen kertaan Pelaajan yhteenvedossa (ottelut/maalit/syötöt näkyivät kaksinkertaisina)"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: when you choose to save before starting a new game, the app no longer discards your game if that save fails - it keeps the prompt open so you can retry"
       ],
       "fi": [

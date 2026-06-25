@@ -26,7 +26,7 @@ Priority order: **data-loss / corruption / deletion / auth first**, then logic, 
 The "Save Current Game?" path (new game from an unsaved scratch session) awaits `handleQuickSaveGame()` then unconditionally opens new-game setup. But `handleQuickSaveGame` catches all errors internally and never rethrows, so the `await` resolves even when the save **failed** (quota, IndexedDB error on mobile). The scratch game — which has no auto-save (intentionally disabled for `DEFAULT_GAME_ID`) — is then abandoned and **permanently lost**, despite the user explicitly choosing to save.
 **Fix:** have `handleQuickSaveGame` return a boolean / rethrow; only proceed when the save actually succeeded, otherwise keep the dialog open and show an error to retry. *(confidence ~0.72)*
 
-### H4 · exportPlayerExcel double-counts external adjustments
+### H4 · exportPlayerExcel double-counts external adjustments — ✅ Fixed in #523
 **`src/utils/exportExcel.ts:785-799`**
 `playerData` already includes external-adjustment deltas (merged in `useGameStats.ts:158-162`), but the exporter adds the same deltas a second time. The per-player Excel "Player Summary" shows **double** the external games/goals/assists vs the on-screen numbers (and inflated averages/points). Triggers whenever an exported player has any external adjustment.
 **Fix:** don't re-add deltas in the exporter — use `playerData.gamesPlayed/goals/assists` directly (single source of truth). *(confidence ~0.85)*
