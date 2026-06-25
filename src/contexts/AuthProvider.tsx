@@ -1037,6 +1037,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           logger.warn('[AuthProvider] Failed to delete local databases on account deletion:', error);
         }
+        // Also erase this user's automatic restore points (a separate DB, kept
+        // isolated from clears/restores). Account deletion is the ONE place these
+        // must be removed, for GDPR erasure.
+        try {
+          const { deleteBackupsDatabase } = await import('@/utils/backupSnapshots');
+          await deleteBackupsDatabase(deletedUserId);
+        } catch (error) {
+          logger.warn('[AuthProvider] Failed to delete backups database on account deletion:', error);
+        }
       }
 
       logger.info('[AuthProvider] Account deleted successfully');

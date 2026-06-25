@@ -295,6 +295,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       setIsRestoring(true);
 
       try {
+        // Data Safety - Layer 1: snapshot the current data BEFORE the restore
+        // overwrites it, so the user can roll back to their pre-restore state.
+        // (importFullBackup also has its own in-flight rollback; this is a durable,
+        // user-visible restore point on top of that.)
+        try {
+          const { createSnapshot } = await import('@/utils/backupSnapshots');
+          await createSnapshot(userId, 'pre-restore');
+        } catch (snapshotError) {
+          logger.warn('[SettingsModal] Pre-restore snapshot failed (non-fatal):', snapshotError);
+        }
+
         // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
         // Pass userId for user-scoped storage
         const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true, userId);
