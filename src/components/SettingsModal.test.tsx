@@ -8,6 +8,12 @@ import { ToastProvider } from '@/contexts/ToastProvider';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { AuthProvider } from '@/contexts/AuthProvider';
 
+// Data Safety - Layer 1: the restore-points UI lazily imports this module.
+jest.mock('@/utils/backupSnapshots', () => ({
+  listSnapshots: jest.fn().mockResolvedValue([]),
+  getSnapshotJson: jest.fn().mockResolvedValue(null),
+}));
+
 // Create test query client
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
@@ -324,6 +330,43 @@ describe('<SettingsModal />', () => {
     const backupButton = within(card as HTMLElement).getByRole('button');
     fireEvent.click(backupButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
+  });
+
+  test('lists automatic restore points and restores a selected one', async () => {
+    const backup = jest.requireMock('@/utils/backupSnapshots') as {
+      listSnapshots: jest.Mock;
+      getSnapshotJson: jest.Mock;
+    };
+    backup.listSnapshots.mockResolvedValueOnce([
+      {
+        id: 'snap-1',
+        createdAt: '2026-06-25T10:00:00.000Z',
+        reason: 'auto',
+        summary: { games: 3, players: 11, seasons: 1, tournaments: 0 },
+        sizeBytes: 1234,
+      },
+    ]);
+    backup.getSnapshotJson.mockResolvedValueOnce(
+      JSON.stringify({ meta: { schema: 1, exportedAt: '' }, localStorage: {} })
+    );
+
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+    navigateToTab('Data');
+
+    // The restore-points section + the loaded snapshot row render. The Restore
+    // button's accessible name is its aria-label ("Restore backup from ...").
+    await screen.findByText('Automatic Restore Points');
+    const restoreBtn = await screen.findByRole('button', { name: /Restore backup from/ });
+
+    fireEvent.click(restoreBtn);
+
+    // Clicking routes the chosen snapshot through the restore pipeline.
+    await waitFor(() => expect(backup.getSnapshotJson).toHaveBeenCalled());
+    expect(backup.getSnapshotJson.mock.calls[0][1]).toBe('snap-1');
   });
 
   test('does not auto focus team name input on open', () => {

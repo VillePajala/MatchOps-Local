@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "New: Settings > Data now shows your automatic restore points - tap Restore to roll back to a recent automatic backup if something goes wrong (no files to find)"
+      ],
+      "fi": [
+        "Uutta: Asetukset > Tiedot näyttää nyt automaattiset palautuspisteesi - palauta tuoreeseen automaattiseen varmuuskopioon napauttamalla Palauta, jos jokin menee pieleen (ei tiedostoja etsittävänä)"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "New: the app now automatically keeps recent on-device backups of your data in the background, so it can be recovered after an accident or data problem (a way to restore from these is coming next)"
       ],
       "fi": [
