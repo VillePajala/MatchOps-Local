@@ -35,7 +35,7 @@ The "Save Current Game?" path (new game from an unsaved scratch session) awaits 
 
 ## 🟠 MEDIUM
 
-### M1 · `totalGames` counts a 0-game adjustment as 1 game
+### M1 · `totalGames` counts a 0-game adjustment as 1 game — ✅ Fixed in #524
 **`src/utils/playerStats.ts:226-233`** — `sum + (adj?.gamesPlayedDelta || 1)`. A legitimate goals/assists-only correction with `gamesPlayedDelta=0` evaluates `0 || 1 = 1`, inflating total games and skewing `avgGoalsPerGame`/`avgAssistsPerGame`. The per-season path just above correctly uses `|| 0`, so the two are inconsistent.
 **Fix:** `adj?.gamesPlayedDelta ?? 1` (nullish). *(confidence ~0.8)*
 

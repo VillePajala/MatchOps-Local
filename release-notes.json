@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: a stat correction that adds goals/assists but no games no longer counts as a played game, so per-game averages stay accurate"
+      ],
+      "fi": [
+        "Korjattu: tilastokorjaus joka lisää maaleja/syöttöjä mutta ei otteluita ei enää laske pelatuksi otteluksi, joten ottelukohtaiset keskiarvot pysyvät oikeina"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "Fixed: the per-player Excel export no longer double-counts external-game adjustments in the Player Summary (games/goals/assists were shown at double their real value)"
       ],
       "fi": [

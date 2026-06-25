@@ -260,6 +260,37 @@ describe('calculatePlayerStats', () => {
       expect(stats.totalFairPlayCards).toBe(3); // 0 from games + 3 from adjustments
     });
 
+    /**
+     * Regression (review M1): a 0-game adjustment (goals/assists-only correction) must
+     * count as 0 games, not 1. Previously `adj?.gamesPlayedDelta || 1` turned 0 into 1,
+     * inflating totalGames and skewing the per-game averages.
+     * @edge-case
+     */
+    it('counts a 0-games external adjustment as 0 games (not 1)', () => {
+      const baseline = calculatePlayerStats(player, savedGames, seasons, tournaments, []);
+
+      const adjustments: PlayerStatAdjustment[] = [
+        {
+          id: 'adj0',
+          playerId: 'p1',
+          seasonId: 's1',
+          gamesPlayedDelta: 0,
+          goalsDelta: 2,
+          assistsDelta: 1,
+          appliedAt: '2024-03-01',
+          includeInSeasonTournament: true,
+        } as PlayerStatAdjustment,
+      ];
+
+      const stats = calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
+
+      // Games count must NOT increase for a 0-game adjustment...
+      expect(stats.totalGames).toBe(baseline.totalGames);
+      // ...but its goals/assists still count.
+      expect(stats.totalGoals).toBe(baseline.totalGoals + 2);
+      expect(stats.totalAssists).toBe(baseline.totalAssists + 1);
+    });
+
     it('should aggregate fairPlayCardsDelta in season performance', () => {
       const adjustments: PlayerStatAdjustment[] = [
         {
