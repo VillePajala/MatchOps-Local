@@ -638,6 +638,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
+  // Re-entry guard for the async "Save & Continue" handler. The dialog stays open
+  // during the save (it only closes on success - see the save-loss fix), so without
+  // this a mobile double-tap would start two saves and create a duplicate game.
+  const saveBeforeNewInFlightRef = useRef(false);
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
@@ -2165,16 +2169,26 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Handler for "Save Before New" confirmation - user chooses to save
   const handleSaveBeforeNewConfirmed = useCallback(async () => {
-    const saved = await persistence.handleQuickSaveGame(); // Await save to ensure it completes
-    // If the save did NOT succeed, keep the confirmation open (the error toast is
-    // already shown by handleQuickSaveGame) so the user can retry or cancel. Do NOT
-    // proceed to new-game setup, which would discard the just-played (unsaved) game.
-    if (!saved) {
+    // Ignore re-entrant taps while a save is already in flight (mobile double-tap).
+    if (saveBeforeNewInFlightRef.current) {
       return;
     }
-    setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
-    setShowSaveBeforeNewConfirm(false);
-    openNewGameViaReducer(); // Open setup modal after save completes
+    saveBeforeNewInFlightRef.current = true;
+    try {
+      const saved = await persistence.handleQuickSaveGame(); // Await save to ensure it completes
+      // If the save did NOT succeed, keep the confirmation open (the error toast is
+      // already shown by handleQuickSaveGame) so the user can retry or cancel. Do NOT
+      // proceed to new-game setup, which would discard the just-played (unsaved) game.
+      if (!saved) {
+        return;
+      }
+      setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
+      setShowSaveBeforeNewConfirm(false);
+      openNewGameViaReducer(); // Open setup modal after save completes
+    } finally {
+      // Release the guard either way so a failed save can be retried.
+      saveBeforeNewInFlightRef.current = false;
+    }
   }, [persistence, gameSessionState.selectedPlayerIds, openNewGameViaReducer]);
 
   // Handler for "Save Before New" cancellation - user chooses to discard

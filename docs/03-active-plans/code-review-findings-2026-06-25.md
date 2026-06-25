@@ -43,7 +43,7 @@ The "Save Current Game?" path (new game from an unsaved scratch session) awaits 
 **`src/components/HomePage/hooks/useGamePersistence.ts:551`** (and `useSavedGameManager.ts:222`). Load paths call `clearTimerState()` (IndexedDB) but not `clearTimerAnchor()` (the localStorage wall-clock anchor). Switch away from a running game without pausing, come back to it, reload → boot replays the stale anchor and attributes the inter-session gap as elapsed match time, auto-resuming a wrong clock. (Bounded by the period cap; affects only the live clock, not saved records.)
 **Fix:** `clearTimerAnchor()` alongside `clearTimerState()` in both load paths. *(confidence ~0.72)*
 
-### M3 · Destructive confirm dialogs can double-fire
+### M3 · Destructive confirm dialogs can double-fire — ✅ Fixed in #526
 **`src/components/HomePage/containers/ModalManager.tsx:559-601`** — the noPlayers/hardReset/saveBeforeNew/startNew `ConfirmationModal`s don't pass `isConfirming`, so the confirm button isn't disabled while the async handler is in flight. A mobile double-tap on **saveBeforeNew** fires two concurrent `handleQuickSaveGame()` → two duplicate created games. (The other three are effectively idempotent.) The correct pattern already exists in `GameSettingsModal.tsx:2608`.
 **Fix:** pass an in-flight `isConfirming` flag, or set the show-flag `false` synchronously before awaiting. *(confidence ~0.6)*
 
