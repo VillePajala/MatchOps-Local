@@ -4,6 +4,15 @@
     {
       "date": "2026-06-25",
       "en": [
+        "Fixed: backing up your data now correctly opens the share sheet on phones (Drive, Files, email...) instead of silently downloading to your Downloads folder; when it does download, it now tells you where the file went"
+      ],
+      "fi": [
+        "Korjattu: tietojen varmuuskopiointi avaa nyt oikein jakovalikon puhelimissa (Drive, Tiedostot, sähköposti...) sen sijaan että se latautuisi hiljaa Lataukset-kansioon; jos lataus tapahtuu, sovellus kertoo nyt mihin tiedosto tallennettiin"
+      ]
+    },
+    {
+      "date": "2026-06-25",
+      "en": [
         "New: a gentle reminder now appears if it's been over a month since your last off-device backup, with a one-tap button to back up - so your data stays safe even if your device is lost"
       ],
       "fi": [
