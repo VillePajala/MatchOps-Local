@@ -359,12 +359,40 @@ interface BackupDeliveryResult {
  * TEMPORARY: bump this string whenever the share code changes, so a Sentry event
  * proves WHICH bundle actually ran on-device (vs a stale service-worker cache).
  */
-const SHARE_DIAG_BUILD = 'prewarm-2';
+const SHARE_DIAG_BUILD = 'sync-share-3';
 
 /** Context captured upstream (prewarm state + generation timing) for diagnostics. */
 interface ShareDiagContext {
   prewarmUsed: boolean;
   genMs: number;
+}
+
+/** Timestamped backup filename, e.g. MatchOpsLocal_Backup_20260626_081530.json */
+function makeBackupFilename(): string {
+  const now = new Date();
+  const ts = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
+  return `MatchOpsLocal_Backup_${ts}.json`;
+}
+
+/** Trigger a plain browser download of the backup JSON (lands in Downloads). */
+function downloadJson(jsonString: string, filename: string): void {
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function reportShareDiag(tags: Record<string, string>): void {
+  try {
+    Sentry.captureMessage('backup-share-diagnostic', { level: 'info', tags: { diag_build: SHARE_DIAG_BUILD, ...tags } });
+  } catch {
+    // Sentry is optional; never let diagnostics break the export.
+  }
 }
 
 /**
@@ -431,15 +459,7 @@ async function shareOrDownloadJson(
   }
 
   // Download fallback (desktop / unsupported browsers).
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.download = filename;
-  a.href = url;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadJson(jsonString, filename);
 
   // TEMPORARY DIAGNOSTIC: why did we not open the share sheet? Reported to Sentry
   // (the on-device toast is hidden behind Samsung's native download notification,
@@ -470,26 +490,75 @@ async function shareOrDownloadJson(
 }
 
 /**
- * Pre-generated backup, kept ready so the eventual share() call fires while the
- * user's tap is still "fresh" (transient activation). navigator.share() throws
- * NotAllowedError if too much async work (cold datastore init + reads) happens
- * between the tap and the share — so we build the file BEFORE the tap (when the
- * backup UI appears) and just await the already-resolved promise at tap time.
+ * Pre-generated backup, kept ready so the share() call can fire SYNCHRONOUSLY
+ * from the tap handler. On-device testing proved navigator.share() throws
+ * NotAllowedError if ANY async work — even a zero-time microtask (`await` on an
+ * already-resolved promise) — runs between the tap and share(). So we cache the
+ * finished JSON string (not a promise) ahead of the tap and, in the click
+ * handler, build the File and call share() with zero awaits in front of it.
  */
-let prewarmedBackup: { userId?: string; startedAt: number; promise: Promise<string> } | null = null;
+let prewarmedBackup: { userId?: string; startedAt: number; promise: Promise<string>; json?: string } | null = null;
 const PREWARM_TTL_MS = 2 * 60 * 1000;
 
 /**
  * Start building a backup ahead of the user's tap. Call this when the backup
  * affordance becomes visible (Settings opens, reminder banner shows). Safe to
- * call repeatedly and on any render — generation is read-only.
+ * call repeatedly and on any render — generation is read-only. Once it resolves,
+ * the finished string is stored so the tap handler can share it synchronously.
  */
 export const prewarmBackup = (userId?: string): void => {
-  const promise = generateFullBackupJson(userId);
-  // Swallow rejection here so an unused prewarm never becomes an unhandled
-  // rejection; the real export re-generates and surfaces errors properly.
-  promise.catch(() => { /* ignored; export path handles errors */ });
-  prewarmedBackup = { userId, startedAt: performance.now(), promise };
+  const entry: { userId?: string; startedAt: number; promise: Promise<string>; json?: string } = {
+    userId,
+    startedAt: performance.now(),
+    promise: generateFullBackupJson(userId),
+  };
+  entry.promise
+    .then((json) => { if (prewarmedBackup === entry) entry.json = json; })
+    .catch(() => { /* ignored; export path re-generates and surfaces errors */ });
+  prewarmedBackup = entry;
+};
+
+/**
+ * Attempt to share a freshly prewarmed backup SYNCHRONOUSLY from a click handler.
+ * Returns true if a share was launched (so the caller skips the async export
+ * path), false if no ready backup / platform can't share files (caller should
+ * fall back to exportFullBackup). The navigator.share() call below runs with NO
+ * await before it, preserving the tap's transient activation — the whole reason
+ * the async path failed with NotAllowedError.
+ */
+export const trySharePrewarmedBackup = (
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
+  userId?: string
+): boolean => {
+  const entry = prewarmedBackup;
+  if (!entry || entry.userId !== userId || entry.json === undefined) return false;
+  if (performance.now() - entry.startedAt > PREWARM_TTL_MS) return false;
+  if (typeof navigator === 'undefined' || typeof navigator.canShare !== 'function' || typeof File === 'undefined') {
+    return false;
+  }
+  const json = entry.json;
+  const filename = makeBackupFilename();
+  const file = new File([json], filename, { type: 'text/plain' });
+  if (!navigator.canShare({ files: [file] })) return false;
+
+  prewarmedBackup = null; // consume one-shot
+  // CRITICAL: no await before this line — keep share() in the gesture's task.
+  navigator.share({ files: [file], title: 'MatchOps Backup' })
+    .then(() => {
+      markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
+      reportShareDiag({ backup_share: 'shared-sync' });
+    })
+    .catch((err: unknown) => {
+      const name = err instanceof Error ? err.name : 'unknown';
+      if (name === 'AbortError') return; // user dismissed the sheet; nothing saved
+      // Even a synchronous share failed → save via download so data isn't lost.
+      logger.warn('[fullBackup] synchronous Web Share failed, downloading:', err);
+      downloadJson(json, filename);
+      markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
+      if (showToast) showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
+      reportShareDiag({ backup_share: 'sync-fallback-download', share_err: name });
+    });
+  return true;
 };
 
 export const exportFullBackup = async (
@@ -520,10 +589,7 @@ export const exportFullBackup = async (
     }
     const genMs = Math.round(performance.now() - genStart);
 
-    // Generate filename with timestamp
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
-    const filename = `MatchOpsLocal_Backup_${timestamp}.json`;
+    const filename = makeBackupFilename();
 
     const delivery = await shareOrDownloadJson(jsonString, filename, { prewarmUsed, genMs });
     if (delivery.result === 'cancelled') {

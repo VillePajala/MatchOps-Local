@@ -1,6 +1,6 @@
 // src/utils/fullBackup.test.ts
 import "@/i18n";
-import { importFullBackup, exportFullBackup, prewarmBackup } from "./fullBackup";
+import { importFullBackup, exportFullBackup, prewarmBackup, trySharePrewarmedBackup } from "./fullBackup";
 import {
   SAVED_GAMES_KEY,
   APP_SETTINGS_KEY,
@@ -1586,6 +1586,29 @@ describe("exportFullBackup", () => {
       expect(window.URL.createObjectURL).not.toHaveBeenCalled();
       // Reminder timestamp recorded.
       expect(setStorageItem).toHaveBeenCalledWith(LAST_OFF_DEVICE_BACKUP_KEY, expect.any(String));
+    });
+
+    it("trySharePrewarmedBackup returns false when nothing is prewarmed (caller falls back)", () => {
+      // Consume any leftover prewarm from a prior test so state is clean.
+      trySharePrewarmedBackup();
+      expect(trySharePrewarmedBackup()).toBe(false);
+    });
+
+    it("trySharePrewarmedBackup shares a ready backup synchronously (no await before share)", async () => {
+      prewarmBackup();
+      // Let the prewarm generation (all promise-based mocks) settle so the JSON
+      // string is cached for the synchronous share.
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+
+      const launched = trySharePrewarmedBackup();
+
+      expect(launched).toBe(true);
+      expect(shareMock).toHaveBeenCalledTimes(1);
+      const sharedFile = shareMock.mock.calls[0][0].files[0] as File;
+      expect(sharedFile.type).toBe('text/plain');
+      expect(sharedFile.name).toMatch(/\.json$/);
+      // Shared, not downloaded.
+      expect(window.URL.createObjectURL).not.toHaveBeenCalled();
     });
 
     it("uses a prewarmed backup and still shares a valid file (activation-preserving path)", async () => {
