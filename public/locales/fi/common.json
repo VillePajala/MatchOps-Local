@@ -1452,6 +1452,8 @@
     "backupTitle": "Tietojen hallinta",
     "backupButton": "Varmuuskopioi kaikki tiedot",
     "backupCardDesc": "Vie kaikki tietosi varmuuskopiotiedostoon.",
+    "backupShareAria": "Jaa varmuuskopio",
+    "backupDownloadAria": "Lataa varmuuskopio laitteelle",
     "restoreButton": "Palauta varmuuskopiosta",
     "restoreCardDesc": "Korvaa nykyiset tiedot varmuuskopiotiedostolla.",
     "restorePoints": {

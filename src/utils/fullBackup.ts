@@ -569,6 +569,38 @@ export const trySharePrewarmedBackup = (
   return true;
 };
 
+/**
+ * Save the backup as a plain file DOWNLOAD (lands in the Downloads folder),
+ * skipping the share sheet entirely. For the explicit "Download" affordance —
+ * some devices' share sheets have no "save to device" target. Reuses a ready
+ * prewarmed backup when present (without consuming it, so Share still works).
+ */
+export const downloadFullBackup = async (
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
+  userId?: string
+): Promise<string> => {
+  logger.log("Starting full backup download...");
+  try {
+    const prewarm = prewarmedBackup;
+    const fresh = prewarm && prewarm.userId === userId && performance.now() - prewarm.startedAt < PREWARM_TTL_MS;
+    const jsonString = fresh
+      ? (prewarm.json ?? await prewarm.promise)
+      : await generateFullBackupJson(userId);
+    downloadJson(jsonString, makeBackupFilename());
+    await markOffDeviceBackupNow();
+    if (showToast) showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
+    return jsonString;
+  } catch (error) {
+    logger.error("Failed to download full backup:", error);
+    if (showToast) {
+      showToast(i18n.t("fullBackup.exportError"), 'error');
+    } else {
+      alert(i18n.t("fullBackup.exportError"));
+    }
+    throw error;
+  }
+};
+
 export const exportFullBackup = async (
   showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
   userId?: string

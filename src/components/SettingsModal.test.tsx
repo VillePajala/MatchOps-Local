@@ -327,8 +327,9 @@ describe('<SettingsModal />', () => {
     navigateToTab('Data');
     const backupLabel = screen.getByText('Backup All Data');
     const card = backupLabel.closest('.flex.items-start')!;
-    const backupButton = within(card as HTMLElement).getByRole('button');
-    fireEvent.click(backupButton);
+    // The card now has a Share button (onCreateBackup) and a Download button.
+    const shareButton = within(card as HTMLElement).getByRole('button', { name: 'Share backup' });
+    fireEvent.click(shareButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
   });
 

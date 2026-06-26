@@ -4,6 +4,15 @@
     {
       "date": "2026-06-26",
       "en": [
+        "New: the backup card now has two buttons - Share (send to Drive, email, etc.) and Download (save straight to your device) - so you can pick whichever you prefer"
+      ],
+      "fi": [
+        "Uutta: varmuuskopiokortissa on nyt kaksi painiketta - Jaa (lähetä Driveen, sähköpostiin jne.) ja Lataa (tallenna suoraan laitteelle) - joten voit valita kumman haluat"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "en": [
         "Backup: the share file now uses a .txt name so phones allow it through the share sheet (the contents are unchanged and still import normally)"
       ],
       "fi": [
