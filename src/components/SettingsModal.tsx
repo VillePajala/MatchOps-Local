@@ -742,7 +742,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="file"
                 ref={restoreFileInputRef}
                 onChange={handleRestoreFileSelected}
-                accept=".json"
+                accept=".json,.txt,application/json,text/plain"
                 style={{ display: "none" }}
                 data-testid="restore-backup-input"
               />
