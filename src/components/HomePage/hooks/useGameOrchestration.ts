@@ -4,7 +4,7 @@ import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
-import { exportFullBackup } from '@/utils/fullBackup';
+import { exportFullBackup, trySharePrewarmedBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { useFieldCoordination } from './useFieldCoordination';
@@ -497,7 +497,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
   const handleCreateBackup = useCallback(() => {
-    exportFullBackup(showToast, userId);
+    // Try a SYNCHRONOUS share first (keeps the tap's user activation, which
+    // navigator.share() requires). Falls back to the async export/download path
+    // when no prewarmed backup is ready or the platform can't share files.
+    if (!trySharePrewarmedBackup(showToast, userId)) {
+      exportFullBackup(showToast, userId);
+    }
   }, [showToast, userId]);
 
   const handleCloudDataDownload = useCallback(async () => {
