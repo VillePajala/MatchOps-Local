@@ -6,8 +6,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
-import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument } from 'react-icons/hi2';
-import { importFullBackup, prewarmBackup } from '@/utils/fullBackup';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineArrowPath, HiOutlineCloudArrowDown, HiOutlineClipboardDocument, HiOutlineShare } from 'react-icons/hi2';
+import { importFullBackup, prewarmBackup, downloadFullBackup } from '@/utils/fullBackup';
 import type { SnapshotMeta } from '@/utils/backupSnapshots';
 import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
@@ -756,12 +756,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       {t('settingsModal.backupCardDesc', 'Export all your data to a backup file you can keep.')}
                     </p>
                   </div>
-                  <button
-                    onClick={onCreateBackup}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
-                  >
-                    <HiOutlineDocumentArrowDown className="h-5 w-5" />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={onCreateBackup}
+                      aria-label={t('settingsModal.backupShareAria', 'Share backup')}
+                      title={t('settingsModal.backupShareAria', 'Share backup')}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-sm font-medium transition-colors"
+                    >
+                      <HiOutlineShare className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => downloadFullBackup(showToast, userId)}
+                      aria-label={t('settingsModal.backupDownloadAria', 'Download backup to device')}
+                      title={t('settingsModal.backupDownloadAria', 'Download backup to device')}
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm font-medium transition-colors"
+                    >
+                      <HiOutlineDocumentArrowDown className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
                 {/* Download Cloud Data - cloud mode only */}
                 <div className={`flex items-start gap-3 p-3 bg-slate-800/50 rounded-md${authMode !== 'cloud' ? ' opacity-50' : ''}`}>
