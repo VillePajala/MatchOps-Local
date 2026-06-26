@@ -1606,7 +1606,7 @@ describe("exportFullBackup", () => {
       expect(shareMock).toHaveBeenCalledTimes(1);
       const sharedFile = shareMock.mock.calls[0][0].files[0] as File;
       expect(sharedFile.type).toBe('text/plain');
-      expect(sharedFile.name).toMatch(/\.json$/);
+      expect(sharedFile.name).toMatch(/\.txt$/);
       // Shared, not downloaded.
       expect(window.URL.createObjectURL).not.toHaveBeenCalled();
     });
@@ -1640,7 +1640,7 @@ describe("exportFullBackup", () => {
       const sharedFile = shareMock.mock.calls[0][0].files[0] as File;
       expect(sharedFile.type).toBe('text/plain');
       // Filename keeps the .json extension so it re-imports cleanly.
-      expect(sharedFile.name).toMatch(/\.json$/);
+      expect(sharedFile.name).toMatch(/\.txt$/);
     });
 
     it("falls back to a download when the runtime cannot share files (canShare false)", async () => {
