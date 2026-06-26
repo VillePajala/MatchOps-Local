@@ -72,8 +72,9 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
 
   const handleBackupNow = useCallback(async () => {
     // Synchronous share first (must run before any await to keep the tap's user
-    // activation, which navigator.share() requires). If launched, we're done.
-    if (trySharePrewarmedBackup(showToast, userId)) {
+    // activation, which navigator.share() requires). If launched, re-evaluate
+    // once the off-device timestamp is recorded so the banner hides itself.
+    if (trySharePrewarmedBackup(showToast, userId, () => evaluate())) {
       return;
     }
     setBusy(true);

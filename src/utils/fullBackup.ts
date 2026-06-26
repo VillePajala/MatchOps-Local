@@ -444,7 +444,11 @@ export const prewarmBackup = (userId?: string): void => {
  */
 export const trySharePrewarmedBackup = (
   showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
-  userId?: string
+  userId?: string,
+  // Called after the off-device backup timestamp is recorded (share delivered or
+  // downloaded), so callers like the reminder banner can re-evaluate and hide.
+  // NOT called when the user cancels the share sheet (nothing was saved).
+  onComplete?: () => void
 ): boolean => {
   const entry = prewarmedBackup;
   if (!entry || entry.userId !== userId || entry.json === undefined) return false;
@@ -465,17 +469,20 @@ export const trySharePrewarmedBackup = (
   prewarmedBackup = null; // consume one-shot
   // CRITICAL: no await before this line — keep share() in the gesture's task.
   navigator.share({ files: [file], title: 'MatchOps Backup' })
-    .then(() => {
-      markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
+    .then(async () => {
+      // Await the timestamp write before re-evaluating so the banner sees it.
+      await markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
+      onComplete?.();
     })
-    .catch((err: unknown) => {
+    .catch(async (err: unknown) => {
       const name = err instanceof Error ? err.name : 'unknown';
       if (name === 'AbortError') return; // user dismissed the sheet; nothing saved
       // Even a synchronous share failed → save via download so data isn't lost.
       logger.warn('[fullBackup] synchronous Web Share failed, downloading:', err);
       downloadJson(json, downloadName);
-      markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
+      await markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
       if (showToast) showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
+      onComplete?.();
     });
   return true;
 };
