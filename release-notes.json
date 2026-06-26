@@ -4,6 +4,15 @@
     {
       "date": "2026-06-26",
       "en": [
+        "Improved: the backup reminder now disappears right after you back up via Share, instead of lingering until the next app launch"
+      ],
+      "fi": [
+        "Parannettu: varmuuskopiomuistutus katoaa nyt heti kun olet ottanut varmuuskopion Jaa-toiminnolla, sen sijaan että se jäisi näkyviin seuraavaan käynnistykseen asti"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "en": [
         "Internal: removed the temporary backup-sharing diagnostics now that the share sheet works (no change to how backup behaves)"
       ],
       "fi": [
