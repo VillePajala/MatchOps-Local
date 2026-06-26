@@ -1452,6 +1452,8 @@
     "backupTitle": "Data Management",
     "backupButton": "Backup All Data",
     "backupCardDesc": "Export all your data to a backup file you can keep.",
+    "backupShareAria": "Share backup",
+    "backupDownloadAria": "Download backup to device",
     "restoreButton": "Restore from Backup",
     "restoreCardDesc": "Replace current data with a backup file.",
     "restorePoints": {
