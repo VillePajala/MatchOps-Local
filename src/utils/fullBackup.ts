@@ -14,7 +14,6 @@ import {
   WARMUP_PLAN_KEY,
 } from "@/config/storageKeys";
 import logger from "@/utils/logger";
-import * as Sentry from '@sentry/nextjs';
 import i18n from "i18next";
 import { getDataStore } from '@/datastore/factory';
 import { getLatestGameId } from './savedGames';
@@ -345,27 +344,8 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
  * - 'shared': the OS share sheet handled it (Drive/Files/email/etc.)
  * - 'downloaded': fell back to a plain file download (lands in Downloads)
  * - 'cancelled': the user dismissed the share sheet (nothing saved)
- *
- * `debug` is a compact, human-readable string set ONLY on the download path,
- * recording why the share sheet was not used. It is a temporary diagnostic to
- * pin down why the Play Store TWA always downloads instead of sharing.
  */
-interface BackupDeliveryResult {
-  result: 'shared' | 'downloaded' | 'cancelled';
-  debug?: string;
-}
-
-/**
- * TEMPORARY: bump this string whenever the share code changes, so a Sentry event
- * proves WHICH bundle actually ran on-device (vs a stale service-worker cache).
- */
-const SHARE_DIAG_BUILD = 'txt-ext-4';
-
-/** Context captured upstream (prewarm state + generation timing) for diagnostics. */
-interface ShareDiagContext {
-  prewarmUsed: boolean;
-  genMs: number;
-}
+type BackupDeliveryResult = 'shared' | 'downloaded' | 'cancelled';
 
 /** Timestamped backup filename, e.g. MatchOpsLocal_Backup_20260626_081530.json */
 function makeBackupFilename(): string {
@@ -387,109 +367,42 @@ function downloadJson(jsonString: string, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-function reportShareDiag(tags: Record<string, string>): void {
-  try {
-    Sentry.captureMessage('backup-share-diagnostic', { level: 'info', tags: { diag_build: SHARE_DIAG_BUILD, ...tags } });
-  } catch {
-    // Sentry is optional; never let diagnostics break the export.
-  }
-}
-
 /**
  * Deliver a backup file to the user. On devices that support it (mobile / PWA),
  * open the native share sheet so the file can be saved to Drive/Files/email and
  * actually be found later; otherwise fall back to a normal download.
  */
-async function shareOrDownloadJson(
-  jsonString: string,
-  filename: string,
-  diag: ShareDiagContext
-): Promise<BackupDeliveryResult> {
-  const hasNavigator = typeof navigator !== 'undefined';
-  const canShareType = hasNavigator ? typeof navigator.canShare : 'no-nav';
-  const shareType = hasNavigator ? typeof navigator.share : 'no-nav';
-  const fileType = typeof File;
-  let canShareFiles = 'n/a';
-  let shareErr = '';
-
-  // Common diagnostic tags so every event states which bundle ran, whether the
-  // prewarm was used, and how long generation blocked before share() was called.
-  const baseTags = {
-    diag_build: SHARE_DIAG_BUILD,
-    prewarm_used: String(diag.prewarmUsed),
-    gen_ms: String(diag.genMs),
-  };
-
+async function shareOrDownloadJson(jsonString: string, filename: string): Promise<BackupDeliveryResult> {
   try {
-    if (hasNavigator && typeof navigator.canShare === 'function' && typeof File !== 'undefined') {
-      // The Web Share API only accepts an allowlisted set of MIME types, and
-      // 'application/json' is NOT on it. JSON is valid plain text, so we declare
-      // the file as 'text/plain' (which IS allowed); the .json filename is
-      // preserved so the file still re-imports cleanly (import reads contents,
-      // not the type).
-      // Share with a .txt name (Chrome's share() validates the filename
-      // extension separately from the MIME type; .json is not allowlisted).
+    if (typeof navigator !== 'undefined' && typeof navigator.canShare === 'function' && typeof File !== 'undefined') {
+      // Two compatibility constraints for Web Share:
+      //  - MIME type: the allowlist does NOT include application/json, but JSON
+      //    is valid plain text, so we declare the file as text/plain.
+      //  - Filename: share() validates the extension separately from the MIME
+      //    type, and .json is not allowlisted (throws NotAllowedError), so the
+      //    shared file uses a .txt name.
+      // Contents are unchanged JSON; re-import reads contents, not the extension.
       const shareName = filename.replace(/\.json$/, '.txt');
       const file = new File([jsonString], shareName, { type: 'text/plain' });
-      const ok = navigator.canShare({ files: [file] });
-      canShareFiles = String(ok);
-      if (ok) {
+      if (navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: 'MatchOps Backup' });
-          // TEMPORARY DIAGNOSTIC: positive confirmation that the share sheet
-          // opened (so the prewarm/activation fix can be verified via Sentry).
-          try {
-            Sentry.captureMessage('backup-share-diagnostic', {
-              level: 'info',
-              tags: { backup_share: 'shared', ...baseTags },
-            });
-          } catch {
-            // Sentry optional.
-          }
-          return { result: 'shared' };
+          return 'shared';
         } catch (err) {
           // User dismissed the share sheet → not delivered; don't also download.
-          if (err instanceof Error && err.name === 'AbortError') return { result: 'cancelled' };
+          if (err instanceof Error && err.name === 'AbortError') return 'cancelled';
           // Any other share failure → fall through to the download path.
-          shareErr = err instanceof Error ? err.name : 'unknown';
           logger.warn('[fullBackup] Web Share failed, falling back to download:', err);
         }
       }
     }
   } catch (err) {
-    shareErr = err instanceof Error ? err.name : 'unknown';
     logger.warn('[fullBackup] Web Share unavailable, using download:', err);
   }
 
   // Download fallback (desktop / unsupported browsers).
   downloadJson(jsonString, filename);
-
-  // TEMPORARY DIAGNOSTIC: why did we not open the share sheet? Reported to Sentry
-  // (the on-device toast is hidden behind Samsung's native download notification,
-  // so it can't be read off the screen). Remove once the TWA share behavior is
-  // understood.
-  const debug = `build=${SHARE_DIAG_BUILD} prewarm=${diag.prewarmUsed} genMs=${diag.genMs} cs=${canShareType} sh=${shareType} file=${fileType} csf=${canShareFiles} err=${shareErr || '-'}`;
-  try {
-    Sentry.captureMessage('backup-share-diagnostic', {
-      level: 'info',
-      tags: {
-        backup_share: 'downloaded',
-        canShare_type: canShareType,
-        share_type: shareType,
-        file_ctor: fileType,
-        canShare_files: canShareFiles,
-        share_err: shareErr || 'none',
-        ...baseTags,
-      },
-      extra: {
-        debug,
-        userAgent: hasNavigator ? navigator.userAgent : 'n/a',
-      },
-    });
-  } catch {
-    // Sentry is optional; never let diagnostics break the export.
-  }
-  return { result: 'downloaded', debug };
+  return 'downloaded';
 }
 
 /**
@@ -554,7 +467,6 @@ export const trySharePrewarmedBackup = (
   navigator.share({ files: [file], title: 'MatchOps Backup' })
     .then(() => {
       markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
-      reportShareDiag({ backup_share: 'shared-sync' });
     })
     .catch((err: unknown) => {
       const name = err instanceof Error ? err.name : 'unknown';
@@ -564,7 +476,6 @@ export const trySharePrewarmedBackup = (
       downloadJson(json, downloadName);
       markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
       if (showToast) showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
-      reportShareDiag({ backup_share: 'sync-fallback-download', share_err: name });
     });
   return true;
 };
@@ -607,42 +518,35 @@ export const exportFullBackup = async (
 ): Promise<string> => {
   logger.log("Starting full backup export...");
   try {
-    // Use a fresh prewarmed backup when available: awaiting an already-resolved
-    // promise is a microtask, so transient activation survives and the share
-    // sheet can open. Otherwise generate now (may lose activation → download).
-    // genMs measures how long this blocks AFTER the tap (the activation killer).
-    const genStart = performance.now();
-    let jsonString: string;
-    let prewarmUsed = false;
+    // Use a fresh prewarmed backup when available (the async fallback path; the
+    // synchronous share happens in trySharePrewarmedBackup). Otherwise generate.
     const prewarm = prewarmedBackup;
     prewarmedBackup = null; // consume (one-shot)
+    let jsonString: string;
     if (prewarm && prewarm.userId === userId && performance.now() - prewarm.startedAt < PREWARM_TTL_MS) {
-      prewarmUsed = true;
       try {
         jsonString = await prewarm.promise;
       } catch {
-        prewarmUsed = false;
         jsonString = await generateFullBackupJson(userId);
       }
     } else {
       jsonString = await generateFullBackupJson(userId);
     }
-    const genMs = Math.round(performance.now() - genStart);
 
     const filename = makeBackupFilename();
 
-    const delivery = await shareOrDownloadJson(jsonString, filename, { prewarmUsed, genMs });
-    if (delivery.result === 'cancelled') {
+    const delivery = await shareOrDownloadJson(jsonString, filename);
+    if (delivery === 'cancelled') {
       logger.log('Full backup export cancelled by user (share dismissed)');
     } else {
       // Record this off-device backup so the periodic reminder resets (Layer 2).
       await markOffDeviceBackupNow();
       // When we fall back to a plain download, the share sheet never appeared,
       // so tell the user exactly where the file landed (avoids "where did it go?").
-      if (delivery.result === 'downloaded' && showToast) {
+      if (delivery === 'downloaded' && showToast) {
         showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
       }
-      logger.log(`Full backup exported successfully as ${filename} (${delivery.result}) ${delivery.debug ?? ''}`);
+      logger.log(`Full backup exported successfully as ${filename} (${delivery})`);
     }
     return jsonString;
   } catch (error) {

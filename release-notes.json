@@ -4,6 +4,15 @@
     {
       "date": "2026-06-26",
       "en": [
+        "Internal: removed the temporary backup-sharing diagnostics now that the share sheet works (no change to how backup behaves)"
+      ],
+      "fi": [
+        "Sisäinen: poistettu väliaikainen varmuuskopioinnin jakamisen diagnostiikka nyt kun jakovalikko toimii (varmuuskopioinnin toiminta ennallaan)"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "en": [
         "New: the backup card now has two buttons - Share (send to Drive, email, etc.) and Download (save straight to your device) - so you can pick whichever you prefer"
       ],
       "fi": [
