@@ -4,6 +4,15 @@
     {
       "date": "2026-06-26",
       "en": [
+        "Backup: the share file now uses a .txt name so phones allow it through the share sheet (the contents are unchanged and still import normally)"
+      ],
+      "fi": [
+        "Varmuuskopiointi: jaettava tiedosto käyttää nyt .txt-nimeä, jotta puhelimet sallivat sen jakovalikossa (sisältö on ennallaan ja tuonti toimii normaalisti)"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "en": [
         "Fixed: tapping Back up now / Create Backup now opens the phone's share sheet (Drive, Files, email...) instead of just downloading - the backup is prepared in advance and shared the instant you tap"
       ],
       "fi": [

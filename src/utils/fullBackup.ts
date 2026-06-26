@@ -359,7 +359,7 @@ interface BackupDeliveryResult {
  * TEMPORARY: bump this string whenever the share code changes, so a Sentry event
  * proves WHICH bundle actually ran on-device (vs a stale service-worker cache).
  */
-const SHARE_DIAG_BUILD = 'sync-share-3';
+const SHARE_DIAG_BUILD = 'txt-ext-4';
 
 /** Context captured upstream (prewarm state + generation timing) for diagnostics. */
 interface ShareDiagContext {
@@ -427,7 +427,10 @@ async function shareOrDownloadJson(
       // the file as 'text/plain' (which IS allowed); the .json filename is
       // preserved so the file still re-imports cleanly (import reads contents,
       // not the type).
-      const file = new File([jsonString], filename, { type: 'text/plain' });
+      // Share with a .txt name (Chrome's share() validates the filename
+      // extension separately from the MIME type; .json is not allowlisted).
+      const shareName = filename.replace(/\.json$/, '.txt');
+      const file = new File([jsonString], shareName, { type: 'text/plain' });
       const ok = navigator.canShare({ files: [file] });
       canShareFiles = String(ok);
       if (ok) {
@@ -537,8 +540,13 @@ export const trySharePrewarmedBackup = (
     return false;
   }
   const json = entry.json;
-  const filename = makeBackupFilename();
-  const file = new File([json], filename, { type: 'text/plain' });
+  const downloadName = makeBackupFilename();
+  // Share with a .txt name: navigator.share() validates the filename EXTENSION
+  // against Chrome's allowlist (separately from the MIME type canShare checks),
+  // and .json is not on it — sharing it throws NotAllowedError. The content is
+  // unchanged JSON; re-import reads contents, not the extension.
+  const shareName = downloadName.replace(/\.json$/, '.txt');
+  const file = new File([json], shareName, { type: 'text/plain' });
   if (!navigator.canShare({ files: [file] })) return false;
 
   prewarmedBackup = null; // consume one-shot
@@ -553,7 +561,7 @@ export const trySharePrewarmedBackup = (
       if (name === 'AbortError') return; // user dismissed the sheet; nothing saved
       // Even a synchronous share failed → save via download so data isn't lost.
       logger.warn('[fullBackup] synchronous Web Share failed, downloading:', err);
-      downloadJson(json, filename);
+      downloadJson(json, downloadName);
       markOffDeviceBackupNow().catch(() => { /* timestamp best-effort */ });
       if (showToast) showToast(i18n.t("fullBackup.exportDownloaded"), 'success');
       reportShareDiag({ backup_share: 'sync-fallback-download', share_err: name });
