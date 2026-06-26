@@ -4,6 +4,15 @@
     {
       "date": "2026-06-26",
       "en": [
+        "Fixed: tapping Back up now / Create Backup now opens the phone's share sheet (Drive, Files, email...) instead of just downloading - the backup is prepared in advance and shared the instant you tap"
+      ],
+      "fi": [
+        "Korjattu: Varmuuskopioi nyt / Luo varmuuskopio avaa nyt puhelimen jakovalikon (Drive, Tiedostot, sähköposti...) pelkän latauksen sijaan - varmuuskopio valmistellaan etukäteen ja jaetaan heti kun napautat"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "en": [
         "Backup: added more background diagnostics (build marker and timing) to pinpoint why the share sheet still does not open on some devices"
       ],
       "fi": [

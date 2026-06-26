@@ -9,7 +9,7 @@ import {
   getBackupReminderDismissedTime,
   setBackupReminderDismissed,
 } from "@/utils/appSettings";
-import { exportFullBackup, prewarmBackup } from "@/utils/fullBackup";
+import { exportFullBackup, prewarmBackup, trySharePrewarmedBackup } from "@/utils/fullBackup";
 import logger from "@/utils/logger";
 
 /**
@@ -71,6 +71,11 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
   }, [visible, userId]);
 
   const handleBackupNow = useCallback(async () => {
+    // Synchronous share first (must run before any await to keep the tap's user
+    // activation, which navigator.share() requires). If launched, we're done.
+    if (trySharePrewarmedBackup(showToast, userId)) {
+      return;
+    }
     setBusy(true);
     try {
       await exportFullBackup(showToast, userId);
