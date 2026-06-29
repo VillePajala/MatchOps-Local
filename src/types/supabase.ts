@@ -485,6 +485,7 @@ export type Database = {
           notes: string | null
           overall_rating: number | null
           player_id: string
+          slider_values: Json | null
           teamwork: number | null
           technique: number | null
           user_id: string
@@ -506,6 +507,7 @@ export type Database = {
           notes?: string | null
           overall_rating?: number | null
           player_id: string
+          slider_values?: Json | null
           teamwork?: number | null
           technique?: number | null
           user_id: string
@@ -527,6 +529,7 @@ export type Database = {
           notes?: string | null
           overall_rating?: number | null
           player_id?: string
+          slider_values?: Json | null
           teamwork?: number | null
           technique?: number | null
           user_id?: string

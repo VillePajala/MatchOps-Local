@@ -1,4 +1,4 @@
 {
-  "version": "0.1.0",
-  "notes": "Edit this file before deploying to show release notes in the update prompt."
+  "version": "1.0.0",
+  "notes": "fix(backup): hide the reminder banner right after a successful share (#544)"
 }
