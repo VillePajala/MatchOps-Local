@@ -1588,16 +1588,17 @@
     "playersPlural": "Pelaajaa"
   },
   "assessmentMetrics": {
-    "intensity": "Intensiteetti",
-    "courage": "Rohkeus",
-    "duels": "Kaksinkamppailut",
-    "technique": "Tekniikka",
-    "creativity": "Luovuus",
+    "ball_control": "Pallonhallinta",
+    "passing": "Syöttöpeli",
+    "scanning": "Havainnointi",
+    "game_reading": "Pelikäsitys",
     "decisions": "Päätöksenteko",
-    "awareness": "Pelitaju",
+    "courage": "Rohkeus",
+    "effort": "Yritteliäisyys",
+    "enjoyment": "Ilo",
     "teamwork": "Joukkuepeli",
-    "fair_play": "Reilu peli",
-    "impact": "Vaikuttavuus"
+    "fair_play": "Fair play",
+    "creativity": "Luovuus"
   },
   "playerStats": {
     "selectPlayer": "Valitse pelaaja tarkastellaksesi tilastoja.",

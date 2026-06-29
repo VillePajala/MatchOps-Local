@@ -16,12 +16,22 @@ export interface MetricTrendPoint {
   value: number;
 }
 
+// A metric may be absent on an assessment (older rows, or a metric the coach
+// did not observe), so every read is guarded - missing values are skipped, not
+// counted as 0.
+const sliderValue = (assessment: PlayerAssessment, metric: string): number | undefined => {
+  const v = assessment.sliders[metric];
+  return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+};
+
 export function calculateFinalScore(assessment: PlayerAssessment): number {
   let sum = 0;
+  let n = 0;
   METRICS.forEach(m => {
-    sum += assessment.sliders[m];
+    const v = sliderValue(assessment, m);
+    if (v !== undefined) { sum += v; n++; }
   });
-  return sum / METRICS.length;
+  return n > 0 ? sum / n : 0;
 }
 
 export function getPlayerAssessmentTrends(playerId: string, games: SavedGamesCollection): { [metric: string]: MetricTrendPoint[] } {
@@ -32,7 +42,8 @@ export function getPlayerAssessmentTrends(playerId: string, games: SavedGamesCol
     const a = game.assessments?.[playerId];
     if (!a) continue;
     METRICS.forEach(m => {
-      trends[m].push({ date: game.gameDate, value: a.sliders[m] });
+      const v = sliderValue(a, m);
+      if (v !== undefined) trends[m].push({ date: game.gameDate, value: v });
     });
   }
   METRICS.forEach(m => trends[m].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
@@ -57,7 +68,8 @@ export function calculatePlayerAssessmentAverages(
 ): MetricAverages | null {
   let count = 0;
   const totals: Record<string, number> = {};
-  METRICS.forEach(m => (totals[m] = 0));
+  const metricDenoms: Record<string, number> = {};
+  METRICS.forEach(m => { totals[m] = 0; metricDenoms[m] = 0; });
   let overallTotal = 0;
   let finalScoreTotal = 0;
   let denominator = 0;
@@ -68,7 +80,8 @@ export function calculatePlayerAssessmentAverages(
     count++;
     const factor = useDemandCorrection ? game.demandFactor ?? 1 : 1;
     METRICS.forEach(m => {
-      totals[m] += a.sliders[m] * factor;
+      const v = sliderValue(a, m);
+      if (v !== undefined) { totals[m] += v * factor; metricDenoms[m] += factor; }
     });
     overallTotal += a.overall * factor;
     finalScoreTotal += calculateFinalScore(a) * factor;
@@ -78,7 +91,7 @@ export function calculatePlayerAssessmentAverages(
   const divisor = useDemandCorrection ? denominator : count;
   const averages: Record<string, number> = {};
   METRICS.forEach(m => {
-    averages[m] = totals[m] / divisor;
+    averages[m] = metricDenoms[m] > 0 ? totals[m] / metricDenoms[m] : 0;
   });
   return { count, averages, overall: overallTotal / divisor, finalScore: finalScoreTotal / divisor };
 }
@@ -89,7 +102,8 @@ export function calculateTeamAssessmentAverages(
 ): MetricAverages | null {
   let count = 0;
   const totals: Record<string, number> = {};
-  METRICS.forEach(m => (totals[m] = 0));
+  const metricDenoms: Record<string, number> = {};
+  METRICS.forEach(m => { totals[m] = 0; metricDenoms[m] = 0; });
   let overallTotal = 0;
   let finalScoreTotal = 0;
   let denominator = 0;
@@ -101,16 +115,21 @@ export function calculateTeamAssessmentAverages(
     count++;
     const factor = useDemandCorrection ? game.demandFactor ?? 1 : 1;
     const perMetricTotals: Record<string, number> = {};
-    METRICS.forEach(m => (perMetricTotals[m] = 0));
+    const perMetricPlayers: Record<string, number> = {};
+    METRICS.forEach(m => { perMetricTotals[m] = 0; perMetricPlayers[m] = 0; });
     players.forEach(a => {
       METRICS.forEach(m => {
-        perMetricTotals[m] += a.sliders[m];
+        const v = sliderValue(a, m);
+        if (v !== undefined) { perMetricTotals[m] += v; perMetricPlayers[m] += 1; }
       });
     });
     overallTotal += (players.reduce((s, a) => s + a.overall, 0) / players.length) * factor;
     finalScoreTotal += (players.reduce((s, a) => s + calculateFinalScore(a), 0) / players.length) * factor;
     METRICS.forEach(m => {
-      totals[m] += (perMetricTotals[m] / players.length) * factor;
+      if (perMetricPlayers[m] > 0) {
+        totals[m] += (perMetricTotals[m] / perMetricPlayers[m]) * factor;
+        metricDenoms[m] += factor;
+      }
     });
     denominator += factor;
   }
@@ -118,7 +137,7 @@ export function calculateTeamAssessmentAverages(
   const divisor = useDemandCorrection ? denominator : count;
   const averages: Record<string, number> = {};
   METRICS.forEach(m => {
-    averages[m] = totals[m] / divisor;
+    averages[m] = metricDenoms[m] > 0 ? totals[m] / metricDenoms[m] : 0;
   });
   return { count, averages, overall: overallTotal / divisor, finalScore: finalScoreTotal / divisor };
 }

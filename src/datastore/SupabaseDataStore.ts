@@ -29,6 +29,7 @@ import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import { DEFAULT_APP_SETTINGS } from '@/types/settings';
+import { migrateAssessmentSliders } from '@/config/assessmentMetrics';
 import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
@@ -2948,19 +2949,10 @@ export class SupabaseDataStore implements DataStore {
               Object.entries(a.sliders).map(([k, v]) => [k, normalizeRating(v)]),
             )
           : null,
-        // Dual-write the legacy flat columns too (kept one release as a safety
-        // net; dropped in a later contract migration). Only the legacy metric
-        // ids map to columns - custom ids live only in slider_values.
-        intensity: normalizeRating(a.sliders?.intensity ?? null),
-        courage: normalizeRating(a.sliders?.courage ?? null),
-        duels: normalizeRating(a.sliders?.duels ?? null),
-        technique: normalizeRating(a.sliders?.technique ?? null),
-        creativity: normalizeRating(a.sliders?.creativity ?? null),
-        decisions: normalizeRating(a.sliders?.decisions ?? null),
-        awareness: normalizeRating(a.sliders?.awareness ?? null),
-        teamwork: normalizeRating(a.sliders?.teamwork ?? null),
-        fair_play: normalizeRating(a.sliders?.fair_play ?? null),
-        impact: normalizeRating(a.sliders?.impact ?? null),
+        // Legacy flat columns are no longer written (the id-keyed map is now the
+        // sole source of truth; metric ids changed to set A and no longer map to
+        // columns). The columns remain in the schema until a later contract
+        // migration drops them; reads fall back to them only for pre-PR1 rows.
         notes: a.notes ?? null,
         minutes_played: typeof a.minutesPlayed === 'number' && Number.isFinite(a.minutesPlayed)
           ? a.minutesPlayed
@@ -3164,7 +3156,9 @@ export class SupabaseDataStore implements DataStore {
             };
       assessmentsRecord[a.player_id] = {
         overall: normalizeRatingFromDb(a.overall_rating, 0),
-        sliders,
+        // Map legacy metric ids onto the current set (non-destructive; rows
+        // adopt the new ids the next time they are saved).
+        sliders: migrateAssessmentSliders(sliders),
         notes: a.notes ?? '',
         minutesPlayed: a.minutes_played ?? 0,
         createdBy: a.created_by ?? 'coach',

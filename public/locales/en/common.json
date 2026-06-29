@@ -1588,16 +1588,17 @@
     "playersPlural": "Players"
   },
   "assessmentMetrics": {
-    "intensity": "Intensity",
+    "ball_control": "Ball control",
+    "passing": "Passing",
+    "scanning": "Scanning",
+    "game_reading": "Game understanding",
+    "decisions": "Decision-making",
     "courage": "Courage",
-    "duels": "Duels",
-    "technique": "Technique",
-    "creativity": "Creativity",
-    "decisions": "Decisions",
-    "awareness": "Awareness",
+    "effort": "Effort",
+    "enjoyment": "Enjoyment",
     "teamwork": "Teamwork",
-    "fair_play": "Fair Play",
-    "impact": "Impact"
+    "fair_play": "Fair play",
+    "creativity": "Creativity"
   },
   "playerStats": {
     "selectPlayer": "Select a player to view their stats.",

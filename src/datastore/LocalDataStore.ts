@@ -46,6 +46,7 @@ import {
 } from '@/config/storageKeys';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { migrateAssessmentSliders } from '@/config/assessmentMetrics';
 import {
   clearAdapterCacheWithCleanup,
   isIndexedDBAvailable,
@@ -2678,6 +2679,24 @@ export class LocalDataStore implements DataStore {
    * Read paths stay lenient (empty collection) — the real blob remains in storage
    * and in quarantine for recovery.
    */
+  /**
+   * Map legacy assessment metric ids onto the current set on read (set A).
+   * Non-destructive: rows adopt the new ids the next time the game is saved.
+   * Applied at the single load choke point so both read and read-modify-write
+   * paths see normalized assessments. See assessmentMetrics.ts.
+   */
+  private normalizeLoadedAssessments(games: SavedGamesCollection): SavedGamesCollection {
+    for (const game of Object.values(games)) {
+      const assessments = game?.assessments;
+      if (!assessments) continue;
+      for (const playerId of Object.keys(assessments)) {
+        const a = assessments[playerId];
+        assessments[playerId] = { ...a, sliders: migrateAssessmentSliders(a.sliders) };
+      }
+    }
+    return games;
+  }
+
   private async loadSavedGames(options?: { strict?: boolean }): Promise<SavedGamesCollection> {
     const gamesJson = await this.storageGetItem(SAVED_GAMES_KEY);
     if (!gamesJson) {
@@ -2688,7 +2707,7 @@ export class LocalDataStore implements DataStore {
     try {
       const parsed = JSON.parse(gamesJson);
       if (isRecord(parsed)) {
-        return parsed as SavedGamesCollection;
+        return this.normalizeLoadedAssessments(parsed as SavedGamesCollection);
       }
       reason = 'not an object';
     } catch {

@@ -10,16 +10,16 @@ describe('PlayerAssessmentCard', () => {
   const player: Player = { id: 'p1', name: 'Test', jerseyNumber: '9' };
 
   const defaultSliders = {
-    intensity: 3,
-    courage: 3,
-    duels: 3,
-    technique: 3,
-    creativity: 3,
+    ball_control: 3,
+    passing: 3,
+    scanning: 3,
+    game_reading: 3,
     decisions: 3,
-    awareness: 3,
+    courage: 3,
+    effort: 3,
+    enjoyment: 3,
     teamwork: 3,
     fair_play: 3,
-    impact: 3,
   };
 
   const createAssessment = (overrides: Partial<PlayerAssessment> = {}): PlayerAssessment => ({

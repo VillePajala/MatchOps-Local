@@ -8,7 +8,7 @@ import type { TranslationKey } from '@/i18n-types';
 import OverallRatingSelector from './OverallRatingSelector';
 import AssessmentSlider from './AssessmentSlider';
 import { validateAssessment } from '@/hooks/usePlayerAssessments';
-import { makeDefaultSliders } from '@/config/assessmentMetrics';
+import { ASSESSMENT_METRICS, ASSESSMENT_DEFAULT, makeDefaultSliders } from '@/config/assessmentMetrics';
 
 interface PlayerAssessmentCardProps {
   player: Player;
@@ -92,12 +92,12 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             <OverallRatingSelector value={overall} onChange={setOverall} />
           </div>
           <div className="space-y-2">
-            {Object.entries(sliders).map(([key, value]) => (
+            {ASSESSMENT_METRICS.map(({ id }) => (
               <AssessmentSlider
-                key={key}
-                label={t(`assessmentMetrics.${key}` as TranslationKey, key)}
-                value={value}
-                onChange={(v) => handleSliderChange(key, v)}
+                key={id}
+                label={t(`assessmentMetrics.${id}` as TranslationKey, id)}
+                value={sliders[id] ?? ASSESSMENT_DEFAULT}
+                onChange={(v) => handleSliderChange(id, v)}
               />
             ))}
           </div>
