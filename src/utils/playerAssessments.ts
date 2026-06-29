@@ -1,5 +1,6 @@
 import type { PlayerAssessment, AppState } from '@/types';
 import { getGame, saveGame } from './savedGames';
+import { ASSESSMENT_SLIDER_SCALE_VERSION } from '@/config/assessmentMetrics';
 import logger from './logger';
 
 export const getPlayerAssessments = async (
@@ -29,7 +30,9 @@ export const savePlayerAssessment = async (
       ...game,
       assessments: {
         ...(game.assessments || {}),
-        [playerId]: assessment,
+        // Stamp the current slider scale so the stored values are never
+        // re-migrated on read (in-memory values are always current scale).
+        [playerId]: { ...assessment, sliderScaleVersion: ASSESSMENT_SLIDER_SCALE_VERSION },
       },
     };
     return saveGame(gameId, updatedGame);

@@ -1600,6 +1600,13 @@
     "fair_play": "Fair play",
     "creativity": "Creativity"
   },
+  "assessmentScale": {
+    "level1": "Working on it",
+    "level2": "Emerging",
+    "level3": "Developing",
+    "level4": "Consistent",
+    "level5": "A strength"
+  },
   "playerStats": {
     "selectPlayer": "Select a player to view their stats.",
     "selectPlayerLabel": "Select Player",

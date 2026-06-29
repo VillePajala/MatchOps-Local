@@ -1600,6 +1600,13 @@
     "fair_play": "Fair play",
     "creativity": "Luovuus"
   },
+  "assessmentScale": {
+    "level1": "Harjoitteluvaiheessa",
+    "level2": "Orastava",
+    "level3": "Kehittyvä",
+    "level4": "Vakiintunut",
+    "level5": "Vahvuus"
+  },
   "playerStats": {
     "selectPlayer": "Valitse pelaaja tarkastellaksesi tilastoja.",
     "selectPlayerLabel": "Valitse pelaaja",

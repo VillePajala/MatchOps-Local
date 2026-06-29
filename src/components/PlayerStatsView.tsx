@@ -18,6 +18,7 @@ import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
 import SparklineChart from './SparklineChart';
 import RatingBar from './RatingBar';
+import { ASSESSMENT_MAX } from '@/config/assessmentMetrics';
 import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
@@ -987,7 +988,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 {Object.entries(assessmentAverages.averages).map(([metric, avg]) => (
                   <div key={metric} className="flex items-center space-x-2 px-2">
                     <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
-                    <RatingBar value={avg} />
+                    <RatingBar value={avg} max={ASSESSMENT_MAX} />
                   </div>
                 ))}
                 <div className="flex items-center space-x-2 px-2 mt-2">
@@ -996,7 +997,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </div>
                 <div className="flex items-center space-x-2 px-2">
                   <span className="w-28 shrink-0 text-slate-100">{t('playerStats.avgRating', 'Avg Rating')}</span>
-                  <RatingBar value={assessmentAverages.finalScore} />
+                  <RatingBar value={assessmentAverages.finalScore} max={ASSESSMENT_MAX} />
                 </div>
                 <div className="text-xs text-slate-400 text-right">
                   {assessmentAverages.count} {t('playerStats.ratedGames', 'rated')}

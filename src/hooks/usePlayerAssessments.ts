@@ -1,12 +1,15 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import type { PlayerAssessment, IntervalLog } from '@/types';
 import { getPlayerAssessments, savePlayerAssessment, deletePlayerAssessment } from '@/utils/playerAssessments';
+import { ASSESSMENT_MIN, ASSESSMENT_MAX } from '@/config/assessmentMetrics';
 import logger from '@/utils/logger';
 
 export const validateAssessment = (a: Partial<PlayerAssessment>): boolean => {
+  // Overall stays on the holistic 1-10 scale; per-metric sliders use the 1-5
+  // developmental word scale (see assessmentMetrics.ts).
   if (typeof a.overall !== 'number' || a.overall < 1 || a.overall > 10) return false;
   if (!a.sliders) return false;
-  const inRange = Object.values(a.sliders).every(v => v >= 1 && v <= 10);
+  const inRange = Object.values(a.sliders).every(v => v >= ASSESSMENT_MIN && v <= ASSESSMENT_MAX);
   if (!inRange) return false;
   if (a.notes && a.notes.length > 280) return false;
   return true;

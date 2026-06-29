@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "docs: assessment vision + recap descope (#546)"
+  "notes": "feat(assessment): switch to set A metrics (read-time legacy migration) (#547)"
 }
