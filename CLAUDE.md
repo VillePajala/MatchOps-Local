@@ -173,20 +173,26 @@ so the active metric set can change without a schema migration. The metric set i
 `src/config/assessmentMetrics.ts` (single source of truth). See
 `docs/03-active-plans/player-development-assessment-plan.md`.
 
+The active metric set is **set A** (`ball_control, passing, scanning, game_reading, decisions,
+courage, effort, enjoyment, teamwork, fair_play`). Legacy ids are mapped to the current set on READ
+via `migrateAssessmentSliders` (non-destructive; rows adopt the new ids the next time they are saved
+- no data migration). The legacy flat columns are **no longer written**; they remain in the schema
+until a later CONTRACT migration drops them.
+
 ```typescript
-// Forward (App → DB): write the id-keyed map (source of truth) ...
+// Forward (App → DB): write ONLY the id-keyed map (sole source of truth).
 slider_values: Object.fromEntries(
   Object.entries(a.sliders).map(([k, v]) => [k, normalizeRating(v)]),
 ),
-// ... and DUAL-WRITE the legacy flat columns for now (intensity, courage, ...).
-// Expand/contract: the columns are a one-release safety net, dropped by a later
-// CONTRACT migration. Only legacy metric ids map to columns; custom ids live
-// only in slider_values.
+// (No legacy column writes.)
 
 // Reverse (DB → App): prefer slider_values; fall back to the flat columns for
-// rows written before the JSONB column existed.
-sliders: row.slider_values ?? { intensity: row.intensity, /* ...legacy columns */ },
+// pre-PR1 rows; then map legacy ids onto the current set.
+sliders: migrateAssessmentSliders(row.slider_values ?? { intensity: row.intensity, /* ... */ }),
 ```
+
+The same `migrateAssessmentSliders` runs at the local read choke point
+(`LocalDataStore.loadSavedGames`) so local and cloud behave identically.
 
 The `save_game_with_relations` RPC populates child rows via
 `jsonb_populate_recordset(null::player_assessments, ...)` (column-agnostic), so it picks up

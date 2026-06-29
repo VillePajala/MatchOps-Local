@@ -3577,7 +3577,7 @@ describe('SupabaseDataStore', () => {
         expect(result.game.custom_league_name).toBeNull();
       });
 
-      it('writes assessment ratings as an id-keyed slider_values map (and dual-writes legacy columns)', () => {
+      it('writes assessment ratings as an id-keyed slider_values map (no legacy column writes)', () => {
         const transformGameToTables = getPrivateMethod('transformGameToTables');
         const game = {
           teamName: 'Test Team',
@@ -3605,8 +3605,9 @@ describe('SupabaseDataStore', () => {
             player_1: {
               overall: 7,
               sliders: {
-                intensity: 6, courage: 7, duels: 5, technique: 8, creativity: 7,
-                decisions: 6, awareness: 7, teamwork: 8, fair_play: 9, impact: 6,
+                ball_control: 6, passing: 7, scanning: 5, game_reading: 8,
+                decisions: 6, courage: 7, effort: 7, enjoyment: 8,
+                teamwork: 8, fair_play: 9,
               },
               notes: 'good game',
               minutesPlayed: 50,
@@ -3620,14 +3621,15 @@ describe('SupabaseDataStore', () => {
 
         expect(result.assessments).toHaveLength(1);
         const row = result.assessments[0];
-        // Id-keyed map is the source of truth.
+        // Id-keyed map is the sole source of truth.
         expect(row.slider_values).toEqual({
-          intensity: 6, courage: 7, duels: 5, technique: 8, creativity: 7,
-          decisions: 6, awareness: 7, teamwork: 8, fair_play: 9, impact: 6,
+          ball_control: 6, passing: 7, scanning: 5, game_reading: 8,
+          decisions: 6, courage: 7, effort: 7, enjoyment: 8,
+          teamwork: 8, fair_play: 9,
         });
-        // Legacy flat columns are still dual-written (one-release safety net).
-        expect(row.intensity).toBe(6);
-        expect(row.fair_play).toBe(9);
+        // Legacy flat columns are no longer written.
+        expect(row.intensity).toBeUndefined();
+        expect(row.fair_play).toBeUndefined();
         expect(row.overall_rating).toBe(7);
       });
 
@@ -3889,7 +3891,7 @@ describe('SupabaseDataStore', () => {
         expect(result.events[2].order_index).toBe(2);
       });
 
-      it('should flatten assessment sliders to individual columns', () => {
+      it('should write assessment sliders to the id-keyed slider_values map', () => {
         const transformGameToTables = getPrivateMethod('transformGameToTables');
         const game = {
           seasonId: '',
@@ -3914,16 +3916,16 @@ describe('SupabaseDataStore', () => {
             'player_1': {
               overall: 8,
               sliders: {
-                intensity: 7,
-                courage: 8,
-                duels: 6,
-                technique: 9,
-                creativity: 7,
+                ball_control: 7,
+                passing: 8,
+                scanning: 6,
+                game_reading: 9,
                 decisions: 8,
-                awareness: 7,
+                courage: 8,
+                effort: 7,
+                enjoyment: 9,
                 teamwork: 9,
                 fair_play: 10,
-                impact: 8,
               },
               notes: 'Great game!',
               minutesPlayed: 60,
@@ -3944,16 +3946,20 @@ describe('SupabaseDataStore', () => {
         const assessment = result.assessments[0];
         expect(assessment.player_id).toBe('player_1');
         expect(assessment.overall_rating).toBe(8);
-        expect(assessment.intensity).toBe(7);
-        expect(assessment.courage).toBe(8);
-        expect(assessment.duels).toBe(6);
-        expect(assessment.technique).toBe(9);
-        expect(assessment.creativity).toBe(7);
-        expect(assessment.decisions).toBe(8);
-        expect(assessment.awareness).toBe(7);
-        expect(assessment.teamwork).toBe(9);
-        expect(assessment.fair_play).toBe(10);
-        expect(assessment.impact).toBe(8);
+        expect(assessment.slider_values).toEqual({
+          ball_control: 7,
+          passing: 8,
+          scanning: 6,
+          game_reading: 9,
+          decisions: 8,
+          courage: 8,
+          effort: 7,
+          enjoyment: 9,
+          teamwork: 9,
+          fair_play: 10,
+        });
+        // Legacy flat columns are no longer written.
+        expect(assessment.intensity).toBeUndefined();
         expect(assessment.notes).toBe('Great game!');
         expect(assessment.minutes_played).toBe(60);
       });
@@ -4128,8 +4134,9 @@ describe('SupabaseDataStore', () => {
               user_id: 'user_123',
               overall_rating: 7,
               slider_values: {
-                intensity: 6, courage: 7, duels: 5, technique: 8, creativity: 7,
-                decisions: 6, awareness: 7, teamwork: 8, fair_play: 9, impact: 6,
+                ball_control: 6, passing: 7, scanning: 5, game_reading: 8,
+                decisions: 6, courage: 7, effort: 7, enjoyment: 8,
+                teamwork: 8, fair_play: 9,
               },
               // Legacy columns deliberately NULL to prove the map is the source.
               intensity: null, courage: null, duels: null, technique: null,
@@ -4146,12 +4153,12 @@ describe('SupabaseDataStore', () => {
 
         const result = transformTablesToGame(tables);
 
-        expect(result.assessments?.p1.sliders.intensity).toBe(6);
+        expect(result.assessments?.p1.sliders.ball_control).toBe(6);
         expect(result.assessments?.p1.sliders.fair_play).toBe(9);
         expect(result.assessments?.p1.overall).toBe(7);
       });
 
-      it('falls back to legacy columns when slider_values is null (pre-migration rows)', () => {
+      it('falls back to legacy columns when slider_values is null, migrating ids to set A', () => {
         const transformTablesToGame = getPrivateMethod('transformTablesToGame');
         const tables = {
           game: minimalGameRow,
@@ -4178,9 +4185,15 @@ describe('SupabaseDataStore', () => {
 
         const result = transformTablesToGame(tables);
 
-        expect(result.assessments?.p1.sliders.intensity).toBe(4);
+        // Built from the legacy columns, then migrated to set A ids: intensity ->
+        // effort, technique -> ball_control, awareness -> game_reading; duels and
+        // impact are dropped.
+        expect(result.assessments?.p1.sliders.effort).toBe(4);
+        expect(result.assessments?.p1.sliders.ball_control).toBe(7);
+        expect(result.assessments?.p1.sliders.game_reading).toBe(7);
         expect(result.assessments?.p1.sliders.fair_play).toBe(8);
-        expect(result.assessments?.p1.sliders.impact).toBe(3);
+        expect(result.assessments?.p1.sliders.duels).toBeUndefined();
+        expect(result.assessments?.p1.sliders.impact).toBeUndefined();
       });
 
       it('should reconstruct player arrays correctly', () => {
@@ -4368,16 +4381,17 @@ describe('SupabaseDataStore', () => {
         expect(result.assessments!['p1']).toBeDefined();
         const assessment = result.assessments!['p1'];
         expect(assessment.overall).toBe(8);
-        expect(assessment.sliders.intensity).toBe(7);
+        // Legacy columns are migrated to set A ids on read.
+        expect(assessment.sliders.effort).toBe(7);
         expect(assessment.sliders.courage).toBe(8);
-        expect(assessment.sliders.duels).toBe(6);
-        expect(assessment.sliders.technique).toBe(9);
+        expect(assessment.sliders.ball_control).toBe(9);
         expect(assessment.sliders.creativity).toBe(7);
         expect(assessment.sliders.decisions).toBe(8);
-        expect(assessment.sliders.awareness).toBe(7);
+        expect(assessment.sliders.game_reading).toBe(7);
         expect(assessment.sliders.teamwork).toBe(9);
         expect(assessment.sliders.fair_play).toBe(10);
-        expect(assessment.sliders.impact).toBe(8);
+        expect(assessment.sliders.duels).toBeUndefined();
+        expect(assessment.sliders.impact).toBeUndefined();
       });
 
       it('should handle null tactical data with defaults', () => {
@@ -4471,9 +4485,9 @@ describe('SupabaseDataStore', () => {
             'p1': {
               overall: 8,
               sliders: {
-                intensity: 7, courage: 8, duels: 6, technique: 9,
-                creativity: 7, decisions: 8, awareness: 7, teamwork: 9,
-                fair_play: 10, impact: 8,
+                ball_control: 7, passing: 8, scanning: 6, game_reading: 9,
+                decisions: 8, courage: 8, effort: 7, enjoyment: 9,
+                teamwork: 9, fair_play: 10,
               },
               notes: 'Good',
               minutesPlayed: 60,

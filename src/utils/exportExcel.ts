@@ -10,6 +10,7 @@ import {
 } from '@/types';
 import { formatTime } from './time';
 import { resolveGameResult } from '@/utils/gameResult';
+import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
 
 /**
  * Translation function type for Excel exports
@@ -307,16 +308,12 @@ export const exportCurrentGameExcel = (
         return {
           [translate('export.player', 'Player')]: p.name,
           [translate('export.overall', 'Overall')]: assessment.overall,
-          [translate('export.intensity', 'Intensity')]: assessment.sliders.intensity,
-          [translate('export.courage', 'Courage')]: assessment.sliders.courage,
-          [translate('export.duels', 'Duels')]: assessment.sliders.duels,
-          [translate('export.technique', 'Technique')]: assessment.sliders.technique,
-          [translate('export.creativity', 'Creativity')]: assessment.sliders.creativity,
-          [translate('export.decisions', 'Decisions')]: assessment.sliders.decisions,
-          [translate('export.awareness', 'Awareness')]: assessment.sliders.awareness,
-          [translate('export.teamwork', 'Teamwork')]: assessment.sliders.teamwork,
-          [translate('export.fairPlay', 'Fair Play')]: assessment.sliders.fair_play,
-          [translate('export.impact', 'Impact')]: assessment.sliders.impact,
+          ...Object.fromEntries(
+            ASSESSMENT_METRICS.map(({ id }) => [
+              translate(`assessmentMetrics.${id}`, id),
+              assessment.sliders[id] ?? '',
+            ]),
+          ),
           [translate('export.notes', 'Notes')]: assessment.notes || '',
           [translate('export.assessmentDate', 'Assessment Date')]: new Date(assessment.createdAt).toLocaleString(),
           [translate('export.assessedBy', 'Assessed By')]: assessment.createdBy || '',
@@ -622,16 +619,8 @@ export const exportAggregateExcel = (
     name: string;
     count: number;
     overall: number;
-    intensity: number;
-    courage: number;
-    duels: number;
-    technique: number;
-    creativity: number;
-    decisions: number;
-    awareness: number;
-    teamwork: number;
-    fairPlay: number;
-    impact: number;
+    metricTotals: Record<string, number>;
+    metricCounts: Record<string, number>;
   }>();
 
   gameArray.forEach((game) => {
@@ -645,32 +634,23 @@ export const exportAggregateExcel = (
           name: player.name,
           count: 0,
           overall: 0,
-          intensity: 0,
-          courage: 0,
-          duels: 0,
-          technique: 0,
-          creativity: 0,
-          decisions: 0,
-          awareness: 0,
-          teamwork: 0,
-          fairPlay: 0,
-          impact: 0,
+          metricTotals: {},
+          metricCounts: {},
         });
       }
 
       const stats = assessmentMap.get(playerId)!;
       stats.count++;
       stats.overall += assessment.overall;
-      stats.intensity += assessment.sliders.intensity;
-      stats.courage += assessment.sliders.courage;
-      stats.duels += assessment.sliders.duels;
-      stats.technique += assessment.sliders.technique;
-      stats.creativity += assessment.sliders.creativity;
-      stats.decisions += assessment.sliders.decisions;
-      stats.awareness += assessment.sliders.awareness;
-      stats.teamwork += assessment.sliders.teamwork;
-      stats.fairPlay += assessment.sliders.fair_play;
-      stats.impact += assessment.sliders.impact;
+      // Sum per metric, skipping values absent on a given assessment (older
+      // rows, or a metric the coach did not observe).
+      ASSESSMENT_METRICS.forEach(({ id }) => {
+        const v = assessment.sliders[id];
+        if (typeof v === 'number' && Number.isFinite(v)) {
+          stats.metricTotals[id] = (stats.metricTotals[id] ?? 0) + v;
+          stats.metricCounts[id] = (stats.metricCounts[id] ?? 0) + 1;
+        }
+      });
     });
   });
 
@@ -679,16 +659,14 @@ export const exportAggregateExcel = (
       [translate('export.player', 'Player')]: stats.name,
       [translate('export.gamesAssessed', 'Games Assessed')]: stats.count,
       [translate('export.avgOverall', 'Avg Overall')]: (stats.overall / stats.count).toFixed(1),
-      [translate('export.avgIntensity', 'Avg Intensity')]: (stats.intensity / stats.count).toFixed(1),
-      [translate('export.avgCourage', 'Avg Courage')]: (stats.courage / stats.count).toFixed(1),
-      [translate('export.avgDuels', 'Avg Duels')]: (stats.duels / stats.count).toFixed(1),
-      [translate('export.avgTechnique', 'Avg Technique')]: (stats.technique / stats.count).toFixed(1),
-      [translate('export.avgCreativity', 'Avg Creativity')]: (stats.creativity / stats.count).toFixed(1),
-      [translate('export.avgDecisions', 'Avg Decisions')]: (stats.decisions / stats.count).toFixed(1),
-      [translate('export.avgAwareness', 'Avg Awareness')]: (stats.awareness / stats.count).toFixed(1),
-      [translate('export.avgTeamwork', 'Avg Teamwork')]: (stats.teamwork / stats.count).toFixed(1),
-      [translate('export.avgFairPlay', 'Avg Fair Play')]: (stats.fairPlay / stats.count).toFixed(1),
-      [translate('export.avgImpact', 'Avg Impact')]: (stats.impact / stats.count).toFixed(1),
+      ...Object.fromEntries(
+        ASSESSMENT_METRICS.map(({ id }) => [
+          translate(`assessmentMetrics.${id}`, id),
+          stats.metricCounts[id]
+            ? (stats.metricTotals[id] / stats.metricCounts[id]).toFixed(1)
+            : '',
+        ]),
+      ),
     }));
 
     const assessmentSheet = XLSX.utils.json_to_sheet(assessmentSummary);
@@ -865,16 +843,12 @@ export const exportPlayerExcel = (
         [translate('export.date', 'Date')]: game.gameDate,
         [translate('export.opponent', 'Opponent')]: game.opponentName,
         [translate('export.overall', 'Overall')]: assessment.overall,
-        [translate('export.intensity', 'Intensity')]: assessment.sliders.intensity,
-        [translate('export.courage', 'Courage')]: assessment.sliders.courage,
-        [translate('export.duels', 'Duels')]: assessment.sliders.duels,
-        [translate('export.technique', 'Technique')]: assessment.sliders.technique,
-        [translate('export.creativity', 'Creativity')]: assessment.sliders.creativity,
-        [translate('export.decisions', 'Decisions')]: assessment.sliders.decisions,
-        [translate('export.awareness', 'Awareness')]: assessment.sliders.awareness,
-        [translate('export.teamwork', 'Teamwork')]: assessment.sliders.teamwork,
-        [translate('export.fairPlay', 'Fair Play')]: assessment.sliders.fair_play,
-        [translate('export.impact', 'Impact')]: assessment.sliders.impact,
+        ...Object.fromEntries(
+          ASSESSMENT_METRICS.map(({ id }) => [
+            translate(`assessmentMetrics.${id}`, id),
+            assessment.sliders[id] ?? '',
+          ]),
+        ),
         [notesHeader]: assessment.notes || '',
         [translate('export.assessmentDate', 'Assessment Date')]: new Date(assessment.createdAt).toLocaleString(),
       };

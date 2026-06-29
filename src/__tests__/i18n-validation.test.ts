@@ -288,7 +288,8 @@ describe('Translation File Validation', () => {
       // +13: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
       // +3: backupReminder.* (Data Safety Layer 2 off-device backup reminder banner)
       // +1: fullBackup.exportDownloaded (clear "saved to Downloads" message on download fallback)
-      expect(enKeys.length).toBe(2515);
+      // +1: assessmentMetrics set A (6 new ids added, 5 legacy removed = net +1)
+      expect(enKeys.length).toBe(2516);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -300,7 +301,8 @@ describe('Translation File Validation', () => {
       // +13: settingsModal.restorePoints.* (Data Safety Layer 1 restore-point UI)
       // +3: backupReminder.* (Data Safety Layer 2 off-device backup reminder banner)
       // +1: fullBackup.exportDownloaded (clear "saved to Downloads" message on download fallback)
-      expect(fiKeys.length).toBe(2515);
+      // +1: assessmentMetrics set A (6 new ids added, 5 legacy removed = net +1)
+      expect(fiKeys.length).toBe(2516);
     });
   });
 });
