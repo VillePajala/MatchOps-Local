@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-06-30",
+      "en": [
+        "Player assessments now use a development-focused word scale - Working on it, Emerging, Developing, Consistent, A strength - instead of 1-10 sliders. Your existing assessments are carried over automatically."
+      ],
+      "fi": [
+        "Pelaaja-arvioinnit käyttävät nyt kehityskeskeistä sanallista asteikkoa - Harjoitteluvaiheessa, Orastava, Kehittyvä, Vakiintunut, Vahvuus - 1-10 liukusäätimien sijaan. Aiemmat arviointisi siirtyvät automaattisesti."
+      ]
+    },
+    {
       "date": "2026-06-29",
       "en": [
         "Refreshed the player assessment metrics to a development-focused set: Ball control, Passing, Scanning, Game understanding, Decision-making, Courage, Effort, Enjoyment, Teamwork, Fair play. Your existing assessments are preserved."

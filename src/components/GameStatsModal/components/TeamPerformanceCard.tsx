@@ -7,6 +7,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TranslationKey } from '@/i18n-types';
 import RatingBar from '../../RatingBar';
+import { ASSESSMENT_MAX } from '@/config/assessmentMetrics';
 
 interface TeamAssessmentAverages {
   count: number;
@@ -115,7 +116,7 @@ export function TeamPerformanceCard({
                 <span className="w-28 shrink-0 text-slate-100">
                   {t(`assessmentMetrics.${metric}` as TranslationKey, metric)}
                 </span>
-                <RatingBar value={avg} />
+                <RatingBar value={avg} max={ASSESSMENT_MAX} />
               </div>
             ))}
             <div className="flex items-center space-x-2 px-2 mt-2">
@@ -128,7 +129,7 @@ export function TeamPerformanceCard({
               <span className="w-28 shrink-0 text-slate-100">
                 {t('playerStats.avgRating', 'Avg Rating')}
               </span>
-              <RatingBar value={teamAssessmentAverages.finalScore} />
+              <RatingBar value={teamAssessmentAverages.finalScore} max={ASSESSMENT_MAX} />
             </div>
             <div className="text-xs text-slate-400 text-right">
               {teamAssessmentAverages.count} {t('playerStats.ratedGames', 'rated')}

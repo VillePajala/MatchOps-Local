@@ -56,6 +56,9 @@ export const playerAssessmentSchema = z.object({
   // than fixed fields so the active metric set can change without breaking
   // restore of older backups.
   sliders: z.record(z.string(), z.number()),
+  // Scale version of `sliders` (absent/1 = legacy 1-10, 2 = current 1-5). Kept
+  // in the schema so it survives validation/restore round-trips.
+  sliderScaleVersion: z.number().optional(),
   notes: z.string(),
   minutesPlayed: z.number(),
   createdAt: z.number(),

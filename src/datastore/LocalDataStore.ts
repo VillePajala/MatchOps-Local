@@ -46,7 +46,11 @@ import {
 } from '@/config/storageKeys';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
-import { migrateAssessmentSliders } from '@/config/assessmentMetrics';
+import {
+  migrateAssessmentSliders,
+  migrateAssessmentSliderScale,
+  ASSESSMENT_SLIDER_SCALE_VERSION,
+} from '@/config/assessmentMetrics';
 import {
   clearAdapterCacheWithCleanup,
   isIndexedDBAvailable,
@@ -2680,10 +2684,11 @@ export class LocalDataStore implements DataStore {
    * and in quarantine for recovery.
    */
   /**
-   * Map legacy assessment metric ids onto the current set on read (set A).
-   * Non-destructive: rows adopt the new ids the next time the game is saved.
-   * Applied at the single load choke point so both read and read-modify-write
-   * paths see normalized assessments. See assessmentMetrics.ts.
+   * Normalize stored assessments on read: map legacy metric ids onto the
+   * current set (set A) and legacy 1-10 slider values onto the 1-5 scale.
+   * Non-destructive: rows adopt the current ids/scale the next time the game is
+   * saved. Applied at the single load choke point so both read and
+   * read-modify-write paths see normalized assessments. See assessmentMetrics.ts.
    */
   private normalizeLoadedAssessments(games: SavedGamesCollection): SavedGamesCollection {
     for (const game of Object.values(games)) {
@@ -2691,7 +2696,15 @@ export class LocalDataStore implements DataStore {
       if (!assessments) continue;
       for (const playerId of Object.keys(assessments)) {
         const a = assessments[playerId];
-        assessments[playerId] = { ...a, sliders: migrateAssessmentSliders(a.sliders) };
+        const sliders = migrateAssessmentSliderScale(
+          migrateAssessmentSliders(a.sliders),
+          a.sliderScaleVersion,
+        );
+        assessments[playerId] = {
+          ...a,
+          sliders,
+          sliderScaleVersion: ASSESSMENT_SLIDER_SCALE_VERSION,
+        };
       }
     }
     return games;

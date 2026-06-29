@@ -29,7 +29,11 @@ import type { PlayerAssessment } from '@/types/playerAssessment';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import { DEFAULT_APP_SETTINGS } from '@/types/settings';
-import { migrateAssessmentSliders } from '@/config/assessmentMetrics';
+import {
+  migrateAssessmentSliders,
+  migrateAssessmentSliderScale,
+  ASSESSMENT_SLIDER_SCALE_VERSION,
+} from '@/config/assessmentMetrics';
 import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
@@ -2949,6 +2953,9 @@ export class SupabaseDataStore implements DataStore {
               Object.entries(a.sliders).map(([k, v]) => [k, normalizeRating(v)]),
             )
           : null,
+        // In-memory values are always on the current scale, so stamp it (legacy
+        // rows are migrated on read). 1-5 fits within the column's 1-10 checks.
+        slider_scale_version: ASSESSMENT_SLIDER_SCALE_VERSION,
         // Legacy flat columns are no longer written (the id-keyed map is now the
         // sole source of truth; metric ids changed to set A and no longer map to
         // columns). The columns remain in the schema until a later contract
@@ -3156,9 +3163,14 @@ export class SupabaseDataStore implements DataStore {
             };
       assessmentsRecord[a.player_id] = {
         overall: normalizeRatingFromDb(a.overall_rating, 0),
-        // Map legacy metric ids onto the current set (non-destructive; rows
-        // adopt the new ids the next time they are saved).
-        sliders: migrateAssessmentSliders(sliders),
+        // Map legacy metric ids onto the current set and legacy 1-10 values onto
+        // the 1-5 scale (non-destructive; rows adopt the current ids/scale the
+        // next time they are saved).
+        sliders: migrateAssessmentSliderScale(
+          migrateAssessmentSliders(sliders),
+          a.slider_scale_version,
+        ),
+        sliderScaleVersion: ASSESSMENT_SLIDER_SCALE_VERSION,
         notes: a.notes ?? '',
         minutesPlayed: a.minutes_played ?? 0,
         createdBy: a.created_by ?? 'coach',

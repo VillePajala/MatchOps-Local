@@ -13,7 +13,8 @@ interface MetricTrendChartProps {
 
 const MetricTrendChart: React.FC<MetricTrendChartProps> = ({ data }) => {
   const chartData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const max = Math.max(10, ...chartData.map(d => d.value));
+  // Per-metric ratings are on the 1-5 developmental word scale.
+  const max = Math.max(5, ...chartData.map(d => d.value));
   return (
     <div style={{ width: '100%', height: 60 }}>
       <ResponsiveContainer>

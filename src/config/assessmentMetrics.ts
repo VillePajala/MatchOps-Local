@@ -45,11 +45,43 @@ export const ASSESSMENT_METRIC_IDS: readonly string[] = ASSESSMENT_METRICS.map(
   (m) => m.id,
 );
 
-/** Rating scale (still the 1-10 numeric scale; the 5-level word scale is a later PR). */
+/**
+ * Per-metric rating scale: a 5-level developmental word scale (see
+ * `assessmentScale.level{1..5}` in i18n). Stored as the integer 1-5.
+ *   1 Working on it · 2 Emerging · 3 Developing · 4 Consistent · 5 A strength
+ */
 export const ASSESSMENT_MIN = 1;
-export const ASSESSMENT_MAX = 10;
-/** Neutral starting value for an un-touched slider. */
-export const ASSESSMENT_DEFAULT = 5;
+export const ASSESSMENT_MAX = 5;
+/** Neutral starting level for an un-touched metric ("Developing"). */
+export const ASSESSMENT_DEFAULT = 3;
+/** Ordered level values, for rendering the selector. */
+export const ASSESSMENT_LEVELS: readonly number[] = [1, 2, 3, 4, 5];
+
+/**
+ * Slider-scale version stored on each assessment.
+ *   absent / 1 = legacy 1-10 numeric scale
+ *   2        = 1-5 developmental word scale (current)
+ * Used to migrate legacy values on read without a destructive data migration.
+ */
+export const ASSESSMENT_SLIDER_SCALE_VERSION = 2;
+
+/**
+ * Map per-metric values from a legacy scale onto the current 1-5 scale on READ.
+ * Legacy values were 1-10; `round(v/2)` folds them into the 5 levels and clamps.
+ * A no-op once `fromVersion` is already current, so it is safe to run on every
+ * read (idempotent); rows adopt the new scale the next time they are saved.
+ */
+export function migrateAssessmentSliderScale(
+  sliders: Record<string, number>,
+  fromVersion: number | null | undefined,
+): Record<string, number> {
+  if ((fromVersion ?? 1) >= ASSESSMENT_SLIDER_SCALE_VERSION) return sliders;
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(sliders)) {
+    out[key] = Math.min(ASSESSMENT_MAX, Math.max(ASSESSMENT_MIN, Math.round(value / 2)));
+  }
+  return out;
+}
 
 /** A fresh sliders map with every active metric at the default value. */
 export function makeDefaultSliders(): Record<string, number> {

@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { TranslationKey } from '@/i18n-types';
 import OverallRatingSelector from './OverallRatingSelector';
-import AssessmentSlider from './AssessmentSlider';
+import AssessmentLevelSelector from './AssessmentLevelSelector';
 import { validateAssessment } from '@/hooks/usePlayerAssessments';
 import { ASSESSMENT_METRICS, ASSESSMENT_DEFAULT, makeDefaultSliders } from '@/config/assessmentMetrics';
 
@@ -91,9 +91,9 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             </label>
             <OverallRatingSelector value={overall} onChange={setOverall} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {ASSESSMENT_METRICS.map(({ id }) => (
-              <AssessmentSlider
+              <AssessmentLevelSelector
                 key={id}
                 label={t(`assessmentMetrics.${id}` as TranslationKey, id)}
                 value={sliders[id] ?? ASSESSMENT_DEFAULT}

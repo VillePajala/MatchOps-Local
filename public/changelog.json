@@ -1,12 +1,12 @@
 {
-  "version": "23dc9467",
-  "date": "2026-06-29",
+  "version": "9a84beed",
+  "date": "2026-06-30",
   "notes": {
     "en": [
-      "Refreshed the player assessment metrics to a development-focused set: Ball control, Passing, Scanning, Game understanding, Decision-making, Courage, Effort, Enjoyment, Teamwork, Fair play. Your existing assessments are preserved."
+      "Player assessments now use a development-focused word scale - Working on it, Emerging, Developing, Consistent, A strength - instead of 1-10 sliders. Your existing assessments are carried over automatically."
     ],
     "fi": [
-      "Päivitetty pelaaja-arvioinnin mittarit kehityskeskeiseen sarjaan: Pallonhallinta, Syöttöpeli, Havainnointi, Pelikäsitys, Päätöksenteko, Rohkeus, Yritteliäisyys, Ilo, Joukkuepeli, Fair play. Aiemmat arviointisi säilyvät."
+      "Pelaaja-arvioinnit käyttävät nyt kehityskeskeistä sanallista asteikkoa - Harjoitteluvaiheessa, Orastava, Kehittyvä, Vakiintunut, Vahvuus - 1-10 liukusäätimien sijaan. Aiemmat arviointisi siirtyvät automaattisesti."
     ]
   }
 }
