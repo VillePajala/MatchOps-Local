@@ -1,6 +1,8 @@
 # Player Development Assessment - Vision & Plan
 
-**Status**: Vision captured 2026-06-29. Not started. Supersedes the ad-hoc 10-metric assessment.
+**Status**: In progress. PR 1 (id-keyed storage, expand step) shipped 2026-06-29 (#545; prod
+migrated + 27 rows backfilled). PR 2 = metric content change to **set A** (next). Default metric set
+locked to set A 2026-06-29.
 **Roadmap**: linked from `UNIFIED-ROADMAP.md`.
 **Origin**: design conversation exploring a shareable game card -> player "compass" -> the metrics
 themselves -> this system-level rethink.
@@ -51,25 +53,27 @@ selections from it), and an **advanced** option to assemble or tweak your own se
 metrics. Every item has a **specific** name - no vague catch-alls like "Technique" (prefer First
 touch / Dribbling / Finishing) - a one-line description, and a corner.
 
-Still drop `duels` + `impact` (they violate the north star); the rest of the old metrics live on in
-the library, renamed for clarity.
+Drop `duels` + `impact` (they violate the north star). The default set (A) also leaves out
+`creativity` - it stays in the library / Creative-attacking template. The rest live on in the
+library, renamed for clarity. **Labels are tunable later without data impact** - the stable `id`
+(storage key) is what's fixed.
 
-**Starter library** (✓ = in the default template):
+**Starter library** (✓ = in the default template, set A):
 
 Technical
-- ✓ Ensikosketus / First touch - clean control on receiving
-- ✓ Syöttäminen / Passing - weight, timing, choice of pass
-- Kuljettaminen (1v1) / Dribbling - taking on and beating an opponent
-- Viimeistely / Finishing - shooting & scoring quality
-- Pallon suojaaminen / Shielding - protecting the ball with the body
-- Heikomman jalan käyttö / Weaker foot
+- ✓ Pallonhallinta / Ball control (`ball_control`) - first touch, keeping the ball under pressure
+- ✓ Syöttäminen / Passing (`passing`) - weight, timing, choice of pass
+- Kuljettaminen (1v1) / Dribbling (`dribbling`) - taking on and beating an opponent
+- Viimeistely / Finishing (`finishing`) - shooting & scoring quality
+- Pallon suojaaminen / Shielding (`shielding`) - protecting the ball with the body
+- Heikomman jalan käyttö / Weaker foot (`weaker_foot`)
 
 Tactical / game intelligence
-- Havainnointi / Scanning - looks around / gathers info before receiving (in TOVO-spine template)
-- ✓ Pelikäsitys / Game understanding - positioning & reading, both phases
-- ✓ Päätöksenteko / Decision-making - the right choice for the moment
-- Liike ilman palloa / Off-ball movement - runs that create / exploit space
-- ✓ Luovuus / Creativity - tries the unexpected, finds a solution
+- ✓ Havainnointi / Scanning (`scanning`) - looks around / gathers info before receiving
+- ✓ Pelikäsitys / Game understanding (`game_reading`) - positioning & reading, both phases
+- ✓ Päätöksenteko / Decision-making (`decisions`) - the right choice for the moment
+- Liike ilman palloa / Off-ball movement (`off_ball_movement`) - runs that create / exploit space
+- Luovuus / Creativity (`creativity`) - tries the unexpected, finds a solution
 
 Psychological / attitude
 - ✓ Rohkeus / Courage - demands the ball, plays forward, dares to risk
@@ -84,13 +88,14 @@ Social
 - ✓ Fair play / Respect - referee, opponent, own mistakes, defeat
 - Johtajuus / Leadership - sets an example, organizes
 
-**Default template = exactly 10**, balanced across corners (2 technical / 3 tactical / 3 attitude /
-2 social) - the ✓ items. Scanning sits in the TOVO-spine template, not the default (hardest to judge
-from the sideline). Templates to ship:
-- **Balanced (default, 10)** - the ✓ set.
-- **TOVO-spine (10)** - cognitive-led; swaps Scanning in, perceive-decide-execute forward.
-- **Light 6 (U7-U9)** - Enjoyment, Courage, Effort, First touch, Creativity, Teamwork.
-- **Creative-attacking (10)** - adds Dribbling, Finishing, Off-ball movement.
+**Default template = exactly 10 (set A)**, balanced across corners (2 technical / 3 tactical /
+3 attitude / 2 social) - the ✓ items. Stable ids:
+`ball_control, passing, scanning, game_reading, decisions, courage, effort, enjoyment, teamwork,
+fair_play`. It is scanning/TOVO-flavoured (perceive-decide-execute runs through it). Templates to
+ship:
+- **Balanced (default, 10)** - the ✓ set (set A).
+- **Light 6 (U7-U9)** - Enjoyment, Courage, Effort, Ball control, Teamwork, Fair play.
+- **Creative-attacking (10)** - adds Creativity, Dribbling, Finishing, Off-ball movement.
 
 ### Fair play - the slider and the card are different things
 
@@ -226,16 +231,22 @@ a production schema migration - a project, not an afternoon. Doing the **ID-keye
 
 ## Phasing
 
-1. **Now (cheap, high value)**: lock the Balanced default 10 (drop duels+impact; replace vague
-   "Technique" with First touch + Passing; keep Creativity; Fair play stays a slider, distinct from
-   the per-game card). Move the 5-level word scale in. Move stored values to **ID-keyed** rather than
-   named columns. Future-proofs everything; nearly free today.
-2. **Next**: per-player development timeline + focus areas, as a "Development" section in the existing
-   player view. Mostly a read/view feature over data already captured.
-3. **Then**: editable metric definitions + templates (TOVO-spine, Light 6, Creative-attacking) + age
-   bands, with stable-ID + dated-versioning safeguards.
-4. **Later**: lighter capture (spotlight rotation, micro-observations); per-player report image card
-   (coach-triggered); live in-game capture; player self-assessment.
+1. **PR 1 - DONE (#545, 2026-06-29)**: id-keyed `slider_values` JSONB storage, behaviour-preserving
+   (legacy ids/scale kept). Expand step: dual-write columns, kept as a safety net. Prod migrated +
+   27 rows backfilled.
+2. **PR 2 - next**: metric content change to **set A** (`ball_control, passing, scanning,
+   game_reading, decisions, courage, effort, enjoyment, teamwork, fair_play`). Config + i18n + Excel
+   export refactor (loop over metrics) + drop the column dual-write + assessmentStats guards for
+   metrics absent on older rows. Migration 034 rewrites existing `slider_values` per the rename map
+   (technique->ball_control, awareness->game_reading, intensity->effort; drop duels/impact/creativity;
+   passing/scanning/enjoyment empty until assessed). Staging-first, prod on explicit OK. (5-level word
+   scale is PR 3, not bundled here.)
+3. **PR 3**: 5-level developmental word scale (UI + validation + compass rendering).
+4. **Then**: per-player development timeline + focus areas ("Development" section in the player view).
+5. **Then**: editable metric definitions + templates (Light 6, Creative-attacking) + age bands, with
+   stable-ID + dated-versioning safeguards.
+6. **Later**: lighter capture (spotlight rotation, micro-observations); per-player report image card;
+   live in-game capture; player self-assessment.
 
 ## Relationship to the game card
 
