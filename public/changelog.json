@@ -1,12 +1,12 @@
 {
-  "version": "9fbb6a85",
+  "version": "23dc9467",
   "date": "2026-06-29",
   "notes": {
     "en": [
-      "Internal: documentation only - captured the player development assessment plan and roadmap updates (no app changes)"
+      "Refreshed the player assessment metrics to a development-focused set: Ball control, Passing, Scanning, Game understanding, Decision-making, Courage, Effort, Enjoyment, Teamwork, Fair play. Your existing assessments are preserved."
     ],
     "fi": [
-      "Sisäinen: vain dokumentaatio - kirjattu pelaajakehityksen arviointisuunnitelma ja tiekartan päivitykset (ei muutoksia sovellukseen)"
+      "Päivitetty pelaaja-arvioinnin mittarit kehityskeskeiseen sarjaan: Pallonhallinta, Syöttöpeli, Havainnointi, Pelikäsitys, Päätöksenteko, Rohkeus, Yritteliäisyys, Ilo, Joukkuepeli, Fair play. Aiemmat arviointisi säilyvät."
     ]
   }
 }

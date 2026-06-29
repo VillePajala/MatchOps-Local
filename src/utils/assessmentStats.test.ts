@@ -36,16 +36,16 @@ const baseGame: AppState = {
 const sampleAssessment = (val: number): PlayerAssessment => ({
   overall: val,
   sliders: {
-    intensity: val,
-    courage: val,
-    duels: val,
-    technique: val,
-    creativity: val,
+    ball_control: val,
+    passing: val,
+    scanning: val,
+    game_reading: val,
     decisions: val,
-    awareness: val,
+    courage: val,
+    effort: val,
+    enjoyment: val,
     teamwork: val,
     fair_play: val,
-    impact: val,
   },
   notes: '',
   minutesPlayed: 90,
@@ -66,8 +66,8 @@ describe('assessmentStats', () => {
     };
     const result = calculatePlayerAssessmentAverages('p1', games);
     expect(result?.count).toBe(2);
-    expect(result?.averages.intensity).toBe(3);
-    expect(result?.averages.impact).toBe(3);
+    expect(result?.averages.effort).toBe(3);
+    expect(result?.averages.ball_control).toBe(3);
     expect(result?.overall).toBe(3);
   });
 
@@ -87,7 +87,7 @@ describe('assessmentStats', () => {
     // For g2: average = 3
     // Overall average across games = (3 + 3)/2 = 3
     expect(result?.count).toBe(2);
-    expect(result?.averages.intensity).toBe(3);
+    expect(result?.averages.effort).toBe(3);
     expect(result?.averages.fair_play).toBe(3);
     expect(result?.overall).toBe(3);
   });
@@ -98,9 +98,9 @@ describe('assessmentStats', () => {
       g2: { ...baseGame, gameDate: '2024-02-01', assessments: { p1: sampleAssessment(2) } },
     };
     const trends = getPlayerAssessmentTrends('p1', games);
-    expect(trends.intensity.length).toBe(2);
-    expect(trends.intensity[0].value).toBe(4);
-    expect(trends.intensity[1].value).toBe(2);
+    expect(trends.effort.length).toBe(2);
+    expect(trends.effort[0].value).toBe(4);
+    expect(trends.effort[1].value).toBe(2);
   });
 
   it('collects notes', () => {
@@ -128,16 +128,16 @@ describe('assessmentStats', () => {
       ...sampleAssessment(0),
       overall: 5,
       sliders: {
-        intensity: 4,
-        courage: 6,
-        duels: 2,
-        technique: 3,
-        creativity: 5,
-        decisions: 4,
-        awareness: 5,
-        teamwork: 6,
-        fair_play: 5,
-        impact: 4,
+        ball_control: 4,
+        passing: 6,
+        scanning: 2,
+        game_reading: 3,
+        decisions: 5,
+        courage: 4,
+        effort: 5,
+        enjoyment: 6,
+        teamwork: 5,
+        fair_play: 4,
       },
     };
     const games: SavedGamesCollection = { g1: { ...baseGame, assessments: { p1: assessment } } };
