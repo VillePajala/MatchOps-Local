@@ -166,28 +166,31 @@ const gameEvents = events
   .map(e => ({ id: e.id, type: e.event_type, time: e.time_seconds, ... }));
 ```
 
-#### Rule 5: Assessment Slider Flattening
+#### Rule 5: Assessment Sliders — id-keyed `slider_values` (JSONB)
+
+Assessment ratings are stored as an **id-keyed JSONB map** (`slider_values`), keyed by metric id,
+so the active metric set can change without a schema migration. The metric set is defined in
+`src/config/assessmentMetrics.ts` (single source of truth). See
+`docs/03-active-plans/player-development-assessment-plan.md`.
 
 ```typescript
-// Forward: Flatten nested sliders object
-intensity: a.sliders.intensity,
-courage: a.sliders.courage,
-duels: a.sliders.duels,
-technique: a.sliders.technique,
-creativity: a.sliders.creativity,
-decisions: a.sliders.decisions,
-awareness: a.sliders.awareness,
-teamwork: a.sliders.teamwork,
-fair_play: a.sliders.fair_play,
-impact: a.sliders.impact,
+// Forward (App → DB): write the id-keyed map (source of truth) ...
+slider_values: Object.fromEntries(
+  Object.entries(a.sliders).map(([k, v]) => [k, normalizeRating(v)]),
+),
+// ... and DUAL-WRITE the legacy flat columns for now (intensity, courage, ...).
+// Expand/contract: the columns are a one-release safety net, dropped by a later
+// CONTRACT migration. Only legacy metric ids map to columns; custom ids live
+// only in slider_values.
 
-// Reverse: Reconstruct nested object
-sliders: {
-  intensity: a.intensity,
-  courage: a.courage,
-  // ... all 10 fields
-},
+// Reverse (DB → App): prefer slider_values; fall back to the flat columns for
+// rows written before the JSONB column existed.
+sliders: row.slider_values ?? { intensity: row.intensity, /* ...legacy columns */ },
 ```
+
+The `save_game_with_relations` RPC populates child rows via
+`jsonb_populate_recordset(null::player_assessments, ...)` (column-agnostic), so it picks up
+`slider_values` automatically — no RPC change needed when the column was added (migration 033).
 
 #### Rule 6: Composite Uniqueness (App-Level Validation)
 

@@ -52,18 +52,10 @@ export const tacticalDiscSchema = z.object({
 
 export const playerAssessmentSchema = z.object({
   overall: z.number(),
-  sliders: z.object({
-    intensity: z.number(),
-    courage: z.number(),
-    duels: z.number(),
-    technique: z.number(),
-    creativity: z.number(),
-    decisions: z.number(),
-    awareness: z.number(),
-    teamwork: z.number(),
-    fair_play: z.number(),
-    impact: z.number(),
-  }),
+  // Id-keyed metric map (see src/config/assessmentMetrics.ts). A record rather
+  // than fixed fields so the active metric set can change without breaking
+  // restore of older backups.
+  sliders: z.record(z.string(), z.number()),
   notes: z.string(),
   minutesPlayed: z.number(),
   createdAt: z.number(),

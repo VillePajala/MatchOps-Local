@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-06-29",
+      "en": [
+        "Internal: player assessment ratings now use a flexible storage format, paving the way for customizable assessment metrics (no change to how assessments work today)"
+      ],
+      "fi": [
+        "Sisäinen: pelaaja-arviointien tallennusmuoto on nyt joustava, mikä pohjustaa mukautettavia arviointimittareita (ei muutosta arviointien nykytoimintaan)"
+      ]
+    },
+    {
       "date": "2026-06-26",
       "en": [
         "Improved: the backup reminder now disappears right after you back up via Share, instead of lingering until the next app launch"

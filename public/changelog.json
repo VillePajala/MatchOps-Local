@@ -1,12 +1,12 @@
 {
-  "version": "e1fae7d3",
-  "date": "2026-06-20",
+  "version": "705b17c0",
+  "date": "2026-06-29",
   "notes": {
     "en": [
-      "Browsing the league filters in Game Settings no longer clears the league you already picked"
+      "Internal: player assessment ratings now use a flexible storage format, paving the way for customizable assessment metrics (no change to how assessments work today)"
     ],
     "fi": [
-      "Liigasuodattimien selaaminen pelin asetuksissa ei enää tyhjennä jo valitsemaasi liigaa"
+      "Sisäinen: pelaaja-arviointien tallennusmuoto on nyt joustava, mikä pohjustaa mukautettavia arviointimittareita (ei muutosta arviointien nykytoimintaan)"
     ]
   }
 }
