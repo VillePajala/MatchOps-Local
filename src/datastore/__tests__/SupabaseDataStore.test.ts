@@ -3577,6 +3577,60 @@ describe('SupabaseDataStore', () => {
         expect(result.game.custom_league_name).toBeNull();
       });
 
+      it('writes assessment ratings as an id-keyed slider_values map (and dual-writes legacy columns)', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          showPlayerNames: true,
+          playersOnField: [],
+          availablePlayers: [],
+          selectedPlayerIds: [],
+          gameEvents: [],
+          opponents: [],
+          drawings: [],
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: null,
+          assessments: {
+            player_1: {
+              overall: 7,
+              sliders: {
+                intensity: 6, courage: 7, duels: 5, technique: 8, creativity: 7,
+                decisions: 6, awareness: 7, teamwork: 8, fair_play: 9, impact: 6,
+              },
+              notes: 'good game',
+              minutesPlayed: 50,
+              createdAt: 123,
+              createdBy: 'coach',
+            },
+          },
+        };
+
+        const result = transformGameToTables('game_123', game, 'user_123');
+
+        expect(result.assessments).toHaveLength(1);
+        const row = result.assessments[0];
+        // Id-keyed map is the source of truth.
+        expect(row.slider_values).toEqual({
+          intensity: 6, courage: 7, duels: 5, technique: 8, creativity: 7,
+          decisions: 6, awareness: 7, teamwork: 8, fair_play: 9, impact: 6,
+        });
+        // Legacy flat columns are still dual-written (one-release safety net).
+        expect(row.intensity).toBe(6);
+        expect(row.fair_play).toBe(9);
+        expect(row.overall_rating).toBe(7);
+      });
+
       it('should preserve non-empty string fields', () => {
         const transformGameToTables = getPrivateMethod('transformGameToTables');
         const game = {
@@ -4034,6 +4088,99 @@ describe('SupabaseDataStore', () => {
         expect(result.ageGroup).toBe('');
         expect(result.leagueId).toBe('');
         expect(result.customLeagueName).toBe('');
+      });
+
+      // Minimal valid game row reused by the assessment reverse-transform tests.
+      const minimalGameRow = {
+        id: 'game_123',
+        user_id: 'user_123',
+        season_id: null,
+        tournament_id: null,
+        team_name: 'Test Team',
+        opponent_name: 'Opponent',
+        game_date: '2024-01-15',
+        home_or_away: 'home',
+        number_of_periods: 2,
+        period_duration_minutes: 10,
+        current_period: 1,
+        game_status: 'inProgress',
+        is_played: true,
+        home_score: 1,
+        away_score: 0,
+        game_notes: '',
+        show_player_names: true,
+        game_personnel: [],
+        created_at: '2024-01-15T10:00:00Z',
+        updated_at: '2024-01-15T10:00:00Z',
+      };
+
+      it('reconstructs assessment sliders from the id-keyed slider_values map', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: minimalGameRow,
+          players: [],
+          events: [],
+          assessments: [
+            {
+              id: 'assessment_game_123_p1',
+              game_id: 'game_123',
+              player_id: 'p1',
+              user_id: 'user_123',
+              overall_rating: 7,
+              slider_values: {
+                intensity: 6, courage: 7, duels: 5, technique: 8, creativity: 7,
+                decisions: 6, awareness: 7, teamwork: 8, fair_play: 9, impact: 6,
+              },
+              // Legacy columns deliberately NULL to prove the map is the source.
+              intensity: null, courage: null, duels: null, technique: null,
+              creativity: null, decisions: null, awareness: null, teamwork: null,
+              fair_play: null, impact: null,
+              notes: 'good game',
+              minutes_played: 50,
+              created_by: 'coach',
+              created_at: 123,
+            },
+          ],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        expect(result.assessments?.p1.sliders.intensity).toBe(6);
+        expect(result.assessments?.p1.sliders.fair_play).toBe(9);
+        expect(result.assessments?.p1.overall).toBe(7);
+      });
+
+      it('falls back to legacy columns when slider_values is null (pre-migration rows)', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: minimalGameRow,
+          players: [],
+          events: [],
+          assessments: [
+            {
+              id: 'assessment_game_123_p1',
+              game_id: 'game_123',
+              player_id: 'p1',
+              user_id: 'user_123',
+              overall_rating: 6,
+              slider_values: null,
+              intensity: 4, courage: 5, duels: 6, technique: 7, creativity: 5,
+              decisions: 6, awareness: 7, teamwork: 8, fair_play: 8, impact: 3,
+              notes: '',
+              minutes_played: 40,
+              created_by: 'coach',
+              created_at: 123,
+            },
+          ],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        expect(result.assessments?.p1.sliders.intensity).toBe(4);
+        expect(result.assessments?.p1.sliders.fair_play).toBe(8);
+        expect(result.assessments?.p1.sliders.impact).toBe(3);
       });
 
       it('should reconstruct player arrays correctly', () => {

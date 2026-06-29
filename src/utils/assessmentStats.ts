@@ -6,19 +6,10 @@ export interface MetricAverages {
 }
 
 import type { SavedGamesCollection, PlayerAssessment } from '@/types';
+import { ASSESSMENT_METRIC_IDS } from '@/config/assessmentMetrics';
 
-const METRICS = [
-  'intensity',
-  'courage',
-  'duels',
-  'technique',
-  'creativity',
-  'decisions',
-  'awareness',
-  'teamwork',
-  'fair_play',
-  'impact',
-] as const;
+// Active metric ids, sourced from the single config (see assessmentMetrics.ts).
+const METRICS = ASSESSMENT_METRIC_IDS;
 
 export interface MetricTrendPoint {
   date: string;

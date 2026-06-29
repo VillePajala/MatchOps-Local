@@ -2941,7 +2941,16 @@ export class SupabaseDataStore implements DataStore {
         player_id: playerId,
         user_id: userId,
         overall_rating: normalizeRating(a.overall),
-        // CRITICAL: Flatten nested sliders object to individual columns
+        // Id-keyed slider map is the source of truth (supports a changing metric
+        // set without a schema change). See assessmentMetrics.ts.
+        slider_values: a.sliders
+          ? Object.fromEntries(
+              Object.entries(a.sliders).map(([k, v]) => [k, normalizeRating(v)]),
+            )
+          : null,
+        // Dual-write the legacy flat columns too (kept one release as a safety
+        // net; dropped in a later contract migration). Only the legacy metric
+        // ids map to columns - custom ids live only in slider_values.
         intensity: normalizeRating(a.sliders?.intensity ?? null),
         courage: normalizeRating(a.sliders?.courage ?? null),
         duels: normalizeRating(a.sliders?.duels ?? null),
@@ -3130,20 +3139,32 @@ export class SupabaseDataStore implements DataStore {
     // Use normalizeRatingFromDb to handle potentially corrupted data from DB
     const assessmentsRecord: { [playerId: string]: PlayerAssessment } = {};
     for (const a of assessments) {
+      // Prefer the id-keyed slider_values map; fall back to the legacy flat
+      // columns for rows written before the JSONB column existed.
+      const sv = a.slider_values;
+      const sliders: Record<string, number> =
+        sv && typeof sv === 'object' && !Array.isArray(sv)
+          ? Object.fromEntries(
+              Object.entries(sv as Record<string, unknown>).map(([k, v]) => [
+                k,
+                normalizeRatingFromDb(typeof v === 'number' ? v : null, 0),
+              ]),
+            )
+          : {
+              intensity: normalizeRatingFromDb(a.intensity, 0),
+              courage: normalizeRatingFromDb(a.courage, 0),
+              duels: normalizeRatingFromDb(a.duels, 0),
+              technique: normalizeRatingFromDb(a.technique, 0),
+              creativity: normalizeRatingFromDb(a.creativity, 0),
+              decisions: normalizeRatingFromDb(a.decisions, 0),
+              awareness: normalizeRatingFromDb(a.awareness, 0),
+              teamwork: normalizeRatingFromDb(a.teamwork, 0),
+              fair_play: normalizeRatingFromDb(a.fair_play, 0),
+              impact: normalizeRatingFromDb(a.impact, 0),
+            };
       assessmentsRecord[a.player_id] = {
         overall: normalizeRatingFromDb(a.overall_rating, 0),
-        sliders: {
-          intensity: normalizeRatingFromDb(a.intensity, 0),
-          courage: normalizeRatingFromDb(a.courage, 0),
-          duels: normalizeRatingFromDb(a.duels, 0),
-          technique: normalizeRatingFromDb(a.technique, 0),
-          creativity: normalizeRatingFromDb(a.creativity, 0),
-          decisions: normalizeRatingFromDb(a.decisions, 0),
-          awareness: normalizeRatingFromDb(a.awareness, 0),
-          teamwork: normalizeRatingFromDb(a.teamwork, 0),
-          fair_play: normalizeRatingFromDb(a.fair_play, 0),
-          impact: normalizeRatingFromDb(a.impact, 0),
-        },
+        sliders,
         notes: a.notes ?? '',
         minutesPlayed: a.minutes_played ?? 0,
         createdBy: a.created_by ?? 'coach',

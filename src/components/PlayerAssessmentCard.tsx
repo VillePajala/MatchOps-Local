@@ -8,6 +8,7 @@ import type { TranslationKey } from '@/i18n-types';
 import OverallRatingSelector from './OverallRatingSelector';
 import AssessmentSlider from './AssessmentSlider';
 import { validateAssessment } from '@/hooks/usePlayerAssessments';
+import { makeDefaultSliders } from '@/config/assessmentMetrics';
 
 interface PlayerAssessmentCardProps {
   player: Player;
@@ -17,18 +18,8 @@ interface PlayerAssessmentCardProps {
   assessment?: PlayerAssessment;
 }
 
-const initialSliders = {
-  intensity: 5,
-  courage: 5,
-  duels: 5,
-  technique: 5,
-  creativity: 5,
-  decisions: 5,
-  awareness: 5,
-  teamwork: 5,
-  fair_play: 5,
-  impact: 5,
-};
+// Default sliders for a fresh assessment, derived from the active metric set.
+const initialSliders = makeDefaultSliders();
 
 const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onSave, onDelete, isSaved, assessment }) => {
   const { t } = useTranslation();
