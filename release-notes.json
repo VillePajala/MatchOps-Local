@@ -4,6 +4,15 @@
     {
       "date": "2026-06-29",
       "en": [
+        "Internal: documentation only - captured the player development assessment plan and roadmap updates (no app changes)"
+      ],
+      "fi": [
+        "Sisäinen: vain dokumentaatio - kirjattu pelaajakehityksen arviointisuunnitelma ja tiekartan päivitykset (ei muutoksia sovellukseen)"
+      ]
+    },
+    {
+      "date": "2026-06-29",
+      "en": [
         "Internal: player assessment ratings now use a flexible storage format, paving the way for customizable assessment metrics (no change to how assessments work today)"
       ],
       "fi": [
