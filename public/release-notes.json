@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(backup): hide the reminder banner right after a successful share (#544)"
+  "notes": "docs: correct default metric set to set A (scanning-led, no creativity)"
 }
