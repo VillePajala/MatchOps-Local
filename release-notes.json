@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "You can now see what each assessment quality means: tap the info icon next to a metric in the assessment card to read a one-line definition (e.g. Scanning - looks around and gathers information before receiving)."
+      ],
+      "fi": [
+        "Näet nyt mitä kukin arviointiominaisuus tarkoittaa: napauta arviointikortissa mittarin vieressä olevaa info-kuvaketta lukeaksesi lyhyen selityksen (esim. Havainnointi - katsoo ympärille ja kerää tietoa ennen vastaanottoa)."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Development report card: the Strengths / Focus lists now sit close together around the centre and mirror each other (left list right-aligned with arrows on the left, right list left-aligned with arrows on the right), and the Now / Season-start legend moved above the radar."
       ],
       "fi": [

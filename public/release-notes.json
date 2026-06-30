@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(card): mirror strengths/focus lists at centre + legend above radar"
+  "notes": "Merge remote-tracking branch 'origin/master' into feat/metric-definitions"
 }

@@ -1592,6 +1592,7 @@
     "noPlayers": "Ei valittuja pelaajia",
     "notesPlaceholder": "Kirjoita muistiinpanoja...",
     "overallLabel": "Kokonaisarvio",
+    "whatIsThis": "Mitä tämä tarkoittaa?",
     "expand": "Avaa arviointi pelaajalle {{name}}",
     "collapse": "Sulje arviointi pelaajalle {{name}}",
     "resetButton": "Nollaa",
@@ -1614,6 +1615,22 @@
     "dribbling": "Kuljettaminen",
     "finishing": "Viimeistely",
     "off_ball_movement": "Liike ilman palloa"
+  },
+  "assessmentMetricDescriptions": {
+    "ball_control": "Ensikosketus ja pallon pitäminen paineessa.",
+    "passing": "Syötön voima, ajoitus ja valinta.",
+    "scanning": "Katsoo ympärille ja kerää tietoa ennen vastaanottoa.",
+    "game_reading": "Sijoittuminen ja pelin lukeminen, sekä hyökätessä että puolustaessa.",
+    "decisions": "Tekee oikean valinnan hetkeen.",
+    "courage": "Vaatii palloa, pelaa eteenpäin, uskaltaa ottaa riskejä.",
+    "effort": "Työmäärä - palaa puolustamaan, yrittää sinnikkäästi.",
+    "enjoyment": "Näkyvä ilo ja innostus pelaamiseen.",
+    "teamwork": "Jakaa palloa ja tukee joukkuekavereita.",
+    "fair_play": "Kunnioitus erotuomaria, vastustajaa, omia virheitä ja tappiota kohtaan.",
+    "creativity": "Kokeilee yllättävää ja löytää ratkaisun.",
+    "dribbling": "Ottaa vastustajan ja ohittaa.",
+    "finishing": "Laukaisun ja maalinteon laatu.",
+    "off_ball_movement": "Juoksut jotka luovat tai hyödyntävät tilaa."
   },
   "assessmentScale": {
     "level1": "Harjoitteluvaiheessa",

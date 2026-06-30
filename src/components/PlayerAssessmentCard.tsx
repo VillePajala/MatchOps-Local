@@ -99,6 +99,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
               <AssessmentLevelSelector
                 key={id}
                 label={t(`assessmentMetrics.${id}` as TranslationKey, id)}
+                description={t(`assessmentMetricDescriptions.${id}` as TranslationKey, '')}
                 value={sliders[id] ?? ASSESSMENT_DEFAULT}
                 onChange={(v) => handleSliderChange(id, v)}
                 ratingStyle={ratingStyle}
