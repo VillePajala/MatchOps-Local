@@ -247,16 +247,27 @@ a production schema migration - a project, not an afternoon. Doing the **ID-keye
    stable-ID + dated-versioning safeguards.
 6. **Later**: lighter capture (spotlight rotation, micro-observations); per-player report image card;
    live in-game capture; player self-assessment.
-7. **Backlog - external-game assessments** (added 2026-06-30, nice-to-have / niche): let a coach
-   assess a player in an *external* game (the `PlayerStatAdjustment` model), for the
-   single-player-tracking case. Est. ~2-3 PRs:
-   - add an assessment JSONB blob to `player_adjustments` (+ forward/reverse transforms + migration);
-   - capture UI embedded in the existing external-game add/edit form (reuse `AssessmentLevelSelector`);
-   - merge external-game assessments into `calculatePlayerDevelopment` / trends / notes (the radar,
-     report card and dev view follow automatically); show the "Assessed" badge on external rows.
-   - Friction: no demand factor for external games (default 1); assessments become a two-source
-     concept (saved games + adjustments), so consumers must merge both - manageable as they funnel
-     through those few functions.
+7. **Backlog - standalone / point-in-time assessments** (added 2026-06-30; generalised 2026-07-01,
+   nice-to-have / niche): today an assessment is *game-locked* - you can only rate a player from
+   inside a saved game. But a coach's judgment also lives in training, in plain observation, and in
+   the moment a report is written. The primitive is a **dated, standalone assessment** that is not
+   tied to a saved game. Two consumers ride on the one primitive:
+   - **Report editing**: at export, prefill the report values from history, let the coach adjust
+     them (they may have outside-app knowledge, or the history snapshot may be stale for *this*
+     moment), then either "use for this report only" (ephemeral, nothing logged) or "save as today's
+     assessment" (logs a standalone entry so the report and the in-app view stay consistent).
+   - **External-game assessments**: a standalone assessment with an opponent/date attached (the
+     `PlayerStatAdjustment` model), for the single-player-tracking case. ~2-3 PRs: assessment JSONB
+     blob on `player_adjustments` (+ forward/reverse transforms + migration); capture UI in the
+     existing external-game add/edit form (reuse `AssessmentLevelSelector`); merge into
+     `calculatePlayerDevelopment` / trends / notes (radar, report card, dev view follow); "Assessed"
+     badge on external rows.
+   - **Caution - "considered" vs "observed"**: flag manual/standalone entries distinctly from
+     per-game observed ones, so a judgment-call jump (or a one-off report tweak saved as today's
+     value) isn't silently absorbed into the trend as if it were a logged game observation. No demand
+     factor for non-game entries (default 1). Assessments become a two-source concept (saved games +
+     standalone), so consumers must merge both - manageable as they funnel through those few
+     functions.
 
 > Note: items 1-6 are largely shipped (PRs #545-#561: storage, set A, word scale, style toggle,
 > development view, radar, templates, in-game access, report card, polish). This phasing predates
