@@ -9,6 +9,7 @@ import OverallRatingSelector from './OverallRatingSelector';
 import AssessmentLevelSelector from './AssessmentLevelSelector';
 import { validateAssessment } from '@/hooks/usePlayerAssessments';
 import { ASSESSMENT_METRICS, ASSESSMENT_DEFAULT, makeDefaultSliders } from '@/config/assessmentMetrics';
+import type { AssessmentRatingStyle } from '@/types/settings';
 
 interface PlayerAssessmentCardProps {
   player: Player;
@@ -16,12 +17,13 @@ interface PlayerAssessmentCardProps {
   onDelete?: () => void;
   isSaved?: boolean;
   assessment?: PlayerAssessment;
+  ratingStyle?: AssessmentRatingStyle;
 }
 
 // Default sliders for a fresh assessment, derived from the active metric set.
 const initialSliders = makeDefaultSliders();
 
-const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onSave, onDelete, isSaved, assessment }) => {
+const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onSave, onDelete, isSaved, assessment, ratingStyle = 'words' }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [overall, setOverall] = useState<number>(assessment?.overall ?? 5);
@@ -98,6 +100,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
                 label={t(`assessmentMetrics.${id}` as TranslationKey, id)}
                 value={sliders[id] ?? ASSESSMENT_DEFAULT}
                 onChange={(v) => handleSliderChange(id, v)}
+                ratingStyle={ratingStyle}
               />
             ))}
           </div>

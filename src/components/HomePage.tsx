@@ -9,6 +9,7 @@ import {
   useGameOrchestration,
   type UseGameOrchestrationProps,
 } from '@/components/HomePage/hooks/useGameOrchestration';
+import { useAssessmentRatingStyle } from '@/hooks/useAssessmentRatingStyle';
 
 type HomePageProps = UseGameOrchestrationProps;
 
@@ -20,6 +21,7 @@ function HomePage(props: HomePageProps) {
     isBootstrapping,
     isResetting,
   } = useGameOrchestration(props);
+  const assessmentRatingStyle = useAssessmentRatingStyle();
 
   // "Cheat" to avoid layout shift: when bootstrapping ends, render GameContainer
   // invisibly for one frame so it can layout, then reveal it. The loading screen
@@ -88,7 +90,7 @@ function HomePage(props: HomePageProps) {
       <div style={{ opacity: layoutReady ? 1 : 0 }}>
         <GameContainer {...gameContainerProps} />
       </div>
-      <ModalManager {...modalManagerProps} />
+      <ModalManager {...modalManagerProps} ratingStyle={assessmentRatingStyle} />
     </>
   );
 }

@@ -13,6 +13,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
+  assessmentRatingStyle: 'words',
   hasConfiguredSeasonDates: false,
   clubSeasonStartDate: '2000-11-15',
   clubSeasonEndDate: '2000-10-20',
@@ -176,6 +177,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        assessmentRatingStyle: 'words',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'
@@ -198,6 +200,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        assessmentRatingStyle: 'words',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'
@@ -218,6 +221,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        assessmentRatingStyle: 'words',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'
@@ -271,6 +275,7 @@ describe('App Settings Utilities', () => {
         language: 'fi', // Preserved
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        assessmentRatingStyle: 'words',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'

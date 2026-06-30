@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(assessment): switch to set A metrics (read-time legacy migration) (#547)"
+  "notes": "feat(assessment): 5-level developmental word scale for per-metric ratings (#548)"
 }

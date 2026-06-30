@@ -179,12 +179,14 @@ via `migrateAssessmentSliders` (non-destructive; rows adopt the new ids the next
 - no data migration). The legacy flat columns are **no longer written**; they remain in the schema
 until a later CONTRACT migration drops them.
 
-Per-metric values use a **1-5 developmental word scale** (Working on it / Emerging / Developing /
-Consistent / A strength); `overall_rating` stays on the holistic 1-10 scale. `slider_scale_version`
-(NULL/1 = legacy 1-10, 2 = current 1-5) gates `migrateAssessmentSliderScale`, which folds legacy
-1-10 values into 1-5 on read (round(v/2)); the column was added by migration 034 (additive, no data
-rewrite). Forward writes always stamp version 2. Both the id and scale migrations run at the local
-read choke point (`LocalDataStore.loadSavedGames`) too.
+Per-metric values are stored on a **canonical 1-10 scale**; how they are shown/entered is a per-user
+choice (`assessmentRatingStyle`: `words` 5-level / `num5` / `num10`) handled purely in the UI via
+`canonicalToDisplay`/`displayToCanonical` - storage never depends on the style. `overall_rating`
+stays on the holistic 1-10 scale. `slider_scale_version` (NULL/1 = original 1-10, 2 = interim 1-5,
+3 = current canonical 1-10) gates `migrateAssessmentSliderScale`, which remaps values onto the
+canonical scale on read (1-5 data expands, 1-10 is identity); the column was added by migration 034
+(additive, no data rewrite). Forward writes always stamp the current version. Both the id and scale
+migrations run at the local read choke point (`LocalDataStore.loadSavedGames`) too.
 
 ```typescript
 // Forward (App → DB): write ONLY the id-keyed map (sole source of truth).

@@ -290,7 +290,8 @@ describe('Translation File Validation', () => {
       // +1: fullBackup.exportDownloaded (clear "saved to Downloads" message on download fallback)
       // +1: assessmentMetrics set A (6 new ids added, 5 legacy removed = net +1)
       // +5: assessmentScale.level1..5 (5-level developmental word scale)
-      expect(enKeys.length).toBe(2521);
+      // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
+      expect(enKeys.length).toBe(2527);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -304,7 +305,8 @@ describe('Translation File Validation', () => {
       // +1: fullBackup.exportDownloaded (clear "saved to Downloads" message on download fallback)
       // +1: assessmentMetrics set A (6 new ids added, 5 legacy removed = net +1)
       // +5: assessmentScale.level1..5 (5-level developmental word scale)
-      expect(fiKeys.length).toBe(2521);
+      // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
+      expect(fiKeys.length).toBe(2527);
     });
   });
 });
