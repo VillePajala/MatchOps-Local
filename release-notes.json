@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Player development filters are now full-width buttons matching the rest of the app (Games scope and the Current form / Difficulty toggles)."
+      ],
+      "fi": [
+        "Pelaajan kehitysnäkymän suotimet ovat nyt sovelluksen tyyliin sopivia koko leveyden painikkeita (Pelit-rajaus sekä Nykyinen vire / Vaikeus -valinnat)."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "Player development view polish: a Games filter (All / Last 10 / Last 5), the rating bars now line up neatly, Strengths only lists qualities the player is genuinely strong at (a rising-but-average quality is no longer mislabelled), the Strengths/Focus cards match the app style, and the toggles are now buttons. The development radar also appears with fewer assessed games."
       ],
       "fi": [

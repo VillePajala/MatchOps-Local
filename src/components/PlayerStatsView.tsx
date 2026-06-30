@@ -1007,9 +1007,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           </button>
           {showRatings && (
             <div className="mt-2 space-y-4 text-sm">
-              <div className="flex flex-wrap items-center gap-2 px-2">
-                {/* Scope: how many recent games to consider */}
-                <div className="inline-flex rounded-md overflow-hidden border border-slate-700">
+              <div className="space-y-2 px-2">
+                {/* Scope: which recent assessments to consider (full-width segmented) */}
+                <div className="flex gap-2">
                   {([
                     ['all', t('playerStats.scopeAll', 'All games')],
                     ['last10', t('playerStats.scopeLast10', 'Last 10')],
@@ -1020,43 +1020,46 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       type="button"
                       onClick={() => setScope(value)}
                       aria-pressed={scope === value}
-                      className={`px-3 py-1 text-xs font-medium transition-colors ${
-                        scope === value ? 'bg-indigo-600 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                        scope === value ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                     >
                       {label}
                     </button>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setRecencyWeighted(v => !v)}
-                  aria-pressed={recencyWeighted}
-                  title={t('playerStats.recencyWeightedTooltip', 'Weight recent games more, to show current form rather than the lifetime average')}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    recencyWeighted ? 'bg-indigo-600 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {t('playerStats.recencyWeighted', 'Current form')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const val = !useDemandCorrection;
-                    setUseDemandCorrection(val);
-                    // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
-                    updateAppSettings({ useDemandCorrection: val }, userId).catch((error) => {
-                      logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
-                    });
-                  }}
-                  aria-pressed={useDemandCorrection}
-                  title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    useDemandCorrection ? 'bg-indigo-600 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {t('playerStats.useDemandCorrection', 'Weight by Difficulty')}
-                </button>
+                {/* Weighting toggles */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRecencyWeighted(v => !v)}
+                    aria-pressed={recencyWeighted}
+                    title={t('playerStats.recencyWeightedTooltip', 'Weight recent games more, to show current form rather than the lifetime average')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      recencyWeighted ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('playerStats.recencyWeighted', 'Current form')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = !useDemandCorrection;
+                      setUseDemandCorrection(val);
+                      // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
+                      updateAppSettings({ useDemandCorrection: val }, userId).catch((error) => {
+                        logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
+                      });
+                    }}
+                    aria-pressed={useDemandCorrection}
+                    title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      useDemandCorrection ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('playerStats.useDemandCorrection', 'Weight by Difficulty')}
+                  </button>
+                </div>
               </div>
               {showRadar && (
                 <div className="px-2">
