@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Assessing players is now easier to reach: when a game ends, the timer overlay shows an \"Assess players\" button at the natural moment, and \"Assess Players\" moved up into the menu's Game Management section."
+      ],
+      "fi": [
+        "Pelaajien arviointiin pääsee nyt helpommin: kun peli päättyy, ajastinnäkymässä näkyy \"Arvioi pelaajat\" -painike oikealla hetkellä, ja \"Arvioi pelaajat\" siirtyi valikon Pelin hallinta -osioon."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "Player development filters are now full-width buttons matching the rest of the app (Games scope and the Current form / Difficulty toggles)."
       ],
       "fi": [

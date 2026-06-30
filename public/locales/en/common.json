@@ -380,7 +380,8 @@
     "decreaseInterval": "Decrease interval",
     "increaseInterval": "Increase interval",
     "wentToOvertime": "Went to overtime",
-    "recordShootout": "Record penalty shootout"
+    "recordShootout": "Record penalty shootout",
+    "assessPlayersButton": "Assess players"
   },
   "instructionsModal": {
     "title": "How It Works",

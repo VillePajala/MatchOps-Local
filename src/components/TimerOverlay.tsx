@@ -20,6 +20,7 @@ interface TimerOverlayProps {
   onStartPauseTimer: () => void;
   onResetTimer: () => void;
   onToggleGoalLogModal?: () => void;
+  onOpenPlayerAssessmentModal?: () => void;
   onRecordOpponentGoal?: () => void;
   teamName: string;
   opponentName: string;
@@ -53,6 +54,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onStartPauseTimer,
   onResetTimer,
   onToggleGoalLogModal = () => { logger.warn('onToggleGoalLogModal handler not provided'); },
+  onOpenPlayerAssessmentModal,
   onRecordOpponentGoal = () => { logger.warn('onRecordOpponentGoal handler not provided'); },
   teamName = "Team",
   opponentName = "Opponent",
@@ -334,6 +336,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             
           {/* Main Action Buttons Section - Improved layout */}
           <div className="flex flex-col space-y-2">
+            {/* Game over: prompt to assess players (the natural post-game moment) */}
+            {gameStatus === 'gameEnd' && onOpenPlayerAssessmentModal && (
+              <button
+                type="button"
+                onClick={() => { onClose?.(); onOpenPlayerAssessmentModal(); }}
+                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+              >
+                {t('timerOverlay.assessPlayersButton', 'Assess players')}
+              </button>
+            )}
             {/* Primary Action Button - Remove pulsingClass */}
             <div className="flex justify-center">
               <button 

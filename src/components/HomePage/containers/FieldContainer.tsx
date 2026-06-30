@@ -91,6 +91,7 @@ export interface FieldInteractions {
 export interface TimerInteractions {
   toggleLargeOverlay: () => void;
   toggleGoalLogModal: () => void;
+  onOpenPlayerAssessmentModal: () => void;
   logOpponentGoal: (timeInSeconds: number) => void;
   substitutionMade: () => void;
   setSubInterval: (minutes: number) => void;
@@ -216,6 +217,7 @@ export function FieldContainer({
   const {
     toggleLargeOverlay,
     toggleGoalLogModal,
+    onOpenPlayerAssessmentModal,
     logOpponentGoal,
     substitutionMade,
     setSubInterval,
@@ -255,6 +257,7 @@ export function FieldContainer({
           onStartPauseTimer={startPauseTimer}
           onResetTimer={resetTimer}
           onToggleGoalLogModal={toggleGoalLogModal}
+          onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}

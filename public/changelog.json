@@ -1,12 +1,12 @@
 {
-  "version": "1634dc6a",
+  "version": "63621ea1",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Player development filters are now full-width buttons matching the rest of the app (Games scope and the Current form / Difficulty toggles)."
+      "Assessing players is now easier to reach: when a game ends, the timer overlay shows an \"Assess players\" button at the natural moment, and \"Assess Players\" moved up into the menu's Game Management section."
     ],
     "fi": [
-      "Pelaajan kehitysnäkymän suotimet ovat nyt sovelluksen tyyliin sopivia koko leveyden painikkeita (Pelit-rajaus sekä Nykyinen vire / Vaikeus -valinnat)."
+      "Pelaajien arviointiin pääsee nyt helpommin: kun peli päättyy, ajastinnäkymässä näkyy \"Arvioi pelaajat\" -painike oikealla hetkellä, ja \"Arvioi pelaajat\" siirtyi valikon Pelin hallinta -osioon."
     ]
   }
 }
