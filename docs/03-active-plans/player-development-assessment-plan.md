@@ -202,6 +202,39 @@ Metrics are age-banded, not one-size-fits-all:
   a foundation. It adds a second input source + player-facing UI + access/identity questions. Ship
   coach-side first; add once that is solid and used.
 
+#### Editable report values at export (planned)
+
+**The data should inform the report, not dictate it.** The logged history is an objective record, but
+the coach's judgment *at the moment of writing the report* is a different and often better signal:
+
+- the last logged assessment might be weeks old (sparse data - recency-weighting can't invent a fresh
+  point, so the computed "now" is stale for *this* moment);
+- the coach has off-app evidence (a training breakthrough, a conversation, video, another coach);
+- a report is a **communication act** to a parent/player - it should be the coach's considered
+  statement, not a mechanical average they don't fully stand behind.
+
+So the report should be **editable at export, prefilled from history, then correctable.** That is the
+right default.
+
+**The one real decision - ephemeral vs saved:**
+
+- *Ephemeral* (the edit affects only the image): history stays a clean objective record; the report is
+  a curated artifact. Simple. **Risk:** the report and the in-app radar/trend now *disagree* - the
+  parent sees "A strength" on the card while the app shows "Consistent." That divergence is quietly
+  corrosive (which one is true?).
+- *Save the override as a dated assessment*: the coach's considered judgment becomes a real data point
+  - report and app stay consistent, and the outside knowledge lives somewhere honest instead of
+  evaporating. The trend updates too.
+
+**Recommendation: offer both at export** - "Use for this report only" vs "Also save as today's
+assessment." Default = prefill from history, quick-adjust, then choose.
+
+**Why this lives in the standalone-assessment backlog (item 7):** saving an override *is* a
+standalone, dated assessment with no game attached - the same primitive the external-game case needs.
+Build the one capability, serve both. And keep the **"considered" vs "per-game observed"** flag so a
+report-time judgment call isn't silently absorbed into the trend as if it were a logged game
+observation.
+
 ## Editable metrics vs comparability - resolved
 
 Most of the comparability we'd "lose" was never the goal (cross-team comparison = the rejected
@@ -247,16 +280,27 @@ a production schema migration - a project, not an afternoon. Doing the **ID-keye
    stable-ID + dated-versioning safeguards.
 6. **Later**: lighter capture (spotlight rotation, micro-observations); per-player report image card;
    live in-game capture; player self-assessment.
-7. **Backlog - external-game assessments** (added 2026-06-30, nice-to-have / niche): let a coach
-   assess a player in an *external* game (the `PlayerStatAdjustment` model), for the
-   single-player-tracking case. Est. ~2-3 PRs:
-   - add an assessment JSONB blob to `player_adjustments` (+ forward/reverse transforms + migration);
-   - capture UI embedded in the existing external-game add/edit form (reuse `AssessmentLevelSelector`);
-   - merge external-game assessments into `calculatePlayerDevelopment` / trends / notes (the radar,
-     report card and dev view follow automatically); show the "Assessed" badge on external rows.
-   - Friction: no demand factor for external games (default 1); assessments become a two-source
-     concept (saved games + adjustments), so consumers must merge both - manageable as they funnel
-     through those few functions.
+7. **Backlog - standalone / point-in-time assessments** (added 2026-06-30; generalised 2026-07-01,
+   nice-to-have / niche): today an assessment is *game-locked* - you can only rate a player from
+   inside a saved game. But a coach's judgment also lives in training, in plain observation, and in
+   the moment a report is written. The primitive is a **dated, standalone assessment** that is not
+   tied to a saved game. Two consumers ride on the one primitive:
+   - **Report editing**: at export, prefill the report values from history, let the coach adjust
+     them (they may have outside-app knowledge, or the history snapshot may be stale for *this*
+     moment), then either "use for this report only" (ephemeral, nothing logged) or "save as today's
+     assessment" (logs a standalone entry so the report and the in-app view stay consistent).
+   - **External-game assessments**: a standalone assessment with an opponent/date attached (the
+     `PlayerStatAdjustment` model), for the single-player-tracking case. ~2-3 PRs: assessment JSONB
+     blob on `player_adjustments` (+ forward/reverse transforms + migration); capture UI in the
+     existing external-game add/edit form (reuse `AssessmentLevelSelector`); merge into
+     `calculatePlayerDevelopment` / trends / notes (radar, report card, dev view follow); "Assessed"
+     badge on external rows.
+   - **Caution - "considered" vs "observed"**: flag manual/standalone entries distinctly from
+     per-game observed ones, so a judgment-call jump (or a one-off report tweak saved as today's
+     value) isn't silently absorbed into the trend as if it were a logged game observation. No demand
+     factor for non-game entries (default 1). Assessments become a two-source concept (saved games +
+     standalone), so consumers must merge both - manageable as they funnel through those few
+     functions.
 
 > Note: items 1-6 are largely shipped (PRs #545-#561: storage, set A, word scale, style toggle,
 > development view, radar, templates, in-game access, report card, polish). This phasing predates
@@ -273,6 +317,65 @@ The shareable **game card** (see `game-recap-generator-plan.md`) and this develo
   to that player's family.
 
 A single player's own compass *may* be shared with that player's family; the squad grid may not.
+
+## Known tensions & reliability (design notes)
+
+The feature is now broad enough that its real tensions are visible. These are not bugs to fix one by
+one; some are the deliberate *cost* of the against-self philosophy and are best handled by naming them
+honestly rather than engineering them away. Captured 2026-06-30 from a design discussion.
+
+### The word scale already solves the hardest problem
+
+The 5-level word scale is **self-referential** - "A strength" means strong *for this player, at this
+stage*, against the coach's own expectation, not an absolute 10. That one choice fixes the two things
+that wreck numeric systems:
+
+- **No ceiling.** "A strength" is reusable forever - a U9 and a U15 can both earn it because the bar
+  in the coach's head rises with the player while the label does not cap. Numbers can't: 9/10 leaves
+  nowhere to go, and you often realise too late you "should have started lower."
+- **No external comparison, by design.** The comparison is the player vs *their own past* (radar
+  now-vs-season-start, trend arrows), never "good compared to other kids." This is the
+  development-not-evaluation north star, and why the system feels supportive rather than judgmental.
+
+**The subtle cost of the same self-reference:** if the coach's internal bar drifts (expecting more as
+the kid ages), a genuinely improving player can show *flat or falling* word-levels - he's better, but
+the yardstick moved. Trends assume a stable scale, and a relative scale isn't perfectly stable over
+long spans. Practical consequence: **trends/arrows are most trustworthy within a season** (the
+yardstick barely moves in a few months) and softest across years; the **radar "now vs season start"
+is the safest view** (short window, stable bar). The per-season filter exists partly for this.
+
+### Metric definitions are a reliability requirement, not a nicety
+
+A trend is only meaningful if "Consistent" means the same thing each time it's rated. Without a
+definition anchoring each metric (and ideally each level), ratings suffer **rater drift** - the same
+kid rated by the same coach six months apart isn't comparable, so the trend is partly noise. The
+in-app one-line definitions (shipped #568) are the first stabiliser; the richer version - a
+behavioural anchor *per level* (e.g. "A strength in scanning = checks shoulders before most
+receptions") - is more content but is what truly stabilises ratings. Highest-leverage future content.
+
+### Other real issues
+
+- **Forced defaults pollute the data.** A new assessment starts every metric at the middle. Saving
+  without touching one records a real "Developing" that was never observed - phantom data that
+  flattens trends. Honest fix: "not observed" default (parked). Until then, untouched != neutral
+  truth.
+- **Small samples lie.** With 4-5 games the baseline (first 3) and "now" overlap, so the trend is
+  barely signal; it firms up around 8-10 assessments. Arrows say "too early" under 4, but 4-7 is soft.
+- **Recency can overreact.** "Current form" weights recent games, so one bad game can swing a metric;
+  the 5-level coarseness dampens but doesn't remove this.
+- **Per-game burden -> rushed data.** Rating 10-14 qualities every game tempts skipping or
+  speed-rating (everyone a "3"). This is why lighter capture / spotlight rotation exists: assessing
+  fewer players per game *well* beats all of them badly.
+- **One subjective rater, no calibration.** The trend is the coach's evolving *perception*, not ground
+  truth - fine for personal coaching, but don't oversell its precision (frame recommendations as a
+  signpost, not a verdict). A player self-assessment would add a second lens.
+
+### How to rank them
+
+- **Quick, high-value:** in-app metric definitions (done #568); "not observed" default (data quality).
+- **Inherent trade-offs to accept, not fix:** single-rater subjectivity, no external benchmark,
+  relative-scale drift - these are the price of the against-self philosophy. The fix is naming them
+  honestly, not engineering them away.
 
 ## Open questions (deferred)
 

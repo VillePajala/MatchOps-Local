@@ -1,12 +1,12 @@
 {
-  "version": "5393e982",
+  "version": "e998aaad",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "You can now see what each assessment quality means: tap the info icon next to a metric in the assessment card to read a one-line definition (e.g. Scanning - looks around and gathers information before receiving)."
+      "Internal: documentation only - reframed the assessment-roadmap backlog into a standalone / point-in-time assessment primitive (report-editing + external games), and added the public-launch tasks (site copy, screenshots, Play Store update). No app changes."
     ],
     "fi": [
-      "Näet nyt mitä kukin arviointiominaisuus tarkoittaa: napauta arviointikortissa mittarin vieressä olevaa info-kuvaketta lukeaksesi lyhyen selityksen (esim. Havainnointi - katsoo ympärille ja kerää tietoa ennen vastaanottoa)."
+      "Sisäinen: vain dokumentaatio - arviointien tiekartan backlog muotoiltiin itsenäiseksi / hetkelliseksi arviointityökaluksi (raportin muokkaus + ulkopuoliset pelit), ja lisättiin julkaisutehtävät (sivuston tekstit, kuvakaappaukset, Play Store -päivitys). Ei sovellusmuutoksia."
     ]
   }
 }
