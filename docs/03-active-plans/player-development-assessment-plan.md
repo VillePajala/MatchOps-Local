@@ -247,6 +247,20 @@ a production schema migration - a project, not an afternoon. Doing the **ID-keye
    stable-ID + dated-versioning safeguards.
 6. **Later**: lighter capture (spotlight rotation, micro-observations); per-player report image card;
    live in-game capture; player self-assessment.
+7. **Backlog - external-game assessments** (added 2026-06-30, nice-to-have / niche): let a coach
+   assess a player in an *external* game (the `PlayerStatAdjustment` model), for the
+   single-player-tracking case. Est. ~2-3 PRs:
+   - add an assessment JSONB blob to `player_adjustments` (+ forward/reverse transforms + migration);
+   - capture UI embedded in the existing external-game add/edit form (reuse `AssessmentLevelSelector`);
+   - merge external-game assessments into `calculatePlayerDevelopment` / trends / notes (the radar,
+     report card and dev view follow automatically); show the "Assessed" badge on external rows.
+   - Friction: no demand factor for external games (default 1); assessments become a two-source
+     concept (saved games + adjustments), so consumers must merge both - manageable as they funnel
+     through those few functions.
+
+> Note: items 1-6 are largely shipped (PRs #545-#561: storage, set A, word scale, style toggle,
+> development view, radar, templates, in-game access, report card, polish). This phasing predates
+> that work and is kept for context; item 7 is the open backlog entry.
 
 ## Relationship to the game card
 

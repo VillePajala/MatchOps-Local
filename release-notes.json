@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Internal: documentation only - added external-game assessments to the development-assessment roadmap (no app changes)."
+      ],
+      "fi": [
+        "Sisäinen: vain dokumentaatio - lisätty ulkoisten pelien arvioinnit kehitysarviointitiekarttaan (ei muutoksia sovellukseen)."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "Player stats: each game in the game log now shows an \"Assessed\" badge if you rated the player in that game, so you can see at a glance which games have assessments. Also, tapping a point on a rating trend now shows a clean value tooltip instead of a white box with a wrong date."
       ],
       "fi": [
