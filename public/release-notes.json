@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(card): center strengths/focus lists for a balanced layout"
+  "notes": "fix(card): trend arrow next to the word in strengths/focus lists (#565)"
 }
