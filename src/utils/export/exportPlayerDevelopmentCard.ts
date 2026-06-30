@@ -129,41 +129,43 @@ function drawItemList(
   heading: string,
   accent: string,
   items: DevelopmentCardItem[],
-  x: number,
+  edgeX: number,
   y: number,
-  colWidth: number,
+  align: 'left' | 'right',
 ): void {
-  // Heading + items are centered within the column, so the two lists are
-  // symmetric and nothing hugs the image edge.
-  const cx = x + colWidth / 2;
+  // The two lists mirror around the card centre: the left list is right-aligned
+  // with its arrows on the left, the right list is left-aligned with its arrows
+  // on the right, so they read inward toward the middle.
+  const right = align === 'right';
   ctx.font = `bold 13px ${FONT}`;
-  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.textAlign = right ? 'right' : 'left';
   ctx.fillStyle = accent;
-  ctx.fillText(heading.toUpperCase(), cx, y - 3);
+  ctx.fillText(heading.toUpperCase(), edgeX, y - 3);
 
   ctx.font = `15px ${FONT}`;
   let ly = y + 22;
   if (items.length === 0) {
     ctx.fillStyle = '#64748b';
-    ctx.fillText('-', cx, ly);
+    ctx.fillText('-', edgeX, ly);
     return;
   }
-  const maxW = colWidth - 8;
   items.forEach((it) => {
-    // Center "label + arrow" as a unit within the column.
     const arrowW = it.arrow ? ctx.measureText(it.arrow).width : 0;
     const gap = arrowW ? 6 : 0;
-    const labelW = Math.min(ctx.measureText(it.label).width, maxW - gap - arrowW);
-    const startX = cx - (labelW + gap + arrowW) / 2;
-    ctx.textAlign = 'left';
+    const labelW = ctx.measureText(it.label).width;
+    ctx.textAlign = right ? 'right' : 'left';
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(it.label, startX, ly, maxW - gap - arrowW);
+    ctx.fillText(it.label, edgeX, ly);
     ctx.fillStyle = it.color;
-    ctx.fillText(it.arrow, startX + labelW + gap, ly);
+    if (right) {
+      ctx.fillText(it.arrow, edgeX - labelW - gap, ly); // arrow on the left
+    } else {
+      ctx.fillText(it.arrow, edgeX + labelW + gap, ly); // arrow on the right
+    }
     ly += 24;
   });
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'left';
 }
 
 /** Render the development card to a canvas (exported for testing). */
@@ -202,15 +204,12 @@ export function renderDevelopmentCard(data: DevelopmentCardData): HTMLCanvasElem
 
   let y = 150;
 
-  // Radar
+  // Radar (with the legend above it)
   if (radarBlock > 0) {
-    const cx = W / 2;
-    const cy = y + radarBlock / 2 - 10;
-    drawRadar(ctx, data.axes, data.max, cx, cy, 130);
-    // Legend
+    // Legend - above the compass
     ctx.textBaseline = 'middle';
     ctx.font = `13px ${FONT}`;
-    const legendY = y + radarBlock - 10;
+    const legendY = y + 8;
     ctx.strokeStyle = '#818cf8';
     ctx.lineWidth = 3;
     ctx.setLineDash([]);
@@ -222,13 +221,18 @@ export function renderDevelopmentCard(data: DevelopmentCardData): HTMLCanvasElem
     ctx.beginPath(); ctx.moveTo(W / 2 + 20, legendY); ctx.lineTo(W / 2 + 40, legendY); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillText(data.labels.baseline, W / 2 + 46, legendY);
+
+    const cx = W / 2;
+    const cy = y + radarBlock / 2 + 14; // nudged down to clear the legend on top
+    drawRadar(ctx, data.axes, data.max, cx, cy, 130);
     y += radarBlock;
   }
 
-  // Strengths / Focus (two columns)
-  const colW = (W - 28 * 3) / 2;
-  drawItemList(ctx, data.labels.strengths, '#34d399', data.strengths, 28, y + 16, colW);
-  drawItemList(ctx, data.labels.focus, '#fbbf24', data.focus, 28 * 2 + colW, y + 16, colW);
+  // Strengths / Focus - mirrored, close to the centre
+  const centerX = W / 2;
+  const halfGap = 24;
+  drawItemList(ctx, data.labels.strengths, '#34d399', data.strengths, centerX - halfGap, y + 16, 'right');
+  drawItemList(ctx, data.labels.focus, '#fbbf24', data.focus, centerX + halfGap, y + 16, 'left');
 
   // Footer
   drawFooter(ctx, W, H - FOOTER_H, FOOTER_H);
