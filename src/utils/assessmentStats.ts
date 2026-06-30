@@ -265,17 +265,18 @@ export function calculatePlayerDevelopment(
   };
   const finalScore = weightedLevel(entries.map(e => calculateFinalScore(e.a)), allDemands, recencyWeighted);
 
-  // Focus = low-and-not-rising (a low metric that is rising is encouraging, not
-  // a worry) or slipping. Strength = genuinely high *now* (not merely improving
-  // from a low base) and not slipping. A metric that is only rising shows its
-  // arrow in the rows but is not miscalled a strength.
-  const focusAreas = withData
-    .filter(m => (ratingBandLevel(metrics[m].level) <= 2 && metrics[m].direction !== 'rising') || metrics[m].direction === 'slipping')
-    .sort((a, b) => metrics[a].level - metrics[b].level)
-    .slice(0, 3);
+  // Strength = high level *now* (band >= 4), regardless of trend - a strong skill
+  // is still a strength even if it is slipping; the trend arrow conveys the slip.
+  // Focus = a genuinely low skill (band <= 2) that is not already rising. Trend
+  // alone never moves a high skill into "focus" (that mislabels a player's best
+  // qualities as things to work on); declines show via the arrows + the radar.
   const strengths = withData
-    .filter(m => ratingBandLevel(metrics[m].level) >= 4 && metrics[m].direction !== 'slipping')
+    .filter(m => ratingBandLevel(metrics[m].level) >= 4)
     .sort((a, b) => metrics[b].level - metrics[a].level)
+    .slice(0, 3);
+  const focusAreas = withData
+    .filter(m => ratingBandLevel(metrics[m].level) <= 2 && metrics[m].direction !== 'rising')
+    .sort((a, b) => metrics[a].level - metrics[b].level)
     .slice(0, 3);
 
   return { count: entries.length, metrics, overall, finalScore, focusAreas, strengths };

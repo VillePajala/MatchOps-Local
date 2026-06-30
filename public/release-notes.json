@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(assessment): Creative-attacking template + metric library (#558)"
+  "notes": "fix(ui): rating bars starved on mobile - widen the bar (#559)"
 }
