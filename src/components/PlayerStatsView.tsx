@@ -1283,6 +1283,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           {game.gameType === 'futsal' && (
                             <span className="ml-2 inline-block bg-orange-500/50 text-orange-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
                           )}
+                          {!game.isExternal && Boolean(savedGames[game.gameId]?.assessments?.[player.id]) && (
+                            <span className="ml-2 inline-block bg-indigo-600/60 text-indigo-100 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.assessed', 'Assessed')}>{t('playerStats.assessed', 'Assessed')}</span>
+                          )}
                         </p>
                         <p className="text-xs text-slate-400">{formatDisplayDate(game.date)}</p>
                       </div>

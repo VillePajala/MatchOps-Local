@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(ui): rating bars starved on mobile - widen the bar (#559)"
+  "notes": "fix(assessment): a high skill is a strength even when slipping (#560)"
 }
