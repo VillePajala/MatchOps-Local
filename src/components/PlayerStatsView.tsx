@@ -18,8 +18,8 @@ import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
 import SparklineChart from './SparklineChart';
 import RatingBar from './RatingBar';
-import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber } from '@/config/assessmentMetrics';
-import type { AssessmentRatingStyle } from '@/types/settings';
+import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber, templateMetricIds } from '@/config/assessmentMetrics';
+import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import MetricTrendChart from './MetricTrendChart';
 import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar';
 import { exportPlayerDevelopmentCard, isCardExportSupported } from '@/utils/export/exportPlayerDevelopmentCard';
@@ -58,6 +58,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [scope, setScope] = useState<AssessmentScope>('all');
   const [assessmentSeason, setAssessmentSeason] = useState<'all' | 'season'>('all');
   const [ratingStyle, setRatingStyle] = useState<AssessmentRatingStyle>('words');
+  const [assessmentTemplate, setAssessmentTemplate] = useState<AssessmentTemplate>('balanced');
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
   const [adjSeasonId, setAdjSeasonId] = useState('');
@@ -98,8 +99,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     getAppSettings(userId).then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
       setRatingStyle(s.assessmentRatingStyle ?? 'words');
+      setAssessmentTemplate(s.assessmentTemplate ?? 'balanced');
     });
   }, [userId]);
+
+  // The active template's metric ids - the report mirrors the coach's current
+  // compass, so a metric no longer in the template is not drawn even if older
+  // games still hold its data (e.g. a legacy 'creativity' value under 'balanced').
+  const reportMetricIds = useMemo(() => templateMetricIds(assessmentTemplate), [assessmentTemplate]);
 
   // Long-term/development view: summarise a (possibly fractional) canonical
   // rating as a word band, with the number appended for numeric styles.
@@ -201,8 +208,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   const playerDevelopment = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerDevelopment(player.id, assessmentGames, { recencyWeighted, useDemandCorrection, scope });
-  }, [player, assessmentGames, recencyWeighted, useDemandCorrection, scope]);
+    return calculatePlayerDevelopment(player.id, assessmentGames, { recencyWeighted, useDemandCorrection, scope, metricIds: reportMetricIds });
+  }, [player, assessmentGames, recencyWeighted, useDemandCorrection, scope, reportMetricIds]);
 
   // Radar axes (qualities with data). Shown only once there are enough games
   // for a meaningful "now vs then" comparison.
@@ -260,8 +267,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   const assessmentTrends = useMemo(() => {
     if (!player) return null;
-    return getPlayerAssessmentTrends(player.id, assessmentGames);
-  }, [player, assessmentGames]);
+    return getPlayerAssessmentTrends(player.id, assessmentGames, reportMetricIds);
+  }, [player, assessmentGames, reportMetricIds]);
 
   const assessmentNotes = useMemo(() => {
     if (!player) return [];
