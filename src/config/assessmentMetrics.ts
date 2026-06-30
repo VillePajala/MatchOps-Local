@@ -40,10 +40,30 @@ export const ASSESSMENT_METRICS: readonly AssessmentMetricDef[] = [
   { id: 'fair_play', category: 'social' },
 ] as const;
 
-/** Just the ids, in display order. */
+/** Just the ids, in display order. This is the full library iterated by stats. */
 export const ASSESSMENT_METRIC_IDS: readonly string[] = ASSESSMENT_METRICS.map(
   (m) => m.id,
 );
+
+/**
+ * Curated metric templates a coach can pick, so the set fits the age group.
+ * Each is a selection of library ids (capture only - stats/views adapt to
+ * whatever metrics actually have data). Storage is id-keyed, so switching
+ * templates never migrates data.
+ */
+export type AssessmentTemplate = 'balanced' | 'light6';
+
+export const ASSESSMENT_TEMPLATES: Record<AssessmentTemplate, readonly string[]> = {
+  // Balanced (default): the full set A.
+  balanced: ASSESSMENT_METRIC_IDS,
+  // Light 6 (U7-U9): attitude + a basic skill + social; no tactical load.
+  light6: ['ball_control', 'courage', 'effort', 'enjoyment', 'teamwork', 'fair_play'],
+};
+
+/** The ordered metric ids for a template (falls back to the balanced set). */
+export function templateMetricIds(template: AssessmentTemplate): readonly string[] {
+  return ASSESSMENT_TEMPLATES[template] ?? ASSESSMENT_METRIC_IDS;
+}
 
 /**
  * Per-metric ratings are stored on a **canonical 1-10 integer scale** (the
@@ -131,11 +151,11 @@ export function migrateAssessmentSliderScale(
   return out;
 }
 
-/** A fresh sliders map with every active metric at the default value. */
-export function makeDefaultSliders(): Record<string, number> {
-  return Object.fromEntries(
-    ASSESSMENT_METRIC_IDS.map((id) => [id, ASSESSMENT_DEFAULT]),
-  );
+/** A fresh sliders map with the given metric ids at the default value. */
+export function makeDefaultSliders(
+  ids: readonly string[] = ASSESSMENT_METRIC_IDS,
+): Record<string, number> {
+  return Object.fromEntries(ids.map((id) => [id, ASSESSMENT_DEFAULT]));
 }
 
 /**

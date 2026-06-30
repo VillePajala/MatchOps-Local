@@ -14,6 +14,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   hasSeenAppGuide: false,
   useDemandCorrection: false,
   assessmentRatingStyle: 'words',
+  assessmentTemplate: 'balanced',
   hasConfiguredSeasonDates: false,
   clubSeasonStartDate: '2000-11-15',
   clubSeasonEndDate: '2000-10-20',
@@ -178,6 +179,7 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         assessmentRatingStyle: 'words',
+        assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'
@@ -201,6 +203,7 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         assessmentRatingStyle: 'words',
+        assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'
@@ -222,6 +225,7 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         assessmentRatingStyle: 'words',
+        assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'
@@ -276,6 +280,7 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         assessmentRatingStyle: 'words',
+        assessmentTemplate: 'balanced',
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: '2000-11-15',
         clubSeasonEndDate: '2000-10-20'
