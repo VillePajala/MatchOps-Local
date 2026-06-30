@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: 2026-06-26
+**Last Updated**: 2026-07-01
 **Status**: 🚀 **LIVE IN PRODUCTION** (Google Play, released 2026-06-09) · **Free** (no billing)
 **Purpose**: Single, prioritized source of truth for remaining work.
 
@@ -91,6 +91,7 @@ Found by a 7-agent whole-app review; top claims hand-verified against code.
 - [x] **PR #431 review nits** (Minor, from claude-review) — ✅ **DONE 2026-06-18**. 1) `handleRecalculateScoreFromEvents` (`useTimerManagement.ts`) now depends only on `homeOrAway` + `gameEvents` (the fields `computeScoreFromEvents` reads), so its reference is stable across timer ticks. 2) CSV "Unknown" label — **closed as won't-fix**: `exportCsv` is intentionally all-English (40+ hardcoded literals, takes no `translate`); i18n-ing one word would make it the *only* translated string and more inconsistent, not less. The structural choice (CSV English-only vs Excel i18n) is out of scope for a nit.
 - [ ] **One-tap "undo last action" toast** (idea 2026-06-26) — after logging a goal / opponent goal / substitution, show a brief toast with **Undo** that pops the existing history stack. Sideline mis-tap recovery (fast play, sun, gloves) without a multi-tap correction. Refinement of the existing undo/history, surfaced where errors actually happen.
 - [ ] **"Repeat last game" / opponent quick-setup** (idea 2026-06-26) — pre-fill a new game from the last match (esp. vs the same opponent): period length, venue, game type, selected roster. Cuts cold-start tapping at kickoff. Refinement of the new-game flow.
+- [ ] **Ship the player-development assessment publicly** (added 2026-07-01) — the assessment + development-report feature is built and merged (PRs #545–#568) but the outside world doesn't show it yet. Three distribution tasks: 1) **update match-ops.com** — feature copy describing the development assessment + shareable report card; 2) **new screenshots** — the assessment flow, dev view (form / trend / strengths / focus), and report card, for both the site and the store listing (current shots predate the feature); 3) **Play Store update** — refresh the store listing (description + screenshots) and ship a build. Pairs with the existing P0 "store-listing accuracy" work.
 
 ---
 
@@ -164,6 +165,7 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 
 | Date | Update |
 |------|--------|
+| 2026-07-01 | 🧭 Player-development assessment feature built & merged (#545–#568). Roadmap: added P3 "ship the assessment publicly" (match-ops.com copy + new screenshots + Play Store update); reframed the assessment plan's backlog item 7 from "external-game assessments" into a **standalone / point-in-time assessment** primitive with report-editing + external-games as the two consumers (+ "considered vs observed" trend caution). |
 | 2026-06-11 | 🧨 **Whole-app code review (7-agent) → P0.** 4 critical (mid-game reload clock corruption, IndexedDB read-error wipe path, cloud entity-delete FK failure, stale-snapshot re-migration), 9 high, 8 medium clusters added as CR-C/H/M items. Also: account-deletion hardening shipped (`77ac8034`), Play badge links live (`944509fe`), P2 items added for Play Store data-deletion declaration + local device-data wipe. |
 | 2026-06-10 | 🧹 **Full backlog triage + prioritization.** Parked monetization (going free → closed #171/#172, archived billing plan). Scrapped Planner impl (closed PR #404 + #372/#373/#377/#378/#379, reframed #369, tagged code). Verified-and-discarded 3 phantom cloud-sync bugs + several already-done tech-debt items. Kept #371 (consent), #381, #364, #360, #273. Tagged & deleted desktop branch. Reprioritized everything P0-P4. |
 | 2026-06-09 | 🚀 Production release — live on Google Play (cloud-only, free). |

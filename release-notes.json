@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Internal: documentation only - reframed the assessment-roadmap backlog into a standalone / point-in-time assessment primitive (report-editing + external games), and added the public-launch tasks (site copy, screenshots, Play Store update). No app changes."
+      ],
+      "fi": [
+        "Sisäinen: vain dokumentaatio - arviointien tiekartan backlog muotoiltiin itsenäiseksi / hetkelliseksi arviointityökaluksi (raportin muokkaus + ulkopuoliset pelit), ja lisättiin julkaisutehtävät (sivuston tekstit, kuvakaappaukset, Play Store -päivitys). Ei sovellusmuutoksia."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "You can now see what each assessment quality means: tap the info icon next to a metric in the assessment card to read a one-line definition (e.g. Scanning - looks around and gathers information before receiving)."
       ],
       "fi": [
