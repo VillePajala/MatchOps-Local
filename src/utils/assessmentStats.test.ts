@@ -194,6 +194,13 @@ describe('calculatePlayerDevelopment', () => {
     expect(dev?.focusAreas).toHaveLength(0);
   });
 
+  it('keeps a high-but-slipping metric as a strength, not a focus area', () => {
+    const dev = calculatePlayerDevelopment('p1', seriesGames([9, 9, 9, 7, 7, 7]));
+    expect(dev?.metrics.effort.direction).toBe('slipping');
+    expect(dev?.strengths.length).toBeGreaterThan(0); // still strong now
+    expect(dev?.focusAreas).toHaveLength(0); // a strong skill is never "focus"
+  });
+
   it('flags a declining metric as a focus area (slipping)', () => {
     const games = seriesGames([5, 5, 5, 5, 2, 2, 2, 2]);
     const dev = calculatePlayerDevelopment('p1', games);
