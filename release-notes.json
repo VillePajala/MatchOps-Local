@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "The Performance Ratings section in a player's stats now opens expanded by default, so the development picture is visible without an extra tap."
+      ],
+      "fi": [
+        "Pelaajan tilastojen Suoritusarviot-osio avautuu nyt oletuksena auki, joten kehityskuva näkyy ilman ylimääräistä napautusta."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "Internal: documentation only - added external-game assessments to the development-assessment roadmap (no app changes)."
       ],
       "fi": [

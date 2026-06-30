@@ -51,7 +51,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const { showToast } = useToast();
   const { userId } = useDataStore();
 
-  const [showRatings, setShowRatings] = useState(false);
+  const [showRatings, setShowRatings] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
   const [recencyWeighted, setRecencyWeighted] = useState(true);
