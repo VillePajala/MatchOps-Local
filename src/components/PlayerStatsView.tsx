@@ -12,7 +12,7 @@ import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/pl
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { PlayerStatAdjustment } from '@/types';
-import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection } from '@/utils/assessmentStats';
+import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection, type AssessmentScope } from '@/utils/assessmentStats';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
@@ -54,6 +54,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
   const [recencyWeighted, setRecencyWeighted] = useState(true);
+  const [scope, setScope] = useState<AssessmentScope>('all');
   const [ratingStyle, setRatingStyle] = useState<AssessmentRatingStyle>('words');
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
@@ -170,8 +171,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   const playerDevelopment = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerDevelopment(player.id, savedGames, { recencyWeighted, useDemandCorrection });
-  }, [player, savedGames, recencyWeighted, useDemandCorrection]);
+    return calculatePlayerDevelopment(player.id, savedGames, { recencyWeighted, useDemandCorrection, scope });
+  }, [player, savedGames, recencyWeighted, useDemandCorrection, scope]);
 
   // Radar axes (qualities with data). Shown only once there are enough games
   // for a meaningful "now vs then" comparison.
@@ -186,7 +187,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         baseline: d.baseline,
       }));
   }, [playerDevelopment, t]);
-  const showRadar = !!playerDevelopment && playerDevelopment.count >= 6 && radarAxes.length >= 3;
+  const showRadar = !!playerDevelopment && playerDevelopment.count >= 3 && radarAxes.length >= 3;
 
   const assessmentTrends = useMemo(() => {
     if (!player) return null;
@@ -1006,34 +1007,56 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           </button>
           {showRatings && (
             <div className="mt-2 space-y-4 text-sm">
-              <div className="flex flex-wrap gap-x-4 gap-y-1 px-2">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={recencyWeighted}
-                    onChange={(e) => setRecencyWeighted(e.target.checked)}
-                    title={t('playerStats.recencyWeightedTooltip', 'Weight recent games more, to show current form rather than the lifetime average')}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
-                  />
-                  <span className="text-slate-100">{t('playerStats.recencyWeighted', 'Current form')}</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={useDemandCorrection}
-                    onChange={(e) => {
-                      const val = e.target.checked;
-                      setUseDemandCorrection(val);
-                      // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
-                      updateAppSettings({ useDemandCorrection: val }, userId).catch((error) => {
-                        logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
-                      });
-                    }}
-                    title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
-                  />
-                  <span className="text-slate-100">{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
-                </label>
+              <div className="flex flex-wrap items-center gap-2 px-2">
+                {/* Scope: how many recent games to consider */}
+                <div className="inline-flex rounded-md overflow-hidden border border-slate-700">
+                  {([
+                    ['all', t('playerStats.scopeAll', 'All games')],
+                    ['last10', t('playerStats.scopeLast10', 'Last 10')],
+                    ['last5', t('playerStats.scopeLast5', 'Last 5')],
+                  ] as [AssessmentScope, string][]).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setScope(value)}
+                      aria-pressed={scope === value}
+                      className={`px-3 py-1 text-xs font-medium transition-colors ${
+                        scope === value ? 'bg-indigo-600 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRecencyWeighted(v => !v)}
+                  aria-pressed={recencyWeighted}
+                  title={t('playerStats.recencyWeightedTooltip', 'Weight recent games more, to show current form rather than the lifetime average')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    recencyWeighted ? 'bg-indigo-600 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {t('playerStats.recencyWeighted', 'Current form')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = !useDemandCorrection;
+                    setUseDemandCorrection(val);
+                    // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
+                    updateAppSettings({ useDemandCorrection: val }, userId).catch((error) => {
+                      logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
+                    });
+                  }}
+                  aria-pressed={useDemandCorrection}
+                  title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    useDemandCorrection ? 'bg-indigo-600 text-white' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {t('playerStats.useDemandCorrection', 'Weight by Difficulty')}
+                </button>
               </div>
               {showRadar && (
                 <div className="px-2">
@@ -1046,26 +1069,34 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </div>
               )}
               {(playerDevelopment.focusAreas.length > 0 || playerDevelopment.strengths.length > 0) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-2">
                   {playerDevelopment.strengths.length > 0 && (
-                    <div className="bg-green-900/20 border border-green-700/30 rounded p-2">
-                      <p className="text-xs font-semibold text-green-300 mb-1">{t('playerStats.strengths', 'Strengths')}</p>
-                      <ul className="space-y-0.5">
+                    <div className="bg-slate-900/70 border border-slate-700 rounded-lg shadow-inner p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-1.5 h-3.5 rounded-full bg-emerald-400" />
+                        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-300">{t('playerStats.strengths', 'Strengths')}</p>
+                      </div>
+                      <ul className="space-y-1">
                         {playerDevelopment.strengths.map(m => (
-                          <li key={m} className="text-xs text-slate-200">
-                            {t(`assessmentMetrics.${m}` as TranslationKey, m)} <span className={trendMeta(playerDevelopment.metrics[m].direction).className}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
+                          <li key={m} className="flex items-center justify-between gap-2 text-sm text-slate-200">
+                            <span>{t(`assessmentMetrics.${m}` as TranslationKey, m)}</span>
+                            <span className={trendMeta(playerDevelopment.metrics[m].direction).className} title={trendMeta(playerDevelopment.metrics[m].direction).title}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   )}
                   {playerDevelopment.focusAreas.length > 0 && (
-                    <div className="bg-amber-900/20 border border-amber-700/30 rounded p-2">
-                      <p className="text-xs font-semibold text-amber-300 mb-1">{t('playerStats.focusAreas', 'Focus areas')}</p>
-                      <ul className="space-y-0.5">
+                    <div className="bg-slate-900/70 border border-slate-700 rounded-lg shadow-inner p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-1.5 h-3.5 rounded-full bg-amber-400" />
+                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-300">{t('playerStats.focusAreas', 'Focus areas')}</p>
+                      </div>
+                      <ul className="space-y-1">
                         {playerDevelopment.focusAreas.map(m => (
-                          <li key={m} className="text-xs text-slate-200">
-                            {t(`assessmentMetrics.${m}` as TranslationKey, m)} <span className={trendMeta(playerDevelopment.metrics[m].direction).className}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
+                          <li key={m} className="flex items-center justify-between gap-2 text-sm text-slate-200">
+                            <span>{t(`assessmentMetrics.${m}` as TranslationKey, m)}</span>
+                            <span className={trendMeta(playerDevelopment.metrics[m].direction).className} title={trendMeta(playerDevelopment.metrics[m].direction).title}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
                           </li>
                         ))}
                       </ul>

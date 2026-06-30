@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Player development view polish: a Games filter (All / Last 10 / Last 5), the rating bars now line up neatly, Strengths only lists qualities the player is genuinely strong at (a rising-but-average quality is no longer mislabelled), the Strengths/Focus cards match the app style, and the toggles are now buttons. The development radar also appears with fewer assessed games."
+      ],
+      "fi": [
+        "Pelaajan kehitysnäkymän viilausta: Pelit-suodatin (Kaikki / Viim. 10 / Viim. 5), arviopalkit ovat nyt siistissä linjassa, Vahvuudet listaa vain ne ominaisuudet joissa pelaaja on aidosti vahva (nouseva mutta keskitasoinen ominaisuus ei enää merkkaudu vahvuudeksi), Vahvuudet/Kehityskohteet-kortit noudattavat sovelluksen tyyliä ja valinnat ovat nyt painikkeita. Kehitystutka näkyy myös harvemmilla arvioiduilla peleillä."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "You can now choose an assessment template in Settings: Balanced (10 qualities) or Light 6 for younger players (U7-U9). The assessment card shows just that set. Switching is safe - past ratings are kept."
       ],
       "fi": [

@@ -211,14 +211,16 @@ function classifyTrend(values: number[]): TrendDirection {
  * by default ("current form"); pass recencyWeighted:false for a plain lifetime
  * average ("overall"). Composes with demand correction.
  */
+export type AssessmentScope = 'all' | 'last10' | 'last5';
+
 export function calculatePlayerDevelopment(
   playerId: string,
   games: SavedGamesCollection,
-  options: { recencyWeighted?: boolean; useDemandCorrection?: boolean } = {},
+  options: { recencyWeighted?: boolean; useDemandCorrection?: boolean; scope?: AssessmentScope } = {},
 ): PlayerDevelopment | null {
-  const { recencyWeighted = true, useDemandCorrection = false } = options;
+  const { recencyWeighted = true, useDemandCorrection = false, scope = 'all' } = options;
 
-  const entries = Object.values(games)
+  const allEntries = Object.values(games)
     .filter(g => g.isPlayed !== false && g.assessments?.[playerId])
     .map(g => ({
       a: g.assessments![playerId],
@@ -226,6 +228,10 @@ export function calculatePlayerDevelopment(
       date: g.gameDate,
     }))
     .sort((x, y) => new Date(x.date).getTime() - new Date(y.date).getTime());
+
+  // Limit to the chosen window (most recent N games).
+  const window = scope === 'last5' ? 5 : scope === 'last10' ? 10 : Infinity;
+  const entries = window === Infinity ? allEntries : allEntries.slice(-window);
 
   if (entries.length === 0) return null;
 
@@ -259,15 +265,16 @@ export function calculatePlayerDevelopment(
   };
   const finalScore = weightedLevel(entries.map(e => calculateFinalScore(e.a)), allDemands, recencyWeighted);
 
-  // Low-and-not-rising (or slipping) => work on next. A low metric that is
-  // rising is encouraging, not a worry, so it is excluded from focus.
+  // Focus = low-and-not-rising (a low metric that is rising is encouraging, not
+  // a worry) or slipping. Strength = genuinely high *now* (not merely improving
+  // from a low base) and not slipping. A metric that is only rising shows its
+  // arrow in the rows but is not miscalled a strength.
   const focusAreas = withData
     .filter(m => (ratingBandLevel(metrics[m].level) <= 2 && metrics[m].direction !== 'rising') || metrics[m].direction === 'slipping')
     .sort((a, b) => metrics[a].level - metrics[b].level)
     .slice(0, 3);
   const strengths = withData
-    .filter(m => (ratingBandLevel(metrics[m].level) >= 4 && metrics[m].direction !== 'slipping') || metrics[m].direction === 'rising')
-    .filter(m => !focusAreas.includes(m))
+    .filter(m => ratingBandLevel(metrics[m].level) >= 4 && metrics[m].direction !== 'slipping')
     .sort((a, b) => metrics[b].level - metrics[a].level)
     .slice(0, 3);
 

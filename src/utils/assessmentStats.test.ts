@@ -184,6 +184,14 @@ describe('calculatePlayerDevelopment', () => {
     // Baseline = mean of the first 3 games (all 1); current sits above it.
     expect(current?.metrics.effort.baseline).toBeCloseTo(1);
     expect(current!.metrics.effort.level).toBeGreaterThan(current!.metrics.effort.baseline);
+    // Rising from a low base is NOT a strength (it is still a low current level).
+    expect(current?.strengths).toHaveLength(0);
+  });
+
+  it('treats a genuinely high current level as a strength', () => {
+    const dev = calculatePlayerDevelopment('p1', seriesGames([8, 8, 9, 9, 9]));
+    expect(dev?.strengths.length).toBeGreaterThan(0);
+    expect(dev?.focusAreas).toHaveLength(0);
   });
 
   it('flags a declining metric as a focus area (slipping)', () => {
