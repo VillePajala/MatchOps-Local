@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Fixed the player rating bars showing as a tiny sliver on phones - the level label column was too wide and starved the bar. Bars now read proportionally again."
+      ],
+      "fi": [
+        "Korjattu pelaajan arviopalkit, jotka näkyivät puhelimessa pienenä tikkuna - tasosarake oli liian leveä ja vei palkin tilan. Palkit näkyvät taas oikeassa suhteessa."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "New assessment template: Creative-attacking adds Creativity, Dribbling, Finishing and Off-ball movement on top of the balanced set - for attack-focused groups. Choose it in Settings. (Exports now only include columns for metrics you actually use.)"
       ],
       "fi": [

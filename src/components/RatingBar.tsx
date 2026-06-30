@@ -18,13 +18,15 @@ const RatingBar: React.FC<RatingBarProps> = ({ value, max = 10, valueLabel }) =>
   const color = `hsl(${hue}, 70%, 50%)`;
   return (
     <div className="flex items-center space-x-2 w-full">
-      <div className="flex-1 h-2 bg-slate-700 rounded relative overflow-hidden">
+      {/* min-w keeps the bar usefully wide even on narrow phones, so the fill
+          reads proportionally instead of collapsing to a sliver. */}
+      <div className="flex-1 min-w-[48px] h-2 bg-slate-700 rounded relative overflow-hidden">
         <div
           className="absolute inset-0"
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="w-32 shrink-0 text-xs text-yellow-400 text-right whitespace-nowrap overflow-hidden text-ellipsis">
+      <span className="w-24 shrink-0 text-xs text-yellow-400 text-right whitespace-nowrap overflow-hidden text-ellipsis">
         {valueLabel ?? value.toFixed(1)}
       </span>
     </div>
