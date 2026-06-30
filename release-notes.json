@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-01",
+      "en": [
+        "Development report card: the Strengths / Focus lists now sit close together around the centre and mirror each other (left list right-aligned with arrows on the left, right list left-aligned with arrows on the right), and the Now / Season-start legend moved above the radar."
+      ],
+      "fi": [
+        "Kehitysraporttikortti: Vahvuudet / Kehityskohteet -listat ovat nyt lähekkäin keskellä ja peilautuvat (vasen lista oikealle tasattuna nuolet vasemmalla, oikea lista vasemmalle tasattuna nuolet oikealla), ja Nyt / Kauden alku -selite siirtyi tutkan yläpuolelle."
+      ]
+    },
+    {
       "date": "2026-06-30",
       "en": [
         "Development report card: the Strengths / Focus areas lists are now centered with the trend arrow beside each quality, so the two lists are balanced instead of one hugging the image edge."
