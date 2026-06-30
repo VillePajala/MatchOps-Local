@@ -1613,6 +1613,12 @@
     "level4": "Consistent",
     "level5": "A strength"
   },
+  "assessmentTrend": {
+    "rising": "Rising",
+    "steady": "Steady",
+    "slipping": "Slipping",
+    "insufficient": "Too early to tell"
+  },
   "playerStats": {
     "selectPlayer": "Select a player to view their stats.",
     "selectPlayerLabel": "Select Player",
@@ -1644,6 +1650,10 @@
     "goalsAssists": "Goals & Assists",
     "useDemandCorrection": "Weight by Difficulty",
     "useDemandCorrectionTooltip": "When enabled, ratings from harder games count more",
+    "recencyWeighted": "Current form",
+    "recencyWeightedTooltip": "Weight recent games more, to show current form rather than the lifetime average",
+    "focusAreas": "Focus areas",
+    "strengths": "Strengths",
     "includesAdjustments": "Includes external games",
     "externalGames": "External Games",
     "externalGame": "External Game",

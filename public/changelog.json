@@ -1,12 +1,12 @@
 {
-  "version": "e10531b6",
+  "version": "9defeffa",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Player stats now summarise each assessment as a development level (e.g. \"Consistent\"), so the long-term picture reads in plain words even if you rate with numbers. Numeric styles also show the value alongside."
+      "Player stats now show a development picture: each quality has a trend arrow (rising / steady / slipping) and the app highlights Strengths and Focus areas. A new \"Current form\" toggle weights recent games more, so a player who has improved isn't dragged down by old scores."
     ],
     "fi": [
-      "Pelaajatilastot näyttävät nyt jokaisen arvion kehitystasona (esim. \"Vakiintunut\"), joten pitkän aikavälin kuva luetaan selkokielisin sanoin, vaikka arvioisit numeroilla. Numeroasteikoilla näkyy myös lukuarvo."
+      "Pelaajatilastot näyttävät nyt kehityskuvan: jokaisella ominaisuudella on trendinuoli (nousussa / vakaa / laskussa) ja sovellus nostaa esiin vahvuudet ja kehityskohteet. Uusi \"Nykyinen vire\" -valinta painottaa viimeaikaisia pelejä, joten kehittynyttä pelaajaa eivät vanhat arviot vedä alas."
     ]
   }
 }

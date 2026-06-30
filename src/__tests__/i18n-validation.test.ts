@@ -291,7 +291,8 @@ describe('Translation File Validation', () => {
       // +1: assessmentMetrics set A (6 new ids added, 5 legacy removed = net +1)
       // +5: assessmentScale.level1..5 (5-level developmental word scale)
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
-      expect(enKeys.length).toBe(2527);
+      // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
+      expect(enKeys.length).toBe(2535);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -306,7 +307,8 @@ describe('Translation File Validation', () => {
       // +1: assessmentMetrics set A (6 new ids added, 5 legacy removed = net +1)
       // +5: assessmentScale.level1..5 (5-level developmental word scale)
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
-      expect(fiKeys.length).toBe(2527);
+      // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
+      expect(fiKeys.length).toBe(2535);
     });
   });
 });
