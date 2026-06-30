@@ -691,6 +691,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <option value="balanced">{t('settingsModal.assessmentTemplateBalanced', 'Balanced (10)')}</option>
                   <option value="light6">{t('settingsModal.assessmentTemplateLight6', 'Light 6 (U7-U9)')}</option>
+                  <option value="creative">{t('settingsModal.assessmentTemplateCreative', 'Creative-attacking (14)')}</option>
                 </select>
               </div>
               {/* Default Team Name */}

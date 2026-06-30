@@ -1441,6 +1441,7 @@
     "assessmentTemplateHint": "Mitä ominaisuuksia arvioidaan. Vaihtaminen on turvallista - aiemmat arviot säilyvät.",
     "assessmentTemplateBalanced": "Tasapainoinen (10)",
     "assessmentTemplateLight6": "Kevyt 6 (U7-U9)",
+    "assessmentTemplateCreative": "Luova hyökkäys (14)",
     "saveSettingError": "Asetuksen tallennus epäonnistui. Yritä uudelleen.",
     "preferencesTitle": "Asetukset",
     "resetGuideButton": "Näytä opastus uudelleen",
@@ -1609,7 +1610,10 @@
     "enjoyment": "Ilo",
     "teamwork": "Joukkuepeli",
     "fair_play": "Fair play",
-    "creativity": "Luovuus"
+    "creativity": "Luovuus",
+    "dribbling": "Kuljettaminen",
+    "finishing": "Viimeistely",
+    "off_ball_movement": "Liike ilman palloa"
   },
   "assessmentScale": {
     "level1": "Harjoitteluvaiheessa",

@@ -10,6 +10,9 @@
  * See docs/03-active-plans/player-development-assessment-plan.md.
  */
 
+import type { AssessmentTemplate } from '@/types/settings';
+export type { AssessmentTemplate };
+
 export type AssessmentMetricCategory =
   | 'technical'
   | 'tactical'
@@ -28,6 +31,7 @@ export interface AssessmentMetricDef {
  * 2 technical / 3 tactical / 3 psychological / 2 social.
  */
 export const ASSESSMENT_METRICS: readonly AssessmentMetricDef[] = [
+  // Set A (the Balanced default).
   { id: 'ball_control', category: 'technical' },
   { id: 'passing', category: 'technical' },
   { id: 'scanning', category: 'tactical' },
@@ -38,12 +42,24 @@ export const ASSESSMENT_METRICS: readonly AssessmentMetricDef[] = [
   { id: 'enjoyment', category: 'psychological' },
   { id: 'teamwork', category: 'social' },
   { id: 'fair_play', category: 'social' },
+  // Additional library metrics (used by the Creative-attacking template).
+  { id: 'creativity', category: 'tactical' },
+  { id: 'dribbling', category: 'technical' },
+  { id: 'finishing', category: 'technical' },
+  { id: 'off_ball_movement', category: 'tactical' },
 ] as const;
 
-/** Just the ids, in display order. This is the full library iterated by stats. */
+/** All library metric ids, in display order. Stats iterate this; views/exports
+ * adapt to whatever has data. */
 export const ASSESSMENT_METRIC_IDS: readonly string[] = ASSESSMENT_METRICS.map(
   (m) => m.id,
 );
+
+/** The Balanced default template (set A), as explicit ids. */
+export const BALANCED_METRIC_IDS: readonly string[] = [
+  'ball_control', 'passing', 'scanning', 'game_reading', 'decisions',
+  'courage', 'effort', 'enjoyment', 'teamwork', 'fair_play',
+];
 
 /**
  * Curated metric templates a coach can pick, so the set fits the age group.
@@ -51,18 +67,18 @@ export const ASSESSMENT_METRIC_IDS: readonly string[] = ASSESSMENT_METRICS.map(
  * whatever metrics actually have data). Storage is id-keyed, so switching
  * templates never migrates data.
  */
-export type AssessmentTemplate = 'balanced' | 'light6';
-
 export const ASSESSMENT_TEMPLATES: Record<AssessmentTemplate, readonly string[]> = {
-  // Balanced (default): the full set A.
-  balanced: ASSESSMENT_METRIC_IDS,
+  // Balanced (default): set A.
+  balanced: BALANCED_METRIC_IDS,
   // Light 6 (U7-U9): attitude + a basic skill + social; no tactical load.
   light6: ['ball_control', 'courage', 'effort', 'enjoyment', 'teamwork', 'fair_play'],
+  // Creative-attacking: set A plus expression/finishing qualities.
+  creative: [...BALANCED_METRIC_IDS, 'creativity', 'dribbling', 'finishing', 'off_ball_movement'],
 };
 
 /** The ordered metric ids for a template (falls back to the balanced set). */
 export function templateMetricIds(template: AssessmentTemplate): readonly string[] {
-  return ASSESSMENT_TEMPLATES[template] ?? ASSESSMENT_METRIC_IDS;
+  return ASSESSMENT_TEMPLATES[template] ?? BALANCED_METRIC_IDS;
 }
 
 /**
