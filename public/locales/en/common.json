@@ -1592,6 +1592,7 @@
     "noPlayers": "No players selected",
     "notesPlaceholder": "Add notes...",
     "overallLabel": "Overall",
+    "whatIsThis": "What does this mean?",
     "expand": "Expand assessment for {{name}}",
     "collapse": "Collapse assessment for {{name}}",
     "resetButton": "Reset",
@@ -1614,6 +1615,22 @@
     "dribbling": "Dribbling",
     "finishing": "Finishing",
     "off_ball_movement": "Off-ball movement"
+  },
+  "assessmentMetricDescriptions": {
+    "ball_control": "First touch and keeping the ball under pressure.",
+    "passing": "Weight, timing and choice of pass.",
+    "scanning": "Looks around and gathers information before receiving.",
+    "game_reading": "Positioning and reading the game, both attacking and defending.",
+    "decisions": "Makes the right choice for the moment.",
+    "courage": "Demands the ball, plays forward, dares to take risks.",
+    "effort": "Work rate - tracks back, keeps trying.",
+    "enjoyment": "Visible joy and engagement in playing.",
+    "teamwork": "Shares the ball and supports team-mates.",
+    "fair_play": "Respect for the referee, opponents, own mistakes and defeat.",
+    "creativity": "Tries the unexpected and finds a solution.",
+    "dribbling": "Taking on and beating an opponent.",
+    "finishing": "Shooting and scoring quality.",
+    "off_ball_movement": "Runs that create or exploit space."
   },
   "assessmentScale": {
     "level1": "Working on it",
