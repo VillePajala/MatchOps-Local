@@ -13,15 +13,22 @@ import {
   migrateAssessmentSliders,
   migrateAssessmentSliderScale,
   ASSESSMENT_TEMPLATES,
+  BALANCED_METRIC_IDS,
   templateMetricIds,
 } from '../assessmentMetrics';
 
 describe('assessmentMetrics config', () => {
-  it('has the set A metric ids (exactly 10)', () => {
-    expect(ASSESSMENT_METRIC_IDS).toEqual([
+  it('the Balanced template is exactly the set A 10', () => {
+    expect(BALANCED_METRIC_IDS).toEqual([
       'ball_control', 'passing', 'scanning', 'game_reading', 'decisions',
       'courage', 'effort', 'enjoyment', 'teamwork', 'fair_play',
     ]);
+  });
+
+  it('the library is a superset of set A (adds creative-attacking metrics)', () => {
+    BALANCED_METRIC_IDS.forEach((id) => expect((ASSESSMENT_METRIC_IDS as string[]).includes(id)).toBe(true));
+    ['creativity', 'dribbling', 'finishing', 'off_ball_movement'].forEach((id) =>
+      expect((ASSESSMENT_METRIC_IDS as string[]).includes(id)).toBe(true));
   });
 
   it('stores ratings on the canonical 1-10 scale with a neutral default of 5', () => {
@@ -39,11 +46,15 @@ describe('assessmentMetrics config', () => {
   });
 
   describe('templates', () => {
-    it('balanced is the full set A; light6 is a 6-metric subset of it', () => {
-      expect(templateMetricIds('balanced')).toEqual(ASSESSMENT_METRIC_IDS);
+    it('balanced = set A; light6 = 6-metric subset; creative adds 4', () => {
+      expect(templateMetricIds('balanced')).toEqual(BALANCED_METRIC_IDS);
       const light6 = templateMetricIds('light6');
       expect(light6).toHaveLength(6);
-      expect(light6.every((id) => (ASSESSMENT_METRIC_IDS as string[]).includes(id))).toBe(true);
+      expect(light6.every((id) => (BALANCED_METRIC_IDS as string[]).includes(id))).toBe(true);
+      const creative = templateMetricIds('creative');
+      expect(creative).toHaveLength(14);
+      ['creativity', 'dribbling', 'finishing', 'off_ball_movement'].forEach((id) =>
+        expect((creative as string[]).includes(id)).toBe(true));
     });
 
     it('every template id exists in the library', () => {

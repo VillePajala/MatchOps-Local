@@ -19,7 +19,7 @@ import {
 export type AssessmentRatingStyle = 'words' | 'num5' | 'num10';
 
 /** Curated metric template for assessments (see assessmentMetrics.ts). */
-export type AssessmentTemplate = 'balanced' | 'light6';
+export type AssessmentTemplate = 'balanced' | 'light6' | 'creative';
 
 export interface AppSettings {
   currentGameId: string | null;

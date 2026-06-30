@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "New assessment template: Creative-attacking adds Creativity, Dribbling, Finishing and Off-ball movement on top of the balanced set - for attack-focused groups. Choose it in Settings. (Exports now only include columns for metrics you actually use.)"
+      ],
+      "fi": [
+        "Uusi arviointimalli: Luova hyökkäys lisää tasapainoisen sarjan päälle Luovuuden, Kuljettamisen, Viimeistelyn ja Liikkeen ilman palloa - hyökkäyspainotteisille ryhmille. Valitse se asetuksista. (Viennit sisältävät nyt vain käyttämiesi mittarien sarakkeet.)"
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "New: export a player development report as a shareable image. From a player's stats, tap \"Export development report\" to get a PNG with their now-vs-season-start radar plus strengths and focus areas - ready to share with the player or parents."
       ],
       "fi": [

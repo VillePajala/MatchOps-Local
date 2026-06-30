@@ -12,6 +12,15 @@ import { formatTime } from './time';
 import { resolveGameResult } from '@/utils/gameResult';
 import { ASSESSMENT_METRICS } from '@/config/assessmentMetrics';
 
+// Only export columns for metrics that actually have data, so a coach using a
+// smaller template doesn't get empty columns for unused library metrics.
+const presentMetricDefs = (
+  assessments: Array<{ sliders: Record<string, number> }>,
+): typeof ASSESSMENT_METRICS[number][] =>
+  ASSESSMENT_METRICS.filter(({ id }) =>
+    assessments.some((a) => typeof a.sliders[id] === 'number' && Number.isFinite(a.sliders[id])),
+  );
+
 /**
  * Translation function type for Excel exports
  * Compatible with i18next's t() function
@@ -301,15 +310,16 @@ export const exportCurrentGameExcel = (
 
   // Sheet 4: Assessments (if available)
   if (game.assessments && Object.keys(game.assessments).length > 0) {
-    const assessmentData = selectedPlayers
-      .filter((p) => game.assessments && game.assessments[p.id])
+    const assessedPlayers = selectedPlayers.filter((p) => game.assessments && game.assessments[p.id]);
+    const presentDefs = presentMetricDefs(assessedPlayers.map((p) => game.assessments![p.id]));
+    const assessmentData = assessedPlayers
       .map((p) => {
         const assessment = game.assessments![p.id];
         return {
           [translate('export.player', 'Player')]: p.name,
           [translate('export.overall', 'Overall')]: assessment.overall,
           ...Object.fromEntries(
-            ASSESSMENT_METRICS.map(({ id }) => [
+            presentDefs.map(({ id }) => [
               translate(`assessmentMetrics.${id}`, id),
               assessment.sliders[id] ?? '',
             ]),
@@ -655,12 +665,15 @@ export const exportAggregateExcel = (
   });
 
   if (assessmentMap.size > 0) {
+    const summaryPresentDefs = ASSESSMENT_METRICS.filter(({ id }) =>
+      Array.from(assessmentMap.values()).some((s) => (s.metricCounts[id] ?? 0) > 0),
+    );
     const assessmentSummary = Array.from(assessmentMap.values()).map((stats) => ({
       [translate('export.player', 'Player')]: stats.name,
       [translate('export.gamesAssessed', 'Games Assessed')]: stats.count,
       [translate('export.avgOverall', 'Avg Overall')]: (stats.overall / stats.count).toFixed(1),
       ...Object.fromEntries(
-        ASSESSMENT_METRICS.map(({ id }) => [
+        summaryPresentDefs.map(({ id }) => [
           translate(`assessmentMetrics.${id}`, id),
           stats.metricCounts[id]
             ? (stats.metricTotals[id] / stats.metricCounts[id]).toFixed(1)
@@ -834,8 +847,10 @@ export const exportPlayerExcel = (
   }
 
   // Sheet 3: Assessments
-  const assessments = Object.entries(games)
-    .filter(([, game]) => game.assessments && game.assessments[playerId])
+  const playerAssessments = Object.entries(games)
+    .filter(([, game]) => game.assessments && game.assessments[playerId]);
+  const historyPresentDefs = presentMetricDefs(playerAssessments.map(([, game]) => game.assessments![playerId]));
+  const assessments = playerAssessments
     .map(([id, game]) => {
       const assessment = game.assessments![playerId];
       return {
@@ -844,7 +859,7 @@ export const exportPlayerExcel = (
         [translate('export.opponent', 'Opponent')]: game.opponentName,
         [translate('export.overall', 'Overall')]: assessment.overall,
         ...Object.fromEntries(
-          ASSESSMENT_METRICS.map(({ id }) => [
+          historyPresentDefs.map(({ id }) => [
             translate(`assessmentMetrics.${id}`, id),
             assessment.sliders[id] ?? '',
           ]),

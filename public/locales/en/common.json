@@ -1441,6 +1441,7 @@
     "assessmentTemplateHint": "Which set of qualities to assess. Switching is safe - past ratings are kept.",
     "assessmentTemplateBalanced": "Balanced (10)",
     "assessmentTemplateLight6": "Light 6 (U7-U9)",
+    "assessmentTemplateCreative": "Creative-attacking (14)",
     "saveSettingError": "Failed to save setting. Please try again.",
     "preferencesTitle": "Preferences",
     "resetGuideButton": "Reset App Guide",
@@ -1609,7 +1610,10 @@
     "enjoyment": "Enjoyment",
     "teamwork": "Teamwork",
     "fair_play": "Fair play",
-    "creativity": "Creativity"
+    "creativity": "Creativity",
+    "dribbling": "Dribbling",
+    "finishing": "Finishing",
+    "off_ball_movement": "Off-ball movement"
   },
   "assessmentScale": {
     "level1": "Working on it",
