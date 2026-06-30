@@ -34,19 +34,25 @@ export function calculateFinalScore(assessment: PlayerAssessment): number {
   return n > 0 ? sum / n : 0;
 }
 
-export function getPlayerAssessmentTrends(playerId: string, games: SavedGamesCollection): { [metric: string]: MetricTrendPoint[] } {
+export function getPlayerAssessmentTrends(
+  playerId: string,
+  games: SavedGamesCollection,
+  // Scope to a metric set (the active template) so trends mirror what the coach
+  // currently assesses. Defaults to the whole library for back-compat.
+  metricIds: readonly string[] = METRICS,
+): { [metric: string]: MetricTrendPoint[] } {
   const trends: { [metric: string]: MetricTrendPoint[] } = {};
-  METRICS.forEach(m => { trends[m] = []; });
+  metricIds.forEach(m => { trends[m] = []; });
   for (const game of Object.values(games)) {
     if (game.isPlayed === false) continue;
     const a = game.assessments?.[playerId];
     if (!a) continue;
-    METRICS.forEach(m => {
+    metricIds.forEach(m => {
       const v = sliderValue(a, m);
       if (v !== undefined) trends[m].push({ date: game.gameDate, value: v });
     });
   }
-  METRICS.forEach(m => trends[m].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+  metricIds.forEach(m => trends[m].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
   return trends;
 }
 
@@ -216,9 +222,18 @@ export type AssessmentScope = 'all' | 'last10' | 'last5';
 export function calculatePlayerDevelopment(
   playerId: string,
   games: SavedGamesCollection,
-  options: { recencyWeighted?: boolean; useDemandCorrection?: boolean; scope?: AssessmentScope } = {},
+  options: {
+    recencyWeighted?: boolean;
+    useDemandCorrection?: boolean;
+    scope?: AssessmentScope;
+    // Metric set to report on (the active template). The report mirrors the
+    // coach's current compass: a metric the coach no longer assesses is not
+    // drawn, even if older games still hold its data. Defaults to the whole
+    // library for back-compat.
+    metricIds?: readonly string[];
+  } = {},
 ): PlayerDevelopment | null {
-  const { recencyWeighted = true, useDemandCorrection = false, scope = 'all' } = options;
+  const { recencyWeighted = true, useDemandCorrection = false, scope = 'all', metricIds = METRICS } = options;
 
   const allEntries = Object.values(games)
     .filter(g => g.isPlayed !== false && g.assessments?.[playerId])
@@ -237,7 +252,7 @@ export function calculatePlayerDevelopment(
 
   const metrics: { [metric: string]: MetricDevelopment } = {};
   const withData: string[] = [];
-  METRICS.forEach(m => {
+  metricIds.forEach(m => {
     const series = entries.filter(e => {
       const v = e.a.sliders[m];
       return typeof v === 'number' && Number.isFinite(v);

@@ -213,4 +213,22 @@ describe('calculatePlayerDevelopment', () => {
     const dev = calculatePlayerDevelopment('p1', seriesGames([3, 3, 3]));
     expect(dev?.metrics.effort.direction).toBe('insufficient');
   });
+
+  it('scopes the report to the active metric set (drops out-of-set metrics with data)', () => {
+    // Base metrics sit mid-scale (neither strength nor focus); 'creativity' is a
+    // standout strength but is not in the active set.
+    const games = seriesGames([5, 5, 5, 5, 5]);
+    Object.values(games).forEach(g => { g.assessments!.p1.sliders.creativity = 9; });
+
+    const balanced = ['ball_control', 'passing', 'scanning'];
+    const scoped = calculatePlayerDevelopment('p1', games, { metricIds: balanced });
+    // Out-of-set metric is not reported, even though it has data...
+    expect(scoped?.metrics.creativity).toBeUndefined();
+    expect(scoped?.strengths).not.toContain('creativity');
+
+    // ...but including it in the set surfaces it as the standout strength.
+    const withCreativity = calculatePlayerDevelopment('p1', games, { metricIds: [...balanced, 'creativity'] });
+    expect(withCreativity?.metrics.creativity?.level).toBeCloseTo(9);
+    expect(withCreativity?.strengths).toContain('creativity');
+  });
 });

@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "The player development report now matches what you actually assess: it shows only the qualities in your current assessment template. A quality you no longer rate (e.g. an old \"Creativity\" value left over from a different template) no longer appears in the report. Its data is kept - switch your template back and it returns."
+      ],
+      "fi": [
+        "Pelaajan kehitysraportti vastaa nyt sitä, mitä todella arvioit: se näyttää vain nykyisen arviointipohjasi ominaisuudet. Ominaisuus jota et enää arvioi (esim. vanha \"Luovuus\"-arvo eri pohjasta) ei enää näy raportissa. Sen tiedot säilyvät - vaihda pohja takaisin ja se palaa."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Internal: documentation only - reframed the assessment-roadmap backlog into a standalone / point-in-time assessment primitive (report-editing + external games), and added the public-launch tasks (site copy, screenshots, Play Store update). No app changes."
       ],
       "fi": [

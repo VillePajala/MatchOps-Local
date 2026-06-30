@@ -249,6 +249,36 @@ ranking behaviour). The comparability that matters is narrow and solvable:
   corner-level roll-ups work without forcing label uniformity.
 - **Cross-team comparison: out of scope, by design.** Stated as a feature, not a gap.
 
+### The correctness rule when metrics/templates change
+
+The whole thing stays correct under one invariant: **a metric id must mean the same thing forever.**
+Storage is already id-keyed (`slider_values`), so the *mechanical* safety is in place - switching
+templates never migrates or loses data, old games keep the ids they were rated with, renames are
+free. What that can't protect is *semantic* stability. Three rules enforce it:
+
+1. **Stable ids, cosmetic labels.** Renaming "Luovuus" -> "Creativity" keeps the id and the history.
+   (Already true.)
+2. **Redefine = new metric (the load-bearing rule).** A wording/clarity tweak keeps the id; changing
+   *what a metric measures* must mint a **new id** (old one retired, fresh history starts). Never let
+   a coach keep an id while changing its meaning - that is the single move that silently corrupts a
+   trend and is invisible afterwards. In the editor: "edit label/description" is safe; "this now
+   measures something else" creates a new metric.
+3. **A set change is a dated event, not a silent swap.** Changing the metric set records a boundary
+   ("from this date your compass uses these metrics; earlier games keep theirs"); past games keep
+   their own ids, nothing is rewritten. The dated boundary is implicit in the data (a metric simply
+   has no points before it was added) and made explicit only in the change-set UX. `effective_from`
+   on each definition + the id-keyed storage is enough; no heavy version table needed.
+
+**The report reflects the active set.** The development view / report scopes to the active template's
+metric ids (shipped: `metricIds` passed into `calculatePlayerDevelopment` /
+`getPlayerAssessmentTrends` from `PlayerStatsView`), so a metric the coach no longer assesses is not
+drawn even if older games still hold its data - "what I see in the report" always equals "what I can
+assess." History is preserved in storage; switching the template back resurfaces it.
+
+**Honest limit:** you cannot trend a metric across the point where its meaning changed - same family
+as the relative-scale drift noted under *Known tensions*. Mitigation is the same: make set changes
+rare, deliberate, and dated, and trust within-season trends most.
+
 ## Data model shift
 
 Today the 10 metrics are **hardcoded named columns** in Supabase + a fixed `sliders` object. Editable
