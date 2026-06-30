@@ -1503,6 +1503,7 @@ export type TranslationKey =
   | 'playerStats.metricTrends'
   | 'playerStats.negativeStatsError'
   | 'playerStats.neutral'
+  | 'playerStats.noAssessmentsForPeriod'
   | 'playerStats.noGames'
   | 'playerStats.noSeason'
   | 'playerStats.noSeasonsAvailable'
