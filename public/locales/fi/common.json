@@ -1613,6 +1613,12 @@
     "level4": "Vakiintunut",
     "level5": "Vahvuus"
   },
+  "assessmentTrend": {
+    "rising": "Nousussa",
+    "steady": "Vakaa",
+    "slipping": "Laskussa",
+    "insufficient": "Liian aikaista sanoa"
+  },
   "playerStats": {
     "selectPlayer": "Valitse pelaaja tarkastellaksesi tilastoja.",
     "selectPlayerLabel": "Valitse pelaaja",
@@ -1650,6 +1656,10 @@
     "goalsAssists": "Maalit ja syötöt",
     "useDemandCorrection": "Painota vaikeuden mukaan",
     "useDemandCorrectionTooltip": "Kun käytössä, vaikeiden pelien arviot vaikuttavat enemmän",
+    "recencyWeighted": "Nykyinen vire",
+    "recencyWeightedTooltip": "Painota viimeaikaisia pelejä, jotta näkyy nykyinen vire pitkän aikavälin keskiarvon sijaan",
+    "focusAreas": "Kehityskohteet",
+    "strengths": "Vahvuudet",
     "includesAdjustments": "Sisältää ulkoiset pelit",
     "externalGames": "Ulkoiset pelit",
     "externalGame": "Ulkoinen peli",

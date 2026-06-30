@@ -1,4 +1,4 @@
-import { calculatePlayerAssessmentAverages, calculateTeamAssessmentAverages, getPlayerAssessmentTrends, getPlayerAssessmentNotes } from './assessmentStats';
+import { calculatePlayerAssessmentAverages, calculateTeamAssessmentAverages, calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes } from './assessmentStats';
 import type { SavedGamesCollection, AppState, PlayerAssessment } from '@/types';
 
 const baseGame: AppState = {
@@ -154,5 +154,45 @@ describe('assessmentStats', () => {
     const divisor = 2 + 1;
     const expected = (4 * 2 + 6 * 1) / divisor;
     expect(result?.finalScore).toBeCloseTo(expected);
+  });
+});
+
+describe('calculatePlayerDevelopment', () => {
+  // Build a chronological set of games where the player is rated `val` each game.
+  const seriesGames = (vals: number[]): SavedGamesCollection => {
+    const games: SavedGamesCollection = {};
+    vals.forEach((v, i) => {
+      const day = String(i + 1).padStart(2, '0');
+      games[`g${i}`] = { ...baseGame, gameDate: `2024-01-${day}`, assessments: { p1: sampleAssessment(v) } };
+    });
+    return games;
+  };
+
+  it('returns null when the player has no assessments', () => {
+    expect(calculatePlayerDevelopment('p1', { g1: { ...baseGame } })).toBeNull();
+  });
+
+  it('detects a rising trend and recency-weights toward recent form', () => {
+    const games = seriesGames([1, 1, 1, 1, 1, 1, 4, 4, 4]);
+    const current = calculatePlayerDevelopment('p1', games, { recencyWeighted: true });
+    const overall = calculatePlayerDevelopment('p1', games, { recencyWeighted: false });
+    expect(current?.count).toBe(9);
+    expect(current?.metrics.effort.direction).toBe('rising');
+    // Plain lifetime average = (6*1 + 3*4)/9 = 2; recency-weighted leans higher.
+    expect(overall?.metrics.effort.level).toBeCloseTo(2);
+    expect(current!.metrics.effort.level).toBeGreaterThan(overall!.metrics.effort.level);
+  });
+
+  it('flags a declining metric as a focus area (slipping)', () => {
+    const games = seriesGames([5, 5, 5, 5, 2, 2, 2, 2]);
+    const dev = calculatePlayerDevelopment('p1', games);
+    expect(dev?.metrics.effort.direction).toBe('slipping');
+    // Slipping metrics surface as focus areas (all metrics slip here, capped at 3).
+    expect(dev?.focusAreas.length).toBeGreaterThan(0);
+  });
+
+  it('reports an insufficient trend with too few games', () => {
+    const dev = calculatePlayerDevelopment('p1', seriesGames([3, 3, 3]));
+    expect(dev?.metrics.effort.direction).toBe('insufficient');
   });
 });

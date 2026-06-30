@@ -12,7 +12,7 @@ import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/pl
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { PlayerStatAdjustment } from '@/types';
-import { calculatePlayerAssessmentAverages, getPlayerAssessmentTrends, getPlayerAssessmentNotes } from '@/utils/assessmentStats';
+import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection } from '@/utils/assessmentStats';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
@@ -52,6 +52,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [showRatings, setShowRatings] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
+  const [recencyWeighted, setRecencyWeighted] = useState(true);
   const [ratingStyle, setRatingStyle] = useState<AssessmentRatingStyle>('words');
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
@@ -105,6 +106,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     return `${word} · ${num}`;
   }, [ratingStyle, t]);
 
+  // Trend direction → arrow glyph, colour, and accessible label.
+  const trendMeta = useCallback((direction: TrendDirection) => {
+    switch (direction) {
+      case 'rising': return { arrow: '↑', className: 'text-green-400', title: t('assessmentTrend.rising', 'Rising') };
+      case 'slipping': return { arrow: '↓', className: 'text-red-400', title: t('assessmentTrend.slipping', 'Slipping') };
+      case 'steady': return { arrow: '→', className: 'text-slate-400', title: t('assessmentTrend.steady', 'Steady') };
+      default: return { arrow: '·', className: 'text-slate-600', title: t('assessmentTrend.insufficient', 'Too early to tell') };
+    }
+  }, [t]);
+
   // Helper function to format dates consistently
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -156,10 +167,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     }
   }, [showActionsMenu]);
 
-  const assessmentAverages = useMemo(() => {
+  const playerDevelopment = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerAssessmentAverages(player.id, savedGames, useDemandCorrection);
-  }, [player, savedGames, useDemandCorrection]);
+    return calculatePlayerDevelopment(player.id, savedGames, { recencyWeighted, useDemandCorrection });
+  }, [player, savedGames, recencyWeighted, useDemandCorrection]);
 
   const assessmentTrends = useMemo(() => {
     if (!player) return null;
@@ -966,7 +977,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         </div>
       </div>
 
-      {assessmentAverages && (
+      {playerDevelopment && (
         <div className="mt-6">
           <button
             type="button"
@@ -979,40 +990,88 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           </button>
           {showRatings && (
             <div className="mt-2 space-y-4 text-sm">
-              <label className="flex items-center space-x-2 px-2">
-                <input
-                  type="checkbox"
-                  checked={useDemandCorrection}
-                  onChange={(e) => {
-                    const val = e.target.checked;
-                    setUseDemandCorrection(val);
-                    // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
-                    updateAppSettings({ useDemandCorrection: val }, userId).catch((error) => {
-                      logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
-                    });
-                  }}
-                  title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
-                  className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
-                />
-                <span className="text-slate-100">{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
-              </label>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 px-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={recencyWeighted}
+                    onChange={(e) => setRecencyWeighted(e.target.checked)}
+                    title={t('playerStats.recencyWeightedTooltip', 'Weight recent games more, to show current form rather than the lifetime average')}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-slate-100">{t('playerStats.recencyWeighted', 'Current form')}</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={useDemandCorrection}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setUseDemandCorrection(val);
+                      // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
+                      updateAppSettings({ useDemandCorrection: val }, userId).catch((error) => {
+                        logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
+                      });
+                    }}
+                    title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
+                  />
+                  <span className="text-slate-100">{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
+                </label>
+              </div>
+              {(playerDevelopment.focusAreas.length > 0 || playerDevelopment.strengths.length > 0) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2">
+                  {playerDevelopment.strengths.length > 0 && (
+                    <div className="bg-green-900/20 border border-green-700/30 rounded p-2">
+                      <p className="text-xs font-semibold text-green-300 mb-1">{t('playerStats.strengths', 'Strengths')}</p>
+                      <ul className="space-y-0.5">
+                        {playerDevelopment.strengths.map(m => (
+                          <li key={m} className="text-xs text-slate-200">
+                            {t(`assessmentMetrics.${m}` as TranslationKey, m)} <span className={trendMeta(playerDevelopment.metrics[m].direction).className}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {playerDevelopment.focusAreas.length > 0 && (
+                    <div className="bg-amber-900/20 border border-amber-700/30 rounded p-2">
+                      <p className="text-xs font-semibold text-amber-300 mb-1">{t('playerStats.focusAreas', 'Focus areas')}</p>
+                      <ul className="space-y-0.5">
+                        {playerDevelopment.focusAreas.map(m => (
+                          <li key={m} className="text-xs text-slate-200">
+                            {t(`assessmentMetrics.${m}` as TranslationKey, m)} <span className={trendMeta(playerDevelopment.metrics[m].direction).className}>{trendMeta(playerDevelopment.metrics[m].direction).arrow}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
-                {Object.entries(assessmentAverages.averages).map(([metric, avg]) => (
-                  <div key={metric} className="flex items-center space-x-2 px-2">
-                    <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
-                    <RatingBar value={avg} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(avg)} />
-                  </div>
-                ))}
+                {Object.entries(playerDevelopment.metrics)
+                  .filter(([, d]) => d.level > 0)
+                  .map(([metric, d]) => {
+                    const trend = trendMeta(d.direction);
+                    return (
+                      <div key={metric} className="flex items-center space-x-2 px-2">
+                        <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
+                        <RatingBar value={d.level} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(d.level)} />
+                        <span className={`w-4 text-center ${trend.className}`} title={trend.title} aria-label={trend.title}>{trend.arrow}</span>
+                      </div>
+                    );
+                  })}
                 <div className="flex items-center space-x-2 px-2 mt-2">
                   <span className="w-28 shrink-0 text-slate-100">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
-                  <RatingBar value={assessmentAverages.overall} valueLabel={formatRatingBand(assessmentAverages.overall)} />
+                  <RatingBar value={playerDevelopment.overall.level} valueLabel={formatRatingBand(playerDevelopment.overall.level)} />
+                  <span className={`w-4 text-center ${trendMeta(playerDevelopment.overall.direction).className}`} title={trendMeta(playerDevelopment.overall.direction).title} aria-label={trendMeta(playerDevelopment.overall.direction).title}>{trendMeta(playerDevelopment.overall.direction).arrow}</span>
                 </div>
                 <div className="flex items-center space-x-2 px-2">
                   <span className="w-28 shrink-0 text-slate-100">{t('playerStats.avgRating', 'Avg Rating')}</span>
-                  <RatingBar value={assessmentAverages.finalScore} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(assessmentAverages.finalScore)} />
+                  <RatingBar value={playerDevelopment.finalScore} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(playerDevelopment.finalScore)} />
+                  <span className="w-4" />
                 </div>
                 <div className="text-xs text-slate-400 text-right">
-                  {assessmentAverages.count} {t('playerStats.ratedGames', 'rated')}
+                  {playerDevelopment.count} {t('playerStats.ratedGames', 'rated')}
                 </div>
               </div>
               {assessmentTrends && (

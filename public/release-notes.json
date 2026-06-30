@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(assessment): user-selectable rating style (words / 1-5 / 1-10) (#549)"
+  "notes": "feat(assessment): development view shows ratings as word bands (#550)"
 }
