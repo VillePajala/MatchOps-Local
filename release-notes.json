@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Development report card: the Strengths / Focus lists now sit close together around the centre and mirror each other (left list right-aligned with arrows on the left, right list left-aligned with arrows on the right), and the Now / Season-start legend moved above the radar."
+      ],
+      "fi": [
+        "Kehitysraporttikortti: Vahvuudet / Kehityskohteet -listat ovat nyt lähekkäin keskellä ja peilautuvat (vasen lista oikealle tasattuna nuolet vasemmalla, oikea lista vasemmalle tasattuna nuolet oikealla), ja Nyt / Kauden alku -selite siirtyi tutkan yläpuolelle."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Fixed: switching the assessment season filter to a period with no assessments no longer hides the whole section (which also hid the filter, trapping you). The section and its controls now stay, showing a short \"no assessments for this period\" message."
       ],
       "fi": [
