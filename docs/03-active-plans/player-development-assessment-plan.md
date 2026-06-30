@@ -285,6 +285,65 @@ The shareable **game card** (see `game-recap-generator-plan.md`) and this develo
 
 A single player's own compass *may* be shared with that player's family; the squad grid may not.
 
+## Known tensions & reliability (design notes)
+
+The feature is now broad enough that its real tensions are visible. These are not bugs to fix one by
+one; some are the deliberate *cost* of the against-self philosophy and are best handled by naming them
+honestly rather than engineering them away. Captured 2026-06-30 from a design discussion.
+
+### The word scale already solves the hardest problem
+
+The 5-level word scale is **self-referential** - "A strength" means strong *for this player, at this
+stage*, against the coach's own expectation, not an absolute 10. That one choice fixes the two things
+that wreck numeric systems:
+
+- **No ceiling.** "A strength" is reusable forever - a U9 and a U15 can both earn it because the bar
+  in the coach's head rises with the player while the label does not cap. Numbers can't: 9/10 leaves
+  nowhere to go, and you often realise too late you "should have started lower."
+- **No external comparison, by design.** The comparison is the player vs *their own past* (radar
+  now-vs-season-start, trend arrows), never "good compared to other kids." This is the
+  development-not-evaluation north star, and why the system feels supportive rather than judgmental.
+
+**The subtle cost of the same self-reference:** if the coach's internal bar drifts (expecting more as
+the kid ages), a genuinely improving player can show *flat or falling* word-levels - he's better, but
+the yardstick moved. Trends assume a stable scale, and a relative scale isn't perfectly stable over
+long spans. Practical consequence: **trends/arrows are most trustworthy within a season** (the
+yardstick barely moves in a few months) and softest across years; the **radar "now vs season start"
+is the safest view** (short window, stable bar). The per-season filter exists partly for this.
+
+### Metric definitions are a reliability requirement, not a nicety
+
+A trend is only meaningful if "Consistent" means the same thing each time it's rated. Without a
+definition anchoring each metric (and ideally each level), ratings suffer **rater drift** - the same
+kid rated by the same coach six months apart isn't comparable, so the trend is partly noise. The
+in-app one-line definitions (shipped #568) are the first stabiliser; the richer version - a
+behavioural anchor *per level* (e.g. "A strength in scanning = checks shoulders before most
+receptions") - is more content but is what truly stabilises ratings. Highest-leverage future content.
+
+### Other real issues
+
+- **Forced defaults pollute the data.** A new assessment starts every metric at the middle. Saving
+  without touching one records a real "Developing" that was never observed - phantom data that
+  flattens trends. Honest fix: "not observed" default (parked). Until then, untouched != neutral
+  truth.
+- **Small samples lie.** With 4-5 games the baseline (first 3) and "now" overlap, so the trend is
+  barely signal; it firms up around 8-10 assessments. Arrows say "too early" under 4, but 4-7 is soft.
+- **Recency can overreact.** "Current form" weights recent games, so one bad game can swing a metric;
+  the 5-level coarseness dampens but doesn't remove this.
+- **Per-game burden -> rushed data.** Rating 10-14 qualities every game tempts skipping or
+  speed-rating (everyone a "3"). This is why lighter capture / spotlight rotation exists: assessing
+  fewer players per game *well* beats all of them badly.
+- **One subjective rater, no calibration.** The trend is the coach's evolving *perception*, not ground
+  truth - fine for personal coaching, but don't oversell its precision (frame recommendations as a
+  signpost, not a verdict). A player self-assessment would add a second lens.
+
+### How to rank them
+
+- **Quick, high-value:** in-app metric definitions (done #568); "not observed" default (data quality).
+- **Inherent trade-offs to accept, not fix:** single-rater subjectivity, no external benchmark,
+  relative-scale drift - these are the price of the against-self philosophy. The fix is naming them
+  honestly, not engineering them away.
+
 ## Open questions (deferred)
 
 - Scale: **5-level word scale locked** (Working on it / Emerging / Developing / Consistent / A
