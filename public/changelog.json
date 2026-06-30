@@ -1,12 +1,12 @@
 {
-  "version": "7297cb03",
+  "version": "e7be2d0d",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "New assessment template: Creative-attacking adds Creativity, Dribbling, Finishing and Off-ball movement on top of the balanced set - for attack-focused groups. Choose it in Settings. (Exports now only include columns for metrics you actually use.)"
+      "Fixed the player rating bars showing as a tiny sliver on phones - the level label column was too wide and starved the bar. Bars now read proportionally again."
     ],
     "fi": [
-      "Uusi arviointimalli: Luova hyökkäys lisää tasapainoisen sarjan päälle Luovuuden, Kuljettamisen, Viimeistelyn ja Liikkeen ilman palloa - hyökkäyspainotteisille ryhmille. Valitse se asetuksista. (Viennit sisältävät nyt vain käyttämiesi mittarien sarakkeet.)"
+      "Korjattu pelaajan arviopalkit, jotka näkyivät puhelimessa pienenä tikkuna - tasosarake oli liian leveä ja vei palkin tilan. Palkit näkyvät taas oikeassa suhteessa."
     ]
   }
 }
