@@ -21,6 +21,7 @@ import RatingBar from './RatingBar';
 import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber } from '@/config/assessmentMetrics';
 import type { AssessmentRatingStyle } from '@/types/settings';
 import MetricTrendChart from './MetricTrendChart';
+import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
@@ -171,6 +172,21 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     if (!player) return null;
     return calculatePlayerDevelopment(player.id, savedGames, { recencyWeighted, useDemandCorrection });
   }, [player, savedGames, recencyWeighted, useDemandCorrection]);
+
+  // Radar axes (qualities with data). Shown only once there are enough games
+  // for a meaningful "now vs then" comparison.
+  const radarAxes = useMemo<RadarAxis[]>(() => {
+    if (!playerDevelopment) return [];
+    return Object.entries(playerDevelopment.metrics)
+      .filter(([, d]) => d.level > 0)
+      .map(([key, d]) => ({
+        key,
+        label: t(`assessmentMetrics.${key}` as TranslationKey, key),
+        current: d.level,
+        baseline: d.baseline,
+      }));
+  }, [playerDevelopment, t]);
+  const showRadar = !!playerDevelopment && playerDevelopment.count >= 6 && radarAxes.length >= 3;
 
   const assessmentTrends = useMemo(() => {
     if (!player) return null;
@@ -1019,6 +1035,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <span className="text-slate-100">{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
                 </label>
               </div>
+              {showRadar && (
+                <div className="px-2">
+                  <PlayerDevelopmentRadar
+                    axes={radarAxes}
+                    max={ASSESSMENT_MAX}
+                    currentLabel={t('playerStats.radarNow', 'Now')}
+                    baselineLabel={t('playerStats.radarBaseline', 'Season start')}
+                  />
+                </div>
+              )}
               {(playerDevelopment.focusAreas.length > 0 || playerDevelopment.strengths.length > 0) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2">
                   {playerDevelopment.strengths.length > 0 && (

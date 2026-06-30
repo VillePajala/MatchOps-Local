@@ -1654,6 +1654,8 @@
     "recencyWeightedTooltip": "Weight recent games more, to show current form rather than the lifetime average",
     "focusAreas": "Focus areas",
     "strengths": "Strengths",
+    "radarNow": "Now",
+    "radarBaseline": "Season start",
     "includesAdjustments": "Includes external games",
     "externalGames": "External Games",
     "externalGame": "External Game",

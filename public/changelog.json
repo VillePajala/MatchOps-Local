@@ -1,12 +1,12 @@
 {
-  "version": "9defeffa",
+  "version": "c5dd58f7",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Player stats now show a development picture: each quality has a trend arrow (rising / steady / slipping) and the app highlights Strengths and Focus areas. A new \"Current form\" toggle weights recent games more, so a player who has improved isn't dragged down by old scores."
+      "Player stats now include a development radar - the player's current shape across all qualities overlaid on where they started the season, so progress (or stalling) is visible at a glance. Appears once a player has enough assessed games."
     ],
     "fi": [
-      "Pelaajatilastot näyttävät nyt kehityskuvan: jokaisella ominaisuudella on trendinuoli (nousussa / vakaa / laskussa) ja sovellus nostaa esiin vahvuudet ja kehityskohteet. Uusi \"Nykyinen vire\" -valinta painottaa viimeaikaisia pelejä, joten kehittynyttä pelaajaa eivät vanhat arviot vedä alas."
+      "Pelaajatilastoissa on nyt kehitystutka - pelaajan nykyinen muoto kaikissa ominaisuuksissa kauden alkutilanteen päälle aseteltuna, joten edistyminen (tai paikallaan polkeminen) näkyy yhdellä silmäyksellä. Tulee näkyviin, kun pelaajalla on tarpeeksi arvioituja pelejä."
     ]
   }
 }
