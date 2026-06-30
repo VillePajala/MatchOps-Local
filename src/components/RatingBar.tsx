@@ -24,7 +24,7 @@ const RatingBar: React.FC<RatingBarProps> = ({ value, max = 10, valueLabel }) =>
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="text-sm text-yellow-400 text-right whitespace-nowrap">
+      <span className="w-32 shrink-0 text-xs text-yellow-400 text-right whitespace-nowrap overflow-hidden text-ellipsis">
         {valueLabel ?? value.toFixed(1)}
       </span>
     </div>
