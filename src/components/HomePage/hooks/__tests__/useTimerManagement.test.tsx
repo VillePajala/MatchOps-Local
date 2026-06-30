@@ -103,6 +103,7 @@ describe('useTimerManagement', () => {
     availablePlayers: mockPlayers,
     masterRoster: mockPlayers,
     setIsGoalLogModalOpen: mockSetIsGoalLogModalOpen,
+    setIsPlayerAssessmentModalOpen: jest.fn(),
   };
 
   beforeEach(() => {

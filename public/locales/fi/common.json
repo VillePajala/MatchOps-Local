@@ -310,7 +310,8 @@
     "decreaseInterval": "Lyhennä aikaväliä",
     "increaseInterval": "Pidennä aikaväliä",
     "wentToOvertime": "Meni jatkoajalle",
-    "recordShootout": "Kirjaa rangaistuspotkukilpailu"
+    "recordShootout": "Kirjaa rangaistuspotkukilpailu",
+    "assessPlayersButton": "Arvioi pelaajat"
   },
   "instructionsModal": {
     "title": "Näin se toimii",

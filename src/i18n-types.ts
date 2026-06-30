@@ -2354,6 +2354,7 @@ export type TranslationKey =
   | 'termsOfService.userResponsibilities.items.data'
   | 'termsOfService.userResponsibilities.title'
   | 'termsOfService.version'
+  | 'timerOverlay.assessPlayersButton'
   | 'timerOverlay.confirmOpponentGoal'
   | 'timerOverlay.confirmOpponentGoalTitle'
   | 'timerOverlay.confirmReset'

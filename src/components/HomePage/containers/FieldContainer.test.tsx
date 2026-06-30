@@ -202,6 +202,7 @@ const baseProps = () => ({
   timerInteractions: {
     toggleLargeOverlay: jest.fn(),
     toggleGoalLogModal: jest.fn(),
+    onOpenPlayerAssessmentModal: jest.fn(),
     logOpponentGoal: jest.fn(),
     substitutionMade: jest.fn(),
     setSubInterval: jest.fn(),
