@@ -7,6 +7,8 @@ import {
   RATING_STYLE_MAX,
   canonicalToDisplay,
   displayToCanonical,
+  ratingBandLevel,
+  ratingDisplayNumber,
   makeDefaultSliders,
   migrateAssessmentSliders,
   migrateAssessmentSliderScale,
@@ -93,6 +95,26 @@ describe('assessmentMetrics config', () => {
 
     it('the default value reads as the middle level (Developing)', () => {
       expect(canonicalToDisplay(ASSESSMENT_DEFAULT, 5)).toBe(3);
+    });
+  });
+
+  describe('development-view band helpers', () => {
+    it('folds fractional canonical averages into the 5 word levels', () => {
+      expect(ratingBandLevel(1)).toBe(1);   // Working on it
+      expect(ratingBandLevel(3.2)).toBe(2); // Emerging
+      expect(ratingBandLevel(5.5)).toBe(3); // Developing
+      expect(ratingBandLevel(7.4)).toBe(4); // Consistent
+      expect(ratingBandLevel(9.1)).toBe(5); // A strength
+    });
+
+    it('returns the canonical number unchanged for the 1-10 style', () => {
+      expect(ratingDisplayNumber(7.4, RATING_STYLE_MAX.num10)).toBeCloseTo(7.4);
+    });
+
+    it('rescales the number for the 1-5 style', () => {
+      // canonical 10 -> 5, canonical 1 -> 1
+      expect(ratingDisplayNumber(10, RATING_STYLE_MAX.num5)).toBeCloseTo(5);
+      expect(ratingDisplayNumber(1, RATING_STYLE_MAX.num5)).toBeCloseTo(1);
     });
   });
 });

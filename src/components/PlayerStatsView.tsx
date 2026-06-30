@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -18,7 +18,8 @@ import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
 import SparklineChart from './SparklineChart';
 import RatingBar from './RatingBar';
-import { ASSESSMENT_MAX } from '@/config/assessmentMetrics';
+import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber } from '@/config/assessmentMetrics';
+import type { AssessmentRatingStyle } from '@/types/settings';
 import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
@@ -51,6 +52,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [showRatings, setShowRatings] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
+  const [ratingStyle, setRatingStyle] = useState<AssessmentRatingStyle>('words');
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
   const [adjSeasonId, setAdjSeasonId] = useState('');
@@ -90,8 +92,18 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
     getAppSettings(userId).then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
+      setRatingStyle(s.assessmentRatingStyle ?? 'words');
     });
   }, [userId]);
+
+  // Long-term/development view: summarise a (possibly fractional) canonical
+  // rating as a word band, with the number appended for numeric styles.
+  const formatRatingBand = useCallback((canonical: number): string => {
+    const word = t(`assessmentScale.level${ratingBandLevel(canonical)}` as TranslationKey);
+    if (ratingStyle === 'words') return word;
+    const num = ratingDisplayNumber(canonical, RATING_STYLE_MAX[ratingStyle]).toFixed(1);
+    return `${word} · ${num}`;
+  }, [ratingStyle, t]);
 
   // Helper function to format dates consistently
   const formatDisplayDate = (dateStr: string) => {
@@ -988,16 +1000,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 {Object.entries(assessmentAverages.averages).map(([metric, avg]) => (
                   <div key={metric} className="flex items-center space-x-2 px-2">
                     <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
-                    <RatingBar value={avg} max={ASSESSMENT_MAX} />
+                    <RatingBar value={avg} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(avg)} />
                   </div>
                 ))}
                 <div className="flex items-center space-x-2 px-2 mt-2">
                   <span className="w-28 shrink-0 text-slate-100">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
-                  <RatingBar value={assessmentAverages.overall} />
+                  <RatingBar value={assessmentAverages.overall} valueLabel={formatRatingBand(assessmentAverages.overall)} />
                 </div>
                 <div className="flex items-center space-x-2 px-2">
                   <span className="w-28 shrink-0 text-slate-100">{t('playerStats.avgRating', 'Avg Rating')}</span>
-                  <RatingBar value={assessmentAverages.finalScore} max={ASSESSMENT_MAX} />
+                  <RatingBar value={assessmentAverages.finalScore} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(assessmentAverages.finalScore)} />
                 </div>
                 <div className="text-xs text-slate-400 text-right">
                   {assessmentAverages.count} {t('playerStats.ratedGames', 'rated')}

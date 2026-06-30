@@ -1,12 +1,12 @@
 {
-  "version": "2a3cceae",
+  "version": "e10531b6",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "You can now choose how player assessment ratings look in Settings: developmental words (5 levels), numbers 1-5, or numbers 1-10. Switching is safe - your existing ratings are kept."
+      "Player stats now summarise each assessment as a development level (e.g. \"Consistent\"), so the long-term picture reads in plain words even if you rate with numbers. Numeric styles also show the value alongside."
     ],
     "fi": [
-      "Voit nyt valita asetuksista, miten pelaaja-arviot näytetään: kehityssanat (5 tasoa), numerot 1-5 tai numerot 1-10. Vaihtaminen on turvallista - aiemmat arviosi säilyvät."
+      "Pelaajatilastot näyttävät nyt jokaisen arvion kehitystasona (esim. \"Vakiintunut\"), joten pitkän aikavälin kuva luetaan selkokielisin sanoin, vaikka arvioisit numeroilla. Numeroasteikoilla näkyy myös lukuarvo."
     ]
   }
 }

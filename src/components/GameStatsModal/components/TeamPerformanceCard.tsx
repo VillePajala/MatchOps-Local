@@ -7,7 +7,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TranslationKey } from '@/i18n-types';
 import RatingBar from '../../RatingBar';
-import { ASSESSMENT_MAX } from '@/config/assessmentMetrics';
+import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber } from '@/config/assessmentMetrics';
+import type { AssessmentRatingStyle } from '@/types/settings';
 
 interface TeamAssessmentAverages {
   count: number;
@@ -31,6 +32,7 @@ interface TeamPerformanceCardProps {
   teamAssessmentAverages?: TeamAssessmentAverages | null;
   lastGameDate?: string;
   useGradient?: boolean;
+  ratingStyle?: AssessmentRatingStyle;
 }
 
 export function TeamPerformanceCard({
@@ -48,8 +50,17 @@ export function TeamPerformanceCard({
   teamAssessmentAverages,
   lastGameDate,
   useGradient = false,
+  ratingStyle = 'words',
 }: TeamPerformanceCardProps) {
   const { t } = useTranslation();
+
+  // Long-term view: summarise a canonical rating as a word band, with the
+  // number appended for numeric styles.
+  const formatRatingBand = (canonical: number): string => {
+    const word = t(`assessmentScale.level${ratingBandLevel(canonical)}` as TranslationKey);
+    if (ratingStyle === 'words') return word;
+    return `${word} · ${ratingDisplayNumber(canonical, RATING_STYLE_MAX[ratingStyle]).toFixed(1)}`;
+  };
 
   const cardClassName = useGradient
     ? "bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all"
@@ -116,20 +127,20 @@ export function TeamPerformanceCard({
                 <span className="w-28 shrink-0 text-slate-100">
                   {t(`assessmentMetrics.${metric}` as TranslationKey, metric)}
                 </span>
-                <RatingBar value={avg} max={ASSESSMENT_MAX} />
+                <RatingBar value={avg} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(avg)} />
               </div>
             ))}
             <div className="flex items-center space-x-2 px-2 mt-2">
               <span className="w-28 shrink-0 text-slate-100">
                 {t('playerAssessmentModal.overallLabel', 'Overall')}
               </span>
-              <RatingBar value={teamAssessmentAverages.overall} />
+              <RatingBar value={teamAssessmentAverages.overall} valueLabel={formatRatingBand(teamAssessmentAverages.overall)} />
             </div>
             <div className="flex items-center space-x-2 px-2">
               <span className="w-28 shrink-0 text-slate-100">
                 {t('playerStats.avgRating', 'Avg Rating')}
               </span>
-              <RatingBar value={teamAssessmentAverages.finalScore} max={ASSESSMENT_MAX} />
+              <RatingBar value={teamAssessmentAverages.finalScore} max={ASSESSMENT_MAX} valueLabel={formatRatingBand(teamAssessmentAverages.finalScore)} />
             </div>
             <div className="text-xs text-slate-400 text-right">
               {teamAssessmentAverages.count} {t('playerStats.ratedGames', 'rated')}

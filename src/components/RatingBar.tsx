@@ -5,9 +5,14 @@ import React from 'react';
 interface RatingBarProps {
   value: number;
   max?: number;
+  /**
+   * Text shown to the right of the bar. Defaults to the numeric value; pass a
+   * word band (e.g. "Consistent · 7.4") for the development view.
+   */
+  valueLabel?: string;
 }
 
-const RatingBar: React.FC<RatingBarProps> = ({ value, max = 10 }) => {
+const RatingBar: React.FC<RatingBarProps> = ({ value, max = 10, valueLabel }) => {
   const pct = Math.min(Math.max(value, 0), max) / max * 100;
   const hue = 120 * (value / max); // red to green
   const color = `hsl(${hue}, 70%, 50%)`;
@@ -19,7 +24,9 @@ const RatingBar: React.FC<RatingBarProps> = ({ value, max = 10 }) => {
           style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
-      <span className="text-sm text-yellow-400 w-8 text-right">{value.toFixed(1)}</span>
+      <span className="text-sm text-yellow-400 text-right whitespace-nowrap">
+        {valueLabel ?? value.toFixed(1)}
+      </span>
     </div>
   );
 };

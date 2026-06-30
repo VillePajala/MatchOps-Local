@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Player stats now summarise each assessment as a development level (e.g. \"Consistent\"), so the long-term picture reads in plain words even if you rate with numbers. Numeric styles also show the value alongside."
+      ],
+      "fi": [
+        "Pelaajatilastot näyttävät nyt jokaisen arvion kehitystasona (esim. \"Vakiintunut\"), joten pitkän aikavälin kuva luetaan selkokielisin sanoin, vaikka arvioisit numeroilla. Numeroasteikoilla näkyy myös lukuarvo."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "You can now choose how player assessment ratings look in Settings: developmental words (5 levels), numbers 1-5, or numbers 1-10. Switching is safe - your existing ratings are kept."
       ],
       "fi": [

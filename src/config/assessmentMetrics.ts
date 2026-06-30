@@ -82,6 +82,28 @@ export function displayToCanonical(display: number, styleMax: number): number {
 }
 
 /**
+ * Fold a (possibly fractional) canonical value into one of the 5 developmental
+ * word levels (1-5) - used for the long-term/development view, where ratings are
+ * always summarised as a word regardless of the capture style.
+ */
+export function ratingBandLevel(canonical: number): number {
+  return canonicalToDisplay(Math.round(canonical), RATING_STYLE_MAX.words);
+}
+
+/**
+ * The numeric value to show alongside the word band, on the coach's chosen
+ * numeric scale (fractional, for averages). Returns null for the words style
+ * (numbers are intentionally hidden there).
+ */
+export function ratingDisplayNumber(
+  canonical: number,
+  styleMax: number,
+): number {
+  if (styleMax === ASSESSMENT_MAX) return canonical;
+  return ((canonical - 1) / (ASSESSMENT_MAX - 1)) * (styleMax - 1) + 1;
+}
+
+/**
  * Scale version stored on each assessment, and the value range it implies.
  *   NULL/1 = original 1-10 numeric scale
  *   2      = interim 1-5 developmental word scale
