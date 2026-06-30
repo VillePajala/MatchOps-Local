@@ -219,6 +219,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   }, [playerDevelopment, t]);
   const showRadar = !!playerDevelopment && playerDevelopment.count >= 3 && radarAxes.length >= 3;
 
+  // Whether the player has any assessment at all (any season) - keeps the whole
+  // ratings section (and its season/scope controls) visible even when the
+  // current filter has no data, so the user isn't trapped on an empty filter.
+  const hasAnyAssessment = useMemo(
+    () => !!player && Object.values(savedGames).some(g => g.assessments?.[player.id]),
+    [player, savedGames],
+  );
+
   const handleExportReport = useCallback(async () => {
     if (!player || !playerDevelopment) return;
     const hexFor: Record<TrendDirection, string> = {
@@ -1055,7 +1063,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         </div>
       </div>
 
-      {playerDevelopment && (
+      {hasAnyAssessment && (
         <div className="mt-6">
           <button
             type="button"
@@ -1143,6 +1151,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   </button>
                 </div>
               </div>
+              {playerDevelopment ? (
+              <>
               {showRadar && (
                 <div className="px-2">
                   <PlayerDevelopmentRadar
@@ -1248,6 +1258,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     ))}
                   </ul>
                 </div>
+              )}
+              </>
+              ) : (
+                <p className="px-2 text-sm text-slate-400">{t('playerStats.noAssessmentsForPeriod', 'No assessments for this period.')}</p>
               )}
             </div>
           )}

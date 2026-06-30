@@ -1679,6 +1679,7 @@
     "developmentReport": "Kehitysraportti",
     "exportReport": "Vie kehitysraportti",
     "exportReportFailed": "Raportin vienti epäonnistui",
+    "noAssessmentsForPeriod": "Ei arviointeja tältä ajanjaksolta.",
     "assessed": "Arvioitu",
     "includesAdjustments": "Sisältää ulkoiset pelit",
     "externalGames": "Ulkoiset pelit",
