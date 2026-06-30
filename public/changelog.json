@@ -1,12 +1,12 @@
 {
-  "version": "c5dd58f7",
+  "version": "e6e68d8b",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Player stats now include a development radar - the player's current shape across all qualities overlaid on where they started the season, so progress (or stalling) is visible at a glance. Appears once a player has enough assessed games."
+      "You can now choose an assessment template in Settings: Balanced (10 qualities) or Light 6 for younger players (U7-U9). The assessment card shows just that set. Switching is safe - past ratings are kept."
     ],
     "fi": [
-      "Pelaajatilastoissa on nyt kehitystutka - pelaajan nykyinen muoto kaikissa ominaisuuksissa kauden alkutilanteen päälle aseteltuna, joten edistyminen (tai paikallaan polkeminen) näkyy yhdellä silmäyksellä. Tulee näkyviin, kun pelaajalla on tarpeeksi arvioituja pelejä."
+      "Voit nyt valita arviointimallin asetuksista: Tasapainoinen (10 ominaisuutta) tai Kevyt 6 nuoremmille pelaajille (U7-U9). Arviointikortti näyttää vain valitun sarjan. Vaihtaminen on turvallista - aiemmat arviot säilyvät."
     ]
   }
 }

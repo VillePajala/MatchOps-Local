@@ -12,6 +12,8 @@ import {
   makeDefaultSliders,
   migrateAssessmentSliders,
   migrateAssessmentSliderScale,
+  ASSESSMENT_TEMPLATES,
+  templateMetricIds,
 } from '../assessmentMetrics';
 
 describe('assessmentMetrics config', () => {
@@ -28,10 +30,27 @@ describe('assessmentMetrics config', () => {
     expect(ASSESSMENT_DEFAULT).toBe(5);
   });
 
-  it('makeDefaultSliders returns every metric at the default value', () => {
+  it('makeDefaultSliders returns the given ids at the default value', () => {
     const sliders = makeDefaultSliders();
     expect(Object.keys(sliders)).toEqual([...ASSESSMENT_METRIC_IDS]);
     expect(Object.values(sliders).every((v) => v === ASSESSMENT_DEFAULT)).toBe(true);
+    // Honours an explicit id list (e.g. a template).
+    expect(Object.keys(makeDefaultSliders(['courage', 'effort']))).toEqual(['courage', 'effort']);
+  });
+
+  describe('templates', () => {
+    it('balanced is the full set A; light6 is a 6-metric subset of it', () => {
+      expect(templateMetricIds('balanced')).toEqual(ASSESSMENT_METRIC_IDS);
+      const light6 = templateMetricIds('light6');
+      expect(light6).toHaveLength(6);
+      expect(light6.every((id) => (ASSESSMENT_METRIC_IDS as string[]).includes(id))).toBe(true);
+    });
+
+    it('every template id exists in the library', () => {
+      Object.values(ASSESSMENT_TEMPLATES).forEach((ids) => {
+        ids.forEach((id) => expect((ASSESSMENT_METRIC_IDS as string[]).includes(id)).toBe(true));
+      });
+    });
   });
 
   describe('migrateAssessmentSliders (legacy id mapping)', () => {

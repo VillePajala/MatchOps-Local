@@ -8,8 +8,8 @@ import type { TranslationKey } from '@/i18n-types';
 import OverallRatingSelector from './OverallRatingSelector';
 import AssessmentLevelSelector from './AssessmentLevelSelector';
 import { validateAssessment } from '@/hooks/usePlayerAssessments';
-import { ASSESSMENT_METRICS, ASSESSMENT_DEFAULT, makeDefaultSliders } from '@/config/assessmentMetrics';
-import type { AssessmentRatingStyle } from '@/types/settings';
+import { ASSESSMENT_DEFAULT, makeDefaultSliders, templateMetricIds } from '@/config/assessmentMetrics';
+import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 
 interface PlayerAssessmentCardProps {
   player: Player;
@@ -18,13 +18,14 @@ interface PlayerAssessmentCardProps {
   isSaved?: boolean;
   assessment?: PlayerAssessment;
   ratingStyle?: AssessmentRatingStyle;
+  assessmentTemplate?: AssessmentTemplate;
 }
 
-// Default sliders for a fresh assessment, derived from the active metric set.
-const initialSliders = makeDefaultSliders();
-
-const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onSave, onDelete, isSaved, assessment, ratingStyle = 'words' }) => {
+const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onSave, onDelete, isSaved, assessment, ratingStyle = 'words', assessmentTemplate = 'balanced' }) => {
   const { t } = useTranslation();
+  // The active template's metric ids, and fresh defaults for a new assessment.
+  const metricIds = React.useMemo(() => templateMetricIds(assessmentTemplate), [assessmentTemplate]);
+  const initialSliders = React.useMemo(() => makeDefaultSliders(metricIds), [metricIds]);
   const [expanded, setExpanded] = useState(false);
   const [overall, setOverall] = useState<number>(assessment?.overall ?? 5);
   const [sliders, setSliders] = useState<Record<string, number>>(assessment?.sliders ?? initialSliders);
@@ -40,7 +41,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
     setNotes(newNotes);
     // Also update prev to prevent auto-save from triggering after reset
     prev.current = { overall: newOverall, sliders: newSliders, notes: newNotes };
-  }, [assessment]);
+  }, [assessment, initialSliders]);
   const isValid = validateAssessment({ overall, sliders: sliders as PlayerAssessment['sliders'], notes });
 
   useEffect(() => {
@@ -94,7 +95,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             <OverallRatingSelector value={overall} onChange={setOverall} />
           </div>
           <div className="space-y-3">
-            {ASSESSMENT_METRICS.map(({ id }) => (
+            {metricIds.map((id) => (
               <AssessmentLevelSelector
                 key={id}
                 label={t(`assessmentMetrics.${id}` as TranslationKey, id)}

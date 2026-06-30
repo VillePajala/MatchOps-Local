@@ -122,7 +122,7 @@ export function TeamPerformanceCard({
             {t('playerStats.performanceRatings', 'Performance Ratings')}
           </h4>
           <div className="space-y-2 text-sm">
-            {Object.entries(teamAssessmentAverages.averages).map(([metric, avg]) => (
+            {Object.entries(teamAssessmentAverages.averages).filter(([, avg]) => avg > 0).map(([metric, avg]) => (
               <div key={metric} className="flex items-center space-x-2 px-2">
                 <span className="w-28 shrink-0 text-slate-100">
                   {t(`assessmentMetrics.${metric}` as TranslationKey, metric)}
