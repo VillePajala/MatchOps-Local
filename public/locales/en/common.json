@@ -1668,6 +1668,8 @@
     "scopeAll": "All games",
     "scopeLast10": "Last 10",
     "scopeLast5": "Last 5",
+    "seasonAll": "All seasons",
+    "seasonCurrent": "Current season",
     "developmentReport": "Development report",
     "exportReport": "Export development report",
     "exportReportFailed": "Failed to export report",

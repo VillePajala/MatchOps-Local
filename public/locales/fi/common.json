@@ -1674,6 +1674,8 @@
     "scopeAll": "Kaikki pelit",
     "scopeLast10": "Viim. 10",
     "scopeLast5": "Viim. 5",
+    "seasonAll": "Kaikki kaudet",
+    "seasonCurrent": "Nykyinen kausi",
     "developmentReport": "Kehitysraportti",
     "exportReport": "Vie kehitysraportti",
     "exportReportFailed": "Raportin vienti epäonnistui",
