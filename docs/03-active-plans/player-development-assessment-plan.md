@@ -202,6 +202,39 @@ Metrics are age-banded, not one-size-fits-all:
   a foundation. It adds a second input source + player-facing UI + access/identity questions. Ship
   coach-side first; add once that is solid and used.
 
+#### Editable report values at export (planned)
+
+**The data should inform the report, not dictate it.** The logged history is an objective record, but
+the coach's judgment *at the moment of writing the report* is a different and often better signal:
+
+- the last logged assessment might be weeks old (sparse data - recency-weighting can't invent a fresh
+  point, so the computed "now" is stale for *this* moment);
+- the coach has off-app evidence (a training breakthrough, a conversation, video, another coach);
+- a report is a **communication act** to a parent/player - it should be the coach's considered
+  statement, not a mechanical average they don't fully stand behind.
+
+So the report should be **editable at export, prefilled from history, then correctable.** That is the
+right default.
+
+**The one real decision - ephemeral vs saved:**
+
+- *Ephemeral* (the edit affects only the image): history stays a clean objective record; the report is
+  a curated artifact. Simple. **Risk:** the report and the in-app radar/trend now *disagree* - the
+  parent sees "A strength" on the card while the app shows "Consistent." That divergence is quietly
+  corrosive (which one is true?).
+- *Save the override as a dated assessment*: the coach's considered judgment becomes a real data point
+  - report and app stay consistent, and the outside knowledge lives somewhere honest instead of
+  evaporating. The trend updates too.
+
+**Recommendation: offer both at export** - "Use for this report only" vs "Also save as today's
+assessment." Default = prefill from history, quick-adjust, then choose.
+
+**Why this lives in the standalone-assessment backlog (item 7):** saving an override *is* a
+standalone, dated assessment with no game attached - the same primitive the external-game case needs.
+Build the one capability, serve both. And keep the **"considered" vs "per-game observed"** flag so a
+report-time judgment call isn't silently absorbed into the trend as if it were a logged game
+observation.
+
 ## Editable metrics vs comparability - resolved
 
 Most of the comparability we'd "lose" was never the goal (cross-team comparison = the rejected
