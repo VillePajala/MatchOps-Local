@@ -1,12 +1,12 @@
 {
-  "version": "63621ea1",
+  "version": "71b5fb24",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Assessing players is now easier to reach: when a game ends, the timer overlay shows an \"Assess players\" button at the natural moment, and \"Assess Players\" moved up into the menu's Game Management section."
+      "New: export a player development report as a shareable image. From a player's stats, tap \"Export development report\" to get a PNG with their now-vs-season-start radar plus strengths and focus areas - ready to share with the player or parents."
     ],
     "fi": [
-      "Pelaajien arviointiin pääsee nyt helpommin: kun peli päättyy, ajastinnäkymässä näkyy \"Arvioi pelaajat\" -painike oikealla hetkellä, ja \"Arvioi pelaajat\" siirtyi valikon Pelin hallinta -osioon."
+      "Uutta: vie pelaajan kehitysraportti jaettavana kuvana. Pelaajan tilastoista napauta \"Vie kehitysraportti\" ja saat PNG-kuvan, jossa on nyt-vs-kauden-alku -tutka sekä vahvuudet ja kehityskohteet - valmis jaettavaksi pelaajalle tai vanhemmille."
     ]
   }
 }

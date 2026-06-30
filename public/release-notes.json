@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(assessment): full-width gender-style buttons for development filters (#555)"
+  "notes": "feat(assessment): surface 'Assess players' from the game (#556)"
 }
