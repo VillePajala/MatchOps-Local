@@ -1,12 +1,12 @@
 {
-  "version": "628fe395",
+  "version": "9bd10d99",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Player stats: each game in the game log now shows an \"Assessed\" badge if you rated the player in that game, so you can see at a glance which games have assessments. Also, tapping a point on a rating trend now shows a clean value tooltip instead of a white box with a wrong date."
+      "Internal: documentation only - added external-game assessments to the development-assessment roadmap (no app changes)."
     ],
     "fi": [
-      "Pelaajatilastot: pelilokissa jokaisessa pelissä näkyy nyt \"Arvioitu\"-merkki, jos arvioit pelaajan siinä pelissä, joten näet yhdellä silmäyksellä mitkä pelit on arvioitu. Lisäksi arviotrendin pisteen napauttaminen näyttää nyt siistin arvon sen sijaan että näkyisi valkoinen laatikko väärällä päivämäärällä."
+      "Sisäinen: vain dokumentaatio - lisätty ulkoisten pelien arvioinnit kehitysarviointitiekarttaan (ei muutoksia sovellukseen)."
     ]
   }
 }

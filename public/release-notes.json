@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(assessment): a high skill is a strength even when slipping (#560)"
+  "notes": "feat(stats): assessed badge in game log + fix trend tooltip (#561)"
 }
