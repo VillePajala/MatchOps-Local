@@ -46,6 +46,8 @@ export interface UseTimerManagementProps {
   masterRoster: Player[];
   /** Setter for goal log modal state (uses functional update pattern) */
   setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Setter for the player assessment modal (opened from the game-end overlay) */
+  setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 /**
@@ -97,6 +99,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     availablePlayers,
     masterRoster,
     setIsGoalLogModalOpen,
+    setIsPlayerAssessmentModalOpen,
   } = props;
 
   // --- Core Timer State (from useGameTimer) ---
@@ -130,6 +133,10 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   const handleToggleGoalLogModal = useCallback(() => {
     setIsGoalLogModalOpen((prev) => !prev);
   }, [setIsGoalLogModalOpen]);
+
+  const handleOpenPlayerAssessmentModal = useCallback(() => {
+    setIsPlayerAssessmentModalOpen(true);
+  }, [setIsPlayerAssessmentModalOpen]);
 
   // --- Goal Event Handlers ---
 
@@ -212,6 +219,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   const timerInteractions = useMemo<TimerInteractions>(() => ({
     toggleLargeOverlay: handleToggleLargeTimerOverlay,
     toggleGoalLogModal: handleToggleGoalLogModal,
+    onOpenPlayerAssessmentModal: handleOpenPlayerAssessmentModal,
     logOpponentGoal: handleLogOpponentGoal,
     substitutionMade: handleSubstitutionMade,
     setSubInterval: handleSetSubInterval,
@@ -220,6 +228,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   }), [
     handleToggleLargeTimerOverlay,
     handleToggleGoalLogModal,
+    handleOpenPlayerAssessmentModal,
     handleLogOpponentGoal,
     handleSubstitutionMade,
     handleSetSubInterval,
