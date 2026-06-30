@@ -881,6 +881,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       averageGoalsFor={overallTeamStats.averageGoalsFor}
                       averageGoalsAgainst={overallTeamStats.averageGoalsAgainst}
                       teamAssessmentAverages={teamAssessmentAverages}
+                      ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
                     />
                   )}
 
@@ -906,6 +907,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                                 averageGoalsAgainst={stats.averageGoalsAgainst}
                                 lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
                                 useGradient={false}
+                                ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
                               />
                             </div>
                           ))
