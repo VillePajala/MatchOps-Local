@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-01",
+      "en": [
+        "You can now see what each assessment quality means: tap the info icon next to a metric in the assessment card to read a one-line definition (e.g. Scanning - looks around and gathers information before receiving)."
+      ],
+      "fi": [
+        "Näet nyt mitä kukin arviointiominaisuus tarkoittaa: napauta arviointikortissa mittarin vieressä olevaa info-kuvaketta lukeaksesi lyhyen selityksen (esim. Havainnointi - katsoo ympärille ja kerää tietoa ennen vastaanottoa)."
+      ]
+    },
+    {
       "date": "2026-06-30",
       "en": [
         "Development report card: the Strengths / Focus areas lists are now centered with the trend arrow beside each quality, so the two lists are balanced instead of one hugging the image edge."

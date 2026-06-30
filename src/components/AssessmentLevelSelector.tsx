@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HiOutlineInformationCircle } from 'react-icons/hi2';
 import type { TranslationKey } from '@/i18n-types';
 import type { AssessmentRatingStyle } from '@/types/settings';
 import {
@@ -18,6 +19,8 @@ interface AssessmentLevelSelectorProps {
   onChange: (value: number) => void;
   /** Presentation style (default 'words'). */
   ratingStyle?: AssessmentRatingStyle;
+  /** Optional one-line definition of the metric, shown via an info toggle. */
+  description?: string;
 }
 
 /**
@@ -30,8 +33,10 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
   value,
   onChange,
   ratingStyle = 'words',
+  description,
 }) => {
   const { t } = useTranslation();
+  const [showDescription, setShowDescription] = useState(false);
   const styleMax = RATING_STYLE_MAX[ratingStyle];
   const isWords = ratingStyle === 'words';
   const selectedDisplay = canonicalToDisplay(value, styleMax);
@@ -39,7 +44,24 @@ const AssessmentLevelSelector: React.FC<AssessmentLevelSelectorProps> = ({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-sm text-slate-300">{label}</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm text-slate-300">{label}</span>
+        {description && (
+          <button
+            type="button"
+            onClick={() => setShowDescription((v) => !v)}
+            aria-pressed={showDescription}
+            aria-label={t('playerAssessmentModal.whatIsThis', 'What does this mean?')}
+            title={t('playerAssessmentModal.whatIsThis', 'What does this mean?')}
+            className="text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <HiOutlineInformationCircle className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      {description && showDescription && (
+        <p className="text-xs text-slate-400 -mt-0.5 mb-0.5">{description}</p>
+      )}
       <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
         {positions.map((pos) => {
           const optionLabel = isWords
