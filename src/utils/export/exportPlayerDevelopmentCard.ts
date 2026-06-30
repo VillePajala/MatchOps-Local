@@ -148,13 +148,15 @@ function drawItemList(
     ctx.fillText('-', x + 10, ly);
     return;
   }
+  ctx.textAlign = 'left';
   items.forEach((it) => {
     ctx.fillStyle = '#e2e8f0';
     ctx.fillText(it.label, x + 10, ly, colWidth - 30);
+    // Place the trend arrow right after the word (as a unit), not at the far
+    // column edge - so it never floats detached at the image border.
+    const labelW = Math.min(ctx.measureText(it.label).width, colWidth - 30);
     ctx.fillStyle = it.color;
-    ctx.textAlign = 'right';
-    ctx.fillText(it.arrow, x + colWidth - 6, ly);
-    ctx.textAlign = 'left';
+    ctx.fillText(it.arrow, x + 10 + labelW + 8, ly);
     ly += 24;
   });
 }
