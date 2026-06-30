@@ -35,6 +35,7 @@ import type {
   UpdateGameDetailsMutationVariables,
 } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
+import type { AssessmentRatingStyle } from '@/types/settings';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
@@ -231,9 +232,11 @@ export interface ModalManagerProps {
   state: ModalManagerState;
   data: ModalManagerData;
   handlers: ModalManagerHandlers;
+  /** Assessment rating presentation style (default 'words'). */
+  ratingStyle?: AssessmentRatingStyle;
 }
 
-export function ModalManager({ state, data, handlers }: ModalManagerProps) {
+export function ModalManager({ state, data, handlers, ratingStyle = 'words' }: ModalManagerProps) {
   const { t } = useTranslation();
   return (
     <ModalPortal>
@@ -508,6 +511,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           gameTime={data.gameSessionState.gameTime}
           numberOfPeriods={data.gameSessionState.numberOfPeriods}
           periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+          ratingStyle={ratingStyle}
         />
 
         {state.isTeamReassignModalOpen && data.orphanedGameInfo && (

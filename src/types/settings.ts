@@ -9,6 +9,15 @@ import {
   DEFAULT_CLUB_SEASON_END_DATE,
 } from '@/config/clubSeasonDefaults';
 
+/**
+ * How per-metric assessment ratings are presented and captured:
+ *   'words'  - 5-level developmental words (Working on it ... A strength)
+ *   'num5'   - numbers 1-5
+ *   'num10'  - numbers 1-10
+ * Storage is always canonical (1-10); this only affects display/input.
+ */
+export type AssessmentRatingStyle = 'words' | 'num5' | 'num10';
+
 export interface AppSettings {
   currentGameId: string | null;
   lastHomeTeamName?: string;
@@ -16,6 +25,8 @@ export interface AppSettings {
   hasSeenAppGuide?: boolean;
   useDemandCorrection?: boolean;
   isDrawingModeEnabled?: boolean;
+  /** Presentation/capture style for assessment ratings (default 'words'). */
+  assessmentRatingStyle?: AssessmentRatingStyle;
   /** Club season start date (ISO format YYYY-MM-DD, default: "2000-11-15" = November 15th) */
   clubSeasonStartDate?: string;
   /** Club season end date (ISO format YYYY-MM-DD, default: "2000-10-20" = October 20th) */
@@ -37,6 +48,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
+  assessmentRatingStyle: 'words',
   hasConfiguredSeasonDates: false,
   clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
   clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
