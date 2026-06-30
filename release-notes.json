@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "New: export a player development report as a shareable image. From a player's stats, tap \"Export development report\" to get a PNG with their now-vs-season-start radar plus strengths and focus areas - ready to share with the player or parents."
+      ],
+      "fi": [
+        "Uutta: vie pelaajan kehitysraportti jaettavana kuvana. Pelaajan tilastoista napauta \"Vie kehitysraportti\" ja saat PNG-kuvan, jossa on nyt-vs-kauden-alku -tutka sekä vahvuudet ja kehityskohteet - valmis jaettavaksi pelaajalle tai vanhemmille."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "Assessing players is now easier to reach: when a game ends, the timer overlay shows an \"Assess players\" button at the natural moment, and \"Assess Players\" moved up into the menu's Game Management section."
       ],
       "fi": [
