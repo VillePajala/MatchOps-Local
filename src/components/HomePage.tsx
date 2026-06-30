@@ -10,6 +10,7 @@ import {
   type UseGameOrchestrationProps,
 } from '@/components/HomePage/hooks/useGameOrchestration';
 import { useAssessmentRatingStyle } from '@/hooks/useAssessmentRatingStyle';
+import { useAssessmentTemplate } from '@/hooks/useAssessmentTemplate';
 
 type HomePageProps = UseGameOrchestrationProps;
 
@@ -22,6 +23,7 @@ function HomePage(props: HomePageProps) {
     isResetting,
   } = useGameOrchestration(props);
   const assessmentRatingStyle = useAssessmentRatingStyle();
+  const assessmentTemplate = useAssessmentTemplate();
 
   // "Cheat" to avoid layout shift: when bootstrapping ends, render GameContainer
   // invisibly for one frame so it can layout, then reveal it. The loading screen
@@ -90,7 +92,7 @@ function HomePage(props: HomePageProps) {
       <div style={{ opacity: layoutReady ? 1 : 0 }}>
         <GameContainer {...gameContainerProps} />
       </div>
-      <ModalManager {...modalManagerProps} ratingStyle={assessmentRatingStyle} />
+      <ModalManager {...modalManagerProps} ratingStyle={assessmentRatingStyle} assessmentTemplate={assessmentTemplate} />
     </>
   );
 }
