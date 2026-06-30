@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(stats): open the Performance Ratings section by default (#563)"
+  "notes": "fix(card): center strengths/focus lists for a balanced layout"
 }

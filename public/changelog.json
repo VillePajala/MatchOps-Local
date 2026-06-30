@@ -1,12 +1,12 @@
 {
-  "version": "b8be19e7",
+  "version": "5de6435b",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Player development: a separate season filter (All seasons / Current season) for the assessment section, so you can view development for the current season or all-time. It only affects the development view (radar, strengths/focus, trends) - your goals/assists/games stats are unchanged. Shown when a player has games across more than one season."
+      "Development report card: the Strengths / Focus areas lists are now centered with the trend arrow beside each quality, so the two lists are balanced instead of one hugging the image edge."
     ],
     "fi": [
-      "Pelaajakehitys: erillinen kausisuodatin (Kaikki kaudet / Nykyinen kausi) arviointiosioon, joten voit tarkastella kehitystä nykyiseltä kaudelta tai koko ajalta. Vaikuttaa vain kehitysnäkymään (tutka, vahvuudet/kehityskohteet, trendit) - maali-/syöttö-/pelitilastot eivät muutu. Näkyy kun pelaajalla on pelejä useammalta kaudelta."
+      "Kehitysraporttikortti: Vahvuudet / Kehityskohteet -listat ovat nyt keskitetyt ja trendinuoli ominaisuuden vieressä, joten listat ovat tasapainossa eikä toinen ole kiinni kuvan reunassa."
     ]
   }
 }
