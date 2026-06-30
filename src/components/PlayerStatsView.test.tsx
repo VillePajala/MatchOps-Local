@@ -56,6 +56,7 @@ jest.mock('@/utils/playerAdjustments', () => ({
 
 jest.mock('@/utils/assessmentStats', () => ({
   calculatePlayerAssessmentAverages: jest.fn().mockReturnValue(null),
+  calculatePlayerDevelopment: jest.fn().mockReturnValue(null),
   getPlayerAssessmentTrends: jest.fn().mockReturnValue(null),
   getPlayerAssessmentNotes: jest.fn().mockReturnValue([]),
 }));
