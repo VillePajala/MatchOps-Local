@@ -1690,6 +1690,7 @@
     "developmentReport": "Development report",
     "exportReport": "Export development report",
     "exportReportFailed": "Failed to export report",
+    "noAssessmentsForPeriod": "No assessments for this period.",
     "assessed": "Assessed",
     "includesAdjustments": "Includes external games",
     "externalGames": "External Games",

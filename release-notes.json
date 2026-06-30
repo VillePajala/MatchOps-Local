@@ -11,6 +11,15 @@
       ]
     },
     {
+      "date": "2026-07-01",
+      "en": [
+        "Fixed: switching the assessment season filter to a period with no assessments no longer hides the whole section (which also hid the filter, trapping you). The section and its controls now stay, showing a short \"no assessments for this period\" message."
+      ],
+      "fi": [
+        "Korjattu: arviointien kausisuodattimen vaihtaminen ajanjaksoon, jolta ei ole arviointeja, ei enää piilota koko osiota (mikä piilotti myös suodattimen). Osio ja sen säätimet pysyvät näkyvissä ja näyttävät lyhyen \"ei arviointeja tältä ajanjaksolta\" -viestin."
+      ]
+    },
+    {
       "date": "2026-06-30",
       "en": [
         "Development report card: the Strengths / Focus areas lists are now centered with the trend arrow beside each quality, so the two lists are balanced instead of one hugging the image edge."
