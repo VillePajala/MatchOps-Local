@@ -1465,6 +1465,7 @@ export type TranslationKey =
   | 'playerStats.addExternalStats'
   | 'playerStats.adjustmentsInfo'
   | 'playerStats.allPeriods'
+  | 'playerStats.assessed'
   | 'playerStats.assists'
   | 'playerStats.assistsPerGame'
   | 'playerStats.averages'

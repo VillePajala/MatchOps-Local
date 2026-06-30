@@ -4,6 +4,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Player stats: each game in the game log now shows an \"Assessed\" badge if you rated the player in that game, so you can see at a glance which games have assessments. Also, tapping a point on a rating trend now shows a clean value tooltip instead of a white box with a wrong date."
+      ],
+      "fi": [
+        "Pelaajatilastot: pelilokissa jokaisessa pelissä näkyy nyt \"Arvioitu\"-merkki, jos arvioit pelaajan siinä pelissä, joten näet yhdellä silmäyksellä mitkä pelit on arvioitu. Lisäksi arviotrendin pisteen napauttaminen näyttää nyt siistin arvon sen sijaan että näkyisi valkoinen laatikko väärällä päivämäärällä."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "Player development: a strong skill now always shows under Strengths (with a down-arrow if it is slipping), instead of being mislabelled a Focus area. Focus areas are now only genuinely low skills. Also tidied the \"rated games\" count wording."
       ],
       "fi": [
