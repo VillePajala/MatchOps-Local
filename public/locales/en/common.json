@@ -1671,6 +1671,7 @@
     "developmentReport": "Development report",
     "exportReport": "Export development report",
     "exportReportFailed": "Failed to export report",
+    "assessed": "Assessed",
     "includesAdjustments": "Includes external games",
     "externalGames": "External Games",
     "externalGame": "External Game",
