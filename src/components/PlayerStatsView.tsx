@@ -22,6 +22,7 @@ import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber 
 import type { AssessmentRatingStyle } from '@/types/settings';
 import MetricTrendChart from './MetricTrendChart';
 import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar';
+import { exportPlayerDevelopmentCard, isCardExportSupported } from '@/utils/export/exportPlayerDevelopmentCard';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
@@ -188,6 +189,37 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
       }));
   }, [playerDevelopment, t]);
   const showRadar = !!playerDevelopment && playerDevelopment.count >= 3 && radarAxes.length >= 3;
+
+  const handleExportReport = useCallback(async () => {
+    if (!player || !playerDevelopment) return;
+    const hexFor: Record<TrendDirection, string> = {
+      rising: '#34d399', slipping: '#f87171', steady: '#94a3b8', insufficient: '#64748b',
+    };
+    const toItem = (m: string) => {
+      const dir = playerDevelopment.metrics[m].direction;
+      return { label: t(`assessmentMetrics.${m}` as TranslationKey, m), arrow: trendMeta(dir).arrow, color: hexFor[dir] };
+    };
+    try {
+      await exportPlayerDevelopmentCard({
+        playerName: player.name,
+        countLabel: `${playerDevelopment.count} ${t('playerStats.ratedGames', 'rated')}`,
+        max: ASSESSMENT_MAX,
+        axes: radarAxes.map(a => ({ label: a.label, current: a.current, baseline: a.baseline })),
+        strengths: playerDevelopment.strengths.map(toItem),
+        focus: playerDevelopment.focusAreas.map(toItem),
+        labels: {
+          title: t('playerStats.developmentReport', 'Development report'),
+          now: t('playerStats.radarNow', 'Now'),
+          baseline: t('playerStats.radarBaseline', 'Season start'),
+          strengths: t('playerStats.strengths', 'Strengths'),
+          focus: t('playerStats.focusAreas', 'Focus areas'),
+        },
+      });
+    } catch (error) {
+      logger.error('[PlayerStatsView] Failed to export development report', error);
+      showToast(t('playerStats.exportReportFailed', 'Failed to export report'), 'error');
+    }
+  }, [player, playerDevelopment, radarAxes, t, trendMeta, showToast]);
 
   const assessmentTrends = useMemo(() => {
     if (!player) return null;
@@ -1105,6 +1137,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       </ul>
                     </div>
                   )}
+                </div>
+              )}
+              {showRadar && isCardExportSupported() && (
+                <div className="px-2">
+                  <button
+                    type="button"
+                    onClick={handleExportReport}
+                    className="w-full px-3 py-2 rounded-md text-sm font-medium transition-colors bg-slate-700 text-slate-100 hover:bg-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-400"
+                  >
+                    {t('playerStats.exportReport', 'Export development report')}
+                  </button>
                 </div>
               )}
               <div className="space-y-2">
