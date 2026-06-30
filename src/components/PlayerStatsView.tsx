@@ -56,6 +56,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
   const [recencyWeighted, setRecencyWeighted] = useState(true);
   const [scope, setScope] = useState<AssessmentScope>('all');
+  const [assessmentSeason, setAssessmentSeason] = useState<'all' | 'season'>('all');
   const [ratingStyle, setRatingStyle] = useState<AssessmentRatingStyle>('words');
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
@@ -170,10 +171,38 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     }
   }, [showActionsMenu]);
 
+  // Separate season scope for the assessment section only (does not affect the
+  // goals/assists/games stats). "Current season" = the club season of the most
+  // recent game. Shown only when the data spans more than one club season.
+  const currentClubSeason = useMemo(() => {
+    const dated = Object.values(savedGames).filter(g => g.gameDate);
+    if (dated.length === 0) return null;
+    const latest = dated.reduce((a, b) => ((a.gameDate as string) > (b.gameDate as string) ? a : b));
+    return getClubSeasonForDate(latest.gameDate as string, clubSeasonStartDate, clubSeasonEndDate);
+  }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
+
+  const hasMultipleSeasons = useMemo(() => {
+    const seen = new Set<string>();
+    for (const g of Object.values(savedGames)) {
+      if (g.gameDate) seen.add(getClubSeasonForDate(g.gameDate, clubSeasonStartDate, clubSeasonEndDate));
+      if (seen.size > 1) return true;
+    }
+    return false;
+  }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
+
+  const assessmentGames = useMemo(() => {
+    if (assessmentSeason !== 'season' || !currentClubSeason) return savedGames;
+    return Object.fromEntries(
+      Object.entries(savedGames).filter(([, g]) =>
+        g.gameDate && getClubSeasonForDate(g.gameDate, clubSeasonStartDate, clubSeasonEndDate) === currentClubSeason,
+      ),
+    );
+  }, [savedGames, assessmentSeason, currentClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+
   const playerDevelopment = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerDevelopment(player.id, savedGames, { recencyWeighted, useDemandCorrection, scope });
-  }, [player, savedGames, recencyWeighted, useDemandCorrection, scope]);
+    return calculatePlayerDevelopment(player.id, assessmentGames, { recencyWeighted, useDemandCorrection, scope });
+  }, [player, assessmentGames, recencyWeighted, useDemandCorrection, scope]);
 
   // Radar axes (qualities with data). Shown only once there are enough games
   // for a meaningful "now vs then" comparison.
@@ -223,13 +252,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   const assessmentTrends = useMemo(() => {
     if (!player) return null;
-    return getPlayerAssessmentTrends(player.id, savedGames);
-  }, [player, savedGames]);
+    return getPlayerAssessmentTrends(player.id, assessmentGames);
+  }, [player, assessmentGames]);
 
   const assessmentNotes = useMemo(() => {
     if (!player) return [];
-    return getPlayerAssessmentNotes(player.id, savedGames);
-  }, [player, savedGames]);
+    return getPlayerAssessmentNotes(player.id, assessmentGames);
+  }, [player, assessmentGames]);
 
   // Filter games by selected club season and game type
   const filteredGamesByClubSeason = useMemo(() => {
@@ -1040,6 +1069,27 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           {showRatings && (
             <div className="mt-2 space-y-4 text-sm">
               <div className="space-y-2 px-2">
+                {/* Season scope (assessments only) - shown when data spans >1 club season */}
+                {hasMultipleSeasons && (
+                  <div className="flex gap-2">
+                    {([
+                      ['all', t('playerStats.seasonAll', 'All seasons')],
+                      ['season', t('playerStats.seasonCurrent', 'Current season')],
+                    ] as ['all' | 'season', string][]).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setAssessmentSeason(value)}
+                        aria-pressed={assessmentSeason === value}
+                        className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                          assessmentSeason === value ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* Scope: which recent assessments to consider (full-width segmented) */}
                 <div className="flex gap-2">
                   {([

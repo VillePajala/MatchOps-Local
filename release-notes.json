@@ -13,6 +13,15 @@
     {
       "date": "2026-06-30",
       "en": [
+        "Player development: a separate season filter (All seasons / Current season) for the assessment section, so you can view development for the current season or all-time. It only affects the development view (radar, strengths/focus, trends) - your goals/assists/games stats are unchanged. Shown when a player has games across more than one season."
+      ],
+      "fi": [
+        "Pelaajakehitys: erillinen kausisuodatin (Kaikki kaudet / Nykyinen kausi) arviointiosioon, joten voit tarkastella kehitystä nykyiseltä kaudelta tai koko ajalta. Vaikuttaa vain kehitysnäkymään (tutka, vahvuudet/kehityskohteet, trendit) - maali-/syöttö-/pelitilastot eivät muutu. Näkyy kun pelaajalla on pelejä useammalta kaudelta."
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "en": [
         "The Performance Ratings section in a player's stats now opens expanded by default, so the development picture is visible without an extra tap."
       ],
       "fi": [
