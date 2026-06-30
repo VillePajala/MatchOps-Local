@@ -133,32 +133,37 @@ function drawItemList(
   y: number,
   colWidth: number,
 ): void {
-  // accent dot + heading
-  ctx.fillStyle = accent;
-  ctx.fillRect(x, y - 9, 4, 12);
+  // Heading + items are centered within the column, so the two lists are
+  // symmetric and nothing hugs the image edge.
+  const cx = x + colWidth / 2;
   ctx.font = `bold 13px ${FONT}`;
-  ctx.textAlign = 'left';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(heading.toUpperCase(), x + 10, y - 3);
+  ctx.fillStyle = accent;
+  ctx.fillText(heading.toUpperCase(), cx, y - 3);
 
   ctx.font = `15px ${FONT}`;
   let ly = y + 22;
   if (items.length === 0) {
     ctx.fillStyle = '#64748b';
-    ctx.fillText('-', x + 10, ly);
+    ctx.fillText('-', cx, ly);
     return;
   }
-  ctx.textAlign = 'left';
+  const maxW = colWidth - 8;
   items.forEach((it) => {
+    // Center "label + arrow" as a unit within the column.
+    const arrowW = it.arrow ? ctx.measureText(it.arrow).width : 0;
+    const gap = arrowW ? 6 : 0;
+    const labelW = Math.min(ctx.measureText(it.label).width, maxW - gap - arrowW);
+    const startX = cx - (labelW + gap + arrowW) / 2;
+    ctx.textAlign = 'left';
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(it.label, x + 10, ly, colWidth - 30);
-    // Place the trend arrow right after the word (as a unit), not at the far
-    // column edge - so it never floats detached at the image border.
-    const labelW = Math.min(ctx.measureText(it.label).width, colWidth - 30);
+    ctx.fillText(it.label, startX, ly, maxW - gap - arrowW);
     ctx.fillStyle = it.color;
-    ctx.fillText(it.arrow, x + 10 + labelW + 8, ly);
+    ctx.fillText(it.arrow, startX + labelW + gap, ly);
     ly += 24;
   });
+  ctx.textAlign = 'center';
 }
 
 /** Render the development card to a canvas (exported for testing). */

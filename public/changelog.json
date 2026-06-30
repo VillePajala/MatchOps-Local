@@ -1,12 +1,12 @@
 {
-  "version": "b8be19e7",
+  "version": "3e3ef312",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Development report card: trend arrows in the Strengths / Focus areas lists now sit right next to each quality, instead of being pushed to the far edge of the card."
+      "Development report card: the Strengths / Focus areas lists are now centered with the trend arrow beside each quality, so the two lists are balanced instead of one hugging the image edge."
     ],
     "fi": [
-      "Kehitysraporttikortti: Vahvuudet / Kehityskohteet -listojen trendinuolet ovat nyt heti ominaisuuden vieressä sen sijaan että ne työntyisivät kortin reunaan."
+      "Kehitysraporttikortti: Vahvuudet / Kehityskohteet -listat ovat nyt keskitetyt ja trendinuoli ominaisuuden vieressä, joten listat ovat tasapainossa eikä toinen ole kiinni kuvan reunassa."
     ]
   }
 }
