@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "docs: add external-game assessments to the assessment roadmap (#562)"
+  "notes": "fix(stats): open the Performance Ratings section by default (#563)"
 }

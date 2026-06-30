@@ -1536,6 +1536,8 @@ export type TranslationKey =
   | 'playerStats.score'
   | 'playerStats.searchPlaceholder'
   | 'playerStats.season'
+  | 'playerStats.seasonAll'
+  | 'playerStats.seasonCurrent'
   | 'playerStats.seasonPerformance'
   | 'playerStats.seasonRequired'
   | 'playerStats.selectPlayer'
