@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
+import type { AssessmentRatingStyle } from '@/types/settings';
 import PlayerAssessmentCard from './PlayerAssessmentCard';
 
 interface PlayerAssessmentModalProps {
@@ -25,6 +26,7 @@ interface PlayerAssessmentModalProps {
   gameTime?: string;
   numberOfPeriods?: number;
   periodDurationMinutes?: number;
+  ratingStyle?: AssessmentRatingStyle;
 }
 
 const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
@@ -45,6 +47,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   gameTime,
   numberOfPeriods,
   periodDurationMinutes,
+  ratingStyle = 'words',
 }) => {
   const { t } = useTranslation();
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -229,6 +232,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                         assessment={assessments[pid]}
                         onSave={(assessment) => handleSave(pid, assessment)}
                         onDelete={onDelete ? () => handleDelete(pid) : undefined}
+                        ratingStyle={ratingStyle}
                       />
                     </div>
                   );

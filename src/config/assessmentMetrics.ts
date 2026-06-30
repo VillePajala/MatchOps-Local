@@ -46,39 +46,65 @@ export const ASSESSMENT_METRIC_IDS: readonly string[] = ASSESSMENT_METRICS.map(
 );
 
 /**
- * Per-metric rating scale: a 5-level developmental word scale (see
- * `assessmentScale.level{1..5}` in i18n). Stored as the integer 1-5.
- *   1 Working on it · 2 Emerging · 3 Developing · 4 Consistent · 5 A strength
+ * Per-metric ratings are stored on a **canonical 1-10 integer scale** (the
+ * finest scale offered). How they are presented/captured is a per-user choice
+ * (see `AssessmentRatingStyle`): the 5-level developmental words, numbers 1-5,
+ * or numbers 1-10. Display styles map to/from canonical; the stored value never
+ * depends on the chosen style.
  */
 export const ASSESSMENT_MIN = 1;
-export const ASSESSMENT_MAX = 5;
-/** Neutral starting level for an un-touched metric ("Developing"). */
-export const ASSESSMENT_DEFAULT = 3;
-/** Ordered level values, for rendering the selector. */
-export const ASSESSMENT_LEVELS: readonly number[] = [1, 2, 3, 4, 5];
+export const ASSESSMENT_MAX = 10;
+/** Neutral starting value for an un-touched metric (mid scale; "Developing"). */
+export const ASSESSMENT_DEFAULT = 5;
+
+/** Number of distinct positions each presentation style offers. */
+export const RATING_STYLE_MAX: Record<'words' | 'num5' | 'num10', number> = {
+  words: 5,
+  num5: 5,
+  num10: 10,
+};
+
+/** Proportionally remap an integer from one 1..fromMax scale to 1..toMax. */
+function remapScale(value: number, fromMax: number, toMax: number): number {
+  if (fromMax === toMax) return value;
+  const mapped = Math.round(((value - 1) / (fromMax - 1)) * (toMax - 1) + 1);
+  return Math.min(toMax, Math.max(1, mapped));
+}
+
+/** Canonical (1-10) -> a display value on the given style's scale (1..styleMax). */
+export function canonicalToDisplay(canonical: number, styleMax: number): number {
+  return remapScale(canonical, ASSESSMENT_MAX, styleMax);
+}
+
+/** A display value on the given style's scale -> canonical (1-10). */
+export function displayToCanonical(display: number, styleMax: number): number {
+  return remapScale(display, styleMax, ASSESSMENT_MAX);
+}
 
 /**
- * Slider-scale version stored on each assessment.
- *   absent / 1 = legacy 1-10 numeric scale
- *   2        = 1-5 developmental word scale (current)
- * Used to migrate legacy values on read without a destructive data migration.
+ * Scale version stored on each assessment, and the value range it implies.
+ *   NULL/1 = original 1-10 numeric scale
+ *   2      = interim 1-5 developmental word scale
+ *   3      = current canonical 1-10 scale
  */
-export const ASSESSMENT_SLIDER_SCALE_VERSION = 2;
+export const ASSESSMENT_SLIDER_SCALE_VERSION = 3;
+const SCALE_MAX_BY_VERSION: Record<number, number> = { 1: 10, 2: 5, 3: ASSESSMENT_MAX };
 
 /**
- * Map per-metric values from a legacy scale onto the current 1-5 scale on READ.
- * Legacy values were 1-10; `round(v/2)` folds them into the 5 levels and clamps.
- * A no-op once `fromVersion` is already current, so it is safe to run on every
- * read (idempotent); rows adopt the new scale the next time they are saved.
+ * Map per-metric values from whatever scale they were captured on onto the
+ * current canonical scale, on READ. Idempotent and safe to run every read;
+ * non-destructive (rows adopt the canonical scale the next time they are saved).
  */
 export function migrateAssessmentSliderScale(
   sliders: Record<string, number>,
   fromVersion: number | null | undefined,
 ): Record<string, number> {
-  if ((fromVersion ?? 1) >= ASSESSMENT_SLIDER_SCALE_VERSION) return sliders;
+  const version = fromVersion ?? 1;
+  const fromMax = SCALE_MAX_BY_VERSION[version] ?? ASSESSMENT_MAX;
+  if (fromMax === ASSESSMENT_MAX) return sliders;
   const out: Record<string, number> = {};
   for (const [key, value] of Object.entries(sliders)) {
-    out[key] = Math.min(ASSESSMENT_MAX, Math.max(ASSESSMENT_MIN, Math.round(value / 2)));
+    out[key] = remapScale(value, fromMax, ASSESSMENT_MAX);
   }
   return out;
 }

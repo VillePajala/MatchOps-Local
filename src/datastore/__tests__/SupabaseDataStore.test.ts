@@ -3632,7 +3632,7 @@ describe('SupabaseDataStore', () => {
         expect(row.fair_play).toBeUndefined();
         expect(row.overall_rating).toBe(7);
         // Current slider scale is stamped.
-        expect(row.slider_scale_version).toBe(2);
+        expect(row.slider_scale_version).toBe(3);
       });
 
       it('should preserve non-empty string fields', () => {
@@ -3962,7 +3962,7 @@ describe('SupabaseDataStore', () => {
         });
         // Legacy flat columns are no longer written.
         expect(assessment.intensity).toBeUndefined();
-        expect(assessment.slider_scale_version).toBe(2);
+        expect(assessment.slider_scale_version).toBe(3);
         expect(assessment.notes).toBe('Great game!');
         expect(assessment.minutes_played).toBe(60);
       });
@@ -4136,7 +4136,7 @@ describe('SupabaseDataStore', () => {
               player_id: 'p1',
               user_id: 'user_123',
               overall_rating: 7,
-              slider_scale_version: 2,
+              slider_scale_version: 3,
               slider_values: {
                 ball_control: 6, passing: 7, scanning: 5, game_reading: 8,
                 decisions: 6, courage: 7, effort: 7, enjoyment: 8,
@@ -4189,13 +4189,14 @@ describe('SupabaseDataStore', () => {
 
         const result = transformTablesToGame(tables);
 
-        // Built from the legacy columns, then migrated to set A ids (intensity ->
+        // Built from the legacy columns and migrated to set A ids (intensity ->
         // effort, technique -> ball_control, awareness -> game_reading; duels and
-        // impact dropped) AND from the legacy 1-10 scale to 1-5 (round(v/2)).
-        expect(result.assessments?.p1.sliders.effort).toBe(2);        // intensity 4 -> 2
-        expect(result.assessments?.p1.sliders.ball_control).toBe(4);  // technique 7 -> 4
-        expect(result.assessments?.p1.sliders.game_reading).toBe(4);  // awareness 7 -> 4
-        expect(result.assessments?.p1.sliders.fair_play).toBe(4);     // 8 -> 4
+        // impact dropped). Legacy 1-10 values match the canonical scale, so they
+        // pass through unchanged.
+        expect(result.assessments?.p1.sliders.effort).toBe(4);        // intensity 4
+        expect(result.assessments?.p1.sliders.ball_control).toBe(7);  // technique 7
+        expect(result.assessments?.p1.sliders.game_reading).toBe(7);  // awareness 7
+        expect(result.assessments?.p1.sliders.fair_play).toBe(8);
         expect(result.assessments?.p1.sliders.duels).toBeUndefined();
         expect(result.assessments?.p1.sliders.impact).toBeUndefined();
       });
@@ -4385,16 +4386,16 @@ describe('SupabaseDataStore', () => {
         expect(result.assessments!['p1']).toBeDefined();
         const assessment = result.assessments!['p1'];
         expect(assessment.overall).toBe(8);
-        // Legacy columns are migrated to set A ids AND from the 1-10 scale to
-        // 1-5 (round(v/2)) on read.
-        expect(assessment.sliders.effort).toBe(4);        // intensity 7 -> 4
-        expect(assessment.sliders.courage).toBe(4);       // 8 -> 4
-        expect(assessment.sliders.ball_control).toBe(5);  // technique 9 -> 5
-        expect(assessment.sliders.creativity).toBe(4);    // 7 -> 4
-        expect(assessment.sliders.decisions).toBe(4);     // 8 -> 4
-        expect(assessment.sliders.game_reading).toBe(4);  // awareness 7 -> 4
-        expect(assessment.sliders.teamwork).toBe(5);      // 9 -> 5
-        expect(assessment.sliders.fair_play).toBe(5);     // 10 -> 5
+        // Legacy columns are migrated to set A ids on read. Legacy 1-10 values
+        // match the canonical scale, so they pass through unchanged.
+        expect(assessment.sliders.effort).toBe(7);        // intensity 7
+        expect(assessment.sliders.courage).toBe(8);
+        expect(assessment.sliders.ball_control).toBe(9);  // technique 9
+        expect(assessment.sliders.creativity).toBe(7);
+        expect(assessment.sliders.decisions).toBe(8);
+        expect(assessment.sliders.game_reading).toBe(7);  // awareness 7
+        expect(assessment.sliders.teamwork).toBe(9);
+        expect(assessment.sliders.fair_play).toBe(10);
         expect(assessment.sliders.duels).toBeUndefined();
         expect(assessment.sliders.impact).toBeUndefined();
       });

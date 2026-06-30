@@ -1,12 +1,12 @@
 {
-  "version": "9a84beed",
+  "version": "2a3cceae",
   "date": "2026-06-30",
   "notes": {
     "en": [
-      "Player assessments now use a development-focused word scale - Working on it, Emerging, Developing, Consistent, A strength - instead of 1-10 sliders. Your existing assessments are carried over automatically."
+      "You can now choose how player assessment ratings look in Settings: developmental words (5 levels), numbers 1-5, or numbers 1-10. Switching is safe - your existing ratings are kept."
     ],
     "fi": [
-      "Pelaaja-arvioinnit käyttävät nyt kehityskeskeistä sanallista asteikkoa - Harjoitteluvaiheessa, Orastava, Kehittyvä, Vakiintunut, Vahvuus - 1-10 liukusäätimien sijaan. Aiemmat arviointisi siirtyvät automaattisesti."
+      "Voit nyt valita asetuksista, miten pelaaja-arviot näytetään: kehityssanat (5 tasoa), numerot 1-5 tai numerot 1-10. Vaihtaminen on turvallista - aiemmat arviosi säilyvät."
     ]
   }
 }

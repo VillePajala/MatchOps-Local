@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { ModalFooter, modalContainerStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
+import type { AssessmentRatingStyle } from '@/types/settings';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import CloudSyncSection from './CloudSyncSection';
@@ -128,6 +129,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(DEFAULT_CLUB_SEASON_START_DATE);
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
+  const [assessmentRatingStyle, setAssessmentRatingStyle] = useState<AssessmentRatingStyle>('words');
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -267,6 +269,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       getAppSettings(userId).then(settings => {
         setClubSeasonStartDate(settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE);
         setClubSeasonEndDate(settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE);
+        setAssessmentRatingStyle(settings.assessmentRatingStyle ?? 'words');
       }).catch((error) => {
         // Use defaults if loading fails
         logger.error('Failed to load club season settings:', error);
@@ -495,6 +498,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleAssessmentRatingStyleChange = async (style: AssessmentRatingStyle) => {
+    setAssessmentRatingStyle(style);
+    try {
+      await updateAppSettings({ assessmentRatingStyle: style }, userId);
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
+    } catch (error) {
+      logger.error('Failed to save assessment rating style:', error);
+      showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
+    }
+  };
+
   const handleClubSeasonStartMonthChange = (month: number) => {
     const { day } = parseMonthDay(clubSeasonStartDate);
     handleClubSeasonStartChange(month, day);
@@ -623,6 +637,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <option value="en">English</option>
                   <option value="fi">Suomi</option>
+                </select>
+              </div>
+              {/* Assessment rating style */}
+              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-200">
+                    {t('settingsModal.assessmentRatingStyleLabel', 'Assessment rating style')}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {t('settingsModal.assessmentRatingStyleHint', 'How player ratings are shown and entered. Switching is safe - existing ratings are kept.')}
+                  </p>
+                </div>
+                <select
+                  id="assessment-rating-style-select"
+                  value={assessmentRatingStyle}
+                  onChange={(e) => handleAssessmentRatingStyleChange(e.target.value as AssessmentRatingStyle)}
+                  className="bg-slate-700 border border-slate-600 rounded-md py-1.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="words">{t('settingsModal.assessmentRatingStyleWords', 'Words (5 levels)')}</option>
+                  <option value="num5">{t('settingsModal.assessmentRatingStyleNum5', 'Numbers 1-5')}</option>
+                  <option value="num10">{t('settingsModal.assessmentRatingStyleNum10', 'Numbers 1-10')}</option>
                 </select>
               </div>
               {/* Default Team Name */}
