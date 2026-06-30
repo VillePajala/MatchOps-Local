@@ -152,8 +152,13 @@ export type TrendDirection = 'rising' | 'steady' | 'slipping' | 'insufficient';
 export interface MetricDevelopment {
   /** Current level on the canonical 1-10 scale. */
   level: number;
+  /** "Season start" level: mean of the earliest assessments (the radar baseline). */
+  baseline: number;
   direction: TrendDirection;
 }
+
+// Earliest N assessments that define the "season start" baseline.
+const BASELINE_POINTS = 3;
 
 export interface PlayerDevelopment {
   count: number;
@@ -232,19 +237,24 @@ export function calculatePlayerDevelopment(
       return typeof v === 'number' && Number.isFinite(v);
     });
     if (series.length === 0) {
-      metrics[m] = { level: 0, direction: 'insufficient' };
+      metrics[m] = { level: 0, baseline: 0, direction: 'insufficient' };
       return;
     }
     withData.push(m);
     const values = series.map(e => e.a.sliders[m]);
     const demands = series.map(e => e.demand);
-    metrics[m] = { level: weightedLevel(values, demands, recencyWeighted), direction: classifyTrend(values) };
+    metrics[m] = {
+      level: weightedLevel(values, demands, recencyWeighted),
+      baseline: mean(values.slice(0, Math.min(BASELINE_POINTS, values.length))),
+      direction: classifyTrend(values),
+    };
   });
 
   const overallValues = entries.map(e => e.a.overall);
   const allDemands = entries.map(e => e.demand);
   const overall: MetricDevelopment = {
     level: weightedLevel(overallValues, allDemands, recencyWeighted),
+    baseline: mean(overallValues.slice(0, Math.min(BASELINE_POINTS, overallValues.length))),
     direction: classifyTrend(overallValues),
   };
   const finalScore = weightedLevel(entries.map(e => calculateFinalScore(e.a)), allDemands, recencyWeighted);

@@ -1660,6 +1660,8 @@
     "recencyWeightedTooltip": "Painota viimeaikaisia pelejä, jotta näkyy nykyinen vire pitkän aikavälin keskiarvon sijaan",
     "focusAreas": "Kehityskohteet",
     "strengths": "Vahvuudet",
+    "radarNow": "Nyt",
+    "radarBaseline": "Kauden alku",
     "includesAdjustments": "Sisältää ulkoiset pelit",
     "externalGames": "Ulkoiset pelit",
     "externalGame": "Ulkoinen peli",

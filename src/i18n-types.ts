@@ -1516,6 +1516,8 @@ export type TranslationKey =
   | 'playerStats.playerOfTournament'
   | 'playerStats.points'
   | 'playerStats.pointsPerGame'
+  | 'playerStats.radarBaseline'
+  | 'playerStats.radarNow'
   | 'playerStats.ratedGames'
   | 'playerStats.receivedFairPlayCard'
   | 'playerStats.recencyWeighted'

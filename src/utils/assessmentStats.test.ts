@@ -181,6 +181,9 @@ describe('calculatePlayerDevelopment', () => {
     // Plain lifetime average = (6*1 + 3*4)/9 = 2; recency-weighted leans higher.
     expect(overall?.metrics.effort.level).toBeCloseTo(2);
     expect(current!.metrics.effort.level).toBeGreaterThan(overall!.metrics.effort.level);
+    // Baseline = mean of the first 3 games (all 1); current sits above it.
+    expect(current?.metrics.effort.baseline).toBeCloseTo(1);
+    expect(current!.metrics.effort.level).toBeGreaterThan(current!.metrics.effort.baseline);
   });
 
   it('flags a declining metric as a focus area (slipping)', () => {
