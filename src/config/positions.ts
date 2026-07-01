@@ -71,7 +71,9 @@ export const SOCCER_FORMATS: readonly PositionFormat[] = ['5v5', '8v8', '11v11']
 // specialised roles; `all` is every position - the escape hatch from all the
 // automatic scoping.
 export const POSITION_FORMATS: Record<PositionFormat, readonly string[]> = {
-  '5v5': ['gk', 'lb', 'cb', 'rb', 'cm', 'st'],
+  // 5v5 covers the common 4-outfield shapes: diamond (cb, lm, rm, st),
+  // square (lb, rb, lm, rm), 2-1-1 (cm), attacking (cam).
+  '5v5': ['gk', 'lb', 'cb', 'rb', 'cm', 'cam', 'lm', 'rm', 'st'],
   '8v8': ['gk', 'lb', 'cb', 'rb', 'cdm', 'cm', 'cam', 'lm', 'rm', 'st'],
   '11v11': ['gk', 'rb', 'cb', 'lb', 'rwb', 'lwb', 'cdm', 'cm', 'cam', 'rm', 'lm', 'rw', 'lw', 'st'],
   'futsal': ['gk', 'fixo', 'ala', 'pivo'],

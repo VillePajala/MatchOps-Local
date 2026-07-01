@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "The 5v5 positions list now covers the common 5v5 formations - including the diamond (CB, LM, RM, ST). Left/right midfield and attacking midfield were added so the shape you actually play can be recorded (you can still tap All for every position)."
+      ],
+      "fi": [
+        "5v5-pelipaikkalista kattaa nyt yleiset 5v5-muodostelmat - mukaan lukien timantti (CB, LM, RM, ST). Vasen/oikea keskikenttä ja hyökkäävä keskikenttä lisättiin, jotta oikeasti pelaamasi muoto voidaan kirjata (voit yhä napauttaa Kaikki nähdäksesi kaikki pelipaikat)."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Match report editing is now consistent in both places (Game Settings and the game's stats): a larger resizable text box, a Template button to insert ready headings, and a single full-width row of Template / Cancel / Save buttons in the app style (the stats editor's little save-disc and red-cross icons are gone). The shared recap popup is also taller now, using nearly the full screen height."
       ],
       "fi": [
