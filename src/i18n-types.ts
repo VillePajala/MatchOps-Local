@@ -1105,6 +1105,7 @@ export type TranslationKey =
   | 'loadGameModal.gameSingular'
   | 'loadGameModal.gamesCount'
   | 'loadGameModal.importReadError'
+  | 'loadGameModal.incompleteBadge'
   | 'loadGameModal.legacyGames'
   | 'loadGameModal.legacyGamesFilter'
   | 'loadGameModal.loadButton'

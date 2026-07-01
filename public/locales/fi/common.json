@@ -760,6 +760,7 @@
     "assessmentsComplete": "Kaikki arvioinnit tehty",
     "assessmentsProgress": "{{done}}/{{total}} arvioitu",
     "unplayedBadge": "EI PELATTU",
+    "incompleteBadge": "KESKEN",
     "showUnplayedOnly": "Näytä vain pelaamattomat pelit",
     "importReadError": "Virhe luettaessa tiedostoa",
     "loadButton": "Lataa peli",
