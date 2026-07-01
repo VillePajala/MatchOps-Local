@@ -3040,6 +3040,7 @@ export class SupabaseDataStore implements DataStore {
         show_position_labels: game.showPositionLabels ?? true,
         // Penalty-shootout kicks (migration 032). Defensive: only persist an array.
         shootout_kicks: (Array.isArray(game.shootoutKicks) ? game.shootoutKicks : null) as unknown as Json,
+        player_positions: (game.playerPositions && typeof game.playerPositions === 'object' ? game.playerPositions : null) as unknown as Json,
         // === Array/object fields ===
         game_personnel: Array.isArray(game.gamePersonnel)
           ? game.gamePersonnel.filter((id): id is string => typeof id === 'string' && id.trim() !== '')
@@ -3215,6 +3216,9 @@ export class SupabaseDataStore implements DataStore {
       showPositionLabels: game.show_position_labels ?? true,
       // Penalty-shootout kicks (migration 032). Defensive: only accept an array.
       shootoutKicks: Array.isArray(game.shootout_kicks) ? (game.shootout_kicks as unknown as ShootoutKick[]) : undefined,
+      playerPositions: (game.player_positions && typeof game.player_positions === 'object' && !Array.isArray(game.player_positions))
+        ? (game.player_positions as unknown as Record<string, string[]>)
+        : undefined,
       // === Array/object fields (DEFENSIVE: validate array structure for JSONB) ===
       gamePersonnel: Array.isArray(game.game_personnel) ? game.game_personnel : [],
       formationSnapPoints: Array.isArray(game.formation_snap_points) ? game.formation_snap_points as unknown as Point[] : undefined,

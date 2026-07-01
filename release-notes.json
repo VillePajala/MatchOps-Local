@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Line-up positions now sync to your cloud account, so the position(s) you record for each player are available across your devices (previously they were saved only on the device where you entered them)."
+      ],
+      "fi": [
+        "Kokoonpanon pelipaikat synkronoituvat nyt pilvitilillesi, joten kullekin pelaajalle kirjaamasi pelipaikat ovat käytettävissä kaikilla laitteillasi (aiemmin ne tallentuivat vain sille laitteelle, jolla ne syötettiin)."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "New: record which position(s) each player played. Open a game's settings and use the new Line-up section to tap positions for each player (a player can have more than one). The positions then appear in the shared game recap, grouped by position (e.g. \"CB: Emma, Noah\"), so other coaches can see who played where."
       ],
       "fi": [
