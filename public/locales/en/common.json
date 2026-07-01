@@ -760,6 +760,7 @@
     "assessmentsComplete": "All assessments complete",
     "assessmentsProgress": "{{done}}/{{total}} assessments",
     "unplayedBadge": "NOT PLAYED",
+    "incompleteBadge": "INCOMPLETE",
     "showUnplayedOnly": "Show only unplayed games",
     "importReadError": "Error reading file content.",
     "loadButton": "Load Game",

@@ -1,9 +1,18 @@
 # Game Lifecycle & Completeness - Plan
 
-**Status**: 🟡 In progress. Decisions locked 2026-07-01. **Phase 1 DONE 2026-07-01**:
-`src/utils/gameCompleteness.ts` (+ tests) + `GameWrapUpCard` ("Finish this game" checklist) on the
-`GameStatsModal` current-game tab, routing report/positions/competition to Game Settings. **Phase 2
-TODO**: `LoadGameModal` row pill + stats-header roll-up.
+**Status**: ✅ **DONE 2026-07-01** (the valuable scope). Decisions locked 2026-07-01.
+- **Phase 1** ✅ `src/utils/gameCompleteness.ts` (+ tests) + `GameWrapUpCard` ("Finish this game"
+  checklist) on the `GameStatsModal` current-game tab, routing report/positions/competition to Game
+  Settings.
+- **Phase 2** ✅ an amber **"Incomplete"** pill on played-but-partial games in `LoadGameModal` rows
+  (next to `NOT PLAYED`), reading the same completeness model. _Stats-header roll-up dropped: the
+  wrap-up card already lives on that page, so it would be redundant._
+- **Phase 3** ✅ entry point — a **"Game report"** menu item (control bar Game Management, next to
+  "Assess Players") opens the current-game view directly. _Dropped as low-value / not worth the risk:
+  (a) a game-end auto-open button - redundant with the menu entry + the existing "Assess players"
+  button at game-end, and it needs threading through the timer-management hook (`useTimerManagement`
+  -> `TimerInteractions` -> FieldContainer -> TimerOverlay); (b) renaming the "Current Game" tab -
+  "Current Game" is already clear. Both remain easy to add later if wanted._
 **Roadmap**: P2 (UX & quality polish).
 **Origin**: feedback that producing a *complete* game record (competition + team linked, settings
 done, events logged, post-game assessments + positions + report) is a **scattered procedure** spread

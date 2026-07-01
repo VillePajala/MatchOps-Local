@@ -8,6 +8,7 @@ import type { TranslationKey } from '@/i18n-types';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { resolveGameResult } from '@/utils/gameResult';
+import { computeGameCompleteness } from '@/utils/gameCompleteness';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import { LEVELS } from '@/config/gameOptions';
@@ -356,6 +357,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const game = savedGames[gameId];
             if (!game) return null;
             const isCurrent = gameId === currentGameId;
+            // Played-but-not-fully-recorded games get an "Incomplete" pill.
+            const completeness = computeGameCompleteness(game);
+            const showIncomplete = game.isPlayed !== false && completeness.applicable && completeness.overall !== 'complete';
 
             // Look up entities using maps for O(1) performance
             const season = game.seasonId ? entityMaps.seasons.get(game.seasonId) : null;
@@ -555,6 +559,11 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {game.isPlayed === false && (
                         <span className="px-2 py-0.5 rounded-full bg-red-600/80 text-red-100 font-semibold uppercase text-[10px] tracking-wide">
                           {t('loadGameModal.unplayedBadge', 'NOT PLAYED')}
+                        </span>
+                      )}
+                      {showIncomplete && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold uppercase text-[10px] tracking-wide">
+                          {t('loadGameModal.incompleteBadge', 'INCOMPLETE')}
                         </span>
                       )}
                     </div>
