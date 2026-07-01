@@ -1418,6 +1418,8 @@
     "noNotes": "Ei muistiinpanoja. Klikkaa lisätäksesi.",
     "lineupTitle": "Kokoonpano",
     "lineupNoPlayers": "Valitse otteluun pelaajat, jotta voit määrittää pelipaikat.",
+    "lineupFormat": "Muoto",
+    "lineupAddPositions": "Lisää pelipaikat",
     "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
     "gameDetailsLabel": "Pelin yksityiskohdat",
     "gameRulesLabel": "Pelisäännöt",

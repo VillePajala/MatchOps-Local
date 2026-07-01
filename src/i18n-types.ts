@@ -765,6 +765,8 @@ export type TranslationKey =
   | 'gameSettingsModal.kausi'
   | 'gameSettingsModal.leagueLabel'
   | 'gameSettingsModal.levelLabel'
+  | 'gameSettingsModal.lineupAddPositions'
+  | 'gameSettingsModal.lineupFormat'
   | 'gameSettingsModal.lineupNoPlayers'
   | 'gameSettingsModal.lineupTitle'
   | 'gameSettingsModal.linkita'

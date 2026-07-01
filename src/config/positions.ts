@@ -51,6 +51,30 @@ export const POSITIONS: readonly PositionDef[] = [
 /** All position ids (for i18n coverage / validation). */
 export const POSITION_IDS: readonly string[] = POSITIONS.map(p => p.id);
 
+/** id -> category, for colour-coding the chips by pitch line. */
+export const POSITION_CATEGORY: Record<string, PositionCategory> = Object.fromEntries(
+  POSITIONS.map(p => [p.id, p.category]),
+);
+
+/**
+ * Match format. Soccer sizes scope the position palette so a 5v5 game does not
+ * show all 14 eleven-a-side positions; the coach can widen it via the selector
+ * (11v11 = the full set). Futsal is its own set.
+ */
+export type PositionFormat = '5v5' | '7v7' | '9v9' | '11v11' | 'futsal';
+
+export const SOCCER_FORMATS: readonly PositionFormat[] = ['5v5', '7v7', '9v9', '11v11'];
+
+// Position palette per format (back-to-front). Bigger formats add width + more
+// specialised roles; 11v11 is the full set (the "show everything" override).
+export const POSITION_FORMATS: Record<PositionFormat, readonly string[]> = {
+  '5v5': ['gk', 'lb', 'cb', 'rb', 'cm', 'st'],
+  '7v7': ['gk', 'lb', 'cb', 'rb', 'lm', 'cm', 'rm', 'st'],
+  '9v9': ['gk', 'lb', 'cb', 'rb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st'],
+  '11v11': ['gk', 'rb', 'cb', 'lb', 'rwb', 'lwb', 'cdm', 'cm', 'cam', 'rm', 'lm', 'rw', 'lw', 'st'],
+  'futsal': ['gk', 'fixo', 'ala', 'pivo'],
+};
+
 /**
  * English fallbacks for the i18n abbreviation/label keys, so `t(key, fallback)`
  * still renders sensibly if a translation is missing. The abbreviations are the
@@ -85,4 +109,23 @@ export function positionsForSport(gameType: GameType | undefined): PositionDef[]
 export function orderPositionIds(ids: readonly string[]): string[] {
   const rank = new Map(POSITION_IDS.map((id, i) => [id, i]));
   return [...ids].sort((a, b) => (rank.get(a) ?? 999) - (rank.get(b) ?? 999));
+}
+
+/** The ordered position defs for a match format. */
+export function positionsForFormat(format: PositionFormat): PositionDef[] {
+  const byId = new Map(POSITIONS.map(p => [p.id, p]));
+  return (POSITION_FORMATS[format] ?? []).map(id => byId.get(id)).filter((p): p is PositionDef => !!p);
+}
+
+/**
+ * Best-effort default format. Futsal games are futsal; otherwise guess from the
+ * squad size (it includes subs, so this is a starting point the coach overrides
+ * with the selector, not a hard rule).
+ */
+export function inferFormat(gameType: GameType | undefined, squadSize: number): PositionFormat {
+  if (gameType === 'futsal') return 'futsal';
+  if (squadSize > 0 && squadSize <= 8) return '5v5';
+  if (squadSize <= 11) return '7v7';
+  if (squadSize <= 13) return '9v9';
+  return '11v11';
 }

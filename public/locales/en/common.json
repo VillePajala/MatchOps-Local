@@ -942,6 +942,8 @@
     "noNotes": "No notes yet. Click to add.",
     "lineupTitle": "Line-up",
     "lineupNoPlayers": "Select players for this game to assign positions.",
+    "lineupFormat": "Format",
+    "lineupAddPositions": "Add positions",
     "teamsAndRosterLabel": "Teams & Roster",
     "gameDetailsLabel": "Game Details",
     "gameRulesLabel": "Game Rules",
