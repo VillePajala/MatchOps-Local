@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(recap): full-width generate button, spelled-out result, header colons (#584)"
+  "notes": "fix(loadgame): readiness dot instead of \"Incomplete\" tag (#585)"
 }

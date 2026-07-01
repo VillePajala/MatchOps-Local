@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Wording: the Finnish recap button now reads \"Luo ottelukooste\" (more natural than \"Generoi\")."
+      ],
+      "fi": [
+        "Sanamuoto: suomenkielinen koostepainike lukee nyt \"Luo ottelukooste\" (luontevampi kuin \"Generoi\")."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Load Game readiness is now a small colour dot instead of an \"Incomplete\" tag (which could be misread as \"match not finished\"): a green dot next to a game means its record is complete, an amber dot means it still needs finishing. Only shown for played games."
       ],
       "fi": [
