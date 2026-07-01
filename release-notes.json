@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "The \"Went to overtime\" and \"Decided by penalties\" options in Game Settings are now toggle buttons (highlighting when on) instead of checkboxes, matching the toggle in the timer."
+      ],
+      "fi": [
+        "Ottelun asetusten \"Meni jatkoajalle\" ja \"Ratkesi rangaistuspotkuilla\" -valinnat ovat nyt painikkeita (jotka korostuvat päällä ollessaan) valintaruutujen sijaan, ajastimen painikkeen tapaan."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "The game recap popup is now much larger - a wider window that uses more of the screen height, with the text area filling it - so you can read and edit a long recap without all the scrolling."
       ],
       "fi": [

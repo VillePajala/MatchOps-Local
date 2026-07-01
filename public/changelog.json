@@ -1,12 +1,12 @@
 {
-  "version": "fb86c24b",
+  "version": "b9810535",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "The game recap popup is now much larger - a wider window that uses more of the screen height, with the text area filling it - so you can read and edit a long recap without all the scrolling."
+      "The \"Went to overtime\" and \"Decided by penalties\" options in Game Settings are now toggle buttons (highlighting when on) instead of checkboxes, matching the toggle in the timer."
     ],
     "fi": [
-      "Ottelukoosteen ponnahdusikkuna on nyt paljon suurempi - leveämpi ikkuna, joka käyttää enemmän näytön korkeutta ja jonka tekstialue täyttää sen - joten voit lukea ja muokata pitkää koostetta ilman jatkuvaa vieritystä."
+      "Ottelun asetusten \"Meni jatkoajalle\" ja \"Ratkesi rangaistuspotkuilla\" -valinnat ovat nyt painikkeita (jotka korostuvat päällä ollessaan) valintaruutujen sijaan, ajastimen painikkeen tapaan."
     ]
   }
 }
