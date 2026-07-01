@@ -1,12 +1,12 @@
 {
-  "version": "f9a2d52a",
+  "version": "3907901e",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "New: a \"Finish this game\" checklist at the top of a game's stats. It shows at a glance what's done and what's left - match report, positions played, player assessments, competition & team - and tapping a row jumps you to where you fill it in, so you don't have to remember the whole procedure to complete a game record."
+      "Easier to reach the post-game view: a new \"Game report\" item in the menu (under Game Management, next to Record Performance) opens the current game's report + finish-checklist + stats directly - no more going through Statistics and picking the current game."
     ],
     "fi": [
-      "Uutta: \"Viimeistele ottelu\" -tarkistuslista ottelun tilastojen yläreunassa. Se näyttää yhdellä silmäyksellä mikä on tehty ja mitä on jäljellä - otteluraportti, toteutuneet pelipaikat, pelaaja-arviot, sarja ja joukkue - ja rivin napauttaminen vie sinut kohtaan, jossa täytät sen, joten sinun ei tarvitse muistaa koko menettelyä saadaksesi ottelun tiedot valmiiksi."
+      "Ottelun jälkeinen näkymä on helpompi tavoittaa: uusi \"Ottelun raportti\" -valikkokohta (Ottelun hallinta -osiossa, Kirjaa ottelusuoritukset -kohdan vieressä) avaa nykyisen ottelun raportin, viimeistelylistan ja tilastot suoraan - ei enää tarvitse mennä Tilastojen kautta ja valita nykyistä ottelua."
     ]
   }
 }
