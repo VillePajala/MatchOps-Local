@@ -1,12 +1,12 @@
 {
-  "version": "b7fc6aef",
+  "version": "77f81f4a",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Line-up editor redesign: players are now collapsible rows (tap a name to open), position buttons are colour-coded by pitch line (goalkeeper / defence / midfield / attack) instead of the old flat grey, and a format selector (5v5 / 7v7 / 9v9 / 11v11) trims the position list to your game size - with 11v11 to show every position when you need it."
+      "Line-up editor styling now matches the rest of Game Settings: the Format buttons use the same segmented-control look as the other selectors, and the position buttons use the standard button style (with a colour tint per pitch line) instead of the previous outlined look."
     ],
     "fi": [
-      "Kokoonpanoeditorin uudistus: pelaajat ovat nyt avattavia rivejä (napauta nimeä avataksesi), pelipaikkapainikkeet on värikoodattu kentän linjan mukaan (maalivahti / puolustus / keskikenttä / hyökkäys) entisen harmaan sijaan, ja muotovalitsin (5v5 / 7v7 / 9v9 / 11v11) rajaa pelipaikkalistan ottelusi kokoon - 11v11 näyttää kaikki pelipaikat tarvittaessa."
+      "Kokoonpanoeditorin tyyli vastaa nyt muuta Ottelun asetukset -näkymää: Muoto-painikkeet käyttävät samaa segmenttivalitsimen ulkoasua kuin muut valitsimet, ja pelipaikkapainikkeet käyttävät vakiopainiketyyliä (kentän linjan värisävyllä) aiemman ääriviivatyylin sijaan."
     ]
   }
 }
