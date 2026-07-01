@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Line-up editor redesign: players are now collapsible rows (tap a name to open), position buttons are colour-coded by pitch line (goalkeeper / defence / midfield / attack) instead of the old flat grey, and a format selector (5v5 / 7v7 / 9v9 / 11v11) trims the position list to your game size - with 11v11 to show every position when you need it."
+      ],
+      "fi": [
+        "Kokoonpanoeditorin uudistus: pelaajat ovat nyt avattavia rivejä (napauta nimeä avataksesi), pelipaikkapainikkeet on värikoodattu kentän linjan mukaan (maalivahti / puolustus / keskikenttä / hyökkäys) entisen harmaan sijaan, ja muotovalitsin (5v5 / 7v7 / 9v9 / 11v11) rajaa pelipaikkalistan ottelusi kokoon - 11v11 näyttää kaikki pelipaikat tarvittaessa."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Internal: documentation only - marked the post-game player-positions feature (local + cloud) as shipped in the roadmap and plan. No app changes."
       ],
       "fi": [
