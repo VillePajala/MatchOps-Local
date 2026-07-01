@@ -419,6 +419,13 @@ export default function HomePage() {
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
                 { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
+                // New post-game features — screenshots pending the refreshed shoot.
+                { key: 'assessment', screenshot: '', comingSoon: true },
+                { key: 'recap', screenshot: '', comingSoon: true },
+                { key: 'positions', screenshot: '', comingSoon: true },
+                { key: 'trends', screenshot: '', comingSoon: true },
+                { key: 'matchReport', screenshot: '', comingSoon: true },
+                { key: 'overtime', screenshot: '', comingSoon: true },
                 { key: 'formations', screenshot: screenshots.formations },
                 { key: 'excelExport', screenshot: screenshots.excelExport },
                 { key: 'roster', screenshot: screenshots.roster },
@@ -428,8 +435,6 @@ export default function HomePage() {
                 { key: 'tournaments', screenshot: screenshots.tournaments },
                 { key: 'futsal', screenshot: screenshots.futsal },
                 { key: 'personnel', screenshot: screenshots.personnel },
-                { key: 'assessment', screenshot: screenshots.assessment },
-                { key: 'trends', screenshot: screenshots.trends },
                 { key: 'officialRules', screenshot: screenshots.officialRules },
               ].map((card, i) => (
                 <div
@@ -446,7 +451,13 @@ export default function HomePage() {
                     <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={card.screenshot} size="lg" zIndex={10} />
+                    <PhoneMockup
+                      screenshot={card.screenshot}
+                      size="lg"
+                      zIndex={10}
+                      comingSoon={card.comingSoon}
+                      comingSoonLabel={t('marketing.ui.comingSoon')}
+                    />
                   </div>
                 </div>
               ))}
