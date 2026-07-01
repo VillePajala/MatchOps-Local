@@ -98,13 +98,11 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   const oppGoals = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
 
   const result = resolveGameResult(game);
-  const resultLabel =
-    result === 'W' ? t('recap.resultWin', 'Win')
-    : result === 'L' ? t('recap.resultLoss', 'Loss')
-    : t('recap.resultDraw', 'Draw');
-  // A level raw score decided by a shootout (result is not a draw) is a penalty win/loss.
+  // The scoreline already shows win/loss/draw, so the result is only annotated
+  // when the raw score alone can't show it: a level score decided by a shootout.
   const onPenalties = game.homeScore === game.awayScore && result !== 'D';
-  const resultText = onPenalties ? `${resultLabel}, ${t('recap.onPenalties', 'on penalties')}` : resultLabel;
+  const resultLabel = result === 'W' ? t('recap.resultWin', 'Win') : t('recap.resultLoss', 'Loss');
+  const resultSuffix = onPenalties ? ` (${resultLabel}, ${t('recap.onPenalties', 'on penalties')})` : '';
 
   const goalEvents = game.gameEvents.filter(e => e.type === 'goal');
   const scorerIds = goalEvents.map(e => e.scorerId).filter((id): id is string => !!id);
@@ -116,7 +114,7 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   // Header block: team + score on one line, then date and location each on
   // their own line (location omitted when empty).
   const headerLines = [
-    `${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName} (${resultText})`,
+    `${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName}${resultSuffix}`,
     formatRecapDate(game.gameDate),
     game.gameLocation?.trim(),
   ].filter(Boolean);

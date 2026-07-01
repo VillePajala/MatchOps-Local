@@ -40,7 +40,7 @@ describe('buildGameRecap', () => {
     };
     const text = buildGameRecap(game, players, t);
     // Header: score line, then date and location each on their own line (no age group).
-    expect(text).toContain('Tigers 3-2 Lions (Win)\n26.6.2026\nCentral Park');
+    expect(text).toContain('Tigers 3-2 Lions\n26.6.2026\nCentral Park');
     expect(text).not.toContain('U11');
     // One name per line, count always shown; Liam (2) before Emma (1) by count.
     expect(text).toContain('Goals:\nLiam 2\nEmma 1');
@@ -53,7 +53,7 @@ describe('buildGameRecap', () => {
   it('puts our goals first when away, and resolves a loss', () => {
     // Away: we are awayScore=1, opponent homeScore=4.
     const text = buildGameRecap({ ...base, homeOrAway: 'away', homeScore: 4, awayScore: 1 }, players, t);
-    expect(text).toContain('Tigers 1-4 Lions (Loss)');
+    expect(text).toContain('Tigers 1-4 Lions');
   });
 
   it('marks a level score decided by a shootout as a penalty win', () => {
@@ -76,7 +76,7 @@ describe('buildGameRecap', () => {
 
   it('renders a plain draw with no shootout', () => {
     const text = buildGameRecap({ ...base, homeScore: 1, awayScore: 1 }, players, t);
-    expect(text).toContain('Tigers 1-1 Lions (Draw)');
+    expect(text).toContain('Tigers 1-1 Lions');
     expect(text).not.toContain('on penalties');
   });
 
@@ -86,7 +86,7 @@ describe('buildGameRecap', () => {
       players,
       t,
     );
-    expect(text).toContain('Tigers 0-0 Lions (Draw)');
+    expect(text).toContain('Tigers 0-0 Lions');
     expect(text).not.toContain('Goals');
     expect(text).not.toContain('Assists');
     expect(text).not.toContain("Match report:");
