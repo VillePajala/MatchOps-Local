@@ -105,7 +105,12 @@ Both read the same `computeGameCompleteness`, so the checklist and the badges ne
 - **Phase 1**: `gameCompleteness.ts` + the wrap-up checklist card on the stats page (routes to
   existing editors). Delivers the "follow the list" experience on its own. ~1 PR.
 - **Phase 2**: completeness indicators in `LoadGameModal` rows + the stats header. ~1 PR.
-- **Phase 3 (optional)**: the `gameEnd` auto-prompt; a "needs finishing" filter in Load Game.
+- **Phase 3**: **entry points.** ✅ **Started 2026-07-01** - a **"Game report"** menu item in the
+  control bar's Game Management section (next to "Assess Players") opens the current-game view
+  directly, so writing the report / checking readiness no longer means going through "Statistics".
+  _Remaining:_ a `gameEnd` auto-open/prompt (defer - it must not clash with the existing post-game
+  assessment prompt); optionally rename the stats current-game tab to "This game" vs cross-game
+  "Statistics"; a "needs finishing" filter in Load Game.
 
 ## Out of scope (here)
 

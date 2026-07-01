@@ -12,6 +12,7 @@ import {
   HiOutlineUserGroup,
   HiOutlineTrophy,
   HiOutlineClipboardDocumentList,
+  HiOutlineClipboardDocumentCheck,
   HiOutlineClipboard,
   HiOutlineBookOpen,
   HiOutlineDocumentArrowDown,
@@ -579,6 +580,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               title={t('instructionsModal.controlBar.assessPlayers')}
             >
               <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
+            </button>
+            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />{t('controlBar.gameReport', 'Game report')}
             </button>
           </div>
 
