@@ -2363,38 +2363,41 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   />
                   <span className="ml-2">{t('gameSettingsModal.unplayedToggle', 'Not played yet')}</span>
                 </label>
-                <label className="inline-flex items-center text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={!!wentToOvertime}
-                    onChange={(e) => {
-                      const newValue = e.target.checked;
+                {/* Overtime / penalties as toggle buttons (matching the timer's chip). */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    aria-pressed={!!wentToOvertime}
+                    onClick={() => {
+                      const newValue = !wentToOvertime;
                       onWentToOvertimeChange(newValue);
-                      mutateGameDetails(
-                        { wentToOvertime: newValue },
-                        { source: 'stateSync' }
-                      );
+                      mutateGameDetails({ wentToOvertime: newValue }, { source: 'stateSync' });
                     }}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="ml-2">{t('gameSettingsModal.wentToOvertime', 'Went to overtime')}</span>
-                </label>
-                <label className="inline-flex items-center text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={!!wentToPenalties}
-                    onChange={(e) => {
-                      const newValue = e.target.checked;
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      wentToOvertime
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('gameSettingsModal.wentToOvertime', 'Overtime')}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={!!wentToPenalties}
+                    onClick={() => {
+                      const newValue = !wentToPenalties;
                       onWentToPenaltiesChange(newValue);
-                      mutateGameDetails(
-                        { wentToPenalties: newValue },
-                        { source: 'stateSync' }
-                      );
+                      mutateGameDetails({ wentToPenalties: newValue }, { source: 'stateSync' });
                     }}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="ml-2">{t('gameSettingsModal.wentToPenalties', 'Decided by penalties')}</span>
-                </label>
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      wentToPenalties
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('gameSettingsModal.wentToPenalties', 'Penalties')}
+                  </button>
+                </div>
                 {/* Penalty shootout — log kicks; the result is derived and breaks a level score */}
                 <button
                   type="button"

@@ -1,12 +1,12 @@
 {
-  "version": "b9810535",
+  "version": "e006724b",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "New: a \"Use template\" button when writing the match report drops in ready-made headings you fill under - Overview, How the game unfolded, What went well, What we're working on, Team spirit & effort, Highlights, and Next step - so you don't start from a blank page. It appends below any existing text, and you can edit or delete any section."
+      "The \"Overtime\" and \"Penalties\" options in Game Settings are now toggle buttons (blue when on, matching the gender selector) instead of checkboxes."
     ],
     "fi": [
-      "Uutta: \"Käytä pohjaa\" -painike otteluraporttia kirjoitettaessa lisää valmiit otsikot, joiden alle täytät - Yleiskuva, Pelin kulku, Mikä toimi hyvin, Kehityskohteet, Joukkuehenki ja asenne, Erityismaininnat sekä Seuraava askel - joten et aloita tyhjältä sivulta. Se lisätään olemassa olevan tekstin alle, ja voit muokata tai poistaa minkä tahansa osion."
+      "Ottelun asetusten \"Jatkoaika\"- ja \"Rangaistuspotkut\"-valinnat ovat nyt painikkeita (siniset päällä ollessaan, kuten sukupuolivalitsin) valintaruutujen sijaan."
     ]
   }
 }
