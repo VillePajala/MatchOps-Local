@@ -48,7 +48,7 @@ describe('buildGameRecap', () => {
     expect(text).toContain('Goals\nLiam 2\nEmma 1');
     // Noah assisted twice.
     expect(text).toContain('Assists\nNoah 2');
-    expect(text).toContain("Coach's notes:");
+    expect(text).toContain("Match report:");
     expect(text).toContain('Great pressing in the second half.');
   });
 
@@ -91,7 +91,7 @@ describe('buildGameRecap', () => {
     expect(text).toContain('Tigers 0-0 Lions (D)');
     expect(text).not.toContain('Goals');
     expect(text).not.toContain('Assists');
-    expect(text).not.toContain("Coach's notes:");
+    expect(text).not.toContain("Match report:");
     expect(text).not.toContain('Central Park');
   });
 

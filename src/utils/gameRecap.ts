@@ -100,7 +100,7 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   if (assisterLines.length) blocks.push([t('recap.assists', 'Assists'), ...assisterLines].join('\n'));
 
   const notes = game.gameNotes?.trim();
-  if (notes) blocks.push(`${t('recap.coachNotes', "Coach's notes")}:\n${notes}`);
+  if (notes) blocks.push(`${t('recap.coachNotes', 'Match report')}:\n${notes}`);
 
   return blocks.join('\n\n');
 }
