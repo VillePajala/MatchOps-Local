@@ -11,6 +11,7 @@
 import type { GameEvent, ShootoutKick } from '@/types/game';
 import type { Player } from '@/types';
 import { resolveGameResult } from '@/utils/gameResult';
+import { orderPositionIds, POSITION_ABBREV_FALLBACK } from '@/config/positions';
 
 /** Minimal shape needed to build a recap (a subset of AppState). */
 export interface RecapGame {
@@ -24,6 +25,8 @@ export interface RecapGame {
   gameEvents: GameEvent[];
   gameNotes?: string;
   shootoutKicks?: ShootoutKick[];
+  /** Position id(s) each player was assigned, keyed by player id. */
+  playerPositions?: Record<string, string[]>;
 }
 
 /** key + fallback -> localized string (a thin slice of i18next's `t`). */
@@ -56,6 +59,34 @@ const tallyLines = (ids: string[], players: Player[], t: RecapTranslate): string
     .map(([id, n]) => ({ name: displayName(id, players, t), n }))
     .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
     .map(({ name, n }) => `${name} ${n}`);
+};
+
+/**
+ * The line-up, keyed by position (formation-style): invert the per-player
+ * position map into position -> players and render "ABBR: Nick1, Nick2" per
+ * position, in back-to-front order. A player in two positions appears under
+ * both; a position with two players lists both. Positions with no players are
+ * skipped. Returns [] when nothing is assigned.
+ */
+const buildLineupLines = (
+  playerPositions: Record<string, string[]> | undefined,
+  players: Player[],
+  t: RecapTranslate,
+): string[] => {
+  if (!playerPositions) return [];
+  const byPosition = new Map<string, string[]>();
+  Object.entries(playerPositions).forEach(([playerId, positionIds]) => {
+    (positionIds ?? []).forEach(posId => {
+      const names = byPosition.get(posId) ?? [];
+      names.push(displayName(playerId, players, t));
+      byPosition.set(posId, names);
+    });
+  });
+  return orderPositionIds([...byPosition.keys()]).map(posId => {
+    const abbrev = t(`playingPositions.${posId}.abbrev`, POSITION_ABBREV_FALLBACK[posId] ?? posId.toUpperCase());
+    const names = (byPosition.get(posId) ?? []).slice().sort((a, b) => a.localeCompare(b));
+    return `${abbrev}: ${names.join(', ')}`;
+  });
 };
 
 /**
@@ -96,6 +127,9 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
 
   const assisterLines = tallyLines(assisterIds, players, t);
   if (assisterLines.length) blocks.push([t('recap.assists', 'Assists'), ...assisterLines].join('\n'));
+
+  const lineupLines = buildLineupLines(game.playerPositions, players, t);
+  if (lineupLines.length) blocks.push([t('recap.lineup', 'Lineup'), ...lineupLines].join('\n'));
 
   const notes = game.gameNotes?.trim();
   if (notes) blocks.push(`${t('recap.coachNotes', 'Match report')}:\n${notes}`);

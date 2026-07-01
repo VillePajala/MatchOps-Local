@@ -139,6 +139,7 @@ export interface ModalHandlers {
   handleGameLocationChange: (location: string) => void;
   handleGameTimeChange: (time: string) => void;
   handleGameNotesChange: (notes: string) => void;
+  handlePlayerPositionsChange: (positions: Record<string, string[]>) => void;
   handleAgeGroupChange: (ageGroup: string) => void;
   handleTournamentLevelChange: (level: string) => void;
   handleTournamentSeriesIdChange: (seriesId: string | undefined) => void;
@@ -290,6 +291,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleGameLocationChange,
     handleGameTimeChange,
     handleGameNotesChange,
+    handlePlayerPositionsChange,
     handleAgeGroupChange,
     handleTournamentLevelChange,
     handleTournamentSeriesIdChange,
@@ -605,6 +607,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       gameLocationChange: handleGameLocationChange,
       gameTimeChange: handleGameTimeChange,
       gameNotesChange: handleGameNotesChange,
+      playerPositionsChange: handlePlayerPositionsChange,
       ageGroupChange: handleAgeGroupChange,
       tournamentLevelChange: handleTournamentLevelChange,
       tournamentSeriesIdChange: handleTournamentSeriesIdChange,
