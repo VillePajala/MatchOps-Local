@@ -1735,7 +1735,7 @@
     "metricTrends": "Arvioiden trendit",
     "metricSelect": "Valitse mittari",
     "goalsAssists": "Maalit ja syötöt",
-    "useDemandCorrection": "Painota vaikeuden mukaan",
+    "useDemandCorrection": "Vaikeuspainotus",
     "useDemandCorrectionTooltip": "Kun käytössä, vaikeiden pelien arviot vaikuttavat enemmän",
     "recencyWeighted": "Nykyinen vire",
     "recencyWeightedTooltip": "Painota viimeaikaisia pelejä, jotta näkyy nykyinen vire pitkän aikavälin keskiarvon sijaan",
