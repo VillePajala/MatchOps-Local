@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(positions): align format selector to app sizes (5v5/8v8/11v11)"
+  "notes": "feat(report): unify the two report editors + taller recap modal"
 }
