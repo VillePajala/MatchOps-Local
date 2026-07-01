@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "docs(site): cloud-first copy + new/reworked feature cards (#597)"
+  "notes": "fix(ui): match Excel button height to the bordered Done button"
 }
