@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "New: a \"Finish this game\" checklist at the top of a game's stats. It shows at a glance what's done and what's left - match report, positions played, player assessments, competition & team - and tapping a row jumps you to where you fill it in, so you don't have to remember the whole procedure to complete a game record."
+      ],
+      "fi": [
+        "Uutta: \"Viimeistele ottelu\" -tarkistuslista ottelun tilastojen yläreunassa. Se näyttää yhdellä silmäyksellä mikä on tehty ja mitä on jäljellä - otteluraportti, toteutuneet pelipaikat, pelaaja-arviot, sarja ja joukkue - ja rivin napauttaminen vie sinut kohtaan, jossa täytät sen, joten sinun ei tarvitse muistaa koko menettelyä saadaksesi ottelun tiedot valmiiksi."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Two tweaks: the Recap button now shares the row with the \"Player Statistics\" heading instead of taking a row of its own, and the Game Settings positions section is renamed \"Positions played\" (with a short note) so it's clearly about recording where players actually played, not building a starting line-up."
       ],
       "fi": [
