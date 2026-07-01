@@ -18,6 +18,7 @@ import { getGamesWithPersonnel } from '@/utils/personnelManager';
 import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
 import ConfirmationModal from './ConfirmationModal';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
+import FloatingAddButton from './FloatingAddButton';
 import {
   ModalFooter,
   modalContainerStyle,
@@ -225,27 +226,22 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
           {/* Header */}
           <div className="flex flex-col">
             {/* Title Section */}
-            <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
+            <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
               <h2 className={`${titleStyle} drop-shadow-lg`}>
                 {t('personnelManager.title', 'Personnel Manager')}
               </h2>
             </div>
-
-            {/* Fixed Section (Add Personnel Button) */}
-            <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-              {/* Add Personnel Button */}
-              <button
-                onClick={() => setCreatePersonnelModalOpen(true)}
-                className={`${primaryButtonStyle} w-full`}
-                disabled={isUpdating}
-              >
-                {t('personnelManager.addPersonnel', 'Add Personnel')}
-              </button>
-            </div>
           </div>
 
+          {/* Floating add button (frees the header) */}
+          <FloatingAddButton
+            onClick={() => setCreatePersonnelModalOpen(true)}
+            label={t('personnelManager.addPersonnel', 'Add Personnel')}
+            disabled={isUpdating}
+          />
+
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-24">
             {/* Search Input */}
             <input
               type="text"

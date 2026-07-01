@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
 import PlayerDetailsModal from './PlayerDetailsModal';
+import FloatingAddButton from './FloatingAddButton';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { extractTimestampFromId } from '@/utils/idGenerator';
@@ -201,25 +202,20 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           {/* Header */}
           <div className="flex flex-col">
             {/* Title Section */}
-            <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
+            <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
               <h2 className={`${titleStyle} drop-shadow-lg`}>{t('rosterSettingsModal.title', 'Manage Roster')}</h2>
-            </div>
-
-            {/* Fixed Section (Add Player Button) */}
-            <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-              {/* Add Player Button - Always visible */}
-              <button
-                onClick={handleAddPlayer}
-                className={`${primaryButtonStyle} w-full`}
-                disabled={isRosterUpdating}
-              >
-                {t('rosterSettingsModal.addPlayerButton', 'Add Player')}
-              </button>
             </div>
           </div>
 
+          {/* Floating add button (frees the header) */}
+          <FloatingAddButton
+            onClick={handleAddPlayer}
+            label={t('rosterSettingsModal.addPlayerButton', 'Add Player')}
+            disabled={isRosterUpdating}
+          />
+
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-2 pb-6">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-2 pb-24">
             <div className="mt-0.5 mb-3 flex items-center gap-2">
               <input
                 type="text"

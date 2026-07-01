@@ -1,12 +1,12 @@
 {
-  "version": "c23ba698",
+  "version": "1dcd9824",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Follow-up header cleanup: removed the duplicate \"X / Y selected\" count from the Game Settings and New Game headers (the player-selection list already shows it), and tidied the modal headers that only had an Add button so the button no longer sits crammed against the title."
+      "The Roster, Teams and Personnel screens now use a floating \"+\" button in the corner to add items, instead of a button taking up space at the top. The whole list is now visible and the add action stays reachable while you scroll."
     ],
     "fi": [
-      "Yläpalkin jälkisiistiminen: poistettiin päällekkäinen \"X / Y valittu\" -luku Ottelun asetukset- ja Uusi ottelu -yläpalkeista (pelaajavalintalista näyttää sen jo), ja siistittiin ikkunoiden yläpalkit joissa oli vain Lisää-painike, niin ettei painike ole enää liian lähellä otsikkoa."
+      "Kokoonpano-, Joukkueet- ja Henkilöstö-näkymissä on nyt kulmassa kelluva \"+\"-painike kohteiden lisäämiseen sen sijaan, että painike veisi tilaa yläreunasta. Koko lista näkyy nyt ja lisäystoiminto pysyy ulottuvilla vieritettäessä."
     ]
   }
 }
