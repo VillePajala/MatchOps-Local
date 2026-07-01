@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Recap polish: a clearer full-width \"Generate match recap\" button (no longer tucked into the stats heading); each section header now ends with a colon (Goals:, Assists:, Lineup:); and the redundant win/loss/draw tag was removed from the score line (the score already shows it) - kept only for penalty-shootout games, which now read e.g. \"2-2 (Win, on penalties)\"."
+      ],
+      "fi": [
+        "Koosteen hienosäätö: selkeämpi koko leveyden \"Generoi ottelukooste\" -painike (ei enää piilotettuna tilasto-otsikkoon); jokainen osion otsikko päättyy nyt kaksoispisteeseen (Maalit:, Syötöt:, Kokoonpano:); ja turha voitto/tappio/tasapeli-merkintä poistettiin tulosriviltä (tulos näkyy jo pisteistä) - se säilyy vain rangaistuspotkukilpailussa ratkenneissa otteluissa, jotka lukevat esim. \"2-2 (Voitto, rangaistuspotkuilla)\"."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Load Game now flags unfinished records: a played game that's still missing its report shows an amber \"Incomplete\" badge (next to \"Not played\"), so you can spot games that need wrapping up at a glance."
       ],
       "fi": [

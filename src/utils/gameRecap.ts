@@ -98,13 +98,11 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   const oppGoals = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
 
   const result = resolveGameResult(game);
-  const resultLabel =
-    result === 'W' ? t('recap.resultWin', 'W')
-    : result === 'L' ? t('recap.resultLoss', 'L')
-    : t('recap.resultDraw', 'D');
-  // A level raw score decided by a shootout (result is not a draw) is a penalty win/loss.
+  // The scoreline already shows win/loss/draw, so the result is only annotated
+  // when the raw score alone can't show it: a level score decided by a shootout.
   const onPenalties = game.homeScore === game.awayScore && result !== 'D';
-  const resultText = onPenalties ? `${resultLabel}, ${t('recap.onPenalties', 'on penalties')}` : resultLabel;
+  const resultLabel = result === 'W' ? t('recap.resultWin', 'Win') : t('recap.resultLoss', 'Loss');
+  const resultSuffix = onPenalties ? ` (${resultLabel}, ${t('recap.onPenalties', 'on penalties')})` : '';
 
   const goalEvents = game.gameEvents.filter(e => e.type === 'goal');
   const scorerIds = goalEvents.map(e => e.scorerId).filter((id): id is string => !!id);
@@ -116,20 +114,20 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   // Header block: team + score on one line, then date and location each on
   // their own line (location omitted when empty).
   const headerLines = [
-    `${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName} (${resultText})`,
+    `${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName}${resultSuffix}`,
     formatRecapDate(game.gameDate),
     game.gameLocation?.trim(),
   ].filter(Boolean);
   blocks.push(headerLines.join('\n'));
 
   const scorerLines = tallyLines(scorerIds, players, t);
-  if (scorerLines.length) blocks.push([t('recap.goals', 'Goals'), ...scorerLines].join('\n'));
+  if (scorerLines.length) blocks.push([`${t('recap.goals', 'Goals')}:`, ...scorerLines].join('\n'));
 
   const assisterLines = tallyLines(assisterIds, players, t);
-  if (assisterLines.length) blocks.push([t('recap.assists', 'Assists'), ...assisterLines].join('\n'));
+  if (assisterLines.length) blocks.push([`${t('recap.assists', 'Assists')}:`, ...assisterLines].join('\n'));
 
   const lineupLines = buildLineupLines(game.playerPositions, players, t);
-  if (lineupLines.length) blocks.push([t('recap.lineup', 'Lineup'), ...lineupLines].join('\n'));
+  if (lineupLines.length) blocks.push([`${t('recap.lineup', 'Lineup')}:`, ...lineupLines].join('\n'));
 
   const notes = game.gameNotes?.trim();
   if (notes) blocks.push(`${t('recap.coachNotes', 'Match report')}:\n${notes}`);
