@@ -1,12 +1,12 @@
 {
-  "version": "c745b89f",
+  "version": "139f2f95",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "The overall team stats no longer repeat the games-played count in the sticky header - it's already shown as \"Games Played\" in the Team Performance card - giving the content more room (same tidy-up as the player view)."
+      "Cleaned up modal headers app-wide: removed the redundant count line (\"N Players / N Games / N Seasons\" etc.) from the game statistics, load-game, roster, teams, personnel, season/tournament management, and season/tournament/team detail screens. It just repeated what's already in the list or shown below, so the content now gets that space back. Functional counters (the goal-log timer, the \"X of Y selected\" indicators) are kept."
     ],
     "fi": [
-      "Joukkueen kokonaistilastot eivät enää toista pelattujen otteluiden määrää kiinteässä yläpalkissa - se näkyy jo \"Pelatut ottelut\" -kohdassa joukkueen suorituskortissa - jolloin sisällölle jää enemmän tilaa (sama siistiminen kuin pelaajanäkymässä)."
+      "Siistittiin ikkunoiden yläpalkkeja koko sovelluksessa: poistettiin turha lukumäärärivi (\"N pelaajaa / N ottelua / N kautta\" jne.) ottelutilastoista, pelin lataus-, kokoonpano-, joukkue-, henkilöstö-, kausi/turnaus- ja kausi/turnaus/joukkue-tietonäkymistä. Se vain toisti listassa tai alla jo näkyvän tiedon, joten sisällölle jää nyt enemmän tilaa. Toiminnalliset laskurit (maalilokin ajastin, \"X / Y valittu\" -osoittimet) säilytettiin."
     ]
   }
 }

@@ -207,16 +207,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
             {/* Fixed Section (Stats, Add Button, Team Name) */}
             <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
-              {/* Player Counter Section - Always visible */}
-              <div className="mb-5 text-center text-sm">
-                <div className="flex justify-center items-center text-slate-300">
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
-                    {" "}{t('rosterSettingsModal.totalPlayersShort', 'Total Players')}
-                  </span>
-                </div>
-              </div>
-
               {/* Add Player Button - Always visible */}
               <button
                 onClick={handleAddPlayer}

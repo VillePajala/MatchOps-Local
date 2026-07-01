@@ -28,7 +28,6 @@ interface SeasonDetailsModalProps {
   season?: Season | null;
   addSeasonMutation?: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
   updateSeasonMutation?: UseMutationResult<Season | null, Error, Season, unknown>;
-  stats?: { games: number; goals: number };
   onOpenSettings?: () => void;
 }
 
@@ -39,7 +38,6 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   season,
   addSeasonMutation,
   updateSeasonMutation,
-  stats,
   onOpenSettings,
 }) => {
   const { t } = useTranslation();
@@ -269,27 +267,6 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
             </h2>
           </div>
 
-          {/* Stats Section - Only show in edit mode */}
-          {mode === 'edit' && stats && (
-            <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
-              <div className="mb-2 text-center text-sm">
-                <div className="flex justify-center items-center gap-6 text-slate-300">
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{stats.games}</span>
-                    {" "}{stats.games === 1
-                      ? t('seasonDetailsModal.gameSingular', 'Game')
-                      : t('seasonDetailsModal.games', 'Games')}
-                  </span>
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{stats.goals}</span>
-                    {" "}{stats.goals === 1
-                      ? t('seasonDetailsModal.goalSingular', 'Goal')
-                      : t('seasonDetailsModal.goals', 'Goals')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Scrollable Content */}

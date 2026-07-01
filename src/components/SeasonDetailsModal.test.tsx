@@ -83,15 +83,6 @@ describe('SeasonDetailsModal', () => {
     expect(screen.getByDisplayValue('Main season notes')).toBeInTheDocument();
   });
 
-  it('displays statistics when provided', async () => {
-    await act(async () => {
-      renderWithProviders();
-    });
-
-    expect(screen.getByText('15')).toBeInTheDocument();
-    expect(screen.getByText('42')).toBeInTheDocument();
-  });
-
   it('does not render when isOpen is false', () => {
     renderWithProviders({ isOpen: false });
 
