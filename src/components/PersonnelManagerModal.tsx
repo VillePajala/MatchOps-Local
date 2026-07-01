@@ -233,21 +233,6 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
             {/* Fixed Section (Stats, Add Button) */}
             <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
-              {/* Personnel Counter */}
-              <div className="mb-5 text-center text-sm">
-                <div className="flex justify-center items-center text-slate-300">
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{personnel.length}</span>
-                    {" "}{t(
-                      personnel.length === 1
-                        ? 'personnelManager.totalPersonnelSingular'
-                        : 'personnelManager.totalPersonnelPlural',
-                      'Personnel'
-                    )}
-                  </span>
-                </div>
-              </div>
-
               {/* Add Personnel Button */}
               <button
                 onClick={() => setCreatePersonnelModalOpen(true)}

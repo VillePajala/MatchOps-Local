@@ -92,15 +92,6 @@ describe('TournamentDetailsModal', () => {
     expect(screen.getByDisplayValue('Championship tournament')).toBeInTheDocument();
   });
 
-  it('displays statistics when provided', async () => {
-    await act(async () => {
-      renderWithProviders();
-    });
-
-    expect(screen.getByText('8')).toBeInTheDocument();
-    expect(screen.getByText('24')).toBeInTheDocument();
-  });
-
   it('does not render when isOpen is false', () => {
     renderWithProviders({ isOpen: false });
 

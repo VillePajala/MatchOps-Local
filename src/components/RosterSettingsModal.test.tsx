@@ -522,19 +522,4 @@ describe('RosterSettingsModal - Premium Limit Enforcement', () => {
       expect(screen.getByPlaceholderText(/Enter player name/i)).toBeInTheDocument();
     });
   });
-
-  /**
-   * Tests player count display
-   */
-  test('displays correct player count', () => {
-    render(
-      <TestWrapper>
-        <RosterSettingsModal {...defaultProps} />
-      </TestWrapper>
-    );
-
-    // Should show "2 Total Players" for our mock data
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('Total Players')).toBeInTheDocument();
-  });
 });

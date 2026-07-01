@@ -363,26 +363,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             </h2>
           </div>
 
-          {/* Fixed Section (Counters and Add Buttons) */}
+          {/* Fixed Section (Add Buttons) */}
           <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
-            {/* Counters Section */}
-            <div className="mb-5 text-center text-sm">
-              <div className="flex justify-center items-center gap-6 text-slate-300">
-                <span>
-                  <span className="text-yellow-400 font-semibold">{seasons.length}</span>
-                  {" "}{seasons.length === 1
-                    ? t('seasonTournamentModal.seasonSingular', 'Season')
-                    : t('seasonTournamentModal.seasons', 'Seasons')}
-                </span>
-                <span>
-                  <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
-                  {" "}{tournaments.length === 1
-                    ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
-                    : t('seasonTournamentModal.tournaments', 'Tournaments')}
-                </span>
-              </div>
-            </div>
-
             {/* Add Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -454,7 +436,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         mode="edit"
         season={seasons.find(s => s.id === selectedSeasonId) || null}
         updateSeasonMutation={updateSeasonMutation}
-        stats={selectedSeasonId ? stats[selectedSeasonId] : undefined}
         onOpenSettings={onOpenSettings}
       />
 
@@ -476,7 +457,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         tournament={tournaments.find(t => t.id === selectedTournamentId) || null}
         masterRoster={masterRoster}
         updateTournamentMutation={updateTournamentMutation}
-        stats={selectedTournamentId ? stats[selectedTournamentId] : undefined}
         onOpenSettings={onOpenSettings}
       />
 

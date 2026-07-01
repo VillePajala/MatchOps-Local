@@ -1,12 +1,12 @@
 {
-  "version": "8be87a56",
+  "version": "139f2f95",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Internal: documentation only - noted a future task to audit the remaining modal header counters for ones that just repeat a number already shown in the body, to free up header space. No app changes."
+      "Cleaned up modal headers app-wide: removed the redundant count line (\"N Players / N Games / N Seasons\" etc.) from the game statistics, load-game, roster, teams, personnel, season/tournament management, and season/tournament/team detail screens. It just repeated what's already in the list or shown below, so the content now gets that space back. Functional counters (the goal-log timer, the \"X of Y selected\" indicators) are kept."
     ],
     "fi": [
-      "Sisäinen: vain dokumentaatio - kirjattiin tuleva tehtävä tarkistaa loput ikkunoiden yläpalkkien laskurit sellaisten varalta, jotka vain toistavat rungossa jo näkyvän luvun, jotta yläpalkkiin saadaan tilaa. Ei sovellusmuutoksia."
+      "Siistittiin ikkunoiden yläpalkkeja koko sovelluksessa: poistettiin turha lukumäärärivi (\"N pelaajaa / N ottelua / N kautta\" jne.) ottelutilastoista, pelin lataus-, kokoonpano-, joukkue-, henkilöstö-, kausi/turnaus- ja kausi/turnaus/joukkue-tietonäkymistä. Se vain toisti listassa tai alla jo näkyvän tiedon, joten sisällölle jää nyt enemmän tilaa. Toiminnalliset laskurit (maalilokin ajastin, \"X / Y valittu\" -osoittimet) säilytettiin."
     ]
   }
 }

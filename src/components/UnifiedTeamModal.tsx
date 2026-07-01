@@ -525,21 +525,6 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                 : team?.name || t('unifiedTeamModal.editTitle', 'Edit Team')}
             </h2>
           </div>
-
-          {/* Player Counter */}
-          <div className="px-6 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
-            <div className="text-center text-sm">
-              <div className="flex justify-center items-center text-slate-300">
-                <span>
-                  <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>
-                  {" "}{selectedPlayerIds.length === 1
-                    ? t('unifiedTeamModal.playerSingular', 'Pelaaja')
-                    : t('unifiedTeamModal.playerPlural', 'Pelaajaa')
-                  }
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Content */}

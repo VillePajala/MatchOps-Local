@@ -496,72 +496,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Tab counter memoized for performance
-  const tabCounterContent = useMemo(() => {
-    if (activeTab === 'currentGame') {
-      return (
-        <span>
-          <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
-          {" "}{availablePlayers.length === 1
-            ? t('teamRosterModal.playerSingular', 'Player')
-            : t('teamRosterModal.playerPlural', 'Players')}
-        </span>
-      );
-    }
-
-    if (activeTab === 'season') {
-      return (
-        <span>
-          <span className="text-yellow-400 font-semibold">{seasons.length}</span>
-          {" "}{seasons.length === 1
-            ? t('seasonTournamentModal.seasonSingular', 'Season')
-            : t('seasonTournamentModal.seasons', 'Seasons')}
-        </span>
-      );
-    }
-
-    if (activeTab === 'tournament') {
-      return (
-        <span>
-          <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
-          {" "}{tournaments.length === 1
-            ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
-            : t('seasonTournamentModal.tournaments', 'Tournaments')}
-        </span>
-      );
-    }
-
-    if (activeTab === 'overall') {
-      const playedGamesCount = overallTeamStats?.gamesPlayed ?? 0;
-      return (
-        <span>
-          <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
-          {" "}{playedGamesCount === 1
-            ? t('gameStatsModal.game', 'Game')
-            : t('gameStatsModal.games', 'Games')}
-        </span>
-      );
-    }
-
-    if (activeTab === 'player') {
-      if (selectedPlayer) {
-        // Games-played is already shown in the player summary grid below, so the
-        // header counter would be redundant here - omit it to free up space.
-        return null;
-      } else {
-        return (
-          <span>
-            <span className="text-yellow-400 font-semibold">{masterRoster.length}</span>
-            {" "}{masterRoster.length === 1
-              ? t('teamRosterModal.playerSingular', 'Player')
-              : t('teamRosterModal.playerPlural', 'Players')}
-          </span>
-        );
-      }
-    }
-
-    return null;
-  }, [activeTab, availablePlayers, seasons, tournaments, selectedPlayer, masterRoster, overallTeamStats, t]);
-
   // Calculate team assessment averages (applying same filters as overallTeamStats)
   const teamAssessmentAverages = useMemo(() => {
     if (activeTab !== 'overall') return null;
@@ -750,14 +684,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {getTabTitle()}
           </h2>
-          {/* Counter */}
-          {tabCounterContent && (
-            <div className="mt-3 text-center text-sm">
-              <div className="flex justify-center items-center text-slate-300">
-                {tabCounterContent}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Controls Section */}
