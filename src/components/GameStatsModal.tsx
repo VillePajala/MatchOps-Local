@@ -544,19 +544,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
     if (activeTab === 'player') {
       if (selectedPlayer) {
-        // Count games where this player participated, respecting all active filters
-        const matchesCount = processedGameIds.filter(gameId => {
-          const game = savedGames?.[gameId];
-          return game?.selectedPlayerIds?.includes(selectedPlayer.id);
-        }).length;
-        return (
-          <span>
-            <span className="text-yellow-400 font-semibold">{matchesCount}</span>
-            {" "}{matchesCount === 1
-              ? t('common.gameSingular', 'Match')
-              : t('common.gamePlural', 'Matches')}
-          </span>
-        );
+        // Games-played is already shown in the player summary grid below, so the
+        // header counter would be redundant here - omit it to free up space.
+        return null;
       } else {
         return (
           <span>
@@ -570,7 +560,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
 
     return null;
-  }, [activeTab, availablePlayers, seasons, tournaments, savedGames, selectedPlayer, masterRoster, overallTeamStats, processedGameIds, t]);
+  }, [activeTab, availablePlayers, seasons, tournaments, selectedPlayer, masterRoster, overallTeamStats, t]);
 
   // Calculate team assessment averages (applying same filters as overallTeamStats)
   const teamAssessmentAverages = useMemo(() => {
@@ -761,11 +751,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             {getTabTitle()}
           </h2>
           {/* Counter */}
-          <div className="mt-3 text-center text-sm">
-            <div className="flex justify-center items-center text-slate-300">
-              {tabCounterContent}
+          {tabCounterContent && (
+            <div className="mt-3 text-center text-sm">
+              <div className="flex justify-center items-center text-slate-300">
+                {tabCounterContent}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Controls Section */}

@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(ui): smaller equal-height modal footer buttons + one-line assessment toggles (#598)"
+  "notes": "fix(ui): match Excel button height to the bordered Done button"
 }

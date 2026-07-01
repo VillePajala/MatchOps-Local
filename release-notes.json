@@ -4,10 +4,10 @@
     {
       "date": "2026-07-01",
       "en": [
-        "Fixed the game statistics footer so the Export Excel and Done buttons are now exactly the same height (the Done button's border was making it slightly taller)."
+        "Cleaned up the game statistics screen: the Export Excel and Done buttons are now exactly the same height, and the player view no longer repeats the games-played count in the sticky header (it's already in the summary below) - giving the content more room."
       ],
       "fi": [
-        "Korjattiin ottelutilastojen alapalkki niin, että Vie Excel- ja Valmis-painikkeet ovat nyt täsmälleen samankorkuiset (Valmis-painikkeen reunus teki siitä hieman korkeamman)."
+        "Siistittiin ottelutilastonäkymää: Vie Excel- ja Valmis-painikkeet ovat nyt täsmälleen samankorkuiset, eikä pelaajanäkymä toista pelattujen otteluiden määrää kiinteässä yläpalkissa (se näkyy jo alla olevassa yhteenvedossa) - jolloin sisällölle jää enemmän tilaa."
       ]
     },
     {
