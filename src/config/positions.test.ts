@@ -65,8 +65,7 @@ describe('positions config', () => {
   it('infers a default format (futsal by type, else by squad size), overridable', () => {
     expect(inferFormat('futsal', 20)).toBe('futsal');
     expect(inferFormat('soccer', 7)).toBe('5v5');
-    expect(inferFormat('soccer', 10)).toBe('7v7');
-    expect(inferFormat('soccer', 13)).toBe('9v9');
+    expect(inferFormat('soccer', 11)).toBe('8v8');
     expect(inferFormat('soccer', 16)).toBe('11v11');
     expect(inferFormat(undefined, 16)).toBe('11v11'); // legacy = soccer
   });
