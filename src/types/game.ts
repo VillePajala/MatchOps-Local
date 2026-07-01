@@ -109,6 +109,8 @@ export interface AppState {
   homeScore: number;
   awayScore: number;
   gameNotes: string;
+  // Position id(s) each player was assigned post-game, keyed by player id (see positions.ts).
+  playerPositions?: Record<string, string[]>;
   homeOrAway: 'home' | 'away';
   numberOfPeriods: 1 | 2;
   periodDurationMinutes: number;

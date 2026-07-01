@@ -97,4 +97,18 @@ describe('buildGameRecap', () => {
     const text = buildGameRecap({ ...base, gameEvents: [goal('ghost')] }, players, t);
     expect(text).toContain('Goals\nUnknown 1');
   });
+
+  it('renders a position-keyed lineup (back-to-front), multi-position and multi-player', () => {
+    // Emma (p2) played CB and RB; Liam (p1) and Noah (p3) both up top at ST.
+    const game: RecapGame = { ...base, playerPositions: { p1: ['st'], p2: ['cb', 'rb'], p3: ['st'] } };
+    const text = buildGameRecap(game, players, t);
+    // Order is back-to-front (RB before CB before ST); Emma appears under both her
+    // positions; ST lists both players, sorted by name.
+    expect(text).toContain('Lineup\nRB: Emma\nCB: Emma\nST: Liam, Noah');
+  });
+
+  it('omits the lineup block when no positions are assigned', () => {
+    expect(buildGameRecap({ ...base, playerPositions: {} }, players, t)).not.toContain('Lineup');
+    expect(buildGameRecap({ ...base }, players, t)).not.toContain('Lineup');
+  });
 });

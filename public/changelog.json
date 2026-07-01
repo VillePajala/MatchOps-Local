@@ -1,12 +1,12 @@
 {
-  "version": "c6585eca",
+  "version": "96420098",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Game recap tidy-up: the team + score stays on the first line, with the date and venue now each on their own line, and the age group removed - cleaner to read in the team chat."
+      "New: record which position(s) each player played. Open a game's settings and use the new Line-up section to tap positions for each player (a player can have more than one). The positions then appear in the shared game recap, grouped by position (e.g. \"CB: Emma, Noah\"), so other coaches can see who played where."
     ],
     "fi": [
-      "Ottelukoosteen siistiminen: joukkue + tulos pysyy ensimmäisellä rivillä, ja päivämäärä sekä paikka ovat nyt omilla riveillään, ikäryhmä poistettu - selkeämpi lukea joukkueen chatissa."
+      "Uutta: kirjaa mitä pelipaikkaa/-paikkoja kukin pelaaja pelasi. Avaa ottelun asetukset ja käytä uutta Kokoonpano-osiota napauttaaksesi pelipaikat kullekin pelaajalle (pelaajalla voi olla useampi). Pelipaikat näkyvät sitten jaettavassa ottelukoosteessa pelipaikoittain ryhmiteltyinä (esim. \"CB: Emma, Noah\"), jotta muut valmentajat näkevät kuka pelasi missäkin."
     ]
   }
 }

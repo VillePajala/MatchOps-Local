@@ -12,6 +12,7 @@ import { getShootoutTally } from '@/utils/shootout';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
+import PlayerPositionsEditor from './PlayerPositionsEditor';
 import { UseMutationResult } from '@tanstack/react-query';
 import { TFunction } from 'i18next';
 import AssessmentSlider from './AssessmentSlider';
@@ -64,6 +65,7 @@ export interface GameSettingsModalProps {
   gameLocation?: string;
   gameTime?: string;
   gameNotes?: string;
+  playerPositions?: Record<string, string[]>;
   ageGroup?: string;
   tournamentLevel?: string;
   tournamentSeriesId?: string;
@@ -88,6 +90,7 @@ export interface GameSettingsModalProps {
   onGameLocationChange: (location: string) => void;
   onGameTimeChange: (time: string) => void;
   onGameNotesChange: (notes: string) => void;
+  onPlayerPositionsChange?: (positions: Record<string, string[]>) => void;
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
   onTournamentSeriesIdChange: (seriesId: string | undefined) => void;
@@ -198,6 +201,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   gameLocation = '',
   gameTime = '',
   gameNotes = '',
+  playerPositions = {},
   ageGroup = '',
   tournamentLevel = '',
   tournamentSeriesId,
@@ -207,6 +211,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onGameLocationChange,
   onGameTimeChange,
   onGameNotesChange,
+  onPlayerPositionsChange,
   onAgeGroupChange,
   onTournamentLevelChange,
   onTournamentSeriesIdChange,
@@ -2577,6 +2582,25 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   {gameNotes || t('gameSettingsModal.noNotes', 'No notes yet. Click to add.')}
                 </div>
               )}
+            </div>
+
+            {/* Line-up / Positions Section */}
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 mt-4">
+              <h3 className="text-lg font-semibold text-slate-200 mb-4">
+                {t('gameSettingsModal.lineupTitle', 'Line-up')}
+              </h3>
+              <PlayerPositionsEditor
+                players={availablePlayers.filter(p => selectedPlayerIds.includes(p.id))}
+                value={playerPositions}
+                gameType={gameType}
+                onChange={(next) => {
+                  onPlayerPositionsChange?.(next);
+                  if (currentGameId) {
+                    updateGameDetails(currentGameId, { playerPositions: next }).catch(err =>
+                      logger.error('[GameSettingsModal] failed to persist positions', err));
+                  }
+                }}
+              />
             </div>
           </div>
 

@@ -84,6 +84,7 @@ interface GameStatsModalProps {
   availablePlayers: Player[];
   gameEvents: GameEvent[];
   gameNotes?: string;
+  playerPositions?: Record<string, string[]>;
   onGameNotesChange?: (notes: string) => void;
   onUpdateGameEvent?: (updatedEvent: GameEvent) => void;
   selectedPlayerIds: string[];
@@ -120,6 +121,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   availablePlayers,
   gameEvents,
   gameNotes = '',
+  playerPositions,
   onGameNotesChange = NOOP,
   onUpdateGameEvent = NOOP,
   selectedPlayerIds,
@@ -619,10 +621,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       gameEvents,
       gameNotes,
       shootoutKicks,
+      playerPositions,
     },
     availablePlayers,
     (key, fallback) => t(key, fallback) as string,
-  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, availablePlayers, t]);
+  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, availablePlayers, t]);
 
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {

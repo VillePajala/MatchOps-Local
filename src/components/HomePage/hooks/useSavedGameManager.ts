@@ -152,6 +152,7 @@ export function useSavedGameManager({
             homeScore: gameData.homeScore,
             awayScore: gameData.awayScore,
             gameNotes: gameData.gameNotes,
+            playerPositions: gameData.playerPositions ?? {},
             homeOrAway: gameData.homeOrAway,
             numberOfPeriods: gameData.numberOfPeriods,
             periodDurationMinutes: gameData.periodDurationMinutes,

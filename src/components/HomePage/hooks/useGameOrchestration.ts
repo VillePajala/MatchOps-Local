@@ -71,6 +71,7 @@ const initialState: AppState = {
   homeScore: 0,
   awayScore: 0,
   gameNotes: '', // Initialize game notes as empty string
+  playerPositions: {}, // Post-game position assignments, keyed by player id
   homeOrAway: 'home',
   // Initialize game structure
   numberOfPeriods: 2,
@@ -1040,6 +1041,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         homeScore: gameData.homeScore,
         awayScore: gameData.awayScore,
         gameNotes: gameData.gameNotes,
+        playerPositions: gameData.playerPositions ?? {},
         homeOrAway: gameData.homeOrAway,
         numberOfPeriods: gameData.numberOfPeriods,
         periodDurationMinutes: gameData.periodDurationMinutes,
@@ -1188,6 +1190,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       homeScore: gameData?.homeScore ?? initialGameSessionData.homeScore,
       awayScore: gameData?.awayScore ?? initialGameSessionData.awayScore,
       gameNotes: gameData?.gameNotes ?? initialGameSessionData.gameNotes,
+      playerPositions: gameData?.playerPositions ?? initialGameSessionData.playerPositions,
       homeOrAway: gameData?.homeOrAway ?? initialGameSessionData.homeOrAway,
       numberOfPeriods: gameData?.numberOfPeriods ?? initialGameSessionData.numberOfPeriods,
       periodDurationMinutes: gameData?.periodDurationMinutes ?? initialGameSessionData.periodDurationMinutes,
@@ -1403,6 +1406,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
   const handleGameDateChange = sessionCoordination.handlers.setGameDate;
   const handleGameNotesChange = sessionCoordination.handlers.setGameNotes;
+  const handlePlayerPositionsChange = sessionCoordination.handlers.setPlayerPositions;
 
   // --- Handlers for Game Structure ---
   const handleSetNumberOfPeriods = sessionCoordination.handlers.setNumberOfPeriods;
@@ -1812,6 +1816,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           opponentName: gameSessionState.opponentName,
           gameDate: gameSessionState.gameDate,
           gameNotes: gameSessionState.gameNotes,
+          playerPositions: gameSessionState.playerPositions,
           homeOrAway: gameSessionState.homeOrAway,
           seasonId: gameSessionState.seasonId,
           tournamentId: gameSessionState.tournamentId,
@@ -2534,6 +2539,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleGameLocationChange,
       handleGameTimeChange,
       handleGameNotesChange,
+      handlePlayerPositionsChange,
       handleAgeGroupChange,
       handleTournamentLevelChange,
       handleTournamentSeriesIdChange,

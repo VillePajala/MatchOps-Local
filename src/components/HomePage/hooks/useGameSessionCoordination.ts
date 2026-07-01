@@ -72,6 +72,7 @@ export interface UseGameSessionCoordinationReturn {
     setOpponentName: (name: string) => void;
     setGameDate: (date: string) => void;
     setGameNotes: (notes: string) => void;
+    setPlayerPositions: (positions: Record<string, string[]>) => void;
     setGameLocation: (location: string) => void;
     setGameTime: (time: string) => void;
     setAgeGroup: (group: string) => void;
@@ -129,6 +130,7 @@ export function useGameSessionCoordination({
     homeScore: initialState.homeScore,
     awayScore: initialState.awayScore,
     gameNotes: initialState.gameNotes,
+    playerPositions: initialState.playerPositions ?? {},
     homeOrAway: initialState.homeOrAway,
     numberOfPeriods: initialState.numberOfPeriods,
     periodDurationMinutes: initialState.periodDurationMinutes,
@@ -268,6 +270,7 @@ export function useGameSessionCoordination({
       homeScore: state.homeScore,
       awayScore: state.awayScore,
       gameNotes: state.gameNotes,
+      playerPositions: state.playerPositions,
       homeOrAway: state.homeOrAway,
       numberOfPeriods: state.numberOfPeriods,
       periodDurationMinutes: state.periodDurationMinutes,
@@ -349,6 +352,10 @@ export function useGameSessionCoordination({
 
   const handleGameNotesChange = useCallback((notes: string) => {
     dispatchGameSession({ type: 'SET_GAME_NOTES', payload: notes });
+  }, [dispatchGameSession]);
+
+  const handlePlayerPositionsChange = useCallback((positions: Record<string, string[]>) => {
+    dispatchGameSession({ type: 'SET_PLAYER_POSITIONS', payload: positions });
   }, [dispatchGameSession]);
 
   const handleGameLocationChange = useCallback((location: string) => {
@@ -498,6 +505,7 @@ export function useGameSessionCoordination({
         homeScore: state.homeScore,
         awayScore: state.awayScore,
         gameNotes: state.gameNotes,
+        playerPositions: state.playerPositions,
         numberOfPeriods: state.numberOfPeriods,
         periodDurationMinutes: state.periodDurationMinutes,
         currentPeriod: state.currentPeriod,
@@ -564,6 +572,7 @@ export function useGameSessionCoordination({
       setOpponentName: handleOpponentNameChange,
       setGameDate: handleGameDateChange,
       setGameNotes: handleGameNotesChange,
+      setPlayerPositions: handlePlayerPositionsChange,
       setGameLocation: handleGameLocationChange,
       setGameTime: handleGameTimeChange,
       setAgeGroup: handleAgeGroupChange,

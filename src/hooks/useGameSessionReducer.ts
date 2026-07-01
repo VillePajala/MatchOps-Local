@@ -9,6 +9,7 @@ export interface GameSessionState {
   homeScore: number;
   awayScore: number;
   gameNotes: string;
+  playerPositions?: Record<string, string[]>;
   homeOrAway: 'home' | 'away';
   numberOfPeriods: 1 | 2;
   periodDurationMinutes: number;
@@ -59,6 +60,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   homeScore: 0,
   awayScore: 0,
   gameNotes: '',
+  playerPositions: {},
   homeOrAway: 'home',
   numberOfPeriods: 2,
   periodDurationMinutes: 15,
@@ -99,6 +101,7 @@ export type GameSessionAction =
   | { type: 'SET_AWAY_SCORE'; payload: number }
   | { type: 'ADJUST_SCORE_FOR_EVENT'; payload: { eventType: 'goal' | 'opponentGoal', action: 'add' | 'delete' } }
   | { type: 'SET_GAME_NOTES'; payload: string }
+  | { type: 'SET_PLAYER_POSITIONS'; payload: Record<string, string[]> }
   | { type: 'SET_HOME_OR_AWAY'; payload: 'home' | 'away' }
   | { type: 'SET_NUMBER_OF_PERIODS'; payload: 1 | 2 }
   | { type: 'SET_PERIOD_DURATION'; payload: number }
@@ -180,6 +183,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'SET_GAME_NOTES':
       return { ...state, gameNotes: action.payload };
+    case 'SET_PLAYER_POSITIONS':
+      return { ...state, playerPositions: action.payload };
     case 'SET_HOME_OR_AWAY': {
       // When switching home/away, swap the scores because homeScore/awayScore
       // refer to the position (home team vs away team), not the user's team.
@@ -479,6 +484,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const homeScore = loadedData.homeScore ?? 0;
       const awayScore = loadedData.awayScore ?? 0;
       const gameNotes = loadedData.gameNotes ?? '';
+      const playerPositions = loadedData.playerPositions ?? {};
       const homeOrAway = loadedData.homeOrAway ?? 'home';
       const numberOfPeriods = loadedData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods;
       const periodDurationMinutes = loadedData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes;
@@ -545,6 +551,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         homeScore,
         awayScore,
         gameNotes,
+        playerPositions,
         homeOrAway,
         numberOfPeriods,
         periodDurationMinutes,

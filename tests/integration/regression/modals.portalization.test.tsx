@@ -175,6 +175,7 @@ const createProps = (): ModalManagerProps => ({
     gameLocationChange: noop,
     gameTimeChange: noop,
     gameNotesChange: noop,
+    playerPositionsChange: noop,
     ageGroupChange: noop,
     tournamentLevelChange: noop,
     tournamentSeriesIdChange: noop,
