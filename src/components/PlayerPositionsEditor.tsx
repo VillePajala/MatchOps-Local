@@ -25,14 +25,19 @@ interface PlayerPositionsEditorProps {
   gameType?: GameType;
 }
 
-// Colour by pitch line so the palette reads at a glance: selected = filled
-// line colour, idle = tinted outline (never the same flat grey as the panel).
+// Colour by pitch line, on the app's standard button base (solid slate-700 idle
+// / filled colour selected) so the chips read as GameSettings buttons but still
+// carry a line identity via colour. `sel`/`idle` slot into the shared button
+// classes below; `pill` is the small collapsed-summary tag.
 const CAT_STYLE: Record<PositionCategory, { sel: string; idle: string; pill: string }> = {
-  gk:  { sel: 'bg-amber-500 text-slate-900 ring-2 ring-amber-300/60 shadow-sm',    idle: 'border border-amber-500/40 text-amber-200 hover:bg-amber-500/15',     pill: 'bg-amber-500/20 text-amber-200 border border-amber-500/40' },
-  def: { sel: 'bg-sky-500 text-slate-900 ring-2 ring-sky-300/60 shadow-sm',        idle: 'border border-sky-500/40 text-sky-200 hover:bg-sky-500/15',           pill: 'bg-sky-500/20 text-sky-200 border border-sky-500/40' },
-  mid: { sel: 'bg-emerald-500 text-slate-900 ring-2 ring-emerald-300/60 shadow-sm', idle: 'border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/15', pill: 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/40' },
-  att: { sel: 'bg-rose-500 text-white ring-2 ring-rose-300/60 shadow-sm',          idle: 'border border-rose-500/40 text-rose-200 hover:bg-rose-500/15',        pill: 'bg-rose-500/20 text-rose-200 border border-rose-500/40' },
+  gk:  { sel: 'bg-amber-600 text-white',   idle: 'bg-slate-700 text-amber-300 hover:bg-slate-600',   pill: 'bg-amber-500/15 text-amber-200 border border-amber-500/30' },
+  def: { sel: 'bg-sky-600 text-white',     idle: 'bg-slate-700 text-sky-300 hover:bg-slate-600',     pill: 'bg-sky-500/15 text-sky-200 border border-sky-500/30' },
+  mid: { sel: 'bg-emerald-600 text-white', idle: 'bg-slate-700 text-emerald-300 hover:bg-slate-600', pill: 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30' },
+  att: { sel: 'bg-rose-600 text-white',    idle: 'bg-slate-700 text-rose-300 hover:bg-slate-600',    pill: 'bg-rose-500/15 text-rose-200 border border-rose-500/30' },
 };
+
+// Shared button chrome matching GameSettings segmented controls.
+const CHIP_BASE = 'px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800';
 
 const catStyle = (id: string) => CAT_STYLE[(POSITION_CATEGORY[id] ?? 'mid') as PositionCategory];
 
@@ -88,21 +93,21 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
   return (
     <div className="space-y-3">
       {/* Format selector - scopes the palette; `All` is the manual override. */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-medium text-slate-400">{t('gameSettingsModal.lineupFormat', 'Format')}</span>
-        <div className="flex gap-1 flex-wrap">
+      <div>
+        <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('gameSettingsModal.lineupFormat', 'Format')}</label>
+        <div className="flex gap-2">
           {formatOptions.map(f => (
-              <button
-                key={f}
-                type="button"
-                aria-pressed={format === f}
-                onClick={() => setFormat(f)}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                  format === f ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                {formatButtonLabel(f)}
-              </button>
+            <button
+              key={f}
+              type="button"
+              aria-pressed={format === f}
+              onClick={() => setFormat(f)}
+              className={`flex-1 px-2 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                format === f ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              {formatButtonLabel(f)}
+            </button>
           ))}
         </div>
       </div>
@@ -114,7 +119,7 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
           const chipIds = orderPositionIds([...new Set([...formatIds, ...assigned])]);
           const name = player.nickname?.trim() || player.name;
           return (
-            <div key={player.id} className="rounded-lg bg-slate-900/50 border border-slate-700/60 overflow-hidden">
+            <div key={player.id} className="rounded-md bg-slate-900/40 border border-slate-700 overflow-hidden">
               <button
                 type="button"
                 onClick={() => toggleExpand(player.id)}
@@ -151,7 +156,7 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
                         aria-pressed={sel}
                         title={label}
                         onClick={() => toggle(player.id, id)}
-                        className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${sel ? s.sel : `bg-slate-900/40 ${s.idle}`}`}
+                        className={`${CHIP_BASE} ${sel ? s.sel : s.idle}`}
                       >
                         {abbrev(id)}
                       </button>

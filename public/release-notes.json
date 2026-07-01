@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(lineup): format selector, collapsible rows, colour-coded chips (#577)"
+  "notes": "feat(lineup): add \"All\" format override for positions"
 }

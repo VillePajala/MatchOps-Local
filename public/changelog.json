@@ -1,12 +1,12 @@
 {
-  "version": "77b6c2dc",
+  "version": "77f81f4a",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Line-up positions: added an \"All\" option to the format selector that shows every position, so you can always override the automatic size/sport scoping and assign any position you want. The format selector now also appears for futsal games."
+      "Line-up editor styling now matches the rest of Game Settings: the Format buttons use the same segmented-control look as the other selectors, and the position buttons use the standard button style (with a colour tint per pitch line) instead of the previous outlined look."
     ],
     "fi": [
-      "Kokoonpanon pelipaikat: muotovalitsimeen lisättiin \"Kaikki\"-vaihtoehto, joka näyttää kaikki pelipaikat, joten voit aina ohittaa automaattisen koko-/lajirajauksen ja määrittää minkä tahansa pelipaikan. Muotovalitsin näkyy nyt myös futsal-otteluissa."
+      "Kokoonpanoeditorin tyyli vastaa nyt muuta Ottelun asetukset -näkymää: Muoto-painikkeet käyttävät samaa segmenttivalitsimen ulkoasua kuin muut valitsimet, ja pelipaikkapainikkeet käyttävät vakiopainiketyyliä (kentän linjan värisävyllä) aiemman ääriviivatyylin sijaan."
     ]
   }
 }
