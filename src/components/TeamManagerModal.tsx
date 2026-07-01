@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { secondaryButtonStyle, dangerButtonStyle, ModalFooter } from '@/styles/modalStyles';
+import FloatingAddButton from './FloatingAddButton';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -297,26 +298,20 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Header */}
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
+        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           <h1 id="team-manager-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {t('teamManager.title', 'Teams')}
           </h1>
         </div>
 
-        {/* Fixed Section (Add Team Button) */}
-        <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          {/* Add Team Button */}
-          <button
-            onClick={handleCreateTeam}
-            className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-            aria-label={t('teamManager.createNewTeam', 'Create new team')}
-          >
-            {t('teamManager.addTeam', 'Add Team')}
-          </button>
-        </div>
+        {/* Floating add button (frees the header) */}
+        <FloatingAddButton
+          onClick={handleCreateTeam}
+          label={t('teamManager.addTeam', 'Add Team')}
+        />
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 pb-24">
           {/* Search Field and Show Archived Toggle */}
           <div className="mb-4 flex flex-col sm:flex-row gap-3">
             <input

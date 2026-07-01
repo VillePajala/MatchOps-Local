@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(ui): drop redundant games counter from overall-stats header (#601)"
+  "notes": "fix(ui): remove duplicate selection counters + tidy button-only headers (#602)"
 }
