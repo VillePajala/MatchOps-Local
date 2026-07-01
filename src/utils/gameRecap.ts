@@ -99,9 +99,9 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
 
   const result = resolveGameResult(game);
   const resultLabel =
-    result === 'W' ? t('recap.resultWin', 'W')
-    : result === 'L' ? t('recap.resultLoss', 'L')
-    : t('recap.resultDraw', 'D');
+    result === 'W' ? t('recap.resultWin', 'Win')
+    : result === 'L' ? t('recap.resultLoss', 'Loss')
+    : t('recap.resultDraw', 'Draw');
   // A level raw score decided by a shootout (result is not a draw) is a penalty win/loss.
   const onPenalties = game.homeScore === game.awayScore && result !== 'D';
   const resultText = onPenalties ? `${resultLabel}, ${t('recap.onPenalties', 'on penalties')}` : resultLabel;
@@ -123,13 +123,13 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   blocks.push(headerLines.join('\n'));
 
   const scorerLines = tallyLines(scorerIds, players, t);
-  if (scorerLines.length) blocks.push([t('recap.goals', 'Goals'), ...scorerLines].join('\n'));
+  if (scorerLines.length) blocks.push([`${t('recap.goals', 'Goals')}:`, ...scorerLines].join('\n'));
 
   const assisterLines = tallyLines(assisterIds, players, t);
-  if (assisterLines.length) blocks.push([t('recap.assists', 'Assists'), ...assisterLines].join('\n'));
+  if (assisterLines.length) blocks.push([`${t('recap.assists', 'Assists')}:`, ...assisterLines].join('\n'));
 
   const lineupLines = buildLineupLines(game.playerPositions, players, t);
-  if (lineupLines.length) blocks.push([t('recap.lineup', 'Lineup'), ...lineupLines].join('\n'));
+  if (lineupLines.length) blocks.push([`${t('recap.lineup', 'Lineup')}:`, ...lineupLines].join('\n'));
 
   const notes = game.gameNotes?.trim();
   if (notes) blocks.push(`${t('recap.coachNotes', 'Match report')}:\n${notes}`);

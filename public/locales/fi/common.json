@@ -1,6 +1,6 @@
 {
   "recap": {
-    "button": "Kooste",
+    "button": "Generoi ottelukooste",
     "title": "Ottelukooste",
     "subtitle": "Valmis liitettäväksi joukkueen chattiin. Muokkaa halutessasi.",
     "share": "Jaa",
@@ -10,9 +10,9 @@
     "assists": "Syötöt",
     "lineup": "Kokoonpano",
     "coachNotes": "Otteluraportti",
-    "resultWin": "V",
-    "resultLoss": "T",
-    "resultDraw": "TP",
+    "resultWin": "Voitto",
+    "resultLoss": "Tappio",
+    "resultDraw": "Tasapeli",
     "onPenalties": "rangaistuspotkuilla",
     "unknownPlayer": "Tuntematon"
   },

@@ -1,6 +1,6 @@
 {
   "recap": {
-    "button": "Recap",
+    "button": "Generate match recap",
     "title": "Game recap",
     "subtitle": "Ready to paste into the team chat. Edit if you like.",
     "share": "Share",
@@ -10,9 +10,9 @@
     "assists": "Assists",
     "lineup": "Lineup",
     "coachNotes": "Match report",
-    "resultWin": "W",
-    "resultLoss": "L",
-    "resultDraw": "D",
+    "resultWin": "Win",
+    "resultLoss": "Loss",
+    "resultDraw": "Draw",
     "onPenalties": "on penalties",
     "unknownPlayer": "Unknown"
   },
