@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Two tweaks: the Recap button now shares the row with the \"Player Statistics\" heading instead of taking a row of its own, and the Game Settings positions section is renamed \"Positions played\" (with a short note) so it's clearly about recording where players actually played, not building a starting line-up."
+      ],
+      "fi": [
+        "Kaksi hienosäätöä: Kooste-painike on nyt samalla rivillä \"Pelaajatilastot\"-otsikon kanssa oman rivinsä sijaan, ja Ottelun asetusten pelipaikkaosio on nimetty uudelleen \"Toteutuneet pelipaikat\" (lyhyellä ohjeella), jotta se viittaa selvästi pelattujen pelipaikkojen kirjaamiseen eikä avauskokoonpanon tekemiseen."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Line-up editor: the player rows now use the same gradient list-item look and size as the Event Log entries in Game Settings, for a consistent feel."
       ],
       "fi": [

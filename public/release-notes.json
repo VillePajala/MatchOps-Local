@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(lineup): add \"All\" format override for positions (#578)"
+  "notes": "style(lineup): player cards use the Event Log gradient list style (#579)"
 }

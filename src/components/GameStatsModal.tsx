@@ -1024,22 +1024,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                     />
                   )}
-                  {activeTab === 'currentGame' && (
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => setShowRecap(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100"
-                      >
-                        <HiOutlineShare />
-                        {t('recap.button', 'Recap')}
-                      </button>
-                    </div>
-                  )}
-
                   {/* Player Stats Table or Empty State */}
                   <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                    <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <h3 className="text-xl font-semibold text-slate-200">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
+                      {activeTab === 'currentGame' && (
+                        <button
+                          type="button"
+                          onClick={() => setShowRecap(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 shrink-0"
+                        >
+                          <HiOutlineShare />
+                          {t('recap.button', 'Recap')}
+                        </button>
+                      )}
+                    </div>
                     {noGamesInContext ? (
                       <div className="text-center text-slate-400 py-8">
                         <div className="text-lg font-semibold mb-2">
