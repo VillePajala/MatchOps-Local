@@ -1,4 +1,20 @@
 {
+  "recap": {
+    "button": "Recap",
+    "title": "Game recap",
+    "subtitle": "Ready to paste into the team chat. Edit if you like.",
+    "share": "Share",
+    "copy": "Copy",
+    "copied": "Copied",
+    "goals": "Goals",
+    "assists": "Assists",
+    "coachNotes": "Coach's notes",
+    "resultWin": "W",
+    "resultLoss": "L",
+    "resultDraw": "D",
+    "onPenalties": "on penalties",
+    "unknownPlayer": "Unknown"
+  },
   "controlBar": {
     "help": "Help",
     "undo": "Undo",
