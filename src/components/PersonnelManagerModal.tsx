@@ -231,8 +231,8 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
               </h2>
             </div>
 
-            {/* Fixed Section (Stats, Add Button) */}
-            <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
+            {/* Fixed Section (Add Personnel Button) */}
+            <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
               {/* Add Personnel Button */}
               <button
                 onClick={() => setCreatePersonnelModalOpen(true)}

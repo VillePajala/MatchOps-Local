@@ -303,8 +303,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           </h1>
         </div>
 
-        {/* Fixed Section (Button and Team Counter) */}
-        <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        {/* Fixed Section (Add Team Button) */}
+        <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           {/* Add Team Button */}
           <button
             onClick={handleCreateTeam}
