@@ -122,19 +122,6 @@ describe('TeamManagerModal', () => {
       expect(screen.getByRole('heading', { name: 'Teams' })).toBeInTheDocument();
     });
 
-    it('renders team counter with correct count', async () => {
-      await renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-      const counterNumber = screen.getByText('3');
-      expect(counterNumber).toBeInTheDocument();
-      expect(counterNumber).toHaveClass('text-yellow-400');
-    });
-
-    it('renders singular "Team" when only one team exists', async () => {
-      await renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={[mockTeams[0]]} />);
-      expect(screen.getByText('1')).toBeInTheDocument();
-      expect(screen.getByText('Team')).toBeInTheDocument();
-    });
-
     it('renders all teams in list', async () => {
       await renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
       expect(screen.getByText('Team Alpha')).toBeInTheDocument();

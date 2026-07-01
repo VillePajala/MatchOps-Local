@@ -645,22 +645,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
             <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">{t('loadGameModal.title', 'Load Game')}</h2>
           </div>
-
-          {/* Fixed Section (Games Counter) */}
-          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
-            {/* Games Counter Section */}
-            <div className="mb-5 text-center text-sm">
-              <div className="flex justify-center items-center text-slate-300">
-                <span>
-                  <span className="text-yellow-400 font-semibold">{filteredGameIds.length}</span>
-                  {" "}
-                  {filteredGameIds.length === 1
-                    ? t('loadGameModal.gameSingular', 'Game')
-                    : t('loadGameModal.gamePlural', 'Games')}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Scrollable Content Area */}

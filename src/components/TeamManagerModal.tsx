@@ -305,19 +305,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
         {/* Fixed Section (Button and Team Counter) */}
         <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          {/* Team Counter */}
-          <div className="mb-5 text-center text-sm">
-            <div className="flex justify-center items-center text-slate-300">
-              <span>
-                <span className="text-yellow-400 font-semibold">{teams.length}</span>
-                {" "}{teams.length === 1
-                  ? t('teamManager.totalTeamsSingular', 'Team')
-                  : t('teamManager.totalTeamsPlural', 'Teams')
-                }
-              </span>
-            </div>
-          </div>
-
           {/* Add Team Button */}
           <button
             onClick={handleCreateTeam}
