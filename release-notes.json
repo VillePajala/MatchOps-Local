@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "More consistent controls: \"Not played yet\" in Game Settings is now a toggle button (blue when on) like Overtime/Penalties, and the timer's Overtime/Penalties buttons use shorter labels so they stay at the standard button height."
+      ],
+      "fi": [
+        "Yhtenäisemmät säätimet: \"Ei vielä pelattu\" Ottelun asetuksissa on nyt painike (sininen päällä) kuten Jatkoaika/Rangaistuspotkut, ja ajastimen Jatkoaika/Rangaistuspotkut-painikkeet käyttävät lyhyempiä tekstejä, jotta ne pysyvät vakiokorkeudessa."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "The \"Overtime\" and \"Penalties\" options in Game Settings are now toggle buttons (blue when on, matching the gender selector) instead of checkboxes."
       ],
       "fi": [

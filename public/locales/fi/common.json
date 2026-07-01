@@ -346,8 +346,8 @@
     "fullTime": "LP",
     "decreaseInterval": "Lyhennä aikaväliä",
     "increaseInterval": "Pidennä aikaväliä",
-    "wentToOvertime": "Meni jatkoajalle",
-    "recordShootout": "Kirjaa rangaistuspotkukilpailu",
+    "wentToOvertime": "Jatkoaika",
+    "recordShootout": "Rangaistuspotkut",
     "assessPlayersButton": "Arvioi pelaajat"
   },
   "instructionsModal": {
