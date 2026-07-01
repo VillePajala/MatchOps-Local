@@ -44,10 +44,10 @@ describe('buildGameRecap', () => {
     expect(text).toContain('2026'); // meta line present
     expect(text).toContain('Central Park');
     expect(text).toContain('U11');
-    // Liam scored twice (count desc), Emma once.
-    expect(text).toContain('Goals: Liam 2, Emma');
+    // One name per line, count always shown; Liam (2) before Emma (1) by count.
+    expect(text).toContain('Goals\nLiam 2\nEmma 1');
     // Noah assisted twice.
-    expect(text).toContain('Assists: Noah 2');
+    expect(text).toContain('Assists\nNoah 2');
     expect(text).toContain("Coach's notes:");
     expect(text).toContain('Great pressing in the second half.');
   });
@@ -89,14 +89,14 @@ describe('buildGameRecap', () => {
       t,
     );
     expect(text).toContain('Tigers 0-0 Lions (D)');
-    expect(text).not.toContain('Goals:');
-    expect(text).not.toContain('Assists:');
+    expect(text).not.toContain('Goals');
+    expect(text).not.toContain('Assists');
     expect(text).not.toContain("Coach's notes:");
     expect(text).not.toContain('Central Park');
   });
 
   it('falls back to Unknown for a deleted scorer', () => {
     const text = buildGameRecap({ ...base, gameEvents: [goal('ghost')] }, players, t);
-    expect(text).toContain('Goals: Unknown');
+    expect(text).toContain('Goals\nUnknown 1');
   });
 });

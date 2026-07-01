@@ -46,17 +46,17 @@ const formatRecapDate = (iso: string): string => {
 };
 
 /**
- * Count occurrences per player id, then render "Name 2, Other" ordered by count
- * (desc) then name (asc) for stable output. A count of 1 shows no number.
+ * Count occurrences per player id, one "Name N" line each, ordered by count
+ * (desc) then name (asc) for stable output. The count is always shown so the
+ * list reads like a mini scoreboard.
  */
-const tally = (ids: string[], players: Player[], t: RecapTranslate): string => {
+const tallyLines = (ids: string[], players: Player[], t: RecapTranslate): string[] => {
   const counts = new Map<string, number>();
   ids.forEach(id => counts.set(id, (counts.get(id) ?? 0) + 1));
   return Array.from(counts.entries())
     .map(([id, n]) => ({ name: displayName(id, players, t), n }))
     .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name))
-    .map(({ name, n }) => (n > 1 ? `${name} ${n}` : name))
-    .join(', ');
+    .map(({ name, n }) => `${name} ${n}`);
 };
 
 /**
@@ -80,24 +80,27 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   const scorerIds = goalEvents.map(e => e.scorerId).filter((id): id is string => !!id);
   const assisterIds = goalEvents.map(e => e.assisterId).filter((id): id is string => !!id);
 
-  const lines: string[] = [];
-  lines.push(`${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName} (${resultText})`);
+  // Each block is one visual group; present blocks are separated by a blank line.
+  const blocks: string[] = [];
 
   const meta = [formatRecapDate(game.gameDate), game.gameLocation, game.ageGroup]
     .map(s => s?.trim())
     .filter(Boolean)
     .join(' · ');
-  if (meta) lines.push(meta);
+  blocks.push(
+    [`${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName} (${resultText})`, meta]
+      .filter(Boolean)
+      .join('\n'),
+  );
 
-  if (scorerIds.length) lines.push(`${t('recap.goals', 'Goals')}: ${tally(scorerIds, players, t)}`);
-  if (assisterIds.length) lines.push(`${t('recap.assists', 'Assists')}: ${tally(assisterIds, players, t)}`);
+  const scorerLines = tallyLines(scorerIds, players, t);
+  if (scorerLines.length) blocks.push([t('recap.goals', 'Goals'), ...scorerLines].join('\n'));
+
+  const assisterLines = tallyLines(assisterIds, players, t);
+  if (assisterLines.length) blocks.push([t('recap.assists', 'Assists'), ...assisterLines].join('\n'));
 
   const notes = game.gameNotes?.trim();
-  if (notes) {
-    lines.push('');
-    lines.push(`${t('recap.coachNotes', "Coach's notes")}:`);
-    lines.push(notes);
-  }
+  if (notes) blocks.push(`${t('recap.coachNotes', "Coach's notes")}:\n${notes}`);
 
-  return lines.join('\n');
+  return blocks.join('\n\n');
 }
