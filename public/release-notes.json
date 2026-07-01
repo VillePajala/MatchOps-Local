@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(nav): \"Game report\" menu entry for the post-game view (#582)"
+  "notes": "fix(recap): full-width generate button, spelled-out result, header colons"
 }

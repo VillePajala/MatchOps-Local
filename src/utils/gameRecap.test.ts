@@ -40,12 +40,12 @@ describe('buildGameRecap', () => {
     };
     const text = buildGameRecap(game, players, t);
     // Header: score line, then date and location each on their own line (no age group).
-    expect(text).toContain('Tigers 3-2 Lions (W)\n26.6.2026\nCentral Park');
+    expect(text).toContain('Tigers 3-2 Lions\n26.6.2026\nCentral Park');
     expect(text).not.toContain('U11');
     // One name per line, count always shown; Liam (2) before Emma (1) by count.
-    expect(text).toContain('Goals\nLiam 2\nEmma 1');
+    expect(text).toContain('Goals:\nLiam 2\nEmma 1');
     // Noah assisted twice.
-    expect(text).toContain('Assists\nNoah 2');
+    expect(text).toContain('Assists:\nNoah 2');
     expect(text).toContain("Match report:");
     expect(text).toContain('Great pressing in the second half.');
   });
@@ -53,7 +53,7 @@ describe('buildGameRecap', () => {
   it('puts our goals first when away, and resolves a loss', () => {
     // Away: we are awayScore=1, opponent homeScore=4.
     const text = buildGameRecap({ ...base, homeOrAway: 'away', homeScore: 4, awayScore: 1 }, players, t);
-    expect(text).toContain('Tigers 1-4 Lions (L)');
+    expect(text).toContain('Tigers 1-4 Lions');
   });
 
   it('marks a level score decided by a shootout as a penalty win', () => {
@@ -71,12 +71,12 @@ describe('buildGameRecap', () => {
       players,
       t,
     );
-    expect(text).toContain('Tigers 2-2 Lions (W, on penalties)');
+    expect(text).toContain('Tigers 2-2 Lions (Win, on penalties)');
   });
 
   it('renders a plain draw with no shootout', () => {
     const text = buildGameRecap({ ...base, homeScore: 1, awayScore: 1 }, players, t);
-    expect(text).toContain('Tigers 1-1 Lions (D)');
+    expect(text).toContain('Tigers 1-1 Lions');
     expect(text).not.toContain('on penalties');
   });
 
@@ -86,7 +86,7 @@ describe('buildGameRecap', () => {
       players,
       t,
     );
-    expect(text).toContain('Tigers 0-0 Lions (D)');
+    expect(text).toContain('Tigers 0-0 Lions');
     expect(text).not.toContain('Goals');
     expect(text).not.toContain('Assists');
     expect(text).not.toContain("Match report:");
@@ -95,7 +95,7 @@ describe('buildGameRecap', () => {
 
   it('falls back to Unknown for a deleted scorer', () => {
     const text = buildGameRecap({ ...base, gameEvents: [goal('ghost')] }, players, t);
-    expect(text).toContain('Goals\nUnknown 1');
+    expect(text).toContain('Goals:\nUnknown 1');
   });
 
   it('renders a position-keyed lineup (back-to-front), multi-position and multi-player', () => {
@@ -104,7 +104,7 @@ describe('buildGameRecap', () => {
     const text = buildGameRecap(game, players, t);
     // Order is back-to-front (RB before CB before ST); Emma appears under both her
     // positions; ST lists both players, sorted by name.
-    expect(text).toContain('Lineup\nRB: Emma\nCB: Emma\nST: Liam, Noah');
+    expect(text).toContain('Lineup:\nRB: Emma\nCB: Emma\nST: Liam, Noah');
   });
 
   it('omits the lineup block when no positions are assigned', () => {

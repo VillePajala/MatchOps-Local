@@ -270,9 +270,7 @@ describe('GameStatsModal', () => {
 
     const playerStatsSection = screen.getByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') });
     expect(playerStatsSection).toBeInTheDocument();
-    // The heading sits in a flex header row inside the stats section; step out to
-    // the section container that also holds the stats table.
-    const playerStatsContainer = playerStatsSection.closest('div')?.parentElement as HTMLElement;
+    const playerStatsContainer = playerStatsSection.closest('div') as HTMLElement;
 
     expect(within(playerStatsContainer).getByRole('columnheader', { name: i18n.t('common.player') })).toBeInTheDocument();
     expect(within(playerStatsContainer).getByRole('cell', { name: 'Alice' })).toBeInTheDocument();
