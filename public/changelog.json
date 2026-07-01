@@ -1,12 +1,12 @@
 {
-  "version": "f563733e",
+  "version": "fb86c24b",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Writing the match report is roomier: the edit box is now taller (and you can drag it larger), and its Save / Cancel buttons match the rest of the app's button styling."
+      "The game recap popup is now much larger - a wider window that uses more of the screen height, with the text area filling it - so you can read and edit a long recap without all the scrolling."
     ],
     "fi": [
-      "Otteluraportin kirjoittaminen on väljempää: muokkausruutu on nyt korkeampi (ja voit vetää sitä suuremmaksi), ja sen Tallenna / Peruuta -painikkeet noudattavat muun sovelluksen painiketyyliä."
+      "Ottelukoosteen ponnahdusikkuna on nyt paljon suurempi - leveämpi ikkuna, joka käyttää enemmän näytön korkeutta ja jonka tekstialue täyttää sen - joten voit lukea ja muokata pitkää koostetta ilman jatkuvaa vieritystä."
     ]
   }
 }
