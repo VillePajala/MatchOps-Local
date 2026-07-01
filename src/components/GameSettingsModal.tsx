@@ -2364,13 +2364,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onWentToOvertimeChange(newValue);
                       mutateGameDetails({ wentToOvertime: newValue }, { source: 'stateSync' });
                     }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       wentToOvertime
-                        ? 'bg-amber-600/80 border-amber-500 text-white'
-                        : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
-                    {wentToOvertime ? '✓ ' : ''}{t('gameSettingsModal.wentToOvertime', 'Went to overtime')}
+                    {t('gameSettingsModal.wentToOvertime', 'Overtime')}
                   </button>
                   <button
                     type="button"
@@ -2380,13 +2380,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       onWentToPenaltiesChange(newValue);
                       mutateGameDetails({ wentToPenalties: newValue }, { source: 'stateSync' });
                     }}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       wentToPenalties
-                        ? 'bg-amber-600/80 border-amber-500 text-white'
-                        : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
-                    {wentToPenalties ? '✓ ' : ''}{t('gameSettingsModal.wentToPenalties', 'Decided by penalties')}
+                    {t('gameSettingsModal.wentToPenalties', 'Penalties')}
                   </button>
                 </div>
                 {/* Penalty shootout — log kicks; the result is derived and breaks a level score */}

@@ -1443,8 +1443,8 @@
     "recordShootout": "Kirjaa rangaistuspotkukilpailu →",
     "shootoutLabel": "Rangaistuspotkut",
     "editShootout": "(muokkaa)",
-    "wentToOvertime": "Meni jatkoajalle",
-    "wentToPenalties": "Ratkaistu rangaistuspotkuilla"
+    "wentToOvertime": "Jatkoaika",
+    "wentToPenalties": "Rangaistuspotkut"
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",

@@ -967,8 +967,8 @@
     "recordShootout": "Record penalty shootout →",
     "shootoutLabel": "Shootout",
     "editShootout": "(edit)",
-    "wentToOvertime": "Went to overtime",
-    "wentToPenalties": "Decided by penalties"
+    "wentToOvertime": "Overtime",
+    "wentToPenalties": "Penalties"
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",
