@@ -112,19 +112,22 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
         </div>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {players.map(player => {
           const assigned = value[player.id] ?? [];
           const isOpen = expanded.has(player.id);
           const chipIds = orderPositionIds([...new Set([...formatIds, ...assigned])]);
           const name = player.nickname?.trim() || player.name;
           return (
-            <div key={player.id} className="rounded-md bg-slate-900/40 border border-slate-700 overflow-hidden">
+            <div
+              key={player.id}
+              className="rounded-md overflow-hidden transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+            >
               <button
                 type="button"
                 onClick={() => toggleExpand(player.id)}
                 aria-expanded={isOpen}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-slate-800/40 transition-colors"
+                className="w-full flex items-center justify-between gap-2 p-3 text-left"
               >
                 <span className="text-sm font-medium text-slate-100 truncate shrink-0">{name}</span>
                 <span className="flex items-center gap-2 min-w-0">
@@ -144,7 +147,7 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
               </button>
 
               {isOpen && (
-                <div className="px-3 pb-3 pt-1 flex flex-wrap gap-1.5" role="group">
+                <div className="px-3 pb-3 flex flex-wrap gap-1.5" role="group">
                   {chipIds.map(id => {
                     const sel = assigned.includes(id);
                     const s = catStyle(id);

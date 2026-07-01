@@ -1,12 +1,12 @@
 {
-  "version": "77f81f4a",
+  "version": "c87c9391",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Line-up editor styling now matches the rest of Game Settings: the Format buttons use the same segmented-control look as the other selectors, and the position buttons use the standard button style (with a colour tint per pitch line) instead of the previous outlined look."
+      "Line-up editor: the player rows now use the same gradient list-item look and size as the Event Log entries in Game Settings, for a consistent feel."
     ],
     "fi": [
-      "Kokoonpanoeditorin tyyli vastaa nyt muuta Ottelun asetukset -näkymää: Muoto-painikkeet käyttävät samaa segmenttivalitsimen ulkoasua kuin muut valitsimet, ja pelipaikkapainikkeet käyttävät vakiopainiketyyliä (kentän linjan värisävyllä) aiemman ääriviivatyylin sijaan."
+      "Kokoonpanoeditori: pelaajarivit käyttävät nyt samaa gradientti-listatyyliä ja kokoa kuin Tapahtumaloki-merkinnät Ottelun asetuksissa, yhtenäisen ulkoasun vuoksi."
     ]
   }
 }
