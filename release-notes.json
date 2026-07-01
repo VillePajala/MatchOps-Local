@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "The game recap popup is now much larger - a wider window that uses more of the screen height, with the text area filling it - so you can read and edit a long recap without all the scrolling."
+      ],
+      "fi": [
+        "Ottelukoosteen ponnahdusikkuna on nyt paljon suurempi - leveämpi ikkuna, joka käyttää enemmän näytön korkeutta ja jonka tekstialue täyttää sen - joten voit lukea ja muokata pitkää koostetta ilman jatkuvaa vieritystä."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Wording: the Finnish recap button now reads \"Luo ottelukooste\" (more natural than \"Generoi\")."
       ],
       "fi": [

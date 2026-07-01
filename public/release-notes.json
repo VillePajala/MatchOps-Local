@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(loadgame): readiness dot instead of \"Incomplete\" tag (#585)"
+  "notes": "i18n(recap): Finnish button \"Luo ottelukooste\" (more natural than Generoi) (#586)"
 }
