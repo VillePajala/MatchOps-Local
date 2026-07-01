@@ -13,6 +13,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Fixed: a saved match report now keeps its line breaks and paragraphs when shown in Game Settings (it was displaying as one run-on block). Your text was always saved correctly - this was only a display issue."
+      ],
+      "fi": [
+        "Korjattu: tallennettu otteluraportti säilyttää nyt rivinvaihdot ja kappaleet, kun se näytetään Ottelun asetuksissa (aiemmin se näkyi yhtenä yhtenäisenä tekstinä). Tekstisi tallentui aina oikein - kyseessä oli vain näyttöongelma."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "More consistent controls: \"Not played yet\" in Game Settings is now a toggle button (blue when on) like Overtime/Penalties, and the timer's Overtime/Penalties buttons use shorter labels so they stay at the standard button height."
       ],
       "fi": [
