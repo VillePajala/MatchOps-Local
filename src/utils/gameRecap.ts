@@ -18,7 +18,6 @@ export interface RecapGame {
   opponentName: string;
   gameDate: string; // ISO 'yyyy-mm-dd'
   gameLocation?: string;
-  ageGroup?: string;
   homeScore: number;
   awayScore: number;
   homeOrAway: 'home' | 'away';
@@ -83,15 +82,14 @@ export function buildGameRecap(game: RecapGame, players: Player[], t: RecapTrans
   // Each block is one visual group; present blocks are separated by a blank line.
   const blocks: string[] = [];
 
-  const meta = [formatRecapDate(game.gameDate), game.gameLocation, game.ageGroup]
-    .map(s => s?.trim())
-    .filter(Boolean)
-    .join(' · ');
-  blocks.push(
-    [`${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName} (${resultText})`, meta]
-      .filter(Boolean)
-      .join('\n'),
-  );
+  // Header block: team + score on one line, then date and location each on
+  // their own line (location omitted when empty).
+  const headerLines = [
+    `${game.teamName} ${teamGoals}-${oppGoals} ${game.opponentName} (${resultText})`,
+    formatRecapDate(game.gameDate),
+    game.gameLocation?.trim(),
+  ].filter(Boolean);
+  blocks.push(headerLines.join('\n'));
 
   const scorerLines = tallyLines(scorerIds, players, t);
   if (scorerLines.length) blocks.push([t('recap.goals', 'Goals'), ...scorerLines].join('\n'));
