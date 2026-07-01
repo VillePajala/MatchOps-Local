@@ -23,7 +23,9 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
 import GameRecapModal from './GameRecapModal';
+import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
+import { computeGameCompleteness } from '@/utils/gameCompleteness';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { queryKeys } from '@/config/queryKeys';
 
@@ -627,6 +629,23 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     (key, fallback) => t(key, fallback) as string,
   ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, availablePlayers, t]);
 
+  // Completeness for the current game: live-editable fields from props over the
+  // saved snapshot (which carries competition/team/assessments).
+  const currentGameCompleteness = useMemo(() => {
+    const saved = currentGameId ? savedGames?.[currentGameId] : undefined;
+    if (!saved) return null;
+    return computeGameCompleteness({
+      isPlayed: saved.isPlayed,
+      gameNotes,
+      selectedPlayerIds,
+      seasonId: saved.seasonId,
+      tournamentId: saved.tournamentId,
+      teamId: saved.teamId,
+      playerPositions,
+      assessments: saved.assessments,
+    });
+  }, [currentGameId, savedGames, gameNotes, selectedPlayerIds, playerPositions]);
+
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {
     if (gameNotes !== editGameNotes) {
@@ -1022,6 +1041,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       wentToOvertime={wentToOvertime}
                       wentToPenalties={wentToPenalties}
                       shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
+                    />
+                  )}
+                  {activeTab === 'currentGame' && currentGameCompleteness?.applicable && (
+                    <GameWrapUpCard
+                      completeness={currentGameCompleteness}
+                      onOpenSettings={onOpenSettings}
                     />
                   )}
                   {/* Player Stats Table or Empty State */}
