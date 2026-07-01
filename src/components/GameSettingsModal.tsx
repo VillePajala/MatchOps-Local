@@ -1483,6 +1483,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     setInlineEditError(null);
   };
 
+  // Insert the report scaffold (headings) into the notes editor - appends below
+  // any existing text so it's non-destructive.
+  const handleInsertReportTemplate = () => {
+    const template = t('gameSettingsModal.reportTemplate', '');
+    setInlineEditValue(prev => (prev.trim() ? `${prev.trimEnd()}\n\n${template}` : template));
+    if (inlineEditError) setInlineEditError(null);
+    requestAnimationFrame(() => notesTextareaRef.current?.focus());
+  };
+
   // Handle KeyDown for inline edits (Enter/Escape)
   const handleInlineEditKeyDown = (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (event.key === 'Enter') {
@@ -2560,21 +2569,31 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     disabled={isProcessing}
                   />
                   {inlineEditError && <p className="mt-1 text-sm text-red-400">{inlineEditError}</p>}
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <button
-                      onClick={handleCancelInlineEdit}
+                      type="button"
+                      onClick={handleInsertReportTemplate}
                       className={secondaryButtonStyle}
                       disabled={isProcessing}
                     >
-                      {t('common.cancel', 'Cancel')}
+                      {t('gameSettingsModal.useTemplate', 'Use template')}
                     </button>
-                    <button
-                      onClick={handleConfirmInlineEdit}
-                      className={primaryButtonStyle}
-                      disabled={isProcessing}
-                    >
-                      {t('common.save', 'Save')}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleCancelInlineEdit}
+                        className={secondaryButtonStyle}
+                        disabled={isProcessing}
+                      >
+                        {t('common.cancel', 'Cancel')}
+                      </button>
+                      <button
+                        onClick={handleConfirmInlineEdit}
+                        className={primaryButtonStyle}
+                        disabled={isProcessing}
+                      >
+                        {t('common.save', 'Save')}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (

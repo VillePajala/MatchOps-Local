@@ -1,12 +1,12 @@
 {
-  "version": "b9810535",
+  "version": "e006724b",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "The \"Went to overtime\" and \"Decided by penalties\" options in Game Settings are now toggle buttons (highlighting when on) instead of checkboxes, matching the toggle in the timer."
+      "The \"Overtime\" and \"Penalties\" options in Game Settings are now toggle buttons (blue when on, matching the gender selector) instead of checkboxes."
     ],
     "fi": [
-      "Ottelun asetusten \"Meni jatkoajalle\" ja \"Ratkesi rangaistuspotkuilla\" -valinnat ovat nyt painikkeita (jotka korostuvat päällä ollessaan) valintaruutujen sijaan, ajastimen painikkeen tapaan."
+      "Ottelun asetusten \"Jatkoaika\"- ja \"Rangaistuspotkut\"-valinnat ovat nyt painikkeita (siniset päällä ollessaan, kuten sukupuolivalitsin) valintaruutujen sijaan."
     ]
   }
 }

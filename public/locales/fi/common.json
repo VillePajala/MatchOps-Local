@@ -1429,6 +1429,8 @@
     "noNotes": "Ei muistiinpanoja. Klikkaa lisätäksesi.",
     "lineupTitle": "Toteutuneet pelipaikat",
     "lineupSubtitle": "Merkitse, missä kukin pelaaja tosiasiassa pelasi tässä ottelussa.",
+    "useTemplate": "Käytä pohjaa",
+    "reportTemplate": "Yleiskuva:\n\nPelin kulku:\n\nMikä toimi hyvin:\n\nKehityskohteet:\n\nJoukkuehenki ja asenne:\n\nErityismaininnat:\n\nSeuraava askel:\n",
     "lineupNoPlayers": "Valitse otteluun pelaajat, jotta voit määrittää pelipaikat.",
     "lineupFormat": "Muoto",
     "lineupFormatAll": "Kaikki",
