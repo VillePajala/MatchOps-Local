@@ -767,6 +767,7 @@ export type TranslationKey =
   | 'gameSettingsModal.levelLabel'
   | 'gameSettingsModal.lineupAddPositions'
   | 'gameSettingsModal.lineupFormat'
+  | 'gameSettingsModal.lineupFormatAll'
   | 'gameSettingsModal.lineupNoPlayers'
   | 'gameSettingsModal.lineupTitle'
   | 'gameSettingsModal.linkita'

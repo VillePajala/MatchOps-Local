@@ -58,21 +58,24 @@ export const POSITION_CATEGORY: Record<string, PositionCategory> = Object.fromEn
 
 /**
  * Match format. Soccer sizes scope the position palette so a 5v5 game does not
- * show all 14 eleven-a-side positions; the coach can widen it via the selector
- * (11v11 = the full set). Futsal is its own set.
+ * show all 14 eleven-a-side positions; the coach can widen it via the selector.
+ * Futsal is its own set. `all` is the manual override - the entire library
+ * (every position, both sports), ignoring the size and sport automation.
  */
-export type PositionFormat = '5v5' | '7v7' | '9v9' | '11v11' | 'futsal';
+export type PositionFormat = '5v5' | '7v7' | '9v9' | '11v11' | 'futsal' | 'all';
 
 export const SOCCER_FORMATS: readonly PositionFormat[] = ['5v5', '7v7', '9v9', '11v11'];
 
 // Position palette per format (back-to-front). Bigger formats add width + more
-// specialised roles; 11v11 is the full set (the "show everything" override).
+// specialised roles; `all` is every position - the escape hatch from all the
+// automatic scoping.
 export const POSITION_FORMATS: Record<PositionFormat, readonly string[]> = {
   '5v5': ['gk', 'lb', 'cb', 'rb', 'cm', 'st'],
   '7v7': ['gk', 'lb', 'cb', 'rb', 'lm', 'cm', 'rm', 'st'],
   '9v9': ['gk', 'lb', 'cb', 'rb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st'],
   '11v11': ['gk', 'rb', 'cb', 'lb', 'rwb', 'lwb', 'cdm', 'cm', 'cam', 'rm', 'lm', 'rw', 'lw', 'st'],
   'futsal': ['gk', 'fixo', 'ala', 'pivo'],
+  'all': POSITION_IDS,
 };
 
 /**

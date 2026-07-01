@@ -943,6 +943,7 @@
     "lineupTitle": "Line-up",
     "lineupNoPlayers": "Select players for this game to assign positions.",
     "lineupFormat": "Format",
+    "lineupFormatAll": "All",
     "lineupAddPositions": "Add positions",
     "teamsAndRosterLabel": "Teams & Roster",
     "gameDetailsLabel": "Game Details",
