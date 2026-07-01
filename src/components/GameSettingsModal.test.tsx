@@ -53,7 +53,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.playersSelected': 'valittu',
         'gameSettingsModal.selectAll': 'Valitse kaikki',
         'gameSettingsModal.eventLogTitle': 'Tapahtumaloki',
-        'gameSettingsModal.notesTitle': 'Pelin muistiinpanot',
+        'gameSettingsModal.notesTitle': 'Otteluraportti',
         'gameSettingsModal.editNotes': 'Muokkaa muistiinpanoja',
         'gameSettingsModal.noNotes': 'Ei muistiinpanoja vielä.',
         'gameSettingsModal.notesPlaceholder': 'Kirjoita muistiinpanoja...',

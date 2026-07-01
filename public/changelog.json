@@ -1,12 +1,12 @@
 {
-  "version": "80b97415",
+  "version": "78b39dfa",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "New: one-tap game recap. Open a game's stats and tap \"Recap\" to get a ready-to-paste summary for the team chat - score and result, your scorers and assisters, and your own game notes. Share it straight to WhatsApp/SMS or copy it. You can edit the text before sending, and opponent players stay anonymous."
+      "Renamed the per-game \"Game notes\" to \"Match report\" everywhere it appears - in Game Settings, on the statistics page, and in the shared game recap - to better reflect that it's the coach's report of the match."
     ],
     "fi": [
-      "Uutta: ottelukooste yhdellä napautuksella. Avaa ottelun tilastot ja napauta \"Kooste\" saadaksesi valmiin, joukkueen chattiin liitettävän yhteenvedon - tulos, omat maalintekijät ja syöttäjät sekä omat muistiinpanosi. Jaa se suoraan WhatsAppiin/tekstiviestiin tai kopioi. Voit muokata tekstiä ennen lähetystä, ja vastustajan pelaajat pysyvät nimettöminä."
+      "Ottelukohtainen \"Ottelun muistiinpanot\" on nyt nimeltään \"Otteluraportti\" kaikkialla - ottelun asetuksissa, tilastosivulla ja jaettavassa ottelukoosteessa - kuvaamaan paremmin sitä, että kyseessä on valmentajan raportti ottelusta."
     ]
   }
 }
