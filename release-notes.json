@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Tidied the buttons: modal footer buttons (Done, Export Excel, etc.) are now smaller and all the same height across every modal, freeing up space for content. The player development \"Current form\" and \"By difficulty\" toggles now stay on a single standard-height line."
+      ],
+      "fi": [
+        "Siistittiin painikkeet: ikkunoiden alapalkin painikkeet (Valmis, Vie Excel jne.) ovat nyt pienempiä ja kaikki samankorkuisia joka ikkunassa, mikä vapauttaa tilaa sisällölle. Pelaajakehityksen \"Nykyinen vire\"- ja \"Vaikeuspainotus\"-valinnat pysyvät nyt yhdellä vakiokorkuisella rivillä."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Internal: marketing site only - corrected the copy to the cloud-first, free-account reality (removed \"no signup / optional cloud\"), reworked the development cards, and added feature cards for the game recap, positions played, match report and overtime/penalties (with \"screenshot coming soon\" placeholders pending a fresh shoot). No app changes."
       ],
       "fi": [

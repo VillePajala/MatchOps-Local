@@ -1729,7 +1729,7 @@
     "metricTrends": "Rating Trends",
     "metricSelect": "Select Metric",
     "goalsAssists": "Goals & Assists",
-    "useDemandCorrection": "Weight by Difficulty",
+    "useDemandCorrection": "By difficulty",
     "useDemandCorrectionTooltip": "When enabled, ratings from harder games count more",
     "recencyWeighted": "Current form",
     "recencyWeightedTooltip": "Weight recent games more, to show current form rather than the lifetime average",
