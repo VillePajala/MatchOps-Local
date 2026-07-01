@@ -1,12 +1,12 @@
 {
-  "version": "376f951c",
+  "version": "f8bbed27",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Load Game readiness is now a small colour dot instead of an \"Incomplete\" tag (which could be misread as \"match not finished\"): a green dot next to a game means its record is complete, an amber dot means it still needs finishing. Only shown for played games."
+      "Writing the match report is roomier: the edit box is now taller (and you can drag it larger), and its Save / Cancel buttons match the rest of the app's button styling."
     ],
     "fi": [
-      "Lataa peli -näkymän valmiustila näkyy nyt pienenä väripisteenä \"Kesken\"-merkin sijaan (joka saattoi tulkita väärin \"ottelu kesken\"): vihreä piste ottelun vieressä tarkoittaa, että sen tiedot ovat valmiit, oranssi piste tarkoittaa, että se kaipaa vielä viimeistelyä. Näkyy vain pelatuille otteluille."
+      "Otteluraportin kirjoittaminen on väljempää: muokkausruutu on nyt korkeampi (ja voit vetää sitä suuremmaksi), ja sen Tallenna / Peruuta -painikkeet noudattavat muun sovelluksen painiketyyliä."
     ]
   }
 }

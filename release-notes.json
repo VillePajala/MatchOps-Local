@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Writing the match report is roomier: the edit box is now taller (and you can drag it larger), and its Save / Cancel buttons match the rest of the app's button styling."
+      ],
+      "fi": [
+        "Otteluraportin kirjoittaminen on väljempää: muokkausruutu on nyt korkeampi (ja voit vetää sitä suuremmaksi), ja sen Tallenna / Peruuta -painikkeet noudattavat muun sovelluksen painiketyyliä."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Load Game readiness is now a small colour dot instead of an \"Incomplete\" tag (which could be misread as \"match not finished\"): a green dot next to a game means its record is complete, an amber dot means it still needs finishing. Only shown for played games."
       ],
       "fi": [
