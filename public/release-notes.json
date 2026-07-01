@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(ui): match Excel button height to the Done button (#599)"
+  "notes": "fix(ui): drop redundant games counter from overall-stats header"
 }
