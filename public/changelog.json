@@ -1,12 +1,12 @@
 {
-  "version": "f8bbed27",
+  "version": "f563733e",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Wording: the Finnish recap button now reads \"Luo ottelukooste\" (more natural than \"Generoi\")."
+      "Writing the match report is roomier: the edit box is now taller (and you can drag it larger), and its Save / Cancel buttons match the rest of the app's button styling."
     ],
     "fi": [
-      "Sanamuoto: suomenkielinen koostepainike lukee nyt \"Luo ottelukooste\" (luontevampi kuin \"Generoi\")."
+      "Otteluraportin kirjoittaminen on väljempää: muokkausruutu on nyt korkeampi (ja voit vetää sitä suuremmaksi), ja sen Tallenna / Peruuta -painikkeet noudattavat muun sovelluksen painiketyyliä."
     ]
   }
 }
