@@ -24,7 +24,6 @@ const base: RecapGame = {
   opponentName: 'Lions',
   gameDate: '2026-06-26',
   gameLocation: 'Central Park',
-  ageGroup: 'U11',
   homeScore: 3,
   awayScore: 2,
   homeOrAway: 'home',
@@ -40,10 +39,9 @@ describe('buildGameRecap', () => {
       gameNotes: 'Great pressing in the second half.',
     };
     const text = buildGameRecap(game, players, t);
-    expect(text).toContain('Tigers 3-2 Lions (W)');
-    expect(text).toContain('2026'); // meta line present
-    expect(text).toContain('Central Park');
-    expect(text).toContain('U11');
+    // Header: score line, then date and location each on their own line (no age group).
+    expect(text).toContain('Tigers 3-2 Lions (W)\n26.6.2026\nCentral Park');
+    expect(text).not.toContain('U11');
     // One name per line, count always shown; Liam (2) before Emma (1) by count.
     expect(text).toContain('Goals\nLiam 2\nEmma 1');
     // Noah assisted twice.
@@ -84,7 +82,7 @@ describe('buildGameRecap', () => {
 
   it('omits empty sections (no goals, no assists, no notes, missing venue/age)', () => {
     const text = buildGameRecap(
-      { ...base, gameLocation: undefined, ageGroup: undefined, homeScore: 0, awayScore: 0, gameEvents: [] },
+      { ...base, gameLocation: undefined, homeScore: 0, awayScore: 0, gameEvents: [] },
       players,
       t,
     );

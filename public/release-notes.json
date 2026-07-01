@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(stats): one-tap game recap generator (#571)"
+  "notes": "chore(i18n): rename per-game \"Game notes\" -> \"Match report\" (#572)"
 }

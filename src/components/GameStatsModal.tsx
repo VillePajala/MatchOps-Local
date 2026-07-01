@@ -606,14 +606,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
   // Ready-to-paste text recap of the current game (score, our scorers/assisters,
-  // the coach's notes). ageGroup is not a direct prop, so read it off the saved game.
+  // the coach's match report).
   const recapText = useMemo(() => buildGameRecap(
     {
       teamName,
       opponentName,
       gameDate,
       gameLocation,
-      ageGroup: currentGameId ? savedGames?.[currentGameId]?.ageGroup : undefined,
       homeScore,
       awayScore,
       homeOrAway,
@@ -623,7 +622,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     },
     availablePlayers,
     (key, fallback) => t(key, fallback) as string,
-  ), [teamName, opponentName, gameDate, gameLocation, currentGameId, savedGames, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, availablePlayers, t]);
+  ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, availablePlayers, t]);
 
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {
