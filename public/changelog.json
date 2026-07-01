@@ -1,12 +1,12 @@
 {
-  "version": "80bcd94f",
+  "version": "4ac38b88",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Tidied the buttons: modal footer buttons (Done, Export Excel, etc.) are now smaller and all the same height across every modal, freeing up space for content. The player development \"Current form\" and \"By difficulty\" toggles now stay on a single standard-height line."
+      "Cleaned up the game statistics screen: the Export Excel and Done buttons are now exactly the same height, and the player view no longer repeats the games-played count in the sticky header (it's already in the summary below) - giving the content more room."
     ],
     "fi": [
-      "Siistittiin painikkeet: ikkunoiden alapalkin painikkeet (Valmis, Vie Excel jne.) ovat nyt pienempiä ja kaikki samankorkuisia joka ikkunassa, mikä vapauttaa tilaa sisällölle. Pelaajakehityksen \"Nykyinen vire\"- ja \"Vaikeuspainotus\"-valinnat pysyvät nyt yhdellä vakiokorkuisella rivillä."
+      "Siistittiin ottelutilastonäkymää: Vie Excel- ja Valmis-painikkeet ovat nyt täsmälleen samankorkuiset, eikä pelaajanäkymä toista pelattujen otteluiden määrää kiinteässä yläpalkissa (se näkyy jo alla olevassa yhteenvedossa) - jolloin sisällölle jää enemmän tilaa."
     ]
   }
 }
