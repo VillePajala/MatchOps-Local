@@ -205,8 +205,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               <h2 className={`${titleStyle} drop-shadow-lg`}>{t('rosterSettingsModal.title', 'Manage Roster')}</h2>
             </div>
 
-            {/* Fixed Section (Stats, Add Button, Team Name) */}
-            <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
+            {/* Fixed Section (Add Player Button) */}
+            <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
               {/* Add Player Button - Always visible */}
               <button
                 onClick={handleAddPlayer}
@@ -215,8 +215,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               >
                 {t('rosterSettingsModal.addPlayerButton', 'Add Player')}
               </button>
-
-
             </div>
           </div>
 

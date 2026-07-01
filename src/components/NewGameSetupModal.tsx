@@ -598,21 +598,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             </h2>
           </div>
 
-          {/* Fixed Section (Player Counter) */}
-          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
-            {/* Player Counter */}
-            <div className="mb-5 text-center text-sm">
-              <div className="flex justify-center items-center text-slate-300">
-                <span>
-                  <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>
-                  {" / "}
-                  <span className="text-yellow-400 font-semibold">{availablePlayersForSetup.length}</span>
-                  {" "}{t('newGameSetupModal.playersSelectedCounter', 'Players Selected')}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
             {/* CARD 1: Teams & Roster */}

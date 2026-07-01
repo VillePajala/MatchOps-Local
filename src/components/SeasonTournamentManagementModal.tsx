@@ -364,7 +364,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
           </div>
 
           {/* Fixed Section (Add Buttons) */}
-          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
+          <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
             {/* Add Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <button
