@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(stats): recap header - date and venue on their own lines (#573)"
+  "notes": "feat(lineup): record positions played per player (local-first) (#574)"
 }
