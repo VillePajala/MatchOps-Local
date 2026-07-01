@@ -1,12 +1,12 @@
 {
-  "version": "a12590c8",
+  "version": "7b647908",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Fixed: a saved match report now keeps its line breaks and paragraphs when shown in Game Settings (it was displaying as one run-on block). Your text was always saved correctly - this was only a display issue."
+      "Positions format selector now matches the app's game sizes: 5v5 / 8v8 / 11v11 (plus All), instead of the mismatched 7v7 / 9v9."
     ],
     "fi": [
-      "Korjattu: tallennettu otteluraportti säilyttää nyt rivinvaihdot ja kappaleet, kun se näytetään Ottelun asetuksissa (aiemmin se näkyi yhtenä yhtenäisenä tekstinä). Tekstisi tallentui aina oikein - kyseessä oli vain näyttöongelma."
+      "Pelipaikkojen muotovalitsin vastaa nyt sovelluksen ottelukokoja: 5v5 / 8v8 / 11v11 (sekä Kaikki) aiempien virheellisten 7v7 / 9v9 sijaan."
     ]
   }
 }
