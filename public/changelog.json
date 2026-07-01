@@ -1,12 +1,12 @@
 {
-  "version": "1c19dc3b",
+  "version": "a12590c8",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "More consistent controls: \"Not played yet\" in Game Settings is now a toggle button (blue when on) like Overtime/Penalties, and the timer's Overtime/Penalties buttons use shorter labels so they stay at the standard button height."
+      "Fixed: a saved match report now keeps its line breaks and paragraphs when shown in Game Settings (it was displaying as one run-on block). Your text was always saved correctly - this was only a display issue."
     ],
     "fi": [
-      "Yhtenäisemmät säätimet: \"Ei vielä pelattu\" Ottelun asetuksissa on nyt painike (sininen päällä) kuten Jatkoaika/Rangaistuspotkut, ja ajastimen Jatkoaika/Rangaistuspotkut-painikkeet käyttävät lyhyempiä tekstejä, jotta ne pysyvät vakiokorkeudessa."
+      "Korjattu: tallennettu otteluraportti säilyttää nyt rivinvaihdot ja kappaleet, kun se näytetään Ottelun asetuksissa (aiemmin se näkyi yhtenä yhtenäisenä tekstinä). Tekstisi tallentui aina oikein - kyseessä oli vain näyttöongelma."
     ]
   }
 }

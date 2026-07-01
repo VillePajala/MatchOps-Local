@@ -2601,7 +2601,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </div>
               ) : (
                 <div
-                  className="cursor-pointer text-slate-300 hover:text-yellow-400 transition-colors min-h-[8rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50"
+                  className="cursor-pointer whitespace-pre-wrap text-slate-300 hover:text-yellow-400 transition-colors min-h-[8rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50"
                   onClick={() => handleStartInlineEdit('notes')}
                 >
                   {gameNotes || t('gameSettingsModal.noNotes', 'No notes yet. Click to add.')}
