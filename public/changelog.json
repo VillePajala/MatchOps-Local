@@ -1,12 +1,12 @@
 {
-  "version": "1c19dc3b",
+  "version": "a12590c8",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "More consistent controls: \"Not played yet\" in Game Settings is now a toggle button (blue when on) like Overtime/Penalties, and the timer's Overtime/Penalties buttons use shorter labels so they stay at the standard button height."
+      "Positions format selector now matches the app's game sizes: 5v5 / 8v8 / 11v11 (plus All), instead of the mismatched 7v7 / 9v9."
     ],
     "fi": [
-      "Yhtenäisemmät säätimet: \"Ei vielä pelattu\" Ottelun asetuksissa on nyt painike (sininen päällä) kuten Jatkoaika/Rangaistuspotkut, ja ajastimen Jatkoaika/Rangaistuspotkut-painikkeet käyttävät lyhyempiä tekstejä, jotta ne pysyvät vakiokorkeudessa."
+      "Pelipaikkojen muotovalitsin vastaa nyt sovelluksen ottelukokoja: 5v5 / 8v8 / 11v11 (sekä Kaikki) aiempien virheellisten 7v7 / 9v9 sijaan."
     ]
   }
 }
