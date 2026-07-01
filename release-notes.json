@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Match report editing is now consistent in both places (Game Settings and the game's stats): a larger resizable text box, a Template button to insert ready headings, and a single full-width row of Template / Cancel / Save buttons in the app style (the stats editor's little save-disc and red-cross icons are gone). The shared recap popup is also taller now, using nearly the full screen height."
+      ],
+      "fi": [
+        "Otteluraportin muokkaus on nyt yhtenäinen molemmissa paikoissa (Ottelun asetukset ja ottelun tilastot): suurempi venytettävä tekstiruutu, Pohja-painike valmiiden otsikoiden lisäämiseen, ja yksi koko leveyden rivi Pohja / Peruuta / Tallenna -painikkeita sovelluksen tyylillä (tilastonäkymän pieni tallennuslevyke ja punainen rasti poistettu). Jaettava koostenäkymä on myös nyt korkeampi ja käyttää lähes koko näytön korkeuden."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Positions format selector now matches the app's game sizes: 5v5 / 8v8 / 11v11 (plus All), instead of the mismatched 7v7 / 9v9."
       ],
       "fi": [

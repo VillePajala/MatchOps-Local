@@ -1,11 +1,13 @@
 /**
- * GameNotesEditor component - displays and edits game notes
- * Supports view mode and edit mode with save/cancel actions
+ * GameNotesEditor component - displays and edits the match report (game notes).
+ * View mode (tap to edit) + edit mode with a resizable textarea, a "use
+ * template" scaffold, and a full-width Template / Cancel / Save button row -
+ * matching the report editor in Game Settings.
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import type { TranslationKey } from '@/i18n-types';
 
 interface GameNotesEditorProps {
   gameNotes: string;
@@ -17,6 +19,9 @@ interface GameNotesEditorProps {
   onCancelEdit: () => void;
   onEditNotesChange: (notes: string) => void;
 }
+
+// One-line, full-width buttons in the app's segmented-control style.
+const ROW_BTN = 'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800';
 
 export function GameNotesEditor({
   gameNotes,
@@ -30,55 +35,56 @@ export function GameNotesEditor({
 }: GameNotesEditorProps) {
   const { t } = useTranslation();
 
+  const handleUseTemplate = () => {
+    const template = t('gameSettingsModal.reportTemplate' as TranslationKey, '');
+    onEditNotesChange(editGameNotes.trim() ? `${editGameNotes.trimEnd()}\n\n${template}` : template);
+    requestAnimationFrame(() => notesTextareaRef.current?.focus());
+  };
+
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-slate-200">
-          {t('gameStatsModal.notesTitle', 'Game Notes')}
-        </h3>
-        <div className="flex items-center gap-2">
-          {isEditingNotes ? (
-            <>
-              <button
-                onClick={onSaveNotes}
-                className="p-1.5 text-green-400 hover:text-green-300 rounded bg-slate-700 hover:bg-slate-600"
-                title={t('common.saveChanges', 'Save Changes')}
-                aria-label={t('common.saveChanges', 'Save Changes')}
-              >
-                <FaSave />
-              </button>
-              <button
-                onClick={onCancelEdit}
-                className="p-1.5 text-red-400 hover:text-red-300 rounded bg-slate-700 hover:bg-slate-600"
-                title={t('common.cancel', 'Cancel')}
-                aria-label={t('common.cancel', 'Cancel')}
-              >
-                <FaTimes />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={onStartEdit}
-              className="p-1.5 text-slate-400 hover:text-indigo-400 rounded bg-slate-700 hover:bg-slate-600"
-              title={t('common.edit', 'Edit')}
-              aria-label={t('common.edit', 'Edit')}
-            >
-              <FaEdit />
-            </button>
-          )}
-        </div>
-      </div>
+      <h3 className="text-xl font-semibold text-slate-200 mb-4">
+        {t('gameStatsModal.notesTitle', 'Game Notes')}
+      </h3>
       {isEditingNotes ? (
-        <textarea
-          ref={notesTextareaRef}
-          value={editGameNotes}
-          onChange={(e) => onEditNotesChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Escape') onCancelEdit(); }}
-          className="w-full h-24 p-2 bg-slate-700 border border-slate-500 rounded-md shadow-sm text-sm text-slate-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          placeholder={t('gameStatsModal.notesPlaceholder', 'Notes...') ?? undefined}
-        />
+        <div className="space-y-3">
+          <textarea
+            ref={notesTextareaRef}
+            value={editGameNotes}
+            onChange={(e) => onEditNotesChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') onCancelEdit(); }}
+            className="w-full h-64 min-h-[10rem] resize-y p-3 bg-slate-700 border border-slate-600 rounded-md shadow-sm text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder={t('gameStatsModal.notesPlaceholder', 'Notes...') ?? undefined}
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleUseTemplate}
+              className={`${ROW_BTN} bg-slate-700 text-slate-300 hover:bg-slate-600`}
+            >
+              {t('gameSettingsModal.useTemplate' as TranslationKey, 'Template')}
+            </button>
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className={`${ROW_BTN} bg-slate-700 text-slate-300 hover:bg-slate-600`}
+            >
+              {t('common.cancel', 'Cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={onSaveNotes}
+              className={`${ROW_BTN} bg-indigo-600 text-white hover:bg-indigo-500`}
+            >
+              {t('common.save', 'Save')}
+            </button>
+          </div>
+        </div>
       ) : (
-        <div className="min-h-[6rem] p-2 text-sm text-slate-300 whitespace-pre-wrap">
+        <div
+          className="cursor-pointer whitespace-pre-wrap min-h-[6rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50 text-sm text-slate-300 hover:text-yellow-400 transition-colors"
+          onClick={onStartEdit}
+        >
           {gameNotes || (
             <span className="italic text-slate-400">
               {t('gameStatsModal.noNotes', 'No notes.')}
