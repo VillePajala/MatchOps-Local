@@ -1,12 +1,12 @@
 {
-  "version": "96420098",
+  "version": "61334dee",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "New: record which position(s) each player played. Open a game's settings and use the new Line-up section to tap positions for each player (a player can have more than one). The positions then appear in the shared game recap, grouped by position (e.g. \"CB: Emma, Noah\"), so other coaches can see who played where."
+      "Line-up positions now sync to your cloud account, so the position(s) you record for each player are available across your devices (previously they were saved only on the device where you entered them)."
     ],
     "fi": [
-      "Uutta: kirjaa mitä pelipaikkaa/-paikkoja kukin pelaaja pelasi. Avaa ottelun asetukset ja käytä uutta Kokoonpano-osiota napauttaaksesi pelipaikat kullekin pelaajalle (pelaajalla voi olla useampi). Pelipaikat näkyvät sitten jaettavassa ottelukoosteessa pelipaikoittain ryhmiteltyinä (esim. \"CB: Emma, Noah\"), jotta muut valmentajat näkevät kuka pelasi missäkin."
+      "Kokoonpanon pelipaikat synkronoituvat nyt pilvitilillesi, joten kullekin pelaajalle kirjaamasi pelipaikat ovat käytettävissä kaikilla laitteillasi (aiemmin ne tallentuivat vain sille laitteelle, jolla ne syötettiin)."
     ]
   }
 }

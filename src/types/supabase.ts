@@ -220,6 +220,7 @@ export type Database = {
           period_duration_minutes: number
           season_id: string | null
           shootout_kicks: Json | null
+          player_positions: Json | null
           show_player_names: boolean
           show_position_labels: boolean
           sub_interval_minutes: number | null
@@ -261,6 +262,7 @@ export type Database = {
           period_duration_minutes?: number
           season_id?: string | null
           shootout_kicks?: Json | null
+          player_positions?: Json | null
           show_player_names?: boolean
           show_position_labels?: boolean
           sub_interval_minutes?: number | null
@@ -302,6 +304,7 @@ export type Database = {
           period_duration_minutes?: number
           season_id?: string | null
           shootout_kicks?: Json | null
+          player_positions?: Json | null
           show_player_names?: boolean
           show_position_labels?: boolean
           sub_interval_minutes?: number | null
