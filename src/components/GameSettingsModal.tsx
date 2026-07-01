@@ -2586,9 +2586,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
             {/* Line-up / Positions Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 mt-4">
-              <h3 className="text-lg font-semibold text-slate-200 mb-4">
-                {t('gameSettingsModal.lineupTitle', 'Line-up')}
+              <h3 className="text-lg font-semibold text-slate-200 mb-1">
+                {t('gameSettingsModal.lineupTitle', 'Positions played')}
               </h3>
+              <p className="text-xs text-slate-400 mb-4">
+                {t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}
+              </p>
               <PlayerPositionsEditor
                 players={availablePlayers.filter(p => selectedPlayerIds.includes(p.id))}
                 value={playerPositions}
