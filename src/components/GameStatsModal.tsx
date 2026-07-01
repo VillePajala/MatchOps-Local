@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
 import { HiOutlineChevronUpDown } from 'react-icons/hi2';
+import { HiOutlineShare } from 'react-icons/hi';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
@@ -21,6 +22,8 @@ import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
+import GameRecapModal from './GameRecapModal';
+import { buildGameRecap } from '@/utils/gameRecap';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { queryKeys } from '@/config/queryKeys';
 
@@ -200,6 +203,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -601,6 +605,26 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
+  // Ready-to-paste text recap of the current game (score, our scorers/assisters,
+  // the coach's notes). ageGroup is not a direct prop, so read it off the saved game.
+  const recapText = useMemo(() => buildGameRecap(
+    {
+      teamName,
+      opponentName,
+      gameDate,
+      gameLocation,
+      ageGroup: currentGameId ? savedGames?.[currentGameId]?.ageGroup : undefined,
+      homeScore,
+      awayScore,
+      homeOrAway,
+      gameEvents,
+      gameNotes,
+      shootoutKicks,
+    },
+    availablePlayers,
+    (key, fallback) => t(key, fallback) as string,
+  ), [teamName, opponentName, gameDate, gameLocation, currentGameId, savedGames, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, availablePlayers, t]);
+
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {
     if (gameNotes !== editGameNotes) {
@@ -998,6 +1022,18 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                     />
                   )}
+                  {activeTab === 'currentGame' && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowRecap(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100"
+                      >
+                        <HiOutlineShare />
+                        {t('recap.button', 'Recap')}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Player Stats Table or Empty State */}
                   <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
@@ -1144,6 +1180,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           confirmLabel={t('common.delete', 'Delete')}
           variant="danger"
           isConfirming={goalEditorHook.isDeletingEvent}
+        />
+        <GameRecapModal
+          isOpen={showRecap}
+          onClose={() => setShowRecap(false)}
+          recap={recapText}
         />
       </div>
     </div>

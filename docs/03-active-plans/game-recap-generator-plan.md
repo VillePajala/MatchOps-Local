@@ -1,6 +1,10 @@
 # Game Recap Generator - Plan (pre-plan / exploration)
 
-**Status**: 🚧 Exploration captured 2026-06-26. Not started. Continue later.
+**Status**: ✅ Phase 1 shipped 2026-07-01. Single-game factual recap (score/result incl.
+penalties, our scorers + assisters, coach's `gameNotes`); "Recap" button in `GameStatsModal` ->
+preview modal with Share (OS text share sheet) + Copy. Pure `buildGameRecap` (`src/utils/gameRecap.ts`,
+unit-tested); modal `src/components/GameRecapModal.tsx`; i18n `recap.*`. The "maybe later" toggles
+(competition/clean-sheet lines, warm-tone, milestones/timeline) remain unbuilt by design.
 **Roadmap**: P3 feature backlog (`UNIFIED-ROADMAP.md`).
 
 ## Intent

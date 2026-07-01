@@ -115,7 +115,7 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 | Position history (per game) | ? / uncertain | Track where each player played. **Value unclear** — positions change constantly within a game, so a single per-game position may not be meaningful; would likely need time-segmented tracking to be useful. Captured 2026-06-24; revisit before committing. |
 | Parent share cards | Med | Idea 2026-06-26. Privacy-safe, on-device post-game image per player (minutes, goals/assists, coach note, milestone) the coach can hand to a parent. Builds on the existing field-export canvas tech; nothing leaves the device unless shared. High youth-motivation value. |
 | Hands-free quick capture | Med | Idea 2026-06-26. A big single-tap button that pins a note to the current game clock — typed in two taps, or dictated via the on-device Web Speech API where available. Solves "can't type while coaching"; feeds richer per-player context. |
-| One-tap game recap generator | Low (P1) | Idea 2026-06-26. Ready-to-paste text recap (score, scorers, assists, **coach's `gameNotes`**) for the team chat; share-as-text + copy. **Single-game only** - multi-game combining descoped 2026-06-28 (coach pastes two recaps into the chat). Pre-plan: `game-recap-generator-plan.md`. |
+| ~~One-tap game recap generator~~ | — | ✅ **DONE 2026-07-01**. Ready-to-paste text recap (score/result incl. penalties, our scorers/assists, **coach's `gameNotes`**); "Recap" button in `GameStatsModal` -> preview modal with OS text-share + copy. Pure `buildGameRecap` (unit-tested) + `GameRecapModal`. **Single-game only** (multi-game combining descoped - coach pastes two recaps). Plan: `game-recap-generator-plan.md`. |
 
 ---
 

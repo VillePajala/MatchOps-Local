@@ -1,12 +1,12 @@
 {
-  "version": "8b4f3932",
+  "version": "80b97415",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "The player development report now matches what you actually assess: it shows only the qualities in your current assessment template. A quality you no longer rate (e.g. an old \"Creativity\" value left over from a different template) no longer appears in the report. Its data is kept - switch your template back and it returns."
+      "New: one-tap game recap. Open a game's stats and tap \"Recap\" to get a ready-to-paste summary for the team chat - score and result, your scorers and assisters, and your own game notes. Share it straight to WhatsApp/SMS or copy it. You can edit the text before sending, and opponent players stay anonymous."
     ],
     "fi": [
-      "Pelaajan kehitysraportti vastaa nyt sitä, mitä todella arvioit: se näyttää vain nykyisen arviointipohjasi ominaisuudet. Ominaisuus jota et enää arvioi (esim. vanha \"Luovuus\"-arvo eri pohjasta) ei enää näy raportissa. Sen tiedot säilyvät - vaihda pohja takaisin ja se palaa."
+      "Uutta: ottelukooste yhdellä napautuksella. Avaa ottelun tilastot ja napauta \"Kooste\" saadaksesi valmiin, joukkueen chattiin liitettävän yhteenvedon - tulos, omat maalintekijät ja syöttäjät sekä omat muistiinpanosi. Jaa se suoraan WhatsAppiin/tekstiviestiin tai kopioi. Voit muokata tekstiä ennen lähetystä, ja vastustajan pelaajat pysyvät nimettöminä."
     ]
   }
 }
