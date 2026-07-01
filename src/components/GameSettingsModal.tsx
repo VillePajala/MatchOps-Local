@@ -31,7 +31,7 @@ import {
 } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -2552,7 +2552,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     value={inlineEditValue}
                     onChange={(e) => { setInlineEditValue(e.target.value); if (inlineEditError) setInlineEditError(null); }}
                     onKeyDown={handleInlineEditKeyDown}
-                    className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm h-32 resize-none ${inlineEditError ? 'border-red-500' : 'border-slate-600'}`}
+                    className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm h-64 min-h-[10rem] resize-y ${inlineEditError ? 'border-red-500' : 'border-slate-600'}`}
                     placeholder={t('gameSettingsModal.notesPlaceholder', 'Write notes...')}
                     disabled={isProcessing}
                   />
@@ -2560,14 +2560,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={handleCancelInlineEdit}
-                      className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-slate-400/30"
+                      className={secondaryButtonStyle}
                       disabled={isProcessing}
                     >
                       {t('common.cancel', 'Cancel')}
                     </button>
                     <button
                       onClick={handleConfirmInlineEdit}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-indigo-400/30"
+                      className={primaryButtonStyle}
                       disabled={isProcessing}
                     >
                       {t('common.save', 'Save')}
