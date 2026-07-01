@@ -62,17 +62,17 @@ export const POSITION_CATEGORY: Record<string, PositionCategory> = Object.fromEn
  * Futsal is its own set. `all` is the manual override - the entire library
  * (every position, both sports), ignoring the size and sport automation.
  */
-export type PositionFormat = '5v5' | '7v7' | '9v9' | '11v11' | 'futsal' | 'all';
+export type PositionFormat = '5v5' | '8v8' | '11v11' | 'futsal' | 'all';
 
-export const SOCCER_FORMATS: readonly PositionFormat[] = ['5v5', '7v7', '9v9', '11v11'];
+// Sizes match the app's formation presets (FieldSize: 5v5 / 8v8 / 11v11).
+export const SOCCER_FORMATS: readonly PositionFormat[] = ['5v5', '8v8', '11v11'];
 
 // Position palette per format (back-to-front). Bigger formats add width + more
 // specialised roles; `all` is every position - the escape hatch from all the
 // automatic scoping.
 export const POSITION_FORMATS: Record<PositionFormat, readonly string[]> = {
   '5v5': ['gk', 'lb', 'cb', 'rb', 'cm', 'st'],
-  '7v7': ['gk', 'lb', 'cb', 'rb', 'lm', 'cm', 'rm', 'st'],
-  '9v9': ['gk', 'lb', 'cb', 'rb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st'],
+  '8v8': ['gk', 'lb', 'cb', 'rb', 'cdm', 'cm', 'cam', 'lm', 'rm', 'st'],
   '11v11': ['gk', 'rb', 'cb', 'lb', 'rwb', 'lwb', 'cdm', 'cm', 'cam', 'rm', 'lm', 'rw', 'lw', 'st'],
   'futsal': ['gk', 'fixo', 'ala', 'pivo'],
   'all': POSITION_IDS,
@@ -128,7 +128,6 @@ export function positionsForFormat(format: PositionFormat): PositionDef[] {
 export function inferFormat(gameType: GameType | undefined, squadSize: number): PositionFormat {
   if (gameType === 'futsal') return 'futsal';
   if (squadSize > 0 && squadSize <= 8) return '5v5';
-  if (squadSize <= 11) return '7v7';
-  if (squadSize <= 13) return '9v9';
+  if (squadSize <= 12) return '8v8';
   return '11v11';
 }

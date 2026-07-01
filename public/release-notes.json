@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(settings): preserve line breaks in the saved report display (#592)"
+  "notes": "feat(report): unify the two report editors + taller recap modal"
 }
