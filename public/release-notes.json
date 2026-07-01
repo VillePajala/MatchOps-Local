@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "style(lineup): player cards use the Event Log gradient list style (#579)"
+  "notes": "fix(lineup): recap button placement + clearer positions section name (#580)"
 }
