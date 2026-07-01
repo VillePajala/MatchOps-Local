@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(recap): larger recap preview modal (#588)"
+  "notes": "fix(settings): OT/penalties toggles use gender-style blue + short labels"
 }
