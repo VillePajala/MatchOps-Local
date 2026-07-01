@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Load Game readiness is now a small colour dot instead of an \"Incomplete\" tag (which could be misread as \"match not finished\"): a green dot next to a game means its record is complete, an amber dot means it still needs finishing. Only shown for played games."
+      ],
+      "fi": [
+        "Lataa peli -näkymän valmiustila näkyy nyt pienenä väripisteenä \"Kesken\"-merkin sijaan (joka saattoi tulkita väärin \"ottelu kesken\"): vihreä piste ottelun vieressä tarkoittaa, että sen tiedot ovat valmiit, oranssi piste tarkoittaa, että se kaipaa vielä viimeistelyä. Näkyy vain pelatuille otteluille."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Recap polish: a clearer full-width \"Generate match recap\" button (no longer tucked into the stats heading); each section header now ends with a colon (Goals:, Assists:, Lineup:); and the redundant win/loss/draw tag was removed from the score line (the score already shows it) - kept only for penalty-shootout games, which now read e.g. \"2-2 (Win, on penalties)\"."
       ],
       "fi": [
