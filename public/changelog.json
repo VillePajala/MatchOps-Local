@@ -1,12 +1,12 @@
 {
-  "version": "61334dee",
+  "version": "16094250",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Line-up positions now sync to your cloud account, so the position(s) you record for each player are available across your devices (previously they were saved only on the device where you entered them)."
+      "Internal: documentation only - marked the post-game player-positions feature (local + cloud) as shipped in the roadmap and plan. No app changes."
     ],
     "fi": [
-      "Kokoonpanon pelipaikat synkronoituvat nyt pilvitilillesi, joten kullekin pelaajalle kirjaamasi pelipaikat ovat käytettävissä kaikilla laitteillasi (aiemmin ne tallentuivat vain sille laitteelle, jolla ne syötettiin)."
+      "Sisäinen: vain dokumentaatio - merkittiin ottelun jälkeinen pelipaikat-ominaisuus (paikallinen + pilvi) valmiiksi tiekartassa ja suunnitelmassa. Ei sovellusmuutoksia."
     ]
   }
 }

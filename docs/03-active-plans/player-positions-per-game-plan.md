@@ -1,12 +1,14 @@
 # Player Positions Per Game - Plan
 
-**Status**: 🟡 In progress. Decisions locked 2026-07-01. **PR A (local-first) built 2026-07-01**:
-`positions.ts` config, `playerPositions` on the game/session state (threaded like `gameNotes`),
-`PlayerPositionsEditor` in `GameSettingsModal` (Line-up section under the report), recap Lineup
-block, i18n `playingPositions.*` (EN/FI), tests. Persists to local storage and shows in the recap.
-**PR B (cloud sync) still TODO**: `player_positions jsonb` migration on `games` + `SupabaseDataStore`
-forward/reverse transforms + RPC line (needs a coordinated staging/prod migration apply). Until PR B
-merges, positions save on-device but do not sync across devices on the cloud build.
+**Status**: ✅ **DONE 2026-07-01** (PR A #574 local-first + PR B #575 cloud sync, both merged).
+- PR A: `positions.ts` config, `playerPositions` on the game/session state (threaded like
+  `gameNotes`), `PlayerPositionsEditor` in `GameSettingsModal` (Line-up section under the report),
+  recap Lineup block, i18n `playingPositions.*` (EN/FI), tests.
+- PR B: `player_positions jsonb` on `games` (migration 035, recreates `save_game_with_relations`
+  from 032 + one upsert line) + `SupabaseDataStore` forward/reverse transforms. Migration applied +
+  verified on **staging and prod** 2026-07-01.
+- Later (not built): "apply from formation" prefill; a per-player "positions played / versatility"
+  stat once the data accrues; custom positions; a read-only line-up card in the stats view.
 **Roadmap**: P3 (`UNIFIED-ROADMAP.md`, "Post-game positions played").
 **Origin**: recap conversation - "define which positions each player actually played, listed in the
 ottelukooste so other coaches know who played where."
