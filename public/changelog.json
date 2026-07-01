@@ -1,12 +1,12 @@
 {
-  "version": "3907901e",
+  "version": "0a5d3300",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Easier to reach the post-game view: a new \"Game report\" item in the menu (under Game Management, next to Record Performance) opens the current game's report + finish-checklist + stats directly - no more going through Statistics and picking the current game."
+      "Load Game now flags unfinished records: a played game that's still missing its report shows an amber \"Incomplete\" badge (next to \"Not played\"), so you can spot games that need wrapping up at a glance."
     ],
     "fi": [
-      "Ottelun jälkeinen näkymä on helpompi tavoittaa: uusi \"Ottelun raportti\" -valikkokohta (Ottelun hallinta -osiossa, Kirjaa ottelusuoritukset -kohdan vieressä) avaa nykyisen ottelun raportin, viimeistelylistan ja tilastot suoraan - ei enää tarvitse mennä Tilastojen kautta ja valita nykyistä ottelua."
+      "Lataa peli näyttää nyt keskeneräiset: pelattu ottelu, josta puuttuu vielä raportti, saa oranssin \"Kesken\"-merkin (\"Ei pelattu\" -merkin vieressä), joten näet yhdellä silmäyksellä mitkä ottelut kaipaavat viimeistelyä."
     ]
   }
 }
