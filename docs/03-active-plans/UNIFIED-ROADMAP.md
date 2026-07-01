@@ -111,12 +111,13 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 | ~~Field Export (image / PDF)~~ | — | ✅ **DONE** — verified 2026-06-26 (roadmap was stale). Canvas→PNG/JPEG of the field + lineup with a metadata header (team/opponent names, score, date, logo); export button gated by `isExportSupported()`. `src/utils/export/exportField.ts` + `FieldContainer.tsx` (`handleExportField`). |
 | ~~Futsal Field Visualization~~ | — | ✅ **DONE** — verified 2026-06-26 (roadmap was stale). Futsal renders a distinct court, not just a metadata tag: `FUTSAL_FIELD_CONFIG` (5-player default, 2.0 aspect, 1-2-2) + `drawFutsalMarkings()` (arc penalty areas, substitution zones, 2nd penalty spot) + blue indoor styling. `config/fieldConfigs.ts`, `utils/fieldDrawing.ts`, branched in `SoccerField.tsx`. |
 | Visual Analytics | Med | PARTIAL (verified 2026-06-26) — recharts trend/area charts already exist (`MetricAreaChart`, `MetricTrendChart`, `SparklineChart` for goals/assists/points). Still missing: in-game **event timeline** + **goal-log filtering** UI. |
-| Player development assessment system (#364) | Med | Vision captured 2026-06-29 - full rethink toward **development, not evaluation**: surgical metric change (drop duels+impact, add scanning+enjoyment, keep creativity), age bands (U8-U10 light 6 / U13+ full), per-player compass-over-time, editable metrics with stable IDs + dated versioning, ID-keyed storage (replaces fixed columns). Compare-to-self only; cross-team comparison out of scope. Plan: `player-development-assessment-plan.md`. |
+| ~~Player development assessment system (#364)~~ | — | ✅ **DONE 2026-06-29→07-01** (PRs #545–#570). Full development-not-evaluation system: set-A metrics + id-keyed JSONB storage (canonical 1-10 scale), word/num5/num10 display styles, templates (balanced/light6/creative), in-game capture, per-player development view (recency-weighted "current form", trend arrows, radar now-vs-season-start, strengths/focus), season filter, shareable **report card** (canvas PNG), and **in-app metric definitions**. Report scoped to the active template. Known-tensions + editable-report-values design captured in the plan. Compare-to-self only. Plan: `player-development-assessment-plan.md`. _Remaining: ship publicly (P2)._ |
 | Game captains | Low | Record a captain (or captains) per game — not tracked at all today. Could surface in game info + per-player "times captain" stat. Idea captured 2026-06-24. |
 | ~~Post-game positions played (per player)~~ | — | ✅ **DONE 2026-07-01** (PRs #574 local + #575 cloud). Post-game "Line-up" section in Game Settings tags which position(s) each player played (multi-position allowed, sport-aware `positions.ts`); shown in the recap grouped by position ("CB: Emma, Noah"). Cloud-synced via `games.player_positions jsonb` (migration 035, applied staging+prod). Plan: `player-positions-per-game-plan.md`. Future: "apply from formation" prefill, a per-player versatility stat. |
 | Parent share cards | Med | Idea 2026-06-26. Privacy-safe, on-device post-game image per player (minutes, goals/assists, coach note, milestone) the coach can hand to a parent. Builds on the existing field-export canvas tech; nothing leaves the device unless shared. High youth-motivation value. |
 | Hands-free quick capture | Med | Idea 2026-06-26. A big single-tap button that pins a note to the current game clock — typed in two taps, or dictated via the on-device Web Speech API where available. Solves "can't type while coaching"; feeds richer per-player context. |
 | ~~One-tap game recap generator~~ | — | ✅ **DONE 2026-07-01**. Ready-to-paste text recap (score/result incl. penalties, our scorers/assists, **coach's `gameNotes`**); "Recap" button in `GameStatsModal` -> preview modal with OS text-share + copy. Pure `buildGameRecap` (unit-tested) + `GameRecapModal`. **Single-game only** (multi-game combining descoped - coach pastes two recaps). Plan: `game-recap-generator-plan.md`. |
+| ~~Match report + template~~ | — | ✅ **DONE 2026-07-01**. `gameNotes` reframed as the **Otteluraportti (match report)**: a **"Use template"** scaffold (Overview / How the game unfolded / What went well / Working on / Team spirit / Highlights / Next step) in **both** editors (Game Settings + stats); editors unified (resizable textarea, full-width app-style Template/Cancel/Save row, click-to-edit, no disc/cross icons); report shown in the shareable recap (grouped positions, header colons, result label only for penalties); larger near-full-height recap preview. |
 
 ---
 
@@ -146,7 +147,7 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 | Supabase implementation reference | `docs/02-technical/supabase-implementation-guide.md` |
 | Archived plans (Play Store, billing, reviews, etc.) | `docs/08-archived/completed-active-plans/` |
 | Preserved code snapshots | tags `archive/pre-cloud-backup`, `archive/planner-integration`, `archive/desktop-responsive-modals` |
-| Open issues | #371 (consent bug), #381 (sub stats), #364, #360, #273, #369 (planner replan) |
+| Open issues | #381 (sub stats), #360 (desktop UI), #369 (planner replan) |
 
 ---
 
@@ -166,6 +167,7 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 
 | Date | Update |
 |------|--------|
+| 2026-07-01 | 📋 **Post-game workflow push (PRs #569–#595).** Shipped: **positions played** (per-player, cloud-synced, sport/size-aware selector 5v5/8v8/11v11 + All, formation-covering palettes), **game recap generator** + polish (full-width generate button, header colons, penalties-only result, near-full-height preview), **game lifecycle & completeness** (model + "Finish this game" checklist + Load Game readiness dot + "Game report" menu entry), **match report + "Use template" scaffold** + unified resizable editors, and UI consistency (blue toggle buttons for not-played/OT/penalties, report line-break display fix). Explored + parked: TASO in-app embed (blocked by Custom-Tab/iframe security; a "TASO helper" copy view remains buildable). |
 | 2026-07-01 | 🧭 Player-development assessment feature built & merged (#545–#568). Roadmap: added P3 "ship the assessment publicly" (match-ops.com copy + new screenshots + Play Store update); reframed the assessment plan's backlog item 7 from "external-game assessments" into a **standalone / point-in-time assessment** primitive with report-editing + external-games as the two consumers (+ "considered vs observed" trend caution). |
 | 2026-06-11 | 🧨 **Whole-app code review (7-agent) → P0.** 4 critical (mid-game reload clock corruption, IndexedDB read-error wipe path, cloud entity-delete FK failure, stale-snapshot re-migration), 9 high, 8 medium clusters added as CR-C/H/M items. Also: account-deletion hardening shipped (`77ac8034`), Play badge links live (`944509fe`), P2 items added for Play Store data-deletion declaration + local device-data wipe. |
 | 2026-06-10 | 🧹 **Full backlog triage + prioritization.** Parked monetization (going free → closed #171/#172, archived billing plan). Scrapped Planner impl (closed PR #404 + #372/#373/#377/#378/#379, reframed #369, tagged code). Verified-and-discarded 3 phantom cloud-sync bugs + several already-done tech-debt items. Kept #371 (consent), #381, #364, #360, #273. Tagged & deleted desktop branch. Reprioritized everything P0-P4. |
@@ -175,4 +177,9 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 
 ---
 
-**Current Focus**: 🔴 P0 — code-review criticals CR-C1…C4 first (data loss / broken deletes), then CR-H items; store-listing accuracy, internal-docs publishing, and consent `status` bug (#371) remain alongside.
+**Current Focus**: P0/P1 are cleared (launch criticals, sync/auth/observability all done). The big
+recent push (assessment + positions + recap + completeness + match report) is shipped. **Next up:**
+🟡 P2 — **ship the assessment/positions/recap features publicly** (match-ops.com copy + new
+screenshots + Play Store update) is the highest-value remaining item; plus the two small P2 UX ideas
+(undo toast, repeat-last-game). Then 🟢 P3 low-effort wins (game captains, moment capture) and the
+🔵 P4 big bets (playing-time planner, desktop UI, AI assistant, timer-hardening) when ready.

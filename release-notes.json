@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Internal: documentation only - updated the roadmap to mark the assessment, positions, recap, completeness and match-report features as done, refreshed the change log and current focus. No app changes."
+      ],
+      "fi": [
+        "Sisäinen: vain dokumentaatio - päivitettiin tiekartta merkitsemään arviointi-, pelipaikka-, kooste-, valmius- ja otteluraporttiominaisuudet valmiiksi, päivitettiin muutosloki ja nykyinen fokus. Ei sovellusmuutoksia."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "The 5v5 positions list now covers the common 5v5 formations - including the diamond (CB, LM, RM, ST). Left/right midfield and attacking midfield were added so the shape you actually play can be recorded (you can still tap All for every position)."
       ],
       "fi": [
