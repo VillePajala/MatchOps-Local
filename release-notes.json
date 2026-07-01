@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Fixed the game statistics footer so the Export Excel and Done buttons are now exactly the same height (the Done button's border was making it slightly taller)."
+      ],
+      "fi": [
+        "Korjattiin ottelutilastojen alapalkki niin, että Vie Excel- ja Valmis-painikkeet ovat nyt täsmälleen samankorkuiset (Valmis-painikkeen reunus teki siitä hieman korkeamman)."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Tidied the buttons: modal footer buttons (Done, Export Excel, etc.) are now smaller and all the same height across every modal, freeing up space for content. The player development \"Current form\" and \"By difficulty\" toggles now stay on a single standard-height line."
       ],
       "fi": [
