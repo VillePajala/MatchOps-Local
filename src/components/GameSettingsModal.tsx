@@ -2345,24 +2345,27 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 />
               </div>
 
-              {/* Not Played Yet Checkbox */}
+              {/* Played status + overtime/penalties as toggle buttons */}
               <div className="mb-4 space-y-2">
-                <label className="inline-flex items-center text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={!isPlayed}
-                    onChange={(e) => {
-                      const newValue = !e.target.checked;
-                      onIsPlayedChange(newValue);
-                      mutateGameDetails(
-                        { isPlayed: newValue },
-                        { source: 'stateSync', expectedIsPlayed: newValue }
-                      );
-                    }}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="ml-2">{t('gameSettingsModal.unplayedToggle', 'Not played yet')}</span>
-                </label>
+                <button
+                  type="button"
+                  aria-pressed={!isPlayed}
+                  onClick={() => {
+                    const newValue = !isPlayed;
+                    onIsPlayedChange(newValue);
+                    mutateGameDetails(
+                      { isPlayed: newValue },
+                      { source: 'stateSync', expectedIsPlayed: newValue }
+                    );
+                  }}
+                  className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                    !isPlayed
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {t('gameSettingsModal.unplayedToggle', 'Not played yet')}
+                </button>
                 {/* Overtime / penalties as toggle buttons (matching the timer's chip). */}
                 <div className="flex gap-2">
                   <button
