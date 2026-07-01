@@ -55,6 +55,13 @@ describe('positions config', () => {
     Object.values(POSITION_FORMATS).flat().forEach(id => expect(POSITION_IDS).toContain(id));
   });
 
+  it('the "all" format is every position in the library (manual override)', () => {
+    const all = positionsForFormat('all').map(p => p.id);
+    expect([...all].sort()).toEqual([...POSITION_IDS].sort());
+    expect(all).toContain('rwb'); // soccer
+    expect(all).toContain('fixo'); // futsal
+  });
+
   it('infers a default format (futsal by type, else by squad size), overridable', () => {
     expect(inferFormat('futsal', 20)).toBe('futsal');
     expect(inferFormat('soccer', 7)).toBe('5v5');

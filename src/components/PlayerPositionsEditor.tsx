@@ -49,7 +49,14 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
   const [format, setFormat] = useState<PositionFormat>(() => inferFormat(gameType, players.length));
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const formatIds = POSITION_FORMATS[isFutsal ? 'futsal' : format];
+  const formatIds = POSITION_FORMATS[format];
+  // Options end with `all` (every position) so no automatic scoping can lock the
+  // coach out of a position they want.
+  const formatOptions: PositionFormat[] = isFutsal ? ['futsal', 'all'] : [...SOCCER_FORMATS, 'all'];
+  const formatButtonLabel = (f: PositionFormat) =>
+    f === 'all' ? t('gameSettingsModal.lineupFormatAll', 'All')
+    : f === 'futsal' ? 'Futsal'
+    : f;
 
   const toggle = (playerId: string, positionId: string) => {
     const current = value[playerId] ?? [];
@@ -80,12 +87,11 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
 
   return (
     <div className="space-y-3">
-      {/* Format selector (soccer) - widens or narrows the palette. */}
-      {!isFutsal && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-slate-400">{t('gameSettingsModal.lineupFormat', 'Format')}</span>
-          <div className="flex gap-1">
-            {SOCCER_FORMATS.map(f => (
+      {/* Format selector - scopes the palette; `All` is the manual override. */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium text-slate-400">{t('gameSettingsModal.lineupFormat', 'Format')}</span>
+        <div className="flex gap-1 flex-wrap">
+          {formatOptions.map(f => (
               <button
                 key={f}
                 type="button"
@@ -95,12 +101,11 @@ const PlayerPositionsEditor: React.FC<PlayerPositionsEditorProps> = ({ players, 
                   format === f ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700'
                 }`}
               >
-                {f}
+                {formatButtonLabel(f)}
               </button>
-            ))}
-          </div>
+          ))}
         </div>
-      )}
+      </div>
 
       <div className="space-y-1.5">
         {players.map(player => {

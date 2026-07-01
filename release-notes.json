@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Line-up positions: added an \"All\" option to the format selector that shows every position, so you can always override the automatic size/sport scoping and assign any position you want. The format selector now also appears for futsal games."
+      ],
+      "fi": [
+        "Kokoonpanon pelipaikat: muotovalitsimeen lisättiin \"Kaikki\"-vaihtoehto, joka näyttää kaikki pelipaikat, joten voit aina ohittaa automaattisen koko-/lajirajauksen ja määrittää minkä tahansa pelipaikan. Muotovalitsin näkyy nyt myös futsal-otteluissa."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Line-up editor redesign: players are now collapsible rows (tap a name to open), position buttons are colour-coded by pitch line (goalkeeper / defence / midfield / attack) instead of the old flat grey, and a format selector (5v5 / 7v7 / 9v9 / 11v11) trims the position list to your game size - with 11v11 to show every position when you need it."
       ],
       "fi": [

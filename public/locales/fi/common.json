@@ -1419,6 +1419,7 @@
     "lineupTitle": "Kokoonpano",
     "lineupNoPlayers": "Valitse otteluun pelaajat, jotta voit määrittää pelipaikat.",
     "lineupFormat": "Muoto",
+    "lineupFormatAll": "Kaikki",
     "lineupAddPositions": "Lisää pelipaikat",
     "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
     "gameDetailsLabel": "Pelin yksityiskohdat",
