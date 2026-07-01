@@ -31,7 +31,7 @@ import {
 } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -2572,31 +2572,29 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     disabled={isProcessing}
                   />
                   {inlineEditError && <p className="mt-1 text-sm text-red-400">{inlineEditError}</p>}
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleInsertReportTemplate}
-                      className={secondaryButtonStyle}
+                      className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50"
                       disabled={isProcessing}
                     >
-                      {t('gameSettingsModal.useTemplate', 'Use template')}
+                      {t('gameSettingsModal.useTemplate', 'Template')}
                     </button>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleCancelInlineEdit}
-                        className={secondaryButtonStyle}
-                        disabled={isProcessing}
-                      >
-                        {t('common.cancel', 'Cancel')}
-                      </button>
-                      <button
-                        onClick={handleConfirmInlineEdit}
-                        className={primaryButtonStyle}
-                        disabled={isProcessing}
-                      >
-                        {t('common.save', 'Save')}
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleCancelInlineEdit}
+                      className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50"
+                      disabled={isProcessing}
+                    >
+                      {t('common.cancel', 'Cancel')}
+                    </button>
+                    <button
+                      onClick={handleConfirmInlineEdit}
+                      className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+                      disabled={isProcessing}
+                    >
+                      {t('common.save', 'Save')}
+                    </button>
                   </div>
                 </div>
               ) : (

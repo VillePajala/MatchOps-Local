@@ -768,10 +768,10 @@ describe('GameStatsModal', () => {
       // Find the notes section by heading, then find the edit button within it
       const notesHeading = await screen.findByText(i18n.t('gameStatsModal.notesTitle', 'Game Notes'));
       // The heading is h3 inside a flex div inside the main container div
-      const notesSection = notesHeading.parentElement?.parentElement;
-      const editButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      const notesSection = notesHeading.closest('div') as HTMLElement;
+      // View mode is click-to-edit: tap the notes text to start editing.
       await act(async () => {
-        fireEvent.click(editButton);
+        fireEvent.click(within(notesSection).getByText('Original notes'));
       });
 
       // Find the notes textarea within the notes section (should now be editable)
@@ -781,7 +781,7 @@ describe('GameStatsModal', () => {
       });
 
       // Find and click save button within the notes section
-      const saveButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.saveChanges', 'Save Changes') });
+      const saveButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.save', 'Save') });
       await act(async () => {
         fireEvent.click(saveButton);
       });
@@ -855,10 +855,10 @@ describe('GameStatsModal', () => {
       // Find the notes section by heading, then find the edit button within it
       const notesHeading = await screen.findByText(i18n.t('gameStatsModal.notesTitle', 'Game Notes'));
       // The heading is h3 inside a flex div inside the main container div
-      const notesSection = notesHeading.parentElement?.parentElement;
-      const editButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      const notesSection = notesHeading.closest('div') as HTMLElement;
+      // View mode is click-to-edit: tap the notes text to start editing.
       await act(async () => {
-        fireEvent.click(editButton);
+        fireEvent.click(within(notesSection).getByText('Original notes'));
       });
 
       // Modify notes within the notes section

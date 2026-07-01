@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(ui): not-played toggle button + shorter timer OT/penalties labels (#591)"
+  "notes": "fix(settings): preserve line breaks in the saved report display (#592)"
 }

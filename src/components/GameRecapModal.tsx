@@ -59,7 +59,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap 
       onClick={onClose}
     >
       <div
-        className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 w-full max-w-2xl h-[90vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 pt-4 pb-3 border-b border-slate-700">
