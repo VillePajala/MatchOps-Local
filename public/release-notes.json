@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(settings): OT/penalties toggles use gender-style blue + short labels"
+  "notes": "fix(settings): overtime/penalties as toggle buttons (like the timer) (#590)"
 }

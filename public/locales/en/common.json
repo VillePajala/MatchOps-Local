@@ -424,8 +424,8 @@
     "editOpponentNameTitle": "Click to edit opponent name",
     "decreaseInterval": "Decrease interval",
     "increaseInterval": "Increase interval",
-    "wentToOvertime": "Went to overtime",
-    "recordShootout": "Record penalty shootout",
+    "wentToOvertime": "Overtime",
+    "recordShootout": "Penalties",
     "assessPlayersButton": "Assess players"
   },
   "instructionsModal": {
