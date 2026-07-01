@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "New: a \"Use template\" button when writing the match report drops in ready-made headings you fill under - Overview, How the game unfolded, What went well, What we're working on, Team spirit & effort, Highlights, and Next step - so you don't start from a blank page. It appends below any existing text, and you can edit or delete any section."
+      ],
+      "fi": [
+        "Uutta: \"Käytä pohjaa\" -painike otteluraporttia kirjoitettaessa lisää valmiit otsikot, joiden alle täytät - Yleiskuva, Pelin kulku, Mikä toimi hyvin, Kehityskohteet, Joukkuehenki ja asenne, Erityismaininnat sekä Seuraava askel - joten et aloita tyhjältä sivulta. Se lisätään olemassa olevan tekstin alle, ja voit muokata tai poistaa minkä tahansa osion."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "The game recap popup is now much larger - a wider window that uses more of the screen height, with the text area filling it - so you can read and edit a long recap without all the scrolling."
       ],
       "fi": [

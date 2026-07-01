@@ -1,12 +1,12 @@
 {
-  "version": "fb86c24b",
+  "version": "b9810535",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "The game recap popup is now much larger - a wider window that uses more of the screen height, with the text area filling it - so you can read and edit a long recap without all the scrolling."
+      "New: a \"Use template\" button when writing the match report drops in ready-made headings you fill under - Overview, How the game unfolded, What went well, What we're working on, Team spirit & effort, Highlights, and Next step - so you don't start from a blank page. It appends below any existing text, and you can edit or delete any section."
     ],
     "fi": [
-      "Ottelukoosteen ponnahdusikkuna on nyt paljon suurempi - leveämpi ikkuna, joka käyttää enemmän näytön korkeutta ja jonka tekstialue täyttää sen - joten voit lukea ja muokata pitkää koostetta ilman jatkuvaa vieritystä."
+      "Uutta: \"Käytä pohjaa\" -painike otteluraporttia kirjoitettaessa lisää valmiit otsikot, joiden alle täytät - Yleiskuva, Pelin kulku, Mikä toimi hyvin, Kehityskohteet, Joukkuehenki ja asenne, Erityismaininnat sekä Seuraava askel - joten et aloita tyhjältä sivulta. Se lisätään olemassa olevan tekstin alle, ja voit muokata tai poistaa minkä tahansa osion."
     ]
   }
 }
