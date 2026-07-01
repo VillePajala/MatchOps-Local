@@ -70,7 +70,7 @@
   "seo": {
     "home": {
       "title": "MatchOps - Soccer & Futsal Coaching App",
-      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics. No signup required. Optional cloud sync for cross-device access."
+      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics and player development. Free with secure cloud sync — works offline at the field."
     },
     "technical": {
       "title": "Technical Specifications - MatchOps",
@@ -236,7 +236,7 @@
     "whatIsThis": {
       "title": "What is MatchOps?",
       "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup, positions, and warm-up before the game. During the match, log goals, assists, and substitution intervals with a tap. Your statistics build automatically — at individual, game, team, and competition level. A direct link to the Finnish FA's Taso system makes it easy to register lineups and submit results.",
-      "oneLine": "Start instantly with no signup. Optional cloud sync for cross-device access. Works anywhere, even without internet."
+      "oneLine": "Free with secure cloud sync across your devices. Track games and build statistics right at the field, even without internet."
     },
     "whoIsThisFor": {
       "title": "Who Is This For?",
@@ -390,7 +390,7 @@
     },
     "benefits": {
       "offline": "Works offline",
-      "noSignup": "No signup required",
+      "noSignup": "Free to use",
       "dataOnDevice": "Data stays private",
       "dataStays": "Your data stays",
       "onYourDevice": "private and secure",
@@ -428,9 +428,9 @@
     "bullets": {
       "worksOffline": "Works Offline",
       "privacyFirst": "Privacy-First",
-      "noSignup": "No Signup",
-      "noSignupRequired": "No Signup Required",
-      "noAccountNeeded": "No Account Needed",
+      "noSignup": "Free to Use",
+      "noSignupRequired": "Free to Use",
+      "noAccountNeeded": "Secure Cloud Sync",
       "offline": "Offline",
       "private": "Private",
       "dataStaysLocal": "Data Stays Local",
@@ -471,7 +471,8 @@
       "replaceClipboard": "Replace clipboard, stopwatch, and notebook with one app.",
       "lineup": "Lineup",
       "tactics": "Tactics",
-      "logGoal": "Log Goal"
+      "logGoal": "Log Goal",
+      "comingSoon": "Screenshot coming soon"
     },
     "cards": {
       "introducing": "Introducing",
@@ -493,10 +494,10 @@
       "formationsDesc": "Set up your team in seconds with formation templates. Snap players to position with one tap.",
       "roster": "Player Roster",
       "rosterDesc": "Add players with names, jersey numbers, and nicknames. The nickname is shown on the disc on the field.",
-      "assessment": "Performance Notes",
-      "assessmentDesc": "Optionally rate match performances and add coaching notes after games. Helps track observations across the season.",
-      "trends": "Trends",
-      "trendsDesc": "Optionally follow player development with visual charts. See how different areas progress from game to game and across the season.",
+      "assessment": "Player Development",
+      "assessmentDesc": "Rate players on developmental qualities after a game and build each player's compass over time — current form, trend arrows, strengths and focus areas, plus a shareable development report card. Compare to their own past, not to other kids.",
+      "trends": "Development Trends",
+      "trendsDesc": "Follow each quality game by game and across the season with clear charts — see what's rising, steady, or needs work.",
       "seasons": "Leagues",
       "seasonsDesc": "Create and manage leagues. Link games to leagues and track league statistics.",
       "tournaments": "Tournament Hub",
@@ -516,7 +517,15 @@
       "officialRules": "Official Rules",
       "officialRulesDesc": "Quick access to official soccer and futsal rules from the Finnish FA.",
       "cloudSync": "Cloud Sync",
-      "cloudSyncDesc": "Sign in to sync your data across devices. Your data stays safe in the cloud and syncs automatically."
+      "cloudSyncDesc": "Sign in to sync your data across devices. Your data stays safe in the cloud and syncs automatically.",
+      "recap": "Game Recap",
+      "recapDesc": "One tap turns a finished game into a ready-to-paste summary for the team chat — score, scorers, assists, line-up and your match report. Share as text or copy.",
+      "positions": "Positions Played",
+      "positionsDesc": "After the game, tag which position(s) each player actually played (sport- and size-aware). Shown in the recap grouped by position, so other coaches see who played where.",
+      "matchReport": "Match Report",
+      "matchReportDesc": "Write your account of the game from a ready template of headings — overview, what went well, what to work on, highlights, next step. Included in the shareable recap.",
+      "overtime": "Overtime & Penalties",
+      "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats and exports."
     },
     "techCards": {
       "development": "DEVELOPMENT",

@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "Internal: marketing site only - corrected the copy to the cloud-first, free-account reality (removed \"no signup / optional cloud\"), reworked the development cards, and added feature cards for the game recap, positions played, match report and overtime/penalties (with \"screenshot coming soon\" placeholders pending a fresh shoot). No app changes."
+      ],
+      "fi": [
+        "Sisäinen: vain markkinointisivusto - korjattiin tekstit pilvipohjaiseen, ilmaisen tilin todellisuuteen (poistettu \"ei kirjautumista / valinnainen pilvi\"), uudistettiin kehityskortit ja lisättiin ominaisuuskortit ottelukoosteelle, toteutuneille pelipaikoille, otteluraportille ja jatkoajalle/rangaistuspotkuille (\"kuvakaappaus tulossa\" -paikkamerkein uutta kuvausta odottaen). Ei sovellusmuutoksia."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Internal: documentation only - updated the roadmap to mark the assessment, positions, recap, completeness and match-report features as done, refreshed the change log and current focus. No app changes."
       ],
       "fi": [

@@ -70,7 +70,7 @@
   "seo": {
     "home": {
       "title": "MatchOps - Jalkapallovalmentajan sovellus",
-      "description": "Mobiilisovellus jalkapallo- ja futsalvalmentajille. Hallitse joukkueita, seuraa pelejä reaaliaikaisesti, kerää tilastoja. Ei rekisteröitymistä. Valinnainen pilvisynkronointi laitteiden välillä."
+      "description": "Mobiilivalmennussovellus jalkapalloon ja futsaliin. Hallitse joukkueita, seuraa otteluita reaaliajassa, rakenna tilastot ja pelaajakehitys. Ilmainen ja turvallinen pilvisynkronointi — toimii kentällä ilman verkkoa."
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps",
@@ -236,7 +236,7 @@
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
       "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano, pelipaikat ja alkulämmittely ennen peliä. Kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä pelin aikana. Tilastosi kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailustasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa virallisten pöytäkirjojen ja tulosten kirjaamista.",
-      "oneLine": "Aloita heti ilman rekisteröitymistä. Valinnainen pilvisynkronointi laitteiden välillä. Toimii kaikkialla, jopa ilman nettiä."
+      "oneLine": "Ilmainen, turvallinen pilvisynkronointi kaikilla laitteillasi. Seuraa otteluita ja rakenna tilastot kentällä, myös ilman internetiä."
     },
     "whoIsThisFor": {
       "title": "Kenelle tämä on tarkoitettu?",
@@ -390,7 +390,7 @@
     },
     "benefits": {
       "offline": "Toimii offline",
-      "noSignup": "Ei rekisteröitymistä",
+      "noSignup": "Ilmainen käyttää",
       "dataOnDevice": "Tietosi pysyvät yksityisinä",
       "dataStays": "Tietosi pysyvät",
       "onYourDevice": "yksityisinä ja turvassa",
@@ -428,9 +428,9 @@
     "bullets": {
       "worksOffline": "Toimii offline",
       "privacyFirst": "Yksityisyys ensin",
-      "noSignup": "Ei rekisteröitymistä",
-      "noSignupRequired": "Ei rekisteröitymistä",
-      "noAccountNeeded": "Ei tiliä tarvita",
+      "noSignup": "Ilmainen",
+      "noSignupRequired": "Ilmainen käyttää",
+      "noAccountNeeded": "Turvallinen pilvisynkronointi",
       "offline": "Offline",
       "private": "Yksityinen",
       "dataStaysLocal": "Tiedot pysyvät yksityisinä",
@@ -471,7 +471,8 @@
       "replaceClipboard": "Korvaa taktiikkataulu, sekuntikello ja muistivihko yhdellä sovelluksella.",
       "lineup": "Kokoonpano",
       "tactics": "Taktiikat",
-      "logGoal": "Kirjaa maali"
+      "logGoal": "Kirjaa maali",
+      "comingSoon": "Kuvakaappaus tulossa"
     },
     "cards": {
       "introducing": "Esittelyssä",
@@ -493,10 +494,10 @@
       "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
-      "assessment": "Havainnot",
-      "assessmentDesc": "Arvioi halutessasi ottelusuorituksia ja lisää valmentajan muistiinpanoja pelien jälkeen. Auttaa seuraamaan havaintoja kauden aikana.",
-      "trends": "Trendit",
-      "trendsDesc": "Seuraa halutessasi pelaajien kehitystä visuaalisilla kaavioilla. Näe miten osa-alueet kehittyvät ottelusta toiseen ja kauden aikana.",
+      "assessment": "Pelaajan kehitys",
+      "assessmentDesc": "Arvioi pelaajia kehityksellisillä ominaisuuksilla ottelun jälkeen ja rakenna kullekin pelaajalle kompassi ajan myötä — nykyinen taso, trendinuolet, vahvuudet ja kehityskohteet, sekä jaettava kehitysraporttikortti. Verrataan omaan itseen, ei muihin lapsiin.",
+      "trends": "Kehitystrendit",
+      "trendsDesc": "Seuraa kutakin ominaisuutta ottelu ottelulta ja läpi kauden selkeillä kaavioilla — näe mikä nousee, pysyy tasaisena tai kaipaa työtä.",
       "seasons": "Kausikeskus",
       "seasonsDesc": "Luo ja hallitse sarjoja. Yhdistä pelit sarjoihin ja seuraa sarjan tilastoja.",
       "tournaments": "Turnauskeskus",
@@ -516,7 +517,15 @@
       "officialRules": "Viralliset säännöt",
       "officialRulesDesc": "Pikalinkit Palloliiton virallisiin jalkapallo- ja futsal-sääntöihin.",
       "cloudSync": "Pilvisynkronointi",
-      "cloudSyncDesc": "Kirjaudu sisään ja synkronoi datasi laitteiden välillä. Datasi pysyy turvassa pilvessä ja synkronoituu automaattisesti."
+      "cloudSyncDesc": "Kirjaudu sisään ja synkronoi datasi laitteiden välillä. Datasi pysyy turvassa pilvessä ja synkronoituu automaattisesti.",
+      "recap": "Ottelukooste",
+      "recapDesc": "Yhdellä napautuksella valmis, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
+      "positions": "Toteutuneet pelipaikat",
+      "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi (laji- ja kokotietoisesti). Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
+      "matchReport": "Otteluraportti",
+      "matchReportDesc": "Kirjoita oma näkemyksesi ottelusta valmiilla otsikkopohjalla — yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Sisältyy jaettavaan koosteeseen.",
+      "overtime": "Jatkoaika ja rangaistuspotkut",
+      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuspotkukilpailut. Rangaistuspotkujen tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin."
     },
     "techCards": {
       "development": "KEHITYS",

@@ -10,6 +10,9 @@ interface PhoneMockupProps {
   zIndex?: number;
   imageFilter?: string;
   priority?: boolean;
+  /** Show a "screenshot coming soon" placeholder instead of the image. */
+  comingSoon?: boolean;
+  comingSoonLabel?: string;
 }
 
 export default function PhoneMockup({
@@ -21,6 +24,8 @@ export default function PhoneMockup({
   zIndex = 0,
   imageFilter = 'contrast(1.075) saturate(1.025)',
   priority = false,
+  comingSoon = false,
+  comingSoonLabel = 'Screenshot coming soon',
 }: PhoneMockupProps) {
   const sizes = {
     xs: { width: 60, height: 130 },
@@ -73,9 +78,20 @@ export default function PhoneMockup({
       {/* Screen */}
       <div
         className="relative w-full h-full overflow-hidden bg-black"
-        style={{ borderRadius: innerRadius, filter: imageFilter || undefined }}
+        style={{ borderRadius: innerRadius, filter: comingSoon ? undefined : (imageFilter || undefined) }}
       >
-        <Image src={screenshot} alt={alt} fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" priority={priority} />
+        {comingSoon ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-800 to-slate-900 px-3 text-center">
+            <svg className="h-6 w-6 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 leading-tight">{comingSoonLabel}</span>
+          </div>
+        ) : (
+          <Image src={screenshot} alt={alt} fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" priority={priority} />
+        )}
       </div>
     </div>
   );
