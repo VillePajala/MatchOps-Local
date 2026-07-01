@@ -59,7 +59,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap 
       onClick={onClose}
     >
       <div
-        className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 w-full max-w-md flex flex-col overflow-hidden"
+        className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 pt-4 pb-3 border-b border-slate-700">
@@ -71,13 +71,12 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap 
           </p>
         </div>
 
-        <div className="p-5">
+        <div className="p-5 flex-1 min-h-0">
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
-            rows={9}
             aria-label={t('recap.title', 'Game recap')}
-            className="w-full bg-slate-900 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full h-full min-h-[16rem] resize-none bg-slate-900 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
 
