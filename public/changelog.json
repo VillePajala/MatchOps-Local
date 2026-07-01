@@ -1,12 +1,12 @@
 {
-  "version": "78b39dfa",
+  "version": "c6585eca",
   "date": "2026-07-01",
   "notes": {
     "en": [
-      "Renamed the per-game \"Game notes\" to \"Match report\" everywhere it appears - in Game Settings, on the statistics page, and in the shared game recap - to better reflect that it's the coach's report of the match."
+      "Game recap tidy-up: the team + score stays on the first line, with the date and venue now each on their own line, and the age group removed - cleaner to read in the team chat."
     ],
     "fi": [
-      "Ottelukohtainen \"Ottelun muistiinpanot\" on nyt nimeltään \"Otteluraportti\" kaikkialla - ottelun asetuksissa, tilastosivulla ja jaettavassa ottelukoosteessa - kuvaamaan paremmin sitä, että kyseessä on valmentajan raportti ottelusta."
+      "Ottelukoosteen siistiminen: joukkue + tulos pysyy ensimmäisellä rivillä, ja päivämäärä sekä paikka ovat nyt omilla riveillään, ikäryhmä poistettu - selkeämpi lukea joukkueen chatissa."
     ]
   }
 }
