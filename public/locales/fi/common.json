@@ -1,4 +1,20 @@
 {
+  "recap": {
+    "button": "Kooste",
+    "title": "Ottelukooste",
+    "subtitle": "Valmis liitettäväksi joukkueen chattiin. Muokkaa halutessasi.",
+    "share": "Jaa",
+    "copy": "Kopioi",
+    "copied": "Kopioitu",
+    "goals": "Maalit",
+    "assists": "Syötöt",
+    "coachNotes": "Valmentajan muistiinpanot",
+    "resultWin": "V",
+    "resultLoss": "T",
+    "resultDraw": "TP",
+    "onPenalties": "rangaistuspotkuilla",
+    "unknownPlayer": "Tuntematon"
+  },
   "controlBar": {
     "help": "Ohje",
     "undo": "Kumoa",
