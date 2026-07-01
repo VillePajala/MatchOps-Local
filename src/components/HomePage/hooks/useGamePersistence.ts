@@ -521,6 +521,7 @@ export function useGamePersistence({
         teamName: gameSessionState.teamName,
         opponentName: gameSessionState.opponentName,
         gameNotes: gameSessionState.gameNotes,
+        playerPositions: gameSessionState.playerPositions,
         assessments: playerAssessments,
         availablePlayers, // For fair play card and per-game player data
         leagueId: gameSessionState.leagueId, // League selection
