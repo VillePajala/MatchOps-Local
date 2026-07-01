@@ -4,6 +4,15 @@
     {
       "date": "2026-07-01",
       "en": [
+        "The overall team stats no longer repeat the games-played count in the sticky header - it's already shown as \"Games Played\" in the Team Performance card - giving the content more room (same tidy-up as the player view)."
+      ],
+      "fi": [
+        "Joukkueen kokonaistilastot eivät enää toista pelattujen otteluiden määrää kiinteässä yläpalkissa - se näkyy jo \"Pelatut ottelut\" -kohdassa joukkueen suorituskortissa - jolloin sisällölle jää enemmän tilaa (sama siistiminen kuin pelaajanäkymässä)."
+      ]
+    },
+    {
+      "date": "2026-07-01",
+      "en": [
         "Cleaned up the game statistics screen: the Export Excel and Done buttons are now exactly the same height, and the player view no longer repeats the games-played count in the sticky header (it's already in the summary below) - giving the content more room."
       ],
       "fi": [

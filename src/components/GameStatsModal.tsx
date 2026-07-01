@@ -531,15 +531,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
 
     if (activeTab === 'overall') {
-      const playedGamesCount = overallTeamStats?.gamesPlayed ?? 0;
-      return (
-        <span>
-          <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
-          {" "}{playedGamesCount === 1
-            ? t('gameStatsModal.game', 'Game')
-            : t('gameStatsModal.games', 'Games')}
-        </span>
-      );
+      // Games-played is already shown in the Team Performance card below
+      // ("Games Played: N"), so the header counter would be redundant - omit it.
+      return null;
     }
 
     if (activeTab === 'player') {
@@ -560,7 +554,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
 
     return null;
-  }, [activeTab, availablePlayers, seasons, tournaments, selectedPlayer, masterRoster, overallTeamStats, t]);
+  }, [activeTab, availablePlayers, seasons, tournaments, selectedPlayer, masterRoster, t]);
 
   // Calculate team assessment averages (applying same filters as overallTeamStats)
   const teamAssessmentAverages = useMemo(() => {
