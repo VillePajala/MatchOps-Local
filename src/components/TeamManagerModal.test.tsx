@@ -136,7 +136,7 @@ describe('TeamManagerModal', () => {
 
     it('renders Add Team button', async () => {
       await renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-      expect(screen.getByRole('button', { name: 'Add Team' })).toBeInTheDocument();
+      expect(screen.getByText('Add Team')).toBeInTheDocument();
     });
 
     it('renders orphaned games button when handler provided', async () => {
@@ -269,7 +269,7 @@ describe('TeamManagerModal', () => {
       const { rerender } = await renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
 
       // Open create form
-      fireEvent.click(screen.getByRole('button', { name: 'Add Team' }));
+      fireEvent.click(screen.getByText('Add Team'));
       expect(screen.getByPlaceholderText('Enter team name')).toBeInTheDocument();
 
       // Close modal
@@ -296,7 +296,7 @@ describe('TeamManagerModal', () => {
 
       // Create form should be reset
       expect(screen.queryByPlaceholderText('Enter team name')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Add Team' })).toBeInTheDocument();
+      expect(screen.getByText('Add Team')).toBeInTheDocument();
     });
   });
 
@@ -515,7 +515,7 @@ describe('TeamManagerModal - Premium Limit Enforcement', () => {
     );
 
     // Click Add Team button
-    fireEvent.click(screen.getByRole('button', { name: 'Add Team' }));
+    fireEvent.click(screen.getByText('Add Team'));
 
     // checkAndPrompt should have been called
     expect(mockCheckAndPrompt).toHaveBeenCalled();
@@ -534,7 +534,7 @@ describe('TeamManagerModal - Premium Limit Enforcement', () => {
     // The default mock returns true, so team creation should work
     await renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={[]} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add Team' }));
+    fireEvent.click(screen.getByText('Add Team'));
 
     // Modal should open - team name input should be visible
     await waitFor(() => {
