@@ -37,6 +37,9 @@ const getScreenshots = (locale: string | undefined) => {
     trends: isEnglish
       ? '/screenshots/MatchOps_main_developmenttrends_en.jpg'
       : '/screenshots/MatchOps_main_developmenttrends_fi.jpg',
+    recap: isEnglish
+      ? '/screenshots/MatchOps_main_recap_en.jpg'
+      : '/screenshots/MatchOps_main_recap_fi.jpg',
     seasons: isEnglish
       ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
       : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
@@ -421,7 +424,7 @@ export default function HomePage() {
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
                 // New post-game features — screenshots pending the refreshed shoot.
                 { key: 'assessment', screenshot: screenshots.assessment },
-                { key: 'recap', screenshot: '', comingSoon: true },
+                { key: 'recap', screenshot: screenshots.recap },
                 { key: 'positions', screenshot: '', comingSoon: true },
                 { key: 'trends', screenshot: screenshots.trends },
                 { key: 'matchReport', screenshot: '', comingSoon: true },
