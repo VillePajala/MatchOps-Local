@@ -23,6 +23,9 @@ const SIZE = 240;
 const CENTER = SIZE / 2;
 const RADIUS = 82;
 const RINGS = [0.25, 0.5, 0.75, 1];
+// Extra horizontal room in the viewBox so the longest axis labels (e.g.
+// "Havainnointi", "Joukkuepeli") aren't clipped at the left/right edges.
+const LABEL_PAD_X = 52;
 
 const at = (r: number, angle: number): [number, number] => [
   CENTER + r * Math.cos(angle),
@@ -49,7 +52,7 @@ const PlayerDevelopmentRadar: React.FC<PlayerDevelopmentRadarProps> = ({ axes, m
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-full max-w-[260px]" role="img" aria-label={`${currentLabel} vs ${baselineLabel}`}>
+      <svg viewBox={`${-LABEL_PAD_X} 0 ${SIZE + LABEL_PAD_X * 2} ${SIZE}`} className="w-full max-w-[340px]" role="img" aria-label={`${currentLabel} vs ${baselineLabel}`}>
         {RINGS.map((f, ri) => (
           <polygon
             key={ri}

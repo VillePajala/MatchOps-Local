@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Fixed the player development radar so the axis labels around the edge (e.g. \"Havainnointi\", \"Joukkuepeli\") are no longer clipped - added horizontal room so every label fits."
+      ],
+      "fi": [
+        "Korjattiin pelaajakehityksen tutka niin, että reunojen akseleiden nimet (esim. \"Havainnointi\", \"Joukkuepeli\") eivät enää leikkaudu - lisättiin vaakatilaa, jotta jokainen nimi mahtuu."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Reverted the Add buttons in the Roster, Teams and Personnel screens back to the header button (now that it's no longer cramped) instead of the floating button - it felt smoother. The \"Show archived\" toggle buttons are kept."
       ],
       "fi": [
