@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Positions played: the position tag on each player's collapsed row is now a solid coloured badge, matching the selected chip in the list (instead of an outlined version), so the two are consistent."
+      ],
+      "fi": [
+        "Toteutuneet pelipaikat: pelaajan suljetun rivin pelipaikkamerkki on nyt yhtenäinen värillinen merkki, joka vastaa listassa valittua merkkiä (aiemman ääriviivaversion sijaan)."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Toned down the selected position chips (Positions played) from a bright solid fill to a softer tinted style, so the colours sit better with the rest of the app while still marking each pitch line."
       ],
       "fi": [
