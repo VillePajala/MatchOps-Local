@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Marketing site: the Development Trends feature card now shows a real screenshot (per-quality trend bars + rising/steady status) instead of a placeholder."
+      ],
+      "fi": [
+        "Markkinointisivusto: Kehitystrendit-ominaisuuskortissa näkyy nyt oikea kuvakaappaus (ominaisuuskohtaiset trendipalkit + kehittyvä/vakiintunut-tila) paikkamerkin sijaan."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Marketing site: the Player Development feature card now shows a real screenshot (radar compare + strengths) instead of a placeholder."
       ],
       "fi": [

@@ -35,8 +35,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_main_playerdevelopment_en.jpg'
       : '/screenshots/MatchOps_main_playerdevelopment_fi.jpg',
     trends: isEnglish
-      ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
-      : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
+      ? '/screenshots/MatchOps_main_developmenttrends_en.jpg'
+      : '/screenshots/MatchOps_main_developmenttrends_fi.jpg',
     seasons: isEnglish
       ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
       : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
@@ -423,7 +423,7 @@ export default function HomePage() {
                 { key: 'assessment', screenshot: screenshots.assessment },
                 { key: 'recap', screenshot: '', comingSoon: true },
                 { key: 'positions', screenshot: '', comingSoon: true },
-                { key: 'trends', screenshot: '', comingSoon: true },
+                { key: 'trends', screenshot: screenshots.trends },
                 { key: 'matchReport', screenshot: '', comingSoon: true },
                 { key: 'overtime', screenshot: '', comingSoon: true },
                 { key: 'formations', screenshot: screenshots.formations },

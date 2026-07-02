@@ -1,12 +1,12 @@
 {
-  "version": "804c70a8",
+  "version": "6e91505c",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Marketing site: the Player Development feature card now shows a real screenshot (radar compare + strengths) instead of a placeholder."
+      "Marketing site: the Development Trends feature card now shows a real screenshot (per-quality trend bars + rising/steady status) instead of a placeholder."
     ],
     "fi": [
-      "Markkinointisivusto: Pelaajan kehitys -ominaisuuskortissa näkyy nyt oikea kuvakaappaus (tutkavertailu + vahvuudet) paikkamerkin sijaan."
+      "Markkinointisivusto: Kehitystrendit-ominaisuuskortissa näkyy nyt oikea kuvakaappaus (ominaisuuskohtaiset trendipalkit + kehittyvä/vakiintunut-tila) paikkamerkin sijaan."
     ]
   }
 }
