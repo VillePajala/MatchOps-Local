@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(ui): floating add button for the list-management modals (#603)"
+  "notes": "fix(ui): float add button above the footer + archived checkboxes to toggles (#604)"
 }
