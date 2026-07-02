@@ -235,7 +235,7 @@
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps?",
-      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup, positions, and warm-up before the game. During the match, log goals, assists, and substitution intervals with a tap. Your statistics build automatically — at individual, game, team, and competition level. A direct link to the Finnish FA's Taso system makes it easy to register lineups and submit results.",
+      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Before the game, plan your lineup, formation, and warm-up. During the match, log goals, assists, and substitution intervals with a tap. After the game, record who actually played where, write a match report, and share a ready recap. Follow each player's development over the season so you can support every child individually. Your statistics build automatically at individual, game, team, and competition level. A direct link to the Finnish FA's Taso system makes it easy to register lineups and submit results.",
       "oneLine": "Free with secure cloud sync across your devices. Track games and build statistics right at the field, even without internet."
     },
     "whoIsThisFor": {
@@ -497,7 +497,7 @@
       "assessment": "Player Development",
       "assessmentDesc": "Rate players on developmental qualities after a game and build each player's compass over time — current form, trend arrows, strengths and focus areas, plus a shareable development report card. Compare to their own past, not to other kids.",
       "trends": "Development Trends",
-      "trendsDesc": "Follow each quality game by game and across the season with clear charts — see what's rising, steady, or needs work.",
+      "trendsDesc": "Follow each player's progress over the season and see how they're developing as a whole. The long-term picture helps you give every child the support that fits them best.",
       "seasons": "Leagues",
       "seasonsDesc": "Create and manage leagues. Link games to leagues and track league statistics.",
       "tournaments": "Tournament Hub",
@@ -521,7 +521,7 @@
       "recap": "Game Recap",
       "recapDesc": "One tap turns a finished game into a ready-to-paste summary for the team chat — score, scorers, assists, lineup and your match report. Share as text or copy.",
       "positions": "Positions Played",
-      "positionsDesc": "After the game, tag which position(s) each player actually played (by sport and game format). Shown in the recap grouped by position, so other coaches see who played where.",
+      "positionsDesc": "After the game, tag which position(s) each player actually played. Shown in the recap grouped by position, so other coaches see who played where.",
       "matchReport": "Match Report",
       "matchReportDesc": "Write your account of the game from a ready template of headings — overview, what went well, what to work on, highlights, next step. Included in the shareable recap.",
       "overtime": "Overtime & Penalties",

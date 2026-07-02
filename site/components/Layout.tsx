@@ -160,7 +160,7 @@ export default function Layout({ children }: LayoutProps) {
               alt="Google Play"
               width={688}
               height={140}
-              className="mx-auto w-28 h-auto opacity-60 hover:opacity-100 transition-opacity"
+              className="mx-auto w-32 h-auto drop-shadow-md hover:scale-105 transition-transform"
             />
           </a>
           <p className="text-sm text-slate-300" suppressHydrationWarning>
