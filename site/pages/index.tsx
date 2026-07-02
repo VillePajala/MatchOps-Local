@@ -43,6 +43,9 @@ const getScreenshots = (locale: string | undefined) => {
     positions: isEnglish
       ? '/screenshots/MatchOps_main_positions_en.jpg'
       : '/screenshots/MatchOps_main_positions_fi.jpg',
+    matchReport: isEnglish
+      ? '/screenshots/MatchOps_main_matchreport_en.jpg'
+      : '/screenshots/MatchOps_main_matchreport_fi.jpg',
     seasons: isEnglish
       ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
       : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
@@ -430,7 +433,7 @@ export default function HomePage() {
                 { key: 'recap', screenshot: screenshots.recap },
                 { key: 'positions', screenshot: screenshots.positions },
                 { key: 'trends', screenshot: screenshots.trends },
-                { key: 'matchReport', screenshot: '', comingSoon: true },
+                { key: 'matchReport', screenshot: screenshots.matchReport },
                 { key: 'overtime', screenshot: '', comingSoon: true },
                 { key: 'formations', screenshot: screenshots.formations },
                 { key: 'excelExport', screenshot: screenshots.excelExport },

@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Marketing site: the Match Report feature card now shows a real screenshot (the report editor with the ready template of headings) instead of a placeholder."
+      ],
+      "fi": [
+        "Markkinointisivusto: Otteluraportti-ominaisuuskortissa näkyy nyt oikea kuvakaappaus (raporttieditori valmiilla otsikkopohjalla) paikkamerkin sijaan."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Marketing site: the Positions Played feature card now shows a real screenshot (per-player position tagging with the format selector) instead of a placeholder."
       ],
       "fi": [

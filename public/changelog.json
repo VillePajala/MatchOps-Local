@@ -1,12 +1,12 @@
 {
-  "version": "08242dad",
+  "version": "143221c2",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Marketing site: the Positions Played feature card now shows a real screenshot (per-player position tagging with the format selector) instead of a placeholder."
+      "Marketing site: the Match Report feature card now shows a real screenshot (the report editor with the ready template of headings) instead of a placeholder."
     ],
     "fi": [
-      "Markkinointisivusto: Toteutuneet pelipaikat -ominaisuuskortissa näkyy nyt oikea kuvakaappaus (pelaajakohtainen pelipaikkojen merkintä muotovalitsimella) paikkamerkin sijaan."
+      "Markkinointisivusto: Otteluraportti-ominaisuuskortissa näkyy nyt oikea kuvakaappaus (raporttieditori valmiilla otsikkopohjalla) paikkamerkin sijaan."
     ]
   }
 }
