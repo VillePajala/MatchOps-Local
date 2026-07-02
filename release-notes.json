@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Marketing site: the Player Development feature card now shows a real screenshot (radar compare + strengths) instead of a placeholder."
+      ],
+      "fi": [
+        "Markkinointisivusto: Pelaajan kehitys -ominaisuuskortissa näkyy nyt oikea kuvakaappaus (tutkavertailu + vahvuudet) paikkamerkin sijaan."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Made the player development radar's axis labels larger and easier to read (they were quite small), while keeping every label fully inside the chart."
       ],
       "fi": [
