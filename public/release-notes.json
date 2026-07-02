@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(ui): soften selected position-chip colors to match the app (#612)"
+  "notes": "fix(ui): solid position badges (match selected chip), revert #612 mute (#613)"
 }

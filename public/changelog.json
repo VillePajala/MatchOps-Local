@@ -1,12 +1,12 @@
 {
-  "version": "bac28d69",
+  "version": "08242dad",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Positions played: the position tag on each player's collapsed row is now a solid coloured badge, matching the selected chip in the list (instead of an outlined version), so the two are consistent."
+      "Marketing site: the Positions Played feature card now shows a real screenshot (per-player position tagging with the format selector) instead of a placeholder."
     ],
     "fi": [
-      "Toteutuneet pelipaikat: pelaajan suljetun rivin pelipaikkamerkki on nyt yhtenäinen värillinen merkki, joka vastaa listassa valittua merkkiä (aiemman ääriviivaversion sijaan)."
+      "Markkinointisivusto: Toteutuneet pelipaikat -ominaisuuskortissa näkyy nyt oikea kuvakaappaus (pelaajakohtainen pelipaikkojen merkintä muotovalitsimella) paikkamerkin sijaan."
     ]
   }
 }
