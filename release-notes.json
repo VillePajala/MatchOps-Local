@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Marketing hero: swapped the far-right phone from the goal log to the more eye-catching Player Development radar (desktop arc + mobile carousel, relabeled \"Development\"). Made the Google Play button stand out with a subtle raised panel, and moved the contact email below the button instead of beside it."
+      ],
+      "fi": [
+        "Markkinoinnin hero: vaihdettiin oikeanpuoleisin puhelin maalilokista näyttävämpään Pelaajan kehitys -tutkaan (työpöytäkaari + mobiilikaruselli, uudelleennimetty \"Kehitys\"). Google Play -painike erottuu nyt hillityllä koholla panelilla, ja yhteyssähköposti siirrettiin painikkeen alle sen viereltä."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "User guide: replaced the setup-path diagram (an ASCII box that overflowed and couldn't wrap on mobile) with a clean numbered list, so the full setup steps read properly on a phone."
       ],
       "fi": [
