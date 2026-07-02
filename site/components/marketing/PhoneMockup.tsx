@@ -4,7 +4,7 @@ import React from 'react';
 interface PhoneMockupProps {
   screenshot: string;
   alt?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   className?: string;
   style?: React.CSSProperties;
   zIndex?: number;
@@ -34,6 +34,7 @@ export default function PhoneMockup({
     lg: { width: 160, height: 347 },
     xl: { width: 200, height: 433 },
     '2xl': { width: 240, height: 520 },
+    '3xl': { width: 300, height: 650 },
   };
 
   const { width, height } = sizes[size];
@@ -90,7 +91,7 @@ export default function PhoneMockup({
             <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 leading-tight">{comingSoonLabel}</span>
           </div>
         ) : (
-          <Image src={screenshot} alt={alt} fill sizes="(max-width: 768px) 100vw, 300px" className="object-cover" priority={priority} />
+          <Image src={screenshot} alt={alt} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" priority={priority} />
         )}
       </div>
     </div>

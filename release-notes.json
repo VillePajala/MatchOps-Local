@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-03",
+      "en": [
+        "Marketing site: the feature cards now show one per row with a much larger phone mockup, so the app screenshots (and their text) are actually readable - matching how they already looked on mobile."
+      ],
+      "fi": [
+        "Markkinointisivusto: ominaisuuskortit näkyvät nyt yksi per rivi ja paljon suuremmalla puhelinkuvalla, joten sovelluksen kuvakaappaukset (ja niiden teksti) ovat oikeasti luettavia - kuten ne jo näkyivät mobiilissa."
+      ]
+    },
+    {
       "date": "2026-07-02",
       "en": [
         "Marketing hero: swapped the far-right phone from the goal log to the more eye-catching Player Development radar (desktop arc + mobile carousel, relabeled \"Development\"). Made the Google Play button stand out with a subtle raised panel, and moved the contact email below the button instead of beside it."
