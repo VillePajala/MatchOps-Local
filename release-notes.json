@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Toned down the selected position chips (Positions played) from a bright solid fill to a softer tinted style, so the colours sit better with the rest of the app while still marking each pitch line."
+      ],
+      "fi": [
+        "Pehmennettiin valittujen pelipaikkamerkkien (Toteutuneet pelipaikat) väritystä kirkkaasta täytöstä hillitympään sävyyn, jotta värit istuvat paremmin muuhun sovellukseen ja erottavat silti kunkin kenttälinjan."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Marketing site: the Game Recap feature card now shows a real screenshot (the shareable match summary) instead of a placeholder."
       ],
       "fi": [
