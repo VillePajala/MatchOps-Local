@@ -30,10 +30,10 @@ interface PlayerPositionsEditorProps {
 // carry a line identity via colour. `sel`/`idle` slot into the shared button
 // classes below; `pill` is the small collapsed-summary tag.
 const CAT_STYLE: Record<PositionCategory, { sel: string; idle: string; pill: string }> = {
-  gk:  { sel: 'bg-amber-500/25 text-amber-100 border border-amber-400/50',     idle: 'bg-slate-700 text-amber-300 hover:bg-slate-600 border border-transparent',   pill: 'bg-amber-500/15 text-amber-200 border border-amber-500/30' },
-  def: { sel: 'bg-sky-500/25 text-sky-100 border border-sky-400/50',           idle: 'bg-slate-700 text-sky-300 hover:bg-slate-600 border border-transparent',     pill: 'bg-sky-500/15 text-sky-200 border border-sky-500/30' },
-  mid: { sel: 'bg-emerald-500/25 text-emerald-100 border border-emerald-400/50', idle: 'bg-slate-700 text-emerald-300 hover:bg-slate-600 border border-transparent', pill: 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30' },
-  att: { sel: 'bg-rose-500/25 text-rose-100 border border-rose-400/50',         idle: 'bg-slate-700 text-rose-300 hover:bg-slate-600 border border-transparent',    pill: 'bg-rose-500/15 text-rose-200 border border-rose-500/30' },
+  gk:  { sel: 'bg-amber-600 text-white',   idle: 'bg-slate-700 text-amber-300 hover:bg-slate-600',   pill: 'bg-amber-600 text-white' },
+  def: { sel: 'bg-sky-600 text-white',     idle: 'bg-slate-700 text-sky-300 hover:bg-slate-600',     pill: 'bg-sky-600 text-white' },
+  mid: { sel: 'bg-emerald-600 text-white', idle: 'bg-slate-700 text-emerald-300 hover:bg-slate-600', pill: 'bg-emerald-600 text-white' },
+  att: { sel: 'bg-rose-600 text-white',    idle: 'bg-slate-700 text-rose-300 hover:bg-slate-600',    pill: 'bg-rose-600 text-white' },
 };
 
 // Shared button chrome matching GameSettings segmented controls.
