@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "The match recap now opens as a full-screen view matching the rest of the app (navy background, big title) instead of a small card on a black backdrop - cleaner and on-theme."
+      ],
+      "fi": [
+        "Ottelukooste avautuu nyt koko näytön näkymänä muun sovelluksen tyyliin (tumma sininen tausta, iso otsikko) pienen mustalla taustalla olevan kortin sijaan - siistimpi ja teeman mukainen."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Marketing site: the Development Trends feature card now shows a real screenshot (per-quality trend bars + rising/steady status) instead of a placeholder."
       ],
       "fi": [
