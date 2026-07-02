@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "User guide: replaced the setup-path diagram (an ASCII box that overflowed and couldn't wrap on mobile) with a clean numbered list, so the full setup steps read properly on a phone."
+      ],
+      "fi": [
+        "Käyttöopas: korvattiin asennuspolun kaavio (ASCII-laatikko, joka valui yli eikä rivittynyt mobiilissa) selkeällä numeroidulla listalla, jotta asennusvaiheet näkyvät kunnolla puhelimella."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Internal: documentation only - captured a plan for a position diversity / versatility feature (using positions-played data to spot players stuck in a narrow role), added to the positions plan and the roadmap. No app changes."
       ],
       "fi": [
