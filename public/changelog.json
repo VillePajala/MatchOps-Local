@@ -1,12 +1,12 @@
 {
-  "version": "1dcd9824",
+  "version": "b1ad6224",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "The Roster, Teams and Personnel screens now use a floating \"+\" button in the corner to add items, instead of a button taking up space at the top. The whole list is now visible and the add action stays reachable while you scroll."
+      "Fixed the floating add button so it sits above the footer (Done) button instead of overlapping it, with the list keeping enough bottom space that the last row isn't hidden behind it. Also turned the \"Show archived\" checkboxes (Teams, Seasons & Tournaments) into toggle buttons, matching the style used elsewhere."
     ],
     "fi": [
-      "Kokoonpano-, Joukkueet- ja Henkilöstö-näkymissä on nyt kulmassa kelluva \"+\"-painike kohteiden lisäämiseen sen sijaan, että painike veisi tilaa yläreunasta. Koko lista näkyy nyt ja lisäystoiminto pysyy ulottuvilla vieritettäessä."
+      "Korjattiin kelluva lisäyspainike istumaan alapalkin (Valmis) painikkeen yläpuolelle sen sijaan, että se menisi päällekkäin, ja listaan jää tarpeeksi tilaa alareunaan, jottei viimeinen rivi jää painikkeen taakse. Lisäksi muutettiin \"Näytä arkistoidut\" -valintaruudut (Joukkueet, Kaudet ja turnaukset) vipupainikkeiksi muun sovelluksen tyyliin."
     ]
   }
 }

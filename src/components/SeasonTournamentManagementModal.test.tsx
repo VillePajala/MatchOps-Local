@@ -331,7 +331,7 @@ describe('SeasonTournamentManagementModal', () => {
     await act(async () => {});
 
     // Enable show archived to see archived items
-    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    const showArchivedCheckbox = screen.getByRole('button', { name: i18n.t('seasonTournamentModal.showArchived', 'Show Archived') });
     await user.click(showArchivedCheckbox);
 
     const seasonActionsButton = screen.getByLabelText('season actions');
@@ -377,7 +377,7 @@ describe('SeasonTournamentManagementModal', () => {
     await act(async () => {});
 
     // Enable show archived to see archived items
-    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    const showArchivedCheckbox = screen.getByRole('button', { name: i18n.t('seasonTournamentModal.showArchived', 'Show Archived') });
     await user.click(showArchivedCheckbox);
 
     const tournamentActionsButton = screen.getByLabelText('tournament actions');
@@ -678,7 +678,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     await act(async () => {});
 
     // Enable show archived
-    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    const showArchivedCheckbox = screen.getByRole('button', { name: i18n.t('seasonTournamentModal.showArchived', 'Show Archived') });
     await user.click(showArchivedCheckbox);
 
     // Find the archived season's actions button
@@ -744,7 +744,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     await act(async () => {});
 
     // Enable show archived
-    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    const showArchivedCheckbox = screen.getByRole('button', { name: i18n.t('seasonTournamentModal.showArchived', 'Show Archived') });
     await user.click(showArchivedCheckbox);
 
     // Get the actions button for archived tournament
