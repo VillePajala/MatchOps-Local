@@ -1,12 +1,12 @@
 {
-  "version": "a5bc4659",
+  "version": "1aada2ba",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Marketing site: reviewed and tidied the feature-card wording - fixed the Finnish Overtime card to say \"rangaistuslaukaukset\" (matching the app), and smoothed a few clunky phrases in EN + FI."
+      "Tidied the game timer: overtime and penalties are now behind a small \"Overtime / Penalties\" expander, so the substitution-interval list has room again (and it's taller). The controls are still one tap away and show a check when overtime is on."
     ],
     "fi": [
-      "Markkinointisivusto: tarkistettiin ja siistittiin ominaisuuskorttien sanamuodot - korjattiin suomenkielinen Jatkoaika-kortti sanomaan \"rangaistuslaukaukset\" (sovelluksen mukaisesti) ja hiottiin muutamia kömpelöitä ilmauksia englanniksi ja suomeksi."
+      "Siistittiin ottelun ajastin: jatkoaika ja rangaistuslaukaukset ovat nyt pienen \"Jatkoaika / Rangaistuslaukaukset\" -avattavan takana, jotta vaihtovälilistalle jää taas tilaa (ja se on korkeampi). Painikkeet ovat yhä yhden napautuksen päässä ja näyttävät merkin, kun jatkoaika on päällä."
     ]
   }
 }
