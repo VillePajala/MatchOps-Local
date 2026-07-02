@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Marketing site: the Game Recap feature card now shows a real screenshot (the shareable match summary) instead of a placeholder."
+      ],
+      "fi": [
+        "Markkinointisivusto: Ottelukooste-ominaisuuskortissa näkyy nyt oikea kuvakaappaus (jaettava otteluyhteenveto) paikkamerkin sijaan."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "The match recap now opens as a full-screen view matching the rest of the app (navy background, big title) instead of a small card on a black backdrop - cleaner and on-theme."
       ],
       "fi": [

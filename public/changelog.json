@@ -1,12 +1,12 @@
 {
-  "version": "7d63b6ab",
+  "version": "7538a1da",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "The match recap now opens as a full-screen view matching the rest of the app (navy background, big title) instead of a small card on a black backdrop - cleaner and on-theme."
+      "Marketing site: the Game Recap feature card now shows a real screenshot (the shareable match summary) instead of a placeholder."
     ],
     "fi": [
-      "Ottelukooste avautuu nyt koko näytön näkymänä muun sovelluksen tyyliin (tumma sininen tausta, iso otsikko) pienen mustalla taustalla olevan kortin sijaan - siistimpi ja teeman mukainen."
+      "Markkinointisivusto: Ottelukooste-ominaisuuskortissa näkyy nyt oikea kuvakaappaus (jaettava otteluyhteenveto) paikkamerkin sijaan."
     ]
   }
 }
