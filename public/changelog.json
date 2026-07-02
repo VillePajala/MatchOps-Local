@@ -1,12 +1,12 @@
 {
-  "version": "70a9ea11",
+  "version": "a5bc4659",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Marketing site: the Overtime & Penalties feature card now shows a real screenshot (the penalty shootout) - completing the set. All new feature cards now show real screenshots."
+      "Marketing site: reviewed and tidied the feature-card wording - fixed the Finnish Overtime card to say \"rangaistuslaukaukset\" (matching the app), and smoothed a few clunky phrases in EN + FI."
     ],
     "fi": [
-      "Markkinointisivusto: Jatkoaika ja rangaistuslaukaukset -ominaisuuskortissa näkyy nyt oikea kuvakaappaus (rangaistuslaukauskilpailu) - viimeistellen setin. Kaikissa uusissa ominaisuuskorteissa näkyy nyt oikeat kuvakaappaukset."
+      "Markkinointisivusto: tarkistettiin ja siistittiin ominaisuuskorttien sanamuodot - korjattiin suomenkielinen Jatkoaika-kortti sanomaan \"rangaistuslaukaukset\" (sovelluksen mukaisesti) ja hiottiin muutamia kömpelöitä ilmauksia englanniksi ja suomeksi."
     ]
   }
 }
