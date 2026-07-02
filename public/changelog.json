@@ -1,12 +1,12 @@
 {
-  "version": "de329db7",
+  "version": "264a5df4",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Internal: documentation only - captured a plan for a position diversity / versatility feature (using positions-played data to spot players stuck in a narrow role), added to the positions plan and the roadmap. No app changes."
+      "User guide: replaced the setup-path diagram (an ASCII box that overflowed and couldn't wrap on mobile) with a clean numbered list, so the full setup steps read properly on a phone."
     ],
     "fi": [
-      "Sisäinen: vain dokumentaatio - kirjattiin suunnitelma pelipaikkojen monipuolisuus-ominaisuudelle (toteutuneiden pelipaikkojen datan avulla tunnistetaan kapeaan rooliin jääneet pelaajat), lisättiin pelipaikkasuunnitelmaan ja tiekarttaan. Ei sovellusmuutoksia."
+      "Käyttöopas: korvattiin asennuspolun kaavio (ASCII-laatikko, joka valui yli eikä rivittynyt mobiilissa) selkeällä numeroidulla listalla, jotta asennusvaiheet näkyvät kunnolla puhelimella."
     ]
   }
 }
