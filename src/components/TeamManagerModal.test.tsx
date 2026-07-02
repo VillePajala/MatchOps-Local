@@ -432,7 +432,7 @@ describe('TeamManagerModal', () => {
       await renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={teamsWithArchived} />);
 
       // Enable show archived
-      const showArchivedCheckbox = screen.getByLabelText('Show Archived');
+      const showArchivedCheckbox = screen.getByRole('button', { name: 'Show Archived' });
       fireEvent.click(showArchivedCheckbox);
 
       // Search for "Delta"
@@ -580,7 +580,7 @@ describe('TeamManagerModal - Premium Limit Enforcement', () => {
     );
 
     // Enable show archived
-    const showArchivedCheckbox = screen.getByLabelText('Show Archived');
+    const showArchivedCheckbox = screen.getByRole('button', { name: 'Show Archived' });
     fireEvent.click(showArchivedCheckbox);
 
     // Open actions menu for archived team
