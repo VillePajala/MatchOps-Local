@@ -2648,6 +2648,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         availablePlayers={availablePlayers}
         initialKicks={shootoutKicks ?? []}
         homeOrAway={homeOrAway}
+        teamName={teamName}
+        opponentName={opponentName}
         onSave={(kicks) => {
           onShootoutKicksChange(kicks);
           const updates: Partial<AppState> = { shootoutKicks: kicks };

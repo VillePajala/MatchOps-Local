@@ -1,12 +1,12 @@
 {
-  "version": "143221c2",
+  "version": "cfbc8fed",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Marketing site: the Match Report feature card now shows a real screenshot (the report editor with the ready template of headings) instead of a placeholder."
+      "Tidied the penalty shootout: it now shows the actual team names instead of \"You/Opponent\", the long instructions are trimmed to a short line, the \"first shot\" choice is a full-width toggle with its label above it, and \"kick\" is now called \"shot\" throughout."
     ],
     "fi": [
-      "Markkinointisivusto: Otteluraportti-ominaisuuskortissa näkyy nyt oikea kuvakaappaus (raporttieditori valmiilla otsikkopohjalla) paikkamerkin sijaan."
+      "Siistittiin rangaistuslaukauskilpailu: siinä näkyvät nyt oikeat joukkueiden nimet \"Me/Vastustaja\"-tekstien sijaan, pitkät ohjeet lyhennettiin yhteen riviin, \"ensimmäinen laukaus\" -valinta on koko leveyden vipupainike otsikko sen yläpuolella, ja \"potku\" on nyt \"laukaus\" kauttaaltaan."
     ]
   }
 }

@@ -285,6 +285,8 @@ export function FieldContainer({
         availablePlayers={availablePlayers}
         initialKicks={gameSessionState.shootoutKicks ?? []}
         homeOrAway={gameSessionState.homeOrAway}
+        teamName={gameSessionState.teamName}
+        opponentName={gameSessionState.opponentName}
         onSave={(kicks) => {
           onShootoutKicksChange(kicks);
           // Recording a shootout marks the game decided by penalties (auto-check only).

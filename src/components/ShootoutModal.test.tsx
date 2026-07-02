@@ -22,6 +22,8 @@ const renderModal = (overrides: Partial<React.ComponentProps<typeof ShootoutModa
       availablePlayers={players}
       initialKicks={[]}
       homeOrAway="home"
+      teamName="My Team"
+      opponentName="Opponent"
       onSave={onSave}
       {...overrides}
     />
@@ -32,14 +34,14 @@ const renderModal = (overrides: Partial<React.ComponentProps<typeof ShootoutModa
 describe('ShootoutModal', () => {
   it('does not render when closed', () => {
     render(
-      <ShootoutModal isOpen={false} onClose={jest.fn()} availablePlayers={players} initialKicks={[]} homeOrAway="home" onSave={jest.fn()} />
+      <ShootoutModal isOpen={false} onClose={jest.fn()} availablePlayers={players} initialKicks={[]} homeOrAway="home" teamName="My Team" opponentName="Opponent" onSave={jest.fn()} />
     );
     expect(screen.queryByText('Penalty Shootout')).not.toBeInTheDocument();
   });
 
-  it('shows usage instructions so repeated logging is obvious', () => {
+  it('shows a short usage subtitle', () => {
     renderModal();
-    expect(screen.getByText(/each tap adds a kick/i)).toBeInTheDocument();
+    expect(screen.getByText(/log each shot as it happens/i)).toBeInTheDocument();
   });
 
   it('builds the tally from logged kicks and shows the winner', () => {
