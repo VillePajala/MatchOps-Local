@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(ui): recap modal full-screen, on-theme (was card on black backdrop) (#610)"
+  "notes": "feat(site): real screenshot for the Game Recap card (#611)"
 }
