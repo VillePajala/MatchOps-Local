@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Marketing site: the Overtime & Penalties feature card now shows a real screenshot (the penalty shootout) - completing the set. All new feature cards now show real screenshots."
+      ],
+      "fi": [
+        "Markkinointisivusto: Jatkoaika ja rangaistuslaukaukset -ominaisuuskortissa näkyy nyt oikea kuvakaappaus (rangaistuslaukauskilpailu) - viimeistellen setin. Kaikissa uusissa ominaisuuskorteissa näkyy nyt oikeat kuvakaappaukset."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Tidied the penalty shootout: it now shows the actual team names instead of \"You/Opponent\", the long instructions are trimmed to a short line, the \"first shot\" choice is a full-width toggle with its label above it, and \"kick\" is now called \"shot\" throughout."
       ],
       "fi": [

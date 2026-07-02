@@ -46,6 +46,9 @@ const getScreenshots = (locale: string | undefined) => {
     matchReport: isEnglish
       ? '/screenshots/MatchOps_main_matchreport_en.jpg'
       : '/screenshots/MatchOps_main_matchreport_fi.jpg',
+    overtime: isEnglish
+      ? '/screenshots/MatchOps_main_overtime_en.jpg'
+      : '/screenshots/MatchOps_main_overtime_fi.jpg',
     seasons: isEnglish
       ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
       : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
@@ -434,7 +437,7 @@ export default function HomePage() {
                 { key: 'positions', screenshot: screenshots.positions },
                 { key: 'trends', screenshot: screenshots.trends },
                 { key: 'matchReport', screenshot: screenshots.matchReport },
-                { key: 'overtime', screenshot: '', comingSoon: true },
+                { key: 'overtime', screenshot: screenshots.overtime },
                 { key: 'formations', screenshot: screenshots.formations },
                 { key: 'excelExport', screenshot: screenshots.excelExport },
                 { key: 'roster', screenshot: screenshots.roster },
@@ -460,13 +463,7 @@ export default function HomePage() {
                     <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup
-                      screenshot={card.screenshot}
-                      size="lg"
-                      zIndex={10}
-                      comingSoon={card.comingSoon}
-                      comingSoonLabel={t('marketing.ui.comingSoon')}
-                    />
+                    <PhoneMockup screenshot={card.screenshot} size="lg" zIndex={10} />
                   </div>
                 </div>
               ))}
