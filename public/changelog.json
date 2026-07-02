@@ -1,12 +1,12 @@
 {
-  "version": "b87737a3",
-  "date": "2026-07-02",
+  "version": "05792482",
+  "date": "2026-07-03",
   "notes": {
     "en": [
-      "Marketing hero: swapped the far-right phone from the goal log to the more eye-catching Player Development radar (desktop arc + mobile carousel, relabeled \"Development\"). Made the Google Play button stand out with a subtle raised panel, and moved the contact email below the button instead of beside it."
+      "Marketing site: the feature cards now show one per row with a much larger phone mockup, so the app screenshots (and their text) are actually readable - matching how they already looked on mobile."
     ],
     "fi": [
-      "Markkinoinnin hero: vaihdettiin oikeanpuoleisin puhelin maalilokista näyttävämpään Pelaajan kehitys -tutkaan (työpöytäkaari + mobiilikaruselli, uudelleennimetty \"Kehitys\"). Google Play -painike erottuu nyt hillityllä koholla panelilla, ja yhteyssähköposti siirrettiin painikkeen alle sen viereltä."
+      "Markkinointisivusto: ominaisuuskortit näkyvät nyt yksi per rivi ja paljon suuremmalla puhelinkuvalla, joten sovelluksen kuvakaappaukset (ja niiden teksti) ovat oikeasti luettavia - kuten ne jo näkyivät mobiilissa."
     ]
   }
 }
