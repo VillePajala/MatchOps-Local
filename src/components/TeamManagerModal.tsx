@@ -323,15 +323,16 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               aria-label={t('teamManager.searchAriaLabel', 'Search teams by name')}
               className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer whitespace-nowrap">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
-                className="form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-              />
+            <button
+              type="button"
+              onClick={() => setShowArchived(v => !v)}
+              aria-pressed={showArchived}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                showArchived ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
               {t('teamManager.showArchived', 'Show Archived')}
-            </label>
+            </button>
           </div>
 
           {/* Teams List */}
