@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Marketing site: reworded the app description to cover the full before/during/after game flow plus season-long player development, refreshed the Player Development and Development Trends card copy toward a develop-don't-rate tone, tidied the Positions wording, and made the Google Play buttons more prominent."
+      ],
+      "fi": [
+        "Markkinointisivusto: kirjoitettiin sovelluksen kuvaus kattamaan koko ennen/aikana/jälkeen-pelinkulku sekä kauden mittainen pelaajakehitys, hiottiin Pelaajan kehitys- ja Kehitystrendit-korttien tekstit kehittävään (ei arvioivaan) sävyyn, siistittiin Toteutuneet pelipaikat -teksti ja tehtiin Google Play -painikkeista näkyvämpiä."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Tidied the game timer: overtime and penalties are now behind a small \"Overtime / Penalties\" expander, so the substitution-interval list has room again (and it's taller). The controls are still one tap away and show a check when overtime is on."
       ],
       "fi": [

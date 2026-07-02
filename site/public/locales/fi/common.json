@@ -235,7 +235,7 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
-      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano, pelipaikat ja alkulämmittely ennen peliä. Kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä pelin aikana. Tilastosi kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailustasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa virallisten pöytäkirjojen ja tulosten kirjaamista.",
+      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Ennen peliä suunnittele kokoonpano, muodostelma ja alkulämmittely. Pelin aikana kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä. Pelin jälkeen merkitse toteutuneet pelipaikat, kirjaa otteluraportti ja jaa valmis ottelukooste. Seuraa jokaisen pelaajan kehitystä kauden mittaan, jotta osaat tukea jokaista lasta yksilöllisesti. Tilastot kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailutasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa virallisten pöytäkirjojen ja tulosten kirjaamista.",
       "oneLine": "Ilmainen, turvallinen pilvisynkronointi kaikilla laitteillasi. Seuraa otteluita ja rakenna tilastot kentällä, myös ilman internetiä."
     },
     "whoIsThisFor": {
@@ -495,9 +495,9 @@
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Pelaajan kehitys",
-      "assessmentDesc": "Arvioi pelaajien kehitystä tukevia ominaisuuksia ottelun jälkeen ja rakenna kullekin oma kehityskompassi ajan myötä — nykyinen taso, trendinuolet, vahvuudet ja kehityskohteet, sekä jaettava kehitysraporttikortti. Vertaa pelaajaa hänen omaan kehitykseensä, ei muihin lapsiin.",
+      "assessmentDesc": "Näe yhdellä silmäyksellä, miten jokainen pelaaja kehittyy: mikä on jo vahvaa, missä on vielä opittavaa ja mihin suuntaan kehitys kulkee. Kirjaa lyhyet havaintosi ottelun jälkeen, niin niistä muodostuu vähitellen kehityskompassi ja jaettava kehitysraporttikortti. Vertaa pelaajaa aina vain hänen omaan kehitykseensä, älä muihin lapsiin.",
       "trends": "Kehitystrendit",
-      "trendsDesc": "Seuraa kutakin ominaisuutta ottelu ottelulta ja läpi kauden selkeillä kaavioilla — näe mikä nousee, pysyy tasaisena tai kaipaa työtä.",
+      "trendsDesc": "Seuraa jokaisen pelaajan edistymistä läpi kauden ja näe, miten hän kehittyy kokonaisuutena. Pitkän aikavälin kuva auttaa antamaan jokaiselle lapselle juuri hänelle sopivaa tukea.",
       "seasons": "Kausikeskus",
       "seasonsDesc": "Luo ja hallitse sarjoja. Yhdistä pelit sarjoihin ja seuraa sarjan tilastoja.",
       "tournaments": "Turnauskeskus",
@@ -521,7 +521,7 @@
       "recap": "Ottelukooste",
       "recapDesc": "Yhdellä napautuksella valmis, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
       "positions": "Toteutuneet pelipaikat",
-      "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi (lajin ja pelimuodon mukaan). Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
+      "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi. Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
       "matchReport": "Otteluraportti",
       "matchReportDesc": "Kirjoita oma näkemyksesi ottelusta valmiilla otsikkopohjalla — yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Sisältyy jaettavaan koosteeseen.",
       "overtime": "Jatkoaika ja rangaistuslaukaukset",

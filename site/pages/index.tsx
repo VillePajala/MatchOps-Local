@@ -357,7 +357,7 @@ export default function HomePage() {
                   alt={t('info.cta.googlePlayAlt')}
                   width={688}
                   height={140}
-                  className="w-32 md:w-36 h-auto opacity-80 hover:opacity-100 transition-opacity"
+                  className="w-40 md:w-44 h-auto drop-shadow-lg hover:scale-105 transition-transform"
                 />
               </a>
               <a href="mailto:hello@match-ops.com" className="text-slate-400 text-sm hover:text-primary transition-colors">hello@match-ops.com</a>
@@ -528,7 +528,7 @@ export default function HomePage() {
                 alt={t('info.cta.googlePlayAlt')}
                 width={688}
                 height={140}
-                className="mx-auto w-40 md:w-48 h-auto opacity-80 hover:opacity-100 transition-opacity"
+                className="mx-auto w-48 md:w-56 h-auto drop-shadow-xl hover:scale-105 transition-transform"
               />
             </a>
             <p className="text-slate-300 mb-6">
