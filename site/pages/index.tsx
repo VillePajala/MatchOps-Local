@@ -431,7 +431,7 @@ export default function HomePage() {
               {isEnglish ? 'More Features' : 'Lisää ominaisuuksia'}
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:gap-8">
               {[
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
                 { key: 'cloudSync', screenshot: screenshots.cloudSync },
@@ -468,7 +468,7 @@ export default function HomePage() {
                     <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
                   </div>
                   <div className="w-1/2 flex items-center justify-center">
-                    <PhoneMockup screenshot={card.screenshot} size="lg" zIndex={10} />
+                    <PhoneMockup screenshot={card.screenshot} size="3xl" zIndex={10} />
                   </div>
                 </div>
               ))}
