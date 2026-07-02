@@ -95,8 +95,8 @@ export default function HomePage() {
 
   // Mobile carousel labels (5 items now)
   const carouselLabels = isEnglish
-    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Events']
-    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Loki'];
+    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Development']
+    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Kehitys'];
 
   useEffect(() => {
     const container = mobileCarouselRef.current;
@@ -213,7 +213,7 @@ export default function HomePage() {
                   { src: screenshots.timer, alt: 'Timer view' },
                   { src: screenshots.playerstats, alt: 'Stats view' },
                   { src: screenshots.tacticalBoard, alt: 'Tactics view' },
-                  { src: screenshots.goalTimeline, alt: 'Events view' },
+                  { src: screenshots.assessment, alt: 'Development view' },
                 ].map((screen, i) => (
                   <div key={i} className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
                     <div className="phone-frame phone-frame-full">
@@ -326,7 +326,7 @@ export default function HomePage() {
                 />
                 {/* Phone 5: Goal Timeline - far right */}
                 <PhoneMockup
-                  screenshot={screenshots.goalTimeline}
+                  screenshot={screenshots.assessment}
                   size="md"
                   style={{
                     position: 'absolute',
@@ -350,14 +350,19 @@ export default function HomePage() {
             <p className="text-slate-300 text-sm md:text-base">
               {t('info.cta.subtitle')}
             </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+            <div className="flex flex-col items-center gap-3">
+              <a
+                href={PLAY_STORE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block rounded-xl bg-white/10 ring-1 ring-white/20 p-2.5 shadow-lg hover:bg-white/15 hover:scale-105 transition-all"
+              >
                 <Image
                   src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
                   alt={t('info.cta.googlePlayAlt')}
                   width={688}
                   height={140}
-                  className="w-40 md:w-44 h-auto drop-shadow-lg hover:scale-105 transition-transform"
+                  className="w-40 md:w-44 h-auto"
                 />
               </a>
               <a href="mailto:hello@match-ops.com" className="text-slate-400 text-sm hover:text-primary transition-colors">hello@match-ops.com</a>
@@ -522,13 +527,18 @@ export default function HomePage() {
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
               {t('info.cta.title')}
             </h3>
-            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-block mb-6">
+            <a
+              href={PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mb-6 rounded-xl bg-white/10 ring-1 ring-white/20 p-3 shadow-lg hover:bg-white/15 hover:scale-105 transition-all"
+            >
               <Image
                 src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
                 alt={t('info.cta.googlePlayAlt')}
                 width={688}
                 height={140}
-                className="mx-auto w-48 md:w-56 h-auto drop-shadow-xl hover:scale-105 transition-transform"
+                className="mx-auto w-48 md:w-56 h-auto"
               />
             </a>
             <p className="text-slate-300 mb-6">
