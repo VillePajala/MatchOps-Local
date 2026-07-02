@@ -495,7 +495,7 @@
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Pelaajan kehitys",
-      "assessmentDesc": "Arvioi pelaajia kehityksellisillä ominaisuuksilla ottelun jälkeen ja rakenna kullekin pelaajalle kompassi ajan myötä — nykyinen taso, trendinuolet, vahvuudet ja kehityskohteet, sekä jaettava kehitysraporttikortti. Verrataan omaan itseen, ei muihin lapsiin.",
+      "assessmentDesc": "Arvioi pelaajien kehitystä tukevia ominaisuuksia ottelun jälkeen ja rakenna kullekin oma kehityskompassi ajan myötä — nykyinen taso, trendinuolet, vahvuudet ja kehityskohteet, sekä jaettava kehitysraporttikortti. Vertaa pelaajaa hänen omaan kehitykseensä, ei muihin lapsiin.",
       "trends": "Kehitystrendit",
       "trendsDesc": "Seuraa kutakin ominaisuutta ottelu ottelulta ja läpi kauden selkeillä kaavioilla — näe mikä nousee, pysyy tasaisena tai kaipaa työtä.",
       "seasons": "Kausikeskus",
@@ -521,11 +521,11 @@
       "recap": "Ottelukooste",
       "recapDesc": "Yhdellä napautuksella valmis, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
       "positions": "Toteutuneet pelipaikat",
-      "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi (laji- ja kokotietoisesti). Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
+      "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi (lajin ja pelimuodon mukaan). Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
       "matchReport": "Otteluraportti",
       "matchReportDesc": "Kirjoita oma näkemyksesi ottelusta valmiilla otsikkopohjalla — yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Sisältyy jaettavaan koosteeseen.",
-      "overtime": "Jatkoaika ja rangaistuspotkut",
-      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuspotkukilpailut. Rangaistuspotkujen tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin."
+      "overtime": "Jatkoaika ja rangaistuslaukaukset",
+      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin."
     },
     "techCards": {
       "development": "KEHITYS",
