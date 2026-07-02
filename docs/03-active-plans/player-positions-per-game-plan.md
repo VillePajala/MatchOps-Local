@@ -135,3 +135,53 @@ are small and follow existing patterns (assessment storage, block-based recap).
 ## Remaining detail to settle during build
 
 - FI abbreviations wording for each position (e.g. GK → MV).
+
+---
+
+## Extension: position diversity / versatility (planned 2026-07-02)
+
+**Why.** We don't want to lock young players into one role. Once real positions accrue over a
+season, the data can surface *who has had a narrow positional experience* so the coach can
+deliberately broaden them. This is the positions analogue of the development view's "help the
+individual, don't rate" lens: the point is a nudge to rotate, not a ranking.
+
+**Data.** Reuse the per-game `playerPositions` map already stored + synced. Aggregate across a
+context (season / tournament / all) into, per player, a games-per-position tally. No schema change
+needed for Phase 1 - compute in-app from the existing `player_positions` jsonb across the context's
+saved games (fine at this data scale).
+
+**Outputs (three levels, increasingly actionable):**
+
+1. **Per-player breakdown** - games per position over the context, a "mostly X" primary position,
+   and the spread. Lives in the player development / stats view, next to the development compass.
+2. **Diversity signal** - not just *what* but *how narrow*:
+   - distinct positions played,
+   - share in the most-common position,
+   - **line-level** coverage (GK / DEF / MID / ATT via `POSITION_CATEGORY`) - a kid who's played
+     CB, LB and RB is still defense-only, so line diversity often matters more than the exact slot.
+3. **Team narrow-scope view (the actionable core)** - a team list that flags players who've been
+   too narrow (one position all season, or ~all games in one line), so the coach can plan to widen
+   them next games. This is the primary output; #1/#2 are supporting detail.
+
+**Metric (keep simple, no over-engineering).**
+
+- Primary position = most-frequent position id.
+- Spread = distinct-positions count + top-position share.
+- Line coverage = number of the four lines the player has appeared in.
+- "Narrow" flag = 1 line only, or top-position share >= ~80%, gated by a minimum games count so it
+  doesn't fire on 1-2 games.
+- Multi-position in a single game: count each position that game (matches how the recap groups).
+- Compare-to-self / operational only; never an evaluative cross-player ranking of ability.
+
+**Storage.** Phase 1 needs no schema change (read the existing jsonb). If cross-game position
+querying ever needs to scale, the deferred normalised `game_players.positions` (see "Locked
+decisions" #4) is the upgrade path.
+
+**Phasing.**
+
+- **P1**: per-player breakdown + primary position (read from existing data).
+- **P2**: diversity metrics (distinct, top-share, line coverage).
+- **P3**: team narrow-scope flags + the "consider broadening" nudge.
+
+**Non-goals.** No rating/ranking of players by ability; no locking to positions; not a lineup
+optimizer (that's the P4 playing-time planner's territory).

@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Internal: documentation only - captured a plan for a position diversity / versatility feature (using positions-played data to spot players stuck in a narrow role), added to the positions plan and the roadmap. No app changes."
+      ],
+      "fi": [
+        "Sisäinen: vain dokumentaatio - kirjattiin suunnitelma pelipaikkojen monipuolisuus-ominaisuudelle (toteutuneiden pelipaikkojen datan avulla tunnistetaan kapeaan rooliin jääneet pelaajat), lisättiin pelipaikkasuunnitelmaan ja tiekarttaan. Ei sovellusmuutoksia."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Marketing site: reworded the app description to cover the full before/during/after game flow plus season-long player development, refreshed the Player Development and Development Trends card copy toward a develop-don't-rate tone, tidied the Positions wording, and made the Google Play buttons more prominent."
       ],
       "fi": [
