@@ -17,23 +17,74 @@
     "unknownPlayer": "Unknown"
   },
   "playingPositions": {
-    "gk": { "label": "Goalkeeper", "abbrev": "GK" },
-    "rb": { "label": "Right back", "abbrev": "RB" },
-    "cb": { "label": "Centre back", "abbrev": "CB" },
-    "lb": { "label": "Left back", "abbrev": "LB" },
-    "rwb": { "label": "Right wing-back", "abbrev": "RWB" },
-    "lwb": { "label": "Left wing-back", "abbrev": "LWB" },
-    "cdm": { "label": "Defensive midfield", "abbrev": "CDM" },
-    "cm": { "label": "Central midfield", "abbrev": "CM" },
-    "cam": { "label": "Attacking midfield", "abbrev": "CAM" },
-    "rm": { "label": "Right midfield", "abbrev": "RM" },
-    "lm": { "label": "Left midfield", "abbrev": "LM" },
-    "rw": { "label": "Right wing", "abbrev": "RW" },
-    "lw": { "label": "Left wing", "abbrev": "LW" },
-    "st": { "label": "Striker", "abbrev": "ST" },
-    "fixo": { "label": "Fixo (defender)", "abbrev": "FIXO" },
-    "ala": { "label": "Ala (winger)", "abbrev": "ALA" },
-    "pivo": { "label": "Pivot", "abbrev": "PIVO" }
+    "gk": {
+      "label": "Goalkeeper",
+      "abbrev": "GK"
+    },
+    "rb": {
+      "label": "Right back",
+      "abbrev": "RB"
+    },
+    "cb": {
+      "label": "Centre back",
+      "abbrev": "CB"
+    },
+    "lb": {
+      "label": "Left back",
+      "abbrev": "LB"
+    },
+    "rwb": {
+      "label": "Right wing-back",
+      "abbrev": "RWB"
+    },
+    "lwb": {
+      "label": "Left wing-back",
+      "abbrev": "LWB"
+    },
+    "cdm": {
+      "label": "Defensive midfield",
+      "abbrev": "CDM"
+    },
+    "cm": {
+      "label": "Central midfield",
+      "abbrev": "CM"
+    },
+    "cam": {
+      "label": "Attacking midfield",
+      "abbrev": "CAM"
+    },
+    "rm": {
+      "label": "Right midfield",
+      "abbrev": "RM"
+    },
+    "lm": {
+      "label": "Left midfield",
+      "abbrev": "LM"
+    },
+    "rw": {
+      "label": "Right wing",
+      "abbrev": "RW"
+    },
+    "lw": {
+      "label": "Left wing",
+      "abbrev": "LW"
+    },
+    "st": {
+      "label": "Striker",
+      "abbrev": "ST"
+    },
+    "fixo": {
+      "label": "Fixo (defender)",
+      "abbrev": "FIXO"
+    },
+    "ala": {
+      "label": "Ala (winger)",
+      "abbrev": "ALA"
+    },
+    "pivo": {
+      "label": "Pivot",
+      "abbrev": "PIVO"
+    }
   },
   "controlBar": {
     "help": "Help",
@@ -3030,19 +3081,19 @@
     "you": "You",
     "opponent": "Opponent",
     "tied": "Tied — keep logging until decided",
-    "youWin": "You win the shootout",
-    "youLose": "Opponent wins the shootout",
-    "yourKick": "Your kick",
-    "opponentKick": "Opponent kick",
+    "youWin": "Shootout won",
+    "youLose": "Shootout lost",
+    "yourKick": "Your shot",
+    "opponentKick": "Opponent shot",
     "unknownShooter": "Shooter (optional)",
     "yourPlayer": "Your player",
     "scored": "Scored",
     "missed": "Missed",
-    "kickLog": "Kicks",
-    "noKicks": "No kicks logged yet.",
-    "removeKick": "Remove kick",
-    "instructions": "Log every kick with the buttons below — each tap adds a kick to the list and updates the score. Use the same controls for every shooter until it's decided.",
-    "firstKick": "First kick:",
+    "kickLog": "Shots",
+    "noKicks": "No shots logged yet.",
+    "removeKick": "Remove shot",
+    "instructions": "Log each shot as it happens.",
+    "firstKick": "First shot",
     "upNext": "Up next"
   }
 }
