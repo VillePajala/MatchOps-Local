@@ -25,7 +25,10 @@ const RADIUS = 82;
 const RINGS = [0.25, 0.5, 0.75, 1];
 // Extra horizontal room in the viewBox so the longest axis labels (e.g.
 // "Havainnointi", "Joukkuepeli") aren't clipped at the left/right edges.
-const LABEL_PAD_X = 52;
+const LABEL_PAD_X = 60;
+// Axis-label font size (viewBox units). Sized up for readability now that the
+// horizontal padding above gives the longest labels room to fit.
+const LABEL_FONT_SIZE = 10;
 
 const at = (r: number, angle: number): [number, number] => [
   CENTER + r * Math.cos(angle),
@@ -52,7 +55,7 @@ const PlayerDevelopmentRadar: React.FC<PlayerDevelopmentRadarProps> = ({ axes, m
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox={`${-LABEL_PAD_X} 0 ${SIZE + LABEL_PAD_X * 2} ${SIZE}`} className="w-full max-w-[340px]" role="img" aria-label={`${currentLabel} vs ${baselineLabel}`}>
+      <svg viewBox={`${-LABEL_PAD_X} 0 ${SIZE + LABEL_PAD_X * 2} ${SIZE}`} className="w-full max-w-[360px]" role="img" aria-label={`${currentLabel} vs ${baselineLabel}`}>
         {RINGS.map((f, ri) => (
           <polygon
             key={ri}
@@ -69,7 +72,7 @@ const PlayerDevelopmentRadar: React.FC<PlayerDevelopmentRadarProps> = ({ axes, m
           return (
             <g key={ax.key}>
               <line x1={CENTER} y1={CENTER} x2={x} y2={y} stroke="#334155" strokeWidth={0.5} />
-              <text x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" className="fill-slate-400" style={{ fontSize: 7 }}>
+              <text x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle" className="fill-slate-400" style={{ fontSize: LABEL_FONT_SIZE }}>
                 {ax.label}
               </text>
             </g>

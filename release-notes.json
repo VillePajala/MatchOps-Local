@@ -4,6 +4,15 @@
     {
       "date": "2026-07-02",
       "en": [
+        "Made the player development radar's axis labels larger and easier to read (they were quite small), while keeping every label fully inside the chart."
+      ],
+      "fi": [
+        "Suurennettiin pelaajakehityksen tutkan akseleiden nimiä luettavammiksi (ne olivat melko pienet) pitäen silti jokaisen nimen kokonaan kaavion sisällä."
+      ]
+    },
+    {
+      "date": "2026-07-02",
+      "en": [
         "Fixed the player development radar so the axis labels around the edge (e.g. \"Havainnointi\", \"Joukkuepeli\") are no longer clipped - added horizontal room so every label fits."
       ],
       "fi": [
