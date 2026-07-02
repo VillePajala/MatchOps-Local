@@ -40,6 +40,9 @@ const getScreenshots = (locale: string | undefined) => {
     recap: isEnglish
       ? '/screenshots/MatchOps_main_recap_en.jpg'
       : '/screenshots/MatchOps_main_recap_fi.jpg',
+    positions: isEnglish
+      ? '/screenshots/MatchOps_main_positions_en.jpg'
+      : '/screenshots/MatchOps_main_positions_fi.jpg',
     seasons: isEnglish
       ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
       : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
@@ -425,7 +428,7 @@ export default function HomePage() {
                 // New post-game features — screenshots pending the refreshed shoot.
                 { key: 'assessment', screenshot: screenshots.assessment },
                 { key: 'recap', screenshot: screenshots.recap },
-                { key: 'positions', screenshot: '', comingSoon: true },
+                { key: 'positions', screenshot: screenshots.positions },
                 { key: 'trends', screenshot: screenshots.trends },
                 { key: 'matchReport', screenshot: '', comingSoon: true },
                 { key: 'overtime', screenshot: '', comingSoon: true },
