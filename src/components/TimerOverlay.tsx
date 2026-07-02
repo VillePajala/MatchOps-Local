@@ -86,6 +86,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // --- State for Confirmation Modals ---
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showOpponentGoalConfirm, setShowOpponentGoalConfirm] = useState(false);
+  // Overtime/penalties are edge-of-game actions; keep them collapsed so the
+  // substitution-interval list keeps its room. Open by default if OT is already on.
+  const [showEndGameControls, setShowEndGameControls] = useState(wentToOvertime);
   // --- End State ---
 
   // Determine display names (must be before useEffect that depends on it)
@@ -378,35 +381,50 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             </div>
           </div>
 
-          {/* Overtime / Penalties — ALWAYS visible (any game state), since the timer
-              is often behind reality and the coach may need these at any point. */}
-          <div className="flex gap-2 pt-2 border-t border-slate-700/60">
-            {/* OT as a toggle chip (matches the button UI), not a bare checkbox */}
+          {/* Overtime / penalties — edge-of-game actions, tucked behind an
+              expander so the substitution-interval list keeps its room. Still
+              one tap away at any game state (the timer often lags reality). */}
+          <div className="pt-2 border-t border-slate-700/60">
             <button
               type="button"
-              onClick={() => onWentToOvertimeChange(!wentToOvertime)}
-              aria-pressed={wentToOvertime}
-              className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
-                wentToOvertime
-                  ? 'bg-amber-600/80 border-amber-500 text-white'
-                  : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
-              }`}
+              onClick={() => setShowEndGameControls((v) => !v)}
+              aria-expanded={showEndGameControls}
+              className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 py-1"
             >
-              {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Went to overtime')}
+              {wentToOvertime && <span className="text-amber-400" aria-hidden>✓</span>}
+              <span>{t('timerOverlay.wentToOvertime', 'Overtime')} / {t('timerOverlay.recordShootout', 'Penalties')}</span>
+              <span aria-hidden>{showEndGameControls ? '▲' : '▼'}</span>
             </button>
-            <button
-              type="button"
-              onClick={onRecordShootout}
-              className={`${secondaryActionStyle} flex-1`}
-            >
-              {t('timerOverlay.recordShootout', 'Record penalty shootout')}
-            </button>
+            {showEndGameControls && (
+              <div className="flex gap-2 pt-2">
+                {/* OT as a toggle chip (matches the button UI), not a bare checkbox */}
+                <button
+                  type="button"
+                  onClick={() => onWentToOvertimeChange(!wentToOvertime)}
+                  aria-pressed={wentToOvertime}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-semibold border transition-colors ${
+                    wentToOvertime
+                      ? 'bg-amber-600/80 border-amber-500 text-white'
+                      : 'bg-slate-700/60 border-slate-600 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {wentToOvertime ? '✓ ' : ''}{t('timerOverlay.wentToOvertime', 'Went to overtime')}
+                </button>
+                <button
+                  type="button"
+                  onClick={onRecordShootout}
+                  className={`${secondaryActionStyle} flex-1`}
+                >
+                  {t('timerOverlay.recordShootout', 'Record penalty shootout')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Play Time History - show recent items only to reduce clutter */}
         {completedIntervalDurations.length > 0 && (
-          <div className="bg-slate-800/60 backdrop-blur-sm p-2 rounded-lg max-h-24 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50">
+          <div className="bg-slate-800/60 backdrop-blur-sm p-2 rounded-lg max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50">
             <h3 className="text-xs font-semibold mb-1 text-center text-slate-300">{t('timerOverlay.historyTitle', 'Play Time History')}</h3>
             <ul className="list-none text-sm space-y-0.5 text-center">
               {completedIntervalDurations.slice(0, 5).map((log, displayIndex) => {
