@@ -32,8 +32,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
       : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
     assessment: isEnglish
-      ? '/screenshots/MatchOps_main_development_fi.jpg'  // filename mislabeled: _fi.jpg has EN content
-      : '/screenshots/MatchOps_main_development_en.jpg',  // filename mislabeled: _en.jpg has FI content
+      ? '/screenshots/MatchOps_main_playerdevelopment_en.jpg'
+      : '/screenshots/MatchOps_main_playerdevelopment_fi.jpg',
     trends: isEnglish
       ? '/screenshots/MatchOps_main_playerstatprogression_en.jpg'
       : '/screenshots/MatchOps_main_playerstatsprogression_fi.jpg',
@@ -420,7 +420,7 @@ export default function HomePage() {
                 { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
                 // New post-game features — screenshots pending the refreshed shoot.
-                { key: 'assessment', screenshot: '', comingSoon: true },
+                { key: 'assessment', screenshot: screenshots.assessment },
                 { key: 'recap', screenshot: '', comingSoon: true },
                 { key: 'positions', screenshot: '', comingSoon: true },
                 { key: 'trends', screenshot: '', comingSoon: true },

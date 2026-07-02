@@ -1,12 +1,12 @@
 {
-  "version": "b5c7f96a",
+  "version": "804c70a8",
   "date": "2026-07-02",
   "notes": {
     "en": [
-      "Made the player development radar's axis labels larger and easier to read (they were quite small), while keeping every label fully inside the chart."
+      "Marketing site: the Player Development feature card now shows a real screenshot (radar compare + strengths) instead of a placeholder."
     ],
     "fi": [
-      "Suurennettiin pelaajakehityksen tutkan akseleiden nimiä luettavammiksi (ne olivat melko pienet) pitäen silti jokaisen nimen kokonaan kaavion sisällä."
+      "Markkinointisivusto: Pelaajan kehitys -ominaisuuskortissa näkyy nyt oikea kuvakaappaus (tutkavertailu + vahvuudet) paikkamerkin sijaan."
     ]
   }
 }
