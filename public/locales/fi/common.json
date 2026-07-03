@@ -3182,7 +3182,9 @@
     "balance": {
       "title": "Peliaikatasapaino",
       "view": "Näytä peliaikatasapaino",
-      "fairShare": "Reilu osuus {{minutes}}' / pelaaja · {{games}} peliä laskettu",
+      "fairShare": "Reilu osuus {{minutes}}' / pelaaja",
+      "gamesCounted_one": "{{count}} peli laskettu",
+      "gamesCounted_other": "{{count}} peliä laskettu",
       "noGames": "Ei laskettuja pelejä. Merkitse pelit mukaan.",
       "ofFairShare": "{{pct}}% reilusta osuudesta",
       "notPlaying": "Ei pelaa: {{games}}"

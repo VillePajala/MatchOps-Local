@@ -267,6 +267,22 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.queryByText(/Sam → GK/)).not.toBeInTheDocument());
   });
 
+  it('navigates to the balance view and back', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('View playing-time balance')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('View playing-time balance'));
+    });
+    await waitFor(() => expect(screen.getByText('Playing-time balance')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Back to plan'));
+    });
+    await waitFor(() => expect(screen.getByText('View playing-time balance')).toBeInTheDocument());
+  });
+
   it('duplicates the active plan under a copy name', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);

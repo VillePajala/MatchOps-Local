@@ -1644,6 +1644,8 @@ export type TranslationKey =
   | 'playingPositions.st.abbrev'
   | 'playingPositions.st.label'
   | 'playtimePlanner.balance.fairShare'
+  | 'playtimePlanner.balance.gamesCounted_one'
+  | 'playtimePlanner.balance.gamesCounted_other'
   | 'playtimePlanner.balance.noGames'
   | 'playtimePlanner.balance.notPlaying'
   | 'playtimePlanner.balance.ofFairShare'

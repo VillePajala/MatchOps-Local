@@ -30,6 +30,11 @@ const bandFill: Record<FairnessBand, string> = {
 
 const toMin = (sec: number): number => Math.round(sec / 60);
 
+// A player exactly at their fair share (ratio 1.0) fills ~2/3 of the bar, which
+// leaves visible headroom so an over-played player (ratio up to ~1.5) still reads
+// as "past fair" before the bar saturates at 100%.
+const FAIR_SHARE_BAR_PCT = 66;
+
 const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
   const { t } = useTranslation();
 
@@ -61,10 +66,11 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
         <p className={subtextStyle}>
           {fairMin === null
             ? t('playtimePlanner.balance.noGames', 'No games counted yet. Mark games as included.')
-            : t('playtimePlanner.balance.fairShare', "Fair share {{minutes}}' each · {{games}} games counted", {
+            : `${t('playtimePlanner.balance.fairShare', "Fair share {{minutes}}' each", {
                 minutes: fairMin,
-                games: minutes.includedGameCount,
-              })}
+              })} · ${t('playtimePlanner.balance.gamesCounted', '{{count}} games counted', {
+                count: minutes.includedGameCount,
+              })}`}
         </p>
       </div>
 
@@ -72,7 +78,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
         {rows.map((p) => {
           const name = nameById.get(p.playerId) ?? p.playerId;
           const pct = p.ratio !== null ? Math.round(p.ratio * 100) : null;
-          const fillW = p.ratio !== null ? Math.min(100, Math.round(p.ratio * 66)) : 0;
+          const fillW = p.ratio !== null ? Math.min(100, Math.round(p.ratio * FAIR_SHARE_BAR_PCT)) : 0;
           // Included games this player never appears in.
           const notPlaying = plan.games
             .map((g, i) => ({ g, i }))
