@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(site): feature cards one-per-row with a larger, readable phone mockup (#624)"
+  "notes": "feat(site): readable one-per-row feature cards + mark ship-publicly done (#625)"
 }
