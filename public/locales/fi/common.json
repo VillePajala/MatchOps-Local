@@ -744,6 +744,22 @@
     "seriesFilterLabel": "Sarja",
     "teamFilterLabel": "Joukkue",
     "titleSeason": "Kausitilastot",
+    "positionBalance": {
+      "title": "Pelipaikkojen tasapaino",
+      "byLines": "Linjat",
+      "byPositions": "Pelipaikat",
+      "narrow": "Kapea",
+      "coverage": "Pelaajia",
+      "player": "Pelaaja",
+      "hint": "Rivi on yhden pelaajan jakauma; sarake kertoo kuka pelaa kyseisellä linjalla.",
+      "empty": "Tälle valinnalle ei ole vielä kirjattu pelipaikkoja.",
+      "line": {
+        "gk": "MV",
+        "def": "PUO",
+        "mid": "KESK",
+        "att": "HYÖ"
+      }
+    },
     "titleTournament": "Turnaustilastot",
     "titleOverall": "Kokonaistilastot",
     "titleCurrentGame": "Nykyisen pelin tilastot",
