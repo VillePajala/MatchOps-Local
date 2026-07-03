@@ -47,12 +47,18 @@ jest.mock('@/utils/masterRosterManager', () => ({
 // Fully mock storage to decouple the modal from the IndexedDB layer. The real
 // createPlan is covered in storage.test.ts; here we only need its shape.
 const mockGetPlans = jest.fn();
+const mockGetPlan = jest.fn();
 const mockSavePlan = jest.fn();
 const mockDeletePlan = jest.fn();
+const mockImportPlan = jest.fn();
 jest.mock('@/utils/playtimePlanner/storage', () => ({
   getPlans: (...a: unknown[]) => mockGetPlans(...a),
+  getPlan: (...a: unknown[]) => mockGetPlan(...a),
   savePlan: (...a: unknown[]) => mockSavePlan(...a),
   deletePlan: (...a: unknown[]) => mockDeletePlan(...a),
+  importPlan: (...a: unknown[]) => mockImportPlan(...a),
+  serializePlan: (plan: unknown) => JSON.stringify(plan),
+  duplicatePlan: (plan: { name: string }) => ({ ...plan, id: 'dup-1', name: `${plan.name} (copy)` }),
   createPlan: (opts: {
     name: string;
     players: { id: string; name: string }[];
@@ -90,6 +96,8 @@ beforeEach(() => {
   mockGetPlans.mockResolvedValue({});
   mockSavePlan.mockImplementation(async (plan) => plan);
   mockDeletePlan.mockResolvedValue(true);
+  mockGetPlan.mockResolvedValue(null);
+  mockImportPlan.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -257,6 +265,163 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     });
     await waitFor(() => expect(screen.queryByText(/Sam → GK/)).not.toBeInTheDocument());
+  });
+
+  it('navigates to the balance view and back', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('View playing-time balance')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('View playing-time balance'));
+    });
+    await waitFor(() => expect(screen.getByText('Playing-time balance')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Back to plan'));
+    });
+    await waitFor(() => expect(screen.getByText('View playing-time balance')).toBeInTheDocument());
+  });
+
+  it('duplicates the active plan under a copy name', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Duplicate')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Duplicate'));
+    });
+
+    await waitFor(() =>
+      expect(
+        mockSavePlan.mock.calls.some((c) => typeof c[0]?.name === 'string' && c[0].name.includes('(copy)')),
+      ).toBe(true),
+    );
+  });
+
+  it('shows an export-specific error toast when export fails', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    const original = URL.createObjectURL;
+    URL.createObjectURL = jest.fn(() => {
+      throw new Error('blob failed');
+    });
+    try {
+      render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByText('Export JSON'));
+      });
+      // Must be the export message, NOT the import one (that was the bug).
+      await waitFor(() =>
+        expect(mockShowToast).toHaveBeenCalledWith('Could not export the plan.', 'error'),
+      );
+    } finally {
+      URL.createObjectURL = original;
+    }
+  });
+
+  it('shows an import error toast when the chosen file is not a valid plan', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    mockImportPlan.mockResolvedValue(null);
+    const { container } = render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Import JSON')).toBeInTheDocument());
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['{"bad":true}'], 'plan.json', { type: 'application/json' });
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('Could not read that file as a plan.', 'error'),
+    );
+  });
+
+  it('exports the active plan as a sanitized .json download', async () => {
+    mockGetPlans.mockResolvedValue({ existing: { ...existingPlan, name: 'Cup A/B' } });
+    const origCreate = URL.createObjectURL;
+    const origRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:x');
+    URL.revokeObjectURL = jest.fn();
+    const clicked: string[] = [];
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        clicked.push(this.download);
+      });
+    try {
+      render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByText('Export JSON'));
+      });
+      // '/' and space in the name are sanitized to underscores.
+      await waitFor(() => expect(clicked).toEqual(['Cup_A_B.json']));
+    } finally {
+      URL.createObjectURL = origCreate;
+      URL.revokeObjectURL = origRevoke;
+      clickSpy.mockRestore();
+    }
+  });
+
+  it('persists a pending edit before reading the target plan on switch', async () => {
+    const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
+    mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
+    let saveResolved = false;
+    mockSavePlan.mockImplementation(async (p) => {
+      await Promise.resolve();
+      saveResolved = true;
+      return p;
+    });
+    mockGetPlan.mockImplementation(async (id: string) => {
+      // The pending edit must be persisted before the target read runs (race fix).
+      expect(saveResolved).toBe(true);
+      return id === 'b' ? planB : existingPlan;
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    // Use the game-label input to dirty the plan: its value ('Game 1') is unique,
+    // whereas the plan name collides with the switcher's selected-option text.
+    await waitFor(() => expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument());
+
+    // Dirty the active plan (schedules a debounced save), then switch immediately.
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('Game 1'), { target: { value: 'Match 1' } });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'b' } });
+    });
+    await waitFor(() => expect(mockGetPlan).toHaveBeenCalledWith('b'));
+    expect(mockSavePlan).toHaveBeenCalled();
+  });
+
+  it('shows a toast when switching to a plan that no longer exists', async () => {
+    const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
+    mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
+    mockGetPlan.mockResolvedValue(null); // target vanished (e.g. deleted elsewhere)
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Plan')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'b' } });
+    });
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('Could not open that plan.', 'error'),
+    );
+  });
+
+  it('shows a plan switcher when multiple plans exist and switches between them', async () => {
+    const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
+    mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
+    mockGetPlan.mockImplementation(async (id: string) => (id === 'b' ? planB : existingPlan));
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Plan')).toBeInTheDocument());
+
+    // The overview's only <select> is the plan switcher.
+    const switcher = screen.getByRole('combobox');
+    await act(async () => {
+      fireEvent.change(switcher, { target: { value: 'b' } });
+    });
+    await waitFor(() => expect(mockGetPlan).toHaveBeenCalledWith('b'));
+    await waitFor(() => expect((switcher as HTMLSelectElement).value).toBe('b'));
   });
 
   it('shows an error toast when delete fails', async () => {
