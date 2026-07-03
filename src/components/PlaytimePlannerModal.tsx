@@ -131,11 +131,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         setSelectedIds(
           new Set(roster.filter((p) => names.has(p.name.trim().toLowerCase())).map((p) => p.id)),
         );
-        // Apply inherited durations only after the roster load succeeds, so a
-        // failure never leaves a half-applied state (durations changed, selection stale).
+        // Apply durations only after the roster load succeeds, so a failure never
+        // leaves a half-applied state (durations changed, selection stale). Always
+        // set them from the selected team's competition, or fall back to the planner
+        // defaults when the team is unbound - otherwise a team->team switch onto an
+        // unbound team would keep the previous team's inherited durations.
         if (comp) {
           setNumberOfPeriods(comp.periodCount && comp.periodCount > 0 ? comp.periodCount : 2);
           setPeriodMinutes(comp.periodDuration && comp.periodDuration > 0 ? comp.periodDuration : 15);
+        } else {
+          setNumberOfPeriods(2);
+          setPeriodMinutes(12);
         }
       } catch (error) {
         if (teamSelectRef.current !== requestId) return;

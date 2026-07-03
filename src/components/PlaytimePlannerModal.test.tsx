@@ -390,6 +390,30 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
   });
 
+  it('resets durations to defaults when switching to an unbound team (no stale carry-over)', async () => {
+    mockGetTeams.mockResolvedValue([
+      { id: 't1', name: 'Alpha', boundSeasonId: 's1' },
+      { id: 't2', name: 'Bravo' }, // unbound - no competition
+    ]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
+    mockGetTeamRoster.mockResolvedValue([{ id: 'tp1', name: 'Alex' }]);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+
+    // Bound team A -> inherits 20 min.
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
+    });
+    await waitFor(() => expect(screen.getByDisplayValue('20')).toBeInTheDocument());
+
+    // Switch to unbound team B -> durations revert to the default 12, not stale 20.
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('Alpha'), { target: { value: 't2' } });
+    });
+    await waitFor(() => expect(screen.getByDisplayValue('12')).toBeInTheDocument());
+    expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
+  });
+
   it('navigates to the balance view and back', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
