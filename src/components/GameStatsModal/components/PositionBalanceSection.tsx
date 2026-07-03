@@ -25,11 +25,10 @@ const toggleBtn = (active: boolean) =>
 
 /**
  * Position balance: a players x lines (or positions) table for the current
- * competition scope. A row shows one player's spread; a column shows who covers
- * that line. A trailing amber dot marks narrow-scope players (stuck in one
- * line), and lines/positions covered by a single player are flagged in the
- * coverage row. A games-covered ratio shows how complete the position data is;
- * when thin, the table is greyed. Descriptive, compare-to-self.
+ * competition scope. A row shows one player's spread across the pitch lines;
+ * narrow-scope players (stuck in one line) are called out by an amber name. A
+ * caption reports in how many games positions were actually recorded, and the
+ * table is greyed when that coverage is thin. Descriptive, compare-to-self.
  */
 export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ games, players }) => {
   const { t } = useTranslation();
@@ -89,20 +88,16 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
 
   const cellCount = (row: (typeof rows)[number], key: string) =>
     mode === 'lines' ? row.byLine[key as PositionCategory] : row.byPosition[key] ?? 0;
-  const coverageCount = (key: string) =>
-    mode === 'lines' ? diversity.lineCoverage[key as PositionCategory] : diversity.positionCoverage[key] ?? 0;
 
   return (
     <section className="bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
-        <span
-          className="shrink-0 text-xs text-slate-400 tabular-nums"
-          title={t('gameStatsModal.positionBalance.coverageTooltip', 'Games with positions recorded, of games in this view')}
-        >
-          {diversity.totalGames}/{scopeGames}
-        </span>
-      </div>
+      <h3 className="text-lg font-semibold text-slate-200 mb-1">{title}</h3>
+      <p className="text-xs text-slate-400 mb-3">
+        {t('gameStatsModal.positionBalance.gamesCovered', 'Positions recorded in {{recorded}}/{{scanned}} games', {
+          recorded: diversity.totalGames,
+          scanned: scopeGames,
+        })}
+      </p>
 
       {/* Full-width edge-to-edge Lines / Positions toggle. */}
       <div className="flex gap-2 mb-3" role="group" aria-label={title}>
@@ -132,16 +127,12 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
             {rows.map(row => (
               <tr key={row.playerId} className="border-b border-slate-800 hover:bg-slate-800/40">
                 <td className="px-2 py-2 font-medium">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate">{nameOf(row.playerId)}</span>
-                    {row.narrow && (
-                      <span
-                        role="img"
-                        className="shrink-0 w-2 h-2 rounded-full bg-amber-400"
-                        title={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
-                        aria-label={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
-                      />
-                    )}
+                  {/* Narrow players are called out by an amber name (no fragile dot). */}
+                  <span
+                    className={`block truncate ${row.narrow ? 'text-amber-400 font-semibold' : ''}`}
+                    title={row.narrow ? t('gameStatsModal.positionBalance.narrow', 'Narrow') : undefined}
+                  >
+                    {nameOf(row.playerId)}
                   </span>
                 </td>
                 {cols.map(c => {
@@ -157,26 +148,6 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
                 })}
               </tr>
             ))}
-            {/* Coverage: how many distinct players filled each column. A single
-                player (amber) means that spot is monopolized / unrehearsed. */}
-            <tr className="border-t border-slate-700 bg-slate-800/50 text-xs text-slate-300">
-              <td className="px-2 py-2 font-medium">
-                {t('gameStatsModal.positionBalance.coverage', 'Players')}
-              </td>
-              {cols.map(c => {
-                const cov = coverageCount(c.key);
-                return (
-                  <td
-                    key={c.key}
-                    className={`px-0.5 py-2 text-center font-semibold ${
-                      cov === 1 ? 'text-amber-300' : cov === 0 ? 'text-slate-600' : 'text-slate-300'
-                    }`}
-                  >
-                    {cov}
-                  </td>
-                );
-              })}
-            </tr>
           </tbody>
         </table>
       </div>

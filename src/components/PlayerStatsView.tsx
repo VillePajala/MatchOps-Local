@@ -432,26 +432,21 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* Positions played - this player's spread over the current scope */}
         {positionSummary && (
           <div className={`bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg shadow-inner p-4 mb-3 ${positionSummary.totalGames / (playerStats.totalGames || 1) < 0.5 ? 'opacity-60' : ''}`}>
-            <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center justify-between gap-2 mb-1">
               <h3 className="text-sm font-semibold text-slate-200">
                 {t('playerStats.positionsPlayed.title', 'Positions played')}
               </h3>
-              <div className="flex items-center gap-2 shrink-0">
-                <span
-                  className="text-xs text-slate-400 tabular-nums"
-                  title={t('gameStatsModal.positionBalance.coverageTooltip', 'Games with positions recorded, of games in this view')}
-                >
-                  {positionSummary.totalGames}/{playerStats.totalGames}
+              {positionSummary.narrow && (
+                <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
+                  {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
                 </span>
-                {positionSummary.narrow && (
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
-                    {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
             <p className="text-xs text-slate-400 mb-2">
-              {t('playerStats.positionsPlayed.linesPlayed', '{{n}} of 4 lines', { n: positionSummary.distinctLines })}
+              {t('gameStatsModal.positionBalance.gamesCovered', 'Positions recorded in {{recorded}}/{{scanned}} games', {
+                recorded: positionSummary.totalGames,
+                scanned: playerStats.totalGames,
+              })}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {LINES.map(line => {

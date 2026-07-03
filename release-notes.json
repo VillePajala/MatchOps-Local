@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Position balance clarity: removed the confusing \"Players\" coverage row; narrow-scope players are now called out by an amber name (instead of a hard-to-see dot); and the games-covered number is now a plain caption - \"Positions recorded in 8/12 games\" - on both the team matrix and the player card, so it's obvious what it means."
+      ],
+      "fi": [
+        "Pelipaikkojen tasapainon selkeytys: poistettiin sekava \"Pelaajia\"-kattavuusrivi; kapean roolin pelaajat erottuvat nyt keltaisella nimellä (vaikeasti näkyvän pisteen sijaan); ja kattavuusluku on nyt selkeä teksti - \"Pelipaikat kirjattu 8/12 ottelusta\" - sekä joukkuematriisissa että pelaajakortissa, joten sen merkitys on selvä."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Position views polish: the narrow dot now sits after the player name, the wordy description is gone, and Lines/Positions is one full-width toggle so the Lines view fits cleanly. Both the team matrix and the per-player card now show a games-covered ratio (how many games actually have positions recorded) and grey out when that's under half - so you can tell whether the data is complete enough to read into. The player card drops the confusing full position name and gains an expandable full breakdown of every position played."
       ],
       "fi": [
