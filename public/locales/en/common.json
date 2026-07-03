@@ -3182,10 +3182,22 @@
     "balance": {
       "title": "Playing-time balance",
       "view": "View playing-time balance",
-      "fairShare": "Fair share {{minutes}}' each · {{games}} games counted",
+      "fairShare": "Fair share {{minutes}}' each",
+      "gamesCounted_one": "{{count}} game counted",
+      "gamesCounted_other": "{{count}} games counted",
       "noGames": "No games counted yet. Mark games as included.",
       "ofFairShare": "{{pct}}% of fair share",
       "notPlaying": "Not playing: {{games}}"
+    },
+    "versions": {
+      "switchLabel": "Plan",
+      "duplicate": "Duplicate",
+      "export": "Export JSON",
+      "import": "Import JSON",
+      "importError": "Could not read that file as a plan.",
+      "exportError": "Could not export the plan.",
+      "copySuffix": "(copy)",
+      "switchError": "Could not open that plan."
     }
   }
 }

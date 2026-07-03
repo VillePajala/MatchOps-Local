@@ -62,6 +62,15 @@ describe('PlanSubsEditor', () => {
     expect(onRemove).toHaveBeenCalledWith('x1');
   });
 
+  it('clamps the sub minute input to the game length', () => {
+    // 2 periods × 12 min = 24 min game -> minute can never exceed 24.
+    render(<PlanSubsEditor game={makeGame()} players={players} onAdd={jest.fn()} onRemove={jest.fn()} />);
+    const minuteInput = screen.getByRole('spinbutton') as HTMLInputElement;
+    expect(minuteInput.max).toBe('24');
+    fireEvent.change(minuteInput, { target: { value: '999' } });
+    expect(minuteInput.value).toBe('24');
+  });
+
   it('prompts to place starters when the lineup is empty', () => {
     const emptyLineup: PlanGame = { ...makeGame(), startingSlots: [] };
     render(<PlanSubsEditor game={emptyLineup} players={players} onAdd={jest.fn()} onRemove={jest.fn()} />);

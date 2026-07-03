@@ -138,3 +138,83 @@ export const createPlan = (opts: CreatePlanOptions): PlaytimePlan => {
     games,
   };
 };
+
+// ── Versions & JSON export/import (PR 1.6) ──
+
+/** Envelope wrapping an exported plan (so importers can sniff the format). */
+const EXPORT_FORMAT = 'matchops-playtime-plan';
+
+interface PlanExportEnvelope {
+  format: string;
+  version: number;
+  plan: PlaytimePlan;
+}
+
+/** Serialize a plan to a shareable JSON string (pretty-printed, with an envelope). */
+export const serializePlan = (plan: PlaytimePlan): string =>
+  JSON.stringify(
+    { format: EXPORT_FORMAT, version: PLAYTIME_PLAN_SCHEMA_VERSION, plan } satisfies PlanExportEnvelope,
+    null,
+    2,
+  );
+
+/**
+ * Parse an exported plan JSON. Accepts either the enveloped form or a bare plan
+ * object. For an envelope, the `format` must match ours and the `version` must not
+ * be newer than the schema we understand (a future file could carry fields we'd
+ * silently drop). Returns the validated plan, or null on bad/unrecognized input.
+ */
+export const parsePlanExport = (json: string): PlaytimePlan | null => {
+  let data: unknown;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  let candidate: unknown = data;
+  if (data && typeof data === 'object' && 'plan' in (data as Record<string, unknown>)) {
+    const env = data as Partial<PlanExportEnvelope>;
+    // Reject envelopes from a different tool or a newer envelope schema.
+    if (env.format !== undefined && env.format !== EXPORT_FORMAT) return null;
+    if (typeof env.version === 'number' && env.version > PLAYTIME_PLAN_SCHEMA_VERSION) return null;
+    candidate = env.plan;
+  }
+  if (!isPlaytimePlan(candidate)) return null;
+  // Gate the plan's own version too, so a bare (unenveloped) future-schema plan is
+  // rejected rather than imported with fields this build would silently drop.
+  if (candidate.version > PLAYTIME_PLAN_SCHEMA_VERSION) return null;
+  return candidate;
+};
+
+/** Copy a plan under a fresh identity (does not save). Nested game ids are
+ * regenerated too, so a plan and its copy never share a game id. */
+export const duplicatePlan = (plan: PlaytimePlan, copySuffix = ' (copy)'): PlaytimePlan => {
+  const now = new Date().toISOString();
+  return {
+    ...plan,
+    id: generateId('ptp'),
+    name: `${plan.name}${copySuffix}`,
+    createdAt: now,
+    updatedAt: now,
+    games: plan.games.map((g) => ({ ...g, id: generateId('ptg') })),
+  };
+};
+
+/**
+ * Import a plan from exported JSON: validate, give it a fresh id (so it never
+ * overwrites an existing plan), and save it. Returns the saved plan or null.
+ */
+export const importPlan = async (json: string): Promise<PlaytimePlan | null> => {
+  const parsed = parsePlanExport(json);
+  if (!parsed) return null;
+  const now = new Date().toISOString();
+  // Fresh ids for the plan and its games, so importing the same file twice yields
+  // two fully independent plans (matches duplicatePlan).
+  return savePlan({
+    ...parsed,
+    id: generateId('ptp'),
+    createdAt: now,
+    updatedAt: now,
+    games: parsed.games.map((g) => ({ ...g, id: generateId('ptg') })),
+  });
+};

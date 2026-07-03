@@ -3,7 +3,17 @@
  * @critical user plan data must round-trip and tolerate corrupt storage
  */
 
-import { getPlans, getPlan, savePlan, deletePlan, createPlan } from './storage';
+import {
+  getPlans,
+  getPlan,
+  savePlan,
+  deletePlan,
+  createPlan,
+  serializePlan,
+  parsePlanExport,
+  duplicatePlan,
+  importPlan,
+} from './storage';
 import { PLAYTIME_PLANS_KEY } from '@/config/storageKeys';
 import { isPlaytimePlanCollection, type PlaytimePlan } from './types';
 
@@ -194,5 +204,70 @@ describe('corruption tolerance', () => {
     const raw = JSON.parse(store[PLAYTIME_PLANS_KEY]);
     expect(isPlaytimePlanCollection(raw)).toBe(true);
     expect((raw as Record<string, PlaytimePlan>)[plan!.id].name).toBe('Sunday Cup');
+  });
+});
+
+describe('versions & JSON (PR 1.6)', () => {
+  it('serializes and parses a plan round-trip (enveloped)', () => {
+    const plan = createPlan(baseOpts);
+    expect(parsePlanExport(serializePlan(plan))).toEqual(plan);
+  });
+
+  it('parses a bare plan object (no envelope)', () => {
+    const plan = createPlan(baseOpts);
+    expect(parsePlanExport(JSON.stringify(plan))).toEqual(plan);
+  });
+
+  it('returns null for unparseable or non-plan JSON', () => {
+    expect(parsePlanExport('not json')).toBeNull();
+    expect(parsePlanExport(JSON.stringify({ foo: 1 }))).toBeNull();
+    expect(parsePlanExport(JSON.stringify({ plan: { bad: true } }))).toBeNull();
+  });
+
+  it('duplicates a plan under a fresh id and a copy suffix', () => {
+    const plan = createPlan(baseOpts);
+    const dup = duplicatePlan(plan);
+    expect(dup.id).not.toBe(plan.id);
+    expect(dup.name).toBe('Sunday Cup (copy)');
+    expect(dup.games).toHaveLength(plan.games.length);
+  });
+
+  it('regenerates nested game ids on duplicate (no shared ids with the original)', () => {
+    const plan = createPlan(baseOpts);
+    const dup = duplicatePlan(plan);
+    const origIds = new Set(plan.games.map((g) => g.id));
+    expect(dup.games.every((g) => !origIds.has(g.id))).toBe(true);
+  });
+
+  it('rejects an envelope from a different tool or a newer schema version', () => {
+    const plan = createPlan(baseOpts);
+    expect(parsePlanExport(JSON.stringify({ format: 'some-other-app', version: 1, plan }))).toBeNull();
+    expect(parsePlanExport(JSON.stringify({ format: 'matchops-playtime-plan', version: 999, plan }))).toBeNull();
+  });
+
+  it('rejects a bare plan whose own version is newer than this build', () => {
+    const plan = { ...createPlan(baseOpts), version: 999 };
+    expect(parsePlanExport(JSON.stringify(plan))).toBeNull();
+  });
+
+  it('regenerates nested game ids on import (same file imported twice is independent)', async () => {
+    const plan = createPlan(baseOpts);
+    const imported = await importPlan(serializePlan(plan));
+    const origIds = new Set(plan.games.map((g) => g.id));
+    expect(imported!.games.every((g) => !origIds.has(g.id))).toBe(true);
+  });
+
+  it('imports a plan under a fresh id and saves it', async () => {
+    const plan = createPlan(baseOpts);
+    const imported = await importPlan(serializePlan(plan));
+    expect(imported).not.toBeNull();
+    expect(imported!.id).not.toBe(plan.id);
+    const stored = await getPlans();
+    expect(stored[imported!.id].name).toBe('Sunday Cup');
+  });
+
+  it('import returns null for bad json (and stores nothing)', async () => {
+    expect(await importPlan('garbage')).toBeNull();
+    expect(await getPlans()).toEqual({});
   });
 });
