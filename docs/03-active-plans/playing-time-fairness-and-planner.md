@@ -108,10 +108,45 @@ order" is a cleaner convenience *if* the tournament is always built first — ke
 optional later add-on, not the primary path. The motivating pain: without prefill, matching
 a real game to the plan means re-tapping the whole XI from memory with no side-by-side view.
 
+**Locked decision — optional team source in planner setup (mirrors new-game creation).**
+The planner setup gains an **optional Team selector**, working exactly like new-game setup:
+pick a team and the plan inherits that team's **roster** (pre-selecting the matching master-
+roster players — team-roster ids differ, so the match is by player name, per
+`NewGameSetupModal`) and its **linked competition's period durations** (`periodCount` /
+`periodDuration` off the bound season or tournament, defaulting to 2 / 15). Only if you choose
+a team. Leave it blank and you get today's behaviour (full master roster, durations set by
+hand). When a team is chosen, store an optional `teamId` on the plan. (Formation is *not*
+team-driven — teams carry no formation; the planner keeps its player-count-based default.)
+
+Why this matters: it makes prefill **lossless by construction**. If the plan and the real
+game both derive from the *same* team + competition, then at prefill time the rosters match
+exactly, the period lengths match, and the planned sub minutes line up with the real game
+clock — so the roster-mismatch edge case below essentially disappears. It also reuses a flow
+the coach already knows rather than inventing a new "team-scoping" concept.
+
+**Prefill precedence (option A) — the three sources are layers, not competitors:**
+- **Team** → the player pool (`availablePlayers`) + roster (formation is not team-driven).
+- **Competition (season/tournament)** → match metadata + settings (age group, game type, durations).
+- **Planner** → the lineup only: starting XI field positions, `selectedPlayerIds`, sub schedule.
+
+Rules: team/competition prefill runs **first** (pool + metadata + settings); planner prefill
+runs **last** and writes **only the lineup layer** — it never overwrites opponent, competition,
+or the team pool. If the field already holds a manual lineup, prefill **confirms before
+replacing**. Roster mismatch (a planned player not on the linked team — only possible for a
+no-team / freehand plan): **apply anyway and warn** ("N planned players aren't on Team X"),
+because the plan is the coach's explicit intent for that game. Game length: the real game's
+clock always wins; planned sub times are copied as-is and clamp if the real game is shorter.
+
+**Implementation note:** the planned **XI** needs no new game field — prefill copies it into
+the game's existing `playersOnField`/`selectedPlayerIds`. Only the **planned sub schedule**
+needs new local storage on the game (PR 2.1), so the timer (2.3) can prompt it. Keep it
+local-only (like `playerPositions`); cloud is deferred (2.4).
+
 | PR | Scope |
 |----|-------|
-| **2.1 `plannedSubs` on the game model** | A game carries a planned starting XI + sub schedule (local jsonb, like `playerPositions`). Transform + defaults. |
-| **2.2 Prefill from plan in new-game setup** | Add a "Prefill from plan" step to new-game setup: pick a plan + plan-game → the new game opens with the planned XI on the field, `selectedPlayerIds`, and planned subs. One-time copy, not a persistent binding. |
+| **2.0 Optional team source in planner setup** | Add an optional Team selector to planner setup, mirroring new-game creation: on pick, prefill roster + durations (from linked competition) + default formation, and store an optional `teamId` on the plan. Pure planner-side, no game-model change — safest first step. |
+| **2.1 Planned sub schedule on the game model** | A game carries a planned sub schedule (local jsonb, like `playerPositions`). Transform + defaults; local-only, no cloud change. (The planned XI reuses existing `playersOnField`/`selectedPlayerIds` — no new field.) |
+| **2.2 Prefill from plan in new-game setup** | Add a "Prefill from plan" step: pick a plan + plan-game → the new game opens with the planned XI on the field, `selectedPlayerIds`, and planned subs. One-time copy, not a persistent binding. Follows the precedence rules above. |
 | **2.3 Timer sub-prompts** | During the game, surface the planned subs as prompts; the coach confirms live as normal substitution events (deviation-safe). |
 | **2.4 Cloud sync of plans** *(deferred, maybe never)* | Only if cross-device demands more than local + JSON export. This is exactly the part the last attempt over-built - do it last, or not at all. |
 | **2.5 Attach-to-tournament prefill** *(optional convenience)* | For coaches who build the tournament up front: bind a plan to a tournament and map plan-games to real games by order, prefilling each on creation. Additive on top of 2.2. |
