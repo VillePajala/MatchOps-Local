@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(site): use the official \"Get it on Google Play\" badge (#627)"
+  "notes": "feat(new-game): \"Repeat last game\" quick-fill from the most recent game (#628)"
 }
