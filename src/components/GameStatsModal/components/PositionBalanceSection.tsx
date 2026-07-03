@@ -120,12 +120,18 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
               <tr key={row.playerId} className="border-b border-slate-800 hover:bg-slate-800/40">
                 <td className="px-2 py-2 font-medium">
                   <span className="flex items-center gap-2">
+                    {/* Fixed-width slot keeps names aligned whether or not the dot shows. */}
+                    <span className="shrink-0 w-2 flex justify-center">
+                      {row.narrow && (
+                        <span
+                          role="img"
+                          className="w-2 h-2 rounded-full bg-amber-400"
+                          title={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
+                          aria-label={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
+                        />
+                      )}
+                    </span>
                     <span className="truncate">{nameOf(row.playerId)}</span>
-                    {row.narrow && (
-                      <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                        {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
-                      </span>
-                    )}
                   </span>
                 </td>
                 {cols.map(c => {

@@ -1,4 +1,4 @@
-import { computePositionDiversity, NARROW_MIN_GAMES, type DiversityGame } from './positionDiversity';
+import { computePositionDiversity, type DiversityGame } from './positionDiversity';
 
 const g = (playerPositions: Record<string, string[]>): DiversityGame => ({ playerPositions });
 const player = (id: string, games: DiversityGame[]) =>
@@ -24,15 +24,15 @@ describe('computePositionDiversity', () => {
     expect(p.primaryLine).toBe('def');
   });
 
-  it('flags a single-line player as narrow once past the games gate', () => {
-    const narrow = player('p1', Array.from({ length: NARROW_MIN_GAMES }, () => g({ p1: ['cb'] })));
-    expect(narrow.narrow).toBe(true);
-    expect(narrow.topLineShare).toBe(1);
+  it('flags a single-line player as narrow regardless of game count', () => {
+    const many = player('p1', [g({ p1: ['cb'] }), g({ p1: ['cb'] }), g({ p1: ['lb'] })]);
+    expect(many.narrow).toBe(true);
+    expect(many.topLineShare).toBe(1);
 
-    // Below the gate: same single line, but not enough games to flag.
-    const tooFew = player('p1', [g({ p1: ['cb'] }), g({ p1: ['cb'] })]);
-    expect(tooFew.totalGames).toBe(NARROW_MIN_GAMES - 1);
-    expect(tooFew.narrow).toBe(false);
+    // Even a single appearance in one line is flagged now (no games gate).
+    const once = player('p1', [g({ p1: ['cb'] })]);
+    expect(once.totalGames).toBe(1);
+    expect(once.narrow).toBe(true);
   });
 
   it('does not flag a player who has played more than one line', () => {

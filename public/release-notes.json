@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(stats): position-balance matrix in the stats modal (PR 2/3) (#631)"
+  "notes": "feat(stats): per-player \"Positions played\" card (PR 3/3) (#632)"
 }

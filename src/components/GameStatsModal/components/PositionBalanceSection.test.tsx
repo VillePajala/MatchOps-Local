@@ -28,15 +28,15 @@ describe('PositionBalanceSection', () => {
     expect(screen.getByText(/No positions recorded/i)).toBeInTheDocument();
   });
 
-  it('renders a row per player, with line counts and a Narrow pill for a single-line player', () => {
+  it('renders a row per player, with line counts and a Narrow dot for a single-line player', () => {
     render(<PositionBalanceSection games={games} players={players} />);
 
     const emmaRow = screen.getByText('Emma').closest('tr')!;
-    expect(within(emmaRow).getByText('Narrow')).toBeInTheDocument();
+    expect(within(emmaRow).getByTitle('Narrow')).toBeInTheDocument();
     expect(within(emmaRow).getByText('3')).toBeInTheDocument(); // DEF in all 3 games
 
     const noahRow = screen.getByText('Noah').closest('tr')!;
-    expect(within(noahRow).queryByText('Narrow')).not.toBeInTheDocument();
+    expect(within(noahRow).queryByTitle('Narrow')).not.toBeInTheDocument();
   });
 
   it('shows a coverage row', () => {
