@@ -363,6 +363,7 @@ describe('External game cards styling', () => {
     await waitFor(() => expect(screen.getByText('Positions played')).toBeInTheDocument());
     // st + st + lw are all attacking -> one line across 3 games -> narrow
     expect(screen.getByText('Narrow')).toBeInTheDocument();
-    expect(screen.getByText(/ATT/)).toBeInTheDocument();
+    // exact positions are listed (ST played twice)
+    expect(screen.getByText(/ST/)).toBeInTheDocument();
   });
 });

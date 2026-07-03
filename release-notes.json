@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Player development: the \"Positions played\" card now matches the app's stat style - muted position labels with yellow counts (RB 4 CB 4 LB 4) instead of loud coloured pills, a quiet amber \"Narrow\" flag, and no more duplicated line/exact-position rows. Calmer and consistent with the stats above it."
+      ],
+      "fi": [
+        "Pelaajakehitys: \"Pelipaikat\"-kortti noudattaa nyt sovelluksen tilastotyyliä - hillityt pelipaikkamerkinnät keltaisilla luvuilla (RB 4 CB 4 LB 4) räikeiden värillisten pillereiden sijaan, hillitty keltainen \"Kapea\"-merkintä eikä enää päällekkäisiä linja-/pelipaikkarivejä. Rauhallisempi ja yhtenäinen ylläolevien tilastojen kanssa."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Internal: documentation only - reset the Playing-Time Planner plan after a failed big-bang attempt. Now a phased, PR-split build: Phase 1 a native self-contained tournament planner (no cloud, no game-binding), Phase 2 the assignment into actual games, with a coach's-eye walkthrough. No app changes."
       ],
       "fi": [
