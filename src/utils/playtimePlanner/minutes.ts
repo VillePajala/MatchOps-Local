@@ -123,18 +123,21 @@ export function fairnessBand(ratio: number | null): FairnessBand {
  * hands it to the incoming player from that moment on. Sub times are clamped to
  * `[0, totalSeconds]`; a sub at or before the current segment start produces no
  * segment for the outgoing player (so a kickoff-time sub means the starter never
- * actually plays).
+ * actually plays). An unknown `slotId` (no matching slot in the game) has no
+ * on-field position and returns no segments - so its subs never grant playtime.
  */
 export function computeSlotSegments(game: PlannedGame, slotId: string): SlotSegment[] {
-  const duration = Math.max(0, game.totalSeconds);
   const slot = game.slots.find((s) => s.slotId === slotId);
+  if (!slot) return [];
+
+  const duration = Math.max(0, game.totalSeconds);
   const subs = game.subs
     .filter((s) => s.slotId === slotId)
     .slice()
     .sort((a, b) => a.timeSeconds - b.timeSeconds);
 
   const segments: SlotSegment[] = [];
-  let curPlayer = slot ? slot.startPlayerId : null;
+  let curPlayer = slot.startPlayerId;
   let curStart = 0;
 
   for (const sub of subs) {
@@ -151,12 +154,13 @@ export function computeSlotSegments(game: PlannedGame, slotId: string): SlotSegm
   return segments;
 }
 
+/** Distinct slot ids in a game, so a malformed duplicate slot can't double-count. */
+const uniqueSlotIds = (game: PlannedGame): Set<string> => new Set(game.slots.map((s) => s.slotId));
+
 /** Seconds each player spends on the field in a single game. */
 function gamePlayerSeconds(game: PlannedGame): Map<string, number> {
   const totals = new Map<string, number>();
-  // Unique slot ids so a malformed duplicate slot cannot double-count time.
-  const slotIds = new Set(game.slots.map((s) => s.slotId));
-  for (const slotId of slotIds) {
+  for (const slotId of uniqueSlotIds(game)) {
     for (const seg of computeSlotSegments(game, slotId)) {
       if (seg.playerId == null) continue;
       const dur = seg.endSeconds - seg.startSeconds;
@@ -184,12 +188,16 @@ export function computePlanMinutes(plan: PlannedPlan): PlanMinutes {
   plan.games.forEach((g) => {
     if (!g.included) return;
     includedGameCount += 1;
-    const slotCount = new Set(g.slots.map((s) => s.slotId)).size;
+    const slotCount = uniqueSlotIds(g).size;
     totalAvailableSeconds += Math.max(0, g.totalSeconds) * slotCount;
   });
 
-  const rosterSize = Math.max(1, plan.rosterSize ?? plan.playerIds.length);
-  const fairShareSeconds = totalAvailableSeconds > 0 ? totalAvailableSeconds / rosterSize : null;
+  // Fair share needs both available time and a real roster to divide by. A
+  // non-positive roster (empty, or an explicit 0) means "no share yet" -> null,
+  // rather than dividing by a phantom roster of 1.
+  const rosterSize = plan.rosterSize ?? plan.playerIds.length;
+  const fairShareSeconds =
+    totalAvailableSeconds > 0 && rosterSize > 0 ? totalAvailableSeconds / rosterSize : null;
 
   const players: PlayerMinutes[] = plan.playerIds.map((playerId) => {
     const perGameSeconds = perGameTotals.map((totals) => totals.get(playerId) ?? 0);
@@ -197,8 +205,8 @@ export function computePlanMinutes(plan: PlannedPlan): PlanMinutes {
       (sum, g, i) => sum + (g.included ? perGameSeconds[i] : 0),
       0,
     );
-    const ratio = fairShareSeconds ? totalSeconds / fairShareSeconds : null;
-    const deviationSeconds = fairShareSeconds ? totalSeconds - fairShareSeconds : 0;
+    const ratio = fairShareSeconds !== null ? totalSeconds / fairShareSeconds : null;
+    const deviationSeconds = fairShareSeconds !== null ? totalSeconds - fairShareSeconds : 0;
     return { playerId, totalSeconds, perGameSeconds, ratio, deviationSeconds, band: fairnessBand(ratio) };
   });
 

@@ -235,6 +235,91 @@ describe('computePlanMinutes', () => {
     expect(res.players.map((p) => p.playerId)).toEqual(['z', 'm', 'a']);
   });
 
+  it('does not double-count time when two slots share an id (malformed input)', () => {
+    // Defensive: duplicate slotId must not count the same field-time twice.
+    const plan: PlannedPlan = {
+      playerIds: ['a', 'b'],
+      games: [
+        {
+          id: 'g1',
+          totalSeconds: 20 * MIN,
+          slots: [
+            { slotId: 'dup', startPlayerId: 'a' },
+            { slotId: 'dup', startPlayerId: 'a' },
+          ],
+          subs: [],
+          included: true,
+        },
+      ],
+    };
+    const res = computePlanMinutes(plan);
+    // One distinct slot -> 20 * 1 = 20 available player-min, not 40.
+    expect(res.totalAvailableSeconds).toBe(20 * MIN);
+    const a = res.players.find((p) => p.playerId === 'a')!;
+    expect(a.totalSeconds).toBe(20 * MIN); // counted once
+  });
+
+  it('handles two subs on the same slot at the identical time (last wins)', () => {
+    const g = makeGame('g', 20 * MIN, ['a'], [
+      { slotId: 'slot-0', timeSeconds: 10 * MIN, inPlayerId: 'b' },
+      { slotId: 'slot-0', timeSeconds: 10 * MIN, inPlayerId: 'c' },
+    ]);
+    const segs = computeSlotSegments(g, 'slot-0');
+    // a plays [0,10]; the two same-time subs leave the last (c) holding [10,20].
+    expect(segs).toEqual([
+      { slotId: 'slot-0', startSeconds: 0, endSeconds: 10 * MIN, playerId: 'a' },
+      { slotId: 'slot-0', startSeconds: 10 * MIN, endSeconds: 20 * MIN, playerId: 'c' },
+    ]);
+  });
+
+  it('returns a null fair share when the roster is empty but games are included', () => {
+    const plan: PlannedPlan = {
+      playerIds: [],
+      games: [makeGame('g1', 25 * MIN, ['a', 'b'])],
+    };
+    const res = computePlanMinutes(plan);
+    expect(res.totalAvailableSeconds).toBe(50 * MIN);
+    expect(res.fairShareSeconds).toBeNull(); // no roster to divide by
+    expect(res.players).toEqual([]);
+  });
+
+  it('treats an explicit rosterSize of 0 as no roster (null fair share)', () => {
+    const plan: PlannedPlan = {
+      playerIds: ['a', 'b'],
+      rosterSize: 0,
+      games: [makeGame('g1', 25 * MIN, ['a', 'b'])],
+    };
+    const res = computePlanMinutes(plan);
+    expect(res.fairShareSeconds).toBeNull();
+    for (const p of res.players) {
+      expect(p.ratio).toBeNull();
+      expect(p.band).toBe('none');
+    }
+  });
+
+  it('handles an empty games array', () => {
+    const res = computePlanMinutes({ playerIds: ['a'], games: [] });
+    expect(res.totalAvailableSeconds).toBe(0);
+    expect(res.fairShareSeconds).toBeNull();
+    expect(res.includedGameCount).toBe(0);
+    expect(res.players[0]).toMatchObject({ totalSeconds: 0, perGameSeconds: [], band: 'none' });
+  });
+
+  it('ignores subs that reference an unknown slot (no phantom playtime)', () => {
+    const plan: PlannedPlan = {
+      playerIds: ['a', 'b'],
+      games: [
+        makeGame('g1', 20 * MIN, ['a'], [
+          { slotId: 'ghost', timeSeconds: 5 * MIN, inPlayerId: 'b' },
+        ]),
+      ],
+    };
+    // Directly: unknown slot yields no segments.
+    expect(computeSlotSegments(plan.games[0], 'ghost')).toEqual([]);
+    const b = computePlanMinutes(plan).players.find((p) => p.playerId === 'b')!;
+    expect(b.totalSeconds).toBe(0);
+  });
+
   it('does not double-count a player who is subbed within the same game', () => {
     // 'a' starts, comes off at 10, comes back on (other slot) later.
     const plan: PlannedPlan = {
