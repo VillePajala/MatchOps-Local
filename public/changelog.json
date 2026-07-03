@@ -1,12 +1,12 @@
 {
-  "version": "d695e107",
+  "version": "1ebf1ec0",
   "date": "2026-07-03",
   "notes": {
     "en": [
-      "Internal: documentation only - marked the three P2 UX quick-wins done in the roadmap (undo-action toast, repeat-last-game, and the modal header-counter audit, which found nothing left to remove). No app changes."
+      "Internal: added the position-diversity aggregation engine - a pure, tested utility that rolls up recorded playing positions across a competition (per-player breakdown, line coverage, narrow-scope flag, per-position coverage). Foundation for the upcoming positional-imbalance view; no user-facing change yet."
     ],
     "fi": [
-      "Sisäinen: vain dokumentaatio - merkittiin kolme P2-käyttökokemusparannusta tehdyiksi tiekartassa (kumoa-ilmoitus, toista edellinen peli ja modaalien otsikkolaskurien tarkistus, jossa ei ollut enää poistettavaa). Ei sovellusmuutoksia."
+      "Sisäinen: lisättiin pelipaikkojen monipuolisuuden laskentamoottori - puhdas, testattu apuväline joka kokoaa toteutuneet pelipaikat kilpailun yli (pelaajakohtainen erittely, linjojen kattavuus, kapean roolin merkintä, pelipaikkojen kattavuus). Pohja tulevalle epätasapainonäkymälle; ei vielä käyttäjälle näkyvää muutosta."
     ]
   }
 }
