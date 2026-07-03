@@ -3194,7 +3194,9 @@
       "duplicate": "Monista",
       "export": "Vie JSON",
       "import": "Tuo JSON",
-      "importError": "Tiedostoa ei voitu lukea suunnitelmaksi."
+      "importError": "Tiedostoa ei voitu lukea suunnitelmaksi.",
+      "exportError": "Suunnitelmaa ei voitu viedä.",
+      "copySuffix": "(kopio)"
     }
   }
 }

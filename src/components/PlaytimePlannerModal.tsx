@@ -196,15 +196,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     [showToast, t],
   );
 
-  // Write any pending edit now (on close/unmount) instead of waiting out the debounce.
-  const flushSave = useCallback(() => {
+  // Write any pending edit now (on close/unmount, or before a read that must see
+  // it) instead of waiting out the debounce. Returns the persist promise so callers
+  // that then read from storage (e.g. switching plans) can await the write first -
+  // getPlan/getPlans read the collection directly and would otherwise race it.
+  const flushSave = useCallback((): Promise<void> => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
     const pending = dirtyPlanRef.current;
     dirtyPlanRef.current = null;
-    if (pending) void persist(pending);
+    return pending ? persist(pending) : Promise.resolve();
   }, [persist]);
 
   const updateActivePlan = useCallback(
@@ -266,9 +269,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   // Flush a pending debounced save when the modal is hidden (Escape, Close, or
   // the parent hiding it) or unmounts, so the last edit is never lost to the debounce.
   useEffect(() => {
-    if (!isOpen) flushSave();
+    if (!isOpen) void flushSave();
   }, [isOpen, flushSave]);
-  useEffect(() => () => flushSave(), [flushSave]);
+  useEffect(() => () => void flushSave(), [flushSave]);
 
   // ── Versions & JSON (PR 1.6) ──
   const refreshPlanList = useCallback(async () => {
@@ -281,7 +284,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const handleSwitchPlan = useCallback(
     async (id: string) => {
       if (id === activePlan?.id) return;
-      flushSave();
+      await flushSave(); // persist the outgoing plan before reading the target
       const p = await getPlan(id);
       if (p) {
         setActivePlan(p);
@@ -294,8 +297,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
 
   const handleDuplicate = useCallback(async () => {
     if (!activePlan) return;
-    flushSave();
-    const saved = await savePlan(duplicatePlan(activePlan));
+    await flushSave();
+    const suffix = ` ${t('playtimePlanner.versions.copySuffix', '(copy)')}`;
+    const saved = await savePlan(duplicatePlan(activePlan, suffix));
     if (!saved) {
       showToast(t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'), 'error');
       return;
@@ -308,7 +312,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
 
   const handleExport = useCallback(() => {
     if (!activePlan) return;
-    flushSave();
+    void flushSave();
     try {
       const blob = new Blob([serializePlan(activePlan)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -321,7 +325,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       URL.revokeObjectURL(url);
     } catch (error) {
       logger.error('[PlaytimePlannerModal] Export failed:', error);
-      showToast(t('playtimePlanner.versions.importError', 'Could not read that file as a plan.'), 'error');
+      showToast(t('playtimePlanner.versions.exportError', 'Could not export the plan.'), 'error');
     }
   }, [activePlan, flushSave, showToast, t]);
 

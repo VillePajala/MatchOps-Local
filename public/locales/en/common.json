@@ -3194,7 +3194,9 @@
       "duplicate": "Duplicate",
       "export": "Export JSON",
       "import": "Import JSON",
-      "importError": "Could not read that file as a plan."
+      "importError": "Could not read that file as a plan.",
+      "exportError": "Could not export the plan.",
+      "copySuffix": "(copy)"
     }
   }
 }

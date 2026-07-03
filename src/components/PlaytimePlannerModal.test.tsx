@@ -299,6 +299,43 @@ describe('PlaytimePlannerModal', () => {
     );
   });
 
+  it('shows an export-specific error toast when export fails', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    const original = URL.createObjectURL;
+    URL.createObjectURL = jest.fn(() => {
+      throw new Error('blob failed');
+    });
+    try {
+      render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByText('Export JSON'));
+      });
+      // Must be the export message, NOT the import one (that was the bug).
+      await waitFor(() =>
+        expect(mockShowToast).toHaveBeenCalledWith('Could not export the plan.', 'error'),
+      );
+    } finally {
+      URL.createObjectURL = original;
+    }
+  });
+
+  it('shows an import error toast when the chosen file is not a valid plan', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    mockImportPlan.mockResolvedValue(null);
+    const { container } = render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Import JSON')).toBeInTheDocument());
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['{"bad":true}'], 'plan.json', { type: 'application/json' });
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('Could not read that file as a plan.', 'error'),
+    );
+  });
+
   it('shows a plan switcher when multiple plans exist and switches between them', async () => {
     const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
     mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
