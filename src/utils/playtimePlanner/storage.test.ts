@@ -232,6 +232,19 @@ describe('versions & JSON (PR 1.6)', () => {
     expect(dup.games).toHaveLength(plan.games.length);
   });
 
+  it('regenerates nested game ids on duplicate (no shared ids with the original)', () => {
+    const plan = createPlan(baseOpts);
+    const dup = duplicatePlan(plan);
+    const origIds = new Set(plan.games.map((g) => g.id));
+    expect(dup.games.every((g) => !origIds.has(g.id))).toBe(true);
+  });
+
+  it('rejects an envelope from a different tool or a newer schema version', () => {
+    const plan = createPlan(baseOpts);
+    expect(parsePlanExport(JSON.stringify({ format: 'some-other-app', version: 1, plan }))).toBeNull();
+    expect(parsePlanExport(JSON.stringify({ format: 'matchops-playtime-plan', version: 999, plan }))).toBeNull();
+  });
+
   it('imports a plan under a fresh id and saves it', async () => {
     const plan = createPlan(baseOpts);
     const imported = await importPlan(serializePlan(plan));

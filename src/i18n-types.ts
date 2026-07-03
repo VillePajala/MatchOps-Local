@@ -1702,6 +1702,7 @@ export type TranslationKey =
   | 'playtimePlanner.versions.exportError'
   | 'playtimePlanner.versions.import'
   | 'playtimePlanner.versions.importError'
+  | 'playtimePlanner.versions.switchError'
   | 'playtimePlanner.versions.switchLabel'
   | 'positions.CAM'
   | 'positions.CB'

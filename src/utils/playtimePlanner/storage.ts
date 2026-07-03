@@ -160,7 +160,9 @@ export const serializePlan = (plan: PlaytimePlan): string =>
 
 /**
  * Parse an exported plan JSON. Accepts either the enveloped form or a bare plan
- * object. Returns the validated plan, or null on bad/unrecognized input.
+ * object. For an envelope, the `format` must match ours and the `version` must not
+ * be newer than the schema we understand (a future file could carry fields we'd
+ * silently drop). Returns the validated plan, or null on bad/unrecognized input.
  */
 export const parsePlanExport = (json: string): PlaytimePlan | null => {
   let data: unknown;
@@ -169,14 +171,18 @@ export const parsePlanExport = (json: string): PlaytimePlan | null => {
   } catch {
     return null;
   }
-  const candidate =
-    data && typeof data === 'object' && 'plan' in (data as Record<string, unknown>)
-      ? (data as Record<string, unknown>).plan
-      : data;
-  return isPlaytimePlan(candidate) ? candidate : null;
+  if (data && typeof data === 'object' && 'plan' in (data as Record<string, unknown>)) {
+    const env = data as Partial<PlanExportEnvelope>;
+    // Reject envelopes from a different tool or a newer schema we can't read.
+    if (env.format !== undefined && env.format !== EXPORT_FORMAT) return null;
+    if (typeof env.version === 'number' && env.version > PLAYTIME_PLAN_SCHEMA_VERSION) return null;
+    return isPlaytimePlan(env.plan) ? env.plan : null;
+  }
+  return isPlaytimePlan(data) ? data : null;
 };
 
-/** Copy a plan under a fresh identity (does not save). */
+/** Copy a plan under a fresh identity (does not save). Nested game ids are
+ * regenerated too, so a plan and its copy never share a game id. */
 export const duplicatePlan = (plan: PlaytimePlan, copySuffix = ' (copy)'): PlaytimePlan => {
   const now = new Date().toISOString();
   return {
@@ -185,7 +191,7 @@ export const duplicatePlan = (plan: PlaytimePlan, copySuffix = ' (copy)'): Playt
     name: `${plan.name}${copySuffix}`,
     createdAt: now,
     updatedAt: now,
-    games: plan.games.map((g) => ({ ...g })),
+    games: plan.games.map((g) => ({ ...g, id: generateId('ptg') })),
   };
 };
 

@@ -3196,7 +3196,8 @@
       "import": "Tuo JSON",
       "importError": "Tiedostoa ei voitu lukea suunnitelmaksi.",
       "exportError": "Suunnitelmaa ei voitu viedä.",
-      "copySuffix": "(kopio)"
+      "copySuffix": "(kopio)",
+      "switchError": "Suunnitelmaa ei voitu avata."
     }
   }
 }

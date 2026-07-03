@@ -290,9 +290,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         setActivePlan(p);
         setEditingGameId(null);
         setView('overview');
+      } else {
+        // Target is gone (e.g. deleted in another tab). Tell the user instead of
+        // letting the controlled <select> silently snap back with no explanation.
+        showToast(t('playtimePlanner.versions.switchError', 'Could not open that plan.'), 'error');
+        await refreshPlanList();
       }
     },
-    [activePlan?.id, flushSave],
+    [activePlan?.id, flushSave, refreshPlanList, showToast, t],
   );
 
   const handleDuplicate = useCallback(async () => {
@@ -318,7 +323,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${activePlan.name || 'plan'}.json`;
+      // Sanitize the user-editable plan name into a safe filename.
+      const safeName = (activePlan.name || 'plan').replace(/[^\w.-]+/g, '_').slice(0, 60) || 'plan';
+      a.download = `${safeName}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();

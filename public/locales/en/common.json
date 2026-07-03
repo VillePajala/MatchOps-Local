@@ -3196,7 +3196,8 @@
       "import": "Import JSON",
       "importError": "Could not read that file as a plan.",
       "exportError": "Could not export the plan.",
-      "copySuffix": "(copy)"
+      "copySuffix": "(copy)",
+      "switchError": "Could not open that plan."
     }
   }
 }

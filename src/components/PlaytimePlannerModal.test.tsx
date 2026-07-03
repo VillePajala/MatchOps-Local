@@ -336,6 +336,78 @@ describe('PlaytimePlannerModal', () => {
     );
   });
 
+  it('exports the active plan as a sanitized .json download', async () => {
+    mockGetPlans.mockResolvedValue({ existing: { ...existingPlan, name: 'Cup A/B' } });
+    const origCreate = URL.createObjectURL;
+    const origRevoke = URL.revokeObjectURL;
+    URL.createObjectURL = jest.fn(() => 'blob:x');
+    URL.revokeObjectURL = jest.fn();
+    const clicked: string[] = [];
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        clicked.push(this.download);
+      });
+    try {
+      render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+      await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.click(screen.getByText('Export JSON'));
+      });
+      // '/' and space in the name are sanitized to underscores.
+      await waitFor(() => expect(clicked).toEqual(['Cup_A_B.json']));
+    } finally {
+      URL.createObjectURL = origCreate;
+      URL.revokeObjectURL = origRevoke;
+      clickSpy.mockRestore();
+    }
+  });
+
+  it('persists a pending edit before reading the target plan on switch', async () => {
+    const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
+    mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
+    let saveResolved = false;
+    mockSavePlan.mockImplementation(async (p) => {
+      await Promise.resolve();
+      saveResolved = true;
+      return p;
+    });
+    mockGetPlan.mockImplementation(async (id: string) => {
+      // The pending edit must be persisted before the target read runs (race fix).
+      expect(saveResolved).toBe(true);
+      return id === 'b' ? planB : existingPlan;
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    // Use the game-label input to dirty the plan: its value ('Game 1') is unique,
+    // whereas the plan name collides with the switcher's selected-option text.
+    await waitFor(() => expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument());
+
+    // Dirty the active plan (schedules a debounced save), then switch immediately.
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('Game 1'), { target: { value: 'Match 1' } });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'b' } });
+    });
+    await waitFor(() => expect(mockGetPlan).toHaveBeenCalledWith('b'));
+    expect(mockSavePlan).toHaveBeenCalled();
+  });
+
+  it('shows a toast when switching to a plan that no longer exists', async () => {
+    const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
+    mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
+    mockGetPlan.mockResolvedValue(null); // target vanished (e.g. deleted elsewhere)
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Plan')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'b' } });
+    });
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('Could not open that plan.', 'error'),
+    );
+  });
+
   it('shows a plan switcher when multiple plans exist and switches between them', async () => {
     const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
     mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
