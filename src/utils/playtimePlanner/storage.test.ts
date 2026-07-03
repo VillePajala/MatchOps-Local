@@ -245,6 +245,18 @@ describe('versions & JSON (PR 1.6)', () => {
     expect(parsePlanExport(JSON.stringify({ format: 'matchops-playtime-plan', version: 999, plan }))).toBeNull();
   });
 
+  it('rejects a bare plan whose own version is newer than this build', () => {
+    const plan = { ...createPlan(baseOpts), version: 999 };
+    expect(parsePlanExport(JSON.stringify(plan))).toBeNull();
+  });
+
+  it('regenerates nested game ids on import (same file imported twice is independent)', async () => {
+    const plan = createPlan(baseOpts);
+    const imported = await importPlan(serializePlan(plan));
+    const origIds = new Set(plan.games.map((g) => g.id));
+    expect(imported!.games.every((g) => !origIds.has(g.id))).toBe(true);
+  });
+
   it('imports a plan under a fresh id and saves it', async () => {
     const plan = createPlan(baseOpts);
     const imported = await importPlan(serializePlan(plan));

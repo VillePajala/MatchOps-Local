@@ -317,6 +317,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
 
   const handleExport = useCallback(() => {
     if (!activePlan) return;
+    // Fire-and-forget is fine here (unlike handleSwitchPlan): export serializes the
+    // in-memory activePlan, not a storage re-read, so it needs no read-after-write.
     void flushSave();
     try {
       const blob = new Blob([serializePlan(activePlan)], { type: 'application/json' });

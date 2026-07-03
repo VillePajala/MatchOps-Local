@@ -171,14 +171,19 @@ export const parsePlanExport = (json: string): PlaytimePlan | null => {
   } catch {
     return null;
   }
+  let candidate: unknown = data;
   if (data && typeof data === 'object' && 'plan' in (data as Record<string, unknown>)) {
     const env = data as Partial<PlanExportEnvelope>;
-    // Reject envelopes from a different tool or a newer schema we can't read.
+    // Reject envelopes from a different tool or a newer envelope schema.
     if (env.format !== undefined && env.format !== EXPORT_FORMAT) return null;
     if (typeof env.version === 'number' && env.version > PLAYTIME_PLAN_SCHEMA_VERSION) return null;
-    return isPlaytimePlan(env.plan) ? env.plan : null;
+    candidate = env.plan;
   }
-  return isPlaytimePlan(data) ? data : null;
+  if (!isPlaytimePlan(candidate)) return null;
+  // Gate the plan's own version too, so a bare (unenveloped) future-schema plan is
+  // rejected rather than imported with fields this build would silently drop.
+  if (candidate.version > PLAYTIME_PLAN_SCHEMA_VERSION) return null;
+  return candidate;
 };
 
 /** Copy a plan under a fresh identity (does not save). Nested game ids are
@@ -203,5 +208,13 @@ export const importPlan = async (json: string): Promise<PlaytimePlan | null> => 
   const parsed = parsePlanExport(json);
   if (!parsed) return null;
   const now = new Date().toISOString();
-  return savePlan({ ...parsed, id: generateId('ptp'), createdAt: now, updatedAt: now });
+  // Fresh ids for the plan and its games, so importing the same file twice yields
+  // two fully independent plans (matches duplicatePlan).
+  return savePlan({
+    ...parsed,
+    id: generateId('ptp'),
+    createdAt: now,
+    updatedAt: now,
+    games: parsed.games.map((g) => ({ ...g, id: generateId('ptg') })),
+  });
 };
