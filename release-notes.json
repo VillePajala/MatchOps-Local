@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Player development: each player's development view now has a compact \"Positions played\" card - their primary position, how many of the four pitch lines they've covered, a per-line breakdown, and a \"Narrow\" flag (with a nudge to broaden) if they've been kept to a single line this season. Completes the position-diversity feature alongside the team Position-balance matrix."
+      ],
+      "fi": [
+        "Pelaajakehitys: jokaisen pelaajan kehitysnäkymässä on nyt tiivis \"Pelipaikat\"-kortti - pääpelipaikka, kuinka montaa kentän neljästä linjasta hän on pelannut, linjakohtainen erittely ja \"Kapea\"-merkintä (ja kannustus monipuolistaa), jos hän on jäänyt yhteen linjaan tällä kaudella. Täydentää pelipaikkojen monipuolisuus-ominaisuuden joukkueen tasapainomatriisin rinnalla."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Position balance: the stats screen now shows a position-balance table under the Season / Tournament / Overall tabs (scoped by the current filter). Each row is a player's spread across the pitch lines (GK/DEF/MID/ATT), with a \"Narrow\" pill on players kept to one line and a coverage row that flags any line/position filled by a single player. Toggle between lines and exact positions. Lets you spot positional imbalance within a competition and see who to broaden."
       ],
       "fi": [

@@ -352,4 +352,17 @@ describe('External game cards styling', () => {
       expect(screen.getByText(/Great game/)).toBeInTheDocument();
     });
   });
+
+  it('shows the Positions played card and flags a single-line player as narrow', async () => {
+    const savedGames = {
+      g1: createGame({ playerPositions: { 'player-1': ['st'] }, gameDate: '2024-03-01' }),
+      g2: createGame({ playerPositions: { 'player-1': ['st'] }, gameDate: '2024-03-08' }),
+      g3: createGame({ playerPositions: { 'player-1': ['lw'] }, gameDate: '2024-03-15' }),
+    };
+    render(<PlayerStatsView {...baseProps} savedGames={savedGames} />);
+    await waitFor(() => expect(screen.getByText('Positions played')).toBeInTheDocument());
+    // st + st + lw are all attacking -> one line across 3 games -> narrow
+    expect(screen.getByText('Narrow')).toBeInTheDocument();
+    expect(screen.getByText(/ATT/)).toBeInTheDocument();
+  });
 });

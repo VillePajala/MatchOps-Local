@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(stats): position-diversity aggregation engine (PR 1/3) (#630)"
+  "notes": "feat(stats): position-balance matrix in the stats modal (PR 2/3) (#631)"
 }
