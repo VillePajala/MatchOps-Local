@@ -1,12 +1,12 @@
 {
-  "version": "35053c9d",
+  "version": "aa56ff71",
   "date": "2026-07-03",
   "notes": {
     "en": [
-      "Marketing site: switched to the official \"Get it on Google Play\" badge across the site (both CTAs and the footer), replacing the plainer Google Play wordmark lockup."
+      "Repeat last game: the New Game Setup screen now has a \"Repeat last game\" button that fills in the opponent, venue, period length, format (periods, home/away, sport, difficulty), and selected roster from your most recent game - so a rematch or a follow-up fixture doesn't start from a blank form."
     ],
     "fi": [
-      "Markkinointisivusto: vaihdettiin viralliseen \"Get it on Google Play\" -painikkeeseen koko sivustolla (molemmat CTA:t ja alatunniste) aiemman Google Play -sanamerkin tilalle."
+      "Toista edellinen peli: Uuden pelin asetukset -näkymässä on nyt \"Toista edellinen peli\" -painike, joka täyttää vastustajan, paikan, jakson pituuden, muodon (jaksot, koti/vieras, laji, vaikeus) ja valitun kokoonpanon viimeisimmästä pelistäsi - joten uusintaottelua tai jatko-ottelua ei tarvitse aloittaa tyhjästä."
     ]
   }
 }

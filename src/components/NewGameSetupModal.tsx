@@ -4,6 +4,7 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel, GameType, Gender } from '@/types';
+import type { SavedGamesCollection } from '@/types/game';
 import logger from '@/utils/logger';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
@@ -56,6 +57,8 @@ interface NewGameSetupModalProps {
   tournaments: Tournament[];
   teams: Team[];
   personnel: Personnel[];
+  /** All saved games, used to offer a "Repeat last game" quick-fill. */
+  savedGames?: SavedGamesCollection;
 }
 
 const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
@@ -71,6 +74,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   tournaments,
   teams,
   personnel,
+  savedGames,
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -132,6 +136,30 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Track if modal just opened - use layout effect to sync before paint
   const wasOpenRef = useRef(false);
   const initializingRef = useRef(false);
+
+  // "Repeat last game": the most recent saved game (by createdAt, fall back to
+  // updatedAt), used to quick-fill the non-cascading fields below.
+  const lastGame = useMemo(() => {
+    const games = savedGames ? Object.values(savedGames) : [];
+    if (games.length === 0) return null;
+    return [...games].sort((a, b) =>
+      (b.createdAt ?? b.updatedAt ?? '').localeCompare(a.createdAt ?? a.updatedAt ?? '')
+    )[0] ?? null;
+  }, [savedGames]);
+
+  const handleRepeatLastGame = useCallback(() => {
+    if (!lastGame) return;
+    setOpponentName(lastGame.opponentName ?? '');
+    setGameLocation(lastGame.gameLocation ?? '');
+    setLocalPeriodDurationString(lastGame.periodDurationMinutes ? String(lastGame.periodDurationMinutes) : '15');
+    setLocalNumPeriods(lastGame.numberOfPeriods === 1 ? 1 : 2);
+    setLocalHomeOrAway(lastGame.homeOrAway === 'away' ? 'away' : 'home');
+    setGameType(lastGame.gameType ?? 'soccer');
+    if (typeof lastGame.demandFactor === 'number') onDemandFactorChange(lastGame.demandFactor);
+    // Only carry over players who are still in the master roster.
+    setSelectedPlayerIds((lastGame.selectedPlayerIds ?? []).filter(id => masterRoster.some(p => p.id === id)));
+    showToast(t('newGameSetupModal.repeatedLastGame', 'Filled from your last game'), 'success');
+  }, [lastGame, masterRoster, onDemandFactorChange, showToast, t]);
 
   // Memoize reset function
   const resetForm = useCallback(() => {
@@ -597,6 +625,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               {t('newGameSetupModal.title', 'New Game Setup')}
             </h2>
           </div>
+
+          {/* Quick-fill from the most recent game (opponent, venue, format, roster) */}
+          {lastGame && (
+            <div className="px-6 pb-2 backdrop-blur-sm bg-slate-900/20">
+              <button
+                type="button"
+                onClick={handleRepeatLastGame}
+                className="w-full px-4 py-2 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-sm font-medium border border-indigo-500/40 transition-colors"
+              >
+                {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
+              </button>
+            </div>
+          )}
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
