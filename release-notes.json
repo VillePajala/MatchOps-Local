@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "New: Playing-Time Planner - plan fair minutes across a whole tournament before match day. From the start screen tap \"Plan playing time\": pick your squad, set each game's formation and length, tap players onto the pitch and schedule a half-time sub. A balance view then shows every kid's total minutes across all games, least-played first and coloured red to green - swap a green kid for a red one and the numbers update instantly. Save several plans, switch between them, and export or import a plan as a file. Fully offline; nothing is tied to your saved games yet (that comes next)."
+      ],
+      "fi": [
+        "Uutta: Peliajan suunnittelija - suunnittele reilut peliminuutit koko turnaukseen ennen pelipäivää. Aloitusnäytöstä \"Suunnittele peliaika\": valitse kokoonpano, aseta kunkin pelin muodostelma ja kesto, napauta pelaajat kentälle ja ajasta vaihto puoliajalle. Tasapainonäkymä näyttää jokaisen pelaajan kokonaisminuutit kaikissa peleissä - vähiten pelanneet ensin, punaisesta vihreään väritettynä - vaihda vihreä pelaaja punaiseen ja luvut päivittyvät heti. Tallenna useita suunnitelmia, vaihda niiden välillä ja vie tai tuo suunnitelma tiedostona. Toimii täysin offline; mitään ei ole vielä sidottu tallennettuihin peleihin (se tulee seuraavaksi)."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Marketing site: added a \"Position Balance\" feature card - showing the season-long, per-player position spread and the develop-not-lock angle (spot who's been kept in one role), with EN/FI screenshots of the new stats view."
       ],
       "fi": [
