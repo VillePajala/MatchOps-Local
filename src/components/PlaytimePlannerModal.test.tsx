@@ -223,6 +223,42 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByText('1/8 placed')).toBeInTheDocument());
   });
 
+  it('adds and removes a substitution from the lineup view', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: { ...existingPlan, players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }] },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Edit lineup')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit lineup'));
+    });
+
+    // Place Alex as goalkeeper so there is a starter to sub off.
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('GK: empty'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Alex' }));
+    });
+
+    // Subs editor: choose position (GK) + incoming (Sam), then add.
+    const [posSelect, inSelect] = screen.getAllByRole('combobox');
+    await act(async () => {
+      fireEvent.change(posSelect, { target: { value: 'gk' } });
+      fireEvent.change(inSelect, { target: { value: 'p2' } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add substitution' }));
+    });
+    await waitFor(() => expect(screen.getByText(/Sam → GK/)).toBeInTheDocument());
+
+    // Remove it again.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    });
+    await waitFor(() => expect(screen.queryByText(/Sam → GK/)).not.toBeInTheDocument());
+  });
+
   it('shows an error toast when delete fails', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockDeletePlan.mockResolvedValue(false);

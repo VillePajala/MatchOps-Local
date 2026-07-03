@@ -53,6 +53,9 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onAdd, o
   const rosterIds = useMemo(() => players.map((p) => p.id), [players]);
 
   const defaultMinute = Math.round(defaultSubTimeSeconds(game) / 60);
+  // A sub can't sensibly happen after the final whistle; cap the minute input at
+  // the game length (the engine also clamps, but this gives the coach a clear bound).
+  const maxMinute = Math.max(1, game.numberOfPeriods * game.periodMinutes);
   const [slotId, setSlotId] = useState('');
   const [inPlayerId, setInPlayerId] = useState('');
   const [minute, setMinute] = useState(defaultMinute);
@@ -149,8 +152,9 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onAdd, o
               <input
                 type="number"
                 min={0}
+                max={maxMinute}
                 value={minute}
-                onChange={(e) => setMinute(Math.max(0, Number(e.target.value) || 0))}
+                onChange={(e) => setMinute(Math.max(0, Math.min(maxMinute, Number(e.target.value) || 0)))}
                 className={inputBaseStyle}
               />
             </div>
