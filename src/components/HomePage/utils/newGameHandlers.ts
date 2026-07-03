@@ -7,6 +7,7 @@ import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender } from '@/types';
+import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { ResourceType } from '@/config/premiumLimits';
 
@@ -63,6 +64,12 @@ export interface StartNewGameRequest {
   customLeagueName: string;
   gameType: GameType;
   gender: Gender | undefined;
+  /**
+   * Optional Playing-Time Planner prefill (Phase 2). When present, the planned XI
+   * is placed on the field at creation and the planned subs are stored locally,
+   * keyed by the new game id. Absent for a normal game (playersOnField stays []).
+   */
+  prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[] };
 }
 
 export async function startNewGameWithSetup(
@@ -93,6 +100,7 @@ export async function startNewGameWithSetup(
     customLeagueName,
     gameType,
     gender,
+    prefill,
   } = request;
   const {
     availablePlayers,
@@ -165,7 +173,7 @@ export async function startNewGameWithSetup(
     teamId: teamId || '(none)',
     selectedPlayersCount: finalSelectedPlayerIds.length,
     availablePlayersCount: availablePlayersForGame.length,
-    playersOnFieldCount: 0, // Always 0 for new games
+    playersOnFieldCount: prefill?.playersOnField.length ?? 0, // >0 only when prefilled from a plan
   });
 
   const newGameState: AppState = {
@@ -197,7 +205,8 @@ export async function startNewGameWithSetup(
     gender,
     availablePlayers: availablePlayersForGame,
     selectedPlayerIds: finalSelectedPlayerIds,
-    playersOnField: [],
+    // Planner prefill places the planned XI on the field at creation; otherwise empty.
+    playersOnField: prefill?.playersOnField ?? [],
     opponents: [],
     showPlayerNames: true,
     drawings: [],
@@ -230,6 +239,16 @@ export async function startNewGameWithSetup(
 
     logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
     saveSucceeded = true;
+
+    // Store the planner's sub schedule for this game (local-only, keyed by game id).
+    // Best-effort: a failure here must never fail an already-saved game.
+    if (prefill?.plannedSubs?.length) {
+      try {
+        await setGameSubs(newGameId, prefill.plannedSubs);
+      } catch (subsError) {
+        logger.error('[NEW GAME] Failed to store planned subs (non-fatal):', subsError);
+      }
+    }
   } catch (error) {
     logger.error('Error explicitly saving new game state:', error);
     showToast(

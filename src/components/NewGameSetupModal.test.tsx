@@ -4,12 +4,19 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
+import { getPlans } from '@/utils/playtimePlanner/storage';
 import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock the utility functions
 jest.mock('@/utils/appSettings', () => ({
   getLastHomeTeamName: jest.fn(),
   saveLastHomeTeamName: jest.fn(),
+}));
+
+// No plans by default; the prefill-from-plan picker stays hidden (its own tests
+// provide plans). Keeps the modal off the real IndexedDB storage layer.
+jest.mock('@/utils/playtimePlanner/storage', () => ({
+  getPlans: jest.fn(async () => ({})),
 }));
 
 
@@ -189,7 +196,8 @@ describe('NewGameSetupModal', () => {
       '', // leagueId
       '', // customLeagueName
       'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
     );
   });
 
@@ -226,7 +234,8 @@ describe('NewGameSetupModal', () => {
         '', // leagueId
         '', // customLeagueName
         'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
       );
     });
   });
@@ -382,7 +391,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // leagueId
           expect.any(String), // customLeagueName
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -499,7 +509,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // leagueId
           expect.any(String), // customLeagueName
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -753,7 +764,8 @@ describe('NewGameSetupModal', () => {
           'sm-sarja', // leagueId - THE KEY ASSERTION
           '', // customLeagueName
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -832,7 +844,8 @@ describe('NewGameSetupModal', () => {
           'muu', // leagueId
           'My Custom League', // customLeagueName - THE KEY ASSERTION
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -1082,11 +1095,11 @@ describe('NewGameSetupModal', () => {
       });
 
       // Verify onStart was called with gameType: 'futsal'
-      // onStart is called with positional args - gameType is second to last argument (index 22, gender is last at 23)
+      // Positional args: gameType is 3rd from the end (gender then optional prefill follow it).
       await waitFor(() => {
         expect(mockOnStart).toHaveBeenCalled();
         const args = mockOnStart.mock.calls[0];
-        const gameTypeArg = args[args.length - 2];
+        const gameTypeArg = args[args.length - 3];
         expect(gameTypeArg).toBe('futsal');
       });
     });
@@ -1162,6 +1175,69 @@ describe('NewGameSetupModal', () => {
       renderModal();
       await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
       expect(screen.queryByRole('button', { name: /Repeat last game/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('prefill from plan (Phase 2)', () => {
+    const planFixture = {
+      id: 'plan1',
+      name: 'My Plan',
+      version: 1,
+      createdAt: 'x',
+      updatedAt: 'x',
+      players: [
+        { id: 'player1', name: 'John Doe' },
+        { id: 'player2', name: 'Jane Smith' },
+      ],
+      games: [
+        {
+          id: 'pg1',
+          label: 'Game 1',
+          formationId: '5v5-2-2',
+          numberOfPeriods: 2 as const,
+          periodMinutes: 12,
+          included: true,
+          startingSlots: [
+            { slotId: 'gk', playerId: 'player1' },
+            { slotId: 's0', playerId: 'player2' },
+          ],
+          subs: [],
+        },
+      ],
+    };
+
+    test('threads the planned lineup to onStart when a plan game is chosen', async () => {
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      renderModal();
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      const prefillArg = call[call.length - 1];
+      expect(prefillArg).toBeDefined();
+      expect(prefillArg.playersOnField).toHaveLength(2); // GK + one field player placed
+      const gk = prefillArg.playersOnField.find((p: { id: string }) => p.id === 'player1');
+      expect(gk.isGoalie).toBe(true);
+    });
+
+    test('picker stays hidden when there are no plans', async () => {
+      renderModal();
+      await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
+      expect(screen.queryByLabelText('Prefill from plan (optional)')).not.toBeInTheDocument();
     });
   });
 });

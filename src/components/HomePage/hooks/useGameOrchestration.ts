@@ -2097,7 +2097,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     leagueId: string,
     customLeagueName: string,
     gameType: import('@/types').GameType,
-    gender: import('@/types').Gender | undefined
+    gender: import('@/types').Gender | undefined,
+    // Optional Playing-Time Planner prefill (Phase 2): planned XI + sub schedule.
+    prefill?: { playersOnField: Player[]; plannedSubs: import('@/utils/playtimePlanner/gameSubs').PlannedGameSub[] }
   ) => {
     // Clear field state before creating new game to prevent stale data
     logger.info('[NEW GAME] Clearing field state BEFORE game creation', {
@@ -2163,6 +2165,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         customLeagueName,
         gameType,
         gender,
+        prefill,
       },
     );
   }, [

@@ -932,7 +932,12 @@
     "selectLeague": "-- Select League --",
     "customLeaguePlaceholder": "Enter league name",
     "createGame": "Create Game",
-    "selectTeamTip": "Tip: pick a team to auto-fill its roster and linked competition."
+    "selectTeamTip": "Tip: pick a team to auto-fill its roster and linked competition.",
+    "prefillFromPlanLabel": "Prefill from plan (optional)",
+    "prefillNoPlan": "No plan",
+    "prefillGameLabel": "Plan game",
+    "prefillChooseGame": "Choose a game…",
+    "prefillMissingPlayers": "{{count}} planned player(s) are not in this roster and were skipped."
   },
   "gameSettingsModal": {
     "eventActions": "Event actions",
