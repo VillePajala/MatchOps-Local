@@ -3178,6 +3178,14 @@
       "inLabel": "Kentälle",
       "timeLabel": "Minuutti",
       "add": "Lisää vaihto"
+    },
+    "balance": {
+      "title": "Peliaikatasapaino",
+      "view": "Näytä peliaikatasapaino",
+      "fairShare": "Reilu osuus {{minutes}}' / pelaaja · {{games}} peliä laskettu",
+      "noGames": "Ei laskettuja pelejä. Merkitse pelit mukaan.",
+      "ofFairShare": "{{pct}}% reilusta osuudesta",
+      "notPlaying": "Ei pelaa: {{games}}"
     }
   }
 }

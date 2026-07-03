@@ -3178,6 +3178,14 @@
       "inLabel": "Player on",
       "timeLabel": "Minute",
       "add": "Add substitution"
+    },
+    "balance": {
+      "title": "Playing-time balance",
+      "view": "View playing-time balance",
+      "fairShare": "Fair share {{minutes}}' each · {{games}} games counted",
+      "noGames": "No games counted yet. Mark games as included.",
+      "ofFairShare": "{{pct}}% of fair share",
+      "notPlaying": "Not playing: {{games}}"
     }
   }
 }

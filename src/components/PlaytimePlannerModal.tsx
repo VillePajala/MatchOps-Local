@@ -40,6 +40,7 @@ import {
 import { addSub, removeSub } from '@/utils/playtimePlanner/subs';
 import PlanFieldView from '@/components/PlanFieldView';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
+import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
 
@@ -50,7 +51,7 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-type View = 'loading' | 'setup' | 'overview' | 'lineup';
+type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance';
 
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
@@ -470,6 +471,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
               </p>
             </div>
 
+            <button
+              type="button"
+              onClick={() => setView('balance')}
+              className={`${primaryButtonStyle} w-full`}
+            >
+              {t('playtimePlanner.balance.view', 'View playing-time balance')}
+            </button>
+
             <div>
               <h3 className={`${labelStyle} mb-2`}>{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
@@ -559,10 +568,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
             </div>
           </div>
         )}
+
+        {view === 'balance' && activePlan && (
+          <PlanBalanceView plan={activePlan} />
+        )}
       </ScrollableContent>
 
       <ModalFooter>
-        {view === 'lineup' && (
+        {(view === 'lineup' || view === 'balance') && (
           <button
             type="button"
             onClick={() => {
