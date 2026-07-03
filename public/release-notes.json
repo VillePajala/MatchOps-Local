@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(site): hero swaps goal-log -> development radar; Play button stands out (#623)"
+  "notes": "feat(site): feature cards one-per-row with a larger, readable phone mockup (#624)"
 }
