@@ -120,10 +120,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         : team?.boundTournamentId
           ? tournaments.find((tn) => tn.id === team.boundTournamentId)
           : undefined;
-      if (comp) {
-        setNumberOfPeriods(comp.periodCount && comp.periodCount > 0 ? comp.periodCount : 2);
-        setPeriodMinutes(comp.periodDuration && comp.periodDuration > 0 ? comp.periodDuration : 15);
-      }
       try {
         const teamRoster = await getTeamRoster(nextTeamId, user?.id);
         if (teamSelectRef.current !== requestId) return; // a newer pick superseded this
@@ -131,6 +127,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         setSelectedIds(
           new Set(roster.filter((p) => names.has(p.name.trim().toLowerCase())).map((p) => p.id)),
         );
+        // Apply inherited durations only after the roster load succeeds, so a
+        // failure never leaves a half-applied state (durations changed, selection stale).
+        if (comp) {
+          setNumberOfPeriods(comp.periodCount && comp.periodCount > 0 ? comp.periodCount : 2);
+          setPeriodMinutes(comp.periodDuration && comp.periodDuration > 0 ? comp.periodDuration : 15);
+        }
       } catch (error) {
         if (teamSelectRef.current !== requestId) return;
         logger.error('[PlaytimePlannerModal] Failed to load team roster:', error);
@@ -154,18 +156,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     (async () => {
       setView('loading');
       try {
-        const [players, plans, teamList, seasonList, tournamentList] = await Promise.all([
-          getMasterRoster(user?.id),
-          getPlans(),
-          getTeams(user?.id),
-          getSeasons(user?.id),
-          getTournaments(user?.id),
-        ]);
+        const [players, plans] = await Promise.all([getMasterRoster(user?.id), getPlans()]);
         if (cancelled) return;
         setRoster(players);
-        setTeams(teamList.filter((tm) => !tm.archived));
-        setSeasons(seasonList);
-        setTournaments(tournamentList);
         const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setPlanList(list);
         if (list.length > 0) {
@@ -182,6 +175,23 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
           resetSetupFormRef.current([]);
           setView('setup');
         }
+      }
+      // Team/season/tournament data is best-effort: it only feeds the optional
+      // Team selector in setup, so a failure here must never gate the view or hide
+      // the user's roster/plans behind the empty-setup screen.
+      try {
+        const [teamList, seasonList, tournamentList] = await Promise.all([
+          getTeams(user?.id),
+          getSeasons(user?.id),
+          getTournaments(user?.id),
+        ]);
+        if (!cancelled) {
+          setTeams(teamList.filter((tm) => !tm.archived));
+          setSeasons(seasonList);
+          setTournaments(tournamentList);
+        }
+      } catch (error) {
+        logger.error('[PlaytimePlannerModal] Team data load failed (non-fatal):', error);
       }
     })();
     return () => {
