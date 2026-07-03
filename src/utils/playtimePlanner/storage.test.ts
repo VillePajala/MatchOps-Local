@@ -166,6 +166,29 @@ describe('corruption tolerance', () => {
     expect(await getPlans()).toEqual({});
   });
 
+  it('keeps valid plans and drops only the malformed entry', async () => {
+    const good = createPlan({ ...baseOpts, name: 'Good' });
+    store[PLAYTIME_PLANS_KEY] = JSON.stringify({
+      [good.id]: good,
+      broken: { not: 'a plan' },
+    });
+    const plans = await getPlans();
+    expect(Object.keys(plans)).toEqual([good.id]);
+    expect(plans[good.id].name).toBe('Good');
+  });
+
+  it('does not let one bad entry wipe the collection on the next save', async () => {
+    const good = createPlan({ ...baseOpts, name: 'Good' });
+    store[PLAYTIME_PLANS_KEY] = JSON.stringify({
+      [good.id]: good,
+      broken: { not: 'a plan' },
+    });
+    // Save a second plan while a corrupt entry is present.
+    const other = await savePlan(createPlan({ ...baseOpts, name: 'Other' }));
+    const plans = await getPlans();
+    expect(Object.keys(plans).sort()).toEqual([good.id, other!.id].sort());
+  });
+
   it('a well-formed saved plan passes the collection validator', async () => {
     const plan = await savePlan(createPlan(baseOpts));
     const raw = JSON.parse(store[PLAYTIME_PLANS_KEY]);
