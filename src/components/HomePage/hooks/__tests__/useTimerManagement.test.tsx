@@ -132,8 +132,24 @@ describe('useTimerManagement', () => {
       // Verify timer controls are exposed
       expect(result.current.handleStartPauseTimer).toBe(mockGameTimerReturn.startPause);
       expect(result.current.handleResetTimer).toBe(mockGameTimerReturn.reset);
-      expect(result.current.handleSubstitutionMade).toBe(mockGameTimerReturn.ackSubstitution);
       expect(result.current.handleSetSubInterval).toBe(mockGameTimerReturn.setSubInterval);
+      // handleSubstitutionMade now wraps ackSubstitution (to also fire the undo toast),
+      // so it delegates to it rather than being the same reference.
+      act(() => { result.current.handleSubstitutionMade(); });
+      expect(mockGameTimerReturn.ackSubstitution).toHaveBeenCalled();
+    });
+
+    it('fires onActionLogged for goal, opponent goal, and substitution', () => {
+      const onActionLogged = jest.fn();
+      const { result } = renderHook(() => useTimerManagement({ ...defaultProps, onActionLogged }));
+
+      act(() => { result.current.handleAddGoalEvent('player1'); });
+      act(() => { result.current.handleLogOpponentGoal(10); });
+      act(() => { result.current.handleSubstitutionMade(); });
+
+      expect(onActionLogged).toHaveBeenCalledWith('goal');
+      expect(onActionLogged).toHaveBeenCalledWith('opponentGoal');
+      expect(onActionLogged).toHaveBeenCalledWith('substitution');
     });
 
     it('should pass correct props to useGameTimer', () => {

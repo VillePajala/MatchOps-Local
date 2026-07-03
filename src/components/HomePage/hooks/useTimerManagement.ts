@@ -48,6 +48,8 @@ export interface UseTimerManagementProps {
   setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Setter for the player assessment modal (opened from the game-end overlay) */
   setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Fired after a goal / opponent goal / substitution is logged (drives the undo toast) */
+  onActionLogged?: (kind: 'goal' | 'opponentGoal' | 'substitution') => void;
 }
 
 /**
@@ -100,6 +102,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     masterRoster,
     setIsGoalLogModalOpen,
     setIsPlayerAssessmentModalOpen,
+    onActionLogged,
   } = props;
 
   // --- Core Timer State (from useGameTimer) ---
@@ -110,13 +113,19 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     lastSubConfirmationTimeSeconds,
     startPause: handleStartPauseTimer,
     reset: handleResetTimer,
-    ackSubstitution: handleSubstitutionMade,
+    ackSubstitution: ackSubstitutionRaw,
     setSubInterval: handleSetSubInterval,
   } = useGameTimer({
     state: gameSessionState,
     dispatch: dispatchGameSession,
     currentGameId: currentGameId || '',
   });
+
+  // Wrap the raw substitution ack so a sub also surfaces an undo toast.
+  const handleSubstitutionMade = useCallback(() => {
+    ackSubstitutionRaw();
+    onActionLogged?.('substitution');
+  }, [ackSubstitutionRaw, onActionLogged]);
 
   // --- Timer UI State ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false);
@@ -177,10 +186,12 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     // Dispatch actions to update game state via reducer
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'goal', action: 'add' } });
+    onActionLogged?.('goal');
   }, [
     availablePlayers,
     masterRoster,
     dispatchGameSession,
+    onActionLogged,
   ]);
 
   /**
@@ -200,7 +211,8 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'opponentGoal', action: 'add' } });
     setIsGoalLogModalOpen(false);
-  }, [dispatchGameSession, setIsGoalLogModalOpen]);
+    onActionLogged?.('opponentGoal');
+  }, [dispatchGameSession, setIsGoalLogModalOpen, onActionLogged]);
 
   // Recalculate the score from the goal log. Events are the source of truth, so
   // this snaps homeScore/awayScore to the goal tally and persists via the normal

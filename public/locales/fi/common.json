@@ -86,6 +86,11 @@
       "abbrev": "PIVO"
     }
   },
+  "undoToast": {
+    "goal": "Maali kirjattu",
+    "opponentGoal": "Vastustajan maali kirjattu",
+    "substitution": "Vaihto kirjattu"
+  },
   "controlBar": {
     "help": "Ohje",
     "undo": "Kumoa",

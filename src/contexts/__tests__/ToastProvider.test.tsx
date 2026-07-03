@@ -160,3 +160,29 @@ test('useToast throws when used outside ToastProvider', () => {
   expect(() => render(<BadComponent />)).toThrow('useToast must be used within ToastProvider');
   spy.mockRestore();
 });
+
+test('renders an action button that runs its handler and dismisses the toast', () => {
+  const onAction = jest.fn();
+  const ActionComponent = () => {
+    const { showToast } = useToast();
+    return (
+      <button onClick={() => showToast('Goal logged', 'info', { action: { label: 'Undo', onClick: onAction } })}>
+        Log
+      </button>
+    );
+  };
+  render(
+    <ToastProvider>
+      <ActionComponent />
+    </ToastProvider>
+  );
+
+  fireEvent.click(screen.getByText('Log'));
+  const undoBtn = screen.getByText('Undo');
+  expect(undoBtn).toBeInTheDocument();
+
+  fireEvent.click(undoBtn);
+  expect(onAction).toHaveBeenCalledTimes(1);
+  // Acting on the toast dismisses it.
+  expect(screen.queryByText('Goal logged')).not.toBeInTheDocument();
+});

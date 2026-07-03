@@ -86,6 +86,11 @@
       "abbrev": "PIVO"
     }
   },
+  "undoToast": {
+    "goal": "Goal logged",
+    "opponentGoal": "Opponent goal logged",
+    "substitution": "Substitution logged"
+  },
   "controlBar": {
     "help": "Help",
     "undo": "Undo",

@@ -296,6 +296,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   }, [undoHistory, applyFieldHistoryState, applyHistoryState]);
 
+  // Surface a brief toast after a goal / opponent goal / substitution with an
+  // Undo action, so a sideline mis-tap can be reverted in one tap via undo.
+  const notifyUndoableAction = useCallback((kind: 'goal' | 'opponentGoal' | 'substitution') => {
+    const message =
+      kind === 'goal'
+        ? t('undoToast.goal', 'Goal logged')
+        : kind === 'opponentGoal'
+          ? t('undoToast.opponentGoal', 'Opponent goal logged')
+          : t('undoToast.substitution', 'Substitution logged');
+    showToast(message, 'info', {
+      action: { label: t('controlBar.undo', 'Undo'), onClick: handleUndo },
+      durationMs: 5000,
+    });
+  }, [t, showToast, handleUndo]);
+
   /**
    * Orchestrate redo across both field and session state
    *
@@ -529,6 +544,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     masterRoster: gameDataManagement.masterRoster || [],
     setIsGoalLogModalOpen,
     setIsPlayerAssessmentModalOpen,
+    onActionLogged: notifyUndoableAction,
   });
 
   const {

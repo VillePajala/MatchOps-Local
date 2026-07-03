@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Sideline undo: after you log a goal, an opponent goal, or a substitution, a brief toast now appears with an Undo button, so a mis-tap can be reverted in a single tap (fast play, sun, gloves) without hunting for the correction."
+      ],
+      "fi": [
+        "Sivurajan kumoa: kun kirjaat maalin, vastustajan maalin tai vaihdon, näkyy nyt lyhyt ilmoitus jossa on Kumoa-painike, joten väärän napautuksen voi perua yhdellä kosketuksella ilman erillistä korjausta."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Marketing site: redesigned the feature cards to one-per-row on desktop with large, readable phone mockups and a subtle text panel; the pillar mockups are bigger on desktop; and all mockups serve a larger, higher-quality image so they look crisp. Mobile layout is unchanged."
       ],
       "fi": [
