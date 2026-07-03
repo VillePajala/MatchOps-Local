@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Marketing site: switched to the official \"Get it on Google Play\" badge across the site (both CTAs and the footer), replacing the plainer Google Play wordmark lockup."
+      ],
+      "fi": [
+        "Markkinointisivusto: vaihdettiin viralliseen \"Get it on Google Play\" -painikkeeseen koko sivustolla (molemmat CTA:t ja alatunniste) aiemman Google Play -sanamerkin tilalle."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Sideline undo: after you log a goal, an opponent goal, or a substitution, a brief toast now appears with an Undo button, so a mis-tap can be reverted in a single tap (fast play, sun, gloves) without hunting for the correction."
       ],
       "fi": [
