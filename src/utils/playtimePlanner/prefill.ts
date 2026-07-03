@@ -85,7 +85,15 @@ export function buildPrefillFromPlan(
   for (const sub of planGame.subs) if (sub.inPlayerId) referenced.add(sub.inPlayerId);
   const missingPlayerIds = [...referenced].filter((id) => !byId.has(id));
 
-  const selectedPlayerIds = plan.players.map((p) => p.id).filter((id) => byId.has(id));
+  // Squad = the plan's players (roster-valid), unioned with everyone actually placed on
+  // the field. Guarantees the app-wide invariant playersOnField ⊆ selectedPlayerIds
+  // (CLAUDE.md Rule 3) even if a plan drifted (a slot starter dropped from plan.players).
+  const selectedPlayerIds = [
+    ...new Set([
+      ...plan.players.map((p) => p.id).filter((id) => byId.has(id)),
+      ...playersOnField.map((p) => p.id),
+    ]),
+  ];
 
   return { playersOnField, selectedPlayerIds, plannedSubs, missingPlayerIds };
 }
