@@ -523,7 +523,7 @@
       "positions": "Toteutuneet pelipaikat",
       "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi. Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
       "positionBalance": "Pelipaikkojen tasapaino",
-      "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on oikeasti pelannut - linjoittain tai tarkat pelipaikat. Yhteen rooliin jääneet pelaajat erottuvat selvästi, joten voit monipuolistaa heidän peluutustaan tietoisesti ja antaa jokaiselle lapselle kokemusta useammasta paikasta kentällä.",
+      "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on pelannut - linjoittain tai tarkat pelipaikat. Yhteen rooliin jääneet pelaajat erottuvat selvästi, joten voit monipuolistaa heidän peluutustaan tietoisesti ja antaa jokaiselle lapselle kokemusta useammasta paikasta kentällä.",
       "matchReport": "Otteluraportti",
       "matchReportDesc": "Kirjoita oma näkemyksesi ottelusta valmiilla otsikkopohjalla — yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Sisältyy jaettavaan koosteeseen.",
       "overtime": "Jatkoaika ja rangaistuslaukaukset",
