@@ -49,21 +49,33 @@ export function buildPrefillFromPlan(
 
   // Out-player for a slot = its starter, but only if that starter is actually on the
   // field. A starter missing from the roster leaves the slot with no one to sub off.
-  const starterBySlot = new Map(
+  // Track who currently occupies each slot, starting from the roster-valid starters.
+  // Walking the subs in time order lets a second sub on the same slot correctly name
+  // the *previous* incoming player (not the original starter) as its out-player.
+  const occupantBySlot = new Map(
     starting
       .filter((a) => a.playerId && byId.has(a.playerId))
       .map((a) => [a.slotId, a.playerId as string]),
   );
   const plannedSubs: PlannedGameSub[] = planGame.subs
-    // Skip incomplete subs (no incoming player chosen) - nothing to prompt.
-    .filter((sub): sub is typeof sub & { inPlayerId: string } => sub.inPlayerId !== null)
-    .map((sub) => ({
-      id: sub.id,
-      timeSeconds: sub.timeSeconds,
-      slotId: sub.slotId,
-      inPlayerId: sub.inPlayerId,
-      outPlayerId: starterBySlot.get(sub.slotId) ?? null,
-    }));
+    // Skip subs with no incoming player, or an incoming player not in the roster -
+    // there is no one to actually bring on. (Reported via missingPlayerIds below.)
+    .filter(
+      (sub): sub is typeof sub & { inPlayerId: string } =>
+        sub.inPlayerId !== null && byId.has(sub.inPlayerId),
+    )
+    .sort((a, b) => a.timeSeconds - b.timeSeconds)
+    .map((sub) => {
+      const outPlayerId = occupantBySlot.get(sub.slotId) ?? null;
+      occupantBySlot.set(sub.slotId, sub.inPlayerId); // incoming player now holds the slot
+      return {
+        id: sub.id,
+        timeSeconds: sub.timeSeconds,
+        slotId: sub.slotId,
+        inPlayerId: sub.inPlayerId,
+        outPlayerId,
+      };
+    });
 
   // Every planned player the current roster can't resolve - squad members, starters,
   // and incoming subs alike - so the UI can warn about anyone silently dropped.

@@ -41,6 +41,7 @@ const plan = (game: PlanGame, playerIds = ['a', 'b', 'c', 'd', 'e', 'f']): Playt
 });
 
 describe('buildPrefillFromPlan', () => {
+  /** @critical the planned XI must land on the field at the right formation positions. */
   it('places the planned XI on the field at their formation slots', () => {
     const g = planGame();
     const res = buildPrefillFromPlan(plan(g), g, roster);
@@ -65,6 +66,7 @@ describe('buildPrefillFromPlan', () => {
     expect(res.selectedPlayerIds.sort()).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
   });
 
+  /** @critical planned subs drive the live prompt, so in/out must be right. */
   it('maps subs and fills outPlayerId from the slot starter', () => {
     const g = planGame();
     const res = buildPrefillFromPlan(plan(g), g, roster);
@@ -122,12 +124,30 @@ describe('buildPrefillFromPlan', () => {
     expect(res.plannedSubs[0].outPlayerId).toBeNull();
   });
 
-  it('reports a sub incoming-player missing from the roster', () => {
+  /** @edge-case a sub bringing on a roster-missing player must be dropped, not leaked. */
+  it('reports and drops a sub whose incoming player is missing from the roster', () => {
     const g = planGame({
       subs: [{ id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'ghost-in' }],
     });
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.missingPlayerIds).toContain('ghost-in');
+    expect(res.plannedSubs).toEqual([]); // ghost incoming player not brought on
+  });
+
+  /** @edge-case two subs on one slot: the second names the first sub-in as its out-player. */
+  it('chains outPlayerId across sequential subs on the same slot', () => {
+    const g = planGame({
+      startingSlots: [{ slotId: 's0', playerId: 'b' }],
+      subs: [
+        { id: 'first', slotId: 's0', timeSeconds: 600, inPlayerId: 'f' }, // f on for starter b
+        { id: 'second', slotId: 's0', timeSeconds: 900, inPlayerId: 'c' }, // c on for f (not b)
+      ],
+    });
+    const res = buildPrefillFromPlan(plan(g), g, roster);
+    expect(res.plannedSubs).toEqual([
+      { id: 'first', slotId: 's0', timeSeconds: 600, inPlayerId: 'f', outPlayerId: 'b' },
+      { id: 'second', slotId: 's0', timeSeconds: 900, inPlayerId: 'c', outPlayerId: 'f' },
+    ]);
   });
 
   it('reports a non-starter squad member missing from the roster', () => {
