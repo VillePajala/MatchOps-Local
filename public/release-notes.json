@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(stats): position-balance narrow dot, no games gate, solid markers, {{n}} fix (#633)"
+  "notes": "feat(stats): position views - coverage ratio, gray-out, full-width toggle, expandable (#634)"
 }

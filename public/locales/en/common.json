@@ -412,9 +412,8 @@
       "byLines": "Lines",
       "byPositions": "Positions",
       "narrow": "Narrow",
-      "coverage": "Players",
       "player": "Player",
-      "coverageTooltip": "Games with positions recorded, of games in this view",
+      "gamesCovered": "Positions recorded in {{recorded}}/{{scanned}} games",
       "empty": "No positions recorded yet for this selection.",
       "line": {
         "gk": "GK",
