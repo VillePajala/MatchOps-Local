@@ -1,168 +1,137 @@
-# Playing-Time Fairness & Multi-Game Sub Planner — Planning Doc
+# Playing-Time Planner — Phased Build Plan
 
-**Status:** 🚧 **Planning in progress (DRAFT)** · Big bet (P4) · Not started
-**Last updated:** 2026-06-24
+**Status:** 🚧 Planning (DRAFT) · Big bet (P4) · Not started
+**Last updated:** 2026-07-03
 
-> This is a deliberately whole-system plan. It unifies three things that are
-> useless apart: **logging actual playing time**, **tracking the running balance
-> inside contexts**, and a **planner** that allocates subs across a *set* of
-> games to even out playing time by the end. Build piecemeal and it won't fit
-> together — so we design it as one.
+> The coach need is simple to state and hard to build: **take a set of games (a
+> tournament), plan the kokoonpanot + subs across all of them at once, and make
+> the playing time come out as equal as possible by the end.** A standalone tool
+> already does this (`~/projects/matchops-planner`); the job is to make it live
+> natively in the app and, eventually, feed the actual games.
 
 ---
 
-## 1. Vision
+## 1. Learn from the last attempt (it was a disaster)
 
-Help a youth coach deliver **fair playing time** — where "fair" is measured as
-**share of available time**, and balanced not per game but across **every context
-the app has**: game → tournament → season → club season → competition. A single
-game is allowed to be lopsided; fairness is the *end result over the context*.
+A previous in-app integration exists at tag `archive/planner-integration`. It
+was abandoned - "it worked the wrong way and looked awful." The diff explains
+why, and every reason is a process failure, not "integration is impossible":
 
-## 2. Locked decisions
+- **It was one big bang** - ~**92,000 lines, 159 files**: the planner, cloud
+  persistence, scheduled-subs schema, and the game binding all in a single
+  branch. Nothing could be validated in isolation.
+- **It bolted the standalone HTML into the app** (`tournament-planner/planner.html`,
+  1,450 lines). A separate UI grafted in → didn't match the field/roster/styling
+  ("looked awful") and a second data model fighting the real one ("worked the
+  wrong way").
+- **It committed to deep schema first** - a whole `planning_sessions` cloud
+  subsystem (10+ migrations: active-session, parent scopes, composite PKs,
+  included-game-ids…), `scheduled_subs` columns, and a rewritten save-game RPC -
+  before the UX was proven.
 
-- **Fairness metric = share of available time** (not raw cumulative minutes). A
-  player who missed games (injury/absence) is judged on the time they were
-  *available for*, so absences don't unfairly inflate "owed" minutes.
-- **Aggregate across all contexts** the app already models: per game, per
-  tournament, per season, per club season, per competition/league.
-- **Designed as one whole** — capture + context ledger + planner are halves of a
-  single loop, planned together.
+**The rule this time:** small, isolated, verified slices; native UI (no embedded
+HTML); **local-first, no cloud schema, no game binding until the planner itself
+is proven.** Mine the standalone project for **algorithm + UX ideas only**.
 
-## 3. The loop (the system)
+## 2. The reframe: two phases, the risky half fenced off
 
-```
- capture (post-game confirm, per player)
-      │
-      ▼
- aggregate share per CONTEXT  (extends existing performanceBySeason/Tournament)
-      │
-      ▼
- surface deficits in the Season/Tournament/Competition view  ← coach reads
-      │
-      ▼
- PLAN the next set of games to even out the context  ← the planner
-      │
-      └────────► play ────────► back to capture
-```
+For the tournament use case the planner is **self-contained**: its inputs are
+just roster + N games + game length + availability; its output is per-game
+lineups + subs with a fair-minutes read. It needs **no season-long ledger, no
+cloud, and no game-binding** to deliver its value.
 
-The unit that matters is the **context**, not the game.
+- **Phase 1 — the native planner (self-contained).** Rebuild the standalone tool
+  natively in-app, reusing the app's SoccerField/roster/formations, plan stored
+  as a **local blob** (like assessments/positions). No cloud, no assignment.
+  *This alone is the coaching tool.*
+- **Phase 2 — the assignment (only after Phase 1 is solid).** Write a game's
+  planned XI + subs into the actual game, and surface the subs as timer prompts.
+  Small and additive on top of a proven planner.
 
-## 4. Part A — Capture (per game)
+Everything that blew up last time lives in Phase 2 (and mostly in the deferred
+cloud piece) - so it can't recur if Phase 1 ships first.
 
-- **Post-game per-player playing-time confirm** — no in-game friction, no
-  automated guessing. The coach fills it in with hindsight (knows about the
-  injury sub, the kid who left early), so it reflects reality.
-- Stored **normalized to a comparable unit** (minutes or % of game) so it
-  aggregates across different-length games.
-- **OPEN: input granularity** — buckets (Full/¾/½/¼/DNP) vs slider (0–100%) vs
-  minutes. Whatever the UI, it must normalize to a share so it can aggregate.
-- Why not real-time / derive-from-field: real-time sub logging fights the app's
-  "make management easier" purpose and breaks down in chaos (injuries,
-  double-subs); deriving from the field produces wrong data because the field
-  isn't kept in sync with reality live. (Analysis done 2026-06-24.)
+## 3. How it works — the coach's view
 
-## 5. Part B — Context ledger (tracking)
+**Before the tournament (home, laptop) — Phase 1:**
+1. Open **"Plan playing time"** for the tournament (or set it up: 5 games ×
+   25 min, 11 players, formation 2-1-2-2).
+2. Game by game, **drag each kid onto the field** into a slot and set the
+   **half-time swap** (who comes on for whom). The bench shows who's resting.
+3. A panel lists every kid's **total minutes across all games**, coloured
+   **red → green**. Swap a green kid for a red one in game 3's second half → the
+   numbers **recolour instantly**.
+4. Flip between games, nudging, until the whole squad is greenish. The things the
+   app *can't* judge (shape, matchups, a kid's preferred role) stay the coach's
+   eye; the app just makes the minutes visible and switching effortless.
+5. **Save** ("Sunday v2"). It's on the phone for match day.
 
-- Roll up **share of available time per player** across each context. Slots into
-  the existing per-context stats aggregation (`performanceBySeason` /
-  `performanceByTournament` in `playerStats.ts`) — same shape, one more measure.
-- **Surface in the Season / Tournament / Competition view** (Competitions modal):
-  a per-player cumulative-share list, sorted "who's owed time," showing each
-  player's share **and deviation** from the group (e.g. "Venla −12% of share").
-  At a glance: who to lean on next.
+**On tournament day (phone) — Phase 2:**
+6. Create game 1 (or it's linked to the plan). It **opens with the planned XI
+   already on the field** - no re-doing the lineup.
+7. The timer **nudges at the planned sub time**: "~12:30 - Niilo on for Jasper
+   (CDM)." Tap to confirm - or don't (a kid's hurt, the game's chaos). **Reality
+   always wins; the plan is a guide.**
+8. Between games, adjust games 4-5 on the phone, re-balance, carry on.
 
-## 6. Part C — The Planner (the hard part)
+**The loop:** plan the set for equal minutes → each game opens pre-loaded → play
+& confirm → adjust the rest between games.
 
-The previously-scrapped Tournament Planner (#369) was an attempt at the *forward*
-half of this. Requirements now:
+## 4. Phase 1 — PR split (native, self-contained planner)
 
-- **Input:** a **set** of upcoming games (e.g. "the next 4") **plus the existing
-  context history as the base** (the already-played share is the starting point).
-- **Output:** a plan of **subs within each game** AND optimized so the
-  **end-of-context share is ~equal** across players. I.e. it plans the 4 games
-  *in parallel*, not independently.
-- **Show:** projected share **per planned game** AND **cumulative in the full
-  context** (so the coach sees both the per-game rotation and where it lands the
-  season/competition balance).
-- **Constraints:** per-game player availability, positions/goalie, min/max shift
-  length, number of subs, etc.
-- **Reality:** the plan is a guide; the post-game confirm corrects what actually
-  happened, and the ledger updates — so the *next* plan re-optimizes from truth.
+| PR | Scope |
+|----|-------|
+| **1.1 Minutes engine** | Pure, tested utility: per-player planned minutes across the plan, fair-share target, and deviation (the red→green math). No UI. |
+| **1.2 Plan setup + local save** | Entry point + a plan object (roster, #games, game length, formation), stored as a local blob with auto-save. |
+| **1.3 Per-game lineup** | Place players into formation slots for one game, **reusing the existing SoccerField + formations** (the "native, not bolted-on HTML" fix). Bench area. |
+| **1.4 Subs per game** | The half-time swap schedule per game (who on/off, into which slot). |
+| **1.5 Multi-game view + fair-minutes colouring** | The payoff: all games together, per-kid cumulative minutes coloured red→green, cross-game highlight of one player, bench warnings. Depends on 1.1 + 1.3/1.4. |
+| **1.6 Plan versions + JSON** | Named snapshots (save/load/rename/delete) + export/import for cross-device/sharing. Polish. |
 
-This is fundamentally an **optimization / constraint-satisfaction problem**:
-allocate minutes across players × games to minimize share variance subject to
-constraints. It needs careful design — both the algorithm and the UX of
-reviewing/adjusting a multi-game plan without overwhelming the coach.
+Phase 1 delivers the whole planning value with **zero cloud, zero game binding**.
 
-## 7. Open questions (need careful thought before any code)
+## 5. Phase 2 — PR split (assignment)
 
-- **Optimization model** — objective (minimize share variance?), constraints,
-  and how much is auto-solved vs coach-adjusted. Degenerate cases (more players
-  than minutes, uneven availability).
-- **Input granularity** (Part A) — buckets vs slider vs minutes.
-- **Availability entry** — how the coach says who's coming to which upcoming game.
-- **Positions** — is fairness pure minutes, or minutes-by-position/role?
-- **Planner UX** — reviewing/tweaking a parallel multi-game plan; what's editable.
-- **In-app vs standalone** — the prior Planner was scrapped; decide architecture
-  (old code at tag `archive/planner-integration`).
-- **Share math** — exact definition of "available time" (squad size, game length,
-  partial availability).
+| PR | Scope |
+|----|-------|
+| **2.1 `plannedSubs` on the game model** | A game carries a planned starting XI + sub schedule (local jsonb, like `playerPositions`). Transform + defaults. |
+| **2.2 Bind plan ↔ games + pre-fill** | Link a plan's per-game lineup to the actual tournament games; on game start, load the planned XI onto the field + `selectedPlayerIds`. |
+| **2.3 Timer sub-prompts** | During the game, surface the planned subs as prompts; the coach confirms live as normal substitution events (deviation-safe). |
+| **2.4 Cloud sync of plans** *(deferred, maybe never)* | Only if cross-device demands more than local + JSON export. This is exactly the part the last attempt over-built - do it last, or not at all. |
 
-## 8. Phasing (proposed)
+## 6. Principles / locked decisions
 
-1. **Phase 1 — Capture + context ledger.** Post-game playing-time confirm +
-   per-context cumulative-share view. Coach balances *manually* by reading
-   deficits. **Delivers real value standalone**, no planner needed.
-2. **Phase 2 — Single-game planner.** Seed one game's rotation from the deficits.
-3. **Phase 3 — Multi-game parallel optimization.** Plan a *set* of games together
-   against the context base; show per-game + full-context projected share. The
-   full vision.
+- **Fairness = share of available time**, not raw cumulative minutes (a kid who
+  missed games is judged on the time they were available for).
+- **Reality corrects the plan.** The plan is a guide; live substitution events
+  (and, later, any post-game confirm) are the truth. No auto-execution of subs.
+- **Native, not bolted-on.** Reuse the app's field/roster/formations; never embed
+  the standalone HTML. That was the "looked awful."
+- **Local-first.** Plans live in local storage; cloud is deferred and optional.
+- **Multi-game navigation is make-or-break.** The optimizer handles the
+  *measurable* (minutes); the coach handles the unmeasured (shape, matchups,
+  development). So frictionless game-to-game flipping with a **persistent
+  cross-game balance that ripples on each change** is as important as any math.
+- **Not the ledger.** A season-long "who's owed minutes" ledger is a *different*
+  feature; the tournament planner is self-contained and does not need it.
 
-## 9. Relationship to the roadmap
+## 7. Open questions (before Phase 1.5 / the optimizer)
 
-- **Absorbs / reframes #381** (substitution "who came off") — we're tracking
-  *playing time*, not sub events.
-- **Absorbs the Tournament Planner — full replan (#369)** — that's Part C / the
-  forward half.
-- Sits in **P4 (big bets)**; this doc is the planning that P4 items require.
+- **How much is auto-solved vs coach-adjusted?** Likely: coach places lineups,
+  the app *shows* imbalance and lets them fix it (no black-box solver at first).
+  A real optimizer (minimise share variance under constraints) is a later option.
+- **Availability entry** - how the coach marks who's coming to which game.
+- **Minutes granularity** - the standalone uses full-game vs half-rotation slots;
+  is one half-time window enough, or arbitrary sub times?
+- **Positions in fairness** - pure minutes, or minutes-by-line too (ties into the
+  position-diversity feature we just shipped)?
+- **Formation source** - reuse the app's formation presets for the slot layout.
 
-## 10. Architecture — reconciling the standalone Planner MVP with the field/positional logic
+## 8. Relationship to the rest
 
-A **standalone Planner MVP exists as a separate project**, but it doesn't share
-MatchOps-Local's visual/positional engine (SoccerField, roster, formations) or
-its game/context data. How to reconcile is a core open decision. Two shapes:
-
-- **(A) Separate editor, launched from selected games.** Looser coupling; reuses
-  the standalone work as-is. But it would **duplicate the field/positional UI +
-  game model**, and can't easily read the in-app **context ledger** (already-played
-  share) without syncing. Risk: two sources of truth and a divergent UX.
-- **(B) Integrated planning *mode* inside the app.** A dedicated multi-game
-  planning surface that **reuses the existing SoccerField, roster, formations,
-  game model, and the playing-time/context data directly**, launched from a
-  selected set of games. More to build, but cohesive and data-native.
-
-**Lean: (B).** The planner's value is **positional *and* context-aware** — it
-plans *who plays where*, not just minutes, and must read the already-played
-share as its base. Both the positional engine and the ledger live in-app, so a
-disconnected external editor would constantly fight to stay in sync. Mine the
-standalone MVP for **ideas / algorithm / UX learnings**, but implement as an
-**in-app planning mode**. (Old in-app code: tag `archive/planner-integration`;
-the standalone MVP is a separate project — concepts, not runtime.)
-
-## 11. UX — multi-game planning is a back-and-forth, not a one-shot solve
-
-The optimizer handles the **measurable** (field-time share). But every game's
-plan also has to be "solid in other ways" that are **coach judgments the app does
-NOT measure**: formation/shape per game, who's paired with whom, position
-rotation & development, opponent matchups, covering a weak side, a kid's
-preferred role, etc.
-
-So the **core interaction is effortless game-to-game navigation**: flip across
-the set (game 1 → 2 → 3 → 4), each shown as a **full field/lineup** to inspect and
-tweak, while a **persistent cross-game balance** shows how a change in one game
-**ripples** the context share. The app's job is to make those unmeasured
-judgments **easy to eyeball and adjust** — not to score them. Minutes are
-auto-balanced by the optimizer; everything else is the coach's eye, supported by
-frictionless switching + live balance feedback. Getting this loop fluid (jump
-between games, see ripple, adjust, re-balance) is as important as the optimizer
-itself — arguably the make-or-break of the whole feature's usability.
+- **Absorbs the scrapped Tournament Planner (#369)** - this is its forward half.
+- **Standalone MVP** (`~/projects/matchops-planner`): the source of the algorithm
+  and UX; mined for concepts, not runtime.
+- **Old in-app code**: tag `archive/planner-integration` (what not to do).
+- Sits in **P4 (big bets)**; this doc is the planning P4 requires. Nothing is
+  built yet - Phase 1.1 (the pure minutes engine) is the safe first slice.

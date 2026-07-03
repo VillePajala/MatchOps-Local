@@ -1,12 +1,12 @@
 {
-  "version": "d53f88df",
+  "version": "a6972324",
   "date": "2026-07-03",
   "notes": {
     "en": [
-      "Position balance clarity: removed the confusing \"Players\" coverage row; narrow-scope players are now called out by an amber name (instead of a hard-to-see dot); and the games-covered number is now a plain caption - \"Positions recorded in 8/12 games\" - on both the team matrix and the player card, so it's obvious what it means."
+      "Internal: documentation only - reset the Playing-Time Planner plan after a failed big-bang attempt. Now a phased, PR-split build: Phase 1 a native self-contained tournament planner (no cloud, no game-binding), Phase 2 the assignment into actual games, with a coach's-eye walkthrough. No app changes."
     ],
     "fi": [
-      "Pelipaikkojen tasapainon selkeytys: poistettiin sekava \"Pelaajia\"-kattavuusrivi; kapean roolin pelaajat erottuvat nyt keltaisella nimellä (vaikeasti näkyvän pisteen sijaan); ja kattavuusluku on nyt selkeä teksti - \"Pelipaikat kirjattu 8/12 ottelusta\" - sekä joukkuematriisissa että pelaajakortissa, joten sen merkitys on selvä."
+      "Sisäinen: vain dokumentaatio - nollattiin peliajan suunnittelijan suunnitelma epäonnistuneen kertarysäys-yrityksen jälkeen. Nyt vaiheistettu, PR-jaoteltu toteutus: Vaihe 1 natiivi itsenäinen turnaussuunnittelija (ei pilveä, ei pelisidosta), Vaihe 2 liittäminen oikeisiin peleihin, sekä valmentajan näkökulman läpikäynti. Ei sovellusmuutoksia."
     ]
   }
 }
