@@ -38,22 +38,21 @@ export function buildPrefillFromPlan(
   const starting = ensureStartingSlots(planGame);
 
   const playersOnField: Player[] = [];
-  const missingPlayerIds: string[] = [];
   for (const assignment of starting) {
     if (!assignment.playerId) continue;
     const player = byId.get(assignment.playerId);
-    if (!player) {
-      missingPlayerIds.push(assignment.playerId);
-      continue;
-    }
+    if (!player) continue; // ghost starter skipped; surfaced via missingPlayerIds below
     const slot = slotById.get(assignment.slotId);
     if (!slot) continue;
     playersOnField.push({ ...player, relX: slot.relX, relY: slot.relY, isGoalie: slot.isGoalie });
   }
 
-  // Who starts in each slot — the out-player when a sub for that slot fires.
+  // Out-player for a slot = its starter, but only if that starter is actually on the
+  // field. A starter missing from the roster leaves the slot with no one to sub off.
   const starterBySlot = new Map(
-    starting.filter((a) => a.playerId).map((a) => [a.slotId, a.playerId as string]),
+    starting
+      .filter((a) => a.playerId && byId.has(a.playerId))
+      .map((a) => [a.slotId, a.playerId as string]),
   );
   const plannedSubs: PlannedGameSub[] = planGame.subs
     // Skip incomplete subs (no incoming player chosen) - nothing to prompt.
@@ -65,6 +64,14 @@ export function buildPrefillFromPlan(
       inPlayerId: sub.inPlayerId,
       outPlayerId: starterBySlot.get(sub.slotId) ?? null,
     }));
+
+  // Every planned player the current roster can't resolve - squad members, starters,
+  // and incoming subs alike - so the UI can warn about anyone silently dropped.
+  const referenced = new Set<string>();
+  for (const p of plan.players) referenced.add(p.id);
+  for (const a of starting) if (a.playerId) referenced.add(a.playerId);
+  for (const sub of planGame.subs) if (sub.inPlayerId) referenced.add(sub.inPlayerId);
+  const missingPlayerIds = [...referenced].filter((id) => !byId.has(id));
 
   const selectedPlayerIds = plan.players.map((p) => p.id).filter((id) => byId.has(id));
 

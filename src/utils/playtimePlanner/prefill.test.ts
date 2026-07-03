@@ -110,6 +110,32 @@ describe('buildPrefillFromPlan', () => {
     expect(res.plannedSubs.map((s) => s.id)).toEqual(['x']);
   });
 
+  it('gives a sub whose slot starter is a ghost a null outPlayerId (no one on field to sub off)', () => {
+    const g = planGame({
+      startingSlots: [
+        { slotId: 'gk', playerId: 'a' },
+        { slotId: 's0', playerId: 'ghost' }, // starter not in roster -> not on field
+      ],
+      subs: [{ id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f' }],
+    });
+    const res = buildPrefillFromPlan(plan(g, ['a', 'ghost', 'f']), g, roster);
+    expect(res.plannedSubs[0].outPlayerId).toBeNull();
+  });
+
+  it('reports a sub incoming-player missing from the roster', () => {
+    const g = planGame({
+      subs: [{ id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'ghost-in' }],
+    });
+    const res = buildPrefillFromPlan(plan(g), g, roster);
+    expect(res.missingPlayerIds).toContain('ghost-in');
+  });
+
+  it('reports a non-starter squad member missing from the roster', () => {
+    const g = planGame(); // starters a..e, sub-in f - none missing
+    const res = buildPrefillFromPlan(plan(g, ['a', 'b', 'c', 'd', 'e', 'f', 'bench-ghost']), g, roster);
+    expect(res.missingPlayerIds).toEqual(['bench-ghost']);
+  });
+
   it('gives an out-of-plan sub a null outPlayerId (empty slot at sub time)', () => {
     const g = planGame({
       startingSlots: [{ slotId: 'gk', playerId: 'a' }], // s0 empty
