@@ -407,6 +407,22 @@
     "seriesFilterLabel": "Series",
     "teamFilterLabel": "Team",
     "titleSeason": "Season Stats",
+    "positionBalance": {
+      "title": "Position balance",
+      "byLines": "Lines",
+      "byPositions": "Positions",
+      "narrow": "Narrow",
+      "coverage": "Players",
+      "player": "Player",
+      "hint": "A row is one player's spread; a column is who covers that line.",
+      "empty": "No positions recorded yet for this selection.",
+      "line": {
+        "gk": "GK",
+        "def": "DEF",
+        "mid": "MID",
+        "att": "ATT"
+      }
+    },
     "titleTournament": "Tournament Stats",
     "titleOverall": "Overall Stats",
     "titleCurrentGame": "Current Game Stats",

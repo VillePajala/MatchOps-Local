@@ -10,3 +10,4 @@ export { FilterControls } from './FilterControls';
 export { TeamPerformanceCard } from './TeamPerformanceCard';
 export { ClubSeasonFilter } from './ClubSeasonFilter';
 export { PersonnelSummaryCard } from './PersonnelSummaryCard';
+export { PositionBalanceSection } from './PositionBalanceSection';

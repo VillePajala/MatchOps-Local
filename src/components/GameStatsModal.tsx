@@ -47,8 +47,10 @@ import {
   FilterControls,
   TeamPerformanceCard,
   PersonnelSummaryCard,
+  PositionBalanceSection,
 } from './GameStatsModal/components';
 import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
+import type { DiversityGame } from '@/utils/positionDiversity';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
@@ -402,6 +404,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     adjustments: allAdjustments,
     playerPool,
   });
+
+  // Games in the current stats scope, resolved from the filtered ids - fed to
+  // the position-balance table (each carries playerPositions).
+  const scopedGames = useMemo<DiversityGame[]>(
+    () => processedGameIds.map(id => savedGames[id]).filter((g): g is NonNullable<typeof g> => Boolean(g)),
+    [processedGameIds, savedGames],
+  );
 
   // Empty state for season/tournament with specific team and zero matching games
   const noGamesInContext = useMemo(() => {
@@ -1063,6 +1072,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Position balance - full-width, below the two-column stats grid */}
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+                <div className="mt-6">
+                  <PositionBalanceSection games={scopedGames} players={playerPool} />
+                </div>
+              )}
             </div>
           )}
         </div>
