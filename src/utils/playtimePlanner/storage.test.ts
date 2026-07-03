@@ -142,6 +142,17 @@ describe('save / get / delete round-trip', () => {
   it('delete of a missing id is a no-op success', async () => {
     expect(await deletePlan('nope')).toBe(true);
   });
+
+  it('serializes concurrent saves so no sibling plan is dropped (withKeyLock)', async () => {
+    const a = createPlan({ ...baseOpts, name: 'A' });
+    const b = createPlan({ ...baseOpts, name: 'B' });
+    // Three overlapping read-modify-writes to the same collection key.
+    await Promise.all([savePlan(a), savePlan(b), savePlan({ ...a, name: 'A2' })]);
+    const plans = await getPlans();
+    expect(Object.keys(plans).sort()).toEqual([a.id, b.id].sort());
+    expect(plans[a.id].name).toBe('A2'); // last write for A wins
+    expect(plans[b.id].name).toBe('B'); // B not clobbered by A's writes
+  });
 });
 
 describe('corruption tolerance', () => {

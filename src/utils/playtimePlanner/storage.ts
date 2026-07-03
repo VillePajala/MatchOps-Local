@@ -10,6 +10,7 @@
  */
 
 import { getStorageJSON, setStorageJSON } from '@/utils/storage';
+import { withKeyLock } from '@/utils/storageKeyLock';
 import { PLAYTIME_PLANS_KEY } from '@/config/storageKeys';
 import logger from '@/utils/logger';
 import {
@@ -51,15 +52,19 @@ export const getPlan = async (id: string): Promise<PlaytimePlan | null> => {
  */
 export const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null> => {
   try {
-    const plans = await getPlans();
-    const stamped: PlaytimePlan = {
-      ...plan,
-      version: PLAYTIME_PLAN_SCHEMA_VERSION,
-      updatedAt: new Date().toISOString(),
-    };
-    plans[plan.id] = stamped;
-    await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
-    return stamped;
+    // Serialize the read-modify-write so concurrent autosaves (e.g. fast typing)
+    // can't clobber each other or drop a sibling plan from the collection.
+    return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
+      const plans = await getPlans();
+      const stamped: PlaytimePlan = {
+        ...plan,
+        version: PLAYTIME_PLAN_SCHEMA_VERSION,
+        updatedAt: new Date().toISOString(),
+      };
+      plans[plan.id] = stamped;
+      await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
+      return stamped;
+    });
   } catch (error) {
     logger.error('[playtimePlanner] Failed to save plan:', error);
     return null;
@@ -69,11 +74,13 @@ export const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null>
 /** Delete a plan by id. Returns true if the write succeeded. */
 export const deletePlan = async (id: string): Promise<boolean> => {
   try {
-    const plans = await getPlans();
-    if (!(id in plans)) return true;
-    delete plans[id];
-    await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
-    return true;
+    return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
+      const plans = await getPlans();
+      if (!(id in plans)) return true;
+      delete plans[id];
+      await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
+      return true;
+    });
   } catch (error) {
     logger.error('[playtimePlanner] Failed to delete plan:', error);
     return false;

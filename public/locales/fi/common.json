@@ -3152,6 +3152,8 @@
       "newPlan": "Uusi suunnitelma",
       "deletePlan": "Poista suunnitelma",
       "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota."
-    }
+    },
+    "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
+    "deleteError": "Suunnitelman poistaminen epäonnistui."
   }
 }

@@ -247,7 +247,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     {t('startScreen.planPlaytime', 'Plan playing time')}
                   </span>
                 </button>
-
               </>
             )}
           </div>
@@ -342,7 +341,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         </div>
       </div>
 
-      <PlaytimePlannerModal isOpen={showPlanner} onClose={() => setShowPlanner(false)} />
+      {showPlanner && <PlaytimePlannerModal isOpen onClose={() => setShowPlanner(false)} />}
     </div>
   );
 };

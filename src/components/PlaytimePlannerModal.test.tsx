@@ -18,6 +18,11 @@ jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: () => ({ user: null }),
 }));
 
+const mockShowToast = jest.fn();
+jest.mock('@/contexts/ToastProvider', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}));
+
 const roster: Player[] = [
   { id: 'p1', name: 'Alex', isGoalie: false, receivedFairPlayCard: false, jerseyNumber: '1' },
   { id: 'p2', name: 'Sam', isGoalie: false, receivedFairPlayCard: false, jerseyNumber: '2' },
@@ -122,31 +127,75 @@ describe('PlaytimePlannerModal', () => {
     );
   });
 
-  it('opens straight to the overview when a plan already exists', async () => {
-    mockGetPlans.mockResolvedValue({
-      existing: {
-        id: 'existing',
-        name: 'Saved Cup',
-        version: 1,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-        players: [{ id: 'p1', name: 'Alex' }],
-        games: [
-          {
-            id: 'g1',
-            label: 'Game 1',
-            formationId: '8v8-2-1-2-1-1',
-            numberOfPeriods: 2,
-            periodMinutes: 12,
-            included: true,
-            startingSlots: [],
-            subs: [],
-          },
-        ],
+  const existingPlan = {
+    id: 'existing',
+    name: 'Saved Cup',
+    version: 1,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+    players: [{ id: 'p1', name: 'Alex' }],
+    games: [
+      {
+        id: 'g1',
+        label: 'Game 1',
+        formationId: '8v8-2-1-2-1-1',
+        numberOfPeriods: 2,
+        periodMinutes: 12,
+        included: true,
+        startingSlots: [] as unknown[],
+        subs: [] as unknown[],
       },
-    });
+    ],
+  };
+
+  it('opens straight to the overview when a plan already exists', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument());
     expect(screen.getByText('Delete plan')).toBeInTheDocument();
+  });
+
+  it('autosaves an overview edit (debounced) to the plan name', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    const nameInput = await screen.findByDisplayValue('Saved Cup');
+
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'Renamed Cup' } });
+    });
+
+    // Debounced save (600ms) eventually fires with the new name.
+    await waitFor(() => expect(mockSavePlan).toHaveBeenCalled(), { timeout: 2000 });
+    const lastCall = mockSavePlan.mock.calls[mockSavePlan.mock.calls.length - 1][0];
+    expect(lastCall.name).toBe('Renamed Cup');
+  });
+
+  it('shows an error toast when create fails to save', async () => {
+    mockSavePlan.mockResolvedValue(null); // storage failure
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Create plan')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create plan'));
+    });
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error'));
+    // Stays on setup (no overview) since the save failed.
+    expect(screen.queryByText('Delete plan')).not.toBeInTheDocument();
+  });
+
+  it('shows an error toast when delete fails', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    mockDeletePlan.mockResolvedValue(false);
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Delete plan')).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Delete plan'));
+    });
+
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error'));
+    confirmSpy.mockRestore();
   });
 });

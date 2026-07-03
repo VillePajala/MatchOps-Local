@@ -13,6 +13,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
+import { useToast } from '@/contexts/ToastProvider';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { PRESETS_BY_SIZE, FIELD_SIZES, getPresetById } from '@/config/formationPresets';
 import logger from '@/utils/logger';
@@ -46,6 +47,7 @@ type View = 'loading' | 'setup' | 'overview';
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [view, setView] = useState<View>('loading');
   const [roster, setRoster] = useState<Player[]>([]);
@@ -144,28 +146,86 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     if (saved) {
       setActivePlan(saved);
       setView('overview');
+    } else {
+      showToast(
+        t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'),
+        'error',
+      );
     }
   };
 
-  // Auto-save a mutation to the active plan.
+  // Debounced auto-save. Overview edits (name, labels, included) update state
+  // immediately for a responsive UI but coalesce writes so fast typing doesn't
+  // hammer IndexedDB. A failed save surfaces a toast rather than failing silently.
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyPlanRef = useRef<PlaytimePlan | null>(null);
+
+  const persist = useCallback(
+    async (plan: PlaytimePlan) => {
+      const saved = await savePlan(plan);
+      if (!saved) {
+        showToast(
+          t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'),
+          'error',
+        );
+      }
+    },
+    [showToast, t],
+  );
+
+  // Write any pending edit now (on close/unmount) instead of waiting out the debounce.
+  const flushSave = useCallback(() => {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    const pending = dirtyPlanRef.current;
+    dirtyPlanRef.current = null;
+    if (pending) void persist(pending);
+  }, [persist]);
+
   const updateActivePlan = useCallback(
-    async (mutate: (plan: PlaytimePlan) => PlaytimePlan) => {
+    (mutate: (plan: PlaytimePlan) => PlaytimePlan) => {
       setActivePlan((prev) => {
         if (!prev) return prev;
         const next = mutate(prev);
-        void savePlan(next);
+        dirtyPlanRef.current = next;
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => {
+          saveTimerRef.current = null;
+          const pending = dirtyPlanRef.current;
+          dirtyPlanRef.current = null;
+          if (pending) void persist(pending);
+        }, 600);
         return next;
       });
     },
-    [],
+    [persist],
   );
+
+  // Flush a pending debounced save when the modal is hidden (Escape, Close, or
+  // the parent hiding it) or unmounts, so the last edit is never lost to the debounce.
+  useEffect(() => {
+    if (!isOpen) flushSave();
+  }, [isOpen, flushSave]);
+  useEffect(() => () => flushSave(), [flushSave]);
 
   const handleDelete = async () => {
     if (!activePlan) return;
     if (!window.confirm(t('playtimePlanner.overview.confirmDelete', 'Delete this plan? This cannot be undone.'))) {
       return;
     }
-    await deletePlan(activePlan.id);
+    // Cancel any pending autosave for the plan we're about to remove.
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    dirtyPlanRef.current = null;
+    const deleted = await deletePlan(activePlan.id);
+    if (!deleted) {
+      showToast(t('playtimePlanner.deleteError', 'Could not delete the plan.'), 'error');
+      return;
+    }
     const plans = await getPlans();
     const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     if (list.length > 0) {
@@ -354,8 +414,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
               <p className={subtextStyle}>
                 {t('playtimePlanner.overview.formatSummary', '{{games}} games · {{periods}}×{{minutes}} min', {
                   games: activePlan.games.length,
-                  periods: activePlan.games[0]?.numberOfPeriods ?? numberOfPeriods,
-                  minutes: activePlan.games[0]?.periodMinutes ?? periodMinutes,
+                  periods: activePlan.games[0]?.numberOfPeriods ?? 0,
+                  minutes: activePlan.games[0]?.periodMinutes ?? 0,
                 })}
                 {' · '}
                 {getPresetById(activePlan.games[0]?.formationId ?? '')?.name ?? '-'}

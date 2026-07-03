@@ -3152,6 +3152,8 @@
       "newPlan": "New plan",
       "deletePlan": "Delete plan",
       "confirmDelete": "Delete this plan? This cannot be undone."
-    }
+    },
+    "saveError": "Could not save the plan. Your latest changes may not persist.",
+    "deleteError": "Could not delete the plan."
   }
 }
