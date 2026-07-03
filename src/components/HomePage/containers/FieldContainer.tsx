@@ -9,6 +9,7 @@ import ShootoutModal from '@/components/ShootoutModal';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
+import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
 import { useToast } from '@/contexts/ToastProvider';
 import type {
   Player,
@@ -243,6 +244,13 @@ export function FieldContainer({
   const tmShowOverlay = timerVM.showLargeTimerOverlay;
   const tmInitialLoad = timerVM.initialLoadComplete;
 
+  // Playing-Time Planner (Phase 2): surface the due planned sub in the timer overlay.
+  const { prompt: plannedSubPrompt, dismiss: dismissPlannedSub } = usePlannedSubPrompts(
+    currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
+    tmTime,
+    availablePlayers,
+  );
+
   return (
     <div className="flex-grow relative bg-black overflow-hidden">
       {tmShowOverlay && (
@@ -256,6 +264,8 @@ export function FieldContainer({
           isTimerRunning={tmIsRunning}
           onStartPauseTimer={startPauseTimer}
           onResetTimer={resetTimer}
+          plannedSubPrompt={plannedSubPrompt}
+          onDismissPlannedSub={dismissPlannedSub}
           onToggleGoalLogModal={toggleGoalLogModal}
           onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}
