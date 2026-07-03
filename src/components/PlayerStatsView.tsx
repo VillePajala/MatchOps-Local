@@ -25,7 +25,7 @@ import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar
 import { exportPlayerDevelopmentCard, isCardExportSupported } from '@/utils/export/exportPlayerDevelopmentCard';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity, LINES } from '@/utils/positionDiversity';
-import type { PositionCategory } from '@/config/positions';
+import { POSITION_IDS, POSITION_CATEGORY, type PositionCategory } from '@/config/positions';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
@@ -324,6 +324,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId);
   }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId]);
 
+  const [showAllPositions, setShowAllPositions] = useState(false);
+
   // This player's position spread over the current scope, for the compact
   // "Positions played" card (games where they were recorded at a position).
   const positionSummary = useMemo(() => {
@@ -429,27 +431,28 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Positions played - this player's spread over the current scope */}
         {positionSummary && (
-          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg shadow-inner p-4 mb-3">
+          <div className={`bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg shadow-inner p-4 mb-3 ${positionSummary.totalGames / (playerStats.totalGames || 1) < 0.5 ? 'opacity-60' : ''}`}>
             <div className="flex items-center justify-between gap-2 mb-2">
               <h3 className="text-sm font-semibold text-slate-200">
                 {t('playerStats.positionsPlayed.title', 'Positions played')}
               </h3>
-              {positionSummary.narrow && (
-                <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
-                  {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className="text-xs text-slate-400 tabular-nums"
+                  title={t('gameStatsModal.positionBalance.coverageTooltip', 'Games with positions recorded, of games in this view')}
+                >
+                  {positionSummary.totalGames}/{playerStats.totalGames}
                 </span>
-              )}
+                {positionSummary.narrow && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
+                    {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-lg font-bold text-yellow-400">
-                {positionSummary.primaryPosition
-                  ? t(`playingPositions.${positionSummary.primaryPosition}.label` as TranslationKey, positionSummary.primaryPosition.toUpperCase())
-                  : '-'}
-              </span>
-              <span className="text-xs text-slate-400">
-                {t('playerStats.positionsPlayed.linesPlayed', '{{n}} of 4 lines', { n: positionSummary.distinctLines })}
-              </span>
-            </div>
+            <p className="text-xs text-slate-400 mb-2">
+              {t('playerStats.positionsPlayed.linesPlayed', '{{n}} of 4 lines', { n: positionSummary.distinctLines })}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {LINES.map(line => {
                 const n = positionSummary.byLine[line];
@@ -465,6 +468,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <p className="text-xs text-amber-300/80 mt-2">
                 {t('playerStats.positionsPlayed.narrowHint', 'Played only one line this season - a chance to broaden.')}
               </p>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowAllPositions(v => !v)}
+              className="mt-3 text-xs text-slate-300 hover:text-slate-100 flex items-center gap-1 transition-colors"
+              aria-expanded={showAllPositions}
+            >
+              {t('playerStats.positionsPlayed.allPositions', 'All positions')} {showAllPositions ? '−' : '+'}
+            </button>
+            {showAllPositions && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {POSITION_IDS.filter(id => (positionSummary.byPosition[id] ?? 0) > 0).map(id => (
+                  <span key={id} className={`text-xs font-medium px-2 py-0.5 rounded-full ${LINE_BADGE[POSITION_CATEGORY[id] ?? 'mid']}`}>
+                    {t(`playingPositions.${id}.abbrev` as TranslationKey, id.toUpperCase())} {positionSummary.byPosition[id]}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         )}

@@ -414,7 +414,7 @@
       "narrow": "Narrow",
       "coverage": "Players",
       "player": "Player",
-      "hint": "A row is one player's spread; a column is who covers that line. An amber dot flags a player kept to one line.",
+      "coverageTooltip": "Games with positions recorded, of games in this view",
       "empty": "No positions recorded yet for this selection.",
       "line": {
         "gk": "GK",
@@ -1785,7 +1785,8 @@
     "positionsPlayed": {
       "title": "Positions played",
       "linesPlayed": "{{n}} of 4 lines",
-      "narrowHint": "Played only one line this season - a chance to broaden."
+      "narrowHint": "Played only one line this season - a chance to broaden.",
+      "allPositions": "All positions"
     },
     "gamesPlayed_short": "GP",
     "goals": "Goals",
