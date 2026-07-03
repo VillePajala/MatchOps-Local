@@ -46,6 +46,12 @@ export function removeSub(subs: PlanSub[], id: string): PlanSub[] {
  * Roster players eligible to come on: those not in the starting XI and not
  * already scheduled to come on in another sub (so nobody is subbed on twice).
  * Pass `excludeSubId` to ignore the sub currently being edited.
+ *
+ * Phase-1 limitation (intentional): this models a single swap window per player,
+ * so a starter who is subbed off cannot be brought back on, and a bench player
+ * can only come on once. Multi-rotation patterns (e.g. rolling 5-a-side subs) are
+ * out of scope for Phase 1; the minutes engine itself supports arbitrary subs, so
+ * this is purely a UI eligibility simplification, not an engine constraint.
  */
 export function availableSubInIds(
   rosterIds: string[],
