@@ -1094,7 +1094,8 @@
     "existingSubscriber": "Already a subscriber? Sign in →",
     "newToCloud": "New here? Subscribe via the Android app.",
     "getAndroidApp": "Get on Google Play",
-    "welcomeScreen": "Welcome"
+    "welcomeScreen": "Welcome",
+    "planPlaytime": "Plan playing time"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -3123,5 +3124,36 @@
     "instructions": "Log each shot as it happens.",
     "firstKick": "First shot",
     "upNext": "Up next"
+  },
+  "playtimePlanner": {
+    "title": "Playing-Time Planner",
+    "setup": {
+      "defaultName": "Tournament plan",
+      "nameLabel": "Plan name",
+      "namePlaceholder": "e.g. Sunday tournament",
+      "rosterLabel": "Players",
+      "rosterEmpty": "Add players to your roster first.",
+      "selectAll": "All",
+      "selectNone": "None",
+      "playersSelected": "{{count}} selected",
+      "gamesLabel": "Number of games",
+      "formationLabel": "Formation",
+      "periodsLabel": "Periods",
+      "periodMinutesLabel": "Minutes per period",
+      "create": "Create plan"
+    },
+    "overview": {
+      "gameLabel": "Game {{n}}",
+      "rosterSummary": "{{count}} players",
+      "formatSummary": "{{games}} games · {{periods}}×{{minutes}} min",
+      "gamesHeading": "Games",
+      "included": "Included",
+      "lineupHint": "Set each game’s lineup and subs from here (coming next).",
+      "newPlan": "New plan",
+      "deletePlan": "Delete plan",
+      "confirmDelete": "Delete this plan? This cannot be undone."
+    },
+    "saveError": "Could not save the plan. Your latest changes may not persist.",
+    "deleteError": "Could not delete the plan."
   }
 }
