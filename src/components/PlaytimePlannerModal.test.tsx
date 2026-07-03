@@ -196,6 +196,33 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByText('Delete plan')).not.toBeInTheDocument();
   });
 
+  it('edits a lineup end-to-end: assign a player and the placed count updates', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Edit lineup')).toBeInTheDocument());
+    // 8v8-2-1-2-1-1 => GK + 7 = 8 slots, none placed yet.
+    expect(screen.getByText('0/8 placed')).toBeInTheDocument();
+
+    // Open the lineup editor for the game.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit lineup'));
+    });
+
+    // Assign the one roster player (Alex) to the goalkeeper slot.
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('GK: empty'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Alex' }));
+    });
+
+    // Back to the plan; the placed count now reflects the assignment.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Back to plan'));
+    });
+    await waitFor(() => expect(screen.getByText('1/8 placed')).toBeInTheDocument());
+  });
+
   it('shows an error toast when delete fails', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockDeletePlan.mockResolvedValue(false);
