@@ -384,8 +384,8 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* PLAN */}
               <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <PhoneMockup screenshot={screenshots.soccerfield} size="lg" />
+                <div className="flex justify-center mb-4 max-w-[160px] md:max-w-none mx-auto">
+                  <PhoneMockup screenshot={screenshots.soccerfield} size="2xl" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
                   {isEnglish ? 'Plan' : 'Suunnittele'}
@@ -396,8 +396,8 @@ export default function HomePage() {
               </div>
               {/* TRACK */}
               <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <PhoneMockup screenshot={screenshots.timer} size="lg" />
+                <div className="flex justify-center mb-4 max-w-[160px] md:max-w-none mx-auto">
+                  <PhoneMockup screenshot={screenshots.timer} size="2xl" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
                   {isEnglish ? 'Track' : 'Kirjaa'}
@@ -408,8 +408,8 @@ export default function HomePage() {
               </div>
               {/* DISCOVER / OIVALLA */}
               <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <PhoneMockup screenshot={screenshots.teamstats} size="lg" />
+                <div className="flex justify-center mb-4 max-w-[160px] md:max-w-none mx-auto">
+                  <PhoneMockup screenshot={screenshots.teamstats} size="2xl" />
                 </div>
                 <h3 className="text-xl font-bold text-primary mb-2">
                   {isEnglish ? 'Discover' : 'Oivalla'}
@@ -456,18 +456,18 @@ export default function HomePage() {
               ].map((card, i) => (
                 <div
                   key={card.key}
-                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 sm:p-6 md:p-8 flex gap-6 sm:gap-4 md:gap-6 ${
+                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 sm:p-6 md:p-8 flex gap-6 md:gap-24 md:items-center md:justify-center ${
                     i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
                   }`}
                 >
-                  <div className="w-1/2 flex flex-col justify-center items-start">
+                  <div className="w-1/2 md:w-auto md:max-w-md flex flex-col justify-center items-start md:rounded-2xl md:bg-white/5 md:ring-1 md:ring-white/10 md:p-8 md:shadow-lg">
                     <div className="text-primary text-xs sm:text-sm font-semibold mb-1 sm:mb-2">{t('marketing.ui.feature')}</div>
                     <h3 className="text-white text-lg sm:text-xl md:text-3xl font-bold mb-2 sm:mb-3">
                       {t(`marketing.featureCards.${card.key}`)}
                     </h3>
                     <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
                   </div>
-                  <div className="w-1/2 flex items-center justify-center">
+                  <div className="w-1/2 md:w-auto md:shrink-0 flex items-center justify-center">
                     <PhoneMockup screenshot={card.screenshot} size="3xl" zIndex={10} />
                   </div>
                 </div>

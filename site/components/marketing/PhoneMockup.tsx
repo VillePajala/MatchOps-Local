@@ -91,7 +91,7 @@ export default function PhoneMockup({
             <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 leading-tight">{comingSoonLabel}</span>
           </div>
         ) : (
-          <Image src={screenshot} alt={alt} fill sizes="(max-width: 768px) 100vw, 400px" className="object-cover" priority={priority} />
+          <Image src={screenshot} alt={alt} fill sizes="(max-width: 768px) 100vw, 640px" quality={90} className="object-cover" priority={priority} />
         )}
       </div>
     </div>
