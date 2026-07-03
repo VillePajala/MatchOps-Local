@@ -1,12 +1,12 @@
 {
-  "version": "58574eea",
+  "version": "61bba237",
   "date": "2026-07-03",
   "notes": {
     "en": [
-      "Player development: each player's development view now has a compact \"Positions played\" card - their primary position, how many of the four pitch lines they've covered, a per-line breakdown, and a \"Narrow\" flag (with a nudge to broaden) if they've been kept to a single line this season. Completes the position-diversity feature alongside the team Position-balance matrix."
+      "Position balance polish: the \"Narrow\" flag in the matrix is now a compact amber dot, so the Lines view fits without side-scrolling, and it applies to any player kept to one line regardless of how many games they've played. The per-player \"Positions played\" card now uses solid colour markers that match the app style, and a text-formatting bug (a raw \"{n}\" showing instead of the number) is fixed."
     ],
     "fi": [
-      "Pelaajakehitys: jokaisen pelaajan kehitysnäkymässä on nyt tiivis \"Pelipaikat\"-kortti - pääpelipaikka, kuinka montaa kentän neljästä linjasta hän on pelannut, linjakohtainen erittely ja \"Kapea\"-merkintä (ja kannustus monipuolistaa), jos hän on jäänyt yhteen linjaan tällä kaudella. Täydentää pelipaikkojen monipuolisuus-ominaisuuden joukkueen tasapainomatriisin rinnalla."
+      "Pelipaikkojen tasapainon hiontaa: matriisin \"Kapea\"-merkintä on nyt tiivis keltainen piste, joten Linjat-näkymä mahtuu ilman sivuttaisvieritystä, ja se koskee jokaista yhteen linjaan jäänyttä pelaajaa pelimäärästä riippumatta. Pelaajakohtainen \"Pelipaikat\"-kortti käyttää nyt sovelluksen tyyliin sopivia täysvärisiä merkkejä, ja tekstin muotoiluvirhe (raaka \"{n}\" numeron sijaan) on korjattu."
     ]
   }
 }
