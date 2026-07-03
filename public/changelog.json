@@ -1,12 +1,12 @@
 {
-  "version": "61bba237",
+  "version": "f9b753c3",
   "date": "2026-07-03",
   "notes": {
     "en": [
-      "Position balance polish: the \"Narrow\" flag in the matrix is now a compact amber dot, so the Lines view fits without side-scrolling, and it applies to any player kept to one line regardless of how many games they've played. The per-player \"Positions played\" card now uses solid colour markers that match the app style, and a text-formatting bug (a raw \"{n}\" showing instead of the number) is fixed."
+      "Position views polish: the narrow dot now sits after the player name, the wordy description is gone, and Lines/Positions is one full-width toggle so the Lines view fits cleanly. Both the team matrix and the per-player card now show a games-covered ratio (how many games actually have positions recorded) and grey out when that's under half - so you can tell whether the data is complete enough to read into. The player card drops the confusing full position name and gains an expandable full breakdown of every position played."
     ],
     "fi": [
-      "Pelipaikkojen tasapainon hiontaa: matriisin \"Kapea\"-merkintä on nyt tiivis keltainen piste, joten Linjat-näkymä mahtuu ilman sivuttaisvieritystä, ja se koskee jokaista yhteen linjaan jäänyttä pelaajaa pelimäärästä riippumatta. Pelaajakohtainen \"Pelipaikat\"-kortti käyttää nyt sovelluksen tyyliin sopivia täysvärisiä merkkejä, ja tekstin muotoiluvirhe (raaka \"{n}\" numeron sijaan) on korjattu."
+      "Pelipaikkanäkymien hiontaa: kapean roolin piste on nyt pelaajan nimen jälkeen, monisanainen kuvaus poistettu, ja Linjat/Pelipaikat on yksi täysleveä valitsin, joten Linjat-näkymä mahtuu siististi. Sekä joukkuematriisi että pelaajakortti näyttävät nyt kattavuussuhteen (kuinka moneen peliin pelipaikat on oikeasti kirjattu) ja himmenevät kun se on alle puolet - näet siis onko data riittävän kattavaa tulkittavaksi. Pelaajakortti pudottaa sekavan koko pelipaikan nimen ja saa avattavan täyden erittelyn kaikista pelatuista pelipaikoista."
     ]
   }
 }

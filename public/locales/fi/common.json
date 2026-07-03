@@ -751,7 +751,7 @@
       "narrow": "Kapea",
       "coverage": "Pelaajia",
       "player": "Pelaaja",
-      "hint": "Rivi on yhden pelaajan jakauma; sarake kertoo kuka pelaa kyseisellä linjalla. Keltainen piste merkitsee pelaajan, joka on jäänyt yhteen linjaan.",
+      "coverageTooltip": "Pelit joissa pelipaikat kirjattu, tämän näkymän peleistä",
       "empty": "Tälle valinnalle ei ole vielä kirjattu pelipaikkoja.",
       "line": {
         "gk": "MV",
@@ -1785,7 +1785,8 @@
     "positionsPlayed": {
       "title": "Pelipaikat",
       "linesPlayed": "{{n}}/4 linjaa",
-      "narrowHint": "Pelannut vain yhtä linjaa tällä kaudella - tilaisuus monipuolistaa."
+      "narrowHint": "Pelannut vain yhtä linjaa tällä kaudella - tilaisuus monipuolistaa.",
+      "allPositions": "Kaikki pelipaikat"
     },
     "gamesPlayed_short": "O",
     "goals": "Maalit",
