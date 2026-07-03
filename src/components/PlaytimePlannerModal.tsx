@@ -15,6 +15,10 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { getMasterRoster } from '@/utils/masterRosterManager';
+import { getTeams, getTeamRoster } from '@/utils/teams';
+import { getSeasons } from '@/utils/seasons';
+import { getTournaments } from '@/utils/tournaments';
+import type { Team, Season, Tournament } from '@/types';
 import { PRESETS_BY_SIZE, FIELD_SIZES, getPresetById } from '@/config/formationPresets';
 import logger from '@/utils/logger';
 import {
@@ -81,6 +85,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const [numberOfPeriods, setNumberOfPeriods] = useState(2);
   const [periodMinutes, setPeriodMinutes] = useState(12);
   const [formationId, setFormationId] = useState(DEFAULT_FORMATION);
+  // Optional team source (Phase 2): teams + their linked competitions seed the
+  // roster selection and durations, mirroring new-game setup. '' = no team.
+  const [teamId, setTeamId] = useState('');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const teamSelectRef = useRef(0); // discards stale async team-roster responses
 
   const resetSetupForm = useCallback((players: Player[]) => {
     setName(t('playtimePlanner.setup.defaultName', 'Tournament plan'));
@@ -89,7 +100,62 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     setNumberOfPeriods(2);
     setPeriodMinutes(12);
     setFormationId(DEFAULT_FORMATION);
+    setTeamId('');
   }, [t]);
+
+  // Optional team source: on pick, inherit the team's competition durations and
+  // pre-select the matching master-roster players (by name — team-roster ids are a
+  // separate id space, matching NewGameSetupModal). Blank = full master roster.
+  const applyTeamSelection = useCallback(
+    async (nextTeamId: string) => {
+      const requestId = ++teamSelectRef.current;
+      if (!nextTeamId) {
+        // Back to freehand: full roster and the planner's default durations, so a
+        // team's inherited durations don't linger after you deselect it.
+        setTeamId('');
+        setSelectedIds(new Set(roster.map((p) => p.id)));
+        setNumberOfPeriods(2);
+        setPeriodMinutes(12);
+        return;
+      }
+      const team = teams.find((tm) => tm.id === nextTeamId);
+      const comp = team?.boundSeasonId
+        ? seasons.find((s) => s.id === team.boundSeasonId)
+        : team?.boundTournamentId
+          ? tournaments.find((tn) => tn.id === team.boundTournamentId)
+          : undefined;
+      try {
+        const teamRoster = await getTeamRoster(nextTeamId, user?.id);
+        if (teamSelectRef.current !== requestId) return; // a newer pick superseded this
+        // Commit teamId only after the fetch succeeds, together with the roster and
+        // durations - so a plan's teamId always matches what was actually applied. A
+        // failed/slow load never leaves teamId stamped on a stale roster (which would
+        // break the "lossless" invariant later prefill relies on).
+        setTeamId(nextTeamId);
+        const names = new Set(teamRoster.map((tp) => tp.name.trim().toLowerCase()));
+        setSelectedIds(
+          new Set(roster.filter((p) => names.has(p.name.trim().toLowerCase())).map((p) => p.id)),
+        );
+        // Apply durations only after the roster load succeeds, so a failure never
+        // leaves a half-applied state (durations changed, selection stale). Always
+        // set them from the selected team's competition, or fall back to the planner
+        // defaults when the team is unbound - otherwise a team->team switch onto an
+        // unbound team would keep the previous team's inherited durations.
+        if (comp) {
+          setNumberOfPeriods(comp.periodCount && comp.periodCount > 0 ? comp.periodCount : 2);
+          setPeriodMinutes(comp.periodDuration && comp.periodDuration > 0 ? comp.periodDuration : 15);
+        } else {
+          setNumberOfPeriods(2);
+          setPeriodMinutes(12);
+        }
+      } catch (error) {
+        if (teamSelectRef.current !== requestId) return;
+        logger.error('[PlaytimePlannerModal] Failed to load team roster:', error);
+        showToast(t('playtimePlanner.setup.teamLoadError', "Could not load that team's roster."), 'error');
+      }
+    },
+    [roster, teams, seasons, tournaments, user, showToast, t],
+  );
 
   // Keep a stable handle to resetSetupForm so the load effect does not depend on
   // it (it changes identity with `t`); the effect must only re-run on open/user.
@@ -124,6 +190,23 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
           resetSetupFormRef.current([]);
           setView('setup');
         }
+      }
+      // Team/season/tournament data is best-effort: it only feeds the optional
+      // Team selector in setup, so a failure here must never gate the view or hide
+      // the user's roster/plans behind the empty-setup screen.
+      try {
+        const [teamList, seasonList, tournamentList] = await Promise.all([
+          getTeams(user?.id),
+          getSeasons(user?.id),
+          getTournaments(user?.id),
+        ]);
+        if (!cancelled) {
+          setTeams(teamList.filter((tm) => !tm.archived));
+          setSeasons(seasonList);
+          setTournaments(tournamentList);
+        }
+      } catch (error) {
+        logger.error('[PlaytimePlannerModal] Team data load failed (non-fatal):', error);
       }
     })();
     return () => {
@@ -162,6 +245,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       formationId,
       numberOfPeriods,
       periodMinutes,
+      teamId: teamId || undefined,
       gameLabel: (i) => t('playtimePlanner.overview.gameLabel', 'Game {{n}}', { n: i + 1 }),
     });
     const saved = await savePlan(plan);
@@ -434,6 +518,30 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
                     placeholder={t('playtimePlanner.setup.namePlaceholder', 'e.g. Sunday tournament')}
                   />
                 </div>
+
+                {teams.length > 0 && (
+                  <div>
+                    <label className={labelStyle}>{t('playtimePlanner.setup.teamLabel', 'Team (optional)')}</label>
+                    <select
+                      value={teamId}
+                      onChange={(e) => void applyTeamSelection(e.target.value)}
+                      className={selectStyle}
+                    >
+                      <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
+                      {teams.map((tm) => (
+                        <option key={tm.id} value={tm.id}>
+                          {tm.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={subtextStyle}>
+                      {t(
+                        'playtimePlanner.setup.teamHint',
+                        'Picks the team roster and its competition durations - like new game setup.',
+                      )}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">

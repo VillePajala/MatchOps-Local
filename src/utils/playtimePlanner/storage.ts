@@ -104,6 +104,8 @@ export interface CreatePlanOptions {
   formationId: string;
   numberOfPeriods: number;
   periodMinutes: number;
+  /** Optional source team (Phase 2); stamped on the plan when set. */
+  teamId?: string;
   /** Label each game; defaults to "Game N" when omitted. */
   gameLabel?: (index: number) => string;
 }
@@ -136,6 +138,8 @@ export const createPlan = (opts: CreatePlanOptions): PlaytimePlan => {
     updatedAt: now,
     players: opts.players,
     games,
+    // Only stamp teamId when set, so freehand plans stay clean (no teamId key).
+    ...(opts.teamId ? { teamId: opts.teamId } : {}),
   };
 };
 
