@@ -522,6 +522,8 @@
       "recapDesc": "One tap turns a finished game into a ready-to-paste summary for the team chat — score, scorers, assists, lineup and your match report. Share as text or copy.",
       "positions": "Positions Played",
       "positionsDesc": "After the game, tag which position(s) each player actually played. Shown in the recap grouped by position, so other coaches see who played where.",
+      "positionBalance": "Position Balance",
+      "positionBalanceDesc": "See across a whole season which positions each player has played - by line or by exact spot. Players kept in one role stand out clearly, so you can deliberately broaden how you use them and give every child experience in more than one place on the pitch.",
       "matchReport": "Match Report",
       "matchReportDesc": "Write your account of the game from a ready template of headings — overview, what went well, what to work on, highlights, next step. Included in the shareable recap.",
       "overtime": "Overtime & Penalties",
