@@ -31,7 +31,16 @@ import {
   secondaryButtonStyle,
   dangerButtonStyle,
 } from '@/styles/modalStyles';
-import { getPlans, savePlan, deletePlan, createPlan } from '@/utils/playtimePlanner/storage';
+import {
+  getPlans,
+  getPlan,
+  savePlan,
+  deletePlan,
+  createPlan,
+  duplicatePlan,
+  serializePlan,
+  importPlan,
+} from '@/utils/playtimePlanner/storage';
 import {
   ensureStartingSlots,
   assignPlayerToSlot,
@@ -62,6 +71,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const [roster, setRoster] = useState<Player[]>([]);
   const [activePlan, setActivePlan] = useState<PlaytimePlan | null>(null);
   const [editingGameId, setEditingGameId] = useState<string | null>(null);
+  const [planList, setPlanList] = useState<PlaytimePlan[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Setup form state.
   const [name, setName] = useState('');
@@ -98,6 +109,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         if (cancelled) return;
         setRoster(players);
         const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        setPlanList(list);
         if (list.length > 0) {
           setActivePlan(list[0]);
           setView('overview');
@@ -156,6 +168,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     if (saved) {
       setActivePlan(saved);
       setView('overview');
+      void refreshPlanList();
     } else {
       showToast(
         t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'),
@@ -257,6 +270,81 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   }, [isOpen, flushSave]);
   useEffect(() => () => flushSave(), [flushSave]);
 
+  // ── Versions & JSON (PR 1.6) ──
+  const refreshPlanList = useCallback(async () => {
+    const plans = await getPlans();
+    const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    setPlanList(list);
+    return list;
+  }, []);
+
+  const handleSwitchPlan = useCallback(
+    async (id: string) => {
+      if (id === activePlan?.id) return;
+      flushSave();
+      const p = await getPlan(id);
+      if (p) {
+        setActivePlan(p);
+        setEditingGameId(null);
+        setView('overview');
+      }
+    },
+    [activePlan?.id, flushSave],
+  );
+
+  const handleDuplicate = useCallback(async () => {
+    if (!activePlan) return;
+    flushSave();
+    const saved = await savePlan(duplicatePlan(activePlan));
+    if (!saved) {
+      showToast(t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'), 'error');
+      return;
+    }
+    setActivePlan(saved);
+    setEditingGameId(null);
+    setView('overview');
+    await refreshPlanList();
+  }, [activePlan, flushSave, refreshPlanList, showToast, t]);
+
+  const handleExport = useCallback(() => {
+    if (!activePlan) return;
+    flushSave();
+    try {
+      const blob = new Blob([serializePlan(activePlan)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activePlan.name || 'plan'}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      logger.error('[PlaytimePlannerModal] Export failed:', error);
+      showToast(t('playtimePlanner.versions.importError', 'Could not read that file as a plan.'), 'error');
+    }
+  }, [activePlan, flushSave, showToast, t]);
+
+  const handleImportFile = useCallback(
+    async (file: File) => {
+      try {
+        const imported = await importPlan(await file.text());
+        if (!imported) {
+          showToast(t('playtimePlanner.versions.importError', 'Could not read that file as a plan.'), 'error');
+          return;
+        }
+        setActivePlan(imported);
+        setEditingGameId(null);
+        setView('overview');
+        await refreshPlanList();
+      } catch (error) {
+        logger.error('[PlaytimePlannerModal] Import failed:', error);
+        showToast(t('playtimePlanner.versions.importError', 'Could not read that file as a plan.'), 'error');
+      }
+    },
+    [refreshPlanList, showToast, t],
+  );
+
   const handleDelete = async () => {
     if (!activePlan) return;
     if (!window.confirm(t('playtimePlanner.overview.confirmDelete', 'Delete this plan? This cannot be undone.'))) {
@@ -275,6 +363,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     }
     const plans = await getPlans();
     const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    setPlanList(list);
     if (list.length > 0) {
       setActivePlan(list[0]);
       setView('overview');
@@ -443,6 +532,24 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
 
         {view === 'overview' && activePlan && (
           <div className="max-w-lg mx-auto space-y-5">
+            {/* Plan switcher (only when more than one plan exists) */}
+            {planList.length > 1 && (
+              <div>
+                <label className={labelStyle}>{t('playtimePlanner.versions.switchLabel', 'Plan')}</label>
+                <select
+                  value={activePlan.id}
+                  onChange={(e) => handleSwitchPlan(e.target.value)}
+                  className={selectStyle}
+                >
+                  {planList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.id === activePlan.id ? activePlan.name : p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className={labelStyle}>{t('playtimePlanner.setup.nameLabel', 'Plan name')}</label>
               <input
@@ -453,6 +560,34 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
                   updateActivePlan((plan) => ({ ...plan, name: value }));
                 }}
                 className={inputBaseStyle}
+              />
+            </div>
+
+            {/* Versions & JSON toolbar */}
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={handleDuplicate} className={secondaryButtonStyle}>
+                {t('playtimePlanner.versions.duplicate', 'Duplicate')}
+              </button>
+              <button type="button" onClick={handleExport} className={secondaryButtonStyle}>
+                {t('playtimePlanner.versions.export', 'Export JSON')}
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={secondaryButtonStyle}
+              >
+                {t('playtimePlanner.versions.import', 'Import JSON')}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleImportFile(file);
+                  e.target.value = '';
+                }}
               />
             </div>
 

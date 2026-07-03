@@ -138,3 +138,64 @@ export const createPlan = (opts: CreatePlanOptions): PlaytimePlan => {
     games,
   };
 };
+
+// ── Versions & JSON export/import (PR 1.6) ──
+
+/** Envelope wrapping an exported plan (so importers can sniff the format). */
+const EXPORT_FORMAT = 'matchops-playtime-plan';
+
+interface PlanExportEnvelope {
+  format: string;
+  version: number;
+  plan: PlaytimePlan;
+}
+
+/** Serialize a plan to a shareable JSON string (pretty-printed, with an envelope). */
+export const serializePlan = (plan: PlaytimePlan): string =>
+  JSON.stringify(
+    { format: EXPORT_FORMAT, version: PLAYTIME_PLAN_SCHEMA_VERSION, plan } satisfies PlanExportEnvelope,
+    null,
+    2,
+  );
+
+/**
+ * Parse an exported plan JSON. Accepts either the enveloped form or a bare plan
+ * object. Returns the validated plan, or null on bad/unrecognized input.
+ */
+export const parsePlanExport = (json: string): PlaytimePlan | null => {
+  let data: unknown;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  const candidate =
+    data && typeof data === 'object' && 'plan' in (data as Record<string, unknown>)
+      ? (data as Record<string, unknown>).plan
+      : data;
+  return isPlaytimePlan(candidate) ? candidate : null;
+};
+
+/** Copy a plan under a fresh identity (does not save). */
+export const duplicatePlan = (plan: PlaytimePlan, copySuffix = ' (copy)'): PlaytimePlan => {
+  const now = new Date().toISOString();
+  return {
+    ...plan,
+    id: generateId('ptp'),
+    name: `${plan.name}${copySuffix}`,
+    createdAt: now,
+    updatedAt: now,
+    games: plan.games.map((g) => ({ ...g })),
+  };
+};
+
+/**
+ * Import a plan from exported JSON: validate, give it a fresh id (so it never
+ * overwrites an existing plan), and save it. Returns the saved plan or null.
+ */
+export const importPlan = async (json: string): Promise<PlaytimePlan | null> => {
+  const parsed = parsePlanExport(json);
+  if (!parsed) return null;
+  const now = new Date().toISOString();
+  return savePlan({ ...parsed, id: generateId('ptp'), createdAt: now, updatedAt: now });
+};

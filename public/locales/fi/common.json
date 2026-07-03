@@ -3186,6 +3186,13 @@
       "noGames": "Ei laskettuja pelejä. Merkitse pelit mukaan.",
       "ofFairShare": "{{pct}}% reilusta osuudesta",
       "notPlaying": "Ei pelaa: {{games}}"
+    },
+    "versions": {
+      "switchLabel": "Suunnitelma",
+      "duplicate": "Monista",
+      "export": "Vie JSON",
+      "import": "Tuo JSON",
+      "importError": "Tiedostoa ei voitu lukea suunnitelmaksi."
     }
   }
 }

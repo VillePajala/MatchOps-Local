@@ -3186,6 +3186,13 @@
       "noGames": "No games counted yet. Mark games as included.",
       "ofFairShare": "{{pct}}% of fair share",
       "notPlaying": "Not playing: {{games}}"
+    },
+    "versions": {
+      "switchLabel": "Plan",
+      "duplicate": "Duplicate",
+      "export": "Export JSON",
+      "import": "Import JSON",
+      "importError": "Could not read that file as a plan."
     }
   }
 }
