@@ -1782,6 +1782,11 @@
     "assists": "Assists",
     "gameLog": "Game Log",
     "gamesPlayed": "Games Played",
+    "positionsPlayed": {
+      "title": "Positions played",
+      "linesPlayed": "{n} of 4 lines",
+      "narrowHint": "Played only one line this season - a chance to broaden."
+    },
     "gamesPlayed_short": "GP",
     "goals": "Goals",
     "noGames": "No game data available.",

@@ -1782,6 +1782,11 @@
     "assists": "Syötöt",
     "gameLog": "Otteluloki",
     "gamesPlayed": "Ottelut",
+    "positionsPlayed": {
+      "title": "Pelipaikat",
+      "linesPlayed": "{n}/4 linjaa",
+      "narrowHint": "Pelannut vain yhtä linjaa tällä kaudella - tilaisuus monipuolistaa."
+    },
     "gamesPlayed_short": "O",
     "goals": "Maalit",
     "noGames": "Ei ottelutietoja saatavilla.",

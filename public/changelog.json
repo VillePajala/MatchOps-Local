@@ -1,12 +1,12 @@
 {
-  "version": "2d63e4d1",
+  "version": "58574eea",
   "date": "2026-07-03",
   "notes": {
     "en": [
-      "Position balance: the stats screen now shows a position-balance table under the Season / Tournament / Overall tabs (scoped by the current filter). Each row is a player's spread across the pitch lines (GK/DEF/MID/ATT), with a \"Narrow\" pill on players kept to one line and a coverage row that flags any line/position filled by a single player. Toggle between lines and exact positions. Lets you spot positional imbalance within a competition and see who to broaden."
+      "Player development: each player's development view now has a compact \"Positions played\" card - their primary position, how many of the four pitch lines they've covered, a per-line breakdown, and a \"Narrow\" flag (with a nudge to broaden) if they've been kept to a single line this season. Completes the position-diversity feature alongside the team Position-balance matrix."
     ],
     "fi": [
-      "Pelipaikkojen tasapaino: tilastonäkymässä on nyt pelipaikkataulukko Kausi- / Turnaus- / Kokonais-välilehtien alla (nykyisen suodattimen mukaan). Jokainen rivi on yhden pelaajan jakauma kentän linjoille (MV/PUO/KESK/HYÖ), \"Kapea\"-merkintä yhteen linjaan jääneille pelaajille ja kattavuusrivi joka nostaa esiin linjat/pelipaikat joita hoitaa vain yksi pelaaja. Vaihda linjojen ja tarkkojen pelipaikkojen välillä. Auttaa havaitsemaan pelipaikkojen epätasapainon kilpailun sisällä ja näkemään ketä kannattaa monipuolistaa."
+      "Pelaajakehitys: jokaisen pelaajan kehitysnäkymässä on nyt tiivis \"Pelipaikat\"-kortti - pääpelipaikka, kuinka montaa kentän neljästä linjasta hän on pelannut, linjakohtainen erittely ja \"Kapea\"-merkintä (ja kannustus monipuolistaa), jos hän on jäänyt yhteen linjaan tällä kaudella. Täydentää pelipaikkojen monipuolisuus-ominaisuuden joukkueen tasapainomatriisin rinnalla."
     ]
   }
 }
