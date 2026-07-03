@@ -43,6 +43,9 @@ const getScreenshots = (locale: string | undefined) => {
     positions: isEnglish
       ? '/screenshots/MatchOps_main_positions_en.jpg'
       : '/screenshots/MatchOps_main_positions_fi.jpg',
+    positionBalance: isEnglish
+      ? '/screenshots/MatchOps_main_positionbalance_en.jpg'
+      : '/screenshots/MatchOps_main_positionbalance_fi.jpg',
     matchReport: isEnglish
       ? '/screenshots/MatchOps_main_matchreport_en.jpg'
       : '/screenshots/MatchOps_main_matchreport_fi.jpg',
@@ -440,6 +443,7 @@ export default function HomePage() {
                 { key: 'assessment', screenshot: screenshots.assessment },
                 { key: 'recap', screenshot: screenshots.recap },
                 { key: 'positions', screenshot: screenshots.positions },
+                { key: 'positionBalance', screenshot: screenshots.positionBalance },
                 { key: 'trends', screenshot: screenshots.trends },
                 { key: 'matchReport', screenshot: screenshots.matchReport },
                 { key: 'overtime', screenshot: screenshots.overtime },

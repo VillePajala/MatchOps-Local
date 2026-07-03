@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "docs: reset the Playing-Time Planner plan (post-mortem + phased PR split) (#636)"
+  "notes": "fix(stats): restyle the \"Positions played\" card to match the app's stat style (#637)"
 }
