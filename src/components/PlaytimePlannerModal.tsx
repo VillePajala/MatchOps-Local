@@ -37,8 +37,10 @@ import {
   assignPlayerToSlot,
   getGameSlots,
 } from '@/utils/playtimePlanner/lineup';
+import { addSub, removeSub } from '@/utils/playtimePlanner/subs';
 import PlanFieldView from '@/components/PlanFieldView';
-import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
+import PlanSubsEditor from '@/components/PlanSubsEditor';
+import type { PlaytimePlan, PlanSub } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
 
 interface PlaytimePlannerModalProps {
@@ -221,6 +223,27 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
             ? { ...g, startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId) }
             : g,
         ),
+      }));
+    },
+    [updateActivePlan],
+  );
+
+  // Add / remove a scheduled substitution in a game.
+  const handleAddSub = useCallback(
+    (gameId: string, sub: PlanSub) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: addSub(g.subs, sub) } : g)),
+      }));
+    },
+    [updateActivePlan],
+  );
+
+  const handleRemoveSub = useCallback(
+    (gameId: string, subId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: removeSub(g.subs, subId) } : g)),
       }));
     },
     [updateActivePlan],
@@ -526,6 +549,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
               players={activePlan.players}
               onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
             />
+            <div className="border-t border-slate-700/40 pt-4">
+              <PlanSubsEditor
+                game={editingGame}
+                players={activePlan.players}
+                onAdd={(sub) => handleAddSub(editingGame.id, sub)}
+                onRemove={(subId) => handleRemoveSub(editingGame.id, subId)}
+              />
+            </div>
           </div>
         )}
       </ScrollableContent>
