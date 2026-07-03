@@ -524,7 +524,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
                     <label className={labelStyle}>{t('playtimePlanner.setup.teamLabel', 'Team (optional)')}</label>
                     <select
                       value={teamId}
-                      onChange={(e) => applyTeamSelection(e.target.value)}
+                      onChange={(e) => void applyTeamSelection(e.target.value)}
                       className={selectStyle}
                     >
                       <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
