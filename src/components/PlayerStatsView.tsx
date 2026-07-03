@@ -24,9 +24,19 @@ import MetricTrendChart from './MetricTrendChart';
 import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar';
 import { exportPlayerDevelopmentCard, isCardExportSupported } from '@/utils/export/exportPlayerDevelopmentCard';
 import MetricAreaChart from './MetricAreaChart';
+import { computePositionDiversity, LINES } from '@/utils/positionDiversity';
+import type { PositionCategory } from '@/config/positions';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
+
+// Line badge colours mirror the position-category colours used in the positions editor.
+const LINE_BADGE: Record<PositionCategory, string> = {
+  gk: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  def: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  mid: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  att: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+};
 
 interface PlayerStatsViewProps {
   player: Player | null;
@@ -313,6 +323,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId);
   }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId]);
 
+  // This player's position spread over the current scope, for the compact
+  // "Positions played" card (games where they were recorded at a position).
+  const positionSummary = useMemo(() => {
+    if (!player) return null;
+    return (
+      computePositionDiversity(Object.values(filteredGamesByClubSeason)).players.find(
+        p => p.playerId === player.id,
+      ) ?? null
+    );
+  }, [player, filteredGamesByClubSeason]);
+
   // Calculate unfiltered stats to detect if empty state is due to filtering
   const unfilteredPlayerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
@@ -404,6 +425,48 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             </div>
           </div>
         </div>
+
+        {/* Positions played - this player's spread over the current scope */}
+        {positionSummary && (
+          <div className="bg-slate-900/70 rounded-lg border border-slate-700 shadow-inner p-4 mb-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <h3 className="text-sm font-semibold text-slate-200">
+                {t('playerStats.positionsPlayed.title', 'Positions played')}
+              </h3>
+              {positionSummary.narrow && (
+                <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
+                </span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-lg font-bold text-yellow-400">
+                {positionSummary.primaryPosition
+                  ? t(`playingPositions.${positionSummary.primaryPosition}.label` as TranslationKey, positionSummary.primaryPosition.toUpperCase())
+                  : '-'}
+              </span>
+              <span className="text-xs text-slate-400">
+                {t('playerStats.positionsPlayed.linesPlayed', '{n} of 4 lines', { n: positionSummary.distinctLines })}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {LINES.map(line => {
+                const n = positionSummary.byLine[line];
+                if (n === 0) return null;
+                return (
+                  <span key={line} className={`text-xs font-medium px-2 py-0.5 rounded-full border ${LINE_BADGE[line]}`}>
+                    {t(`gameStatsModal.positionBalance.line.${line}` as TranslationKey, line.toUpperCase())} {n}
+                  </span>
+                );
+              })}
+            </div>
+            {positionSummary.narrow && (
+              <p className="text-xs text-amber-300/80 mt-2">
+                {t('playerStats.positionsPlayed.narrowHint', 'Played only one line this season - a chance to broaden.')}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* External Games Section - Collapsible */}
         <div className="mt-6 mb-4">
