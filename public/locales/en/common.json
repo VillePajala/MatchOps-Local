@@ -497,7 +497,11 @@
     "increaseInterval": "Increase interval",
     "wentToOvertime": "Overtime",
     "recordShootout": "Penalties",
-    "assessPlayersButton": "Assess players"
+    "assessPlayersButton": "Assess players",
+    "plannedSubTitle": "Planned sub",
+    "plannedSubInOut": "{{in}} on for {{out}}",
+    "plannedSubIn": "{{in}} on",
+    "plannedSubDismiss": "Got it"
   },
   "instructionsModal": {
     "title": "How It Works",

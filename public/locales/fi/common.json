@@ -404,7 +404,11 @@
     "increaseInterval": "Pidennä aikaväliä",
     "wentToOvertime": "Jatkoaika",
     "recordShootout": "Rangaistuslaukaukset",
-    "assessPlayersButton": "Arvioi pelaajat"
+    "assessPlayersButton": "Arvioi pelaajat",
+    "plannedSubTitle": "Suunniteltu vaihto",
+    "plannedSubInOut": "{{in}} kentälle, {{out}} pois",
+    "plannedSubIn": "{{in}} kentälle",
+    "plannedSubDismiss": "Selvä"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
