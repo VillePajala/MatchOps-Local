@@ -749,9 +749,8 @@
       "byLines": "Linjat",
       "byPositions": "Pelipaikat",
       "narrow": "Kapea",
-      "coverage": "Pelaajia",
       "player": "Pelaaja",
-      "coverageTooltip": "Pelit joissa pelipaikat kirjattu, tämän näkymän peleistä",
+      "gamesCovered": "Pelipaikat kirjattu {{recorded}}/{{scanned}} ottelusta",
       "empty": "Tälle valinnalle ei ole vielä kirjattu pelipaikkoja.",
       "line": {
         "gk": "MV",

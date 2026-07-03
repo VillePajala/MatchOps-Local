@@ -39,9 +39,10 @@ describe('PositionBalanceSection', () => {
     expect(within(noahRow).queryByTitle('Narrow')).not.toBeInTheDocument();
   });
 
-  it('shows a coverage row', () => {
+  it('shows a games-covered caption', () => {
     render(<PositionBalanceSection games={games} players={players} />);
-    expect(screen.getByText('Players')).toBeInTheDocument();
+    // 3 games, all with positions -> 3/3 (interpolated by real i18n; mock keeps the raw key text).
+    expect(screen.getByText(/Positions recorded in/i)).toBeInTheDocument();
   });
 
   it('toggles the columns between lines and exact positions', () => {
