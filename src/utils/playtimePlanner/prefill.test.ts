@@ -66,6 +66,22 @@ describe('buildPrefillFromPlan', () => {
     expect(res.selectedPlayerIds.sort()).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
   });
 
+  /** @critical playersOnField must be a subset of selectedPlayerIds (Rule 3). */
+  it('keeps a placed starter selected even if the plan squad dropped them (drift)', () => {
+    const g = planGame({
+      startingSlots: [
+        { slotId: 'gk', playerId: 'a' },
+        { slotId: 's0', playerId: 'b' }, // b is placed but missing from plan.players below
+      ],
+      subs: [],
+    });
+    const res = buildPrefillFromPlan(plan(g, ['a', 'c']), g, roster); // squad omits b
+    expect(res.playersOnField.map((p) => p.id).sort()).toEqual(['a', 'b']);
+    // b must still be selected - playersOnField ⊆ selectedPlayerIds.
+    const onField = res.playersOnField.map((p) => p.id);
+    expect(onField.every((id) => res.selectedPlayerIds.includes(id))).toBe(true);
+  });
+
   /** @critical planned subs drive the live prompt, so in/out must be right. */
   it('maps subs and fills outPlayerId from the slot starter', () => {
     const g = planGame();
