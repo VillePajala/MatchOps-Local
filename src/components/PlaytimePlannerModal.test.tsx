@@ -367,21 +367,27 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
   });
 
-  it('reverts to the full roster when switching back to "No team"', async () => {
-    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10' }]);
+  it('reverts roster AND durations to defaults when switching back to "No team"', async () => {
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10', boundSeasonId: 's1' }]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
     mockGetTeamRoster.mockResolvedValue([{ id: 'tp1', name: 'Alex' }]);
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
 
+    // Pick the team: roster narrows to 1 and durations inherit (20 min).
     await act(async () => {
       fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
     });
     await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    expect(screen.getByDisplayValue('20')).toBeInTheDocument();
 
+    // Deselect: full roster back AND durations revert to the default 12.
     await act(async () => {
       fireEvent.change(screen.getByDisplayValue('U10'), { target: { value: '' } });
     });
     await waitFor(() => expect(screen.getByText('2 selected')).toBeInTheDocument());
+    expect(screen.getByDisplayValue('12')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
   });
 
   it('navigates to the balance view and back', async () => {

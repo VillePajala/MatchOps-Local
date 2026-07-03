@@ -111,7 +111,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       setTeamId(nextTeamId);
       const requestId = ++teamSelectRef.current;
       if (!nextTeamId) {
+        // Back to freehand: full roster and the planner's default durations, so a
+        // team's inherited durations don't linger after you deselect it.
         setSelectedIds(new Set(roster.map((p) => p.id)));
+        setNumberOfPeriods(2);
+        setPeriodMinutes(12);
         return;
       }
       const team = teams.find((tm) => tm.id === nextTeamId);
