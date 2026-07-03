@@ -944,7 +944,12 @@
     "selectLeague": "-- Valitse sarja --",
     "customLeaguePlaceholder": "Kirjoita sarjan nimi",
     "createGame": "Luo ottelu",
-    "selectTeamTip": "Vinkki: valitse joukkue, niin sen kokoonpano ja liitetty kilpailu täyttyvät automaattisesti."
+    "selectTeamTip": "Vinkki: valitse joukkue, niin sen kokoonpano ja liitetty kilpailu täyttyvät automaattisesti.",
+    "prefillFromPlanLabel": "Esitäytä suunnitelmasta (valinnainen)",
+    "prefillNoPlan": "Ei suunnitelmaa",
+    "prefillGameLabel": "Suunnitelman peli",
+    "prefillChooseGame": "Valitse peli…",
+    "prefillMissingPlayers": "{{count}} suunnitelman pelaajaa ei ole tässä kokoonpanossa ja jätettiin pois."
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Oivalla",

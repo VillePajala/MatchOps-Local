@@ -9,6 +9,10 @@ import logger from '@/utils/logger';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
+import { getPlans } from '@/utils/playtimePlanner/storage';
+import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
+import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
+import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
@@ -48,7 +52,10 @@ interface NewGameSetupModalProps {
     leagueId: string, // League ID for the game
     customLeagueName: string, // Custom league name when leagueId === CUSTOM_LEAGUE_ID
     gameType: GameType, // Sport type: 'soccer' or 'futsal'
-    gender: Gender | undefined // Gender: 'boys' or 'girls' (optional)
+    gender: Gender | undefined, // Gender: 'boys' or 'girls' (optional)
+    // Optional Playing-Time Planner prefill (Phase 2): planned XI placed on the
+    // field at creation + the planned sub schedule stored by game id.
+    prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[] }
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -121,6 +128,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Player selection state - start with empty selection (no players pre-selected)
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+
+  // Playing-Time Planner prefill (Phase 2): pick a saved plan + one of its games to
+  // pre-load the planned lineup. Payload rides onStart; missing-count drives a hint.
+  const [playtimePlans, setPlaytimePlans] = useState<PlaytimePlan[]>([]);
+  const [prefillPlanId, setPrefillPlanId] = useState('');
+  const [prefillGameId, setPrefillGameId] = useState('');
+  const [prefillPayload, setPrefillPayload] = useState<
+    { playersOnField: Player[]; plannedSubs: PlannedGameSub[] } | undefined
+  >(undefined);
+  const [prefillMissingCount, setPrefillMissingCount] = useState(0);
 
   // Personnel selection state
   const [selectedPersonnelIds, setSelectedPersonnelIds] = useState<string[]>([]);
@@ -198,6 +215,24 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       initializingRef.current = true;
       resetForm();
 
+      // Reset + load Playing-Time Planner plans for the optional "Prefill from plan".
+      setPrefillPlanId('');
+      setPrefillGameId('');
+      setPrefillPayload(undefined);
+      setPrefillMissingCount(0);
+      const loadPlans = async () => {
+        try {
+          const plans = await getPlans();
+          setPlaytimePlans(
+            Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+          );
+        } catch (err) {
+          logger.error('[NewGameSetupModal] Failed to load playtime plans (non-fatal):', err);
+          setPlaytimePlans([]);
+        }
+      };
+      loadPlans();
+
       // Load last home team name
       const loadLastTeamName = async () => {
         try {
@@ -218,6 +253,33 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
     wasOpenRef.current = isOpen;
   }, [isOpen, resetForm, t]);
+
+  // Prefill-from-plan: choosing a plan clears the game pick; choosing a game builds
+  // the lineup + sub schedule and pre-selects the plan squad.
+  const handlePrefillPlanChange = useCallback((planId: string) => {
+    setPrefillPlanId(planId);
+    setPrefillGameId('');
+    setPrefillPayload(undefined);
+    setPrefillMissingCount(0);
+  }, []);
+
+  const handlePrefillGameChange = useCallback(
+    (gameId: string) => {
+      setPrefillGameId(gameId);
+      const plan = playtimePlans.find((p) => p.id === prefillPlanId);
+      const game = plan?.games.find((g) => g.id === gameId);
+      if (!plan || !game) {
+        setPrefillPayload(undefined);
+        setPrefillMissingCount(0);
+        return;
+      }
+      const result = buildPrefillFromPlan(plan, game, availablePlayersForSetup);
+      setSelectedPlayerIds(result.selectedPlayerIds);
+      setPrefillPayload({ playersOnField: result.playersOnField, plannedSubs: result.plannedSubs });
+      setPrefillMissingCount(result.missingPlayerIds.length);
+    },
+    [playtimePlans, prefillPlanId, availablePlayersForSetup],
+  );
 
   // Memoize selected tournament lookup to avoid duplicate find() calls in render
   const selectedTournament = useMemo(() => {
@@ -559,7 +621,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       leagueId, // League ID for the game
       leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '', // Custom league name when leagueId === CUSTOM_LEAGUE_ID
       gameType, // Sport type: 'soccer' or 'futsal'
-      gender // Gender: 'boys' or 'girls' (optional)
+      gender, // Gender: 'boys' or 'girls' (optional)
+      prefillPayload // Planner prefill (Phase 2): planned XI + subs, or undefined
     );
 
     // Modal will be closed by parent component after onStart
@@ -699,6 +762,50 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   opponentError={opponentError}
                 />
               </div>
+
+              {/* Prefill from a Playing-Time Planner plan (optional) */}
+              {playtimePlans.length > 0 && (
+                <div className="mb-4">
+                  <label htmlFor="prefillPlanSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('newGameSetupModal.prefillFromPlanLabel', 'Prefill from plan (optional)')}
+                  </label>
+                  <select
+                    id="prefillPlanSelect"
+                    value={prefillPlanId}
+                    onChange={(e) => handlePrefillPlanChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  >
+                    <option value="">{t('newGameSetupModal.prefillNoPlan', 'No plan')}</option>
+                    {playtimePlans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </option>
+                    ))}
+                  </select>
+                  {prefillPlanId && (
+                    <select
+                      aria-label={t('newGameSetupModal.prefillGameLabel', 'Plan game')}
+                      value={prefillGameId}
+                      onChange={(e) => handlePrefillGameChange(e.target.value)}
+                      className="mt-2 w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    >
+                      <option value="">{t('newGameSetupModal.prefillChooseGame', 'Choose a game…')}</option>
+                      {(playtimePlans.find((p) => p.id === prefillPlanId)?.games ?? []).map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {prefillMissingCount > 0 && (
+                    <p className="mt-1 text-xs text-amber-400">
+                      {t('newGameSetupModal.prefillMissingPlayers', '{{count}} planned player(s) are not in this roster and were skipped.', {
+                        count: prefillMissingCount,
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Player Selection */}
               <PlayerSelectionSection
