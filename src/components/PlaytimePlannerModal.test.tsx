@@ -44,6 +44,17 @@ jest.mock('@/utils/masterRosterManager', () => ({
   getMasterRoster: jest.fn(async () => roster),
 }));
 
+const mockGetTeams = jest.fn();
+const mockGetTeamRoster = jest.fn();
+const mockGetSeasons = jest.fn();
+const mockGetTournaments = jest.fn();
+jest.mock('@/utils/teams', () => ({
+  getTeams: (...a: unknown[]) => mockGetTeams(...a),
+  getTeamRoster: (...a: unknown[]) => mockGetTeamRoster(...a),
+}));
+jest.mock('@/utils/seasons', () => ({ getSeasons: (...a: unknown[]) => mockGetSeasons(...a) }));
+jest.mock('@/utils/tournaments', () => ({ getTournaments: (...a: unknown[]) => mockGetTournaments(...a) }));
+
 // Fully mock storage to decouple the modal from the IndexedDB layer. The real
 // createPlan is covered in storage.test.ts; here we only need its shape.
 const mockGetPlans = jest.fn();
@@ -66,6 +77,7 @@ jest.mock('@/utils/playtimePlanner/storage', () => ({
     formationId: string;
     numberOfPeriods: number;
     periodMinutes: number;
+    teamId?: string;
   }) => ({
     id: 'plan-1',
     name: opts.name,
@@ -73,6 +85,7 @@ jest.mock('@/utils/playtimePlanner/storage', () => ({
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
     players: opts.players,
+    ...(opts.teamId ? { teamId: opts.teamId } : {}),
     games: Array.from({ length: Math.max(1, opts.gameCount) }, (_, i) => ({
       id: `g${i}`,
       label: `Game ${i + 1}`,
@@ -98,6 +111,10 @@ beforeEach(() => {
   mockDeletePlan.mockResolvedValue(true);
   mockGetPlan.mockResolvedValue(null);
   mockImportPlan.mockResolvedValue(null);
+  mockGetTeams.mockResolvedValue([]);
+  mockGetTeamRoster.mockResolvedValue([]);
+  mockGetSeasons.mockResolvedValue([]);
+  mockGetTournaments.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -265,6 +282,34 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     });
     await waitFor(() => expect(screen.queryByText(/Sam → GK/)).not.toBeInTheDocument());
+  });
+
+  it('prefills roster selection and durations from a chosen team, and stamps teamId', async () => {
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10', boundSeasonId: 's1' }]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
+    mockGetTeamRoster.mockResolvedValue([{ id: 'tp1', name: 'Alex' }]); // only Alex is on the team
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+
+    // Both players selected by default (freehand).
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+
+    // Choose the team (the select currently shows the "No team" option text).
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
+    });
+
+    // Roster narrows to the team's matching players; durations come from its season.
+    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    expect(screen.getByDisplayValue('20')).toBeInTheDocument(); // periodDuration inherited
+
+    // Creating the plan stamps the teamId.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create plan'));
+    });
+    await waitFor(() =>
+      expect(mockSavePlan.mock.calls.some((c) => c[0]?.teamId === 't1')).toBe(true),
+    );
   });
 
   it('navigates to the balance view and back', async () => {

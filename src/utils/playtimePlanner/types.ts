@@ -66,6 +66,12 @@ export interface PlaytimePlan {
   /** Roster snapshot. */
   players: PlanPlayer[];
   games: PlanGame[];
+  /**
+   * Optional source team (Phase 2). When set, the plan's roster + durations were
+   * seeded from this team and its linked competition; used later to prefill real
+   * games from the same source. Absent for freehand (no-team) plans.
+   */
+  teamId?: string;
 }
 
 /** Stored shape: a map of plan id -> plan (mirrors how saved games are kept). */
@@ -116,6 +122,7 @@ export const isPlaytimePlan = (v: unknown): v is PlaytimePlan =>
   typeof v.version === 'number' &&
   typeof v.createdAt === 'string' &&
   typeof v.updatedAt === 'string' &&
+  (v.teamId === undefined || typeof v.teamId === 'string') &&
   Array.isArray(v.players) &&
   v.players.every(isPlanPlayer) &&
   Array.isArray(v.games) &&

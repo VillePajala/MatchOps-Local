@@ -15,6 +15,10 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { getMasterRoster } from '@/utils/masterRosterManager';
+import { getTeams, getTeamRoster } from '@/utils/teams';
+import { getSeasons } from '@/utils/seasons';
+import { getTournaments } from '@/utils/tournaments';
+import type { Team, Season, Tournament } from '@/types';
 import { PRESETS_BY_SIZE, FIELD_SIZES, getPresetById } from '@/config/formationPresets';
 import logger from '@/utils/logger';
 import {
@@ -81,6 +85,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const [numberOfPeriods, setNumberOfPeriods] = useState(2);
   const [periodMinutes, setPeriodMinutes] = useState(12);
   const [formationId, setFormationId] = useState(DEFAULT_FORMATION);
+  // Optional team source (Phase 2): teams + their linked competitions seed the
+  // roster selection and durations, mirroring new-game setup. '' = no team.
+  const [teamId, setTeamId] = useState('');
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const teamSelectRef = useRef(0); // discards stale async team-roster responses
 
   const resetSetupForm = useCallback((players: Player[]) => {
     setName(t('playtimePlanner.setup.defaultName', 'Tournament plan'));
@@ -89,7 +100,45 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     setNumberOfPeriods(2);
     setPeriodMinutes(12);
     setFormationId(DEFAULT_FORMATION);
+    setTeamId('');
   }, [t]);
+
+  // Optional team source: on pick, inherit the team's competition durations and
+  // pre-select the matching master-roster players (by name — team-roster ids are a
+  // separate id space, matching NewGameSetupModal). Blank = full master roster.
+  const applyTeamSelection = useCallback(
+    async (nextTeamId: string) => {
+      setTeamId(nextTeamId);
+      const requestId = ++teamSelectRef.current;
+      if (!nextTeamId) {
+        setSelectedIds(new Set(roster.map((p) => p.id)));
+        return;
+      }
+      const team = teams.find((tm) => tm.id === nextTeamId);
+      const comp = team?.boundSeasonId
+        ? seasons.find((s) => s.id === team.boundSeasonId)
+        : team?.boundTournamentId
+          ? tournaments.find((tn) => tn.id === team.boundTournamentId)
+          : undefined;
+      if (comp) {
+        setNumberOfPeriods(comp.periodCount && comp.periodCount > 0 ? comp.periodCount : 2);
+        setPeriodMinutes(comp.periodDuration && comp.periodDuration > 0 ? comp.periodDuration : 15);
+      }
+      try {
+        const teamRoster = await getTeamRoster(nextTeamId, user?.id);
+        if (teamSelectRef.current !== requestId) return; // a newer pick superseded this
+        const names = new Set(teamRoster.map((tp) => tp.name.trim().toLowerCase()));
+        setSelectedIds(
+          new Set(roster.filter((p) => names.has(p.name.trim().toLowerCase())).map((p) => p.id)),
+        );
+      } catch (error) {
+        if (teamSelectRef.current !== requestId) return;
+        logger.error('[PlaytimePlannerModal] Failed to load team roster:', error);
+        showToast(t('playtimePlanner.setup.teamLoadError', "Could not load that team's roster."), 'error');
+      }
+    },
+    [roster, teams, seasons, tournaments, user, showToast, t],
+  );
 
   // Keep a stable handle to resetSetupForm so the load effect does not depend on
   // it (it changes identity with `t`); the effect must only re-run on open/user.
@@ -105,9 +154,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     (async () => {
       setView('loading');
       try {
-        const [players, plans] = await Promise.all([getMasterRoster(user?.id), getPlans()]);
+        const [players, plans, teamList, seasonList, tournamentList] = await Promise.all([
+          getMasterRoster(user?.id),
+          getPlans(),
+          getTeams(user?.id),
+          getSeasons(user?.id),
+          getTournaments(user?.id),
+        ]);
         if (cancelled) return;
         setRoster(players);
+        setTeams(teamList.filter((tm) => !tm.archived));
+        setSeasons(seasonList);
+        setTournaments(tournamentList);
         const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setPlanList(list);
         if (list.length > 0) {
@@ -162,6 +220,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       formationId,
       numberOfPeriods,
       periodMinutes,
+      teamId: teamId || undefined,
       gameLabel: (i) => t('playtimePlanner.overview.gameLabel', 'Game {{n}}', { n: i + 1 }),
     });
     const saved = await savePlan(plan);
@@ -434,6 +493,30 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
                     placeholder={t('playtimePlanner.setup.namePlaceholder', 'e.g. Sunday tournament')}
                   />
                 </div>
+
+                {teams.length > 0 && (
+                  <div>
+                    <label className={labelStyle}>{t('playtimePlanner.setup.teamLabel', 'Team (optional)')}</label>
+                    <select
+                      value={teamId}
+                      onChange={(e) => applyTeamSelection(e.target.value)}
+                      className={selectStyle}
+                    >
+                      <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
+                      {teams.map((tm) => (
+                        <option key={tm.id} value={tm.id}>
+                          {tm.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className={subtextStyle}>
+                      {t(
+                        'playtimePlanner.setup.teamHint',
+                        'Picks the team roster and its competition durations - like new game setup.',
+                      )}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
