@@ -71,6 +71,8 @@ describe('StartScreen', () => {
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
+    // Playing-Time Planner entry point (returning users).
+    expect(screen.getByRole('button', { name: 'Plan playing time' })).toBeInTheDocument();
 
     // User Guide link points to the full online guide (Start Screen discovery point)
     const guideLink = screen.getByRole('link', { name: 'User Guide' });
