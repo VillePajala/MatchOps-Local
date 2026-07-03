@@ -293,7 +293,7 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
-      expect(enKeys.length).toBe(2659);
+      expect(enKeys.length).toBe(2683);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -310,7 +310,7 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
-      expect(fiKeys.length).toBe(2659);
+      expect(fiKeys.length).toBe(2683);
     });
   });
 });

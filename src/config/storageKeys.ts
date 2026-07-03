@@ -21,6 +21,10 @@ export const PREMIUM_LICENSE_KEY = 'soccerPremiumLicense';
 // Warm-up plan storage key
 export const WARMUP_PLAN_KEY = 'soccerWarmupPlan';
 
+// Playing-Time Planner: local-only collection of tournament plans (map id -> plan).
+// Deliberately not routed through the DataStore/cloud - plans are local-first.
+export const PLAYTIME_PLANS_KEY = 'soccerPlaytimePlans';
+
 // UI state storage keys
 export const INSTALL_PROMPT_DISMISSED_KEY = 'installPromptDismissed';
 

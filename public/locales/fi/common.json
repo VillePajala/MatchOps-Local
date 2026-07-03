@@ -979,7 +979,8 @@
     "existingSubscriber": "Oletko jo tilaaja? Kirjaudu sisään →",
     "newToCloud": "Uusi käyttäjä? Tilaa Android-sovelluksen kautta.",
     "getAndroidApp": "Lataa Google Playsta",
-    "welcomeScreen": "Tervetuloa"
+    "welcomeScreen": "Tervetuloa",
+    "planPlaytime": "Suunnittele peliaika"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -3123,5 +3124,34 @@
     "instructions": "Kirjaa jokainen laukaus sitä mukaa kun se tapahtuu.",
     "firstKick": "Ensimmäinen laukaus",
     "upNext": "Vuorossa"
+  },
+  "playtimePlanner": {
+    "title": "Peliaikasuunnittelija",
+    "setup": {
+      "defaultName": "Turnaussuunnitelma",
+      "nameLabel": "Suunnitelman nimi",
+      "namePlaceholder": "esim. Sunnuntain turnaus",
+      "rosterLabel": "Pelaajat",
+      "rosterEmpty": "Lisää ensin pelaajia kokoonpanoosi.",
+      "selectAll": "Kaikki",
+      "selectNone": "Ei yhtään",
+      "playersSelected": "{{count}} valittu",
+      "gamesLabel": "Pelien määrä",
+      "formationLabel": "Ryhmitys",
+      "periodsLabel": "Jaksot",
+      "periodMinutesLabel": "Minuuttia per jakso",
+      "create": "Luo suunnitelma"
+    },
+    "overview": {
+      "gameLabel": "Peli {{n}}",
+      "rosterSummary": "{{count}} pelaajaa",
+      "formatSummary": "{{games}} peliä · {{periods}}×{{minutes}} min",
+      "gamesHeading": "Pelit",
+      "included": "Mukana",
+      "lineupHint": "Aseta kunkin pelin kokoonpano ja vaihdot täältä (tulossa seuraavaksi).",
+      "newPlan": "Uusi suunnitelma",
+      "deletePlan": "Poista suunnitelma",
+      "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota."
+    }
   }
 }
