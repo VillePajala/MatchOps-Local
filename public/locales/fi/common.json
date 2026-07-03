@@ -3165,6 +3165,19 @@
       "benchEmpty": "Kaikki ovat kentällä.",
       "hint": "Napauta paikkaa asettaaksesi pelaajan.",
       "benchHeading": "Vaihtopenkki"
+    },
+    "subs": {
+      "heading": "Vaihdot",
+      "none": "Ei vaihtoja vielä.",
+      "row": "{{minute}}' — {{player}} → {{position}}",
+      "remove": "Poista",
+      "noSlots": "Aseta ensin avauskokoonpano.",
+      "noBench": "Ei vaihtopelaajia käytettävissä.",
+      "slotLabel": "Pelipaikka",
+      "choose": "Valitse…",
+      "inLabel": "Kentälle",
+      "timeLabel": "Minuutti",
+      "add": "Lisää vaihto"
     }
   }
 }

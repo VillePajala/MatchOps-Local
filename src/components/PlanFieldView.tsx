@@ -85,6 +85,8 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
           const name = playerId ? nameById.get(playerId) : null;
           const isActive = slot.slotId === activeSlotId;
           const filled = !!playerId;
+          // 1-based human label (#1, #2, …); note `i` includes the GK at 0, so
+          // field slot `s0` reads as `#1`. Intentional - friendlier than slotId.
           const positionLabel = slot.isGoalie ? 'GK' : `#${i}`;
           return (
             <button
@@ -102,7 +104,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
                     })
               }
               aria-pressed={isActive}
-              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center focus:outline-none"
+              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800"
               style={{ left: `${slot.relX * 100}%`, top: `${slot.relY * 100}%` }}
             >
               <span

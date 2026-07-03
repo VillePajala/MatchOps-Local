@@ -3165,6 +3165,19 @@
       "benchEmpty": "Everyone is on the field.",
       "hint": "Tap a position to assign a player.",
       "benchHeading": "Bench"
+    },
+    "subs": {
+      "heading": "Substitutions",
+      "none": "No substitutions yet.",
+      "row": "{{minute}}' — {{player}} → {{position}}",
+      "remove": "Remove",
+      "noSlots": "Place your starters first.",
+      "noBench": "No bench players available.",
+      "slotLabel": "Position",
+      "choose": "Choose…",
+      "inLabel": "Player on",
+      "timeLabel": "Minute",
+      "add": "Add substitution"
     }
   }
 }
