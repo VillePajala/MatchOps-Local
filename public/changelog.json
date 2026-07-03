@@ -1,12 +1,12 @@
 {
-  "version": "aa56ff71",
+  "version": "d695e107",
   "date": "2026-07-03",
   "notes": {
     "en": [
-      "Repeat last game: the New Game Setup screen now has a \"Repeat last game\" button that fills in the opponent, venue, period length, format (periods, home/away, sport, difficulty), and selected roster from your most recent game - so a rematch or a follow-up fixture doesn't start from a blank form."
+      "Internal: documentation only - marked the three P2 UX quick-wins done in the roadmap (undo-action toast, repeat-last-game, and the modal header-counter audit, which found nothing left to remove). No app changes."
     ],
     "fi": [
-      "Toista edellinen peli: Uuden pelin asetukset -näkymässä on nyt \"Toista edellinen peli\" -painike, joka täyttää vastustajan, paikan, jakson pituuden, muodon (jaksot, koti/vieras, laji, vaikeus) ja valitun kokoonpanon viimeisimmästä pelistäsi - joten uusintaottelua tai jatko-ottelua ei tarvitse aloittaa tyhjästä."
+      "Sisäinen: vain dokumentaatio - merkittiin kolme P2-käyttökokemusparannusta tehdyiksi tiekartassa (kumoa-ilmoitus, toista edellinen peli ja modaalien otsikkolaskurien tarkistus, jossa ei ollut enää poistettavaa). Ei sovellusmuutoksia."
     ]
   }
 }
