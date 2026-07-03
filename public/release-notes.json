@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "docs: mark the three P2 UX quick-wins done (#629)"
+  "notes": "feat(stats): position-diversity aggregation engine (PR 1/3) (#630)"
 }
