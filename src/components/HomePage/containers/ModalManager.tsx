@@ -370,6 +370,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             tournaments={data.tournaments}
             teams={data.teams}
             personnel={data.personnel}
+            savedGames={data.savedGames}
           />
         )}
 

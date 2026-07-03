@@ -853,6 +853,8 @@
   },
   "newGameSetupModal": {
     "title": "Uuden pelin asetukset",
+    "repeatLastGame": "Toista edellinen peli",
+    "repeatedLastGame": "Täytetty edellisen pelin mukaan",
     "opponentLabel": "Vastustajan nimi:",
     "opponentPlaceholder": "Syötä vastustajan nimi",
     "dateLabel": "Ottelupäivä:",

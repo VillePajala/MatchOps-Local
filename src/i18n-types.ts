@@ -1335,6 +1335,8 @@ export type TranslationKey =
   | 'newGameSetupModal.periodsLabel'
   | 'newGameSetupModal.playersSelected'
   | 'newGameSetupModal.playersSelectedCounter'
+  | 'newGameSetupModal.repeatLastGame'
+  | 'newGameSetupModal.repeatedLastGame'
   | 'newGameSetupModal.seasonLabel'
   | 'newGameSetupModal.selectAll'
   | 'newGameSetupModal.selectLeague'

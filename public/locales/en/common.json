@@ -841,6 +841,8 @@
   },
   "newGameSetupModal": {
     "title": "New Game Setup",
+    "repeatLastGame": "Repeat last game",
+    "repeatedLastGame": "Filled from your last game",
     "opponentLabel": "Opponent Name:",
     "opponentPlaceholder": "Enter opponent name",
     "dateLabel": "Game Date:",
