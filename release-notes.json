@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Position views polish: the narrow dot now sits after the player name, the wordy description is gone, and Lines/Positions is one full-width toggle so the Lines view fits cleanly. Both the team matrix and the per-player card now show a games-covered ratio (how many games actually have positions recorded) and grey out when that's under half - so you can tell whether the data is complete enough to read into. The player card drops the confusing full position name and gains an expandable full breakdown of every position played."
+      ],
+      "fi": [
+        "Pelipaikkanäkymien hiontaa: kapean roolin piste on nyt pelaajan nimen jälkeen, monisanainen kuvaus poistettu, ja Linjat/Pelipaikat on yksi täysleveä valitsin, joten Linjat-näkymä mahtuu siististi. Sekä joukkuematriisi että pelaajakortti näyttävät nyt kattavuussuhteen (kuinka moneen peliin pelipaikat on oikeasti kirjattu) ja himmenevät kun se on alle puolet - näet siis onko data riittävän kattavaa tulkittavaksi. Pelaajakortti pudottaa sekavan koko pelipaikan nimen ja saa avattavan täyden erittelyn kaikista pelatuista pelipaikoista."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Position balance polish: the \"Narrow\" flag in the matrix is now a compact amber dot, so the Lines view fits without side-scrolling, and it applies to any player kept to one line regardless of how many games they've played. The per-player \"Positions played\" card now uses solid colour markers that match the app style, and a text-formatting bug (a raw \"{n}\" showing instead of the number) is fixed."
       ],
       "fi": [

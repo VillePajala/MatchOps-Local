@@ -14,17 +14,22 @@ interface PositionBalanceSectionProps {
 
 type Mode = 'lines' | 'positions';
 
+/** Below this share of games carrying positions, the data is too thin to trust. */
+const LOW_COVERAGE = 0.5;
+
+// Full-width segmented toggle, matching the sport/gender toggles in the app.
 const toggleBtn = (active: boolean) =>
-  `px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+  `flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
     active ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
   }`;
 
 /**
  * Position balance: a players x lines (or positions) table for the current
  * competition scope. A row shows one player's spread; a column shows who covers
- * that line. Narrow-scope players (stuck in one line) get a pill, and lines/
- * positions covered by a single player are flagged in the coverage row - so
- * positional imbalance is readable at a glance. Descriptive, compare-to-self.
+ * that line. A trailing amber dot marks narrow-scope players (stuck in one
+ * line), and lines/positions covered by a single player are flagged in the
+ * coverage row. A games-covered ratio shows how complete the position data is;
+ * when thin, the table is greyed. Descriptive, compare-to-self.
  */
 export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ games, players }) => {
   const { t } = useTranslation();
@@ -68,6 +73,9 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
     );
   }
 
+  const scopeGames = games.length;
+  const lowCoverage = scopeGames > 0 && diversity.totalGames / scopeGames < LOW_COVERAGE;
+
   const cols: Array<{ key: string; label: string }> =
     mode === 'lines'
       ? LINES.map(line => ({
@@ -86,22 +94,27 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
 
   return (
     <section className="bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
-      <div className="flex items-center justify-between gap-2 mb-1">
+      <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
-        <div className="flex gap-1" role="group" aria-label={title}>
-          <button type="button" onClick={() => setMode('lines')} className={toggleBtn(mode === 'lines')} aria-pressed={mode === 'lines'}>
-            {t('gameStatsModal.positionBalance.byLines', 'Lines')}
-          </button>
-          <button type="button" onClick={() => setMode('positions')} className={toggleBtn(mode === 'positions')} aria-pressed={mode === 'positions'}>
-            {t('gameStatsModal.positionBalance.byPositions', 'Positions')}
-          </button>
-        </div>
+        <span
+          className="shrink-0 text-xs text-slate-400 tabular-nums"
+          title={t('gameStatsModal.positionBalance.coverageTooltip', 'Games with positions recorded, of games in this view')}
+        >
+          {diversity.totalGames}/{scopeGames}
+        </span>
       </div>
-      <p className="text-xs text-slate-400 mb-3">
-        {t('gameStatsModal.positionBalance.hint', "A row is one player's spread; a column is who covers that line.")}
-      </p>
 
-      <div className="overflow-x-auto">
+      {/* Full-width edge-to-edge Lines / Positions toggle. */}
+      <div className="flex gap-2 mb-3" role="group" aria-label={title}>
+        <button type="button" onClick={() => setMode('lines')} className={toggleBtn(mode === 'lines')} aria-pressed={mode === 'lines'}>
+          {t('gameStatsModal.positionBalance.byLines', 'Lines')}
+        </button>
+        <button type="button" onClick={() => setMode('positions')} className={toggleBtn(mode === 'positions')} aria-pressed={mode === 'positions'}>
+          {t('gameStatsModal.positionBalance.byPositions', 'Positions')}
+        </button>
+      </div>
+
+      <div className={`overflow-x-auto ${lowCoverage ? 'opacity-60' : ''}`}>
         <table className="w-full text-sm">
           <thead className="text-slate-300">
             <tr className="border-b border-slate-700">
@@ -120,18 +133,15 @@ export const PositionBalanceSection: React.FC<PositionBalanceSectionProps> = ({ 
               <tr key={row.playerId} className="border-b border-slate-800 hover:bg-slate-800/40">
                 <td className="px-2 py-2 font-medium">
                   <span className="flex items-center gap-2">
-                    {/* Fixed-width slot keeps names aligned whether or not the dot shows. */}
-                    <span className="shrink-0 w-2 flex justify-center">
-                      {row.narrow && (
-                        <span
-                          role="img"
-                          className="w-2 h-2 rounded-full bg-amber-400"
-                          title={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
-                          aria-label={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
-                        />
-                      )}
-                    </span>
                     <span className="truncate">{nameOf(row.playerId)}</span>
+                    {row.narrow && (
+                      <span
+                        role="img"
+                        className="shrink-0 w-2 h-2 rounded-full bg-amber-400"
+                        title={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
+                        aria-label={t('gameStatsModal.positionBalance.narrow', 'Narrow')}
+                      />
+                    )}
                   </span>
                 </td>
                 {cols.map(c => {
