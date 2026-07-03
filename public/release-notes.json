@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(stats): position views - coverage ratio, gray-out, full-width toggle, expandable (#634)"
+  "notes": "fix(stats): position balance - drop coverage row, amber name, plain coverage caption (#635)"
 }
