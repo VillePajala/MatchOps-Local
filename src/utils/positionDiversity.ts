@@ -21,12 +21,6 @@ import { POSITION_CATEGORY, POSITION_IDS, type PositionCategory } from '@/config
 /** The four pitch lines, back-to-front (matches the config order). */
 export const LINES: readonly PositionCategory[] = ['gk', 'def', 'mid', 'att'];
 
-/**
- * Minimum games (carrying recorded positions) before a player can be flagged as
- * narrow scope - avoids flagging a kid off one or two appearances.
- */
-export const NARROW_MIN_GAMES = 3;
-
 export interface PlayerPositionSummary {
   playerId: string;
   /** Games in which the player was recorded at each position id. */
@@ -43,7 +37,7 @@ export interface PlayerPositionSummary {
   primaryLine: PositionCategory | null;
   /** Share of the player's games spent in their most-common line (0..1). */
   topLineShare: number;
-  /** Flagged narrow: enough games, but only ever one line. */
+  /** Flagged narrow: the player has only ever played one line (any game count). */
   narrow: boolean;
 }
 
@@ -170,7 +164,7 @@ export function computePositionDiversity(games: DiversityGame[]): PositionDivers
         primaryPosition: pickPrimaryPosition(posMap),
         primaryLine: pickPrimaryLine(lineMap),
         topLineShare: games > 0 ? topLineGames / games : 0,
-        narrow: games >= NARROW_MIN_GAMES && distinctLines <= 1,
+        narrow: distinctLines <= 1,
       };
     });
 

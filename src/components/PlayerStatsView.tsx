@@ -31,11 +31,12 @@ import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 
 // Line badge colours mirror the position-category colours used in the positions editor.
+// Solid line-badge colours mirror the position-category chips in the positions editor.
 const LINE_BADGE: Record<PositionCategory, string> = {
-  gk: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  def: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  mid: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  att: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+  gk: 'bg-amber-600 text-white',
+  def: 'bg-sky-600 text-white',
+  mid: 'bg-emerald-600 text-white',
+  att: 'bg-rose-600 text-white',
 };
 
 interface PlayerStatsViewProps {
@@ -428,13 +429,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Positions played - this player's spread over the current scope */}
         {positionSummary && (
-          <div className="bg-slate-900/70 rounded-lg border border-slate-700 shadow-inner p-4 mb-3">
+          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg shadow-inner p-4 mb-3">
             <div className="flex items-center justify-between gap-2 mb-2">
               <h3 className="text-sm font-semibold text-slate-200">
                 {t('playerStats.positionsPlayed.title', 'Positions played')}
               </h3>
               {positionSummary.narrow && (
-                <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-600 text-white">
                   {t('gameStatsModal.positionBalance.narrow', 'Narrow')}
                 </span>
               )}
@@ -446,7 +447,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   : '-'}
               </span>
               <span className="text-xs text-slate-400">
-                {t('playerStats.positionsPlayed.linesPlayed', '{n} of 4 lines', { n: positionSummary.distinctLines })}
+                {t('playerStats.positionsPlayed.linesPlayed', '{{n}} of 4 lines', { n: positionSummary.distinctLines })}
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -454,7 +455,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 const n = positionSummary.byLine[line];
                 if (n === 0) return null;
                 return (
-                  <span key={line} className={`text-xs font-medium px-2 py-0.5 rounded-full border ${LINE_BADGE[line]}`}>
+                  <span key={line} className={`text-xs font-medium px-2 py-0.5 rounded-full ${LINE_BADGE[line]}`}>
                     {t(`gameStatsModal.positionBalance.line.${line}` as TranslationKey, line.toUpperCase())} {n}
                   </span>
                 );
