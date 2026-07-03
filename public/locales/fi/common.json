@@ -3148,12 +3148,23 @@
       "formatSummary": "{{games}} peliä · {{periods}}×{{minutes}} min",
       "gamesHeading": "Pelit",
       "included": "Mukana",
-      "lineupHint": "Aseta kunkin pelin kokoonpano ja vaihdot täältä (tulossa seuraavaksi).",
       "newPlan": "Uusi suunnitelma",
       "deletePlan": "Poista suunnitelma",
-      "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota."
+      "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
+      "placedCount": "{{placed}}/{{total}} paikoillaan",
+      "editLineup": "Muokkaa kokoonpanoa"
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
-    "deleteError": "Suunnitelman poistaminen epäonnistui."
+    "deleteError": "Suunnitelman poistaminen epäonnistui.",
+    "lineup": {
+      "back": "Takaisin suunnitelmaan",
+      "slotFilled": "{{position}}: {{player}}",
+      "slotEmpty": "{{position}}: tyhjä",
+      "pickForSlot": "Napauta pelaaja tähän paikkaan",
+      "clearSlot": "Tyhjennä",
+      "benchEmpty": "Kaikki ovat kentällä.",
+      "hint": "Napauta paikkaa asettaaksesi pelaajan.",
+      "benchHeading": "Vaihtopenkki"
+    }
   }
 }

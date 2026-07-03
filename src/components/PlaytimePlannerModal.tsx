@@ -32,6 +32,12 @@ import {
   dangerButtonStyle,
 } from '@/styles/modalStyles';
 import { getPlans, savePlan, deletePlan, createPlan } from '@/utils/playtimePlanner/storage';
+import {
+  ensureStartingSlots,
+  assignPlayerToSlot,
+  getGameSlots,
+} from '@/utils/playtimePlanner/lineup';
+import PlanFieldView from '@/components/PlanFieldView';
 import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
 
@@ -42,7 +48,7 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-type View = 'loading' | 'setup' | 'overview';
+type View = 'loading' | 'setup' | 'overview' | 'lineup';
 
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
@@ -52,6 +58,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const [view, setView] = useState<View>('loading');
   const [roster, setRoster] = useState<Player[]>([]);
   const [activePlan, setActivePlan] = useState<PlaytimePlan | null>(null);
+  const [editingGameId, setEditingGameId] = useState<string | null>(null);
 
   // Setup form state.
   const [name, setName] = useState('');
@@ -203,6 +210,22 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     [persist],
   );
 
+  // Assign (or clear) a player in a game's starting lineup. Normalizes the
+  // game's slots to its formation first, so stored data always matches the shape.
+  const handleAssign = useCallback(
+    (gameId: string, slotId: string, playerId: string | null) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) =>
+          g.id === gameId
+            ? { ...g, startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId) }
+            : g,
+        ),
+      }));
+    },
+    [updateActivePlan],
+  );
+
   // Flush a pending debounced save when the modal is hidden (Escape, Close, or
   // the parent hiding it) or unmounts, so the last edit is never lost to the debounce.
   useEffect(() => {
@@ -251,6 +274,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       })),
     [],
   );
+
+  const editingGame = activePlan?.games.find((g) => g.id === editingGameId) ?? null;
 
   if (!isOpen) return null;
 
@@ -425,50 +450,99 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
             <div>
               <h3 className={`${labelStyle} mb-2`}>{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
-                {activePlan.games.map((game, i) => (
-                  <div
-                    key={game.id}
-                    className="flex items-center gap-3 bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-2"
-                  >
-                    <input
-                      type="text"
-                      value={game.label}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        updateActivePlan((plan) => ({
-                          ...plan,
-                          games: plan.games.map((g, gi) => (gi === i ? { ...g, label: value } : g)),
-                        }));
-                      }}
-                      className={`${inputBaseStyle} flex-1`}
-                    />
-                    <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={game.included}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          updateActivePlan((plan) => ({
-                            ...plan,
-                            games: plan.games.map((g, gi) => (gi === i ? { ...g, included: checked } : g)),
-                          }));
-                        }}
-                        className="accent-indigo-500"
-                      />
-                      {t('playtimePlanner.overview.included', 'Included')}
-                    </label>
-                  </div>
-                ))}
+                {activePlan.games.map((game, i) => {
+                  const slotCount = getGameSlots(game.formationId).length;
+                  const placed = ensureStartingSlots(game).filter((s) => s.playerId).length;
+                  return (
+                    <div
+                      key={game.id}
+                      className="bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-2 space-y-2"
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="text"
+                          value={game.label}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            updateActivePlan((plan) => ({
+                              ...plan,
+                              games: plan.games.map((g, gi) => (gi === i ? { ...g, label: value } : g)),
+                            }));
+                          }}
+                          className={`${inputBaseStyle} flex-1`}
+                        />
+                        <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={game.included}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              updateActivePlan((plan) => ({
+                                ...plan,
+                                games: plan.games.map((g, gi) => (gi === i ? { ...g, included: checked } : g)),
+                              }));
+                            }}
+                            className="accent-indigo-500"
+                          />
+                          {t('playtimePlanner.overview.included', 'Included')}
+                        </label>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className={subtextStyle}>
+                          {t('playtimePlanner.overview.placedCount', '{{placed}}/{{total}} placed', {
+                            placed,
+                            total: slotCount,
+                          })}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingGameId(game.id);
+                            setView('lineup');
+                          }}
+                          className="text-xs text-indigo-400 hover:text-indigo-300"
+                        >
+                          {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <p className={`${subtextStyle} mt-2`}>
-                {t('playtimePlanner.overview.lineupHint', 'Set each game’s lineup and subs from here (coming next).')}
-              </p>
             </div>
+          </div>
+        )}
+
+        {view === 'lineup' && activePlan && editingGame && (
+          <div className="max-w-lg mx-auto space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-slate-100">{editingGame.label}</h3>
+              <span className={subtextStyle}>
+                {getPresetById(editingGame.formationId)?.name ?? '-'}
+              </span>
+            </div>
+            <PlanFieldView
+              game={editingGame}
+              players={activePlan.players}
+              onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
+            />
           </div>
         )}
       </ScrollableContent>
 
       <ModalFooter>
+        {view === 'lineup' && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditingGameId(null);
+              setView('overview');
+            }}
+            className={secondaryButtonStyle}
+          >
+            {t('playtimePlanner.lineup.back', 'Back to plan')}
+          </button>
+        )}
         {view === 'overview' && (
           <>
             <button type="button" onClick={handleDelete} className={`${dangerButtonStyle} mr-auto`}>

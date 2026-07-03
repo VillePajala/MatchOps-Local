@@ -4,12 +4,24 @@ import { render, screen, waitFor, fireEvent, act, cleanup } from '@testing-libra
 import PlaytimePlannerModal from './PlaytimePlannerModal';
 import type { Player } from '@/types';
 
+// Interpolating t mock: resolves the default string and substitutes {{vars}}
+// from the options object, so interpolated strings get real coverage.
+const interpolate = (template: string, options?: Record<string, unknown>): string =>
+  options
+    ? template.replace(/\{\{(\w+)\}\}/g, (_m, k) =>
+        options[k] !== undefined ? String(options[k]) : `{{${k}}}`,
+      )
+    : template;
+
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_key: string, defaultValueOrOptions?: string | { defaultValue?: string }) =>
-      typeof defaultValueOrOptions === 'string'
-        ? defaultValueOrOptions
-        : defaultValueOrOptions?.defaultValue || '',
+    t: (_key: string, defaultValueOrOptions?: string | Record<string, unknown>, maybeOptions?: Record<string, unknown>) => {
+      if (typeof defaultValueOrOptions === 'string') {
+        return interpolate(defaultValueOrOptions, maybeOptions);
+      }
+      const dv = defaultValueOrOptions?.defaultValue;
+      return typeof dv === 'string' ? interpolate(dv, defaultValueOrOptions) : '';
+    },
     i18n: { language: 'en', changeLanguage: jest.fn() },
   }),
 }));
@@ -95,8 +107,8 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByText('Create plan')).toBeInTheDocument());
     expect(screen.getByText('Alex')).toBeInTheDocument();
     expect(screen.getByText('Sam')).toBeInTheDocument();
-    // All players selected by default.
-    expect(screen.getByText('{{count}} selected')).toBeInTheDocument();
+    // All players selected by default (interpolated count).
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
   });
 
   it('creates a plan (5 games, 2 selected players) and moves to the overview', async () => {

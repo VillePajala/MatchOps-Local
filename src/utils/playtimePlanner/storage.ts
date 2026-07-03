@@ -15,7 +15,7 @@ import { PLAYTIME_PLANS_KEY } from '@/config/storageKeys';
 import logger from '@/utils/logger';
 import {
   PLAYTIME_PLAN_SCHEMA_VERSION,
-  isPlaytimePlanCollection,
+  isPlaytimePlan,
   type PlaytimePlan,
   type PlaytimePlanCollection,
   type PlanGame,
@@ -26,14 +26,23 @@ import {
 const generateId = (prefix: string): string =>
   `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-/** Read the full plan collection from storage (empty object if none/corrupt). */
+/**
+ * Read the full plan collection from storage. Validates **per entry** and keeps
+ * the valid plans, dropping only a malformed/incompatible one - so a single bad
+ * entry can never wipe out every other plan in the collection.
+ */
 export const getPlans = async (): Promise<PlaytimePlanCollection> => {
   try {
-    const plans = await getStorageJSON<PlaytimePlanCollection>(PLAYTIME_PLANS_KEY, {
-      validator: isPlaytimePlanCollection,
+    const raw = await getStorageJSON<Record<string, unknown>>(PLAYTIME_PLANS_KEY, {
       defaultValue: {},
     });
-    return plans ?? {};
+    if (!raw || typeof raw !== 'object') return {};
+    const valid: PlaytimePlanCollection = {};
+    for (const [id, plan] of Object.entries(raw)) {
+      if (isPlaytimePlan(plan)) valid[id] = plan;
+      else logger.warn(`[playtimePlanner] Dropping invalid stored plan "${id}"`);
+    }
+    return valid;
   } catch (error) {
     logger.error('[playtimePlanner] Failed to read plans:', error);
     return {};

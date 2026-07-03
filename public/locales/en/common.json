@@ -3148,12 +3148,23 @@
       "formatSummary": "{{games}} games · {{periods}}×{{minutes}} min",
       "gamesHeading": "Games",
       "included": "Included",
-      "lineupHint": "Set each game’s lineup and subs from here (coming next).",
       "newPlan": "New plan",
       "deletePlan": "Delete plan",
-      "confirmDelete": "Delete this plan? This cannot be undone."
+      "confirmDelete": "Delete this plan? This cannot be undone.",
+      "placedCount": "{{placed}}/{{total}} placed",
+      "editLineup": "Edit lineup"
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
-    "deleteError": "Could not delete the plan."
+    "deleteError": "Could not delete the plan.",
+    "lineup": {
+      "back": "Back to plan",
+      "slotFilled": "{{position}}: {{player}}",
+      "slotEmpty": "{{position}}: empty",
+      "pickForSlot": "Tap a player for this position",
+      "clearSlot": "Clear",
+      "benchEmpty": "Everyone is on the field.",
+      "hint": "Tap a position to assign a player.",
+      "benchHeading": "Bench"
+    }
   }
 }
