@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Marketing site: redesigned the feature cards to one-per-row on desktop with large, readable phone mockups and a subtle text panel; the pillar mockups are bigger on desktop; and all mockups serve a larger, higher-quality image so they look crisp. Mobile layout is unchanged."
+      ],
+      "fi": [
+        "Markkinointisivusto: ominaisuuskortit suunniteltiin uudelleen työpöydällä yksi per rivi suurilla, luettavilla puhelinkuvilla ja hillityllä tekstipaneelilla; pilarikuvat ovat työpöydällä isompia; ja kaikki kuvat tarjoillaan suurempina ja laadukkaampina, joten ne näyttävät teräviltä. Mobiilinäkymä säilyy ennallaan."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Marketing site: the feature cards now show one per row with a much larger phone mockup, so the app screenshots (and their text) are actually readable - matching how they already looked on mobile."
       ],
       "fi": [
