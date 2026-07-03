@@ -522,6 +522,8 @@
       "recapDesc": "Yhdellä napautuksella valmis, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
       "positions": "Toteutuneet pelipaikat",
       "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi. Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
+      "positionBalance": "Pelipaikkojen tasapaino",
+      "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on oikeasti pelannut - linjoittain tai tarkasti. Yhteen rooliin jääneet pelaajat erottuvat, joten voit monipuolistaa heitä tietoisesti. Kyse on jokaisen lapsen kehittämisestä, ei paremmuusjärjestyksestä.",
       "matchReport": "Otteluraportti",
       "matchReportDesc": "Kirjoita oma näkemyksesi ottelusta valmiilla otsikkopohjalla — yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Sisältyy jaettavaan koosteeseen.",
       "overtime": "Jatkoaika ja rangaistuslaukaukset",

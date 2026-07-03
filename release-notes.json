@@ -4,6 +4,15 @@
     {
       "date": "2026-07-03",
       "en": [
+        "Marketing site: added a \"Position Balance\" feature card - showing the season-long, per-player position spread and the develop-not-lock angle (spot who's been kept in one role), with EN/FI screenshots of the new stats view."
+      ],
+      "fi": [
+        "Markkinointisivusto: lisättiin \"Pelipaikkojen tasapaino\" -ominaisuuskortti - näyttää kauden mittaisen pelaajakohtaisen pelipaikkajakauman ja kehitä-älä-lukitse-näkökulman (huomaa ketkä ovat jääneet yhteen rooliin), EN/FI-kuvakaappauksin uudesta tilastonäkymästä."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
         "Player development: the \"Positions played\" card now matches the app's stat style - muted position labels with yellow counts (RB 4 CB 4 LB 4) instead of loud coloured pills, a quiet amber \"Narrow\" flag, and no more duplicated line/exact-position rows. Calmer and consistent with the stats above it."
       ],
       "fi": [
