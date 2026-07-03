@@ -92,12 +92,29 @@ Phase 1 delivers the whole planning value with **zero cloud, zero game binding**
 
 ## 5. Phase 2 — PR split (assignment)
 
+**Locked decision — how a plan reaches a real game: "prefill on creation" (option A).**
+A planner game stays an abstract template (roster slots, formation, periods, subs) with
+no match metadata (opponent, kickoff time, season/tournament). Real games are still
+created the normal way — you're setting opponent/time/tournament on match day anyway —
+and new-game setup gains a **"Prefill from plan"** step: pick a plan + which plan-game, and
+the new game opens with that planned starting XI, `selectedPlayerIds`, and planned subs
+already loaded. The real game owns the match metadata; the planner owns the lineup.
+
+Prefill is a **one-time copy at creation, not a live binding** — nothing to keep in sync,
+nothing drifts, and live substitution events (reality) always win. Rejected alternatives:
+(B) "create games from the planner" just moves the metadata entry work and adds a stateful
+plan↔game link that can drift; (C) "attach a plan to an existing tournament and map by
+order" is a cleaner convenience *if* the tournament is always built first — keep it as an
+optional later add-on, not the primary path. The motivating pain: without prefill, matching
+a real game to the plan means re-tapping the whole XI from memory with no side-by-side view.
+
 | PR | Scope |
 |----|-------|
 | **2.1 `plannedSubs` on the game model** | A game carries a planned starting XI + sub schedule (local jsonb, like `playerPositions`). Transform + defaults. |
-| **2.2 Bind plan ↔ games + pre-fill** | Link a plan's per-game lineup to the actual tournament games; on game start, load the planned XI onto the field + `selectedPlayerIds`. |
+| **2.2 Prefill from plan in new-game setup** | Add a "Prefill from plan" step to new-game setup: pick a plan + plan-game → the new game opens with the planned XI on the field, `selectedPlayerIds`, and planned subs. One-time copy, not a persistent binding. |
 | **2.3 Timer sub-prompts** | During the game, surface the planned subs as prompts; the coach confirms live as normal substitution events (deviation-safe). |
 | **2.4 Cloud sync of plans** *(deferred, maybe never)* | Only if cross-device demands more than local + JSON export. This is exactly the part the last attempt over-built - do it last, or not at all. |
+| **2.5 Attach-to-tournament prefill** *(optional convenience)* | For coaches who build the tournament up front: bind a plan to a tournament and map plan-games to real games by order, prefilling each on creation. Additive on top of 2.2. |
 
 ## 6. Principles / locked decisions
 
