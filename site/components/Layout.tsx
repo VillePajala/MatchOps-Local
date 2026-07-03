@@ -156,11 +156,11 @@ export default function Layout({ children }: LayoutProps) {
             className="inline-block mb-4"
           >
             <Image
-              src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+              src="/badges/GetItOnGooglePlay_Badge_Web_color_English.png"
               alt="Google Play"
-              width={688}
-              height={140}
-              className="mx-auto w-32 h-auto drop-shadow-md hover:scale-105 transition-transform"
+              width={478}
+              height={142}
+              className="mx-auto w-36 h-auto drop-shadow-md hover:scale-105 transition-transform"
             />
           </a>
           <p className="text-sm text-slate-300" suppressHydrationWarning>

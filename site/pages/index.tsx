@@ -355,14 +355,14 @@ export default function HomePage() {
                 href={PLAY_STORE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block rounded-xl bg-white/10 ring-1 ring-white/20 p-2.5 shadow-lg hover:bg-white/15 hover:scale-105 transition-all"
+                className="inline-block hover:scale-105 transition-transform drop-shadow-lg"
               >
                 <Image
-                  src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+                  src="/badges/GetItOnGooglePlay_Badge_Web_color_English.png"
                   alt={t('info.cta.googlePlayAlt')}
-                  width={688}
-                  height={140}
-                  className="w-40 md:w-44 h-auto"
+                  width={478}
+                  height={142}
+                  className="w-44 md:w-52 h-auto"
                 />
               </a>
               <a href="mailto:hello@match-ops.com" className="text-slate-400 text-sm hover:text-primary transition-colors">hello@match-ops.com</a>
@@ -531,14 +531,14 @@ export default function HomePage() {
               href={PLAY_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block mb-6 rounded-xl bg-white/10 ring-1 ring-white/20 p-3 shadow-lg hover:bg-white/15 hover:scale-105 transition-all"
+              className="inline-block mb-6 hover:scale-105 transition-transform drop-shadow-xl"
             >
               <Image
-                src="/badges/lockup_Google_Play_RGB_color_horizontal_688x140px.png"
+                src="/badges/GetItOnGooglePlay_Badge_Web_color_English.png"
                 alt={t('info.cta.googlePlayAlt')}
-                width={688}
-                height={140}
-                className="mx-auto w-48 md:w-56 h-auto"
+                width={478}
+                height={142}
+                className="mx-auto w-52 md:w-64 h-auto"
               />
             </a>
             <p className="text-slate-300 mb-6">

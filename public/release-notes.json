@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "feat(site): readable one-per-row feature cards + mark ship-publicly done (#625)"
+  "notes": "feat(timer): one-tap \"undo last action\" toast after goal/opponent/sub (#626)"
 }
