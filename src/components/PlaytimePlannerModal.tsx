@@ -108,11 +108,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   // separate id space, matching NewGameSetupModal). Blank = full master roster.
   const applyTeamSelection = useCallback(
     async (nextTeamId: string) => {
-      setTeamId(nextTeamId);
       const requestId = ++teamSelectRef.current;
       if (!nextTeamId) {
         // Back to freehand: full roster and the planner's default durations, so a
         // team's inherited durations don't linger after you deselect it.
+        setTeamId('');
         setSelectedIds(new Set(roster.map((p) => p.id)));
         setNumberOfPeriods(2);
         setPeriodMinutes(12);
@@ -127,6 +127,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       try {
         const teamRoster = await getTeamRoster(nextTeamId, user?.id);
         if (teamSelectRef.current !== requestId) return; // a newer pick superseded this
+        // Commit teamId only after the fetch succeeds, together with the roster and
+        // durations - so a plan's teamId always matches what was actually applied. A
+        // failed/slow load never leaves teamId stamped on a stale roster (which would
+        // break the "lossless" invariant later prefill relies on).
+        setTeamId(nextTeamId);
         const names = new Set(teamRoster.map((tp) => tp.name.trim().toLowerCase()));
         setSelectedIds(
           new Set(roster.filter((p) => names.has(p.name.trim().toLowerCase())).map((p) => p.id)),

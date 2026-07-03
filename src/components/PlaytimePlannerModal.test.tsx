@@ -330,6 +330,13 @@ describe('PlaytimePlannerModal', () => {
     // Durations are deferred until the roster loads, so nothing half-applied.
     expect(screen.getByText('2 selected')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
+
+    // teamId must NOT be stamped after a failed load: creating yields a plan without one.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create plan'));
+    });
+    await waitFor(() => expect(mockSavePlan).toHaveBeenCalled());
+    expect(mockSavePlan.mock.calls.every((c) => c[0]?.teamId === undefined)).toBe(true);
   });
 
   it('discards a stale team-roster response when a newer team is picked first', async () => {
