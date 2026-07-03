@@ -44,6 +44,17 @@ jest.mock('@/utils/masterRosterManager', () => ({
   getMasterRoster: jest.fn(async () => roster),
 }));
 
+const mockGetTeams = jest.fn();
+const mockGetTeamRoster = jest.fn();
+const mockGetSeasons = jest.fn();
+const mockGetTournaments = jest.fn();
+jest.mock('@/utils/teams', () => ({
+  getTeams: (...a: unknown[]) => mockGetTeams(...a),
+  getTeamRoster: (...a: unknown[]) => mockGetTeamRoster(...a),
+}));
+jest.mock('@/utils/seasons', () => ({ getSeasons: (...a: unknown[]) => mockGetSeasons(...a) }));
+jest.mock('@/utils/tournaments', () => ({ getTournaments: (...a: unknown[]) => mockGetTournaments(...a) }));
+
 // Fully mock storage to decouple the modal from the IndexedDB layer. The real
 // createPlan is covered in storage.test.ts; here we only need its shape.
 const mockGetPlans = jest.fn();
@@ -66,6 +77,7 @@ jest.mock('@/utils/playtimePlanner/storage', () => ({
     formationId: string;
     numberOfPeriods: number;
     periodMinutes: number;
+    teamId?: string;
   }) => ({
     id: 'plan-1',
     name: opts.name,
@@ -73,6 +85,7 @@ jest.mock('@/utils/playtimePlanner/storage', () => ({
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
     players: opts.players,
+    ...(opts.teamId ? { teamId: opts.teamId } : {}),
     games: Array.from({ length: Math.max(1, opts.gameCount) }, (_, i) => ({
       id: `g${i}`,
       label: `Game ${i + 1}`,
@@ -98,6 +111,10 @@ beforeEach(() => {
   mockDeletePlan.mockResolvedValue(true);
   mockGetPlan.mockResolvedValue(null);
   mockImportPlan.mockResolvedValue(null);
+  mockGetTeams.mockResolvedValue([]);
+  mockGetTeamRoster.mockResolvedValue([]);
+  mockGetSeasons.mockResolvedValue([]);
+  mockGetTournaments.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -265,6 +282,143 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     });
     await waitFor(() => expect(screen.queryByText(/Sam → GK/)).not.toBeInTheDocument());
+  });
+
+  it('prefills roster selection and durations from a chosen team, and stamps teamId', async () => {
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10', boundSeasonId: 's1' }]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
+    mockGetTeamRoster.mockResolvedValue([{ id: 'tp1', name: 'Alex' }]); // only Alex is on the team
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+
+    // Both players selected by default (freehand).
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+
+    // Choose the team (the select currently shows the "No team" option text).
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
+    });
+
+    // Roster narrows to the team's matching players; durations come from its season.
+    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    expect(screen.getByDisplayValue('20')).toBeInTheDocument(); // periodDuration inherited
+
+    // Creating the plan stamps the teamId.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create plan'));
+    });
+    await waitFor(() =>
+      expect(mockSavePlan.mock.calls.some((c) => c[0]?.teamId === 't1')).toBe(true),
+    );
+  });
+
+  it('toasts and leaves selection + durations unchanged when the team roster fails to load', async () => {
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10', boundSeasonId: 's1' }]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
+    mockGetTeamRoster.mockRejectedValue(new Error('boom'));
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
+    });
+
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith("Could not load that team's roster.", 'error'),
+    );
+    // Durations are deferred until the roster loads, so nothing half-applied.
+    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
+
+    // teamId must NOT be stamped after a failed load: creating yields a plan without one.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Create plan'));
+    });
+    await waitFor(() => expect(mockSavePlan).toHaveBeenCalled());
+    expect(mockSavePlan.mock.calls.every((c) => c[0]?.teamId === undefined)).toBe(true);
+  });
+
+  it('discards a stale team-roster response when a newer team is picked first', async () => {
+    mockGetTeams.mockResolvedValue([
+      { id: 't1', name: 'Alpha' },
+      { id: 't2', name: 'Bravo' },
+    ]);
+    let resolveT1: (() => void) | undefined;
+    mockGetTeamRoster.mockImplementation((id: string) => {
+      if (id === 't1') {
+        return new Promise((res) => {
+          resolveT1 = () => res([{ id: 'tp1', name: 'Alex' }, { id: 'tp2', name: 'Sam' }]);
+        });
+      }
+      return Promise.resolve([{ id: 'tp1', name: 'Alex' }]); // t2 -> only Alex
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+    const sel = screen.getByDisplayValue('No team - all players');
+
+    // Pick t1 (roster stays pending), then t2 (resolves -> 1 selected).
+    await act(async () => {
+      fireEvent.change(sel, { target: { value: 't1' } });
+    });
+    await act(async () => {
+      fireEvent.change(sel, { target: { value: 't2' } });
+    });
+    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+
+    // t1's late response must be discarded (selection stays at t2's 1, not 2).
+    await act(async () => {
+      resolveT1?.();
+    });
+    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
+  });
+
+  it('reverts roster AND durations to defaults when switching back to "No team"', async () => {
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10', boundSeasonId: 's1' }]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
+    mockGetTeamRoster.mockResolvedValue([{ id: 'tp1', name: 'Alex' }]);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+
+    // Pick the team: roster narrows to 1 and durations inherit (20 min).
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
+    });
+    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    expect(screen.getByDisplayValue('20')).toBeInTheDocument();
+
+    // Deselect: full roster back AND durations revert to the default 12.
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('U10'), { target: { value: '' } });
+    });
+    await waitFor(() => expect(screen.getByText('2 selected')).toBeInTheDocument());
+    expect(screen.getByDisplayValue('12')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
+  });
+
+  it('resets durations to defaults when switching to an unbound team (no stale carry-over)', async () => {
+    mockGetTeams.mockResolvedValue([
+      { id: 't1', name: 'Alpha', boundSeasonId: 's1' },
+      { id: 't2', name: 'Bravo' }, // unbound - no competition
+    ]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
+    mockGetTeamRoster.mockResolvedValue([{ id: 'tp1', name: 'Alex' }]);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+
+    // Bound team A -> inherits 20 min.
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
+    });
+    await waitFor(() => expect(screen.getByDisplayValue('20')).toBeInTheDocument());
+
+    // Switch to unbound team B -> durations revert to the default 12, not stale 20.
+    await act(async () => {
+      fireEvent.change(screen.getByDisplayValue('Alpha'), { target: { value: 't2' } });
+    });
+    await waitFor(() => expect(screen.getByDisplayValue('12')).toBeInTheDocument());
+    expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
   });
 
   it('navigates to the balance view and back', async () => {

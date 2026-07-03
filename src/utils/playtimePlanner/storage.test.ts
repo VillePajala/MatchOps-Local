@@ -102,6 +102,11 @@ describe('createPlan', () => {
     const ids = new Set([plan.id, ...plan.games.map((g) => g.id)]);
     expect(ids.size).toBe(1 + plan.games.length);
   });
+
+  it('stamps teamId only when provided (freehand plans have no teamId)', () => {
+    expect(createPlan({ ...baseOpts, teamId: 'team-1' }).teamId).toBe('team-1');
+    expect('teamId' in createPlan(baseOpts)).toBe(false);
+  });
 });
 
 describe('save / get / delete round-trip', () => {
@@ -141,6 +146,12 @@ describe('save / get / delete round-trip', () => {
     const plans = await getPlans();
     expect(Object.keys(plans)).toHaveLength(1);
     expect(plans[plan!.id].name).toBe('Renamed');
+  });
+
+  it('persists teamId through save/read (validator accepts the optional field)', async () => {
+    const plan = await savePlan(createPlan({ ...baseOpts, teamId: 'team-9' }));
+    const read = await getPlan(plan!.id);
+    expect(read?.teamId).toBe('team-9');
   });
 
   it('deletes a plan', async () => {
