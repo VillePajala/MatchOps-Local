@@ -1125,4 +1125,43 @@ describe('NewGameSetupModal', () => {
       });
     });
   });
+
+  describe('Repeat last game', () => {
+    const savedGames: any = {
+      g1: {
+        opponentName: 'Old Foe', gameLocation: 'Old Field', periodDurationMinutes: 25,
+        numberOfPeriods: 1, homeOrAway: 'away', gameType: 'futsal', demandFactor: 2,
+        selectedPlayerIds: ['player1'], createdAt: '2024-05-01T10:00:00.000Z',
+      },
+      g2: {
+        opponentName: 'Recent Rival', gameLocation: 'Recent Park', periodDurationMinutes: 30,
+        numberOfPeriods: 2, homeOrAway: 'home', gameType: 'soccer', demandFactor: 3,
+        selectedPlayerIds: ['player1', 'player2'], createdAt: '2024-06-01T10:00:00.000Z',
+      },
+    };
+
+    test('pre-fills fields from the most recent saved game', async () => {
+      const onDemandFactorChange = jest.fn();
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} savedGames={savedGames} onDemandFactorChange={onDemandFactorChange} />
+        </ToastProvider>
+      );
+      await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Repeat last game/i }));
+      });
+
+      // g2 is the most recent (later createdAt), so its values win.
+      expect(screen.getByRole('textbox', { name: /Opponent Name/i })).toHaveValue('Recent Rival');
+      expect(onDemandFactorChange).toHaveBeenCalledWith(3);
+    });
+
+    test('button is hidden when there are no saved games', async () => {
+      renderModal();
+      await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: /Repeat last game/i })).not.toBeInTheDocument();
+    });
+  });
 });
