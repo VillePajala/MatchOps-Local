@@ -243,7 +243,7 @@ describe('PlaytimePlannerModal', () => {
 
     // Back to the plan; the placed count now reflects the assignment.
     await act(async () => {
-      fireEvent.click(screen.getByText('Back to plan'));
+      fireEvent.click(screen.getByText('Back'));
     });
     await waitFor(() => expect(screen.getByText('1/8 placed')).toBeInTheDocument());
   });
@@ -432,7 +432,7 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByText('Playing-time balance')).toBeInTheDocument());
 
     await act(async () => {
-      fireEvent.click(screen.getByText('Back to plan'));
+      fireEvent.click(screen.getByText('Back'));
     });
     await waitFor(() => expect(screen.getByText('View playing-time balance')).toBeInTheDocument());
   });

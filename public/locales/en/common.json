@@ -835,7 +835,7 @@
     "assessmentsIncomplete": "Assessments incomplete",
     "assessmentsComplete": "All assessments complete",
     "assessmentsProgress": "{{done}}/{{total}} assessments",
-    "unplayedBadge": "NOT PLAYED",
+    "unplayedBadge": "Not played",
     "readyTitle": "Record complete",
     "needsFinishingTitle": "Needs finishing",
     "showUnplayedOnly": "Show only unplayed games",
@@ -3170,7 +3170,7 @@
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",
     "lineup": {
-      "back": "Back to plan",
+      "back": "Back",
       "slotFilled": "{{position}}: {{player}}",
       "slotEmpty": "{{position}}: empty",
       "pickForSlot": "Tap a player for this position",
