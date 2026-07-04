@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { Player, Season, Tournament, Team, Personnel, GameType, Gender } from '@/types';
+import { Player, Season, Tournament, Team, Personnel, GameType, Gender, Point } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
 import logger from '@/utils/logger';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
@@ -54,8 +54,9 @@ interface NewGameSetupModalProps {
     gameType: GameType, // Sport type: 'soccer' or 'futsal'
     gender: Gender | undefined, // Gender: 'boys' or 'girls' (optional)
     // Optional Playing-Time Planner prefill (Phase 2): planned XI placed on the
-    // field at creation + the planned sub schedule stored by game id.
-    prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[] }
+    // field at creation + the planned sub schedule stored by game id, plus the
+    // formation snap points so the game rebuilds sub-slot circles + position labels.
+    prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[] }
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -135,7 +136,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [prefillPlanId, setPrefillPlanId] = useState('');
   const [prefillGameId, setPrefillGameId] = useState('');
   const [prefillPayload, setPrefillPayload] = useState<
-    { playersOnField: Player[]; plannedSubs: PlannedGameSub[] } | undefined
+    { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[] } | undefined
   >(undefined);
   const [prefillMissingCount, setPrefillMissingCount] = useState(0);
 
@@ -280,6 +281,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         // the sideline players render as waiting subs (desaturated, position-labelled).
         playersOnField: [...result.playersOnField, ...result.sidelinePlayers],
         plannedSubs: result.plannedSubs,
+        // Snap points let the created game rebuild the dotted sub slots + labels.
+        formationSnapPoints: result.formationSnapPoints,
       });
       setPrefillMissingCount(result.missingPlayerIds.length);
     },

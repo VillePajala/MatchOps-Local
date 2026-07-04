@@ -6,7 +6,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
-import type { AppState, Player, SavedGamesCollection, GameType, Gender } from '@/types';
+import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } from '@/types';
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { ResourceType } from '@/config/premiumLimits';
@@ -69,7 +69,7 @@ export interface StartNewGameRequest {
    * is placed on the field at creation and the planned subs are stored locally,
    * keyed by the new game id. Absent for a normal game (playersOnField stays []).
    */
-  prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[] };
+  prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[] };
 }
 
 export async function startNewGameWithSetup(
@@ -207,6 +207,9 @@ export async function startNewGameWithSetup(
     selectedPlayerIds: finalSelectedPlayerIds,
     // Planner prefill places the planned XI on the field at creation; otherwise empty.
     playersOnField: prefill?.playersOnField ?? [],
+    // Snap points let the game rebuild the dotted sub-slot circles + position labels
+    // (a manually-placed game persists these too). Empty for a normal new game.
+    formationSnapPoints: prefill?.formationSnapPoints ?? [],
     opponents: [],
     showPlayerNames: true,
     drawings: [],
