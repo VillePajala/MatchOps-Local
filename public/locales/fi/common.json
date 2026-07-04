@@ -835,7 +835,7 @@
     "assessmentsIncomplete": "Arviointeja puuttuu",
     "assessmentsComplete": "Kaikki arvioinnit tehty",
     "assessmentsProgress": "{{done}}/{{total}} arvioitu",
-    "unplayedBadge": "EI PELATTU",
+    "unplayedBadge": "Ei pelattu",
     "readyTitle": "Tiedot valmiit",
     "needsFinishingTitle": "Kaipaa viimeistelyä",
     "showUnplayedOnly": "Näytä vain pelaamattomat pelit",
@@ -3170,7 +3170,7 @@
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",
     "lineup": {
-      "back": "Takaisin suunnitelmaan",
+      "back": "Takaisin",
       "slotFilled": "{{position}}: {{player}}",
       "slotEmpty": "{{position}}: tyhjä",
       "pickForSlot": "Napauta pelaaja tähän paikkaan",

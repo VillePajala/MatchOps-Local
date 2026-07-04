@@ -136,10 +136,11 @@ describe('LoadGameModal', () => {
     expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
     });
 
-  it('shows a NOT PLAYED badge for unplayed games', async () => {
+  it('shows a not-played status dot for unplayed games', async () => {
     await renderModal();
-    const badge = await screen.findByText('loadGameModal.unplayedBadge');
-    expect(badge).toBeInTheDocument();
+    // The badge is now a small red status dot carrying the label as its title.
+    const dot = await screen.findByTitle('loadGameModal.unplayedBadge');
+    expect(dot).toBeInTheDocument();
   });
 
   it('filters to only unplayed games when toggle checked', async () => {
@@ -756,7 +757,7 @@ describe('LoadGameModal', () => {
       await renderModal({ savedGames: games });
 
       const gameCard = await screen.findByTestId('game-item-game_futsal_unplayed');
-      expect(within(gameCard).getByText('loadGameModal.unplayedBadge')).toBeInTheDocument();
+      expect(within(gameCard).getByTitle('loadGameModal.unplayedBadge')).toBeInTheDocument();
       expect(within(gameCard).getByText('common.gameTypeFutsal')).toBeInTheDocument();
     });
   });

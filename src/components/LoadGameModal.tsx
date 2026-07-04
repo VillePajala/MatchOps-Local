@@ -357,10 +357,11 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const game = savedGames[gameId];
             if (!game) return null;
             const isCurrent = gameId === currentGameId;
-            // Small readiness dot for played games: green = complete record,
-            // amber = still missing something (e.g. the report).
+            // A single status dot before the team names: red = not played yet;
+            // otherwise (played) green = complete record, amber = needs finishing.
             const completeness = computeGameCompleteness(game);
-            const showReadinessDot = game.isPlayed !== false && completeness.applicable;
+            const isUnplayed = game.isPlayed === false;
+            const showReadinessDot = !isUnplayed && completeness.applicable;
             const isRecordComplete = completeness.overall === 'complete';
 
             // Look up entities using maps for O(1) performance
@@ -445,7 +446,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                   <div className="flex items-start justify-between gap-4">
                     {/* Team names */}
                     <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
-                      {showReadinessDot && (
+                      {isUnplayed ? (
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0 bg-red-500"
+                          title={t('loadGameModal.unplayedBadge', 'Not played')}
+                          aria-label={t('loadGameModal.unplayedBadge', 'Not played')}
+                        />
+                      ) : showReadinessDot ? (
                         <span
                           className={`w-2 h-2 rounded-full shrink-0 ${isRecordComplete ? 'bg-emerald-500' : 'bg-amber-400'}`}
                           title={isRecordComplete
@@ -455,7 +462,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                             ? t('loadGameModal.readyTitle', 'Record complete')
                             : t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
                         />
-                      )}
+                      ) : null}
                       <span className="font-semibold text-base text-slate-100">
                         {displayHomeTeamName}
                       </span>
@@ -568,11 +575,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                             </span>
                           )}
                         </div>
-                      )}
-                      {game.isPlayed === false && (
-                        <span className="px-2 py-0.5 rounded-full bg-red-600/80 text-red-100 font-semibold uppercase text-[10px] tracking-wide">
-                          {t('loadGameModal.unplayedBadge', 'NOT PLAYED')}
-                        </span>
                       )}
                     </div>
 

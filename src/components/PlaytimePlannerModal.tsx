@@ -846,7 +846,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
             }}
             className={`${secondaryButtonStyle} flex-1`}
           >
-            {t('playtimePlanner.lineup.back', 'Back to plan')}
+            {t('playtimePlanner.lineup.back', 'Back')}
           </button>
         )}
         {view === 'overview' && (
