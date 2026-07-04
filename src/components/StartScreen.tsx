@@ -6,7 +6,6 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
-import PlaytimePlannerModal from '@/components/PlaytimePlannerModal';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
 
@@ -58,9 +57,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // both server and first client render show nothing until setupHydrated flips true.
   const [setupDismissed, setSetupDismissed] = useState(false);
   const [setupHydrated, setSetupHydrated] = useState(false);
-  // Playing-Time Planner modal — self-contained, opened from the Start Screen
-  // (the "before the tournament, at home" entry point). Independent of game state.
-  const [showPlanner, setShowPlanner] = useState(false);
   const setupDismissKey = `matchops_recommended_setup_dismissed_${user?.id ?? 'local'}`;
 
   const isCloudMode = mode === 'cloud' && user;
@@ -237,16 +233,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </button>
                 </div>
 
-                {/* Playing-Time Planner — plan a tournament's minutes before match day */}
-                <button
-                  type="button"
-                  onClick={() => setShowPlanner(true)}
-                  className="w-full p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all"
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.planPlaytime', 'Plan playing time')}
-                  </span>
-                </button>
               </>
             )}
           </div>
@@ -340,8 +326,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
           ) : null}
         </div>
       </div>
-
-      {showPlanner && <PlaytimePlannerModal isOpen onClose={() => setShowPlanner(false)} />}
     </div>
   );
 };

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PlayerBar from '@/components/PlayerBar';
 import GameInfoBar from '@/components/GameInfoBar';
 import ControlBar from '@/components/ControlBar';
+import PlaytimePlannerModal from '@/components/PlaytimePlannerModal';
 import type { Player } from '@/types';
 import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from './FieldContainer';
@@ -43,6 +44,10 @@ export function GameContainer({
   controlBarProps,
 }: GameContainerProps) {
   const { t } = useTranslation();
+  // Playing-Time Planner is launched from the ControlBar hamburger menu; the modal
+  // is owned here (the ControlBar's parent) so no handler threading is needed.
+  const [showPlanner, setShowPlanner] = useState(false);
+  const openPlanner = useCallback(() => setShowPlanner(true), []);
 
   return (
     <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
@@ -81,8 +86,12 @@ export function GameContainer({
       <FieldContainer {...fieldProps} />
 
       <div className={barStyle}>
-        <ControlBar {...controlBarProps} />
+        <ControlBar {...controlBarProps} onOpenPlanner={openPlanner} />
       </div>
+
+      {showPlanner && (
+        <PlaytimePlannerModal isOpen onClose={() => setShowPlanner(false)} />
+      )}
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.
           Covers the gap between ControlBar and screen bottom in PWA standalone mode.

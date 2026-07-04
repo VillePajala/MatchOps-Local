@@ -169,7 +169,8 @@
     "resetFieldTacticsTitle": "Reset Tactics Board?",
     "signOut": "Sign Out",
     "startScreen": "Start Screen",
-    "userGuide": "User Guide"
+    "userGuide": "User Guide",
+    "planner": "Lineup planner"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -1103,8 +1104,7 @@
     "existingSubscriber": "Already a subscriber? Sign in →",
     "newToCloud": "New here? Subscribe via the Android app.",
     "getAndroidApp": "Get on Google Play",
-    "welcomeScreen": "Welcome",
-    "planPlaytime": "Plan playing time"
+    "welcomeScreen": "Welcome"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -3135,7 +3135,7 @@
     "upNext": "Up next"
   },
   "playtimePlanner": {
-    "title": "Playing-Time Planner",
+    "title": "Lineup planner",
     "setup": {
       "defaultName": "Tournament plan",
       "nameLabel": "Plan name",

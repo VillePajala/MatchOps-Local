@@ -592,7 +592,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
                       min={1}
                       max={20}
                       value={gameCount}
-                      onChange={(e) => setGameCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setGameCount(Math.max(1, Math.min(20, Math.floor(Number(e.target.value) || 1))))}
                       className={inputBaseStyle}
                     />
                   </div>
@@ -632,7 +633,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
                       min={1}
                       max={60}
                       value={periodMinutes}
-                      onChange={(e) => setPeriodMinutes(Math.max(1, Math.min(60, Number(e.target.value) || 1)))}
+                      // Select on focus so typing replaces the value instead of appending
+                      // to it (appending to "12" gave "12x" > 60, which clamped to 60).
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setPeriodMinutes(Math.max(1, Math.min(60, Math.floor(Number(e.target.value) || 1))))}
                       className={inputBaseStyle}
                     />
                   </div>
