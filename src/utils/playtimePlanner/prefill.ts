@@ -33,8 +33,10 @@ export interface PrefillResult {
 
 /** Right-sideline X for a waiting sub (matches generateSubSlots' 0.96 in formations.ts). */
 const SIDELINE_X = 0.96;
-/** Vertical gap when several subs wait for the same slot (matches sub-slot spacing). */
-const SIDELINE_STACK = 0.07;
+/** First (lowest) sideline disc, near the own-goal end; subsequent subs stack upward. */
+const SIDELINE_START_Y = 0.88;
+/** Vertical gap between sideline discs - wide enough that discs never overlap. */
+const SIDELINE_GAP = 0.11;
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
 /**
@@ -90,31 +92,32 @@ export function buildPrefillFromPlan(
       };
     });
 
-  // Park each incoming sub on the right sideline, next to the slot they enter, so
-  // planned changes are visible from kickoff (not just when the timer prompt fires).
-  // A player waits in one spot (their first sub); several subs into one slot stack
-  // upward. Starters are already on the field, so they are never re-added here.
+  // Park each incoming sub as its own disc down the right sideline (relX 0.96 so it
+  // reads as a sideline sub), so planned changes are visible from kickoff, not just
+  // when the timer prompt fires. Each player waits once (their first sub); discs are
+  // ordered by the slot they enter - own-goal end low, attack high - then spaced
+  // evenly so they never overlap or stack. Starters are already on the field.
   const onFieldIds = new Set(playersOnField.map((p) => p.id));
-  const sidelinePlayers: Player[] = [];
-  const parked = new Set<string>();
-  const stackBySlot = new Map<string, number>();
+  const seenSub = new Set<string>();
+  const parked: { player: Player; targetRelY: number }[] = [];
   for (const sub of [...planGame.subs].sort((a, b) => a.timeSeconds - b.timeSeconds)) {
     if (!sub.inPlayerId) continue;
     const player = byId.get(sub.inPlayerId);
     if (!player) continue; // ghost incoming - surfaced via missingPlayerIds below
-    if (onFieldIds.has(sub.inPlayerId) || parked.has(sub.inPlayerId)) continue;
+    if (onFieldIds.has(sub.inPlayerId) || seenSub.has(sub.inPlayerId)) continue;
     const slot = slotById.get(sub.slotId);
     if (!slot) continue;
-    const stackIdx = stackBySlot.get(sub.slotId) ?? 0;
-    stackBySlot.set(sub.slotId, stackIdx + 1);
-    parked.add(sub.inPlayerId);
-    sidelinePlayers.push({
-      ...player,
-      relX: SIDELINE_X,
-      relY: clamp(slot.relY - stackIdx * SIDELINE_STACK, 0.06, 0.94),
-      isGoalie: false,
-    });
+    seenSub.add(sub.inPlayerId);
+    parked.push({ player, targetRelY: slot.relY });
   }
+  // Own-goal end (higher relY) first, so the sideline column mirrors the field.
+  parked.sort((a, b) => b.targetRelY - a.targetRelY);
+  const sidelinePlayers: Player[] = parked.map(({ player }, i) => ({
+    ...player,
+    relX: SIDELINE_X,
+    relY: clamp(SIDELINE_START_Y - i * SIDELINE_GAP, 0.06, 0.94),
+    isGoalie: false,
+  }));
 
   // Every planned player the current roster can't resolve - squad members, starters,
   // and incoming subs alike - so the UI can warn about anyone silently dropped.
