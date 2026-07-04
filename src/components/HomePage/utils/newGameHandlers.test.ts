@@ -170,6 +170,70 @@ describe('newGameHandlers', () => {
     expect(closeNewGameSetupModal).toHaveBeenCalledTimes(1);
   });
 
+  describe('Playing-Time Planner prefill reconciliation (Rule 3)', () => {
+    it('keeps a prefilled on-field player selected even if the coach deselected them', async () => {
+      let savedState: AppState | undefined;
+      const savedGamesState = createSetStateMock<SavedGamesCollection>({});
+      const deps = createTestDeps({
+        savedGames: savedGamesState.getState(),
+        setSavedGames: savedGamesState.setter,
+        utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => {
+          savedState = state;
+          return state;
+        }),
+      });
+
+      // Prefill put p1 on the field, but the coach's final selection is only p2.
+      await startNewGameWithSetup(deps, createBaseRequest({
+        initialSelectedPlayerIds: ['p2'],
+        availablePlayersForGame: mockPlayers, // p1, p2
+        prefill: {
+          playersOnField: [{ id: 'p1', name: 'Player 1', isGoalie: false, relX: 0.5, relY: 0.5 }],
+          plannedSubs: [],
+          formationSnapPoints: [],
+        },
+      }));
+
+      const onFieldIds = savedState!.playersOnField.map((p) => p.id);
+      expect(onFieldIds).toContain('p1');
+      // Rule 3: playersOnField ⊆ selectedPlayerIds.
+      expect(savedState!.selectedPlayerIds).toEqual(expect.arrayContaining(onFieldIds));
+    });
+
+    it('drops a prefilled on-field player no longer in the roster (team switch)', async () => {
+      let savedState: AppState | undefined;
+      const savedGamesState = createSetStateMock<SavedGamesCollection>({});
+      const deps = createTestDeps({
+        savedGames: savedGamesState.getState(),
+        setSavedGames: savedGamesState.setter,
+        utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => {
+          savedState = state;
+          return state;
+        }),
+      });
+
+      // Roster switched to only p2; prefill still references p1.
+      await startNewGameWithSetup(deps, createBaseRequest({
+        initialSelectedPlayerIds: ['p2'],
+        availablePlayersForGame: [mockPlayers[1]], // only p2
+        prefill: {
+          playersOnField: [{ id: 'p1', name: 'Player 1', isGoalie: false, relX: 0.5, relY: 0.5 }],
+          plannedSubs: [],
+          formationSnapPoints: [],
+        },
+      }));
+
+      const onFieldIds = savedState!.playersOnField.map((p) => p.id);
+      const availableIds = savedState!.availablePlayers.map((p) => p.id);
+      expect(onFieldIds).not.toContain('p1'); // dropped - not in the roster
+      // Rule 3: playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers.
+      for (const id of onFieldIds) {
+        expect(savedState!.selectedPlayerIds).toContain(id);
+        expect(availableIds).toContain(id);
+      }
+    });
+  });
+
   describe('premium limit enforcement', () => {
     it('blocks game creation when season game limit is reached', async () => {
       const existingGames: SavedGamesCollection = {

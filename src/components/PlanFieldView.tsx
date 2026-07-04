@@ -55,6 +55,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
     () => slots.filter((s) => !playerBySlot.get(s.slotId)),
     [slots, playerBySlot],
   );
+  // Fill outfield first and leave the goalkeeper for last, so a quick tap or
+  // Auto-fill never silently turns an arbitrary bench player into the keeper.
+  const emptyFillOrder = useMemo(
+    () => [...emptySlots.filter((s) => !s.isGoalie), ...emptySlots.filter((s) => s.isGoalie)],
+    [emptySlots],
+  );
   // Planned subs grouped by the slot they come into, earliest first - drives the
   // on-pitch sub badges so a scheduled change is visible on the field, not just
   // in the list below.
@@ -79,7 +85,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
   // Tap a bench player: fill the selected slot, or - with none selected - drop
   // them into the first empty slot so placement is always one tap.
   const handleBenchClick = (playerId: string) => {
-    const target = activeSlotId ?? emptySlots[0]?.slotId ?? null;
+    const target = activeSlotId ?? emptyFillOrder[0]?.slotId ?? null;
     if (!target) return;
     onAssign(target, playerId);
     setActiveSlotId(null);
@@ -89,7 +95,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
   // safe to fire onAssign per slot even though assignments update asynchronously).
   const handleAutoFill = () => {
     const pool = [...bench];
-    emptySlots.forEach((slot) => {
+    emptyFillOrder.forEach((slot) => {
       const pick = pool.shift();
       if (pick) onAssign(slot.slotId, pick);
     });

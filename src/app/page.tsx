@@ -8,6 +8,7 @@ import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import BackupReminderBanner from '@/components/BackupReminderBanner';
+import { PLANNER_OPEN_KEY } from '@/components/HomePage/containers/GameContainer';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -534,6 +535,10 @@ export default function Home() {
       setPostLoginCheckComplete(false);
       checkAppStateTriggeredRef.current = false;
       setScreen('start');
+      // Sign-out unmounts the game view without the planner's own close handler
+      // running; clear its persisted open-flag so it doesn't auto-reopen over the
+      // next game the user enters.
+      if (typeof window !== 'undefined') window.sessionStorage.removeItem(PLANNER_OPEN_KEY);
     }
   }, [userId]);
 

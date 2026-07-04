@@ -13,7 +13,9 @@ import type { FieldContainerProps } from './FieldContainer';
 
 const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-slate-700';
 // Survives a remount of the game view (e.g. resume-from-background loading flash).
-const PLANNER_OPEN_KEY = 'matchops_planner_open';
+// Exported so sign-out / screen resets can clear it (otherwise the planner would
+// auto-reopen the next time a game view mounts).
+export const PLANNER_OPEN_KEY = 'matchops_planner_open';
 type ControlBarProps = React.ComponentProps<typeof ControlBar>;
 
 export interface GameContainerProps {
