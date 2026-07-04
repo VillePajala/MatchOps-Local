@@ -52,7 +52,7 @@ describe('PlanBalanceView', () => {
   it('shows the fair share and counted games', () => {
     render(<PlanBalanceView plan={plan([game()])} />);
     // available = 24min × 5 slots = 120 / 5 players = 24' fair share.
-    expect(screen.getByText("Fair share 24' each · 1 games counted")).toBeInTheDocument();
+    expect(screen.getByText("Share 24' each · 1 games counted")).toBeInTheDocument();
   });
 
   it('sorts worst-off first, Alex (at fair share) last', () => {
@@ -60,9 +60,9 @@ describe('PlanBalanceView', () => {
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(5);
     // Worst-off (0%) first; Alex at 100% of fair share is last.
-    expect(within(items[0]).getByText('0% of fair share')).toBeInTheDocument();
+    expect(within(items[0]).getByText('0% of share')).toBeInTheDocument();
     expect(within(items[items.length - 1]).getByText('Alex')).toBeInTheDocument();
-    expect(within(items[items.length - 1]).getByText('100% of fair share')).toBeInTheDocument();
+    expect(within(items[items.length - 1]).getByText('100% of share')).toBeInTheDocument();
   });
 
   it('warns about players not playing an included game', () => {

@@ -14,7 +14,8 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
-import type { PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
+import { subtextStyle } from '@/styles/modalStyles';
+import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
 
 interface PlanFieldViewProps {
   game: PlanGame;
@@ -49,6 +50,25 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
     () => benchPlayerIds(players.map((p) => p.id), assignments),
     [players, assignments],
   );
+  // Slots with no starter yet - autofill and quick-tap placement target these.
+  const emptySlots = useMemo(
+    () => slots.filter((s) => !playerBySlot.get(s.slotId)),
+    [slots, playerBySlot],
+  );
+  // Planned subs grouped by the slot they come into, earliest first - drives the
+  // on-pitch sub badges so a scheduled change is visible on the field, not just
+  // in the list below.
+  const subsBySlot = useMemo(() => {
+    const m = new Map<string, PlanSub[]>();
+    [...game.subs]
+      .sort((a, b) => a.timeSeconds - b.timeSeconds)
+      .forEach((s) => {
+        const arr = m.get(s.slotId) ?? [];
+        arr.push(s);
+        m.set(s.slotId, arr);
+      });
+    return m;
+  }, [game.subs]);
 
   const activeOccupant = activeSlotId ? playerBySlot.get(activeSlotId) ?? null : null;
 
@@ -56,9 +76,23 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
     setActiveSlotId((prev) => (prev === slotId ? null : slotId));
   };
 
+  // Tap a bench player: fill the selected slot, or - with none selected - drop
+  // them into the first empty slot so placement is always one tap.
   const handleBenchClick = (playerId: string) => {
-    if (!activeSlotId) return;
-    onAssign(activeSlotId, playerId);
+    const target = activeSlotId ?? emptySlots[0]?.slotId ?? null;
+    if (!target) return;
+    onAssign(target, playerId);
+    setActiveSlotId(null);
+  };
+
+  // Fill every empty slot from the bench in order (a snapshot pairing, so it is
+  // safe to fire onAssign per slot even though assignments update asynchronously).
+  const handleAutoFill = () => {
+    const pool = [...bench];
+    emptySlots.forEach((slot) => {
+      const pick = pool.shift();
+      if (pick) onAssign(slot.slotId, pick);
+    });
     setActiveSlotId(null);
   };
 
@@ -88,6 +122,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
           // 1-based human label (#1, #2, …); note `i` includes the GK at 0, so
           // field slot `s0` reads as `#1`. Intentional - friendlier than slotId.
           const positionLabel = slot.isGoalie ? 'GK' : `#${i}`;
+          const slotSubs = subsBySlot.get(slot.slotId) ?? [];
+          const firstSub = slotSubs[0];
+          const subInName = firstSub?.inPlayerId ? nameById.get(firstSub.inPlayerId) : null;
           return (
             <button
               key={slot.slotId}
@@ -114,77 +151,79 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
                     ? slot.isGoalie
                       ? 'bg-amber-500 text-slate-900 border-amber-300'
                       : 'bg-indigo-600 text-white border-indigo-300'
-                    : 'bg-slate-900/40 text-white/70 border-dashed border-white/50',
+                    : 'bg-slate-900/70 text-white border-dashed border-white/80',
                   isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : '',
                 ].join(' ')}
               >
                 {filled ? shortName(name ?? '') : slot.isGoalie ? 'GK' : '+'}
               </span>
+              {firstSub && (
+                <span
+                  className="mt-0.5 px-1 rounded-full bg-sky-600 text-white text-[8px] font-semibold leading-tight whitespace-nowrap max-w-[3.5rem] truncate shadow"
+                  title={slotSubs
+                    .map(
+                      (s) =>
+                        `${Math.round(s.timeSeconds / 60)}' ${s.inPlayerId ? nameById.get(s.inPlayerId) ?? '' : ''}`,
+                    )
+                    .join(', ')}
+                >
+                  ⇄ {Math.round(firstSub.timeSeconds / 60)}&#39;
+                  {subInName ? ` ${shortName(subInName)}` : ''}
+                  {slotSubs.length > 1 ? ` +${slotSubs.length - 1}` : ''}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Assignment panel */}
-      <div className="max-w-sm mx-auto">
-        {activeSlotId ? (
-          <>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-slate-300">
-                {t('playtimePlanner.lineup.pickForSlot', 'Tap a player for this position')}
-              </p>
-              {activeOccupant && (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="text-xs text-red-400 hover:text-red-300"
-                >
-                  {t('playtimePlanner.lineup.clearSlot', 'Clear')}
-                </button>
-              )}
-            </div>
-            {bench.length === 0 ? (
-              <p className="text-xs text-slate-400">
-                {t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {bench.map((id) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => handleBenchClick(id)}
-                    className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border border-slate-500/40"
-                  >
-                    {nameById.get(id) ?? id}
-                  </button>
-                ))}
-              </div>
+      {/* Assignment panel - the bench keeps one consistent look whether or not a
+          slot is selected; only the hint and the Clear / Auto-fill actions adapt. */}
+      <div className="max-w-sm mx-auto space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm text-slate-300">
+            {activeSlotId
+              ? t('playtimePlanner.lineup.pickForSlot', 'Tap a player for this position')
+              : t('playtimePlanner.lineup.hint', 'Tap a player to place them, or a position first.')}
+          </p>
+          <div className="flex items-center gap-3 shrink-0">
+            {activeSlotId && activeOccupant && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="text-xs text-red-400 hover:text-red-300"
+              >
+                {t('playtimePlanner.lineup.clearSlot', 'Clear')}
+              </button>
             )}
-          </>
+            {emptySlots.length > 0 && bench.length > 0 && (
+              <button
+                type="button"
+                onClick={handleAutoFill}
+                className="text-xs font-medium text-indigo-300 hover:text-indigo-200"
+              >
+                {t('playtimePlanner.lineup.autoFill', 'Auto-fill')}
+              </button>
+            )}
+          </div>
+        </div>
+        {bench.length === 0 ? (
+          <p className={subtextStyle}>
+            {t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
+          </p>
         ) : (
-          <>
-            <p className="text-sm text-slate-400 mb-2">
-              {t('playtimePlanner.lineup.hint', 'Tap a position to assign a player.')}
-            </p>
-            {bench.length > 0 && (
-              <div>
-                <p className="text-xs text-slate-500 mb-1">
-                  {t('playtimePlanner.lineup.benchHeading', 'Bench')}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {bench.map((id) => (
-                    <span
-                      key={id}
-                      className="px-3 py-1.5 rounded-full bg-slate-800/70 text-sm text-slate-300 border border-slate-700/50"
-                    >
-                      {nameById.get(id) ?? id}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <div className="flex flex-wrap gap-2">
+            {bench.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => handleBenchClick(id)}
+                className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border border-slate-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              >
+                {nameById.get(id) ?? id}
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>

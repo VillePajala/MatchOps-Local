@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import PlanFieldView from './PlanFieldView';
 import type { PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 
@@ -43,13 +43,47 @@ describe('PlanFieldView', () => {
     render(<PlanFieldView game={makeGame()} players={players} onAssign={onAssign} />);
 
     // Before selecting a slot, the hint is shown.
-    expect(screen.getByText('Tap a position to assign a player.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Tap a player to place them, or a position first.'),
+    ).toBeInTheDocument();
 
     // Tap the goalkeeper slot (unique aria-label), then a bench player.
     fireEvent.click(screen.getByLabelText('GK: empty'));
     fireEvent.click(screen.getByRole('button', { name: 'Alex' }));
 
     expect(onAssign).toHaveBeenCalledWith('gk', 'p1');
+  });
+
+  it('quick-places a bench player into the first empty slot with no slot selected', () => {
+    const onAssign = jest.fn();
+    render(<PlanFieldView game={makeGame()} players={players} onAssign={onAssign} />);
+
+    // No slot selected: tapping a bench player drops them into the first empty slot.
+    fireEvent.click(screen.getByRole('button', { name: 'Sam' }));
+    expect(onAssign).toHaveBeenCalledTimes(1);
+    // First empty slot is the GK (slot index 0).
+    expect(onAssign).toHaveBeenCalledWith('gk', 'p2');
+  });
+
+  it('auto-fills every empty slot from the bench', () => {
+    const onAssign = jest.fn();
+    render(<PlanFieldView game={makeGame()} players={players} onAssign={onAssign} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Auto-fill' }));
+    // 5 slots (GK + 4 field), 5 bench players → all slots filled, distinct players.
+    expect(onAssign).toHaveBeenCalledTimes(5);
+    const assignedPlayers = onAssign.mock.calls.map((c) => c[1]);
+    expect(new Set(assignedPlayers).size).toBe(5);
+  });
+
+  it('shows a sub badge on a slot that has a planned substitution', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 's1', slotId: 'gk', timeSeconds: 6 * 60, inPlayerId: 'p2' }],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    // The badge marks the scheduled change on the pitch (minute + incoming player).
+    expect(screen.getByText(/⇄ 6'/)).toBeInTheDocument();
   });
 
   it('clears an occupied slot', () => {
@@ -77,10 +111,9 @@ describe('PlanFieldView', () => {
         onAssign={jest.fn()}
       />,
     );
-    // Bench (idle view) lists the unassigned players, not the placed one.
-    // (Alex still shows on the pitch disc, so scope the check to the bench.)
-    const benchSection = screen.getByText('Bench').parentElement as HTMLElement;
-    expect(within(benchSection).queryByText('Alex')).not.toBeInTheDocument();
-    expect(within(benchSection).getByText('Sam')).toBeInTheDocument();
+    // Bench buttons list the unassigned players, not the placed one. Alex sits on
+    // the GK disc (accessible name "GK: Alex"), so there is no bench button "Alex".
+    expect(screen.queryByRole('button', { name: 'Alex' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sam' })).toBeInTheDocument();
   });
 });

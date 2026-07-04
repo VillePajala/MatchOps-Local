@@ -275,7 +275,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       }
       const result = buildPrefillFromPlan(plan, game, availablePlayersForSetup);
       setSelectedPlayerIds(result.selectedPlayerIds);
-      setPrefillPayload({ playersOnField: result.playersOnField, plannedSubs: result.plannedSubs });
+      setPrefillPayload({
+        // Starters on the field + planned subs parked on the sideline in one array;
+        // the sideline players render as waiting subs (desaturated, position-labelled).
+        playersOnField: [...result.playersOnField, ...result.sidelinePlayers],
+        plannedSubs: result.plannedSubs,
+      });
       setPrefillMissingCount(result.missingPlayerIds.length);
     },
     [playtimePlans, prefillPlanId, availablePlayersForSetup],

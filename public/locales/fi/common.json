@@ -3176,8 +3176,9 @@
       "pickForSlot": "Napauta pelaaja tähän paikkaan",
       "clearSlot": "Tyhjennä",
       "benchEmpty": "Kaikki ovat kentällä.",
-      "hint": "Napauta paikkaa asettaaksesi pelaajan.",
-      "benchHeading": "Vaihtopenkki"
+      "hint": "Napauta pelaajaa sijoittaaksesi hänet, tai valitse ensin paikka.",
+      "benchHeading": "Vaihtopenkki",
+      "autoFill": "Täytä automaattisesti"
     },
     "subs": {
       "heading": "Vaihdot",
@@ -3195,12 +3196,13 @@
     "balance": {
       "title": "Peliaikatasapaino",
       "view": "Näytä peliaikatasapaino",
-      "fairShare": "Reilu osuus {{minutes}}' / pelaaja",
+      "fairShare": "Osuus {{minutes}}' / pelaaja",
       "gamesCounted_one": "{{count}} peli laskettu",
       "gamesCounted_other": "{{count}} peliä laskettu",
       "noGames": "Ei laskettuja pelejä. Merkitse pelit mukaan.",
-      "ofFairShare": "{{pct}}% reilusta osuudesta",
-      "notPlaying": "Ei pelaa: {{games}}"
+      "ofFairShare": "{{pct}}% osuudesta",
+      "notPlaying": "Ei pelaa: {{games}}",
+      "gameShort": "O{{n}}"
     },
     "versions": {
       "switchLabel": "Suunnitelma",

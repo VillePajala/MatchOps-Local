@@ -3176,8 +3176,9 @@
       "pickForSlot": "Tap a player for this position",
       "clearSlot": "Clear",
       "benchEmpty": "Everyone is on the field.",
-      "hint": "Tap a position to assign a player.",
-      "benchHeading": "Bench"
+      "hint": "Tap a player to place them, or a position first.",
+      "benchHeading": "Bench",
+      "autoFill": "Auto-fill"
     },
     "subs": {
       "heading": "Substitutions",
@@ -3195,12 +3196,13 @@
     "balance": {
       "title": "Playing-time balance",
       "view": "View playing-time balance",
-      "fairShare": "Fair share {{minutes}}' each",
+      "fairShare": "Share {{minutes}}' each",
       "gamesCounted_one": "{{count}} game counted",
       "gamesCounted_other": "{{count}} games counted",
       "noGames": "No games counted yet. Mark games as included.",
-      "ofFairShare": "{{pct}}% of fair share",
-      "notPlaying": "Not playing: {{games}}"
+      "ofFairShare": "{{pct}}% of share",
+      "notPlaying": "Not playing: {{games}}",
+      "gameShort": "G{{n}}"
     },
     "versions": {
       "switchLabel": "Plan",

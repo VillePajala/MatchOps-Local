@@ -12,6 +12,8 @@ import { FieldContainer } from './FieldContainer';
 import type { FieldContainerProps } from './FieldContainer';
 
 const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-slate-700';
+// Survives a remount of the game view (e.g. resume-from-background loading flash).
+const PLANNER_OPEN_KEY = 'matchops_planner_open';
 type ControlBarProps = React.ComponentProps<typeof ControlBar>;
 
 export interface GameContainerProps {
@@ -46,8 +48,23 @@ export function GameContainer({
   const { t } = useTranslation();
   // Playing-Time Planner is launched from the ControlBar hamburger menu; the modal
   // is owned here (the ControlBar's parent) so no handler threading is needed.
-  const [showPlanner, setShowPlanner] = useState(false);
-  const openPlanner = useCallback(() => setShowPlanner(true), []);
+  //
+  // Open-state is mirrored to sessionStorage so it survives a remount of the game
+  // view. On resume from background (cloud mode) the app can briefly flash a
+  // loading/auth-check screen, which unmounts this container and would otherwise
+  // drop the planner. Restoring from sessionStorage reopens it automatically so
+  // the coach never has to reopen it by hand.
+  const [showPlanner, setShowPlanner] = useState(
+    () => typeof window !== 'undefined' && window.sessionStorage.getItem(PLANNER_OPEN_KEY) === '1',
+  );
+  const openPlanner = useCallback(() => {
+    if (typeof window !== 'undefined') window.sessionStorage.setItem(PLANNER_OPEN_KEY, '1');
+    setShowPlanner(true);
+  }, []);
+  const closePlanner = useCallback(() => {
+    if (typeof window !== 'undefined') window.sessionStorage.removeItem(PLANNER_OPEN_KEY);
+    setShowPlanner(false);
+  }, []);
 
   return (
     <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
@@ -90,7 +107,7 @@ export function GameContainer({
       </div>
 
       {showPlanner && (
-        <PlaytimePlannerModal isOpen onClose={() => setShowPlanner(false)} />
+        <PlaytimePlannerModal isOpen onClose={closePlanner} />
       )}
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.

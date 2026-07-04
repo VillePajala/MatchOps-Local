@@ -236,7 +236,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const handleCreate = async () => {
     const players = roster
       .filter((p) => selectedIds.has(p.id))
-      .map((p) => ({ id: p.id, name: p.name }));
+      // Store the disc name (nickname first, like the field) so the planner shows
+      // the same short name the created game will - not the full legal name.
+      .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
     if (players.length === 0) return;
     const plan = createPlan({
       name: name.trim() || t('playtimePlanner.setup.defaultName', 'Tournament plan'),

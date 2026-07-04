@@ -66,7 +66,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
         <p className={subtextStyle}>
           {fairMin === null
             ? t('playtimePlanner.balance.noGames', 'No games counted yet. Mark games as included.')
-            : `${t('playtimePlanner.balance.fairShare', "Fair share {{minutes}}' each", {
+            : `${t('playtimePlanner.balance.fairShare', "Share {{minutes}}' each", {
                 minutes: fairMin,
               })} · ${t('playtimePlanner.balance.gamesCounted', '{{count}} games counted', {
                 count: minutes.includedGameCount,
@@ -92,7 +92,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
                   {toMin(p.totalSeconds)}&#39;
                   {pct !== null && (
                     <span className="text-slate-500 ml-2">
-                      {t('playtimePlanner.balance.ofFairShare', '{{pct}}% of fair share', { pct })}
+                      {t('playtimePlanner.balance.ofFairShare', '{{pct}}% of share', { pct })}
                     </span>
                   )}
                 </span>
@@ -114,7 +114,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
                         : 'text-red-400';
                   return (
                     <span key={g.id} className={`text-[10px] tabular-nums ${tone}`} title={g.label}>
-                      G{i + 1}&nbsp;{toMin(sec)}&#39;
+                      {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}&nbsp;{toMin(sec)}&#39;
                     </span>
                   );
                 })}
