@@ -54,15 +54,15 @@ describe('PlanFieldView', () => {
     expect(onAssign).toHaveBeenCalledWith('gk', 'p1');
   });
 
-  it('quick-places a bench player into the first empty slot with no slot selected', () => {
+  it('quick-places a bench player into the first empty outfield slot (not the GK)', () => {
     const onAssign = jest.fn();
     render(<PlanFieldView game={makeGame()} players={players} onAssign={onAssign} />);
 
-    // No slot selected: tapping a bench player drops them into the first empty slot.
+    // No slot selected: tapping a bench player drops them into the first empty
+    // slot, skipping the goalkeeper so nobody is silently made the keeper.
     fireEvent.click(screen.getByRole('button', { name: 'Sam' }));
     expect(onAssign).toHaveBeenCalledTimes(1);
-    // First empty slot is the GK (slot index 0).
-    expect(onAssign).toHaveBeenCalledWith('gk', 'p2');
+    expect(onAssign).toHaveBeenCalledWith('s0', 'p2');
   });
 
   it('auto-fills every empty slot from the bench', () => {

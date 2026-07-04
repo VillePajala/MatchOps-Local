@@ -493,7 +493,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
 
   return (
     <ModalContainer>
-      <ModalHeader title={t('playtimePlanner.title', 'Playing-Time Planner')} />
+      <ModalHeader title={t('playtimePlanner.title', 'Lineup planner')} />
 
       <ScrollableContent className="px-6 py-5">
         {view === 'loading' && (

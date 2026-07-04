@@ -447,21 +447,29 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                     {/* Team names */}
                     <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                       {isUnplayed ? (
-                        <span
-                          className="w-2 h-2 rounded-full shrink-0 bg-red-500"
-                          title={t('loadGameModal.unplayedBadge', 'Not played')}
-                          aria-label={t('loadGameModal.unplayedBadge', 'Not played')}
-                        />
+                        <>
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0 bg-red-500"
+                            title={t('loadGameModal.unplayedBadge', 'Not played')}
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">{t('loadGameModal.unplayedBadge', 'Not played')}</span>
+                        </>
                       ) : showReadinessDot ? (
-                        <span
-                          className={`w-2 h-2 rounded-full shrink-0 ${isRecordComplete ? 'bg-emerald-500' : 'bg-amber-400'}`}
-                          title={isRecordComplete
-                            ? t('loadGameModal.readyTitle', 'Record complete')
-                            : t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
-                          aria-label={isRecordComplete
-                            ? t('loadGameModal.readyTitle', 'Record complete')
-                            : t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
-                        />
+                        <>
+                          <span
+                            className={`w-2 h-2 rounded-full shrink-0 ${isRecordComplete ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                            title={isRecordComplete
+                              ? t('loadGameModal.readyTitle', 'Record complete')
+                              : t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">
+                            {isRecordComplete
+                              ? t('loadGameModal.readyTitle', 'Record complete')
+                              : t('loadGameModal.needsFinishingTitle', 'Needs finishing')}
+                          </span>
+                        </>
                       ) : null}
                       <span className="font-semibold text-base text-slate-100">
                         {displayHomeTeamName}

@@ -151,6 +151,19 @@ export async function startNewGameWithSetup(
       ? initialSelectedPlayerIds
       : availablePlayers.map((player) => player.id);
 
+  // Playing-Time Planner prefill: the planned XI + parked subs are built when the
+  // plan is picked, but the coach can then change the selection or switch teams.
+  // Reconcile so the app-wide invariant playersOnField ⊆ selectedPlayerIds ⊆
+  // availablePlayers always holds: drop prefilled players no longer in the roster,
+  // and make sure everyone left on the field stays selected.
+  const availableIdSet = new Set(availablePlayersForGame.map((p) => p.id));
+  const reconciledOnField = (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id));
+  const reconciledSelectedPlayerIds = prefill
+    ? [...new Set([...finalSelectedPlayerIds, ...reconciledOnField.map((p) => p.id)])].filter((id) =>
+        availableIdSet.has(id),
+      )
+    : finalSelectedPlayerIds;
+
   // Sentry breadcrumb: Game creation started
   const newGameId = `game_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   Sentry.addBreadcrumb({
@@ -204,9 +217,9 @@ export async function startNewGameWithSetup(
     // gender flows from modal → handler → AppState storage (optional)
     gender,
     availablePlayers: availablePlayersForGame,
-    selectedPlayerIds: finalSelectedPlayerIds,
+    selectedPlayerIds: reconciledSelectedPlayerIds,
     // Planner prefill places the planned XI on the field at creation; otherwise empty.
-    playersOnField: prefill?.playersOnField ?? [],
+    playersOnField: reconciledOnField,
     // Snap points let the game rebuild the dotted sub-slot circles + position labels
     // (a manually-placed game persists these too). Empty for a normal new game.
     formationSnapPoints: prefill?.formationSnapPoints ?? [],
@@ -293,7 +306,7 @@ export async function startNewGameWithSetup(
       periodDurationMinutes: periodDuration,
       currentPeriod: 1,
       gameStatus: 'notStarted',
-      selectedPlayerIds: finalSelectedPlayerIds,
+      selectedPlayerIds: reconciledSelectedPlayerIds,
       gamePersonnel: selectedPersonnelIds,
       seasonId: seasonId || '',
       tournamentId: tournamentId || '',
