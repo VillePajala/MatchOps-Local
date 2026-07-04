@@ -469,20 +469,6 @@ export function FieldContainer({
         </div>
       )}
 
-      {/* Persistent bottom pill when on default game — Create Game CTA */}
-      {tmInitialLoad && currentGameId === DEFAULT_GAME_ID && (isSetupOverlayDismissed || fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40">
-          <button
-            onClick={() => onOpenNewGameSetup?.()}
-            className="bg-indigo-600/90 hover:bg-indigo-500 border border-indigo-400/30 rounded-full px-5 py-2.5 shadow-lg backdrop-blur-sm transition-colors"
-          >
-            <span className="text-white font-semibold text-sm">
-              + {t('firstGame.createRealGame', 'Create Game')}
-            </span>
-          </button>
-        </div>
-      )}
-
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
           Functionality (orphanedGameInfo, TeamReassignModal) kept for potential future use. */}
     </div>
