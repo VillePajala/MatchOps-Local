@@ -187,3 +187,86 @@ local-only (like `playerPositions`); cloud is deferred (2.4).
 - **Old in-app code**: tag `archive/planner-integration` (what not to do).
 - Sits in **P4 (big bets)**; this doc is the planning P4 requires. Nothing is
   built yet - Phase 1.1 (the pure minutes engine) is the safe first slice.
+
+## 9. Phase 3 — Re-apply a plan to games already created from it
+
+### The problem
+A coach builds a plan, creates real games from its planned games, then something
+changes mid-tournament (an injury, a no-show, a formation rethink). They edit the
+plan - but today that edit goes nowhere: `buildPrefillFromPlan` is a **one-time
+copy** at game creation and the game keeps no reference back to the plan. So the
+coach has to hand-fix every already-created game. This phase closes that loop.
+
+### Current state (verified)
+- No back-reference: a created game stores `playersOnField`, `formationSnapPoints`,
+  `selectedPlayerIds`, and (locally, keyed by game id) `plannedSubs` via
+  `gameSubs.ts` - but **no `planId`/`planGameId`**.
+- The prefill already produces exactly the shape a re-apply needs
+  (`buildPrefillFromPlan` → starters + sideline subs + snap points + subs +
+  `missingPlayerIds`), so re-apply is mostly *plumbing + guards*, not new algorithm.
+
+### Data model (Phase 3.1)
+Add two optional fields to `AppState` (`src/types/game.ts`), written at creation:
+- `sourcePlanId?: string`
+- `sourcePlanGameId?: string`
+
+Thread them prefill → `onStart` payload → `newGameHandlers` → `newGameState`
+(mirrors how `formationSnapPoints` was threaded). Games created before this ship
+have no link and simply can't be re-applied (acceptable; no migration needed).
+
+### Core (Phase 3.2) - pure + one handler
+- **Reuse `buildPrefillFromPlan`.** A re-apply is: recompute the prefill against
+  the *current* plan + planned game + *current* roster, then **overwrite only the
+  lineup fields**, preserving game identity and history:
+  - Overwrite: `playersOnField` (starters + parked subs), `formationSnapPoints`,
+    `selectedPlayerIds` (reconciled - same Rule 3 union already added to
+    `newGameHandlers`), and the local `gameSubs` (via `setGameSubs`).
+  - Preserve: opponent/date/time/location, score, `gameEvents`, assessments,
+    notes, personnel, period config, `isPlayed`/`gameStatus` - everything that is
+    "what happened", not "who lines up".
+- **Handler `reapplyPlanToGame(gameId)`**: load game → resolve `sourcePlanId` /
+  `sourcePlanGameId` → `getPlan` + find planned game → `getMasterRoster` (or the
+  game's own roster) → `buildPrefillFromPlan` → merge patch → `saveGame` +
+  `setGameSubs`. Returns a result the UI can toast (`missingPlayerIds`, counts).
+
+### Guards (non-negotiable)
+- **Unplayed only.** Re-apply is blocked (or hard-warned) when
+  `gameStatus !== 'notStarted'` / the game already has `gameEvents` - never clobber
+  a game that has been played. This is the main safety rule.
+- **Plan/planned game must still exist.** If deleted, disable the action with a
+  reason ("the source plan was deleted").
+- **Destructive to manual edits.** Any hand-tweaks to the game's lineup since
+  creation are overwritten → always behind a confirm.
+- **Rule 3.** Reuse the reconciliation already in `newGameHandlers`
+  (playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers) so a roster that drifted
+  since creation stays valid.
+
+### UI (Phase 3.3)
+- **Per-game (primary):** a "Re-apply plan" button in `GameSettingsModal`, shown
+  only when the game has a `sourcePlanId` and is unplayed. Confirm → toast result
+  (e.g. "Lineup updated from *Plan name*; 1 planned player not in the roster").
+- **Bulk (secondary, high value for the injury case):** from the planner overview,
+  each planned game shows "N games use this - update them". One tap re-applies to
+  **all unplayed games** whose `sourcePlanGameId` matches, with a single confirm and
+  a summary toast. This is what makes an injury edit propagate in one action.
+
+### Phased PR split
+1. **3.1 Link** - add `sourcePlanId`/`sourcePlanGameId`, thread through creation,
+   store them. (No behaviour change; pure plumbing + a test that a plan-created
+   game carries the link.)
+2. **3.2 Core** - `reapplyPlanToGame` handler + pure merge, guards, tests
+   (unplayed-only, Rule 3, missing-player reporting, subs overwrite).
+3. **3.3 Per-game UI** - the GameSettingsModal button + confirm + toast.
+4. **3.4 Bulk UI** - planner-overview "update linked games" for all unplayed
+   matches, with count + confirm.
+
+### Edge cases / open questions
+- Game roster differs from the plan roster (team-linked game vs master roster):
+  re-apply should reconcile against the *game's* available players, not blindly the
+  master roster. Decide the roster source in 3.2.
+- Partial propagation: if some linked games are played and some aren't, bulk
+  re-apply silently skips the played ones and says so in the toast (no silent caps).
+- Should re-apply also refresh opponent/date if the planned game gained a label?
+  Default **no** - those are game-identity, coach-owned. Revisit only if asked.
+- An "undo" for a mistaken re-apply would need a snapshot; out of scope for 3.x
+  (the confirm + unplayed-only guard is the safety net).
