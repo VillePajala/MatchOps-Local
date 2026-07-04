@@ -9,9 +9,11 @@
  */
 
 import { getGameSlots, ensureStartingSlots } from './lineup';
+import { generateSubSlots } from '@/utils/formations';
+import { getPositionLabelForFormationPosition } from '@/utils/positionLabels';
 import type { PlaytimePlan, PlanGame } from './types';
 import type { PlannedGameSub } from './gameSubs';
-import type { Player } from '@/types';
+import type { Player, Point } from '@/types';
 
 export interface PrefillResult {
   /** Planned starters placed at their formation slot coordinates (relX/relY 0..1). */
@@ -27,6 +29,13 @@ export interface PrefillResult {
   selectedPlayerIds: string[];
   /** Planned subs, each carrying the starter it replaces (outPlayerId). */
   plannedSubs: PlannedGameSub[];
+  /**
+   * The formation's field positions, stored on the game so it regenerates the
+   * dotted sub-slot circles and the on-field position labels (the app rebuilds
+   * both from `formationSnapPoints` on load - without these a prefilled game has
+   * neither). Matches what a manually-placed game persists.
+   */
+  formationSnapPoints: Point[];
   /** Planned player ids that aren't in the roster (so the UI can warn). */
   missingPlayerIds: string[];
 }
@@ -92,14 +101,29 @@ export function buildPrefillFromPlan(
       };
     });
 
-  // Park each incoming sub as its own disc down the right sideline (relX 0.96 so it
-  // reads as a sideline sub), so planned changes are visible from kickoff, not just
-  // when the timer prompt fires. Each player waits once (their first sub); discs are
-  // ordered by the slot they enter - own-goal end low, attack high - then spaced
-  // evenly so they never overlap or stack. Starters are already on the field.
+  // Formation field positions the created game stores, so it rebuilds the dotted
+  // sub-slot circles + on-field position labels on load (same as a placed game).
+  const formationSnapPoints: Point[] = getGameSlots(planGame.formationId).map((s) => ({
+    relX: s.relX,
+    relY: s.relY,
+  }));
+  // Mirror the app's load-time filter (drop GK and sideline) before building the
+  // sub slots, so the coordinates we park subs onto line up exactly with the ones
+  // the game will regenerate.
+  const fieldPositions = formationSnapPoints.filter(
+    (p) => p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95,
+  );
+  const subSlots = generateSubSlots(fieldPositions);
+
+  // Park each incoming sub in the labelled sub-slot for the position they enter, so
+  // they land in the correct dotted circle. Same-position subs take the next free
+  // matching slot; anything unmatched falls back to an evenly-spaced sideline column.
+  // Each player waits once (their first sub); starters are already on the field.
   const onFieldIds = new Set(playersOnField.map((p) => p.id));
   const seenSub = new Set<string>();
-  const parked: { player: Player; targetRelY: number }[] = [];
+  const usedSlots = new Set<number>();
+  const sidelinePlayers: Player[] = [];
+  let fallbackIdx = 0;
   for (const sub of [...planGame.subs].sort((a, b) => a.timeSeconds - b.timeSeconds)) {
     if (!sub.inPlayerId) continue;
     const player = byId.get(sub.inPlayerId);
@@ -108,16 +132,23 @@ export function buildPrefillFromPlan(
     const slot = slotById.get(sub.slotId);
     if (!slot) continue;
     seenSub.add(sub.inPlayerId);
-    parked.push({ player, targetRelY: slot.relY });
+
+    const targetLabel = getPositionLabelForFormationPosition(slot.relX, slot.relY).label;
+    let idx = subSlots.findIndex((ss, i) => !usedSlots.has(i) && ss.positionLabel === targetLabel);
+    if (idx < 0) idx = subSlots.findIndex((_ss, i) => !usedSlots.has(i));
+    if (idx >= 0) {
+      usedSlots.add(idx);
+      sidelinePlayers.push({ ...player, relX: subSlots[idx].relX, relY: subSlots[idx].relY, isGoalie: false });
+    } else {
+      sidelinePlayers.push({
+        ...player,
+        relX: SIDELINE_X,
+        relY: clamp(SIDELINE_START_Y - fallbackIdx * SIDELINE_GAP, 0.06, 0.94),
+        isGoalie: false,
+      });
+      fallbackIdx += 1;
+    }
   }
-  // Own-goal end (higher relY) first, so the sideline column mirrors the field.
-  parked.sort((a, b) => b.targetRelY - a.targetRelY);
-  const sidelinePlayers: Player[] = parked.map(({ player }, i) => ({
-    ...player,
-    relX: SIDELINE_X,
-    relY: clamp(SIDELINE_START_Y - i * SIDELINE_GAP, 0.06, 0.94),
-    isGoalie: false,
-  }));
 
   // Every planned player the current roster can't resolve - squad members, starters,
   // and incoming subs alike - so the UI can warn about anyone silently dropped.
@@ -138,5 +169,12 @@ export function buildPrefillFromPlan(
     ]),
   ];
 
-  return { playersOnField, sidelinePlayers, selectedPlayerIds, plannedSubs, missingPlayerIds };
+  return {
+    playersOnField,
+    sidelinePlayers,
+    selectedPlayerIds,
+    plannedSubs,
+    formationSnapPoints,
+    missingPlayerIds,
+  };
 }

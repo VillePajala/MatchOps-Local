@@ -3161,8 +3161,8 @@
       "formatSummary": "{{games}} games · {{periods}}×{{minutes}} min",
       "gamesHeading": "Games",
       "included": "Included",
-      "newPlan": "New plan",
-      "deletePlan": "Delete plan",
+      "newPlan": "New",
+      "deletePlan": "Delete",
       "confirmDelete": "Delete this plan? This cannot be undone.",
       "placedCount": "{{placed}}/{{total}} placed",
       "editLineup": "Edit lineup"

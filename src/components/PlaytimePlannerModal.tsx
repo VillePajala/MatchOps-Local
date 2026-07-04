@@ -690,18 +690,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
               />
             </div>
 
-            {/* Versions & JSON toolbar */}
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={handleDuplicate} className={secondaryButtonStyle}>
+            {/* Versions & JSON toolbar - one full-width block of equal buttons. */}
+            <div className="flex gap-2">
+              <button type="button" onClick={handleDuplicate} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
                 {t('playtimePlanner.versions.duplicate', 'Duplicate')}
               </button>
-              <button type="button" onClick={handleExport} className={secondaryButtonStyle}>
+              <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
                 {t('playtimePlanner.versions.export', 'Export JSON')}
               </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className={secondaryButtonStyle}
+                className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}
               >
                 {t('playtimePlanner.versions.import', 'Import JSON')}
               </button>
@@ -844,22 +844,22 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
               setEditingGameId(null);
               setView('overview');
             }}
-            className={secondaryButtonStyle}
+            className={`${secondaryButtonStyle} flex-1`}
           >
             {t('playtimePlanner.lineup.back', 'Back to plan')}
           </button>
         )}
         {view === 'overview' && (
           <>
-            <button type="button" onClick={handleDelete} className={`${dangerButtonStyle} mr-auto`}>
-              {t('playtimePlanner.overview.deletePlan', 'Delete plan')}
+            <button type="button" onClick={handleDelete} className={`${dangerButtonStyle} flex-1`}>
+              {t('playtimePlanner.overview.deletePlan', 'Delete')}
             </button>
-            <button type="button" onClick={startNewPlan} className={secondaryButtonStyle}>
-              {t('playtimePlanner.overview.newPlan', 'New plan')}
+            <button type="button" onClick={startNewPlan} className={`${secondaryButtonStyle} flex-1`}>
+              {t('playtimePlanner.overview.newPlan', 'New')}
             </button>
           </>
         )}
-        <button type="button" onClick={onClose} className={secondaryButtonStyle}>
+        <button type="button" onClick={onClose} className={`${secondaryButtonStyle} flex-1`}>
           {t('common.close', 'Close')}
         </button>
       </ModalFooter>

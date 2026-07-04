@@ -150,8 +150,8 @@ describe('PlaytimePlannerModal', () => {
     expect(savedPlan.games).toHaveLength(5);
 
     // Overview view now shows management controls.
-    await waitFor(() => expect(screen.getByText('Delete plan')).toBeInTheDocument());
-    expect(screen.getByText('New plan')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument());
+    expect(screen.getByText('New')).toBeInTheDocument();
   });
 
   it('disables create when no players are selected', async () => {
@@ -189,7 +189,7 @@ describe('PlaytimePlannerModal', () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument());
-    expect(screen.getByText('Delete plan')).toBeInTheDocument();
+    expect(screen.getByText('Delete')).toBeInTheDocument();
   });
 
   it('autosaves an overview edit (debounced) to the plan name', async () => {
@@ -218,7 +218,7 @@ describe('PlaytimePlannerModal', () => {
 
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error'));
     // Stays on setup (no overview) since the save failed.
-    expect(screen.queryByText('Delete plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
   });
 
   it('edits a lineup end-to-end: assign a player and the placed count updates', async () => {
@@ -583,10 +583,10 @@ describe('PlaytimePlannerModal', () => {
     mockDeletePlan.mockResolvedValue(false);
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Delete plan')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument());
 
     await act(async () => {
-      fireEvent.click(screen.getByText('Delete plan'));
+      fireEvent.click(screen.getByText('Delete'));
     });
 
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error'));

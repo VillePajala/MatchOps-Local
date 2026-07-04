@@ -3161,8 +3161,8 @@
       "formatSummary": "{{games}} peliä · {{periods}}×{{minutes}} min",
       "gamesHeading": "Pelit",
       "included": "Mukana",
-      "newPlan": "Uusi suunnitelma",
-      "deletePlan": "Poista suunnitelma",
+      "newPlan": "Uusi",
+      "deletePlan": "Poista",
       "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
       "placedCount": "{{placed}}/{{total}} paikoillaan",
       "editLineup": "Muokkaa kokoonpanoa"

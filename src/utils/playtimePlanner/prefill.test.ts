@@ -105,14 +105,14 @@ describe('buildPrefillFromPlan', () => {
     expect(res.selectedPlayerIds).toEqual(['b']); // ghost filtered out of the squad
   });
 
-  /** @critical planned subs must be visible on the field: parked on the sideline. */
-  it('parks each incoming sub on the right sideline next to its target slot', () => {
+  /** @critical planned subs must be visible on the field: parked in a sub-slot. */
+  it('parks each incoming sub in a right-sideline sub-slot', () => {
     const g = planGame(); // one sub: f in for b at slot s0
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.sidelinePlayers).toHaveLength(1);
     const f = res.sidelinePlayers[0];
     expect(f.id).toBe('f');
-    expect(f.relX).toBe(0.96); // right sideline
+    expect(f.relX).toBe(0.96); // right sideline (sub-slot column)
     expect(f.isGoalie).toBe(false);
     // A sideline player is still on the field data-wise, so must stay selected (Rule 3).
     expect(res.selectedPlayerIds).toContain('f');
@@ -120,13 +120,25 @@ describe('buildPrefillFromPlan', () => {
     expect(res.playersOnField.map((p) => p.id)).not.toContain('f');
   });
 
-  it('does not re-park a starter, and stacks two subs into one slot', () => {
+  /** @critical the game needs snap points to rebuild sub-slot circles + labels. */
+  it('emits formation snap points for the field slots', () => {
+    const g = planGame();
+    const res = buildPrefillFromPlan(plan(g), g, roster);
+    // GK + 4 field = 5 slots -> 5 snap points.
+    expect(res.formationSnapPoints).toHaveLength(5);
+    for (const p of res.formationSnapPoints) {
+      expect(p.relX).toBeGreaterThanOrEqual(0);
+      expect(p.relX).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('does not re-park a starter, and gives two subs into one slot distinct spots', () => {
     const g = planGame({
       startingSlots: [
         { slotId: 'gk', playerId: 'a' },
         { slotId: 's0', playerId: 'b' },
       ],
-      // f then c both enter s0; e is already a starter elsewhere would be skipped.
+      // f then c both enter s0; the second takes the next free sub-slot.
       subs: [
         { id: 'x', slotId: 's0', timeSeconds: 600, inPlayerId: 'f' },
         { id: 'y', slotId: 's0', timeSeconds: 900, inPlayerId: 'c' },
@@ -134,8 +146,9 @@ describe('buildPrefillFromPlan', () => {
     });
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.sidelinePlayers.map((p) => p.id)).toEqual(['f', 'c']);
-    // Stacked upward: the second waits above the first.
-    expect(res.sidelinePlayers[1].relY!).toBeLessThan(res.sidelinePlayers[0].relY!);
+    // Distinct spots, never the same disc position (no overlap/stacking).
+    const [first, second] = res.sidelinePlayers;
+    expect(first.relX === second.relX && first.relY === second.relY).toBe(false);
   });
 
   it('leaves empty slots unplaced (partial lineup prefills what exists)', () => {
