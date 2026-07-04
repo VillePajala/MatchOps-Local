@@ -97,11 +97,45 @@ describe('buildPrefillFromPlan', () => {
         { slotId: 'gk', playerId: 'ghost' }, // not in roster
         { slotId: 's0', playerId: 'b' },
       ],
+      subs: [], // no subs -> isolate the ghost-starter behaviour from sideline parking
     });
     const res = buildPrefillFromPlan(plan(g, ['ghost', 'b']), g, roster);
     expect(res.missingPlayerIds).toEqual(['ghost']);
     expect(res.playersOnField.map((p) => p.id)).toEqual(['b']); // ghost skipped
     expect(res.selectedPlayerIds).toEqual(['b']); // ghost filtered out of the squad
+  });
+
+  /** @critical planned subs must be visible on the field: parked on the sideline. */
+  it('parks each incoming sub on the right sideline next to its target slot', () => {
+    const g = planGame(); // one sub: f in for b at slot s0
+    const res = buildPrefillFromPlan(plan(g), g, roster);
+    expect(res.sidelinePlayers).toHaveLength(1);
+    const f = res.sidelinePlayers[0];
+    expect(f.id).toBe('f');
+    expect(f.relX).toBe(0.96); // right sideline
+    expect(f.isGoalie).toBe(false);
+    // A sideline player is still on the field data-wise, so must stay selected (Rule 3).
+    expect(res.selectedPlayerIds).toContain('f');
+    // Starters are unaffected - f is not double-counted on the field.
+    expect(res.playersOnField.map((p) => p.id)).not.toContain('f');
+  });
+
+  it('does not re-park a starter, and stacks two subs into one slot', () => {
+    const g = planGame({
+      startingSlots: [
+        { slotId: 'gk', playerId: 'a' },
+        { slotId: 's0', playerId: 'b' },
+      ],
+      // f then c both enter s0; e is already a starter elsewhere would be skipped.
+      subs: [
+        { id: 'x', slotId: 's0', timeSeconds: 600, inPlayerId: 'f' },
+        { id: 'y', slotId: 's0', timeSeconds: 900, inPlayerId: 'c' },
+      ],
+    });
+    const res = buildPrefillFromPlan(plan(g), g, roster);
+    expect(res.sidelinePlayers.map((p) => p.id)).toEqual(['f', 'c']);
+    // Stacked upward: the second waits above the first.
+    expect(res.sidelinePlayers[1].relY!).toBeLessThan(res.sidelinePlayers[0].relY!);
   });
 
   it('leaves empty slots unplaced (partial lineup prefills what exists)', () => {

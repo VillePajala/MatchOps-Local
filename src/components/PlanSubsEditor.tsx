@@ -154,7 +154,8 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onAdd, o
                 min={0}
                 max={maxMinute}
                 value={minute}
-                onChange={(e) => setMinute(Math.max(0, Math.min(maxMinute, Number(e.target.value) || 0)))}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setMinute(Math.max(0, Math.min(maxMinute, Math.floor(Number(e.target.value) || 0))))}
                 className={inputBaseStyle}
               />
             </div>
