@@ -169,7 +169,8 @@
     "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?",
     "signOut": "Kirjaudu ulos",
     "startScreen": "Aloitusnäyttö",
-    "userGuide": "Käyttöohje"
+    "userGuide": "Käyttöohje",
+    "planner": "Kokoonpanosuunnittelu"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -988,8 +989,7 @@
     "existingSubscriber": "Oletko jo tilaaja? Kirjaudu sisään →",
     "newToCloud": "Uusi käyttäjä? Tilaa Android-sovelluksen kautta.",
     "getAndroidApp": "Lataa Google Playsta",
-    "welcomeScreen": "Tervetuloa",
-    "planPlaytime": "Suunnittele peliaika"
+    "welcomeScreen": "Tervetuloa"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -3135,7 +3135,7 @@
     "upNext": "Vuorossa"
   },
   "playtimePlanner": {
-    "title": "Peliaikasuunnittelija",
+    "title": "Kokoonpanosuunnittelu",
     "setup": {
       "defaultName": "Turnaussuunnitelma",
       "nameLabel": "Suunnitelman nimi",
