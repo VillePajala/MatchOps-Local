@@ -956,8 +956,8 @@
       "errorPlayed": "This game has already started, so its lineup can't be re-applied.",
       "errorPlanMissing": "The source plan was deleted, so it can no longer be re-applied.",
       "errorGeneric": "Could not re-apply the plan.",
-      "successMissing_one": "Lineup updated from the plan. {{count}} planned player is not in this game and was skipped.",
-      "successMissing_other": "Lineup updated from the plan. {{count}} planned players are not in this game and were skipped."
+      "successMissing_one": "Lineup updated from the plan. Not in this game's roster, skipped: {{names}}.",
+      "successMissing_other": "Lineup updated from the plan. Not in this game's roster, skipped: {{names}}."
     },
     "eventActions": "Event actions",
     "gameTypeLabel": "Link to Competition",
@@ -3191,8 +3191,8 @@
       "updateLinked_other": "Update {{count}} games created from this",
       "reapplyDone_one": "Updated {{count}} game from the plan.",
       "reapplyDone_other": "Updated {{count}} games from the plan.",
-      "reapplyDoneMissing_one": "Updated {{count}} game. Planned players not in a game roster were skipped: {{missing}}.",
-      "reapplyDoneMissing_other": "Updated {{count}} games. Planned players not in a game roster were skipped: {{missing}}.",
+      "reapplyDoneMissing_one": "Updated {{count}} game. Not in a game roster, skipped: {{names}}.",
+      "reapplyDoneMissing_other": "Updated {{count}} games. Not in a game roster, skipped: {{names}}.",
       "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
       "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated.",
       "editPlayers": "Edit players"
