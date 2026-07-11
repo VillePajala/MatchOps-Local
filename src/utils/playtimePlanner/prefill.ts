@@ -9,7 +9,7 @@
  */
 
 import { getGameSlots, ensureStartingSlots } from './lineup';
-import { generateSubSlots } from '@/utils/formations';
+import { generateSubSlots, isFieldPosition } from '@/utils/formations';
 import { getPositionLabelForFormationPosition } from '@/utils/positionLabels';
 import type { PlaytimePlan, PlanGame } from './types';
 import type { PlannedGameSub } from './gameSubs';
@@ -107,12 +107,10 @@ export function buildPrefillFromPlan(
     relX: s.relX,
     relY: s.relY,
   }));
-  // Mirror the app's load-time filter (drop GK and sideline) before building the
-  // sub slots, so the coordinates we park subs onto line up exactly with the ones
+  // Shared load-time filter (drop GK and sideline) before building the sub
+  // slots, so the coordinates we park subs onto line up exactly with the ones
   // the game will regenerate.
-  const fieldPositions = formationSnapPoints.filter(
-    (p) => p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95,
-  );
+  const fieldPositions = formationSnapPoints.filter(isFieldPosition);
   const subSlots = generateSubSlots(fieldPositions);
 
   // Park each incoming sub in the labelled sub-slot for the position they enter, so

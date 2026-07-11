@@ -71,6 +71,12 @@ interface PlaytimePlannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   /**
+   * Flush the currently loaded game's debounced autosave. Called BEFORE the bulk
+   * re-apply reads persisted blobs, so an edit made in the last ~500ms is in the
+   * blob being patched instead of silently dropped by the rewrite.
+   */
+  onFlushLiveGame?: () => Promise<void>;
+  /**
    * Bulk re-apply rewrote these games in storage. The host uses this to refresh
    * live state when the currently loaded game is among them (otherwise the next
    * autosave would write the stale in-memory lineup back over the update).
@@ -85,6 +91,7 @@ type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance';
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   isOpen,
   onClose,
+  onFlushLiveGame,
   onLinkedGamesUpdated,
 }) => {
   const { t } = useTranslation();
@@ -467,8 +474,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (!activePlan) return;
       const count = linkedCounts[game.id] ?? 0;
       if (count === 0) return;
-      // Persist any in-flight plan edits first so the re-apply uses the latest lineup.
+      // Persist any in-flight PLAN edits first so the re-apply uses the latest
+      // lineup, and flush the host's loaded-GAME autosave so its pending edits are
+      // in the blob we're about to read and rewrite (not silently dropped).
       await flushSave();
+      await onFlushLiveGame?.();
       try {
         const summary = await reapplyPlanToLinkedGames(
           {
@@ -519,7 +529,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         showToast(t('playtimePlanner.overview.reapplyError', 'Could not update the linked games.'), 'error');
       }
     },
-    [activePlan, linkedCounts, user, flushSave, queryClient, refreshLinkedCounts, onLinkedGamesUpdated, showToast, t],
+    [activePlan, linkedCounts, user, flushSave, onFlushLiveGame, queryClient, refreshLinkedCounts, onLinkedGamesUpdated, showToast, t],
   );
 
   const handleDuplicate = useCallback(async () => {
