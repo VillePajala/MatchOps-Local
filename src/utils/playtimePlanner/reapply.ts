@@ -111,3 +111,73 @@ export async function reapplyPlanToGame(
   await deps.setGameSubs(gameId, result.plannedSubs ?? []);
   return result;
 }
+
+/** Summary of a bulk re-apply across every game linked to one planned game. */
+export interface BulkReapplyResult {
+  /** Games linked to this planned game (before the played filter). */
+  matched: number;
+  /** Games actually re-saved. */
+  updated: number;
+  /** Linked games skipped because they had already been played. */
+  skippedPlayed: number;
+  /** Total planned player slots skipped across all updated games (roster drift). */
+  missingTotal: number;
+}
+
+/** Storage seam for the bulk path - loads every saved game to find the linked ones. */
+export interface BulkReapplyDeps {
+  getAllGames: () => Promise<Record<string, AppState>>;
+  saveGame: (id: string, game: AppState) => Promise<AppState | null>;
+  setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
+}
+
+/**
+ * Re-apply one planned game to EVERY (unplayed) real game created from it - the
+ * injury case: edit the plan once, propagate to all games in one action. Played
+ * games are skipped (never clobbered), not counted as failures. The plan + planned
+ * game are passed in (the planner already has them), so no per-game plan lookup.
+ */
+export async function reapplyPlanToLinkedGames(
+  deps: BulkReapplyDeps,
+  plan: PlaytimePlan,
+  planGameId: string,
+): Promise<BulkReapplyResult> {
+  const summary: BulkReapplyResult = { matched: 0, updated: 0, skippedPlayed: 0, missingTotal: 0 };
+  const planGame = plan.games.find((g) => g.id === planGameId);
+  if (!planGame) return summary;
+
+  const all = await deps.getAllGames();
+  for (const [gameId, game] of Object.entries(all)) {
+    if (game.sourcePlanId !== plan.id || game.sourcePlanGameId !== planGameId) continue;
+    summary.matched += 1;
+
+    const result = buildReapplyPatch(game, plan, planGame);
+    if (!result.ok || !result.patch) {
+      if (result.reason === 'played') summary.skippedPlayed += 1;
+      continue;
+    }
+    await deps.saveGame(gameId, { ...game, ...result.patch });
+    await deps.setGameSubs(gameId, result.plannedSubs ?? []);
+    summary.updated += 1;
+    summary.missingTotal += result.missingPlayerIds?.length ?? 0;
+  }
+  return summary;
+}
+
+/**
+ * Count unplayed real games linked to each planned game in a plan, keyed by
+ * planned-game id. Drives the planner's "update N games" affordance. Played games
+ * are excluded (they can't be re-applied).
+ */
+export function countReapplicableGames(
+  games: Record<string, AppState>,
+  planId: string,
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const game of Object.values(games)) {
+    if (game.sourcePlanId !== planId || !game.sourcePlanGameId) continue;
+    if (isGamePlayed(game)) continue;
+    counts[game.sourcePlanGameId] = (counts[game.sourcePlanGameId] ?? 0) + 1;
+  }
+  return counts;
+}

@@ -3177,7 +3177,12 @@
       "deletePlan": "Poista",
       "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
       "placedCount": "{{placed}}/{{total}} paikoillaan",
-      "editLineup": "Muokkaa kokoonpanoa"
+      "editLineup": "Muokkaa kokoonpanoa",
+      "updateLinked": "Päivitä {{count}} peliä tästä",
+      "confirmReapply": "Päivitetäänkö {{count}} pelaamatonta ottelua, jotka on luotu suunnitelmasta \"{{label}}\", nykyisellä suunnitelmalla? Niiden kokoonpanot ja suunnitellut vaihdot korvataan.",
+      "reapplyDone": "Päivitettiin {{updated}} peliä suunnitelmasta.",
+      "reapplyDoneMissing": "Päivitettiin {{updated}} peliä. {{missing}} suunniteltua pelaajapaikkaa ohitettiin (ei pelin kokoonpanossa).",
+      "reapplyError": "Linkitettyjen pelien päivitys ei onnistunut."
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",

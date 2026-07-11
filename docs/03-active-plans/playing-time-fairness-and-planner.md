@@ -267,8 +267,11 @@ on `feat/playtime-3.1-plan-link`.)
    `handleReapplyPlan` in `useGameOrchestration` that pushes the rebuilt lineup into
    live state and bumps a refresh key so `usePlannedSubPrompts` re-reads the new
    schedule.
-4. **3.4 Bulk UI** - planner-overview "update linked games" for all unplayed
-   matches, with count + confirm.
+4. **3.4 Bulk UI** ✅ *shipped* - planner-overview "Update N games from this" per
+   planned game (count of unplayed linked games via `countReapplicableGames`),
+   confirm, then `reapplyPlanToLinkedGames` re-applies to every unplayed linked
+   game (played games skipped), invalidates the saved-games cache, and toasts a
+   summary. Completes the injury flow: edit the plan once, propagate in one tap.
 
 ### Decisions (locked 2026-07-04)
 1. **Entry points: both.** Per-game "Re-apply plan" in `GameSettingsModal` **and**

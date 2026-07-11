@@ -51,10 +51,18 @@ import {
   getGameSlots,
 } from '@/utils/playtimePlanner/lineup';
 import { addSub, removeSub } from '@/utils/playtimePlanner/subs';
+import {
+  reapplyPlanToLinkedGames,
+  countReapplicableGames,
+} from '@/utils/playtimePlanner/reapply';
+import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
+import { getSavedGames, saveGame as utilSaveGame } from '@/utils/savedGames';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/config/queryKeys';
 import PlanFieldView from '@/components/PlanFieldView';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
 import PlanBalanceView from '@/components/PlanBalanceView';
-import type { PlaytimePlan, PlanSub } from '@/utils/playtimePlanner/types';
+import type { PlaytimePlan, PlanSub, PlanGame } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
 
 interface PlaytimePlannerModalProps {
@@ -70,12 +78,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
   const [view, setView] = useState<View>('loading');
   const [roster, setRoster] = useState<Player[]>([]);
   const [activePlan, setActivePlan] = useState<PlaytimePlan | null>(null);
   const [editingGameId, setEditingGameId] = useState<string | null>(null);
   const [planList, setPlanList] = useState<PlaytimePlan[]>([]);
+  // Per-planned-game count of unplayed real games created from it (Phase 3.4 bulk
+  // re-apply). Keyed by planned-game id.
+  const [linkedCounts, setLinkedCounts] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Setup form state.
@@ -384,6 +396,87 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
       }
     },
     [activePlan?.id, flushSave, refreshPlanList, showToast, t],
+  );
+
+  // Phase 3.4: tally unplayed real games created from each planned game so the
+  // overview can offer a one-tap "update N games" action.
+  const refreshLinkedCounts = useCallback(
+    async (planId: string) => {
+      try {
+        const games = await getSavedGames(user?.id);
+        setLinkedCounts(countReapplicableGames(games, planId));
+      } catch (err) {
+        logger.error('[planner] Failed to count linked games (non-fatal)', err);
+        setLinkedCounts({});
+      }
+    },
+    [user],
+  );
+
+  // Only re-count when the active plan identity changes, not on every plan edit.
+  useEffect(() => {
+    const planId = activePlan?.id;
+    let cancelled = false;
+    void (async () => {
+      if (!planId) {
+        if (!cancelled) setLinkedCounts({});
+        return;
+      }
+      await refreshLinkedCounts(planId);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activePlan?.id, refreshLinkedCounts]);
+
+  // Re-apply the current plan to every unplayed game created from one planned game.
+  const handleReapplyLinkedGames = useCallback(
+    async (game: PlanGame) => {
+      if (!activePlan) return;
+      const count = linkedCounts[game.id] ?? 0;
+      if (count === 0) return;
+      const confirmed = window.confirm(
+        t(
+          'playtimePlanner.overview.confirmReapply',
+          'Update {{count}} unplayed game(s) created from "{{label}}" with the current plan? Their lineups and planned substitutions will be overwritten.',
+          { count, label: game.label },
+        ),
+      );
+      if (!confirmed) return;
+      // Persist any in-flight plan edits first so the re-apply uses the latest lineup.
+      await flushSave();
+      try {
+        const summary = await reapplyPlanToLinkedGames(
+          {
+            getAllGames: () => getSavedGames(user?.id),
+            saveGame: (id, g) => utilSaveGame(id, g, user?.id),
+            setGameSubs,
+          },
+          activePlan,
+          game.id,
+        );
+        // The saved-games React Query cache is now stale - refetch so a later load
+        // shows the updated lineup.
+        queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, user?.id] });
+        await refreshLinkedCounts(activePlan.id);
+        showToast(
+          summary.missingTotal > 0
+            ? t(
+                'playtimePlanner.overview.reapplyDoneMissing',
+                'Updated {{updated}} game(s). {{missing}} planned player slot(s) were skipped (not in a game roster).',
+                { updated: summary.updated, missing: summary.missingTotal },
+              )
+            : t('playtimePlanner.overview.reapplyDone', 'Updated {{updated}} game(s) from the plan.', {
+                updated: summary.updated,
+              }),
+          'success',
+        );
+      } catch (err) {
+        logger.error('[planner] Bulk re-apply failed', err);
+        showToast(t('playtimePlanner.overview.reapplyError', 'Could not update the linked games.'), 'error');
+      }
+    },
+    [activePlan, linkedCounts, user, flushSave, queryClient, refreshLinkedCounts, showToast, t],
   );
 
   const handleDuplicate = useCallback(async () => {
@@ -799,6 +892,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
                           {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
                         </button>
                       </div>
+                      {(linkedCounts[game.id] ?? 0) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => void handleReapplyLinkedGames(game)}
+                          className={`${secondaryButtonStyle} w-full text-xs`}
+                        >
+                          {t('playtimePlanner.overview.updateLinked', 'Update {{count}} game(s) from this', {
+                            count: linkedCounts[game.id],
+                          })}
+                        </button>
+                      )}
                     </div>
                   );
                 })}

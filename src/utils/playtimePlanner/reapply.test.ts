@@ -1,7 +1,9 @@
 import {
   buildReapplyPatch,
+  countReapplicableGames,
   isGamePlayed,
   reapplyPlanToGame,
+  reapplyPlanToLinkedGames,
   type ReapplyDeps,
 } from './reapply';
 import type { PlaytimePlan, PlanGame } from './types';
@@ -187,5 +189,67 @@ describe('reapplyPlanToGame', () => {
     expect(setGameSubs).toHaveBeenCalledWith('game-1', [
       { id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' },
     ]);
+  });
+});
+
+describe('countReapplicableGames', () => {
+  it('counts only unplayed games linked to the plan, keyed by planned-game id', () => {
+    const games: Record<string, AppState> = {
+      a: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
+      b: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
+      c: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g2' }),
+      played: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1', gameStatus: 'inProgress' }),
+      otherPlan: makeGame({ sourcePlanId: 'plan-9', sourcePlanGameId: 'g1' }),
+      noLink: makeGame({ sourcePlanId: undefined, sourcePlanGameId: undefined }),
+    };
+    expect(countReapplicableGames(games, 'plan-1')).toEqual({ g1: 2, g2: 1 });
+  });
+});
+
+describe('reapplyPlanToLinkedGames', () => {
+  const makeBulkDeps = (games: Record<string, AppState>) => {
+    const saveGame = jest.fn(async (_id: string, game: AppState) => game);
+    const setGameSubs = jest.fn(async () => true);
+    return {
+      deps: { getAllGames: async () => games, saveGame, setGameSubs },
+      saveGame,
+      setGameSubs,
+    };
+  };
+
+  it('updates every unplayed linked game and skips played ones', async () => {
+    const games: Record<string, AppState> = {
+      a: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
+      b: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
+      played: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1', gameStatus: 'inProgress' }),
+      otherGame: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g2' }),
+    };
+    const { deps, saveGame, setGameSubs } = makeBulkDeps(games);
+    const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
+
+    expect(summary).toEqual({ matched: 3, updated: 2, skippedPlayed: 1, missingTotal: 0 });
+    expect(saveGame).toHaveBeenCalledTimes(2); // a + b, not the played one, not g2
+    expect(setGameSubs).toHaveBeenCalledTimes(2);
+  });
+
+  it('tallies missing planned players across updated games (roster drift)', async () => {
+    // Both linked games are missing Kai (a planned starter) from their roster.
+    const drifted = () =>
+      makeGame({
+        sourcePlanId: 'plan-1',
+        sourcePlanGameId: 'g1',
+        availablePlayers: roster.filter((p) => p.id !== 'e'),
+      });
+    const { deps } = makeBulkDeps({ a: drifted(), b: drifted() });
+    const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
+    expect(summary.updated).toBe(2);
+    expect(summary.missingTotal).toBe(2); // one missing player per updated game
+  });
+
+  it('does nothing when the planned game is not in the plan', async () => {
+    const { deps, saveGame } = makeBulkDeps({ a: makeGame() });
+    const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'nope');
+    expect(summary).toEqual({ matched: 0, updated: 0, skippedPlayed: 0, missingTotal: 0 });
+    expect(saveGame).not.toHaveBeenCalled();
   });
 });
