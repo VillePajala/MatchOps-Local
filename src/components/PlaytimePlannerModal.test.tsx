@@ -35,6 +35,23 @@ jest.mock('@/contexts/ToastProvider', () => ({
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
+// The planner reads saved games to count/bulk-update plan-linked games (Phase 3.4).
+const mockGetSavedGames = jest.fn((..._args: unknown[]) => Promise.resolve<Record<string, unknown>>({}));
+jest.mock('@/utils/savedGames', () => ({
+  getSavedGames: (...args: unknown[]) => mockGetSavedGames(...args),
+  saveGame: jest.fn(async (_id: string, g: unknown) => g),
+}));
+
+// The planner invalidates the saved-games query cache after a bulk re-apply.
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ invalidateQueries: jest.fn() }),
+}));
+
+// Bulk re-apply stores the recomputed planned subs per game.
+jest.mock('@/utils/playtimePlanner/gameSubs', () => ({
+  setGameSubs: jest.fn(async () => true),
+}));
+
 const roster: Player[] = [
   { id: 'p1', name: 'Alex', isGoalie: false, receivedFairPlayCard: false, jerseyNumber: '1' },
   { id: 'p2', name: 'Sam', isGoalie: false, receivedFairPlayCard: false, jerseyNumber: '2' },
@@ -190,6 +207,37 @@ describe('PlaytimePlannerModal', () => {
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument());
     expect(screen.getByText('Delete')).toBeInTheDocument();
+  });
+
+  it('bulk re-applies the plan to linked unplayed games (Phase 3.4)', async () => {
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    // One saved game was created from planned game g1 and is still unplayed.
+    mockGetSavedGames.mockResolvedValue({
+      game_1: {
+        sourcePlanId: 'existing',
+        sourcePlanGameId: 'g1',
+        gameStatus: 'notStarted',
+        gameEvents: [],
+        availablePlayers: [{ id: 'p1', name: 'Alex' }],
+        selectedPlayerIds: [],
+        playersOnField: [],
+      },
+    } as never);
+
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+
+    // The "update N games" affordance appears once the linked count resolves.
+    const button = await screen.findByText('Update 1 game(s) from this');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(confirmSpy).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('Updated 1 game(s) from the plan.', 'success'),
+    );
+    confirmSpy.mockRestore();
   });
 
   it('autosaves an overview edit (debounced) to the plan name', async () => {
