@@ -293,9 +293,12 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
+      // +2: planner UI rounds - playtimePlanner.lineup.autoFill, playtimePlanner.balance.gameShort
+      //     (part of the count baseline above; listed for completeness - PR #650 review nit)
       // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
       // +5: playtimePlanner.overview.* bulk re-apply (Planner Phase 3.4 update-linked-games)
-      expect(enKeys.length).toBe(2751);
+      // +1: playtimePlanner.overview.reapplyDonePartial (bulk partial-failure toast, PR #650 review)
+      expect(enKeys.length).toBe(2752);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -312,9 +315,12 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
+      // +2: planner UI rounds - playtimePlanner.lineup.autoFill, playtimePlanner.balance.gameShort
+      //     (part of the count baseline above; listed for completeness - PR #650 review nit)
       // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
       // +5: playtimePlanner.overview.* bulk re-apply (Planner Phase 3.4 update-linked-games)
-      expect(fiKeys.length).toBe(2751);
+      // +1: playtimePlanner.overview.reapplyDonePartial (bulk partial-failure toast, PR #650 review)
+      expect(fiKeys.length).toBe(2752);
     });
   });
 });

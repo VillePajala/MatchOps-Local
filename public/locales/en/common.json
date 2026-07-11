@@ -3182,6 +3182,7 @@
       "confirmReapply": "Update {{count}} unplayed game(s) created from \"{{label}}\" with the current plan? Their lineups and planned substitutions will be overwritten.",
       "reapplyDone": "Updated {{updated}} game(s) from the plan.",
       "reapplyDoneMissing": "Updated {{updated}} game(s). {{missing}} planned player slot(s) were skipped (not in a game roster).",
+      "reapplyDonePartial": "Updated {{updated}} game(s); {{failed}} could not be updated.",
       "reapplyError": "Could not update the linked games."
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",

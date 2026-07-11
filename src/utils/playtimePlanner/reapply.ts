@@ -9,6 +9,7 @@ import type { PlaytimePlan, PlanGame } from './types';
 import type { PlannedGameSub } from './gameSubs';
 import type { PlanLink, PlanLinksCollection } from './planLinks';
 import { buildPrefillFromPlan } from './prefill';
+import logger from '@/utils/logger';
 
 /** Why a re-apply could not proceed (drives the UI's disabled reason / toast). */
 export type ReapplyBlockedReason =
@@ -126,6 +127,8 @@ export interface BulkReapplyResult {
   updatedIds: string[];
   /** Linked games skipped because they had already been played. */
   skippedPlayed: number;
+  /** Linked games whose write failed (storage error) - surfaced, never silent. */
+  failed: number;
   /** Total planned player slots skipped across all updated games (roster drift). */
   missingTotal: number;
 }
@@ -155,6 +158,7 @@ export async function reapplyPlanToLinkedGames(
     updated: 0,
     updatedIds: [],
     skippedPlayed: 0,
+    failed: 0,
     missingTotal: 0,
   };
   const planGame = plan.games.find((g) => g.id === planGameId);
@@ -171,8 +175,17 @@ export async function reapplyPlanToLinkedGames(
       if (result.reason === 'played') summary.skippedPlayed += 1;
       continue;
     }
-    await deps.saveGame(gameId, { ...game, ...result.patch });
-    await deps.setGameSubs(gameId, result.plannedSubs ?? []);
+    // Each game's write is isolated: one bad blob must not abort the batch (the
+    // already-updated games would otherwise be unreported and the caller could
+    // never refresh live state for them). Failures are counted, never silent.
+    try {
+      await deps.saveGame(gameId, { ...game, ...result.patch });
+      await deps.setGameSubs(gameId, result.plannedSubs ?? []);
+    } catch (error) {
+      logger.error(`[playtimePlanner] Bulk re-apply failed for game "${gameId}":`, error);
+      summary.failed += 1;
+      continue;
+    }
     summary.updated += 1;
     summary.updatedIds.push(gameId);
     summary.missingTotal += result.missingPlayerIds?.length ?? 0;

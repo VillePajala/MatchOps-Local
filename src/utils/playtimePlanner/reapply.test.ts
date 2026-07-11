@@ -9,6 +9,11 @@ import {
 import type { PlaytimePlan, PlanGame } from './types';
 import type { AppState, Player } from '@/types';
 
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() },
+}));
+
 const roster: Player[] = [
   { id: 'a', name: 'Alex' },
   { id: 'b', name: 'Sam' },
@@ -256,10 +261,33 @@ describe('reapplyPlanToLinkedGames', () => {
       updated: 2,
       updatedIds: ['a', 'b'],
       skippedPlayed: 1,
+      failed: 0,
       missingTotal: 0,
     });
     expect(saveGame).toHaveBeenCalledTimes(2); // a + b, not the played one, not g2
     expect(setGameSubs).toHaveBeenCalledTimes(2);
+  });
+
+  it('isolates a failing write: the rest of the batch still updates and failures are counted', async () => {
+    const games: Record<string, AppState> = { a: makeGame(), b: makeGame(), c: makeGame() };
+    const links = {
+      a: { planId: 'plan-1', planGameId: 'g1' },
+      b: { planId: 'plan-1', planGameId: 'g1' },
+      c: { planId: 'plan-1', planGameId: 'g1' },
+    };
+    const { deps, saveGame } = makeBulkDeps(games, links);
+    // Game b's blob is bad - its save rejects; a and c must still go through.
+    saveGame.mockImplementation(async (id: string, game: AppState) => {
+      if (id === 'b') throw new Error('quota exceeded');
+      return game;
+    });
+
+    const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
+
+    expect(summary.matched).toBe(3);
+    expect(summary.updated).toBe(2);
+    expect(summary.updatedIds).toEqual(['a', 'c']);
+    expect(summary.failed).toBe(1); // surfaced, not silent
   });
 
   it('tallies missing planned players across updated games (roster drift)', async () => {
@@ -281,7 +309,14 @@ describe('reapplyPlanToLinkedGames', () => {
       { a: { planId: 'plan-1', planGameId: 'g1' } },
     );
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'nope');
-    expect(summary).toEqual({ matched: 0, updated: 0, updatedIds: [], skippedPlayed: 0, missingTotal: 0 });
+    expect(summary).toEqual({
+      matched: 0,
+      updated: 0,
+      updatedIds: [],
+      skippedPlayed: 0,
+      failed: 0,
+      missingTotal: 0,
+    });
     expect(saveGame).not.toHaveBeenCalled();
   });
 });
