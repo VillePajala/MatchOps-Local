@@ -2117,7 +2117,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       missing > 0
         ? t(
             'gameSettingsModal.reapplyPlan.successMissing',
-            'Lineup updated from the plan. {{count}} planned player(s) are not in this game and were skipped.',
+            'Lineup updated from the plan. {{count}} planned players are not in this game and were skipped.',
             { count: missing },
           )
         : t('gameSettingsModal.reapplyPlan.success', 'Lineup updated from the plan.'),

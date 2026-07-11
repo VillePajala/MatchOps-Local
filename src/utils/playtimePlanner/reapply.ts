@@ -27,9 +27,6 @@ export interface ReapplyResult {
   plannedSubs?: PlannedGameSub[];
   /** Planned players not in the game's roster (surfaced in the toast). */
   missingPlayerIds?: string[];
-  /** Counts for the summary toast. */
-  startersCount?: number;
-  subsCount?: number;
 }
 
 /**
@@ -76,8 +73,6 @@ export function buildReapplyPatch(
     },
     plannedSubs: prefill.plannedSubs,
     missingPlayerIds: prefill.missingPlayerIds,
-    startersCount: prefill.playersOnField.length,
-    subsCount: prefill.sidelinePlayers.length,
   };
 }
 

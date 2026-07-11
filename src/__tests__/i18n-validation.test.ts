@@ -298,7 +298,10 @@ describe('Translation File Validation', () => {
       // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
       // +5: playtimePlanner.overview.* bulk re-apply (Planner Phase 3.4 update-linked-games)
       // +1: playtimePlanner.overview.reapplyDonePartial (bulk partial-failure toast, PR #650 review)
-      expect(enKeys.length).toBe(2752);
+      // +13: Batch C - _one/_other plural pairs for 7 planner/reapply count strings (+7),
+      //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
+      //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
+      expect(enKeys.length).toBe(2765);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -320,7 +323,10 @@ describe('Translation File Validation', () => {
       // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
       // +5: playtimePlanner.overview.* bulk re-apply (Planner Phase 3.4 update-linked-games)
       // +1: playtimePlanner.overview.reapplyDonePartial (bulk partial-failure toast, PR #650 review)
-      expect(fiKeys.length).toBe(2752);
+      // +13: Batch C - _one/_other plural pairs for 7 planner/reapply count strings (+7),
+      //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
+      //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
+      expect(fiKeys.length).toBe(2765);
     });
   });
 });

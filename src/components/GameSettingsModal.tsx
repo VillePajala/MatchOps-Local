@@ -2665,7 +2665,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         title={t('gameSettingsModal.reapplyPlan.confirmTitle', 'Re-apply plan?')}
         message={t(
           'gameSettingsModal.reapplyPlan.confirmMessage',
-          "This replaces the game's lineup and planned substitutions with the current plan. The score, events and other details are kept.",
+          "This replaces the game's lineup, player selection and planned substitutions with the current plan. The score, events and other details are kept.",
         )}
         warningMessage={t(
           'gameSettingsModal.reapplyPlan.confirmWarning',

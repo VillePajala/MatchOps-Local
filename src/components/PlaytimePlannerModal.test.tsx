@@ -216,7 +216,6 @@ describe('PlaytimePlannerModal', () => {
   });
 
   it('bulk re-applies the plan to linked unplayed games (Phase 3.4)', async () => {
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
     const onLinkedGamesUpdated = jest.fn();
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     // One saved game was created from planned game g1 (link in the link store)
@@ -237,18 +236,23 @@ describe('PlaytimePlannerModal', () => {
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} onLinkedGamesUpdated={onLinkedGamesUpdated} />);
 
     // The "update N games" affordance appears once the linked count resolves.
-    const button = await screen.findByText('Update 1 game(s) from this');
+    const button = await screen.findByText('Update 1 games created from this');
     await act(async () => {
       fireEvent.click(button);
     });
 
-    expect(confirmSpy).toHaveBeenCalled();
+    // Guarded behind the app's ConfirmationModal - nothing runs until confirmed.
+    expect(mockShowToast).not.toHaveBeenCalled();
+    const confirm = await screen.findByRole('button', { name: 'Update' });
+    await act(async () => {
+      fireEvent.click(confirm);
+    });
+
     await waitFor(() =>
-      expect(mockShowToast).toHaveBeenCalledWith('Updated 1 game(s) from the plan.', 'success'),
+      expect(mockShowToast).toHaveBeenCalledWith('Updated 1 games from the plan.', 'success'),
     );
     // The host is told which games changed so it can refresh live state.
     expect(onLinkedGamesUpdated).toHaveBeenCalledWith(['game_1']);
-    confirmSpy.mockRestore();
   });
 
   it('autosaves an overview edit (debounced) to the plan name', async () => {
@@ -334,13 +338,13 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add substitution' }));
     });
-    await waitFor(() => expect(screen.getByText(/Sam → GK/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/Sam in for Alex \(GK\)/)).toBeInTheDocument());
 
     // Remove it again.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     });
-    await waitFor(() => expect(screen.queryByText(/Sam → GK/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Sam in for Alex \(GK\)/)).not.toBeInTheDocument());
   });
 
   it('prefills roster selection and durations from a chosen team, and stamps teamId', async () => {
@@ -640,15 +644,19 @@ describe('PlaytimePlannerModal', () => {
   it('shows an error toast when delete fails', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockDeletePlan.mockResolvedValue(false);
-    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument());
 
+    // Footer button opens the ConfirmationModal; the destructive action runs
+    // only after the styled confirm (no native window.confirm anymore).
     await act(async () => {
       fireEvent.click(screen.getByText('Delete'));
     });
+    const confirmButtons = await screen.findAllByRole('button', { name: 'Delete' });
+    await act(async () => {
+      fireEvent.click(confirmButtons[confirmButtons.length - 1]);
+    });
 
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error'));
-    confirmSpy.mockRestore();
   });
 });
