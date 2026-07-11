@@ -258,6 +258,18 @@ export interface SubSlot {
 }
 
 /**
+ * True for an outfield FIELD position: excludes the goalkeeper row (relY > 0.9)
+ * and anything parked on a sideline (relX outside 0.05..0.95). This is the
+ * single source of truth for "which snap points count as field positions" -
+ * used when regenerating sub slots from persisted formationSnapPoints (game
+ * load, plan prefill, plan re-apply). Keep in sync with GK_SLOT/sideline
+ * constants; previously this predicate was duplicated at each call site.
+ */
+export function isFieldPosition(p: { relX: number; relY: number }): boolean {
+  return p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95;
+}
+
+/**
  * Generate sub slots on the right sideline corresponding to formation positions
  *
  * Creates labeled slots where substitutes can be placed. When multiple positions

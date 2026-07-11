@@ -31,6 +31,8 @@ export interface GameContainerProps {
   onOpenTeamReassignModal: () => void;
   fieldProps: FieldContainerProps;
   controlBarProps: ControlBarProps;
+  /** Flush the loaded game's debounced autosave (run before bulk re-apply reads storage). */
+  onFlushLiveGame?: () => Promise<void>;
   /** Planner bulk re-apply rewrote these games in storage; refresh live state if one is loaded. */
   onLinkedGamesUpdated?: (gameIds: string[]) => void;
 }
@@ -48,6 +50,7 @@ export function GameContainer({
   onOpenTeamReassignModal: _onOpenTeamReassignModal,
   fieldProps,
   controlBarProps,
+  onFlushLiveGame,
   onLinkedGamesUpdated,
 }: GameContainerProps) {
   const { t } = useTranslation();
@@ -112,7 +115,12 @@ export function GameContainer({
       </div>
 
       {showPlanner && (
-        <PlaytimePlannerModal isOpen onClose={closePlanner} onLinkedGamesUpdated={onLinkedGamesUpdated} />
+        <PlaytimePlannerModal
+          isOpen
+          onClose={closePlanner}
+          onFlushLiveGame={onFlushLiveGame}
+          onLinkedGamesUpdated={onLinkedGamesUpdated}
+        />
       )}
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.

@@ -52,7 +52,7 @@ import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
-import { generateSubSlots } from '@/utils/formations';
+import { generateSubSlots, isFieldPosition } from '@/utils/formations';
 import { reapplyPlanToGame, type ReapplyResult } from '@/utils/playtimePlanner/reapply';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
@@ -1181,10 +1181,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Works for both soccer and futsal - generateSubSlots is sport-agnostic
     const snapPoints = gameData?.formationSnapPoints || [];
     if (snapPoints.length > 0) {
-      // Extract field positions only (exclude GK at relY > 0.9 and sideline at relX > 0.95)
-      const fieldPositions = snapPoints.filter(p =>
-        p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95
-      );
+      // Extract field positions only (shared predicate: excludes GK + sideline)
+      const fieldPositions = snapPoints.filter(isFieldPosition);
       if (fieldPositions.length > 0) {
         const newSubSlots = generateSubSlots(fieldPositions);
         setSubSlots(newSubSlots);
@@ -2031,7 +2029,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setFormationSnapPoints(snapPoints);
       dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: patch.selectedPlayerIds });
       // Rebuild sideline sub-slot visuals from the new snap points (mirrors the load path).
-      const fieldPositions = snapPoints.filter(p => p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95);
+      const fieldPositions = snapPoints.filter(isFieldPosition);
       setSubSlots(fieldPositions.length > 0 ? generateSubSlots(fieldPositions) : []);
       // Force the live sub-prompt hook to re-read the new planned schedule.
       setPlannedSubsRefreshKey(k => k + 1);
@@ -2109,7 +2107,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
     // Push the rebuilt lineup into live state (persisted copy already saved).
     applyReappliedLineup(result.patch);
-    // Keep the saved-games cache in sync with the re-saved lineup.
+    // Keep the in-memory savedGames copy AND the query cache in step with storage
+    // (mirrors the bulk path - readers of savedGames state would otherwise show
+    // the pre-reapply lineup until the refetch lands).
+    setSavedGames(prev => ({ ...prev, [currentGameId]: { ...game!, ...result.patch } }));
     queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
 
     const missing = result.missingPlayerIds?.length ?? 0;
@@ -2130,8 +2131,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     showToast,
     t,
     applyReappliedLineup,
+    setSavedGames,
     queryClient,
   ]);
+
+  // Bulk re-apply is about to read + rewrite persisted game blobs in the planner.
+  // Flush the currently-loaded game's debounced autosave first so an edit made in
+  // the last ~500ms (notes, personnel, ...) is IN the blob the bulk path reads -
+  // the same guard the per-game path applies before its own read (PR #650 r4 bug 1).
+  const handleFlushLiveGame = useCallback(async () => {
+    try {
+      await persistence.handleQuickSaveGame(true, true);
+    } catch (err) {
+      logger.warn('[reapplyPlan] Pre-bulk flush failed (non-fatal)', err);
+    }
+  }, [persistence]);
 
   // Bulk re-apply ran in the planner (Phase 3.4). If the CURRENTLY LOADED game was
   // among the updated ones, its live state is now stale - without this refresh the
@@ -2672,7 +2686,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldProps: fieldContainerProps,
     controlBarProps,
     // Planner bulk re-apply may rewrite the currently loaded game in storage;
-    // this refreshes live state so autosave doesn't revert the update.
+    // the flush runs before its read (pending edits land first), the refresh runs
+    // after its write (so autosave doesn't revert the update).
+    onFlushLiveGame: handleFlushLiveGame,
     onLinkedGamesUpdated: handleLinkedGamesUpdated,
   };
 
