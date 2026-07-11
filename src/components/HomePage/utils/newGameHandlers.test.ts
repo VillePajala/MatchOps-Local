@@ -232,6 +232,56 @@ describe('newGameHandlers', () => {
         expect(availableIds).toContain(id);
       }
     });
+
+    it('stamps the source plan link on a game created from a plan (Phase 3)', async () => {
+      let savedState: AppState | undefined;
+      const savedGamesState = createSetStateMock<SavedGamesCollection>({});
+      const deps = createTestDeps({
+        savedGames: savedGamesState.getState(),
+        setSavedGames: savedGamesState.setter,
+        utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => {
+          savedState = state;
+          return state;
+        }),
+      });
+
+      await startNewGameWithSetup(deps, createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        availablePlayersForGame: mockPlayers,
+        prefill: {
+          playersOnField: [{ id: 'p1', name: 'Player 1', isGoalie: false, relX: 0.5, relY: 0.5 }],
+          plannedSubs: [],
+          formationSnapPoints: [],
+          sourcePlanId: 'plan-123',
+          sourcePlanGameId: 'plangame-456',
+        },
+      }));
+
+      // The link lets an edited plan be re-applied to this game later.
+      expect(savedState!.sourcePlanId).toBe('plan-123');
+      expect(savedState!.sourcePlanGameId).toBe('plangame-456');
+    });
+
+    it('leaves the source plan link unset for a normal (non-plan) game', async () => {
+      let savedState: AppState | undefined;
+      const savedGamesState = createSetStateMock<SavedGamesCollection>({});
+      const deps = createTestDeps({
+        savedGames: savedGamesState.getState(),
+        setSavedGames: savedGamesState.setter,
+        utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => {
+          savedState = state;
+          return state;
+        }),
+      });
+
+      await startNewGameWithSetup(deps, createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        availablePlayersForGame: mockPlayers,
+      }));
+
+      expect(savedState!.sourcePlanId).toBeUndefined();
+      expect(savedState!.sourcePlanGameId).toBeUndefined();
+    });
   });
 
   describe('premium limit enforcement', () => {

@@ -214,6 +214,12 @@ Thread them prefill → `onStart` payload → `newGameHandlers` → `newGameStat
 (mirrors how `formationSnapPoints` was threaded). Games created before this ship
 have no link and simply can't be re-applied (acceptable; no migration needed).
 
+Local-only, on purpose. The plan itself lives in IndexedDB and is not synced to
+cloud, so these ids are dropped on the cloud round-trip and only resolve on the
+device that owns the plan - which is the only device where re-apply could work
+anyway. No DB columns / SupabaseDataStore transforms needed. (Status: **shipped**
+on `feat/playtime-3.1-plan-link`.)
+
 ### Core (Phase 3.2) - pure + one handler
 - **Reuse `buildPrefillFromPlan`.** A re-apply is: recompute the prefill against
   the *current* plan + planned game + *current* roster, then **overwrite only the
@@ -251,22 +257,28 @@ have no link and simply can't be re-applied (acceptable; no migration needed).
   a summary toast. This is what makes an injury edit propagate in one action.
 
 ### Phased PR split
-1. **3.1 Link** - add `sourcePlanId`/`sourcePlanGameId`, thread through creation,
-   store them. (No behaviour change; pure plumbing + a test that a plan-created
-   game carries the link.)
+1. **3.1 Link** ✅ *shipped* - add `sourcePlanId`/`sourcePlanGameId`, thread through
+   creation, store them. (No behaviour change; pure plumbing + a test that a
+   plan-created game carries the link.)
 2. **3.2 Core** - `reapplyPlanToGame` handler + pure merge, guards, tests
    (unplayed-only, Rule 3, missing-player reporting, subs overwrite).
 3. **3.3 Per-game UI** - the GameSettingsModal button + confirm + toast.
 4. **3.4 Bulk UI** - planner-overview "update linked games" for all unplayed
    matches, with count + confirm.
 
-### Edge cases / open questions
-- Game roster differs from the plan roster (team-linked game vs master roster):
-  re-apply should reconcile against the *game's* available players, not blindly the
-  master roster. Decide the roster source in 3.2.
-- Partial propagation: if some linked games are played and some aren't, bulk
-  re-apply silently skips the played ones and says so in the toast (no silent caps).
-- Should re-apply also refresh opponent/date if the planned game gained a label?
-  Default **no** - those are game-identity, coach-owned. Revisit only if asked.
-- An "undo" for a mistaken re-apply would need a snapshot; out of scope for 3.x
-  (the confirm + unplayed-only guard is the safety net).
+### Decisions (locked 2026-07-04)
+1. **Entry points: both.** Per-game "Re-apply plan" in `GameSettingsModal` **and**
+   a bulk "update all unplayed games from this planned game" in the planner.
+2. **Played games: hard-blocked.** Never re-apply to a game with events/score
+   (`gameStatus !== 'notStarted'` or `gameEvents.length > 0`). Bulk re-apply skips
+   them and reports it in the toast (no silent caps).
+3. **Overwrite scope: lineup only.** Overwrite `playersOnField` (starters +
+   sideline subs), `formationSnapPoints`, reconciled `selectedPlayerIds`, and the
+   local `gameSubs`. Leave opponent/date/time/location, **period length/count**,
+   notes, personnel, score, events untouched (coach-owned game identity).
+4. **Roster source: the game's own roster.** Reconcile against the roster the game
+   was created with (its team roster if team-linked, else master), not blindly the
+   master roster — so a team-linked game stays consistent and a player who left the
+   team is dropped.
+5. **Undo: none.** The confirm dialog + unplayed-only guard are the safety net
+   (small blast radius; always asks first). No snapshot/revert in 3.x.

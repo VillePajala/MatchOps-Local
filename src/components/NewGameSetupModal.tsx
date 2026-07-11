@@ -56,7 +56,15 @@ interface NewGameSetupModalProps {
     // Optional Playing-Time Planner prefill (Phase 2): planned XI placed on the
     // field at creation + the planned sub schedule stored by game id, plus the
     // formation snap points so the game rebuilds sub-slot circles + position labels.
-    prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[] }
+    // Phase 3: sourcePlanId/sourcePlanGameId link the game back to its plan so an
+    // edited plan can be re-applied to games already created from it.
+    prefill?: {
+      playersOnField: Player[];
+      plannedSubs: PlannedGameSub[];
+      formationSnapPoints: Point[];
+      sourcePlanId: string;
+      sourcePlanGameId: string;
+    }
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -136,7 +144,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [prefillPlanId, setPrefillPlanId] = useState('');
   const [prefillGameId, setPrefillGameId] = useState('');
   const [prefillPayload, setPrefillPayload] = useState<
-    { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[] } | undefined
+    | {
+        playersOnField: Player[];
+        plannedSubs: PlannedGameSub[];
+        formationSnapPoints: Point[];
+        sourcePlanId: string;
+        sourcePlanGameId: string;
+      }
+    | undefined
   >(undefined);
   const [prefillMissingCount, setPrefillMissingCount] = useState(0);
 
@@ -283,6 +298,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         plannedSubs: result.plannedSubs,
         // Snap points let the created game rebuild the dotted sub slots + labels.
         formationSnapPoints: result.formationSnapPoints,
+        // Link back to the plan so an edited plan can be re-applied later.
+        sourcePlanId: prefillPlanId,
+        sourcePlanGameId: gameId,
       });
       setPrefillMissingCount(result.missingPlayerIds.length);
     },
