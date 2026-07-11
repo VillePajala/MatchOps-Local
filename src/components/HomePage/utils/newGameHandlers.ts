@@ -68,8 +68,10 @@ export interface StartNewGameRequest {
    * Optional Playing-Time Planner prefill (Phase 2). When present, the planned XI
    * is placed on the field at creation and the planned subs are stored locally,
    * keyed by the new game id. Absent for a normal game (playersOnField stays []).
+   * Phase 3: sourcePlanId/sourcePlanGameId link the game back to its plan so an
+   * edited plan can be re-applied to games already created from it.
    */
-  prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[] };
+  prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[]; sourcePlanId?: string; sourcePlanGameId?: string };
 }
 
 export async function startNewGameWithSetup(
@@ -223,6 +225,10 @@ export async function startNewGameWithSetup(
     // Snap points let the game rebuild the dotted sub-slot circles + position labels
     // (a manually-placed game persists these too). Empty for a normal new game.
     formationSnapPoints: prefill?.formationSnapPoints ?? [],
+    // Phase 3: remember which plan/planned-game this game was spawned from so an
+    // edited plan can be re-applied later. Undefined for a normal (non-plan) game.
+    sourcePlanId: prefill?.sourcePlanId,
+    sourcePlanGameId: prefill?.sourcePlanGameId,
     opponents: [],
     showPlayerNames: true,
     drawings: [],
