@@ -2118,8 +2118,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       missing > 0
         ? t(
             'gameSettingsModal.reapplyPlan.successMissing',
-            'Lineup updated from the plan. {{count}} planned players are not in this game and were skipped.',
-            { count: missing },
+            "Lineup updated from the plan. Not in this game's roster, skipped: {{names}}.",
+            { count: missing, names: (result.missingNames ?? result.missingPlayerIds ?? []).join(', ') },
           )
         : t('gameSettingsModal.reapplyPlan.success', 'Lineup updated from the plan.'),
       'success',
@@ -2140,12 +2140,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // the last ~500ms (notes, personnel, ...) is IN the blob the bulk path reads -
   // the same guard the per-game path applies before its own read (PR #650 r4 bug 1).
   const handleFlushLiveGame = useCallback(async () => {
+    // Same guard as the per-game path: with no real game loaded (DEFAULT_GAME_ID),
+    // handleQuickSaveGame's no-id branch would CREATE a phantom saved game from
+    // the default workspace ("My Team vs Opponent") - there is nothing to flush.
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
     try {
       await persistence.handleQuickSaveGame(true, true);
     } catch (err) {
       logger.warn('[reapplyPlan] Pre-bulk flush failed (non-fatal)', err);
     }
-  }, [persistence]);
+  }, [currentGameId, persistence]);
 
   // Bulk re-apply ran in the planner (Phase 3.4). If the CURRENTLY LOADED game was
   // among the updated ones, its live state is now stale - without this refresh the

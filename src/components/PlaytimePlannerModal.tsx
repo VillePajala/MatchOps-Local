@@ -113,6 +113,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Per-planned-game count of unplayed real games created from it (Phase 3.4 bulk
   // re-apply). Keyed by planned-game id.
   const [linkedCounts, setLinkedCounts] = useState<Record<string, number>>({});
+  // Confirm-dialog + roster-edit state, declared early because the Escape handler
+  // (an early effect) must know whether a confirm is open before navigating.
+  // bulkReapplyTarget: planned game pending the bulk "update linked games" confirm.
+  const [bulkReapplyTarget, setBulkReapplyTarget] = useState<PlanGame | null>(null);
+  const [isBulkReapplying, setIsBulkReapplying] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  // replacingId: plan player whose replacement is being chosen (Phase 4);
+  // removeTarget: plan player pending the destructive remove confirm.
+  const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Setup form state.
@@ -258,8 +269,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
+      // registered earlier, so it would fire FIRST and also navigate - skip.
+      if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null) return;
       if (view === 'lineup' || view === 'balance' || view === 'players') {
         setEditingGameId(null);
+        setReplacingId(null);
         setView('overview');
       } else {
         onClose();
@@ -267,7 +282,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose]);
+  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget]);
 
   const togglePlayer = (id: string) => {
     setSelectedIds((prev) => {
@@ -426,6 +441,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (p) {
         setActivePlan(p);
         setEditingGameId(null);
+        setReplacingId(null);
         setView('overview');
       } else {
         // Target is gone (e.g. deleted in another tab). Tell the user instead of
@@ -452,9 +468,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [user],
   );
 
-  // Re-count when the active plan changes AND on every reopen: the component stays
-  // mounted while closed, and games can be created/played/deleted in between, so a
-  // count computed at the previous open would be stale.
+  // Re-count when the active plan changes AND on isOpen: GameContainer currently
+  // unmounts the closed planner (fresh mount per open), but this must not silently
+  // regress if a host ever keeps it mounted with isOpen=false - games can be
+  // created/played/deleted between opens, so a stale count would mis-label the
+  // "update N games" button.
   useEffect(() => {
     const planId = activePlan?.id;
     let cancelled = false;
@@ -473,8 +491,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Re-apply the current plan to every unplayed game created from one planned game.
   // Guarded behind the app's ConfirmationModal (not window.confirm): the "update"
   // button stores the target game, the confirm dialog runs this.
-  const [bulkReapplyTarget, setBulkReapplyTarget] = useState<PlanGame | null>(null);
-  const [isBulkReapplying, setIsBulkReapplying] = useState(false);
   const handleReapplyLinkedGames = useCallback(
     async (game: PlanGame) => {
       if (!activePlan) return;
@@ -521,8 +537,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             summary.missingTotal > 0
               ? t(
                   'playtimePlanner.overview.reapplyDoneMissing',
-                  'Updated {{count}} games. Planned players not in a game roster were skipped: {{missing}}.',
-                  { count: summary.updated, missing: summary.missingTotal },
+                  'Updated {{count}} games. Not in a game roster, skipped: {{names}}.',
+                  { count: summary.updated, names: summary.missingNames.join(', ') },
                 )
               : t('playtimePlanner.overview.reapplyDone', 'Updated {{count}} games from the plan.', {
                   count: summary.updated,
@@ -549,6 +565,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     }
     setActivePlan(saved);
     setEditingGameId(null);
+    setReplacingId(null);
     setView('overview');
     await refreshPlanList();
   }, [activePlan, flushSave, refreshPlanList, showToast, t]);
@@ -586,6 +603,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         }
         setActivePlan(imported);
         setEditingGameId(null);
+        setReplacingId(null);
         setView('overview');
         await refreshPlanList();
       } catch (error) {
@@ -598,10 +616,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   // Roster editing (Phase 4): add / replace / remove players on an existing plan.
   // Plan-level only - real games change only via an explicit re-apply afterwards.
-  // replacingId: the plan player whose replacement is being chosen; removeTarget:
-  // the plan player pending the destructive remove confirm.
-  const [replacingId, setReplacingId] = useState<string | null>(null);
-  const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
   // Master-roster players not yet in the plan (candidates for add/replace),
   // shown with the same disc name (nickname first) the plan stores.
   const rosterCandidates = useMemo(() => {
@@ -637,8 +651,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // matching every other destructive action in the app. isDeleting gates re-entry:
   // a double-tap used to race two deletes, and the second (finding the plan gone)
   // showed a spurious "could not delete" toast after a successful delete.
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const performDelete = async () => {
     if (!activePlan || isDeleting) return;
     // Cancel any pending autosave for the plan we're about to remove, but KEEP the
@@ -1204,6 +1216,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             type="button"
             onClick={() => {
               setEditingGameId(null);
+              setReplacingId(null);
               setView('overview');
             }}
             className={`${secondaryButtonStyle} flex-1`}

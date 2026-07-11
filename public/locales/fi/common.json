@@ -1432,8 +1432,8 @@
       "errorPlayed": "Tämä peli on jo alkanut, joten sen kokoonpanoa ei voi päivittää suunnitelmasta.",
       "errorPlanMissing": "Lähdesuunnitelma on poistettu, joten sitä ei voi enää ottaa käyttöön.",
       "errorGeneric": "Suunnitelman uudelleenkäyttö ei onnistunut.",
-      "successMissing_one": "Kokoonpano päivitettiin suunnitelmasta. {{count}} suunniteltu pelaaja ei ole tässä pelissä, se ohitettiin.",
-      "successMissing_other": "Kokoonpano päivitettiin suunnitelmasta. {{count}} suunniteltua pelaajaa ei ole tässä pelissä, ne ohitettiin."
+      "successMissing_one": "Kokoonpano päivitettiin suunnitelmasta. Ei tämän pelin pelaajalistassa, ohitettiin: {{names}}.",
+      "successMissing_other": "Kokoonpano päivitettiin suunnitelmasta. Ei tämän pelin pelaajalistassa, ohitettiin: {{names}}."
     },
     "eventActions": "Tapahtuman toiminnot",
     "gameTypeLabel": "Linkitä kilpailuun",
@@ -3191,8 +3191,8 @@
       "updateLinked_other": "Päivitä {{count}} tästä luotua peliä",
       "reapplyDone_one": "Päivitettiin {{count}} peli suunnitelmasta.",
       "reapplyDone_other": "Päivitettiin {{count}} peliä suunnitelmasta.",
-      "reapplyDoneMissing_one": "Päivitettiin {{count}} peli. Pelin pelaajalistasta puuttuvia suunniteltuja pelaajia ohitettiin: {{missing}}.",
-      "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Pelin pelaajalistasta puuttuvia suunniteltuja pelaajia ohitettiin: {{missing}}.",
+      "reapplyDoneMissing_one": "Päivitettiin {{count}} peli. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
+      "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
       "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
       "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui.",
       "editPlayers": "Muokkaa pelaajia"

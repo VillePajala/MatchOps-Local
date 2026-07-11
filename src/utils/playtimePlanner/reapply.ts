@@ -28,6 +28,8 @@ export interface ReapplyResult {
   plannedSubs?: PlannedGameSub[];
   /** Planned players not in the game's roster (surfaced in the toast). */
   missingPlayerIds?: string[];
+  /** Display names for missingPlayerIds (from the plan roster; id as fallback). */
+  missingNames?: string[];
 }
 
 /**
@@ -69,6 +71,7 @@ export function buildReapplyPatch(
     ...new Set([...prefill.selectedPlayerIds, ...mergedOnField.map((p) => p.id)]),
   ].filter((id) => availableIdSet.has(id));
 
+  const planNameById = new Map(plan.players.map((p) => [p.id, p.name]));
   return {
     ok: true,
     patch: {
@@ -78,6 +81,9 @@ export function buildReapplyPatch(
     },
     plannedSubs: prefill.plannedSubs,
     missingPlayerIds: prefill.missingPlayerIds,
+    // Names, not counts: "skipped: Eino" tells the coach exactly whose roster
+    // membership to fix; a bare number sends them hunting.
+    missingNames: prefill.missingPlayerIds.map((id) => planNameById.get(id) ?? id),
   };
 }
 
@@ -143,6 +149,8 @@ export interface BulkReapplyResult {
   failed: number;
   /** Total planned player slots skipped across all updated games (roster drift). */
   missingTotal: number;
+  /** Unique display names of the skipped planned players (for the toast). */
+  missingNames: string[];
 }
 
 /** Storage seam for the bulk path - loads every saved game to find the linked ones. */
@@ -172,7 +180,9 @@ export async function reapplyPlanToLinkedGames(
     skippedPlayed: 0,
     failed: 0,
     missingTotal: 0,
+    missingNames: [],
   };
+  const missingNameSet = new Set<string>();
   const planGame = plan.games.find((g) => g.id === planGameId);
   if (!planGame) return summary;
 
@@ -211,7 +221,9 @@ export async function reapplyPlanToLinkedGames(
     summary.updated += 1;
     summary.updatedIds.push(gameId);
     summary.missingTotal += result.missingPlayerIds?.length ?? 0;
+    for (const name of result.missingNames ?? []) missingNameSet.add(name);
   }
+  summary.missingNames = [...missingNameSet];
   return summary;
 }
 

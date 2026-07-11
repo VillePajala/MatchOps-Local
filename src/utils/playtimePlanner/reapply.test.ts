@@ -120,6 +120,8 @@ describe('buildReapplyPatch', () => {
     for (const id of onFieldIds) expect(selected).toContain(id);
     expect(selected).not.toContain('e');
     expect(res.missingPlayerIds).toContain('e');
+    // The toast can NAME who was skipped (resolved from the plan roster).
+    expect(res.missingNames).toContain('Kai');
   });
 
   it('only touches lineup fields - the patch has no "what happened" keys', () => {
@@ -283,6 +285,7 @@ describe('reapplyPlanToLinkedGames', () => {
       skippedPlayed: 1,
       failed: 0,
       missingTotal: 0,
+      missingNames: [],
     });
     expect(saveGame).toHaveBeenCalledTimes(2); // a + b, not the played one, not g2
     expect(setGameSubs).toHaveBeenCalledTimes(2);
@@ -338,6 +341,8 @@ describe('reapplyPlanToLinkedGames', () => {
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
     expect(summary.updated).toBe(2);
     expect(summary.missingTotal).toBe(2); // one missing player per updated game
+    // Same player missing in both games -> ONE unique name for the toast.
+    expect(summary.missingNames).toEqual(['Kai']);
   });
 
   it('does nothing when the planned game is not in the plan', async () => {
@@ -353,6 +358,7 @@ describe('reapplyPlanToLinkedGames', () => {
       skippedPlayed: 0,
       failed: 0,
       missingTotal: 0,
+      missingNames: [],
     });
     expect(saveGame).not.toHaveBeenCalled();
   });
