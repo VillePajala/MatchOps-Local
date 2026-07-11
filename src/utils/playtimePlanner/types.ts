@@ -94,23 +94,42 @@ const isSlotAssignment = (v: unknown): v is PlanSlotAssignment =>
   typeof v.slotId === 'string' &&
   (v.playerId === null || typeof v.playerId === 'string');
 
+// Numbers must be real, usable values, not just `typeof number`: a hand-edited
+// or crafted import with NaN/negative durations would otherwise poison every
+// downstream calculation (NaN game length -> NaN fair share -> blank balance
+// view with no hint why).
+const isFiniteNonNegative = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isFinite(v) && v >= 0;
+
 const isSub = (v: unknown): v is PlanSub =>
   isRecord(v) &&
   typeof v.id === 'string' &&
   typeof v.slotId === 'string' &&
-  typeof v.timeSeconds === 'number' &&
+  isFiniteNonNegative(v.timeSeconds) &&
   (v.inPlayerId === null || typeof v.inPlayerId === 'string');
+
+/** No player may start in two slots - it would double-count their minutes. */
+const hasUniqueAssignedPlayers = (slots: PlanSlotAssignment[]): boolean => {
+  const seen = new Set<string>();
+  for (const s of slots) {
+    if (s.playerId === null) continue;
+    if (seen.has(s.playerId)) return false;
+    seen.add(s.playerId);
+  }
+  return true;
+};
 
 const isPlanGame = (v: unknown): v is PlanGame =>
   isRecord(v) &&
   typeof v.id === 'string' &&
   typeof v.label === 'string' &&
   typeof v.formationId === 'string' &&
-  typeof v.numberOfPeriods === 'number' &&
-  typeof v.periodMinutes === 'number' &&
+  isFiniteNonNegative(v.numberOfPeriods) &&
+  isFiniteNonNegative(v.periodMinutes) &&
   typeof v.included === 'boolean' &&
   Array.isArray(v.startingSlots) &&
   v.startingSlots.every(isSlotAssignment) &&
+  hasUniqueAssignedPlayers(v.startingSlots as PlanSlotAssignment[]) &&
   Array.isArray(v.subs) &&
   v.subs.every(isSub);
 
@@ -125,6 +144,7 @@ export const isPlaytimePlan = (v: unknown): v is PlaytimePlan =>
   (v.teamId === undefined || typeof v.teamId === 'string') &&
   Array.isArray(v.players) &&
   v.players.every(isPlanPlayer) &&
+  new Set((v.players as PlanPlayer[]).map((p) => p.id)).size === (v.players as PlanPlayer[]).length &&
   Array.isArray(v.games) &&
   v.games.every(isPlanGame);
 

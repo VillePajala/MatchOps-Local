@@ -70,3 +70,17 @@ export function availableSubInIds(
   );
   return rosterIds.filter((id) => !starters.has(id) && !incoming.has(id));
 }
+
+/**
+ * Drop any scheduled subs that bring on `playerId`. Used when that player is
+ * placed into the starting lineup: `availableSubInIds` blocks scheduling a
+ * starter as an incoming sub, but the reverse order (schedule first, then place
+ * as starter) used to slip through - leaving the player both starting and
+ * "coming on", which double-counted their minutes and skewed the fairness view.
+ * Placing them as a starter supersedes the planned entry.
+ */
+export function removeSubsBringingOn(subs: PlanSub[], playerId: string | null): PlanSub[] {
+  if (!playerId) return subs;
+  const filtered = subs.filter((s) => s.inPlayerId !== playerId);
+  return filtered.length === subs.length ? subs : filtered;
+}

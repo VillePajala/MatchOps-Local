@@ -50,13 +50,13 @@ import {
   assignPlayerToSlot,
   getGameSlots,
 } from '@/utils/playtimePlanner/lineup';
-import { addSub, removeSub } from '@/utils/playtimePlanner/subs';
+import { addSub, removeSub, removeSubsBringingOn } from '@/utils/playtimePlanner/subs';
 import {
   reapplyPlanToLinkedGames,
   countReapplicableGames,
 } from '@/utils/playtimePlanner/reapply';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
-import { getAllPlanLinks } from '@/utils/playtimePlanner/planLinks';
+import { getAllPlanLinks, deletePlanLinksForPlan } from '@/utils/playtimePlanner/planLinks';
 import { getSavedGames, saveGame as utilSaveGame } from '@/utils/savedGames';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
@@ -340,13 +340,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   // Assign (or clear) a player in a game's starting lineup. Normalizes the
   // game's slots to its formation first, so stored data always matches the shape.
+  // Placing a player also drops any scheduled sub bringing them on - otherwise
+  // they'd be starting AND "coming on", double-counting their minutes.
   const handleAssign = useCallback(
     (gameId: string, slotId: string, playerId: string | null) => {
       updateActivePlan((plan) => ({
         ...plan,
         games: plan.games.map((g) =>
           g.id === gameId
-            ? { ...g, startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId) }
+            ? {
+                ...g,
+                startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId),
+                subs: removeSubsBringingOn(g.subs, playerId),
+              }
             : g,
         ),
       }));
@@ -572,17 +578,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (!window.confirm(t('playtimePlanner.overview.confirmDelete', 'Delete this plan? This cannot be undone.'))) {
       return;
     }
-    // Cancel any pending autosave for the plan we're about to remove.
+    // Cancel any pending autosave for the plan we're about to remove, but KEEP the
+    // dirty state until the delete succeeds - if it fails, the plan still exists
+    // and silently discarding the user's last ~600ms of edits would desync the
+    // on-screen plan from storage.
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
-    dirtyPlanRef.current = null;
     const deleted = await deletePlan(activePlan.id);
     if (!deleted) {
       showToast(t('playtimePlanner.deleteError', 'Could not delete the plan.'), 'error');
+      // The plan survives - persist its pending edits now instead of dropping them.
+      const pending = dirtyPlanRef.current;
+      dirtyPlanRef.current = null;
+      if (pending) void persist(pending);
       return;
     }
+    dirtyPlanRef.current = null;
+    // Purge links pointing at the deleted plan so linked games don't keep offering
+    // a "Re-apply plan" that can only fail. Best-effort (links are also validated
+    // against the plan on read).
+    await deletePlanLinksForPlan(activePlan.id).catch(() => {});
     const plans = await getPlans();
     const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     setPlanList(list);

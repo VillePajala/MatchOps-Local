@@ -281,4 +281,34 @@ describe('versions & JSON (PR 1.6)', () => {
     expect(await importPlan('garbage')).toBeNull();
     expect(await getPlans()).toEqual({});
   });
+
+  // Value-level validation: `typeof x === 'number'` alone let NaN/negative
+  // durations through, which poisoned every minutes calculation downstream.
+  it('rejects a plan whose game durations are NaN or negative', async () => {
+    const nanPlan = createPlan(baseOpts);
+    nanPlan.games[0].periodMinutes = NaN;
+    expect(await importPlan(serializePlan(nanPlan))).toBeNull();
+
+    const negativePlan = createPlan(baseOpts);
+    negativePlan.games[0].numberOfPeriods = -1;
+    expect(await importPlan(serializePlan(negativePlan))).toBeNull();
+  });
+
+  it('rejects a plan where one player starts in two slots (would double-count minutes)', async () => {
+    const plan = createPlan(baseOpts);
+    plan.games[0].startingSlots = [
+      { slotId: 'gk', playerId: 'p1' },
+      { slotId: 's0', playerId: 'p1' },
+    ];
+    expect(await importPlan(serializePlan(plan))).toBeNull();
+  });
+
+  it('rejects a plan with duplicate roster ids', async () => {
+    const plan = createPlan(baseOpts);
+    plan.players = [
+      { id: 'p1', name: 'Alex' },
+      { id: 'p1', name: 'Impostor' },
+    ];
+    expect(await importPlan(serializePlan(plan))).toBeNull();
+  });
 });

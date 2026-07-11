@@ -4,6 +4,7 @@ import {
   addSub,
   removeSub,
   availableSubInIds,
+  removeSubsBringingOn,
   generateSubId,
 } from './subs';
 import type { PlanGame, PlanSlotAssignment, PlanSub } from './types';
@@ -76,5 +77,21 @@ describe('availableSubInIds', () => {
     const subs = [editing, makeSub('gk', 'p4', 720)];
     // Editing this sub: p3 should be selectable again, p4 (other sub) stays excluded.
     expect(availableSubInIds(roster, starting, subs, editing.id)).toEqual(['p3', 'p5']);
+  });
+});
+
+describe('removeSubsBringingOn', () => {
+  it('drops the subs scheduled to bring on the newly placed starter', () => {
+    const subs = [makeSub('s0', 'p3', 720), makeSub('gk', 'p4', 720)];
+    const result = removeSubsBringingOn(subs, 'p3');
+    // p3 was just placed in the starting lineup - being scheduled to "come on"
+    // too would double-count their minutes.
+    expect(result.map((s) => s.inPlayerId)).toEqual(['p4']);
+  });
+
+  it('returns the same array when nothing conflicts (no pointless re-renders)', () => {
+    const subs = [makeSub('s0', 'p3', 720)];
+    expect(removeSubsBringingOn(subs, 'p5')).toBe(subs);
+    expect(removeSubsBringingOn(subs, null)).toBe(subs); // clearing a slot
   });
 });
