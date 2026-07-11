@@ -15,7 +15,8 @@ import logger from '@/utils/logger';
 export type ReapplyBlockedReason =
   | 'no-link' // game was not created from a plan
   | 'plan-missing' // the source plan (or planned game) was deleted
-  | 'played'; // game already started / has events - never clobber it
+  | 'played' // game already started / has events - never clobber it
+  | 'empty-roster'; // game has no roster - re-applying would wipe the lineup to empty
 
 export interface ReapplyResult {
   ok: boolean;
@@ -52,6 +53,10 @@ export function buildReapplyPatch(
   if (isGamePlayed(game)) return { ok: false, reason: 'played' };
 
   const roster = game.availablePlayers ?? [];
+  // Defensive: an empty roster would resolve zero starters and silently wipe the
+  // on-field lineup to a blank field. Shouldn't happen for a plan-linked game,
+  // but block explicitly rather than "succeed" into an empty lineup.
+  if (roster.length === 0) return { ok: false, reason: 'empty-roster' };
   const prefill = buildPrefillFromPlan(plan, planGame, roster);
 
   // Same reconciliation as game creation (newGameHandlers): starters + parked subs
@@ -109,9 +114,16 @@ export async function reapplyPlanToGame(
   const patched: AppState = { ...game, ...result.patch };
   await deps.saveGame(gameId, patched);
   // setGameSubs reports failure via `false` (it catches internally, never throws).
-  // A stale sub schedule under a new lineup must not read as success - throw so
-  // the caller's error path runs; a retry re-applies cleanly.
+  // A stale sub schedule under a new lineup must not read as success. The lineup
+  // write has already landed, so revert it (best-effort) to keep storage
+  // internally consistent, then throw so the caller's error path runs; a retry
+  // re-applies cleanly.
   if (!(await deps.setGameSubs(gameId, result.plannedSubs ?? []))) {
+    try {
+      await deps.saveGame(gameId, game);
+    } catch (revertError) {
+      logger.error('[playtimePlanner] Lineup revert after subs-write failure also failed:', revertError);
+    }
     throw new Error('Planned-subs write failed after lineup save');
   }
   return result;
@@ -178,10 +190,17 @@ export async function reapplyPlanToLinkedGames(
     // Each game's write is isolated: one bad blob must not abort the batch (the
     // already-updated games would otherwise be unreported and the caller could
     // never refresh live state for them). Failures are counted, never silent.
-    // setGameSubs reports failure via `false` - treat that as a failure too.
+    // setGameSubs reports failure via `false` - treat that as a failure too, and
+    // revert the already-landed lineup write (best-effort) so the game's stored
+    // lineup and sub schedule stay consistent with each other.
     try {
       await deps.saveGame(gameId, { ...game, ...result.patch });
       if (!(await deps.setGameSubs(gameId, result.plannedSubs ?? []))) {
+        try {
+          await deps.saveGame(gameId, game);
+        } catch (revertError) {
+          logger.error('[playtimePlanner] Lineup revert after subs-write failure also failed:', revertError);
+        }
         throw new Error('Planned-subs write failed after lineup save');
       }
     } catch (error) {

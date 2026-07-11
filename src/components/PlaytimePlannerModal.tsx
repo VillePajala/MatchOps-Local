@@ -581,10 +581,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   );
 
   // Plan deletion is confirmed via the app's ConfirmationModal (danger variant),
-  // matching every other destructive action in the app.
+  // matching every other destructive action in the app. isDeleting gates re-entry:
+  // a double-tap used to race two deletes, and the second (finding the plan gone)
+  // showed a spurious "could not delete" toast after a successful delete.
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const performDelete = async () => {
-    if (!activePlan) return;
+    if (!activePlan || isDeleting) return;
     // Cancel any pending autosave for the plan we're about to remove, but KEEP the
     // dirty state until the delete succeeds - if it fails, the plan still exists
     // and silently discarding the user's last ~600ms of edits would desync the
@@ -617,6 +620,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       setActivePlan(null);
       resetSetupForm(roster);
       setView('setup');
+    }
+  };
+  const handleDeleteConfirmed = async () => {
+    setIsDeleting(true);
+    try {
+      await performDelete();
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -1010,7 +1022,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
         {view === 'overview' && (
           <>
-            <button type="button" onClick={() => setShowDeleteConfirm(true)} className={`${dangerButtonStyle} flex-1`}>
+            <button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={isDeleting} className={`${dangerButtonStyle} flex-1`}>
               {t('playtimePlanner.overview.deletePlan', 'Delete')}
             </button>
             <button type="button" onClick={startNewPlan} className={`${secondaryButtonStyle} flex-1`}>
@@ -1027,13 +1039,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         isOpen={showDeleteConfirm}
         title={t('playtimePlanner.overview.confirmDeleteTitle', 'Delete plan?')}
         message={t('playtimePlanner.overview.confirmDelete', 'Delete this plan? This cannot be undone.')}
-        onConfirm={() => {
-          setShowDeleteConfirm(false);
-          void performDelete();
-        }}
+        onConfirm={() => void handleDeleteConfirmed()}
         onCancel={() => setShowDeleteConfirm(false)}
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
+        isConfirming={isDeleting}
       />
       <ConfirmationModal
         isOpen={bulkReapplyTarget !== null}
