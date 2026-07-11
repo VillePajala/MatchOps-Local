@@ -476,18 +476,31 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // (otherwise its next autosave would revert the storage write).
         if (summary.updatedIds.length > 0) onLinkedGamesUpdated?.(summary.updatedIds);
         await refreshLinkedCounts(activePlan.id);
-        showToast(
-          summary.missingTotal > 0
-            ? t(
-                'playtimePlanner.overview.reapplyDoneMissing',
-                'Updated {{updated}} game(s). {{missing}} planned player slot(s) were skipped (not in a game roster).',
-                { updated: summary.updated, missing: summary.missingTotal },
-              )
-            : t('playtimePlanner.overview.reapplyDone', 'Updated {{updated}} game(s) from the plan.', {
-                updated: summary.updated,
-              }),
-          'success',
-        );
+        if (summary.failed > 0) {
+          // Partial success: some games were updated, some writes failed - say so
+          // explicitly rather than reporting a clean success.
+          showToast(
+            t(
+              'playtimePlanner.overview.reapplyDonePartial',
+              'Updated {{updated}} game(s); {{failed}} could not be updated.',
+              { updated: summary.updated, failed: summary.failed },
+            ),
+            'error',
+          );
+        } else {
+          showToast(
+            summary.missingTotal > 0
+              ? t(
+                  'playtimePlanner.overview.reapplyDoneMissing',
+                  'Updated {{updated}} game(s). {{missing}} planned player slot(s) were skipped (not in a game roster).',
+                  { updated: summary.updated, missing: summary.missingTotal },
+                )
+              : t('playtimePlanner.overview.reapplyDone', 'Updated {{updated}} game(s) from the plan.', {
+                  updated: summary.updated,
+                }),
+            'success',
+          );
+        }
       } catch (err) {
         logger.error('[planner] Bulk re-apply failed', err);
         showToast(t('playtimePlanner.overview.reapplyError', 'Could not update the linked games.'), 'error');

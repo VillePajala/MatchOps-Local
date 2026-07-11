@@ -1690,6 +1690,7 @@ export type TranslationKey =
   | 'playtimePlanner.overview.placedCount'
   | 'playtimePlanner.overview.reapplyDone'
   | 'playtimePlanner.overview.reapplyDoneMissing'
+  | 'playtimePlanner.overview.reapplyDonePartial'
   | 'playtimePlanner.overview.reapplyError'
   | 'playtimePlanner.overview.rosterSummary'
   | 'playtimePlanner.overview.updateLinked'

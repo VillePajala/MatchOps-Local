@@ -53,7 +53,7 @@ import type { FieldContainerProps, FieldInteractions } from '@/components/HomePa
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 import { generateSubSlots } from '@/utils/formations';
-import { reapplyPlanToGame } from '@/utils/playtimePlanner/reapply';
+import { reapplyPlanToGame, type ReapplyResult } from '@/utils/playtimePlanner/reapply';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
@@ -2041,6 +2041,19 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleReapplyPlan = useCallback(async () => {
     if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
 
+    // Flush live state to storage first (PR #650 review issue 2): fields like game
+    // notes sit in a debounced autosave tier, and the re-apply below reads + fully
+    // rewrites the PERSISTED blob - without the flush an edit made in the last
+    // ~500ms would be missing from the rewrite (self-healing on the next autosave,
+    // but a crash inside that window would drop it). Silent + no error toast: a
+    // failed flush just means we proceed from the last persisted copy, no worse
+    // than before this guard.
+    try {
+      await persistence.handleQuickSaveGame(true, true);
+    } catch (err) {
+      logger.warn('[reapplyPlan] Pre-reapply flush failed (non-fatal)', err);
+    }
+
     let game: AppState | null = null;
     try {
       game = await utilGetGame(currentGameId, userId);
@@ -2052,11 +2065,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       return;
     }
 
-    const result = await reapplyPlanToGame(
-      { getPlan, getPlanLink, saveGame: (id, g) => utilSaveGame(id, g, userId), setGameSubs },
-      currentGameId,
-      game,
-    );
+    // saveGame/setGameSubs can reject (IndexedDB write failure, quota); without
+    // this catch the rejection would be a silent no-op while every other failure
+    // path here toasts (PR #650 review bug 1).
+    let result: ReapplyResult;
+    try {
+      result = await reapplyPlanToGame(
+        { getPlan, getPlanLink, saveGame: (id, g) => utilSaveGame(id, g, userId), setGameSubs },
+        currentGameId,
+        game,
+      );
+    } catch (err) {
+      logger.error('[reapplyPlan] Re-apply failed', err);
+      showToast(t('gameSettingsModal.reapplyPlan.errorGeneric', 'Could not re-apply the plan.'), 'error');
+      return;
+    }
 
     if (!result.ok || !result.patch) {
       const msg =
@@ -2088,6 +2111,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [
     currentGameId,
     userId,
+    persistence,
     showToast,
     t,
     applyReappliedLineup,
