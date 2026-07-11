@@ -302,7 +302,8 @@ describe('Translation File Validation', () => {
       //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
       //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
       // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
-      expect(enKeys.length).toBe(2766);
+      // +10: plan roster editing (overview.editPlayers + playtimePlanner.players.* - Phase 4)
+      expect(enKeys.length).toBe(2776);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -328,7 +329,8 @@ describe('Translation File Validation', () => {
       //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
       //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
       // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
-      expect(fiKeys.length).toBe(2766);
+      // +10: plan roster editing (overview.editPlayers + playtimePlanner.players.* - Phase 4)
+      expect(fiKeys.length).toBe(2776);
     });
   });
 });

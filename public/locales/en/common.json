@@ -3194,7 +3194,8 @@
       "reapplyDoneMissing_one": "Updated {{count}} game. Planned players not in a game roster were skipped: {{missing}}.",
       "reapplyDoneMissing_other": "Updated {{count}} games. Planned players not in a game roster were skipped: {{missing}}.",
       "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
-      "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated."
+      "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated.",
+      "editPlayers": "Edit players"
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",
@@ -3245,6 +3246,17 @@
       "copySuffix": "(copy)",
       "switchError": "Could not open that plan."
     },
-    "gkShort": "GK"
+    "gkShort": "GK",
+    "players": {
+      "title": "Plan players",
+      "hint": "Changes affect this plan only. Created games update when you re-apply the plan; played games are never changed.",
+      "replaceAction": "Replace",
+      "removeAction": "Remove",
+      "replacingHint": "Choose who takes over {{name}}'s lineup spots and subs:",
+      "addHeading": "Add players",
+      "noCandidates": "Everyone from your roster is already in this plan.",
+      "removeConfirmTitle": "Remove player?",
+      "removeConfirmMessage": "{{name}} - starting spots: {{starting}}, planned subs: {{subs}}. The spots become empty and the subs are deleted."
+    }
   }
 }
