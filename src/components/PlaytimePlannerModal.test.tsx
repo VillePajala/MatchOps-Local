@@ -311,6 +311,33 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByText('1/8 placed')).toBeInTheDocument());
   });
 
+  it('switches between games with one tap via the lineup game tabs', async () => {
+    // Two-game plan: the tab strip renders (hidden for single-game plans) and
+    // jumping Game 1 -> Game 2 is a single tap, no round trip via the overview.
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [
+        existingPlan.games[0],
+        { ...existingPlan.games[0], id: 'g2', label: 'Game 2' },
+      ],
+    };
+    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+    });
+    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+
+    // Tab labels use the short game code (G1/G2, P1/P2 in fi).
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'G2' }));
+    });
+    expect(screen.getByRole('heading', { name: 'Game 2' })).toBeInTheDocument();
+    // Current tab is marked for assistive tech.
+    expect(screen.getByRole('button', { name: 'G2' })).toHaveAttribute('aria-current', 'true');
+  });
+
   it('adds and removes a substitution from the lineup view', async () => {
     mockGetPlans.mockResolvedValue({
       existing: { ...existingPlan, players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }] },

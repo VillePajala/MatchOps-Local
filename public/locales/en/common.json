@@ -3207,7 +3207,8 @@
       "benchEmpty": "Everyone is on the field.",
       "hint": "Tap a player to place them, or a position first.",
       "benchHeading": "Bench",
-      "autoFill": "Auto-fill"
+      "autoFill": "Auto-fill",
+      "gameTabs": "Switch game"
     },
     "subs": {
       "heading": "Substitutions",

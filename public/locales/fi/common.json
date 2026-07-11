@@ -3207,7 +3207,8 @@
       "benchEmpty": "Kaikki ovat kentällä.",
       "hint": "Napauta pelaajaa sijoittaaksesi hänet, tai valitse ensin paikka.",
       "benchHeading": "Vaihtopenkki",
-      "autoFill": "Täytä automaattisesti"
+      "autoFill": "Täytä automaattisesti",
+      "gameTabs": "Vaihda peliä"
     },
     "subs": {
       "heading": "Vaihdot",

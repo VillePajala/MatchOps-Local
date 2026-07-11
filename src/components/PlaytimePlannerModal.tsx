@@ -980,6 +980,48 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
         {view === 'lineup' && activePlan && editingGame && (
           <div className="max-w-lg mx-auto space-y-3">
+            {/* Game tabs: the planner's core loop is flipping between the set's
+                games while nudging minutes toward fair - so any game is ONE tap
+                away (no round trip through the overview). Short labels match the
+                balance strip (P1/G1…); an amber dot marks an incomplete lineup so
+                the coach sees where work remains while flipping. */}
+            {activePlan.games.length > 1 && (
+              <nav
+                aria-label={t('playtimePlanner.lineup.gameTabs', 'Switch game')}
+                className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1"
+              >
+                {activePlan.games.map((g, i) => {
+                  const isCurrent = g.id === editingGame.id;
+                  const placedCount = ensureStartingSlots(g).filter((a) => a.playerId).length;
+                  const incomplete = placedCount < getGameSlots(g.formationId).length;
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setEditingGameId(g.id)}
+                      aria-current={isCurrent ? 'true' : undefined}
+                      title={g.label}
+                      className={[
+                        'relative shrink-0 px-3.5 py-2 rounded-md text-sm font-medium tabular-nums transition-colors',
+                        isCurrent
+                          ? 'bg-indigo-600 text-white'
+                          : g.included
+                            ? 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+                            : 'bg-slate-800/50 text-slate-500 border border-slate-700/50',
+                      ].join(' ')}
+                    >
+                      {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
+                      {incomplete && (
+                        <span
+                          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            )}
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-slate-100">{editingGame.label}</h3>
               <span className={subtextStyle}>
