@@ -196,13 +196,26 @@ describe('reapplyPlanToGame', () => {
     ]);
   });
 
-  it('throws when the planned-subs write reports failure (no false success)', async () => {
+  it('throws when the planned-subs write reports failure, and reverts the lineup write', async () => {
     // setGameSubs catches internally and returns false - a stale sub schedule
-    // under a new lineup must surface as an error, not a success toast.
-    const { deps } = makeDeps({ setGameSubs: jest.fn(async () => false) });
-    await expect(reapplyPlanToGame(deps, 'game-1', makeGame())).rejects.toThrow(
+    // under a new lineup must surface as an error, not a success toast. The
+    // lineup save has already landed by then, so it is reverted (best-effort)
+    // to keep the stored lineup and sub schedule consistent with each other.
+    const game = makeGame();
+    const { deps, saveGame } = makeDeps({ setGameSubs: jest.fn(async () => false) });
+    await expect(reapplyPlanToGame(deps, 'game-1', game)).rejects.toThrow(
       /Planned-subs write failed/,
     );
+    expect(saveGame).toHaveBeenCalledTimes(2);
+    // Second write restores the ORIGINAL game blob.
+    expect(saveGame.mock.calls[1]).toEqual(['game-1', game]);
+  });
+
+  it('blocks a game with an empty roster (would wipe the lineup to blank)', async () => {
+    const { deps, saveGame } = makeDeps();
+    const res = await reapplyPlanToGame(deps, 'game-1', makeGame({ availablePlayers: [] }));
+    expect(res).toEqual({ ok: false, reason: 'empty-roster' });
+    expect(saveGame).not.toHaveBeenCalled();
   });
 });
 
@@ -297,17 +310,21 @@ describe('reapplyPlanToLinkedGames', () => {
     expect(summary.failed).toBe(1); // surfaced, not silent
   });
 
-  it('counts a false planned-subs write as a failure too', async () => {
+  it('counts a false planned-subs write as a failure and reverts that game\'s lineup', async () => {
+    const gameA = makeGame();
     const links = {
       a: { planId: 'plan-1', planGameId: 'g1' },
       b: { planId: 'plan-1', planGameId: 'g1' },
     };
-    const { deps, setGameSubs } = makeBulkDeps({ a: makeGame(), b: makeGame() }, links);
+    const { deps, saveGame, setGameSubs } = makeBulkDeps({ a: gameA, b: makeGame() }, links);
     setGameSubs.mockImplementationOnce(async () => false); // first game's subs write fails
 
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
     expect(summary.updated).toBe(1);
     expect(summary.failed).toBe(1);
+    // a: patched write + revert to original; b: patched write only.
+    expect(saveGame).toHaveBeenCalledTimes(3);
+    expect(saveGame.mock.calls[1]).toEqual(['a', gameA]);
   });
 
   it('tallies missing planned players across updated games (roster drift)', async () => {
