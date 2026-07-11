@@ -38,6 +38,10 @@ const nameFor = (players: Player[], id: string | null): string | null => {
  * @param gameId               the current game's id (null when no game is loaded)
  * @param timeElapsedInSeconds the match clock
  * @param players              roster used to resolve player ids to names
+ * @param refreshKey           bump to force a re-read of the stored schedule for the
+ *                             same game (e.g. after re-applying an edited plan). The
+ *                             store isn't reactive, so without this the loaded subs
+ *                             stay stale until the game id changes.
  */
 const EMPTY_IDS: ReadonlySet<string> = new Set();
 
@@ -45,6 +49,7 @@ export function usePlannedSubPrompts(
   gameId: string | null,
   timeElapsedInSeconds: number,
   players: Player[],
+  refreshKey = 0,
 ): UsePlannedSubPromptsResult {
   // Loaded subs and dismissals are stamped with the game they belong to. The memo
   // treats a mismatch as empty, so a game change takes effect immediately (no stale
@@ -69,7 +74,7 @@ export function usePlannedSubPrompts(
     return () => {
       active = false;
     };
-  }, [gameId]);
+  }, [gameId, refreshKey]);
 
   const dismiss = useCallback(
     (subId: string) => {

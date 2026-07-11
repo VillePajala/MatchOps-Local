@@ -293,7 +293,8 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
-      expect(enKeys.length).toBe(2736);
+      // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
+      expect(enKeys.length).toBe(2746);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -310,7 +311,8 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
-      expect(fiKeys.length).toBe(2736);
+      // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
+      expect(fiKeys.length).toBe(2746);
     });
   });
 });

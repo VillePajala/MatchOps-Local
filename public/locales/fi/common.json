@@ -1421,6 +1421,18 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "reapplyPlan": {
+      "button": "Ota suunnitelma uudelleen käyttöön",
+      "confirmTitle": "Otetaanko suunnitelma uudelleen käyttöön?",
+      "confirmMessage": "Tämä korvaa ottelun kokoonpanon ja suunnitellut vaihdot nykyisellä suunnitelmalla. Tulos, tapahtumat ja muut tiedot säilyvät.",
+      "confirmWarning": "Kaikki tähän kokoonpanoon tehdyt käsin muutokset korvataan.",
+      "confirmLabel": "Ota käyttöön",
+      "success": "Kokoonpano päivitettiin suunnitelmasta.",
+      "successMissing": "Kokoonpano päivitettiin suunnitelmasta. {{count}} suunniteltua pelaajaa ei ole tässä ottelussa, ne ohitettiin.",
+      "errorPlayed": "Tämä ottelu on jo alkanut, joten sen kokoonpanoa ei voi ottaa uudelleen käyttöön.",
+      "errorPlanMissing": "Lähdesuunnitelma on poistettu, joten sitä ei voi enää ottaa käyttöön.",
+      "errorGeneric": "Suunnitelman uudelleenkäyttö ei onnistunut."
+    },
     "eventActions": "Tapahtuman toiminnot",
     "gameTypeLabel": "Linkitä kilpailuun",
     "unknownPlayer": "Tuntematon pelaaja",

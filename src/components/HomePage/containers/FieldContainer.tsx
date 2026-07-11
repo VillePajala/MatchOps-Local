@@ -125,6 +125,8 @@ export interface FieldContainerProps {
   };
   gameSessionState: GameSessionState;
   currentGameId: string | null;
+  /** Bumped after a plan is re-applied so the planned-sub prompts re-read the store. */
+  plannedSubsRefreshKey?: number;
   availablePlayers: Player[];
   teams: Team[];
   seasons: Season[];
@@ -151,6 +153,7 @@ export function FieldContainer({
   timerVM,
   gameSessionState,
   currentGameId,
+  plannedSubsRefreshKey,
   availablePlayers,
   teams: _teams,
   seasons,
@@ -249,6 +252,7 @@ export function FieldContainer({
     currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
     tmTime,
     availablePlayers,
+    plannedSubsRefreshKey,
   );
 
   return (
