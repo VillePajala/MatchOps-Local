@@ -15,6 +15,14 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
 import { startNewGameWithSetup, cancelNewGameSetup } from './newGameHandlers';
+import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
+
+// The plan link is written to a local-only store (not the game blob - autosave and
+// cloud pulls rebuild the blob and would drop it). Mock the store to observe writes.
+jest.mock('@/utils/playtimePlanner/planLinks', () => ({
+  setPlanLink: jest.fn(async () => true),
+}));
+const mockSetPlanLink = setPlanLink as jest.MockedFunction<typeof setPlanLink>;
 
 const createSetStateMock = <T,>(initial: T) => {
   let state = initial;
@@ -233,16 +241,12 @@ describe('newGameHandlers', () => {
       }
     });
 
-    it('stamps the source plan link on a game created from a plan (Phase 3)', async () => {
-      let savedState: AppState | undefined;
+    it('stores the plan link in the local link store for a game created from a plan (Phase 3)', async () => {
+      mockSetPlanLink.mockClear();
       const savedGamesState = createSetStateMock<SavedGamesCollection>({});
       const deps = createTestDeps({
         savedGames: savedGamesState.getState(),
         setSavedGames: savedGamesState.setter,
-        utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => {
-          savedState = state;
-          return state;
-        }),
       });
 
       await startNewGameWithSetup(deps, createBaseRequest({
@@ -257,21 +261,21 @@ describe('newGameHandlers', () => {
         },
       }));
 
-      // The link lets an edited plan be re-applied to this game later.
-      expect(savedState!.sourcePlanId).toBe('plan-123');
-      expect(savedState!.sourcePlanGameId).toBe('plangame-456');
+      // The link (in the local-only store, NOT the game blob) lets an edited plan
+      // be re-applied to this game later.
+      expect(mockSetPlanLink).toHaveBeenCalledTimes(1);
+      expect(mockSetPlanLink).toHaveBeenCalledWith(expect.stringMatching(/^game_/), {
+        planId: 'plan-123',
+        planGameId: 'plangame-456',
+      });
     });
 
-    it('leaves the source plan link unset for a normal (non-plan) game', async () => {
-      let savedState: AppState | undefined;
+    it('writes no plan link for a normal (non-plan) game', async () => {
+      mockSetPlanLink.mockClear();
       const savedGamesState = createSetStateMock<SavedGamesCollection>({});
       const deps = createTestDeps({
         savedGames: savedGamesState.getState(),
         setSavedGames: savedGamesState.setter,
-        utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => {
-          savedState = state;
-          return state;
-        }),
       });
 
       await startNewGameWithSetup(deps, createBaseRequest({
@@ -279,8 +283,7 @@ describe('newGameHandlers', () => {
         availablePlayersForGame: mockPlayers,
       }));
 
-      expect(savedState!.sourcePlanId).toBeUndefined();
-      expect(savedState!.sourcePlanGameId).toBeUndefined();
+      expect(mockSetPlanLink).not.toHaveBeenCalled();
     });
   });
 

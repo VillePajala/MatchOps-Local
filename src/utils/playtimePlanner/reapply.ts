@@ -7,6 +7,7 @@
 import type { AppState } from '@/types';
 import type { PlaytimePlan, PlanGame } from './types';
 import type { PlannedGameSub } from './gameSubs';
+import type { PlanLink, PlanLinksCollection } from './planLinks';
 import { buildPrefillFromPlan } from './prefill';
 
 /** Why a re-apply could not proceed (drives the UI's disabled reason / toast). */
@@ -82,25 +83,28 @@ export function buildReapplyPatch(
 /** Storage seam - injected so the handler stays pure/testable. */
 export interface ReapplyDeps {
   getPlan: (id: string) => Promise<PlaytimePlan | null>;
+  getPlanLink: (gameId: string) => Promise<PlanLink | null>;
   saveGame: (id: string, game: AppState) => Promise<AppState | null>;
   setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
 }
 
 /**
- * Resolve the game's source plan, rebuild the lineup, and persist the lineup-only
- * patch + the planned sub schedule. Everything that is "what happened" (opponent,
- * date, score, events, assessments, notes, personnel, period config, isPlayed) is
- * preserved via the spread. Returns a result the UI can toast.
+ * Resolve the game's source plan (via the local plan-link store), rebuild the
+ * lineup, and persist the lineup-only patch + the planned sub schedule. Everything
+ * that is "what happened" (opponent, date, score, events, assessments, notes,
+ * personnel, period config, isPlayed) is preserved via the spread. Returns a
+ * result the UI can toast.
  */
 export async function reapplyPlanToGame(
   deps: ReapplyDeps,
   gameId: string,
   game: AppState,
 ): Promise<ReapplyResult> {
-  if (!game.sourcePlanId || !game.sourcePlanGameId) return { ok: false, reason: 'no-link' };
+  const link = await deps.getPlanLink(gameId);
+  if (!link) return { ok: false, reason: 'no-link' };
 
-  const plan = await deps.getPlan(game.sourcePlanId);
-  const planGame = plan?.games.find((g) => g.id === game.sourcePlanGameId);
+  const plan = await deps.getPlan(link.planId);
+  const planGame = plan?.games.find((g) => g.id === link.planGameId);
   if (!plan || !planGame) return { ok: false, reason: 'plan-missing' };
 
   const result = buildReapplyPatch(game, plan, planGame);
@@ -118,6 +122,8 @@ export interface BulkReapplyResult {
   matched: number;
   /** Games actually re-saved. */
   updated: number;
+  /** Ids of the re-saved games (lets the caller refresh live state if one is open). */
+  updatedIds: string[];
   /** Linked games skipped because they had already been played. */
   skippedPlayed: number;
   /** Total planned player slots skipped across all updated games (roster drift). */
@@ -127,28 +133,37 @@ export interface BulkReapplyResult {
 /** Storage seam for the bulk path - loads every saved game to find the linked ones. */
 export interface BulkReapplyDeps {
   getAllGames: () => Promise<Record<string, AppState>>;
+  getAllPlanLinks: () => Promise<PlanLinksCollection>;
   saveGame: (id: string, game: AppState) => Promise<AppState | null>;
   setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
 }
 
 /**
  * Re-apply one planned game to EVERY (unplayed) real game created from it - the
- * injury case: edit the plan once, propagate to all games in one action. Played
- * games are skipped (never clobbered), not counted as failures. The plan + planned
- * game are passed in (the planner already has them), so no per-game plan lookup.
+ * injury case: edit the plan once, propagate to all games in one action. Linked
+ * games are found via the local plan-link store. Played games are skipped (never
+ * clobbered), not counted as failures. The plan + planned game are passed in (the
+ * planner already has them), so no per-game plan lookup.
  */
 export async function reapplyPlanToLinkedGames(
   deps: BulkReapplyDeps,
   plan: PlaytimePlan,
   planGameId: string,
 ): Promise<BulkReapplyResult> {
-  const summary: BulkReapplyResult = { matched: 0, updated: 0, skippedPlayed: 0, missingTotal: 0 };
+  const summary: BulkReapplyResult = {
+    matched: 0,
+    updated: 0,
+    updatedIds: [],
+    skippedPlayed: 0,
+    missingTotal: 0,
+  };
   const planGame = plan.games.find((g) => g.id === planGameId);
   if (!planGame) return summary;
 
-  const all = await deps.getAllGames();
+  const [all, links] = await Promise.all([deps.getAllGames(), deps.getAllPlanLinks()]);
   for (const [gameId, game] of Object.entries(all)) {
-    if (game.sourcePlanId !== plan.id || game.sourcePlanGameId !== planGameId) continue;
+    const link = links[gameId];
+    if (link?.planId !== plan.id || link.planGameId !== planGameId) continue;
     summary.matched += 1;
 
     const result = buildReapplyPatch(game, plan, planGame);
@@ -159,6 +174,7 @@ export async function reapplyPlanToLinkedGames(
     await deps.saveGame(gameId, { ...game, ...result.patch });
     await deps.setGameSubs(gameId, result.plannedSubs ?? []);
     summary.updated += 1;
+    summary.updatedIds.push(gameId);
     summary.missingTotal += result.missingPlayerIds?.length ?? 0;
   }
   return summary;
@@ -166,18 +182,21 @@ export async function reapplyPlanToLinkedGames(
 
 /**
  * Count unplayed real games linked to each planned game in a plan, keyed by
- * planned-game id. Drives the planner's "update N games" affordance. Played games
- * are excluded (they can't be re-applied).
+ * planned-game id. Links come from the local plan-link store; the games map is
+ * only consulted for the played check (a link whose game no longer exists counts
+ * for nothing). Drives the planner's "update N games" affordance.
  */
 export function countReapplicableGames(
   games: Record<string, AppState>,
+  links: PlanLinksCollection,
   planId: string,
 ): Record<string, number> {
   const counts: Record<string, number> = {};
-  for (const game of Object.values(games)) {
-    if (game.sourcePlanId !== planId || !game.sourcePlanGameId) continue;
-    if (isGamePlayed(game)) continue;
-    counts[game.sourcePlanGameId] = (counts[game.sourcePlanGameId] ?? 0) + 1;
+  for (const [gameId, link] of Object.entries(links)) {
+    if (link.planId !== planId) continue;
+    const game = games[gameId];
+    if (!game || isGamePlayed(game)) continue;
+    counts[link.planGameId] = (counts[link.planGameId] ?? 0) + 1;
   }
   return counts;
 }

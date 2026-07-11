@@ -31,6 +31,8 @@ export interface GameContainerProps {
   onOpenTeamReassignModal: () => void;
   fieldProps: FieldContainerProps;
   controlBarProps: ControlBarProps;
+  /** Planner bulk re-apply rewrote these games in storage; refresh live state if one is loaded. */
+  onLinkedGamesUpdated?: (gameIds: string[]) => void;
 }
 
 export function GameContainer({
@@ -46,6 +48,7 @@ export function GameContainer({
   onOpenTeamReassignModal: _onOpenTeamReassignModal,
   fieldProps,
   controlBarProps,
+  onLinkedGamesUpdated,
 }: GameContainerProps) {
   const { t } = useTranslation();
   // Playing-Time Planner is launched from the ControlBar hamburger menu; the modal
@@ -109,7 +112,7 @@ export function GameContainer({
       </div>
 
       {showPlanner && (
-        <PlaytimePlannerModal isOpen onClose={closePlanner} />
+        <PlaytimePlannerModal isOpen onClose={closePlanner} onLinkedGamesUpdated={onLinkedGamesUpdated} />
       )}
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.
