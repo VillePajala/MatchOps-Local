@@ -197,6 +197,15 @@ describe('reapplyPlanToGame', () => {
       { id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' },
     ]);
   });
+
+  it('throws when the planned-subs write reports failure (no false success)', async () => {
+    // setGameSubs catches internally and returns false - a stale sub schedule
+    // under a new lineup must surface as an error, not a success toast.
+    const { deps } = makeDeps({ setGameSubs: jest.fn(async () => false) });
+    await expect(reapplyPlanToGame(deps, 'game-1', makeGame())).rejects.toThrow(
+      /Planned-subs write failed/,
+    );
+  });
 });
 
 describe('countReapplicableGames', () => {
@@ -288,6 +297,19 @@ describe('reapplyPlanToLinkedGames', () => {
     expect(summary.updated).toBe(2);
     expect(summary.updatedIds).toEqual(['a', 'c']);
     expect(summary.failed).toBe(1); // surfaced, not silent
+  });
+
+  it('counts a false planned-subs write as a failure too', async () => {
+    const links = {
+      a: { planId: 'plan-1', planGameId: 'g1' },
+      b: { planId: 'plan-1', planGameId: 'g1' },
+    };
+    const { deps, setGameSubs } = makeBulkDeps({ a: makeGame(), b: makeGame() }, links);
+    setGameSubs.mockImplementationOnce(async () => false); // first game's subs write fails
+
+    const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
+    expect(summary.updated).toBe(1);
+    expect(summary.failed).toBe(1);
   });
 
   it('tallies missing planned players across updated games (roster drift)', async () => {

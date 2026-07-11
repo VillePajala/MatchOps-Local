@@ -113,7 +113,12 @@ export async function reapplyPlanToGame(
 
   const patched: AppState = { ...game, ...result.patch };
   await deps.saveGame(gameId, patched);
-  await deps.setGameSubs(gameId, result.plannedSubs ?? []);
+  // setGameSubs reports failure via `false` (it catches internally, never throws).
+  // A stale sub schedule under a new lineup must not read as success - throw so
+  // the caller's error path runs; a retry re-applies cleanly.
+  if (!(await deps.setGameSubs(gameId, result.plannedSubs ?? []))) {
+    throw new Error('Planned-subs write failed after lineup save');
+  }
   return result;
 }
 
@@ -178,9 +183,12 @@ export async function reapplyPlanToLinkedGames(
     // Each game's write is isolated: one bad blob must not abort the batch (the
     // already-updated games would otherwise be unreported and the caller could
     // never refresh live state for them). Failures are counted, never silent.
+    // setGameSubs reports failure via `false` - treat that as a failure too.
     try {
       await deps.saveGame(gameId, { ...game, ...result.patch });
-      await deps.setGameSubs(gameId, result.plannedSubs ?? []);
+      if (!(await deps.setGameSubs(gameId, result.plannedSubs ?? []))) {
+        throw new Error('Planned-subs write failed after lineup save');
+      }
     } catch (error) {
       logger.error(`[playtimePlanner] Bulk re-apply failed for game "${gameId}":`, error);
       summary.failed += 1;

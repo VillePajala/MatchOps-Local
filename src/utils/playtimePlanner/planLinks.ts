@@ -95,3 +95,28 @@ export const deletePlanLink = async (gameId: string): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Remove every link pointing at a plan (when the plan is deleted). Without this,
+ * dangling links would keep the "Re-apply plan" affordance alive for games whose
+ * source plan no longer exists. Returns true on success.
+ */
+export const deletePlanLinksForPlan = async (planId: string): Promise<boolean> => {
+  try {
+    return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
+      const all = await readCollection();
+      const remaining: PlanLinksCollection = {};
+      let removed = 0;
+      for (const [gameId, link] of Object.entries(all)) {
+        if (link.planId === planId) removed += 1;
+        else remaining[gameId] = link;
+      }
+      if (removed === 0) return true;
+      await setStorageJSON(PLAYTIME_PLAN_LINKS_KEY, remaining);
+      return true;
+    });
+  } catch (error) {
+    logger.error('[playtimePlanner] Failed to delete plan links for plan:', error);
+    return false;
+  }
+};

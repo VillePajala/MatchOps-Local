@@ -4,7 +4,13 @@
  * here precisely because the game blob (autosave/cloud rebuilds) kept dropping it.
  */
 
-import { getAllPlanLinks, getPlanLink, setPlanLink, deletePlanLink } from './planLinks';
+import {
+  getAllPlanLinks,
+  getPlanLink,
+  setPlanLink,
+  deletePlanLink,
+  deletePlanLinksForPlan,
+} from './planLinks';
 import { PLAYTIME_PLAN_LINKS_KEY } from '@/config/storageKeys';
 
 // In-memory mirror of getStorageJSON/setStorageJSON (JSON round-trip).
@@ -62,6 +68,18 @@ describe('planLinks store', () => {
       a: { planId: 'p1', planGameId: 'g1' },
       b: { planId: 'p1', planGameId: 'g2' },
     });
+  });
+
+  it('purges every link pointing at a deleted plan, keeping the rest', async () => {
+    await setPlanLink('a', { planId: 'p1', planGameId: 'g1' });
+    await setPlanLink('b', { planId: 'p1', planGameId: 'g2' });
+    await setPlanLink('c', { planId: 'p2', planGameId: 'g1' });
+
+    expect(await deletePlanLinksForPlan('p1')).toBe(true);
+
+    expect(await getAllPlanLinks()).toEqual({ c: { planId: 'p2', planGameId: 'g1' } });
+    // No-op when nothing points at the plan.
+    expect(await deletePlanLinksForPlan('p1')).toBe(true);
   });
 
   it('drops corrupt entries but keeps valid ones', async () => {

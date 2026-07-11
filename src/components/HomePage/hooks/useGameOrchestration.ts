@@ -1993,6 +1993,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Load the current game's plan link from the local-only store whenever the game
   // changes. On creation-from-plan the link is persisted before setCurrentGameId
   // fires (newGameHandlers awaits setPlanLink first), so this read never races it.
+  // The link only counts if the plan AND its planned game still exist - otherwise
+  // the "Re-apply plan" button would be a dead affordance that errors after the
+  // confirm dialog. (Plan deletion also purges its links, so a dangling link is
+  // already rare; this is the belt-and-braces check.)
   useEffect(() => {
     const gameId = currentGameId;
     let cancelled = false;
@@ -2003,7 +2007,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       }
       try {
         const link = await getPlanLink(gameId);
-        if (!cancelled) setCurrentGamePlanLink(link);
+        const plan = link ? await getPlan(link.planId) : null;
+        const planGameExists = !!plan?.games.some(g => g.id === link?.planGameId);
+        if (!cancelled) setCurrentGamePlanLink(planGameExists ? link : null);
       } catch (err) {
         logger.error('[reapplyPlan] Failed to load plan link (non-fatal)', err);
         if (!cancelled) setCurrentGamePlanLink(null);
@@ -2029,8 +2035,17 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setSubSlots(fieldPositions.length > 0 ? generateSubSlots(fieldPositions) : []);
       // Force the live sub-prompt hook to re-read the new planned schedule.
       setPlannedSubsRefreshKey(k => k + 1);
+      // Record the re-applied lineup as an undo step. Without this, one Undo tap
+      // would jump straight past the confirmed re-apply to a pre-reapply snapshot
+      // (and the next autosave would persist that revert); with it, undo/redo
+      // treat the re-apply as a normal, reversible action.
+      saveStateToHistory({
+        playersOnField: patch.playersOnField,
+        selectedPlayerIds: patch.selectedPlayerIds,
+        formationSnapPoints: snapPoints,
+      });
     },
-    [setPlayersOnField, setFormationSnapPoints, dispatchGameSession, setSubSlots],
+    [setPlayersOnField, setFormationSnapPoints, dispatchGameSession, setSubSlots, saveStateToHistory],
   );
 
   // Playing-Time Planner (Phase 3.3): re-apply the source plan to the CURRENT game.
