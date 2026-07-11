@@ -52,6 +52,12 @@ import {
 } from '@/utils/playtimePlanner/lineup';
 import { addSub, removeSub, removeSubsBringingOn } from '@/utils/playtimePlanner/subs';
 import {
+  addPlayerToPlan,
+  removePlayerFromPlan,
+  replacePlayerInPlan,
+  playerPlanImpact,
+} from '@/utils/playtimePlanner/roster';
+import {
   reapplyPlanToLinkedGames,
   countReapplicableGames,
 } from '@/utils/playtimePlanner/reapply';
@@ -64,7 +70,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import PlanFieldView from '@/components/PlanFieldView';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
 import PlanBalanceView from '@/components/PlanBalanceView';
-import type { PlaytimePlan, PlanSub, PlanGame } from '@/utils/playtimePlanner/types';
+import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
 
 interface PlaytimePlannerModalProps {
@@ -86,7 +92,7 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance';
+type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance' | 'players';
 
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   isOpen,
@@ -252,7 +258,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      if (view === 'lineup' || view === 'balance') {
+      if (view === 'lineup' || view === 'balance' || view === 'players') {
         setEditingGameId(null);
         setView('overview');
       } else {
@@ -590,6 +596,43 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [refreshPlanList, showToast, t],
   );
 
+  // Roster editing (Phase 4): add / replace / remove players on an existing plan.
+  // Plan-level only - real games change only via an explicit re-apply afterwards.
+  // replacingId: the plan player whose replacement is being chosen; removeTarget:
+  // the plan player pending the destructive remove confirm.
+  const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
+  // Master-roster players not yet in the plan (candidates for add/replace),
+  // shown with the same disc name (nickname first) the plan stores.
+  const rosterCandidates = useMemo(() => {
+    if (!activePlan) return [] as { id: string; name: string }[];
+    const inPlan = new Set(activePlan.players.map((p) => p.id));
+    return roster
+      .filter((p) => !inPlan.has(p.id))
+      .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
+  }, [roster, activePlan]);
+
+  const handleAddPlanPlayer = useCallback(
+    (player: { id: string; name: string }) => {
+      updateActivePlan((plan) => addPlayerToPlan(plan, player));
+    },
+    [updateActivePlan],
+  );
+  const handleReplacePlanPlayer = useCallback(
+    (oldId: string, replacement: { id: string; name: string }) => {
+      updateActivePlan((plan) => replacePlayerInPlan(plan, oldId, replacement));
+      setReplacingId(null);
+    },
+    [updateActivePlan],
+  );
+  const handleRemovePlanPlayer = useCallback(
+    (playerId: string) => {
+      updateActivePlan((plan) => removePlayerFromPlan(plan, playerId));
+      setRemoveTarget(null);
+    },
+    [updateActivePlan],
+  );
+
   // Plan deletion is confirmed via the app's ConfirmationModal (danger variant),
   // matching every other destructive action in the app. isDeleting gates re-entry:
   // a double-tap used to race two deletes, and the second (finding the plan gone)
@@ -888,9 +931,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             </div>
 
             <div className={cardStyle}>
-              <p className="text-slate-200">
-                {t('playtimePlanner.overview.rosterSummary', '{{count}} players', { count: activePlan.players.length })}
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-slate-200">
+                  {t('playtimePlanner.overview.rosterSummary', '{{count}} players', { count: activePlan.players.length })}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setView('players')}
+                  className="text-xs font-medium text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 shrink-0"
+                >
+                  {t('playtimePlanner.overview.editPlayers', 'Edit players')}
+                </button>
+              </div>
               <p className={subtextStyle}>
                 {t('playtimePlanner.overview.formatSummary', '{{games}} games · {{periods}}×{{minutes}} min', {
                   games: activePlan.games.length,
@@ -1057,10 +1109,97 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         {view === 'balance' && activePlan && (
           <PlanBalanceView plan={activePlan} />
         )}
+
+        {view === 'players' && activePlan && (
+          <div className="max-w-lg mx-auto space-y-5">
+            <div>
+              <h3 className={labelStyle}>{t('playtimePlanner.players.title', 'Plan players')}</h3>
+              <p className={subtextStyle}>
+                {t(
+                  'playtimePlanner.players.hint',
+                  'Changes affect this plan only. Created games update when you re-apply the plan; played games are never changed.',
+                )}
+              </p>
+            </div>
+
+            <ul className="space-y-2">
+              {activePlan.players.map((p) => (
+                <li
+                  key={p.id}
+                  className="bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-2 space-y-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm text-slate-100 font-medium">{p.name}</span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setReplacingId(replacingId === p.id ? null : p.id)}
+                        disabled={rosterCandidates.length === 0}
+                        className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:text-slate-600 py-2 px-2"
+                      >
+                        {t('playtimePlanner.players.replaceAction', 'Replace')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRemoveTarget(p)}
+                        className="text-xs text-red-400 hover:text-red-300 py-2 px-2"
+                      >
+                        {t('playtimePlanner.players.removeAction', 'Remove')}
+                      </button>
+                    </div>
+                  </div>
+                  {replacingId === p.id && (
+                    <div className="space-y-1.5">
+                      <p className={subtextStyle}>
+                        {t('playtimePlanner.players.replacingHint', 'Choose who takes over {{name}}\u0027s lineup spots and subs:', {
+                          name: p.name,
+                        })}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {rosterCandidates.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => handleReplacePlanPlayer(p.id, c)}
+                            className="px-3 py-1.5 rounded-md bg-slate-700 text-slate-100 text-sm hover:bg-indigo-600"
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            <div>
+              <h4 className={`${labelStyle} mb-1.5`}>{t('playtimePlanner.players.addHeading', 'Add players')}</h4>
+              {rosterCandidates.length === 0 ? (
+                <p className={subtextStyle}>
+                  {t('playtimePlanner.players.noCandidates', 'Everyone from your roster is already in this plan.')}
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {rosterCandidates.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => handleAddPlanPlayer(c)}
+                      className="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm hover:bg-slate-700"
+                    >
+                      + {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </ScrollableContent>
 
       <ModalFooter>
-        {(view === 'lineup' || view === 'balance') && (
+        {(view === 'lineup' || view === 'balance' || view === 'players') && (
           <button
             type="button"
             onClick={() => {
@@ -1087,6 +1226,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         </button>
       </ModalFooter>
 
+      <ConfirmationModal
+        isOpen={removeTarget !== null}
+        title={t('playtimePlanner.players.removeConfirmTitle', 'Remove player?')}
+        message={
+          removeTarget && activePlan
+            ? (() => {
+                const impact = playerPlanImpact(activePlan, removeTarget.id);
+                return t(
+                  'playtimePlanner.players.removeConfirmMessage',
+                  '{{name}} - starting spots: {{starting}}, planned subs: {{subs}}. The spots become empty and the subs are deleted.',
+                  { name: removeTarget.name, starting: impact.startingCount, subs: impact.subCount },
+                );
+              })()
+            : ''
+        }
+        onConfirm={() => {
+          if (removeTarget) handleRemovePlanPlayer(removeTarget.id);
+        }}
+        onCancel={() => setRemoveTarget(null)}
+        confirmLabel={t('playtimePlanner.players.removeAction', 'Remove')}
+        variant="danger"
+      />
       <ConfirmationModal
         isOpen={showDeleteConfirm}
         title={t('playtimePlanner.overview.confirmDeleteTitle', 'Delete plan?')}

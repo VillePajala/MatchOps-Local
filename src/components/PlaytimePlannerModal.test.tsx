@@ -311,6 +311,57 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByText('1/8 placed')).toBeInTheDocument());
   });
 
+  it('adds and replaces plan players from the Edit players view (Phase 4)', async () => {
+    // Plan holds only Alex; master roster also has Sam -> Sam is the candidate.
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Edit players')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit players'));
+    });
+    expect(screen.getByText('Plan players')).toBeInTheDocument();
+
+    // Replace: Alex's spots + subs hand over to Sam in one action.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Replace' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sam' }));
+    });
+    // Sam is now the plan member; Alex is gone and becomes the add-candidate.
+    expect(screen.queryByRole('button', { name: 'Sam' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ Alex' })).toBeInTheDocument();
+
+    // Add: Alex rejoins -> no candidates left.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '+ Alex' }));
+    });
+    expect(screen.getByText('Everyone from your roster is already in this plan.')).toBeInTheDocument();
+  });
+
+  it('removes a plan player only after an impact confirm (Phase 4)', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Edit players')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit players'));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    });
+    // Impact confirm names the damage before anything happens.
+    expect(screen.getByText('Remove player?')).toBeInTheDocument();
+    expect(screen.getByText(/starting spots: 0, planned subs: 0/)).toBeInTheDocument();
+
+    const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
+    await act(async () => {
+      fireEvent.click(removeButtons[removeButtons.length - 1]);
+    });
+    // Alex left the plan and is offered as an add-candidate again.
+    expect(screen.getByRole('button', { name: '+ Alex' })).toBeInTheDocument();
+  });
+
   it('switches between games with one tap via the lineup game tabs', async () => {
     // Two-game plan: the tab strip renders (hidden for single-game plans) and
     // jumping Game 1 -> Game 2 is a single tap, no round trip via the overview.

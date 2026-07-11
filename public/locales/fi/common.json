@@ -3194,7 +3194,8 @@
       "reapplyDoneMissing_one": "Päivitettiin {{count}} peli. Pelin pelaajalistasta puuttuvia suunniteltuja pelaajia ohitettiin: {{missing}}.",
       "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Pelin pelaajalistasta puuttuvia suunniteltuja pelaajia ohitettiin: {{missing}}.",
       "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
-      "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui."
+      "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui.",
+      "editPlayers": "Muokkaa pelaajia"
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",
@@ -3245,6 +3246,17 @@
       "copySuffix": "(kopio)",
       "switchError": "Suunnitelmaa ei voitu avata."
     },
-    "gkShort": "MV"
+    "gkShort": "MV",
+    "players": {
+      "title": "Suunnitelman pelaajat",
+      "hint": "Muutokset koskevat vain tätä suunnitelmaa. Luodut pelit päivittyvät, kun otat suunnitelman uudelleen käyttöön; pelattuja pelejä ei koskaan muuteta.",
+      "replaceAction": "Korvaa",
+      "removeAction": "Poista",
+      "replacingHint": "Valitse, kuka ottaa pelaajan {{name}} avauspaikat ja vaihdot:",
+      "addHeading": "Lisää pelaajia",
+      "noCandidates": "Kaikki pelaajalistasi pelaajat ovat jo tässä suunnitelmassa.",
+      "removeConfirmTitle": "Poistetaanko pelaaja?",
+      "removeConfirmMessage": "{{name}} - avauspaikkoja: {{starting}}, suunniteltuja vaihtoja: {{subs}}. Paikat tyhjenevät ja vaihdot poistetaan."
+    }
   }
 }
