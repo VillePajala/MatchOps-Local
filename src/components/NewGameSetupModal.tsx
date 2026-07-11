@@ -825,7 +825,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   )}
                   {prefillMissingCount > 0 && (
                     <p className="mt-1 text-xs text-amber-400">
-                      {t('newGameSetupModal.prefillMissingPlayers', '{{count}} planned player(s) are not in this roster and were skipped.', {
+                      {t('newGameSetupModal.prefillMissingPlayers', '{{count}} planned players are not in this roster and were skipped.', {
                         count: prefillMissingCount,
                       })}
                     </p>

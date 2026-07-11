@@ -942,20 +942,22 @@
     "prefillNoPlan": "No plan",
     "prefillGameLabel": "Plan game",
     "prefillChooseGame": "Choose a game…",
-    "prefillMissingPlayers": "{{count}} planned player(s) are not in this roster and were skipped."
+    "prefillMissingPlayers_one": "{{count}} planned player is not in this roster and was skipped.",
+    "prefillMissingPlayers_other": "{{count}} planned players are not in this roster and were skipped."
   },
   "gameSettingsModal": {
     "reapplyPlan": {
       "button": "Re-apply plan",
       "confirmTitle": "Re-apply plan?",
-      "confirmMessage": "This replaces the game's lineup and planned substitutions with the current plan. The score, events and other details are kept.",
+      "confirmMessage": "This replaces the game's lineup, player selection and planned substitutions with the current plan. The score, events and other details are kept.",
       "confirmWarning": "Any manual changes to this lineup will be overwritten.",
       "confirmLabel": "Re-apply",
       "success": "Lineup updated from the plan.",
-      "successMissing": "Lineup updated from the plan. {{count}} planned player(s) are not in this game and were skipped.",
       "errorPlayed": "This game has already started, so its lineup can't be re-applied.",
       "errorPlanMissing": "The source plan was deleted, so it can no longer be re-applied.",
-      "errorGeneric": "Could not re-apply the plan."
+      "errorGeneric": "Could not re-apply the plan.",
+      "successMissing_one": "Lineup updated from the plan. {{count}} planned player is not in this game and was skipped.",
+      "successMissing_other": "Lineup updated from the plan. {{count}} planned players are not in this game and were skipped."
     },
     "eventActions": "Event actions",
     "gameTypeLabel": "Link to Competition",
@@ -3178,12 +3180,21 @@
       "confirmDelete": "Delete this plan? This cannot be undone.",
       "placedCount": "{{placed}}/{{total}} placed",
       "editLineup": "Edit lineup",
-      "updateLinked": "Update {{count}} game(s) from this",
-      "confirmReapply": "Update {{count}} unplayed game(s) created from \"{{label}}\" with the current plan? Their lineups and planned substitutions will be overwritten.",
-      "reapplyDone": "Updated {{updated}} game(s) from the plan.",
-      "reapplyDoneMissing": "Updated {{updated}} game(s). {{missing}} planned player slot(s) were skipped (not in a game roster).",
-      "reapplyDonePartial": "Updated {{updated}} game(s); {{failed}} could not be updated.",
-      "reapplyError": "Could not update the linked games."
+      "reapplyError": "Could not update the linked games.",
+      "confirmDeleteTitle": "Delete plan?",
+      "confirmReapplyTitle": "Update linked games?",
+      "confirmReapplyLabel": "Update",
+      "confirmReapplyWarning": "Their lineups, player selections and planned substitutions will be overwritten.",
+      "confirmReapply_one": "Update {{count}} unplayed game created from \"{{label}}\" with the current plan?",
+      "confirmReapply_other": "Update {{count}} unplayed games created from \"{{label}}\" with the current plan?",
+      "updateLinked_one": "Update {{count}} game created from this",
+      "updateLinked_other": "Update {{count}} games created from this",
+      "reapplyDone_one": "Updated {{count}} game from the plan.",
+      "reapplyDone_other": "Updated {{count}} games from the plan.",
+      "reapplyDoneMissing_one": "Updated {{count}} game. Planned players not in a game roster were skipped: {{missing}}.",
+      "reapplyDoneMissing_other": "Updated {{count}} games. Planned players not in a game roster were skipped: {{missing}}.",
+      "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
+      "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated."
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",
@@ -3201,7 +3212,7 @@
     "subs": {
       "heading": "Substitutions",
       "none": "No substitutions yet.",
-      "row": "{{minute}}' — {{player}} → {{position}}",
+      "row": "{{minute}}' {{player}} in ({{position}})",
       "remove": "Remove",
       "noSlots": "Place your starters first.",
       "noBench": "No bench players available.",
@@ -3209,7 +3220,8 @@
       "choose": "Choose…",
       "inLabel": "Player on",
       "timeLabel": "Minute",
-      "add": "Add substitution"
+      "add": "Add substitution",
+      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})"
     },
     "balance": {
       "title": "Playing-time balance",
@@ -3231,6 +3243,7 @@
       "exportError": "Could not export the plan.",
       "copySuffix": "(copy)",
       "switchError": "Could not open that plan."
-    }
+    },
+    "gkShort": "GK"
   }
 }

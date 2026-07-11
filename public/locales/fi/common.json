@@ -954,7 +954,8 @@
     "prefillNoPlan": "Ei suunnitelmaa",
     "prefillGameLabel": "Suunnitelman peli",
     "prefillChooseGame": "Valitse peli…",
-    "prefillMissingPlayers": "{{count}} suunnitelman pelaajaa ei ole tässä kokoonpanossa ja jätettiin pois."
+    "prefillMissingPlayers_one": "{{count}} suunniteltu pelaaja ei ole tässä pelaajalistassa ja jätettiin pois.",
+    "prefillMissingPlayers_other": "{{count}} suunniteltua pelaajaa ei ole tässä pelaajalistassa ja jätettiin pois."
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Oivalla",
@@ -1422,16 +1423,17 @@
   },
   "gameSettingsModal": {
     "reapplyPlan": {
-      "button": "Ota suunnitelma uudelleen käyttöön",
+      "button": "Päivitä suunnitelmasta",
       "confirmTitle": "Otetaanko suunnitelma uudelleen käyttöön?",
-      "confirmMessage": "Tämä korvaa ottelun kokoonpanon ja suunnitellut vaihdot nykyisellä suunnitelmalla. Tulos, tapahtumat ja muut tiedot säilyvät.",
-      "confirmWarning": "Kaikki tähän kokoonpanoon tehdyt käsin muutokset korvataan.",
+      "confirmMessage": "Tämä korvaa pelin avauskokoonpanon, pelaajavalinnan ja suunnitellut vaihdot nykyisellä suunnitelmalla. Tulos, tapahtumat ja muut tiedot säilyvät.",
+      "confirmWarning": "Kaikki tähän kokoonpanoon käsin tehdyt muutokset korvataan.",
       "confirmLabel": "Ota käyttöön",
       "success": "Kokoonpano päivitettiin suunnitelmasta.",
-      "successMissing": "Kokoonpano päivitettiin suunnitelmasta. {{count}} suunniteltua pelaajaa ei ole tässä ottelussa, ne ohitettiin.",
-      "errorPlayed": "Tämä ottelu on jo alkanut, joten sen kokoonpanoa ei voi ottaa uudelleen käyttöön.",
+      "errorPlayed": "Tämä peli on jo alkanut, joten sen kokoonpanoa ei voi päivittää suunnitelmasta.",
       "errorPlanMissing": "Lähdesuunnitelma on poistettu, joten sitä ei voi enää ottaa käyttöön.",
-      "errorGeneric": "Suunnitelman uudelleenkäyttö ei onnistunut."
+      "errorGeneric": "Suunnitelman uudelleenkäyttö ei onnistunut.",
+      "successMissing_one": "Kokoonpano päivitettiin suunnitelmasta. {{count}} suunniteltu pelaaja ei ole tässä pelissä, se ohitettiin.",
+      "successMissing_other": "Kokoonpano päivitettiin suunnitelmasta. {{count}} suunniteltua pelaajaa ei ole tässä pelissä, ne ohitettiin."
     },
     "eventActions": "Tapahtuman toiminnot",
     "gameTypeLabel": "Linkitä kilpailuun",
@@ -3158,7 +3160,7 @@
       "selectNone": "Ei yhtään",
       "playersSelected": "{{count}} valittu",
       "gamesLabel": "Pelien määrä",
-      "formationLabel": "Ryhmitys",
+      "formationLabel": "Muodostelma",
       "periodsLabel": "Jaksot",
       "periodMinutesLabel": "Minuuttia per jakso",
       "create": "Luo suunnitelma",
@@ -3178,12 +3180,21 @@
       "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
       "placedCount": "{{placed}}/{{total}} paikoillaan",
       "editLineup": "Muokkaa kokoonpanoa",
-      "updateLinked": "Päivitä {{count}} peliä tästä",
-      "confirmReapply": "Päivitetäänkö {{count}} pelaamatonta ottelua, jotka on luotu suunnitelmasta \"{{label}}\", nykyisellä suunnitelmalla? Niiden kokoonpanot ja suunnitellut vaihdot korvataan.",
-      "reapplyDone": "Päivitettiin {{updated}} peliä suunnitelmasta.",
-      "reapplyDoneMissing": "Päivitettiin {{updated}} peliä. {{missing}} suunniteltua pelaajapaikkaa ohitettiin (ei pelin kokoonpanossa).",
-      "reapplyDonePartial": "Päivitettiin {{updated}} peliä; {{failed}} pelin päivitys epäonnistui.",
-      "reapplyError": "Linkitettyjen pelien päivitys ei onnistunut."
+      "reapplyError": "Linkitettyjen pelien päivitys ei onnistunut.",
+      "confirmDeleteTitle": "Poistetaanko suunnitelma?",
+      "confirmReapplyTitle": "Päivitetäänkö luodut pelit?",
+      "confirmReapplyLabel": "Päivitä",
+      "confirmReapplyWarning": "Niiden avauskokoonpanot, pelaajavalinnat ja suunnitellut vaihdot korvataan.",
+      "confirmReapply_one": "Päivitetäänkö {{count}} pelaamaton peli, joka on luotu suunnitelmasta \"{{label}}\", nykyisellä suunnitelmalla?",
+      "confirmReapply_other": "Päivitetäänkö {{count}} pelaamatonta peliä, jotka on luotu suunnitelmasta \"{{label}}\", nykyisellä suunnitelmalla?",
+      "updateLinked_one": "Päivitä {{count}} tästä luotu peli",
+      "updateLinked_other": "Päivitä {{count}} tästä luotua peliä",
+      "reapplyDone_one": "Päivitettiin {{count}} peli suunnitelmasta.",
+      "reapplyDone_other": "Päivitettiin {{count}} peliä suunnitelmasta.",
+      "reapplyDoneMissing_one": "Päivitettiin {{count}} peli. Pelin pelaajalistasta puuttuvia suunniteltuja pelaajia ohitettiin: {{missing}}.",
+      "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Pelin pelaajalistasta puuttuvia suunniteltuja pelaajia ohitettiin: {{missing}}.",
+      "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
+      "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui."
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",
@@ -3201,7 +3212,7 @@
     "subs": {
       "heading": "Vaihdot",
       "none": "Ei vaihtoja vielä.",
-      "row": "{{minute}}' — {{player}} → {{position}}",
+      "row": "{{minute}}' {{player}} kentälle ({{position}})",
       "remove": "Poista",
       "noSlots": "Aseta ensin avauskokoonpano.",
       "noBench": "Ei vaihtopelaajia käytettävissä.",
@@ -3209,7 +3220,8 @@
       "choose": "Valitse…",
       "inLabel": "Kentälle",
       "timeLabel": "Minuutti",
-      "add": "Lisää vaihto"
+      "add": "Lisää vaihto",
+      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})"
     },
     "balance": {
       "title": "Peliaikatasapaino",
@@ -3220,7 +3232,7 @@
       "noGames": "Ei laskettuja pelejä. Merkitse pelit mukaan.",
       "ofFairShare": "{{pct}}% osuudesta",
       "notPlaying": "Ei pelaa: {{games}}",
-      "gameShort": "O{{n}}"
+      "gameShort": "P{{n}}"
     },
     "versions": {
       "switchLabel": "Suunnitelma",
@@ -3231,6 +3243,7 @@
       "exportError": "Suunnitelmaa ei voitu viedä.",
       "copySuffix": "(kopio)",
       "switchError": "Suunnitelmaa ei voitu avata."
-    }
+    },
+    "gkShort": "MV"
   }
 }

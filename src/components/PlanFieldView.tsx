@@ -127,7 +127,8 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
           const filled = !!playerId;
           // 1-based human label (#1, #2, …); note `i` includes the GK at 0, so
           // field slot `s0` reads as `#1`. Intentional - friendlier than slotId.
-          const positionLabel = slot.isGoalie ? 'GK' : `#${i}`;
+          // GK shorthand is localized (fi coaches read "MV", not "GK").
+          const positionLabel = slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${i}`;
           const slotSubs = subsBySlot.get(slot.slotId) ?? [];
           const firstSub = slotSubs[0];
           const subInName = firstSub?.inPlayerId ? nameById.get(firstSub.inPlayerId) : null;
@@ -161,7 +162,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
                   isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : '',
                 ].join(' ')}
               >
-                {filled ? shortName(name ?? '') : slot.isGoalie ? 'GK' : '+'}
+                {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
               </span>
               {firstSub && (
                 <span
@@ -197,7 +198,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
               <button
                 type="button"
                 onClick={handleClear}
-                className="text-xs text-red-400 hover:text-red-300"
+                className="text-xs text-red-400 hover:text-red-300 py-2.5 px-2 -my-2.5"
               >
                 {t('playtimePlanner.lineup.clearSlot', 'Clear')}
               </button>
@@ -206,7 +207,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
               <button
                 type="button"
                 onClick={handleAutoFill}
-                className="text-xs font-medium text-indigo-300 hover:text-indigo-200"
+                className="text-xs font-medium text-indigo-300 hover:text-indigo-200 py-2.5 px-2 -my-2.5"
               >
                 {t('playtimePlanner.lineup.autoFill', 'Auto-fill')}
               </button>

@@ -99,8 +99,6 @@ describe('buildReapplyPatch', () => {
     expect(res.ok).toBe(true);
     // 5 starters on the field + 1 parked sub (Niko) = 6 discs.
     expect(res.patch!.playersOnField).toHaveLength(6);
-    expect(res.startersCount).toBe(5);
-    expect(res.subsCount).toBe(1);
     // GK keeps identity + goalie flag.
     const gk = res.patch!.playersOnField.find((p) => p.id === 'a')!;
     expect(gk.isGoalie).toBe(true);

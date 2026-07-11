@@ -60,6 +60,7 @@ import { getAllPlanLinks, deletePlanLinksForPlan } from '@/utils/playtimePlanner
 import { getSavedGames, saveGame as utilSaveGame } from '@/utils/savedGames';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import PlanFieldView from '@/components/PlanFieldView';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
 import PlanBalanceView from '@/components/PlanBalanceView';
@@ -237,15 +238,23 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
   }, [isOpen, user?.id]);
 
-  // Close on Escape.
+  // Escape steps BACK from a sub-view (lineup/balance -> overview) and only
+  // closes the planner from the top-level views - matching how deep the user is,
+  // instead of throwing away their navigation context.
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (view === 'lineup' || view === 'balance') {
+        setEditingGameId(null);
+        setView('overview');
+      } else {
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, view, onClose]);
 
   const togglePlayer = (id: string) => {
     setSelectedIds((prev) => {
@@ -449,19 +458,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   }, [isOpen, activePlan?.id, refreshLinkedCounts]);
 
   // Re-apply the current plan to every unplayed game created from one planned game.
+  // Guarded behind the app's ConfirmationModal (not window.confirm): the "update"
+  // button stores the target game, the confirm dialog runs this.
+  const [bulkReapplyTarget, setBulkReapplyTarget] = useState<PlanGame | null>(null);
+  const [isBulkReapplying, setIsBulkReapplying] = useState(false);
   const handleReapplyLinkedGames = useCallback(
     async (game: PlanGame) => {
       if (!activePlan) return;
       const count = linkedCounts[game.id] ?? 0;
       if (count === 0) return;
-      const confirmed = window.confirm(
-        t(
-          'playtimePlanner.overview.confirmReapply',
-          'Update {{count}} unplayed game(s) created from "{{label}}" with the current plan? Their lineups and planned substitutions will be overwritten.',
-          { count, label: game.label },
-        ),
-      );
-      if (!confirmed) return;
       // Persist any in-flight plan edits first so the re-apply uses the latest lineup.
       await flushSave();
       try {
@@ -482,14 +487,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // (otherwise its next autosave would revert the storage write).
         if (summary.updatedIds.length > 0) onLinkedGamesUpdated?.(summary.updatedIds);
         await refreshLinkedCounts(activePlan.id);
+        // The pluralized number rides the i18next `count` option (selects the
+        // _one/_other key variants); other numbers are plain interpolations.
         if (summary.failed > 0) {
           // Partial success: some games were updated, some writes failed - say so
           // explicitly rather than reporting a clean success.
           showToast(
             t(
               'playtimePlanner.overview.reapplyDonePartial',
-              'Updated {{updated}} game(s); {{failed}} could not be updated.',
-              { updated: summary.updated, failed: summary.failed },
+              'Updated {{count}} games; {{failed}} could not be updated.',
+              { count: summary.updated, failed: summary.failed },
             ),
             'error',
           );
@@ -498,11 +505,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             summary.missingTotal > 0
               ? t(
                   'playtimePlanner.overview.reapplyDoneMissing',
-                  'Updated {{updated}} game(s). {{missing}} planned player slot(s) were skipped (not in a game roster).',
-                  { updated: summary.updated, missing: summary.missingTotal },
+                  'Updated {{count}} games. Planned players not in a game roster were skipped: {{missing}}.',
+                  { count: summary.updated, missing: summary.missingTotal },
                 )
-              : t('playtimePlanner.overview.reapplyDone', 'Updated {{updated}} game(s) from the plan.', {
-                  updated: summary.updated,
+              : t('playtimePlanner.overview.reapplyDone', 'Updated {{count}} games from the plan.', {
+                  count: summary.updated,
                 }),
             'success',
           );
@@ -573,11 +580,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [refreshPlanList, showToast, t],
   );
 
-  const handleDelete = async () => {
+  // Plan deletion is confirmed via the app's ConfirmationModal (danger variant),
+  // matching every other destructive action in the app.
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const performDelete = async () => {
     if (!activePlan) return;
-    if (!window.confirm(t('playtimePlanner.overview.confirmDelete', 'Delete this plan? This cannot be undone.'))) {
-      return;
-    }
     // Cancel any pending autosave for the plan we're about to remove, but KEEP the
     // dirty state until the delete succeeds - if it fails, the plan still exists
     // and silently discarding the user's last ~600ms of edits would desync the
@@ -934,7 +941,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                             setEditingGameId(game.id);
                             setView('lineup');
                           }}
-                          className="text-xs text-indigo-400 hover:text-indigo-300"
+                          className="text-xs text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 -mx-2"
                         >
                           {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
                         </button>
@@ -942,10 +949,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       {(linkedCounts[game.id] ?? 0) > 0 && (
                         <button
                           type="button"
-                          onClick={() => void handleReapplyLinkedGames(game)}
-                          className={`${secondaryButtonStyle} w-full text-xs`}
+                          onClick={() => setBulkReapplyTarget(game)}
+                          disabled={isBulkReapplying}
+                          className={`${secondaryButtonStyle} w-full`}
                         >
-                          {t('playtimePlanner.overview.updateLinked', 'Update {{count}} game(s) from this', {
+                          {t('playtimePlanner.overview.updateLinked', 'Update {{count}} games created from this', {
                             count: linkedCounts[game.id],
                           })}
                         </button>
@@ -1002,7 +1010,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
         {view === 'overview' && (
           <>
-            <button type="button" onClick={handleDelete} className={`${dangerButtonStyle} flex-1`}>
+            <button type="button" onClick={() => setShowDeleteConfirm(true)} className={`${dangerButtonStyle} flex-1`}>
               {t('playtimePlanner.overview.deletePlan', 'Delete')}
             </button>
             <button type="button" onClick={startNewPlan} className={`${secondaryButtonStyle} flex-1`}>
@@ -1014,6 +1022,51 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           {t('common.close', 'Close')}
         </button>
       </ModalFooter>
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title={t('playtimePlanner.overview.confirmDeleteTitle', 'Delete plan?')}
+        message={t('playtimePlanner.overview.confirmDelete', 'Delete this plan? This cannot be undone.')}
+        onConfirm={() => {
+          setShowDeleteConfirm(false);
+          void performDelete();
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+        confirmLabel={t('common.delete', 'Delete')}
+        variant="danger"
+      />
+      <ConfirmationModal
+        isOpen={bulkReapplyTarget !== null}
+        title={t('playtimePlanner.overview.confirmReapplyTitle', 'Update linked games?')}
+        message={
+          bulkReapplyTarget
+            ? t(
+                'playtimePlanner.overview.confirmReapply',
+                'Update {{count}} unplayed games created from "{{label}}" with the current plan?',
+                { count: linkedCounts[bulkReapplyTarget.id] ?? 0, label: bulkReapplyTarget.label },
+              )
+            : ''
+        }
+        warningMessage={t(
+          'playtimePlanner.overview.confirmReapplyWarning',
+          'Their lineups, player selections and planned substitutions will be overwritten.',
+        )}
+        onConfirm={async () => {
+          const game = bulkReapplyTarget;
+          setBulkReapplyTarget(null);
+          if (!game) return;
+          setIsBulkReapplying(true);
+          try {
+            await handleReapplyLinkedGames(game);
+          } finally {
+            setIsBulkReapplying(false);
+          }
+        }}
+        onCancel={() => setBulkReapplyTarget(null)}
+        confirmLabel={t('playtimePlanner.overview.confirmReapplyLabel', 'Update')}
+        variant="primary"
+        isConfirming={isBulkReapplying}
+      />
     </ModalContainer>
   );
 };
