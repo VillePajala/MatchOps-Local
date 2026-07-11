@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-12",
+      "en": [
+        "Development infrastructure: made automated code-review comments post reliably on pull requests (no user-facing changes)."
+      ],
+      "fi": [
+        "Kehitysinfrastruktuuri: automaattisten koodikatselmointikommenttien julkaisu pull requesteihin toimii nyt luotettavasti (ei käyttäjälle näkyviä muutoksia)."
+      ]
+    },
+    {
       "date": "2026-07-03",
       "en": [
         "Marketing site: added a \"Position Balance\" feature card - showing the season-long, per-player position spread and the develop-not-lock angle (spot who's been kept in one role), with EN/FI screenshots of the new stats view."
