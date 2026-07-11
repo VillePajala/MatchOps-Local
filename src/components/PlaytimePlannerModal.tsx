@@ -56,6 +56,7 @@ import {
   countReapplicableGames,
 } from '@/utils/playtimePlanner/reapply';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
+import { getAllPlanLinks } from '@/utils/playtimePlanner/planLinks';
 import { getSavedGames, saveGame as utilSaveGame } from '@/utils/savedGames';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
@@ -68,13 +69,23 @@ import type { Player } from '@/types';
 interface PlaytimePlannerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Bulk re-apply rewrote these games in storage. The host uses this to refresh
+   * live state when the currently loaded game is among them (otherwise the next
+   * autosave would write the stale in-memory lineup back over the update).
+   */
+  onLinkedGamesUpdated?: (gameIds: string[]) => void;
 }
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
 type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance';
 
-const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onClose }) => {
+const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
+  isOpen,
+  onClose,
+  onLinkedGamesUpdated,
+}) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -403,8 +414,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
   const refreshLinkedCounts = useCallback(
     async (planId: string) => {
       try {
-        const games = await getSavedGames(user?.id);
-        setLinkedCounts(countReapplicableGames(games, planId));
+        const [games, links] = await Promise.all([getSavedGames(user?.id), getAllPlanLinks()]);
+        setLinkedCounts(countReapplicableGames(games, links, planId));
       } catch (err) {
         logger.error('[planner] Failed to count linked games (non-fatal)', err);
         setLinkedCounts({});
@@ -413,12 +424,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     [user],
   );
 
-  // Only re-count when the active plan identity changes, not on every plan edit.
+  // Re-count when the active plan changes AND on every reopen: the component stays
+  // mounted while closed, and games can be created/played/deleted in between, so a
+  // count computed at the previous open would be stale.
   useEffect(() => {
     const planId = activePlan?.id;
     let cancelled = false;
     void (async () => {
-      if (!planId) {
+      if (!isOpen || !planId) {
         if (!cancelled) setLinkedCounts({});
         return;
       }
@@ -427,7 +440,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
     return () => {
       cancelled = true;
     };
-  }, [activePlan?.id, refreshLinkedCounts]);
+  }, [isOpen, activePlan?.id, refreshLinkedCounts]);
 
   // Re-apply the current plan to every unplayed game created from one planned game.
   const handleReapplyLinkedGames = useCallback(
@@ -449,6 +462,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         const summary = await reapplyPlanToLinkedGames(
           {
             getAllGames: () => getSavedGames(user?.id),
+            getAllPlanLinks,
             saveGame: (id, g) => utilSaveGame(id, g, user?.id),
             setGameSubs,
           },
@@ -458,6 +472,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         // The saved-games React Query cache is now stale - refetch so a later load
         // shows the updated lineup.
         queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, user?.id] });
+        // Let the host refresh live state if the currently loaded game was updated
+        // (otherwise its next autosave would revert the storage write).
+        if (summary.updatedIds.length > 0) onLinkedGamesUpdated?.(summary.updatedIds);
         await refreshLinkedCounts(activePlan.id);
         showToast(
           summary.missingTotal > 0
@@ -476,7 +493,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({ isOpen, onC
         showToast(t('playtimePlanner.overview.reapplyError', 'Could not update the linked games.'), 'error');
       }
     },
-    [activePlan, linkedCounts, user, flushSave, queryClient, refreshLinkedCounts, showToast, t],
+    [activePlan, linkedCounts, user, flushSave, queryClient, refreshLinkedCounts, onLinkedGamesUpdated, showToast, t],
   );
 
   const handleDuplicate = useCallback(async () => {

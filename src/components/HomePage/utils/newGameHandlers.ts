@@ -8,6 +8,7 @@ import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } from '@/types';
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { ResourceType } from '@/config/premiumLimits';
 
@@ -225,10 +226,6 @@ export async function startNewGameWithSetup(
     // Snap points let the game rebuild the dotted sub-slot circles + position labels
     // (a manually-placed game persists these too). Empty for a normal new game.
     formationSnapPoints: prefill?.formationSnapPoints ?? [],
-    // Phase 3: remember which plan/planned-game this game was spawned from so an
-    // edited plan can be re-applied later. Undefined for a normal (non-plan) game.
-    sourcePlanId: prefill?.sourcePlanId,
-    sourcePlanGameId: prefill?.sourcePlanGameId,
     opponents: [],
     showPlayerNames: true,
     drawings: [],
@@ -269,6 +266,20 @@ export async function startNewGameWithSetup(
         await setGameSubs(newGameId, prefill.plannedSubs);
       } catch (subsError) {
         logger.error('[NEW GAME] Failed to store planned subs (non-fatal):', subsError);
+      }
+    }
+
+    // Remember which plan/planned game this game came from (local-only store, NOT
+    // the game blob - autosave/cloud rebuilds of the blob would drop it). Enables
+    // re-applying an edited plan later. Best-effort like the subs above.
+    if (prefill?.sourcePlanId && prefill.sourcePlanGameId) {
+      try {
+        await setPlanLink(newGameId, {
+          planId: prefill.sourcePlanId,
+          planGameId: prefill.sourcePlanGameId,
+        });
+      } catch (linkError) {
+        logger.error('[NEW GAME] Failed to store plan link (non-fatal):', linkError);
       }
     }
   } catch (error) {

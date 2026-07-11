@@ -142,16 +142,10 @@ export interface AppState {
   tacticalBallPosition: Point | null;
   /** Formation snap points for player positioning assistance */
   formationSnapPoints?: Point[];
-  /**
-   * Playing-Time Planner link (Phase 3). Set when this game was created from a
-   * planned game via prefill. Lets the coach re-apply an edited plan (e.g. after
-   * an injury) to the games already spawned from it. Local-only, like the planner
-   * itself - the plan lives in IndexedDB and is not synced to cloud, so these ids
-   * are dropped on the cloud round-trip and only resolve on the device that owns
-   * the plan (which is the only device where re-apply can work anyway).
-   */
-  sourcePlanId?: string;
-  sourcePlanGameId?: string;
+  // NOTE: the Playing-Time Planner's plan link (which plan/planned game a game
+  // was created from) deliberately does NOT live on this model - autosave
+  // snapshots and cloud pulls rebuild this blob and would drop it. It lives in
+  // the local-only store at src/utils/playtimePlanner/planLinks.ts instead.
   teamId?: string;              // NEW: the team this game belongs to
   /**
    * League ID for this game - can override the season's league setting.

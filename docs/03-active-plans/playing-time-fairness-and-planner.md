@@ -205,20 +205,22 @@ coach has to hand-fix every already-created game. This phase closes that loop.
   (`buildPrefillFromPlan` → starters + sideline subs + snap points + subs +
   `missingPlayerIds`), so re-apply is mostly *plumbing + guards*, not new algorithm.
 
-### Data model (Phase 3.1)
-Add two optional fields to `AppState` (`src/types/game.ts`), written at creation:
-- `sourcePlanId?: string`
-- `sourcePlanGameId?: string`
+### Data model (Phase 3.1, REVISED after deep review)
+The link (which plan + planned game a real game came from) lives in a
+**separate local-only store** (`src/utils/playtimePlanner/planLinks.ts`, key
+`PLAYTIME_PLAN_LINKS_KEY`, map `gameId -> {planId, planGameId}`), written at
+creation next to the planned subs.
 
-Thread them prefill → `onStart` payload → `newGameHandlers` → `newGameState`
-(mirrors how `formationSnapPoints` was threaded). Games created before this ship
-have no link and simply can't be re-applied (acceptable; no migration needed).
-
-Local-only, on purpose. The plan itself lives in IndexedDB and is not synced to
-cloud, so these ids are dropped on the cloud round-trip and only resolve on the
-device that owns the plan - which is the only device where re-apply could work
-anyway. No DB columns / SupabaseDataStore transforms needed. (Status: **shipped**
-on `feat/playtime-3.1-plan-link`.)
+It was first shipped as `sourcePlanId`/`sourcePlanGameId` on `AppState`, but the
+deep review proved that fragile in two independent ways:
+1. the autosave snapshot (`createGameSnapshot`) rebuilds the game blob from
+   session state and dropped the fields on the first save after creation;
+2. in cloud mode a background hydrate on app start replaces the local blob with
+   the cloud copy (which never had the fields - no transform/column).
+The keyed store has the same survival property as the 2.1 sub store: nothing
+rebuilds it, so the link outlives autosaves and cloud pulls. Games created
+before this ship have no link and simply can't be re-applied (acceptable; no
+migration). (Status: **shipped**, reworked on `feat/playtime-3.5-link-store`.)
 
 ### Core (Phase 3.2) - pure + one handler
 - **Reuse `buildPrefillFromPlan`.** A re-apply is: recompute the prefill against
@@ -230,8 +232,8 @@ on `feat/playtime-3.1-plan-link`.)
   - Preserve: opponent/date/time/location, score, `gameEvents`, assessments,
     notes, personnel, period config, `isPlayed`/`gameStatus` - everything that is
     "what happened", not "who lines up".
-- **Handler `reapplyPlanToGame(gameId)`**: load game → resolve `sourcePlanId` /
-  `sourcePlanGameId` → `getPlan` + find planned game → `getMasterRoster` (or the
+- **Handler `reapplyPlanToGame(gameId)`**: load game → resolve the plan link
+  from the local link store → `getPlan` + find planned game → `getMasterRoster` (or the
   game's own roster) → `buildPrefillFromPlan` → merge patch → `saveGame` +
   `setGameSubs`. Returns a result the UI can toast (`missingPlayerIds`, counts).
 
@@ -249,15 +251,15 @@ on `feat/playtime-3.1-plan-link`.)
 
 ### UI (Phase 3.3)
 - **Per-game (primary):** a "Re-apply plan" button in `GameSettingsModal`, shown
-  only when the game has a `sourcePlanId` and is unplayed. Confirm → toast result
+  only when the game has a plan link (local link store) and is unplayed. Confirm → toast result
   (e.g. "Lineup updated from *Plan name*; 1 planned player not in the roster").
 - **Bulk (secondary, high value for the injury case):** from the planner overview,
   each planned game shows "N games use this - update them". One tap re-applies to
-  **all unplayed games** whose `sourcePlanGameId` matches, with a single confirm and
+  **all unplayed games** whose plan link matches, with a single confirm and
   a summary toast. This is what makes an injury edit propagate in one action.
 
 ### Phased PR split
-1. **3.1 Link** ✅ *shipped* - add `sourcePlanId`/`sourcePlanGameId`, thread through
+1. **3.1 Link** ✅ *shipped (revised)* - plan link in a local-only store, threaded through
    creation, store them. (No behaviour change; pure plumbing + a test that a
    plan-created game carries the link.)
 2. **3.2 Core** - `reapplyPlanToGame` handler + pure merge, guards, tests

@@ -49,6 +49,7 @@ const plan = (game: PlanGame): PlaytimePlan => ({
 
 // Minimal AppState carrying only what re-apply reads/writes. The unused game fields
 // (score, events, notes, ...) stand in for "what happened" and must be preserved.
+// The plan link is NOT on the game - it lives in the local link store (planLinks).
 const makeGame = (over: Partial<AppState> = {}): AppState =>
   ({
     gameStatus: 'notStarted',
@@ -57,13 +58,13 @@ const makeGame = (over: Partial<AppState> = {}): AppState =>
     selectedPlayerIds: [],
     playersOnField: [],
     formationSnapPoints: [],
-    sourcePlanId: 'plan-1',
-    sourcePlanGameId: 'g1',
     homeScore: 0,
     awayScore: 0,
     gameNotes: 'keep me',
     ...over,
   }) as unknown as AppState;
+
+const LINK = { planId: 'plan-1', planGameId: 'g1' };
 
 describe('isGamePlayed', () => {
   it('is false for a fresh, unstarted game', () => {
@@ -133,6 +134,7 @@ describe('reapplyPlanToGame', () => {
     const setGameSubs = jest.fn(async () => true);
     const deps: ReapplyDeps = {
       getPlan: async (id) => (id === 'plan-1' ? plan(planGame()) : null),
+      getPlanLink: async () => LINK,
       saveGame,
       setGameSubs,
       ...over,
@@ -141,8 +143,8 @@ describe('reapplyPlanToGame', () => {
   };
 
   it('blocks a game with no plan link', async () => {
-    const { deps, saveGame } = makeDeps();
-    const res = await reapplyPlanToGame(deps, 'game-1', makeGame({ sourcePlanId: undefined }));
+    const { deps, saveGame } = makeDeps({ getPlanLink: async () => null });
+    const res = await reapplyPlanToGame(deps, 'game-1', makeGame());
     expect(res).toEqual({ ok: false, reason: 'no-link' });
     expect(saveGame).not.toHaveBeenCalled();
   });
@@ -155,8 +157,8 @@ describe('reapplyPlanToGame', () => {
   });
 
   it('blocks when the planned game was removed from the plan', async () => {
-    const { deps } = makeDeps();
-    const res = await reapplyPlanToGame(deps, 'game-1', makeGame({ sourcePlanGameId: 'gone' }));
+    const { deps } = makeDeps({ getPlanLink: async () => ({ planId: 'plan-1', planGameId: 'gone' }) });
+    const res = await reapplyPlanToGame(deps, 'game-1', makeGame());
     expect(res).toEqual({ ok: false, reason: 'plan-missing' });
   });
 
@@ -195,23 +197,39 @@ describe('reapplyPlanToGame', () => {
 describe('countReapplicableGames', () => {
   it('counts only unplayed games linked to the plan, keyed by planned-game id', () => {
     const games: Record<string, AppState> = {
-      a: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
-      b: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
-      c: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g2' }),
-      played: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1', gameStatus: 'inProgress' }),
-      otherPlan: makeGame({ sourcePlanId: 'plan-9', sourcePlanGameId: 'g1' }),
-      noLink: makeGame({ sourcePlanId: undefined, sourcePlanGameId: undefined }),
+      a: makeGame(),
+      b: makeGame(),
+      c: makeGame(),
+      played: makeGame({ gameStatus: 'inProgress' }),
+      noLink: makeGame(),
+      otherPlan: makeGame(),
     };
-    expect(countReapplicableGames(games, 'plan-1')).toEqual({ g1: 2, g2: 1 });
+    const links = {
+      a: { planId: 'plan-1', planGameId: 'g1' },
+      b: { planId: 'plan-1', planGameId: 'g1' },
+      c: { planId: 'plan-1', planGameId: 'g2' },
+      played: { planId: 'plan-1', planGameId: 'g1' },
+      otherPlan: { planId: 'plan-9', planGameId: 'g1' },
+      deletedGame: { planId: 'plan-1', planGameId: 'g1' }, // link outlived its game
+    };
+    expect(countReapplicableGames(games, links, 'plan-1')).toEqual({ g1: 2, g2: 1 });
   });
 });
 
 describe('reapplyPlanToLinkedGames', () => {
-  const makeBulkDeps = (games: Record<string, AppState>) => {
+  const makeBulkDeps = (
+    games: Record<string, AppState>,
+    links: Record<string, { planId: string; planGameId: string }>,
+  ) => {
     const saveGame = jest.fn(async (_id: string, game: AppState) => game);
     const setGameSubs = jest.fn(async () => true);
     return {
-      deps: { getAllGames: async () => games, saveGame, setGameSubs },
+      deps: {
+        getAllGames: async () => games,
+        getAllPlanLinks: async () => links,
+        saveGame,
+        setGameSubs,
+      },
       saveGame,
       setGameSubs,
     };
@@ -219,37 +237,51 @@ describe('reapplyPlanToLinkedGames', () => {
 
   it('updates every unplayed linked game and skips played ones', async () => {
     const games: Record<string, AppState> = {
-      a: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
-      b: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1' }),
-      played: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g1', gameStatus: 'inProgress' }),
-      otherGame: makeGame({ sourcePlanId: 'plan-1', sourcePlanGameId: 'g2' }),
+      a: makeGame(),
+      b: makeGame(),
+      played: makeGame({ gameStatus: 'inProgress' }),
+      otherGame: makeGame(),
     };
-    const { deps, saveGame, setGameSubs } = makeBulkDeps(games);
+    const links = {
+      a: { planId: 'plan-1', planGameId: 'g1' },
+      b: { planId: 'plan-1', planGameId: 'g1' },
+      played: { planId: 'plan-1', planGameId: 'g1' },
+      otherGame: { planId: 'plan-1', planGameId: 'g2' },
+    };
+    const { deps, saveGame, setGameSubs } = makeBulkDeps(games, links);
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
 
-    expect(summary).toEqual({ matched: 3, updated: 2, skippedPlayed: 1, missingTotal: 0 });
+    expect(summary).toEqual({
+      matched: 3,
+      updated: 2,
+      updatedIds: ['a', 'b'],
+      skippedPlayed: 1,
+      missingTotal: 0,
+    });
     expect(saveGame).toHaveBeenCalledTimes(2); // a + b, not the played one, not g2
     expect(setGameSubs).toHaveBeenCalledTimes(2);
   });
 
   it('tallies missing planned players across updated games (roster drift)', async () => {
     // Both linked games are missing Kai (a planned starter) from their roster.
-    const drifted = () =>
-      makeGame({
-        sourcePlanId: 'plan-1',
-        sourcePlanGameId: 'g1',
-        availablePlayers: roster.filter((p) => p.id !== 'e'),
-      });
-    const { deps } = makeBulkDeps({ a: drifted(), b: drifted() });
+    const drifted = () => makeGame({ availablePlayers: roster.filter((p) => p.id !== 'e') });
+    const links = {
+      a: { planId: 'plan-1', planGameId: 'g1' },
+      b: { planId: 'plan-1', planGameId: 'g1' },
+    };
+    const { deps } = makeBulkDeps({ a: drifted(), b: drifted() }, links);
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
     expect(summary.updated).toBe(2);
     expect(summary.missingTotal).toBe(2); // one missing player per updated game
   });
 
   it('does nothing when the planned game is not in the plan', async () => {
-    const { deps, saveGame } = makeBulkDeps({ a: makeGame() });
+    const { deps, saveGame } = makeBulkDeps(
+      { a: makeGame() },
+      { a: { planId: 'plan-1', planGameId: 'g1' } },
+    );
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'nope');
-    expect(summary).toEqual({ matched: 0, updated: 0, skippedPlayed: 0, missingTotal: 0 });
+    expect(summary).toEqual({ matched: 0, updated: 0, updatedIds: [], skippedPlayed: 0, missingTotal: 0 });
     expect(saveGame).not.toHaveBeenCalled();
   });
 });

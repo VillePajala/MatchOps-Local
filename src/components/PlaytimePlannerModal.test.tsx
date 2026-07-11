@@ -52,6 +52,12 @@ jest.mock('@/utils/playtimePlanner/gameSubs', () => ({
   setGameSubs: jest.fn(async () => true),
 }));
 
+// Linked games are found via the local plan-link store (not the game blob).
+const mockGetAllPlanLinks = jest.fn(async (): Promise<Record<string, { planId: string; planGameId: string }>> => ({}));
+jest.mock('@/utils/playtimePlanner/planLinks', () => ({
+  getAllPlanLinks: () => mockGetAllPlanLinks(),
+}));
+
 const roster: Player[] = [
   { id: 'p1', name: 'Alex', isGoalie: false, receivedFairPlayCard: false, jerseyNumber: '1' },
   { id: 'p2', name: 'Sam', isGoalie: false, receivedFairPlayCard: false, jerseyNumber: '2' },
@@ -211,12 +217,15 @@ describe('PlaytimePlannerModal', () => {
 
   it('bulk re-applies the plan to linked unplayed games (Phase 3.4)', async () => {
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+    const onLinkedGamesUpdated = jest.fn();
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
-    // One saved game was created from planned game g1 and is still unplayed.
+    // One saved game was created from planned game g1 (link in the link store)
+    // and is still unplayed.
+    mockGetAllPlanLinks.mockResolvedValue({
+      game_1: { planId: 'existing', planGameId: 'g1' },
+    });
     mockGetSavedGames.mockResolvedValue({
       game_1: {
-        sourcePlanId: 'existing',
-        sourcePlanGameId: 'g1',
         gameStatus: 'notStarted',
         gameEvents: [],
         availablePlayers: [{ id: 'p1', name: 'Alex' }],
@@ -225,7 +234,7 @@ describe('PlaytimePlannerModal', () => {
       },
     } as never);
 
-    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} onLinkedGamesUpdated={onLinkedGamesUpdated} />);
 
     // The "update N games" affordance appears once the linked count resolves.
     const button = await screen.findByText('Update 1 game(s) from this');
@@ -237,6 +246,8 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() =>
       expect(mockShowToast).toHaveBeenCalledWith('Updated 1 game(s) from the plan.', 'success'),
     );
+    // The host is told which games changed so it can refresh live state.
+    expect(onLinkedGamesUpdated).toHaveBeenCalledWith(['game_1']);
     confirmSpy.mockRestore();
   });
 
