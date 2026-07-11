@@ -55,6 +55,22 @@ describe('usePlannedSubPrompts', () => {
     expect(result.current.prompt).toMatchObject({ subId: 's1', inName: 'Niko', outName: 'Sam' });
   });
 
+  it('re-reads the schedule when refreshKey changes (re-apply plan)', async () => {
+    // First read: no subs. After a plan re-apply, the store has a due sub and the
+    // caller bumps refreshKey to force a re-read for the same game.
+    mockGetGameSubs.mockResolvedValueOnce([]).mockResolvedValueOnce([sub({ timeSeconds: 600 })]);
+    const { result, rerender } = renderHook(
+      ({ key }) => usePlannedSubPrompts('g1', 1000, players, key),
+      { initialProps: { key: 0 } },
+    );
+    await act(async () => {});
+    expect(result.current.prompt).toBeNull();
+
+    rerender({ key: 1 });
+    await waitFor(() => expect(result.current.prompt?.subId).toBe('s1'));
+    expect(mockGetGameSubs).toHaveBeenCalledTimes(2);
+  });
+
   it('shows the earliest due sub first', async () => {
     mockGetGameSubs.mockResolvedValue([
       sub({ id: 'late', timeSeconds: 900, inPlayerId: 'in2' }),

@@ -53,6 +53,9 @@ import type { FieldContainerProps, FieldInteractions } from '@/components/HomePa
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 import { generateSubSlots } from '@/utils/formations';
+import { reapplyPlanToGame } from '@/utils/playtimePlanner/reapply';
+import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
+import { getPlan } from '@/utils/playtimePlanner/storage';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -333,6 +336,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // --- Persistence State ---
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  // Bumped after a plan is re-applied so the live planned-sub prompts re-read the
+  // (non-reactive) local schedule store for the same game.
+  const [plannedSubsRefreshKey, setPlannedSubsRefreshKey] = useState(0);
 
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
@@ -1980,6 +1986,88 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     });
   }, [dispatchGameSession, setPlayersOnField]);
 
+  // Playing-Time Planner (Phase 3.3): re-apply the source plan to the CURRENT game.
+  // Overwrites the live lineup (field + selection + snap points) and the planned sub
+  // schedule from the (possibly edited) plan, preserving everything that is "what
+  // happened". The persisted copy is re-saved by the core handler; here we also push
+  // the new lineup into live state so the coach sees it without reloading.
+  const handleReapplyPlan = useCallback(async () => {
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+
+    let game: AppState | null = null;
+    try {
+      game = await utilGetGame(currentGameId, userId);
+    } catch (err) {
+      logger.error('[reapplyPlan] Failed to load current game', err);
+    }
+    if (!game) {
+      showToast(t('gameSettingsModal.reapplyPlan.errorGeneric', 'Could not re-apply the plan.'), 'error');
+      return;
+    }
+
+    const result = await reapplyPlanToGame(
+      { getPlan, saveGame: (id, g) => utilSaveGame(id, g, userId), setGameSubs },
+      currentGameId,
+      game,
+    );
+
+    if (!result.ok || !result.patch) {
+      const msg =
+        result.reason === 'played'
+          ? t('gameSettingsModal.reapplyPlan.errorPlayed', "This game has already started, so its lineup can't be re-applied.")
+          : result.reason === 'plan-missing'
+            ? t('gameSettingsModal.reapplyPlan.errorPlanMissing', 'The source plan was deleted, so it can no longer be re-applied.')
+            : t('gameSettingsModal.reapplyPlan.errorGeneric', 'Could not re-apply the plan.');
+      showToast(msg, 'error');
+      return;
+    }
+
+    // Push the rebuilt lineup into live state (persisted copy already saved).
+    const patch = result.patch;
+    const snapPoints = patch.formationSnapPoints ?? [];
+    setPlayersOnField(patch.playersOnField);
+    setFormationSnapPoints(snapPoints);
+    dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: patch.selectedPlayerIds });
+    // Rebuild sideline sub-slot visuals from the new snap points (mirrors the load path).
+    const fieldPositions = snapPoints.filter(p => p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95);
+    setSubSlots(fieldPositions.length > 0 ? generateSubSlots(fieldPositions) : []);
+    // Force the live sub-prompt hook to re-read the new planned schedule.
+    setPlannedSubsRefreshKey(k => k + 1);
+    // Keep the saved-games cache in sync with the re-saved lineup.
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+
+    const missing = result.missingPlayerIds?.length ?? 0;
+    showToast(
+      missing > 0
+        ? t(
+            'gameSettingsModal.reapplyPlan.successMissing',
+            'Lineup updated from the plan. {{count}} planned player(s) are not in this game and were skipped.',
+            { count: missing },
+          )
+        : t('gameSettingsModal.reapplyPlan.success', 'Lineup updated from the plan.'),
+      'success',
+    );
+  }, [
+    currentGameId,
+    userId,
+    showToast,
+    t,
+    setPlayersOnField,
+    setFormationSnapPoints,
+    dispatchGameSession,
+    setSubSlots,
+    queryClient,
+  ]);
+
+  // The re-apply action is offered only for a saved game that was created from a plan
+  // and hasn't been played yet (never clobber a game that has events/score).
+  const currentSavedGame =
+    currentGameId && currentGameId !== DEFAULT_GAME_ID ? savedGames[currentGameId] : undefined;
+  const canReapplyPlan =
+    !!currentSavedGame?.sourcePlanId &&
+    gameSessionState.gameStatus === 'notStarted' &&
+    (gameSessionState.gameEvents?.length ?? 0) === 0;
+
   // Deterministic init fallback: auto-select latest real game if default or stale
   useEffect(() => {
     if (!initialLoadComplete) return;
@@ -2407,6 +2495,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldVM,
     timerVM,
     currentGameId,
+    plannedSubsRefreshKey,
     availablePlayers,
     teams: gameDataManagement.teams,
     seasons: gameDataManagement.seasons,
@@ -2506,6 +2595,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       playersForCurrentGame,
       savedGames,
       currentGameId,
+      canReapplyPlan,
       playerAssessments,
       selectedPlayerForStats,
       setSelectedPlayerForStats,
@@ -2579,6 +2669,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetShootoutKicks,
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
+      handleReapplyPlan,
       handleSetGamePersonnel,
       handleShowAppGuide,
       handleHardResetApp,

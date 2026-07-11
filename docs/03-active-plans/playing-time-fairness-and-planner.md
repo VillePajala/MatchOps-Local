@@ -262,7 +262,11 @@ on `feat/playtime-3.1-plan-link`.)
    plan-created game carries the link.)
 2. **3.2 Core** - `reapplyPlanToGame` handler + pure merge, guards, tests
    (unplayed-only, Rule 3, missing-player reporting, subs overwrite).
-3. **3.3 Per-game UI** - the GameSettingsModal button + confirm + toast.
+3. **3.3 Per-game UI** ✅ *shipped* - the GameSettingsModal footer button (shown
+   only for an unplayed plan-created game) + confirm + toast, wired to a
+   `handleReapplyPlan` in `useGameOrchestration` that pushes the rebuilt lineup into
+   live state and bumps a refresh key so `usePlannedSubPrompts` re-reads the new
+   schedule.
 4. **3.4 Bulk UI** - planner-overview "update linked games" for all unplayed
    matches, with count + confirm.
 

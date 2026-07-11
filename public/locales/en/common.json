@@ -945,6 +945,18 @@
     "prefillMissingPlayers": "{{count}} planned player(s) are not in this roster and were skipped."
   },
   "gameSettingsModal": {
+    "reapplyPlan": {
+      "button": "Re-apply plan",
+      "confirmTitle": "Re-apply plan?",
+      "confirmMessage": "This replaces the game's lineup and planned substitutions with the current plan. The score, events and other details are kept.",
+      "confirmWarning": "Any manual changes to this lineup will be overwritten.",
+      "confirmLabel": "Re-apply",
+      "success": "Lineup updated from the plan.",
+      "successMissing": "Lineup updated from the plan. {{count}} planned player(s) are not in this game and were skipped.",
+      "errorPlayed": "This game has already started, so its lineup can't be re-applied.",
+      "errorPlanMissing": "The source plan was deleted, so it can no longer be re-applied.",
+      "errorGeneric": "Could not re-apply the plan."
+    },
     "eventActions": "Event actions",
     "gameTypeLabel": "Link to Competition",
     "unknownPlayer": "Unknown Player",
