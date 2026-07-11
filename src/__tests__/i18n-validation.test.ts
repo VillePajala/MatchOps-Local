@@ -301,7 +301,8 @@ describe('Translation File Validation', () => {
       // +13: Batch C - _one/_other plural pairs for 7 planner/reapply count strings (+7),
       //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
       //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
-      expect(enKeys.length).toBe(2765);
+      // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
+      expect(enKeys.length).toBe(2766);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -326,7 +327,8 @@ describe('Translation File Validation', () => {
       // +13: Batch C - _one/_other plural pairs for 7 planner/reapply count strings (+7),
       //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
       //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
-      expect(fiKeys.length).toBe(2765);
+      // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
+      expect(fiKeys.length).toBe(2766);
     });
   });
 });
