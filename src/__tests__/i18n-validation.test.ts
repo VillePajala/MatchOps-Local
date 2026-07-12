@@ -312,7 +312,9 @@ describe('Translation File Validation', () => {
       //         the zero-minutes warning)
       // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
       // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
-      expect(enKeys.length).toBe(2792);
+      // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
+      //         -1: versions.switchLabel, dropdown replaced by the manager)
+      expect(enKeys.length).toBe(2795);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -348,7 +350,9 @@ describe('Translation File Validation', () => {
       //         the zero-minutes warning)
       // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
       // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
-      expect(fiKeys.length).toBe(2792);
+      // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
+      //         -1: versions.switchLabel, dropdown replaced by the manager)
+      expect(fiKeys.length).toBe(2795);
     });
   });
 });

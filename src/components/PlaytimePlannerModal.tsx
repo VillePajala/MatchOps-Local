@@ -97,7 +97,7 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance' | 'players' | 'grid';
+type View = 'loading' | 'manager' | 'setup' | 'overview' | 'lineup' | 'balance' | 'players' | 'grid';
 
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   isOpen,
@@ -248,9 +248,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setPlanList(list);
         if (list.length > 0) {
-          setActivePlan(list[0]);
-          seedHistory(list[0]);
-          setView('overview');
+          // Step-by-step flow: pick (or create) a plan first; its workspace
+          // opens only after an explicit choice.
+          setActivePlan(null);
+          seedHistory(null);
+          setView('manager');
         } else {
           resetSetupFormRef.current(players);
           setView('setup');
@@ -286,32 +288,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
   }, [isOpen, user?.id, seedHistory]);
 
-  // Escape steps BACK from a sub-view (lineup/balance -> overview) and only
-  // closes the planner from the top-level views - matching how deep the user is,
-  // instead of throwing away their navigation context.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
-      // registered earlier, so it would fire FIRST and also navigate - skip.
-      if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
-      // The sub sheet is open: Escape closes it, nothing else.
-      if (subSheetTarget !== null) {
-        setSubSheetTarget(null);
-        return;
-      }
-      if (view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') {
-        setEditingGameId(null);
-        setReplacingId(null);
-        setView('overview');
-      } else {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget]);
+
 
   const togglePlayer = (id: string) => {
     setSelectedIds((prev) => {
@@ -848,13 +825,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     const plans = await getPlans();
     const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     setPlanList(list);
+    setActivePlan(null);
+    seedHistory(null);
     if (list.length > 0) {
-      setActivePlan(list[0]);
-      seedHistory(list[0]);
-      setView('overview');
+      setView('manager');
     } else {
-      setActivePlan(null);
-      seedHistory(null);
       resetSetupForm(roster);
       setView('setup');
     }
@@ -868,6 +843,58 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       setShowDeleteConfirm(false);
     }
   };
+
+  // Leave the open plan back to the manager: persist pending edits first so the
+  // list shows fresh names/metadata.
+  const handleBackToManager = useCallback(async () => {
+    await flushSave();
+    await refreshPlanList();
+    setEditingGameId(null);
+    setReplacingId(null);
+    setSubSheetTarget(null);
+    setView('manager');
+  }, [flushSave, refreshPlanList]);
+
+  // Open a plan from the manager (re-opening the already-loaded plan is instant).
+  const handleOpenPlan = useCallback(
+    (id: string) => {
+      if (activePlan?.id === id) {
+        setView('overview');
+        return;
+      }
+      void handleSwitchPlan(id);
+    },
+    [activePlan?.id, handleSwitchPlan],
+  );
+
+  // Escape steps BACK from a sub-view (lineup/balance -> overview) and only
+  // closes the planner from the top-level views - matching how deep the user is,
+  // instead of throwing away their navigation context.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
+      // registered earlier, so it would fire FIRST and also navigate - skip.
+      if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
+      // The sub sheet is open: Escape closes it, nothing else.
+      if (subSheetTarget !== null) {
+        setSubSheetTarget(null);
+        return;
+      }
+      if (view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') {
+        setEditingGameId(null);
+        setReplacingId(null);
+        setView('overview');
+      } else if (view === 'overview') {
+        void handleBackToManager();
+      } else {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -1078,26 +1105,58 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
 
+        {view === 'manager' && (
+          <div className="max-w-lg mx-auto space-y-4">
+            <h3 className={labelStyle}>{t('playtimePlanner.manager.title', 'Plans')}</h3>
+            <div className="space-y-2">
+              {planList.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handleOpenPlan(p.id)}
+                  className="w-full flex items-center justify-between gap-3 bg-slate-800/40 border border-slate-700/50 rounded-md px-4 py-3 text-left hover:bg-slate-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-slate-100 truncate">{p.name}</span>
+                    <span className={subtextStyle}>
+                      {t('playtimePlanner.manager.meta', '{{games}} games · {{players}} players', {
+                        games: p.games.length,
+                        players: p.players.length,
+                      })}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="text-slate-500 text-lg shrink-0">
+                    ›
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
+              {t('playtimePlanner.manager.new', 'New plan')}
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className={`${secondaryButtonStyle} w-full`}
+            >
+              {t('playtimePlanner.versions.import', 'Import JSON')}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleImportFile(file);
+                e.target.value = '';
+              }}
+            />
+          </div>
+        )}
+
         {view === 'overview' && activePlan && (
           <div className="max-w-lg mx-auto space-y-5">
-            {/* Plan switcher (only when more than one plan exists) */}
-            {planList.length > 1 && (
-              <div>
-                <label className={labelStyle}>{t('playtimePlanner.versions.switchLabel', 'Plan')}</label>
-                <select
-                  value={activePlan.id}
-                  onChange={(e) => handleSwitchPlan(e.target.value)}
-                  className={selectStyle}
-                >
-                  {planList.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.id === activePlan.id ? activePlan.name : p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             <div>
               <label className={labelStyle}>{t('playtimePlanner.setup.nameLabel', 'Plan name')}</label>
               <input
@@ -1111,7 +1170,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               />
             </div>
 
-            {/* Versions & JSON toolbar - one full-width block of equal buttons. */}
+            {/* Plan toolbar - duplicate/export/delete for THIS plan (import lives
+                in the manager, where new plans arrive). */}
             <div className="flex gap-2">
               <button type="button" onClick={handleDuplicate} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
                 {t('playtimePlanner.versions.duplicate', 'Duplicate')}
@@ -1121,22 +1181,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isDeleting}
+                className={`${dangerButtonStyle} flex-1 whitespace-nowrap`}
               >
-                {t('playtimePlanner.versions.import', 'Import JSON')}
+                {t('playtimePlanner.overview.deletePlan', 'Delete')}
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleImportFile(file);
-                  e.target.value = '';
-                }}
-              />
             </div>
 
             <div className={cardStyle}>
@@ -1196,25 +1246,38 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   return (
                     <div
                       key={game.id}
-                      className="bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-2 space-y-2"
+                      className="bg-slate-800/40 border border-slate-700/50 rounded-md overflow-hidden"
                     >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="text"
-                          value={game.label}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            updateActivePlan(
-                              (plan) => ({
-                                ...plan,
-                                games: plan.games.map((g, gi) => (gi === i ? { ...g, label: value } : g)),
-                              }),
-                              { coalesce: true },
-                            );
-                          }}
-                          className={`${inputBaseStyle} flex-1`}
-                        />
-                        <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap">
+                      {/* The whole card head IS the way in: label + fill state +
+                          chevron, one obvious tap target (the old tiny "Edit
+                          lineup" text link was easy to miss). Renaming happens
+                          inside the game view. */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingGameId(game.id);
+                          setSubSheetTarget(null);
+                          setView('lineup');
+                        }}
+                        className="w-full flex items-center justify-between gap-3 px-3 py-3 text-left hover:bg-slate-700/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-slate-100 truncate">
+                            {game.label}
+                          </span>
+                          <span className={subtextStyle}>
+                            {t('playtimePlanner.overview.placedCount', '{{placed}}/{{total}} placed', {
+                              placed,
+                              total: slotCount,
+                            })}
+                          </span>
+                        </span>
+                        <span aria-hidden="true" className="text-slate-500 text-lg shrink-0">
+                          ›
+                        </span>
+                      </button>
+                      <div className="flex items-center justify-between px-3 pb-2">
+                        <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap py-1">
                           <input
                             type="checkbox"
                             checked={game.included}
@@ -1230,26 +1293,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           {t('playtimePlanner.overview.included', 'Included')}
                         </label>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className={subtextStyle}>
-                          {t('playtimePlanner.overview.placedCount', '{{placed}}/{{total}} placed', {
-                            placed,
-                            total: slotCount,
-                          })}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingGameId(game.id);
-                            setSubSheetTarget(null);
-                            setView('lineup');
-                          }}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 -mx-2"
-                        >
-                          {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
-                        </button>
-                      </div>
                       {(linkedCounts[game.id] ?? 0) > 0 && (
+                        <div className="px-3 pb-3">
                         <button
                           type="button"
                           onClick={() => setBulkReapplyTarget(game)}
@@ -1260,6 +1305,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                             count: linkedCounts[game.id],
                           })}
                         </button>
+                        </div>
                       )}
                     </div>
                   );
@@ -1329,9 +1375,24 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               highlightPlayerIds={highlightPlayerIds}
               onToggleHighlight={toggleHighlight}
             />
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-100">{editingGame.label}</h3>
-              <span className={subtextStyle}>
+            <div className="flex items-center justify-between gap-2">
+              <input
+                type="text"
+                value={editingGame.label}
+                aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateActivePlan(
+                    (plan) => ({
+                      ...plan,
+                      games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
+                    }),
+                    { coalesce: true },
+                  );
+                }}
+                className="flex-1 min-w-0 bg-transparent text-base font-semibold text-slate-100 border-b border-transparent focus:border-slate-500 focus:outline-none"
+              />
+              <span className={`${subtextStyle} shrink-0`}>
                 {getPresetById(editingGame.formationId)?.name ?? '-'}
               </span>
             </div>
@@ -1535,14 +1596,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </button>
         )}
         {view === 'overview' && (
-          <>
-            <button type="button" onClick={() => setShowDeleteConfirm(true)} disabled={isDeleting} className={`${dangerButtonStyle} flex-1`}>
-              {t('playtimePlanner.overview.deletePlan', 'Delete')}
-            </button>
-            <button type="button" onClick={startNewPlan} className={`${secondaryButtonStyle} flex-1`}>
-              {t('playtimePlanner.overview.newPlan', 'New')}
-            </button>
-          </>
+          <button type="button" onClick={() => void handleBackToManager()} className={`${secondaryButtonStyle} flex-1`}>
+            {t('playtimePlanner.lineup.back', 'Back')}
+          </button>
+        )}
+        {view === 'setup' && planList.length > 0 && (
+          <button type="button" onClick={() => setView('manager')} className={`${secondaryButtonStyle} flex-1`}>
+            {t('playtimePlanner.lineup.back', 'Back')}
+          </button>
         )}
         <button type="button" onClick={onClose} className={`${secondaryButtonStyle} flex-1`}>
           {t('common.close', 'Close')}

@@ -3219,7 +3219,8 @@
       "gameTabs": "Vaihda peliä",
       "fairnessStrip": "Peliaikakertymä",
       "subAction": "Vaihto…",
-      "notInGame": "Ei pelaa tässä pelissä"
+      "notInGame": "Ei pelaa tässä pelissä",
+      "gameName": "Pelin nimi"
     },
     "subs": {
       "heading": "Vaihdot",
@@ -3251,7 +3252,6 @@
       "focusOnShare": "tasan oma osuus"
     },
     "versions": {
-      "switchLabel": "Suunnitelma",
       "duplicate": "Monista",
       "export": "Vie JSON",
       "import": "Tuo JSON",
@@ -3275,6 +3275,11 @@
     "subSheet": {
       "title": "Vaihto · {{position}} ({{player}})",
       "halftime": "puoliaika"
+    },
+    "manager": {
+      "title": "Suunnitelmat",
+      "new": "Uusi suunnitelma",
+      "meta": "{{games}} peliä · {{players}} pelaajaa"
     }
   }
 }
