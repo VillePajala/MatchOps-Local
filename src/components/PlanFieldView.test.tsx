@@ -103,6 +103,24 @@ describe('PlanFieldView', () => {
     expect(onAssign).toHaveBeenCalledWith('gk', null);
   });
 
+  it('shows cumulative plan minutes on bench chips and filled discs when provided', () => {
+    render(
+      <PlanFieldView
+        game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
+        players={players}
+        onAssign={jest.fn()}
+        minutesByPlayer={{
+          p1: { minutes: 42, band: 'fair' },
+          p2: { minutes: 6, band: 'under' },
+        }}
+      />,
+    );
+    // Bench chip: name + tinted minutes (number AND colour, never colour alone).
+    expect(screen.getByRole('button', { name: /Sam 6'/ })).toBeInTheDocument();
+    // Filled disc: minutes under the disc.
+    expect(screen.getByText("42'")).toBeInTheDocument();
+  });
+
   it('excludes assigned players from the bench', () => {
     render(
       <PlanFieldView

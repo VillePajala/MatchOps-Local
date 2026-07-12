@@ -301,7 +301,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByLabelText('GK: empty'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Alex' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Alex/ }));
     });
 
     // Back to the plan; the placed count now reflects the assignment.
@@ -404,7 +404,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByLabelText('GK: empty'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Alex' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Alex/ }));
     });
 
     // Subs editor: choose position (GK) + incoming (Sam), then add.
