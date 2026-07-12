@@ -3279,7 +3279,12 @@
     "manager": {
       "title": "Suunnitelmat",
       "new": "Uusi suunnitelma",
-      "meta": "{{games}} peliä · {{players}} pelaajaa"
+      "meta": "{{games}} peliä · {{players}} pelaajaa",
+      "actions": "Suunnitelman toiminnot",
+      "archive": "Arkistoi",
+      "unarchive": "Palauta arkistosta",
+      "archivedBadge": "Arkistoitu",
+      "showArchived": "Näytä arkistoidut"
     }
   }
 }

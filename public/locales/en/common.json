@@ -3279,7 +3279,12 @@
     "manager": {
       "title": "Plans",
       "new": "New plan",
-      "meta": "{{games}} games · {{players}} players"
+      "meta": "{{games}} games · {{players}} players",
+      "actions": "Plan actions",
+      "archive": "Archive",
+      "unarchive": "Unarchive",
+      "archivedBadge": "Archived",
+      "showArchived": "Show archived"
     }
   }
 }

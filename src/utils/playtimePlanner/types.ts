@@ -72,6 +72,8 @@ export interface PlaytimePlan {
    * games from the same source. Absent for freehand (no-team) plans.
    */
   teamId?: string;
+  /** Archived plans are hidden from the manager list behind a toggle. */
+  archived?: boolean;
 }
 
 /** Stored shape: a map of plan id -> plan (mirrors how saved games are kept). */

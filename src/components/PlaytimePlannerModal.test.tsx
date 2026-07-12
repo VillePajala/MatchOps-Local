@@ -195,7 +195,7 @@ describe('PlaytimePlannerModal', () => {
 
     // The created plan opens straight into its workspace.
     await waitFor(() => expect(screen.getByDisplayValue('Tournament plan')).toBeInTheDocument());
-    expect(screen.getByText('Delete')).toBeInTheDocument(); // plan toolbar
+    expect(screen.getByText('Export JSON')).toBeInTheDocument(); // footer export
   });
 
   it('disables create when no players are selected', async () => {
@@ -241,9 +241,9 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(row);
     });
-    // Inside: the workspace with the editable name and the plan toolbar.
+    // Inside: the workspace with the editable name and the footer export.
     expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument();
-    expect(screen.getByText('Delete')).toBeInTheDocument();
+    expect(screen.getByText('Export JSON')).toBeInTheDocument();
     // Back returns to the manager.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -896,14 +896,16 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByText('View playing-time balance')).toBeInTheDocument());
   });
 
-  it('duplicates the active plan under a copy name', async () => {
+  it('duplicates a plan from the manager 3-dot menu (stays in the manager)', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await enterPlan();
-    await waitFor(() => expect(screen.getByText('Duplicate')).toBeInTheDocument());
+    await screen.findAllByRole('button', { name: /Saved Cup/ });
 
     await act(async () => {
-      fireEvent.click(screen.getByText('Duplicate'));
+      fireEvent.click(screen.getByRole('button', { name: 'Plan actions: Saved Cup' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
     });
 
     await waitFor(() =>
@@ -911,6 +913,9 @@ describe('PlaytimePlannerModal', () => {
         mockSavePlan.mock.calls.some((c) => typeof c[0]?.name === 'string' && c[0].name.includes('(copy)')),
       ).toBe(true),
     );
+    // Copies start active even off an archived source, and the user stays put.
+    expect(mockSavePlan.mock.calls[0][0].archived).toBe(false);
+    expect(screen.queryByDisplayValue(/copy/)).not.toBeInTheDocument();
   });
 
   it('shows an export-specific error toast when export fails', async () => {
@@ -979,13 +984,16 @@ describe('PlaytimePlannerModal', () => {
     }
   });
 
-  it('deletes a plan straight from the manager row (trash icon + confirm)', async () => {
+  it('deletes a plan from the manager 3-dot menu (menu + confirm)', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await screen.findAllByRole('button', { name: /Saved Cup/ });
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Delete: Saved Cup' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Plan actions: Saved Cup' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     });
     // Confirm dialog names the plan; nothing deleted before confirming.
     expect(mockDeletePlan).not.toHaveBeenCalled();
@@ -1041,13 +1049,15 @@ describe('PlaytimePlannerModal', () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockDeletePlan.mockResolvedValue(false);
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await enterPlan();
-    await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument());
+    await screen.findAllByRole('button', { name: /Saved Cup/ });
 
-    // Footer button opens the ConfirmationModal; the destructive action runs
+    // The 3-dot menu opens the ConfirmationModal; the destructive action runs
     // only after the styled confirm (no native window.confirm anymore).
     await act(async () => {
-      fireEvent.click(screen.getByText('Delete'));
+      fireEvent.click(screen.getByRole('button', { name: 'Plan actions: Saved Cup' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     });
     const confirmButtons = await screen.findAllByRole('button', { name: 'Delete' });
     await act(async () => {
@@ -1055,5 +1065,42 @@ describe('PlaytimePlannerModal', () => {
     });
 
     await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error'));
+  });
+
+  it('archives a plan via the 3-dot menu and lists it only behind Show archived', async () => {
+    // Live-mirror storage so refreshPlanList sees the archived flag land.
+    let stored: Record<string, unknown> = { existing: existingPlan };
+    mockGetPlans.mockImplementation(async () => stored);
+    mockSavePlan.mockImplementation(async (plan) => {
+      stored = { ...stored, [(plan as { id: string }).id]: plan };
+      return plan;
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await screen.findAllByRole('button', { name: /Saved Cup/ });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Plan actions: Saved Cup' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+    });
+
+    // Archived plans leave the default list; the toggle appears.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Plan actions: Saved Cup' })).not.toBeInTheDocument(),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Show archived' }));
+    });
+    expect(screen.getByText('Archived')).toBeInTheDocument();
+
+    // The menu now offers Unarchive; using it restores the plan to the list.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Plan actions: Saved Cup' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Unarchive' }));
+    });
+    await waitFor(() => expect(screen.queryByText('Archived')).not.toBeInTheDocument());
   });
 });

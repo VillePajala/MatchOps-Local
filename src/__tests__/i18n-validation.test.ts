@@ -319,7 +319,9 @@ describe('Translation File Validation', () => {
       //         lineup.includedToggle/excludedToggle - include dot on game tabs;
       //         -2: overview.included checkbox, overview.rosterSummary - replaced
       //         by roster checkboxes and tab dots)
-      expect(enKeys.length).toBe(2795);
+      // +5: manager 3-dot menu + archive (manager.actions/archive/unarchive/
+      //     archivedBadge/showArchived)
+      expect(enKeys.length).toBe(2800);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -362,7 +364,9 @@ describe('Translation File Validation', () => {
       //         lineup.includedToggle/excludedToggle - include dot on game tabs;
       //         -2: overview.included checkbox, overview.rosterSummary - replaced
       //         by roster checkboxes and tab dots)
-      expect(fiKeys.length).toBe(2795);
+      // +5: manager 3-dot menu + archive (manager.actions/archive/unarchive/
+      //     archivedBadge/showArchived)
+      expect(fiKeys.length).toBe(2800);
     });
   });
 });
