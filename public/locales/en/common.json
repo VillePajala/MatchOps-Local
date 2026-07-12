@@ -170,7 +170,7 @@
     "signOut": "Sign Out",
     "startScreen": "Start Screen",
     "userGuide": "User Guide",
-    "planner": "Lineup planner"
+    "planner": "Match planner"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -3149,7 +3149,7 @@
     "upNext": "Up next"
   },
   "playtimePlanner": {
-    "title": "Lineup planner",
+    "title": "Match planner",
     "setup": {
       "defaultName": "Tournament plan",
       "nameLabel": "Plan name",

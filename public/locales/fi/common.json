@@ -170,7 +170,7 @@
     "signOut": "Kirjaudu ulos",
     "startScreen": "Aloitusnäyttö",
     "userGuide": "Käyttöohje",
-    "planner": "Kokoonpanosuunnittelu"
+    "planner": "Ottelusuunnittelu"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -3149,7 +3149,7 @@
     "upNext": "Vuorossa"
   },
   "playtimePlanner": {
-    "title": "Kokoonpanosuunnittelu",
+    "title": "Ottelusuunnittelu",
     "setup": {
       "defaultName": "Turnaussuunnitelma",
       "nameLabel": "Suunnitelman nimi",

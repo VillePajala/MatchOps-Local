@@ -27,6 +27,8 @@ import {
   ModalHeader,
   ModalFooter,
   ScrollableContent,
+  headerStyle,
+  titleStyle,
   labelStyle,
   subtextStyle,
   inputBaseStyle,
@@ -919,7 +921,31 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   return (
     <ModalContainer>
-      <ModalHeader title={t('playtimePlanner.title', 'Lineup planner')} />
+      {/* Header: the tool name only until a plan is open - then the PLAN owns
+          the screen and its name is the title. On the overview the title is
+          directly editable (the old plan-name form card is gone). */}
+      {activePlan && view !== 'manager' && view !== 'setup' && view !== 'loading' ? (
+        view === 'overview' ? (
+          <div className={headerStyle}>
+            <input
+              type="text"
+              value={activePlan.name}
+              onChange={(e) => {
+                const value = e.target.value;
+                updateActivePlan((plan) => ({ ...plan, name: value }), { coalesce: true });
+              }}
+              aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
+              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            />
+          </div>
+        ) : (
+          <div className={headerStyle}>
+            <h2 className={`${titleStyle} truncate`}>{activePlan.name}</h2>
+          </div>
+        )
+      ) : (
+        <ModalHeader title={t('playtimePlanner.title', 'Match planner')} />
+      )}
 
       <ScrollableContent className="px-6 py-4">
         {view === 'loading' && (
@@ -933,7 +959,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'setup' && (
-          <div className="max-w-lg mx-auto space-y-4">
+          <div className="space-y-4">
             {roster.length === 0 ? (
               <div className="text-center py-8">
                 <HiOutlineUsers className="w-12 h-12 mx-auto mb-3 text-slate-600" aria-hidden="true" />
@@ -1071,7 +1097,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {activePlan && (view === 'overview' || view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') && (
-          <div className="max-w-lg mx-auto flex justify-end gap-1.5 mb-2">
+          <div className="flex justify-end gap-1.5 mb-2">
             <button
               type="button"
               onClick={() => applyHistory(-1)}
@@ -1096,8 +1122,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'manager' && (
-          <div className="max-w-lg mx-auto space-y-4">
-            <div className={cardStyle}>
+          <div className="space-y-4">
+            {/* Rows sit directly on the background like LoadGame's list - an
+                outer card double-insets them and reads narrower than the app. */}
+            <div>
             <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.manager.title', 'Plans')}</h3>
             <div className="space-y-2">
               {planList.map((p) => (
@@ -1160,20 +1188,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'overview' && activePlan && (
-          <div className="max-w-lg mx-auto space-y-4">
-            <div className={cardStyle}>
-              <label className={labelStyle}>{t('playtimePlanner.setup.nameLabel', 'Plan name')}</label>
-              <input
-                type="text"
-                value={activePlan.name}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  updateActivePlan((plan) => ({ ...plan, name: value }), { coalesce: true });
-                }}
-                className={inputBaseStyle}
-              />
-            </div>
-
+          <div className="space-y-4">
             {/* Plan toolbar - duplicate/export/delete for THIS plan (import lives
                 in the manager, where new plans arrive). */}
             <div className="flex gap-2">
@@ -1241,7 +1256,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               {t('playtimePlanner.overview.gridButton', 'All games side by side')}
             </button>
 
-            <div className={cardStyle}>
+            {/* Games list un-nested from a card for full house-modal width. */}
+            <div>
               <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
                 {activePlan.games.map((game, i) => {
@@ -1319,7 +1335,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
         {view === 'lineup' && activePlan && editingGame && (
           <div
-            className="max-w-lg mx-auto space-y-3"
+            className="space-y-3"
             onTouchStart={handleLineupTouchStart}
             onTouchEnd={handleLineupTouchEnd}
             data-testid="lineup-swipe-area"
@@ -1431,7 +1447,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'players' && activePlan && (
-          <div className="max-w-lg mx-auto space-y-4">
+          <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.players.title', 'Plan players')}</h3>
               <p className={subtextStyle}>
@@ -1518,7 +1534,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
         {view === 'grid' && activePlan && (
           <div className="space-y-3">
-            <div className="max-w-lg mx-auto md:max-w-none">
+            <div>
               <PlanFairnessStrip
                 rows={fairness.rows}
                 highlightPlayerIds={highlightPlayerIds}
@@ -1590,22 +1606,22 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               setSubSheetTarget(null);
               setView('overview');
             }}
-            className={`${secondaryButtonStyle} flex-1`}
+            className={secondaryButtonStyle}
           >
             {t('playtimePlanner.lineup.back', 'Back')}
           </button>
         )}
         {view === 'overview' && (
-          <button type="button" onClick={() => void handleBackToManager()} className={`${secondaryButtonStyle} flex-1`}>
+          <button type="button" onClick={() => void handleBackToManager()} className={secondaryButtonStyle}>
             {t('playtimePlanner.lineup.back', 'Back')}
           </button>
         )}
         {view === 'setup' && planList.length > 0 && (
-          <button type="button" onClick={() => setView('manager')} className={`${secondaryButtonStyle} flex-1`}>
+          <button type="button" onClick={() => setView('manager')} className={secondaryButtonStyle}>
             {t('playtimePlanner.lineup.back', 'Back')}
           </button>
         )}
-        <button type="button" onClick={onClose} className={`${primaryButtonStyle} flex-1`}>
+        <button type="button" onClick={onClose} className={primaryButtonStyle}>
           {t('common.close', 'Close')}
         </button>
       </ModalFooter>
