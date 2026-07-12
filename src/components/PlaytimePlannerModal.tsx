@@ -678,6 +678,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     (oldId: string, replacement: { id: string; name: string }) => {
       updateActivePlan((plan) => replacePlayerInPlan(plan, oldId, replacement));
       setReplacingId(null);
+      // Tracking follows the takeover: if the replaced player was highlighted,
+      // the highlight moves to whoever inherited their slots and subs.
+      setHighlightPlayerId((prev) => (prev === oldId ? replacement.id : prev));
     },
     [updateActivePlan],
   );
@@ -685,6 +688,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     (playerId: string) => {
       updateActivePlan((plan) => removePlayerFromPlan(plan, playerId));
       setRemoveTarget(null);
+      // A dangling highlight would ghost-dim the whole lineup with no cell left
+      // to un-toggle it.
+      setHighlightPlayerId((prev) => (prev === playerId ? null : prev));
     },
     [updateActivePlan],
   );
@@ -1067,6 +1073,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           type="button"
                           onClick={() => {
                             setEditingGameId(game.id);
+                            setSubSheetSlotId(null);
                             setView('lineup');
                           }}
                           className="text-xs text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 -mx-2"
@@ -1185,6 +1192,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             plan={activePlan}
             onOpenGame={(gameId) => {
               setEditingGameId(gameId);
+              setSubSheetSlotId(null);
               setView('lineup');
             }}
           />

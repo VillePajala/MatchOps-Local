@@ -54,7 +54,9 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
   );
 
   const defaultMinute = Math.round(defaultSubTimeSeconds(game) / 60);
-  const maxMinute = Math.max(1, game.numberOfPeriods * game.periodMinutes);
+  // Cap strictly BELOW the final whistle: a sub at full time grants zero seconds
+  // and would silently defeat the full-game bench alarm.
+  const maxMinute = Math.max(1, game.numberOfPeriods * game.periodMinutes - 1);
   const [minute, setMinute] = useState(() => Math.min(maxMinute, Math.max(1, defaultMinute)));
   const atHalftime = minute === defaultMinute && game.numberOfPeriods === 2;
 
@@ -79,8 +81,10 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
           position: positionLabel,
           player: occupantName,
         })}
-        className="w-full max-w-sm bg-slate-900 border border-slate-700 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl"
+        className="w-full max-w-sm bg-slate-900 border border-slate-700 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
+        ref={(el) => el?.focus()}
       >
         <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
         <h4 className="text-sm font-semibold text-slate-100">

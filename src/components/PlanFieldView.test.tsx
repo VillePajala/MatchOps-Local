@@ -84,10 +84,43 @@ describe('PlanFieldView', () => {
     render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
     // Starter and incoming player are BOTH permanently on the field (no tooltip),
     // with the sub minute as a tag on the incoming segment.
-    const slot = screen.getByLabelText('GK: Alex');
+    const slot = screen.getByLabelText("GK: Alex; 6' Sam");
     expect(slot).toHaveTextContent('Alex');
     expect(slot).toHaveTextContent("6'");
     expect(slot).toHaveTextContent('Sam');
+  });
+
+  it('keeps a scheduled sub visible as a pill even after the starter is cleared', () => {
+    // The engine still grants the incoming player minutes from 12' on, so the
+    // field must not pretend the slot is plain empty (regression guard).
+    const game: PlanGame = {
+      ...makeGame([]), // no starter in the GK slot
+      subs: [{ id: 's1', slotId: 'gk', timeSeconds: 6 * 60, inPlayerId: 'p2' }],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    const slot = screen.getByLabelText(/GK: empty; 6' Sam/);
+    expect(slot).toHaveTextContent("6'");
+    expect(slot).toHaveTextContent('Sam');
+  });
+
+  it('folds the incoming players into the slot aria-label (SRs never see pill contents)', () => {
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 's1', slotId: 'gk', timeSeconds: 6 * 60, inPlayerId: 'p2' }],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    expect(screen.getByLabelText("GK: Alex; 6' Sam")).toBeInTheDocument();
+  });
+
+  it('a sub at the final whistle grants nothing and must NOT silence the bench alarm', () => {
+    // 2×12 min game: a "sub" at 24' is zero seconds of playtime.
+    const game: PlanGame = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 's1', slotId: 'gk', timeSeconds: 24 * 60, inPlayerId: 'p2' }],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    // Sam's bench chip still carries the "Not in this game" alarm.
+    expect(screen.getByRole('button', { name: /Sam.*Not in this game/ })).toBeInTheDocument();
   });
 
   it('highlight mode rings the tracked player and dims the rest', () => {
