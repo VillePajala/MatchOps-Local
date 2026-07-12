@@ -20,7 +20,7 @@ import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
 import { gameTotalSeconds, type PlaytimePlan, type PlanGame } from '@/utils/playtimePlanner/types';
 import { getGameSlots } from '@/utils/playtimePlanner/lineup';
 import { fairnessChipColors } from '@/utils/playtimePlanner/colors';
-import { labelStyle, subtextStyle } from '@/styles/modalStyles';
+import { cardStyle, subtextStyle } from '@/styles/modalStyles';
 
 interface PlanBalanceViewProps {
   plan: PlaytimePlan;
@@ -201,7 +201,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   return (
     <div className="max-w-lg mx-auto space-y-4">
       <div>
-        <h3 className={labelStyle}>{t('playtimePlanner.balance.title', 'Playing-time balance')}</h3>
+        <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.balance.title', 'Playing-time balance')}</h3>
         <p className={subtextStyle}>
           {fairMin === null
             ? t('playtimePlanner.balance.noGames', 'No games counted yet. Mark games as included.')
@@ -213,6 +213,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
         </p>
       </div>
 
+      <div className={`${cardStyle} space-y-3`}>
       {/* Warnings: tappable - each replaces the highlight with its players. */}
       {warnings.length > 0 && (
         <div className="flex flex-col gap-1.5">
@@ -258,6 +259,8 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             </button>
           );
         })}
+      </div>
+
       </div>
 
       {/* Focus stack: one card per tracked player (or the worst-off by default). */}

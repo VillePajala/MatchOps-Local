@@ -12,7 +12,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
-import { labelStyle, subtextStyle } from '@/styles/modalStyles';
+import { subtextStyle } from '@/styles/modalStyles';
 import type { PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 
 interface PlanSubsEditorProps {
@@ -54,7 +54,7 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
 
   return (
     <div className="max-w-sm mx-auto space-y-3">
-      <h4 className={labelStyle}>{t('playtimePlanner.subs.heading', 'Substitutions')}</h4>
+      <h4 className="text-base font-semibold text-slate-200">{t('playtimePlanner.subs.heading', 'Substitutions')}</h4>
 
       {sortedSubs.length === 0 ? (
         <p className={subtextStyle}>{t('playtimePlanner.subs.none', 'No substitutions yet.')}</p>

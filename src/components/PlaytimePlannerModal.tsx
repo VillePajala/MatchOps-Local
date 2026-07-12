@@ -1107,14 +1107,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
         {view === 'manager' && (
           <div className="max-w-lg mx-auto space-y-4">
-            <h3 className={labelStyle}>{t('playtimePlanner.manager.title', 'Plans')}</h3>
+            <div className={cardStyle}>
+            <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.manager.title', 'Plans')}</h3>
             <div className="space-y-2">
               {planList.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => handleOpenPlan(p.id)}
-                  className="w-full flex items-center justify-between gap-3 bg-slate-800/40 border border-slate-700/50 rounded-md px-4 py-3 text-left hover:bg-slate-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  className="w-full flex items-center justify-between gap-3 bg-slate-800/60 border border-slate-600/50 rounded-md px-4 py-3 text-left hover:bg-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                 >
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-slate-100 truncate">{p.name}</span>
@@ -1130,6 +1131,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   </span>
                 </button>
               ))}
+            </div>
             </div>
             <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
               {t('playtimePlanner.manager.new', 'New plan')}
@@ -1157,7 +1159,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
         {view === 'overview' && activePlan && (
           <div className="max-w-lg mx-auto space-y-5">
-            <div>
+            <div className={cardStyle}>
               <label className={labelStyle}>{t('playtimePlanner.setup.nameLabel', 'Plan name')}</label>
               <input
                 type="text"
@@ -1237,8 +1239,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               {t('playtimePlanner.overview.gridButton', 'All games side by side')}
             </button>
 
-            <div>
-              <h3 className={`${labelStyle} mb-2`}>{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
+            <div className={cardStyle}>
+              <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
                 {activePlan.games.map((game, i) => {
                   const slotCount = getGameSlots(game.formationId).length;
@@ -1246,7 +1248,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   return (
                     <div
                       key={game.id}
-                      className="bg-slate-800/40 border border-slate-700/50 rounded-md overflow-hidden"
+                      className="bg-slate-800/60 border border-slate-600/50 rounded-md overflow-hidden"
                     >
                       {/* The whole card head IS the way in: label + fill state +
                           chevron, one obvious tap target (the old tiny "Edit
@@ -1431,7 +1433,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         {view === 'players' && activePlan && (
           <div className="max-w-lg mx-auto space-y-5">
             <div>
-              <h3 className={labelStyle}>{t('playtimePlanner.players.title', 'Plan players')}</h3>
+              <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.players.title', 'Plan players')}</h3>
               <p className={subtextStyle}>
                 {t(
                   'playtimePlanner.players.hint',
@@ -1491,8 +1493,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               ))}
             </ul>
 
-            <div>
-              <h4 className={`${labelStyle} mb-1.5`}>{t('playtimePlanner.players.addHeading', 'Add players')}</h4>
+            <div className={cardStyle}>
+              <h4 className="text-base font-semibold text-slate-200 mb-2">{t('playtimePlanner.players.addHeading', 'Add players')}</h4>
               {rosterCandidates.length === 0 ? (
                 <p className={subtextStyle}>
                   {t('playtimePlanner.players.noCandidates', 'Everyone from your roster is already in this plan.')}
@@ -1605,7 +1607,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             {t('playtimePlanner.lineup.back', 'Back')}
           </button>
         )}
-        <button type="button" onClick={onClose} className={`${secondaryButtonStyle} flex-1`}>
+        <button type="button" onClick={onClose} className={`${primaryButtonStyle} flex-1`}>
           {t('common.close', 'Close')}
         </button>
       </ModalFooter>
