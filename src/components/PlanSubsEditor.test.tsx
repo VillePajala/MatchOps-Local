@@ -36,53 +36,28 @@ const makeGame = (subs: PlanGame['subs'] = []): PlanGame => ({
 
 afterEach(() => cleanup());
 
+// Sub CREATION moved to the field's bottom sheet (PlanSubSheet); this editor is
+// now the review-and-remove list only.
 describe('PlanSubsEditor', () => {
-  it('adds a substitution at the default half-time minute', () => {
-    const onAdd = jest.fn();
-    render(<PlanSubsEditor game={makeGame()} players={players} onAdd={onAdd} onRemove={jest.fn()} />);
-
-    // Two selects: position (filled slots) and player-on (bench).
-    const [posSelect, inSelect] = screen.getAllByRole('combobox');
-    fireEvent.change(posSelect, { target: { value: 'gk' } });
-    fireEvent.change(inSelect, { target: { value: 'p2' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add substitution' }));
-
-    expect(onAdd).toHaveBeenCalledTimes(1);
-    const sub = onAdd.mock.calls[0][0];
-    expect(sub).toMatchObject({ slotId: 'gk', inPlayerId: 'p2', timeSeconds: 12 * 60 });
-  });
-
-  it('lists an existing sub and removes it', () => {
+  it('lists an existing sub with who comes on AND off, and removes it', () => {
     const onRemove = jest.fn();
     const game = makeGame([{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 720 }]);
-    render(<PlanSubsEditor game={game} players={players} onAdd={jest.fn()} onRemove={onRemove} />);
+    render(<PlanSubsEditor game={game} players={players} onRemove={onRemove} />);
 
-    expect(screen.getByText(/12' — Sam → GK/)).toBeInTheDocument();
+    expect(screen.getByText(/12' Sam in for Alex \(GK\)/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     expect(onRemove).toHaveBeenCalledWith('x1');
   });
 
-  it('clamps the sub minute input to the game length', () => {
-    // 2 periods × 12 min = 24 min game -> minute can never exceed 24.
-    render(<PlanSubsEditor game={makeGame()} players={players} onAdd={jest.fn()} onRemove={jest.fn()} />);
-    const minuteInput = screen.getByRole('spinbutton') as HTMLInputElement;
-    expect(minuteInput.max).toBe('24');
-    fireEvent.change(minuteInput, { target: { value: '999' } });
-    expect(minuteInput.value).toBe('24');
+  it('points at the field flow for adding a sub', () => {
+    render(<PlanSubsEditor game={makeGame()} players={players} onRemove={jest.fn()} />);
+    expect(screen.getByText('To add one: tap a player on the field, then "Sub…".')).toBeInTheDocument();
+    // No dropdown form remains.
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('prompts to place starters when the lineup is empty', () => {
-    const emptyLineup: PlanGame = { ...makeGame(), startingSlots: [] };
-    render(<PlanSubsEditor game={emptyLineup} players={players} onAdd={jest.fn()} onRemove={jest.fn()} />);
-    expect(screen.getByText('Place your starters first.')).toBeInTheDocument();
-  });
-
-  it('excludes the starter and the already-incoming player from the bench options', () => {
-    // Alex starts (GK); Sam already coming on -> only Jo remains selectable.
-    const game = makeGame([{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 720 }]);
-    render(<PlanSubsEditor game={game} players={players} onAdd={jest.fn()} onRemove={jest.fn()} />);
-    const inSelect = screen.getAllByRole('combobox')[1];
-    const optionValues = Array.from(inSelect.querySelectorAll('option')).map((o) => (o as HTMLOptionElement).value);
-    expect(optionValues).toEqual(['', 'p3']); // '' = "Choose…", p3 = Jo
+  it('shows the empty state when nothing is scheduled', () => {
+    render(<PlanSubsEditor game={makeGame()} players={players} onRemove={jest.fn()} />);
+    expect(screen.getByText('No substitutions yet.')).toBeInTheDocument();
   });
 });

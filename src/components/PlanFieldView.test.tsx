@@ -49,7 +49,7 @@ describe('PlanFieldView', () => {
 
     // Tap the goalkeeper slot (unique aria-label), then a bench player.
     fireEvent.click(screen.getByLabelText('GK: empty'));
-    fireEvent.click(screen.getByRole('button', { name: 'Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Alex/ }));
 
     expect(onAssign).toHaveBeenCalledWith('gk', 'p1');
   });
@@ -60,7 +60,7 @@ describe('PlanFieldView', () => {
 
     // No slot selected: tapping a bench player drops them into the first empty
     // slot, skipping the goalkeeper so nobody is silently made the keeper.
-    fireEvent.click(screen.getByRole('button', { name: 'Sam' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Sam/ }));
     expect(onAssign).toHaveBeenCalledTimes(1);
     expect(onAssign).toHaveBeenCalledWith('s0', 'p2');
   });
@@ -151,7 +151,7 @@ describe('PlanFieldView', () => {
     );
     // Bench buttons list the unassigned players, not the placed one. Alex sits on
     // the GK disc (accessible name "GK: Alex"), so there is no bench button "Alex".
-    expect(screen.queryByRole('button', { name: 'Alex' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sam' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Alex/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Sam/ })).toBeInTheDocument();
   });
 });

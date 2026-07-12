@@ -3210,21 +3210,20 @@
       "benchHeading": "Bench",
       "autoFill": "Auto-fill",
       "gameTabs": "Switch game",
-      "fairnessStrip": "Playing-time totals"
+      "fairnessStrip": "Playing-time totals",
+      "subAction": "Sub…",
+      "notInGame": "Not in this game"
     },
     "subs": {
       "heading": "Substitutions",
       "none": "No substitutions yet.",
       "row": "{{minute}}' {{player}} in ({{position}})",
       "remove": "Remove",
-      "noSlots": "Place your starters first.",
       "noBench": "No bench players available.",
-      "slotLabel": "Position",
-      "choose": "Choose…",
       "inLabel": "Player on",
       "timeLabel": "Minute",
-      "add": "Add substitution",
-      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})"
+      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})",
+      "addHint": "To add one: tap a player on the field, then \"Sub…\"."
     },
     "balance": {
       "title": "Playing-time balance",
@@ -3258,6 +3257,10 @@
       "noCandidates": "Everyone from your roster is already in this plan.",
       "removeConfirmTitle": "Remove player?",
       "removeConfirmMessage": "{{name}} - starting spots: {{starting}}, planned subs: {{subs}}. The spots become empty and the subs are deleted."
+    },
+    "subSheet": {
+      "title": "Substitution · {{position}} ({{player}})",
+      "halftime": "half-time"
     }
   }
 }

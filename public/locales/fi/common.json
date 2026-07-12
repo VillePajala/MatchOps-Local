@@ -3210,21 +3210,20 @@
       "benchHeading": "Vaihtopenkki",
       "autoFill": "Täytä automaattisesti",
       "gameTabs": "Vaihda peliä",
-      "fairnessStrip": "Peliaikakertymä"
+      "fairnessStrip": "Peliaikakertymä",
+      "subAction": "Vaihto…",
+      "notInGame": "Ei pelaa tässä pelissä"
     },
     "subs": {
       "heading": "Vaihdot",
       "none": "Ei vaihtoja vielä.",
       "row": "{{minute}}' {{player}} kentälle ({{position}})",
       "remove": "Poista",
-      "noSlots": "Aseta ensin avauskokoonpano.",
       "noBench": "Ei vaihtopelaajia käytettävissä.",
-      "slotLabel": "Pelipaikka",
-      "choose": "Valitse…",
       "inLabel": "Kentälle",
       "timeLabel": "Minuutti",
-      "add": "Lisää vaihto",
-      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})"
+      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})",
+      "addHint": "Lisää vaihto: napauta pelaajaa kentällä ja valitse \"Vaihto…\"."
     },
     "balance": {
       "title": "Peliaikatasapaino",
@@ -3258,6 +3257,10 @@
       "noCandidates": "Kaikki pelaajalistasi pelaajat ovat jo tässä suunnitelmassa.",
       "removeConfirmTitle": "Poistetaanko pelaaja?",
       "removeConfirmMessage": "{{name}} - avauspaikkoja: {{starting}}, suunniteltuja vaihtoja: {{subs}}. Paikat tyhjenevät ja vaihdot poistetaan."
+    },
+    "subSheet": {
+      "title": "Vaihto · {{position}} ({{player}})",
+      "halftime": "puoliaika"
     }
   }
 }

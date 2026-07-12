@@ -304,7 +304,10 @@ describe('Translation File Validation', () => {
       // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
       // +10: plan roster editing (overview.editPlayers + playtimePlanner.players.* - Phase 4)
       // +1: playtimePlanner.lineup.fairnessStrip (worst-first totals strip in the lineup view)
-      expect(enKeys.length).toBe(2777);
+      // +1 net: sub bottom sheet (+5: lineup.subAction, lineup.notInGame, subs.addHint,
+      //         subSheet.title, subSheet.halftime; -4: the old dropdown form's
+      //         subs.slotLabel/choose/add/noSlots)
+      expect(enKeys.length).toBe(2778);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -332,7 +335,10 @@ describe('Translation File Validation', () => {
       // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
       // +10: plan roster editing (overview.editPlayers + playtimePlanner.players.* - Phase 4)
       // +1: playtimePlanner.lineup.fairnessStrip (worst-first totals strip in the lineup view)
-      expect(fiKeys.length).toBe(2777);
+      // +1 net: sub bottom sheet (+5: lineup.subAction, lineup.notInGame, subs.addHint,
+      //         subSheet.title, subSheet.halftime; -4: the old dropdown form's
+      //         subs.slotLabel/choose/add/noSlots)
+      expect(fiKeys.length).toBe(2778);
     });
   });
 });

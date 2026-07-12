@@ -9,25 +9,19 @@
  * minute is editable. Pure logic lives in `subs.ts`.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
-import {
-  defaultSubTimeSeconds,
-  makeSub,
-  availableSubInIds,
-} from '@/utils/playtimePlanner/subs';
-import { labelStyle, subtextStyle, inputBaseStyle, selectStyle, secondaryButtonStyle } from '@/styles/modalStyles';
-import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
+import { labelStyle, subtextStyle } from '@/styles/modalStyles';
+import type { PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 
 interface PlanSubsEditorProps {
   game: PlanGame;
   players: PlanPlayer[];
-  onAdd: (sub: PlanSub) => void;
   onRemove: (subId: string) => void;
 }
 
-const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onAdd, onRemove }) => {
+const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove }) => {
   const { t } = useTranslation();
 
   const slots = useMemo(() => getGameSlots(game.formationId), [game.formationId]);
@@ -41,39 +35,6 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onAdd, o
     slots.forEach((s, i) => m.set(s.slotId, s.isGoalie ? gkLabel : `#${i}`));
     return m;
   }, [slots, gkLabel]);
-  const starterBySlot = useMemo(
-    () => new Map(starting.map((s) => [s.slotId, s.playerId])),
-    [starting],
-  );
-
-  // Slots that have a starter - the meaningful targets to swap out.
-  const filledSlots = useMemo(
-    () => starting.filter((s) => s.playerId !== null),
-    [starting],
-  );
-
-  const rosterIds = useMemo(() => players.map((p) => p.id), [players]);
-
-  const defaultMinute = Math.round(defaultSubTimeSeconds(game) / 60);
-  // A sub can't sensibly happen after the final whistle; cap the minute input at
-  // the game length (the engine also clamps, but this gives the coach a clear bound).
-  const maxMinute = Math.max(1, game.numberOfPeriods * game.periodMinutes);
-  const [slotId, setSlotId] = useState('');
-  const [inPlayerId, setInPlayerId] = useState('');
-  const [minute, setMinute] = useState(defaultMinute);
-
-  const benchIds = availableSubInIds(rosterIds, starting, game.subs);
-
-  const canAdd = slotId !== '' && inPlayerId !== '';
-
-  const handleAdd = () => {
-    if (!canAdd) return;
-    onAdd(makeSub(slotId, inPlayerId, Math.max(0, minute) * 60));
-    setInPlayerId('');
-    setSlotId('');
-    setMinute(defaultMinute);
-  };
-
   const sortedSubs = [...game.subs].sort((a, b) => a.timeSeconds - b.timeSeconds);
 
   // Who comes OFF for each sub: walk the schedule in time order, tracking each
@@ -135,66 +96,12 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onAdd, o
         </ul>
       )}
 
-      {/* Add form */}
-      {filledSlots.length === 0 ? (
-        <p className={subtextStyle}>{t('playtimePlanner.subs.noSlots', 'Place your starters first.')}</p>
-      ) : benchIds.length === 0 ? (
-        <p className={subtextStyle}>{t('playtimePlanner.subs.noBench', 'No bench players available.')}</p>
-      ) : (
-        <div className="space-y-2 bg-slate-900/40 border border-slate-700/50 rounded-lg p-3">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className={subtextStyle}>{t('playtimePlanner.subs.slotLabel', 'Position')}</label>
-              <select value={slotId} onChange={(e) => setSlotId(e.target.value)} className={selectStyle}>
-                <option value="">{t('playtimePlanner.subs.choose', 'Choose…')}</option>
-                {filledSlots.map((s) => {
-                  const starterId = starterBySlot.get(s.slotId);
-                  const starterName = starterId ? nameById.get(starterId) : '';
-                  return (
-                    <option key={s.slotId} value={s.slotId}>
-                      {positionLabel.get(s.slotId)}
-                      {starterName ? ` (${starterName})` : ''}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <label className={subtextStyle}>{t('playtimePlanner.subs.inLabel', 'Player on')}</label>
-              <select value={inPlayerId} onChange={(e) => setInPlayerId(e.target.value)} className={selectStyle}>
-                <option value="">{t('playtimePlanner.subs.choose', 'Choose…')}</option>
-                {benchIds.map((id) => (
-                  <option key={id} value={id}>
-                    {nameById.get(id)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex items-end gap-2">
-            <div className="w-24">
-              <label className={subtextStyle}>{t('playtimePlanner.subs.timeLabel', 'Minute')}</label>
-              <input
-                type="number"
-                min={0}
-                max={maxMinute}
-                value={minute}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => setMinute(Math.max(0, Math.min(maxMinute, Math.floor(Number(e.target.value) || 0))))}
-                className={inputBaseStyle}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={!canAdd}
-              className={`${secondaryButtonStyle} flex-1`}
-            >
-              {t('playtimePlanner.subs.add', 'Add substitution')}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Creation moved to the field: tap a filled disc, choose "Sub…" - the
+          bottom sheet has the minute + a live bench grid. This list is for
+          reviewing and removing what's scheduled. */}
+      <p className={subtextStyle}>
+        {t('playtimePlanner.subs.addHint', 'To add one: tap a player on the field, then "Sub…".')}
+      </p>
     </div>
   );
 };
