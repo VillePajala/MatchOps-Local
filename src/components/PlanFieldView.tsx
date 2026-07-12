@@ -244,18 +244,24 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               }
               aria-pressed={isActive}
               className={`absolute flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 ${
-                hasSubs ? 'z-10' : '-translate-x-1/2 -translate-y-1/2'
+                hasSubs ? 'z-10' : ''
               } ${dimClass(involved)}`}
               style={{
                 left: `${slot.relX * 100}%`,
                 top: `${slot.relY * 100}%`,
-                // A pill is wider than a disc: shift its anchor by relX so edge
-                // slots grow toward the field center instead of clipping at the
-                // overflow-hidden pitch border (relX 0.5 = the usual -50%).
-                // NOTE: pills take their FULL offset from this inline transform -
-                // Tailwind 4 translate classes use the CSS `translate` property
-                // and would COMPOSE with it (the doubled-shift bug).
-                ...(hasSubs ? { transform: `translate(-${(slot.relX * 100).toFixed(1)}%, -50%)` } : {}),
+                // Anchor the disc/pill MIDLINE to the slot point with fixed
+                // offsets (disc h-11 -> -22px, pill h-10 -> -20px) instead of
+                // centering the whole flex column: the minutes line below a disc
+                // must hang under it without pushing the circle off the slot -
+                // otherwise discs and (minute-less) pills in the same formation
+                // row sit at visibly different heights. X: pills shift by relX so
+                // edge slots grow toward the field center; discs center as usual.
+                // All offsets live in this ONE transform - Tailwind 4 translate
+                // classes use the CSS `translate` property and would COMPOSE
+                // with it (the doubled-shift bug).
+                transform: hasSubs
+                  ? `translate(-${(slot.relX * 100).toFixed(1)}%, ${slotSubs.length > 1 ? '-50%' : '-20px'})`
+                  : 'translate(-50%, -22px)',
               }}
             >
               {hasSubs ? (
