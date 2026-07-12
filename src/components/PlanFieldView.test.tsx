@@ -129,7 +129,7 @@ describe('PlanFieldView', () => {
         game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
         players={players}
         onAssign={jest.fn()}
-        highlightPlayerId="p2"
+        highlightPlayerIds={["p2"]}
       />,
     );
     // Sam (bench) is tracked: ringed, not dimmed. Alex's disc dims.

@@ -1,4 +1,4 @@
-import { fairnessHue, fairnessFill, fairnessText, fairnessCell } from './colors';
+import { fairnessHue, fairnessFill, fairnessText, fairnessCell, fairnessChipColors } from './colors';
 
 describe('fairness colour ramp', () => {
   it('maps the clamped ratio range onto red→green hues (0..130), no blue ever', () => {
@@ -20,6 +20,13 @@ describe('fairness colour ramp', () => {
     expect(fairnessFill(null)).toBe('#334155');
     expect(fairnessText(null)).toBe('#94a3b8');
     expect(fairnessCell(null)).toBe('#334155');
+  });
+
+  it('chip colours band the text contrast: cream on red/green ends, dark on yellow', () => {
+    expect(fairnessChipColors(0.4)).toEqual({ bg: 'hsl(0, 72%, 46%)', fg: '#fef2f2' }); // red end
+    expect(fairnessChipColors(0.95).fg).toBe('#1a1a1a'); // bright yellow middle
+    expect(fairnessChipColors(1.5)).toEqual({ bg: 'hsl(130, 55%, 40%)', fg: '#ecfdf5' }); // green end
+    expect(fairnessChipColors(null)).toEqual({ bg: '#475569', fg: '#e2e8f0' }); // no signal
   });
 
   it('emits hsl() strings on the ramp', () => {

@@ -26,7 +26,7 @@ export interface FairnessStripRow {
 interface PlanFairnessStripProps {
   /** Pre-sorted rows (worst-off first). */
   rows: FairnessStripRow[];
-  highlightPlayerId?: string | null;
+  highlightPlayerIds?: readonly string[];
   onToggleHighlight: (playerId: string) => void;
 }
 
@@ -34,7 +34,7 @@ const firstName = (name: string): string => name.trim().split(/\s+/)[0] || '?';
 
 const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
   rows,
-  highlightPlayerId = null,
+  highlightPlayerIds = [],
   onToggleHighlight,
 }) => {
   const { t } = useTranslation();
@@ -46,7 +46,8 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
       className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1"
     >
       {rows.map((row) => {
-        const highlighted = row.id === highlightPlayerId;
+        const anyHighlight = highlightPlayerIds.length > 0;
+        const highlighted = highlightPlayerIds.includes(row.id);
         return (
           <button
             key={row.id}
@@ -58,7 +59,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
               'shrink-0 min-w-[3.4rem] px-1.5 py-1 rounded-md text-center leading-tight',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
               highlighted ? 'ring-2 ring-amber-300' : '',
-              highlightPlayerId && !highlighted ? 'opacity-45' : '',
+              anyHighlight && !highlighted ? 'opacity-45' : '',
             ].join(' ')}
             style={{ backgroundColor: fairnessCell(row.ratio) }}
           >

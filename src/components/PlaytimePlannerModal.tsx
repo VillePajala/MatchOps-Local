@@ -530,7 +530,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         seedHistory(p);
         setEditingGameId(null);
         setReplacingId(null);
-        setHighlightPlayerId(null);
+        setHighlightPlayerIds([]);
         setView('overview');
       } else {
         // Target is gone (e.g. deleted in another tab). Tell the user instead of
@@ -656,7 +656,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     seedHistory(saved);
     setEditingGameId(null);
     setReplacingId(null);
-    setHighlightPlayerId(null);
+    setHighlightPlayerIds([]);
     setView('overview');
     await refreshPlanList();
   }, [activePlan, flushSave, refreshPlanList, seedHistory, showToast, t]);
@@ -696,7 +696,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         seedHistory(imported);
         setEditingGameId(null);
         setReplacingId(null);
-        setHighlightPlayerId(null);
+        setHighlightPlayerIds([]);
         setView('overview');
         await refreshPlanList();
       } catch (error) {
@@ -744,8 +744,23 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     rows.sort((a, b) => a.totalSeconds - b.totalSeconds || a.name.localeCompare(b.name));
     return { byPlayer, rows };
   }, [activePlan]);
-  // Cross-surface highlight: tap a strip cell to track one player everywhere.
-  const [highlightPlayerId, setHighlightPlayerId] = useState<string | null>(null);
+  // Cross-surface highlight: tap strip cells / minutes chips / warnings to track
+  // one OR MORE players everywhere (multi-select enables side-by-side comparison,
+  // e.g. the spread warning highlighting both the least and most played).
+  const [highlightPlayerIds, setHighlightPlayerIds] = useState<string[]>([]);
+  const toggleHighlight = useCallback((playerId: string) => {
+    setHighlightPlayerIds((prev) =>
+      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId],
+    );
+  }, []);
+  // Warnings REPLACE the selection with their affected players; tapping the same
+  // warning again clears it (exact-set toggle, standalone behavior).
+  const replaceHighlights = useCallback((playerIds: string[]) => {
+    setHighlightPlayerIds((prev) => {
+      const same = prev.length === playerIds.length && playerIds.every((id) => prev.includes(id));
+      return same ? [] : playerIds;
+    });
+  }, []);
 
   const handleAddPlanPlayer = useCallback(
     (player: { id: string; name: string }) => {
@@ -759,7 +774,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       setReplacingId(null);
       // Tracking follows the takeover: if the replaced player was highlighted,
       // the highlight moves to whoever inherited their slots and subs.
-      setHighlightPlayerId((prev) => (prev === oldId ? replacement.id : prev));
+      setHighlightPlayerIds((prev) => prev.map((id) => (id === oldId ? replacement.id : id)));
     },
     [updateActivePlan],
   );
@@ -769,7 +784,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       setRemoveTarget(null);
       // A dangling highlight would ghost-dim the whole lineup with no cell left
       // to un-toggle it.
-      setHighlightPlayerId((prev) => (prev === playerId ? null : prev));
+      setHighlightPlayerIds((prev) => prev.filter((id) => id !== playerId));
     },
     [updateActivePlan],
   );
@@ -1261,8 +1276,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             )}
             <PlanFairnessStrip
               rows={fairness.rows}
-              highlightPlayerId={highlightPlayerId}
-              onToggleHighlight={(id) => setHighlightPlayerId((prev) => (prev === id ? null : id))}
+              highlightPlayerIds={highlightPlayerIds}
+              onToggleHighlight={toggleHighlight}
             />
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-slate-100">{editingGame.label}</h3>
@@ -1275,7 +1290,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               players={activePlan.players}
               onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
               minutesByPlayer={fairness.byPlayer}
-              highlightPlayerId={highlightPlayerId}
+              highlightPlayerIds={highlightPlayerIds}
               onRequestSub={(slotId) => setSubSheetSlotId(slotId)}
             />
             <div className="border-t border-slate-700/40 pt-4">
@@ -1301,6 +1316,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         {view === 'balance' && activePlan && (
           <PlanBalanceView
             plan={activePlan}
+            highlightPlayerIds={highlightPlayerIds}
+            onToggleHighlight={toggleHighlight}
+            onReplaceHighlights={replaceHighlights}
             onOpenGame={(gameId) => {
               setEditingGameId(gameId);
               setSubSheetSlotId(null);

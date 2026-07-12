@@ -3233,8 +3233,15 @@
       "gamesCounted_other": "{{count}} peliä laskettu",
       "noGames": "Ei laskettuja pelejä. Merkitse pelit mukaan.",
       "ofFairShare": "{{pct}}% osuudesta",
-      "notPlaying": "Ei pelaa: {{games}}",
-      "gameShort": "P{{n}}"
+      "gameShort": "P{{n}}",
+      "zeroMinutes_one": "{{count}} pelaaja ilman peliaikaa",
+      "zeroMinutes_other": "{{count}} pelaajaa ilman peliaikaa",
+      "spreadLabel": "{{spread}} min ero ({{min}}' - {{max}}')",
+      "spreadDetail": "Vähiten: {{least}} · Eniten: {{most}}",
+      "gkLabel": "Vain {{name}} pelaa maalivahtina",
+      "gkDetail": "Harkitse maalivahtien kierrätystä",
+      "focusDelta": "{{delta}} min vs keskiarvo",
+      "focusOnShare": "tasan oma osuus"
     },
     "versions": {
       "switchLabel": "Suunnitelma",

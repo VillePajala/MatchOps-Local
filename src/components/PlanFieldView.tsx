@@ -44,10 +44,10 @@ interface PlanFieldViewProps {
    */
   minutesByPlayer?: Record<string, PlanPlayerMinutes>;
   /**
-   * Highlight one player everywhere (their discs/chips ringed, everyone else
-   * dimmed) - the cross-surface "track this kid" primitive. Null = no highlight.
+   * Highlight players everywhere (their discs/chips ringed, everyone else
+   * dimmed) - the cross-surface "track these kids" primitive. Empty = none.
    */
-  highlightPlayerId?: string | null;
+  highlightPlayerIds?: readonly string[];
   /**
    * Open the substitution sheet for a slot (shown as a "Sub…" action when a
    * filled slot is selected). Omit to hide the action (read-only embeds).
@@ -68,7 +68,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   players,
   onAssign,
   minutesByPlayer,
-  highlightPlayerId = null,
+  highlightPlayerIds = [],
   onRequestSub,
 }) => {
   const { t } = useTranslation();
@@ -139,12 +139,15 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     return fairnessFill(minutesByPlayer?.[playerId]?.ratio ?? null);
   };
 
-  // Highlight primitive: with a highlight active, everything NOT involving that
-  // player drops back; their own discs/chips get an amber ring.
+  // Highlight primitive: with any highlight active, everything NOT involving
+  // those players drops back; their own discs/chips get an amber ring.
+  const anyHighlight = highlightPlayerIds.length > 0;
+  const isTracked = (playerId: string | null): boolean =>
+    playerId !== null && highlightPlayerIds.includes(playerId);
   const dimClass = (involved: boolean): string =>
-    highlightPlayerId ? (involved ? '' : 'opacity-35') : '';
+    anyHighlight ? (involved ? '' : 'opacity-35') : '';
   const hlRing = (involved: boolean): string =>
-    highlightPlayerId && involved ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-green-800' : '';
+    anyHighlight && involved ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-green-800' : '';
 
   const handleSlotClick = (slotId: string) => {
     setActiveSlotId((prev) => (prev === slotId ? null : slotId));
@@ -203,8 +206,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           // field must not pretend the slot is plain empty).
           const hasSubs = slotSubs.length > 0;
           const involved =
-            !!highlightPlayerId &&
-            (playerId === highlightPlayerId || slotSubs.some((s) => s.inPlayerId === highlightPlayerId));
+            anyHighlight && (isTracked(playerId) || slotSubs.some((sub) => isTracked(sub.inPlayerId)));
           // Screen readers: aria-label OVERRIDES the button's contents, so the
           // pill's incoming players must be folded into the label explicitly.
           const subsLabel = slotSubs
@@ -377,7 +379,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           <div className="flex flex-wrap gap-2">
             {bench.map((id) => {
               const fair = minutesByPlayer?.[id];
-              const involved = highlightPlayerId === id;
+              const involved = isTracked(id);
               const sitsOut = !enteringIds.has(id);
               return (
                 <button
@@ -389,7 +391,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     'px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
                     sitsOut ? 'border-red-500/80' : 'border-slate-500/40',
                     dimClass(involved),
-                    highlightPlayerId && involved ? 'ring-2 ring-amber-300' : '',
+                    anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
                   ].join(' ')}
                 >
                   {nameById.get(id) ?? id}

@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, cleanup, within, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import PlanBalanceView from './PlanBalanceView';
 import type { PlaytimePlan, PlanGame } from '@/utils/playtimePlanner/types';
 
@@ -48,46 +48,95 @@ const plan = (games: PlanGame[]): PlaytimePlan => ({
 
 afterEach(() => cleanup());
 
+const noop = () => {};
+
 describe('PlanBalanceView', () => {
   it('shows the fair share and counted games', () => {
-    render(<PlanBalanceView plan={plan([game()])} />);
-    // available = 24min × 5 slots = 120 / 5 players = 24' fair share.
-    expect(screen.getByText("Share 24' each · 1 games counted")).toBeInTheDocument();
+    render(<PlanBalanceView plan={plan([game()])} onToggleHighlight={noop} onReplaceHighlights={noop} />);
+    expect(screen.getByText(/Share 24' each/)).toBeInTheDocument();
+    expect(screen.getByText(/1 games counted/)).toBeInTheDocument();
   });
 
-  it('sorts worst-off first, Alex (at fair share) last', () => {
-    render(<PlanBalanceView plan={plan([game()])} />);
-    const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(5);
-    // Worst-off (0%) first; Alex at 100% of fair share is last.
-    expect(within(items[0]).getByText('0% of share')).toBeInTheDocument();
-    expect(within(items[items.length - 1]).getByText('Alex')).toBeInTheDocument();
-    expect(within(items[items.length - 1]).getByText('100% of share')).toBeInTheDocument();
-  });
-
-  it('warns about players not playing an included game', () => {
-    render(<PlanBalanceView plan={plan([game()])} />);
-    // Sam/Jo/Max/Kai never take the field -> flagged as not playing Game 1.
-    expect(screen.getAllByText('Not playing: Game 1').length).toBeGreaterThan(0);
-  });
-
-  it('per-game chips jump to that game\'s lineup when onOpenGame is provided', () => {
-    const onOpenGame = jest.fn();
-    render(<PlanBalanceView plan={plan([game()])} onOpenGame={onOpenGame} />);
-    // Chips render as buttons labelled with the game's full label; one per player
-    // row - clicking any of them opens that game's lineup in one tap.
-    const chips = screen.getAllByRole('button', { name: 'Game 1' });
+  it('renders whole-colour player chips sorted least-played first, tap toggles highlight', () => {
+    const onToggleHighlight = jest.fn();
+    render(
+      <PlanBalanceView plan={plan([game()])} onToggleHighlight={onToggleHighlight} onReplaceHighlights={noop} />,
+    );
+    // Alex (24') sorts LAST; a zero-minute player leads the grid.
+    const chips = screen.getAllByRole('button', { name: /'\s*$/ }).filter((b) => b.getAttribute('aria-pressed') !== null);
+    expect(chips[chips.length - 1]).toHaveTextContent("Alex");
+    expect(chips[chips.length - 1]).toHaveTextContent("24'");
     fireEvent.click(chips[0]);
+    expect(onToggleHighlight).toHaveBeenCalled();
+  });
+
+  it('surfaces the zero-minutes warning and taps it into the highlight selection', () => {
+    const onReplaceHighlights = jest.fn();
+    render(
+      <PlanBalanceView plan={plan([game()])} onToggleHighlight={noop} onReplaceHighlights={onReplaceHighlights} />,
+    );
+    // Four players never take the field in the only included game.
+    const warning = screen.getByRole('button', { name: /4 players with 0 minutes/ });
+    expect(warning).toHaveTextContent('Jo (G1)');
+    expect(warning).toHaveTextContent('+1'); // capped at 3 names, the rest counted
+    fireEvent.click(warning);
+    expect(onReplaceHighlights).toHaveBeenCalledWith(expect.arrayContaining(['p2', 'p3', 'p4', 'p5']));
+  });
+
+  it('warns when a single player keeps goal in every included game', () => {
+    render(<PlanBalanceView plan={plan([game()])} onToggleHighlight={noop} onReplaceHighlights={noop} />);
+    expect(screen.getByRole('button', { name: /Only Alex plays goalkeeper/ })).toBeInTheDocument();
+  });
+
+  it('shows the worst-off focus card by default with per-game tiles (position + minutes)', () => {
+    render(
+      <PlanBalanceView plan={plan([game()])} onToggleHighlight={noop} onReplaceHighlights={noop} />,
+    );
+    // Default focus = least-played (Jo sorts first among the 0' players): the
+    // card is the only place the %-of-share line renders.
+    expect(screen.getByText(/0% of share · -24 min vs average/)).toBeInTheDocument();
+    // Jo appears twice: his chip and his focus card.
+    expect(screen.getAllByText('Jo')).toHaveLength(2);
+    // Tile: G1 label + em dash position (never plays).
+    expect(screen.getByText('G1')).toBeInTheDocument();
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
+  it('stacks one focus card per highlighted player with %-of-share and delta', () => {
+    render(
+      <PlanBalanceView
+        plan={plan([game()])}
+        highlightPlayerIds={['p1', 'p2']}
+        onToggleHighlight={noop}
+        onReplaceHighlights={noop}
+      />,
+    );
+    // Alex: full game = 100% of share, on fair share; his tile names the GK slot.
+    expect(screen.getByText(/100% of share · on fair share/)).toBeInTheDocument();
+    expect(screen.getByText(/0% of share · -24 min vs average/)).toBeInTheDocument();
+    expect(screen.getByText('GK')).toBeInTheDocument();
+  });
+
+  it('focus tiles jump to the game lineup when onOpenGame is provided', () => {
+    const onOpenGame = jest.fn();
+    render(
+      <PlanBalanceView
+        plan={plan([game()])}
+        onToggleHighlight={noop}
+        onReplaceHighlights={noop}
+        onOpenGame={onOpenGame}
+      />,
+    );
+    // The tile carries the game's full label as its title (warning buttons also
+    // mention G1, so disambiguate by title).
+    fireEvent.click(screen.getByTitle('Game 1'));
     expect(onOpenGame).toHaveBeenCalledWith('g1');
   });
 
-  it('per-game chips stay plain text without onOpenGame (read-only embeds)', () => {
-    render(<PlanBalanceView plan={plan([game()])} />);
-    expect(screen.queryByRole('button', { name: 'Game 1' })).not.toBeInTheDocument();
-  });
-
   it('reports no games counted when none are included', () => {
-    render(<PlanBalanceView plan={plan([game({ included: false })])} />);
+    render(
+      <PlanBalanceView plan={plan([game({ included: false })])} onToggleHighlight={noop} onReplaceHighlights={noop} />,
+    );
     expect(screen.getByText('No games counted yet. Mark games as included.')).toBeInTheDocument();
   });
 });
