@@ -46,6 +46,7 @@ import {
   inputBaseStyle,
   selectStyle,
   cardStyle,
+  iconButtonEditStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
 } from '@/styles/modalStyles';
@@ -149,6 +150,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // doubles as the format summary) and the pending remove-last-game confirm.
   const [showFormatEditor, setShowFormatEditor] = useState(false);
   const [trimConfirm, setTrimConfirm] = useState<PlanGame | null>(null);
+  // Explicit game-rename mode (pencil in the game view); leaves with the game.
+  const [renamingGame, setRenamingGame] = useState(false);
+  useEffect(() => {
+    setRenamingGame(false);
+  }, [editingGameId, view]);
   // replacingId: plan player whose replacement is being chosen (Phase 4);
   // removeQueue: plan players pending the destructive remove confirm, asked one
   // at a time (a team switch or mass-uncheck can queue several). Cancel skips
@@ -1174,6 +1180,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         <ModalHeader title={t('playtimePlanner.title', 'Match planner')} />
       )}
 
+      {/* House pattern (TeamManager/RosterSettings): create-new is a full-width
+          primary button PINNED under the header, not buried in the scroll. */}
+      {view === 'manager' && (
+        <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+          <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
+            {t('playtimePlanner.manager.new', 'New plan')}
+          </button>
+        </div>
+      )}
+
       <ScrollableContent className="px-6 py-4">
         {view === 'loading' && (
           <div className="flex flex-col items-center justify-center py-10 text-slate-400">
@@ -1317,33 +1333,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
 
-        {/* Undo/redo only where edits are dense (field views) - on the overview
-            they broke up the composition without earning their place. */}
-        {activePlan && (view === 'lineup' || view === 'grid') && (
-          <div className="flex justify-end gap-1.5 mb-2">
-            <button
-              type="button"
-              onClick={() => applyHistory(-1)}
-              disabled={!canUndo}
-              aria-label={t('controlBar.undo', 'Undo')}
-              title={t('controlBar.undo', 'Undo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
-            >
-              <HiOutlineArrowUturnLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => applyHistory(1)}
-              disabled={!canRedo}
-              aria-label={t('controlBar.redo', 'Redo')}
-              title={t('controlBar.redo', 'Redo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
-            >
-              <HiOutlineArrowUturnRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
         {view === 'manager' && (
           <div className="space-y-4">
             {/* Rows sit directly on the background like LoadGame's list - an
@@ -1465,16 +1454,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               ))}
             </div>
             </div>
-            <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
-              {t('playtimePlanner.manager.new', 'New plan')}
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className={`${secondaryButtonStyle} w-full`}
-            >
-              {t('playtimePlanner.versions.import', 'Import JSON')}
-            </button>
+            {/* New plan is pinned above the scroll; Import JSON lives in the
+                footer (left) - only its hidden file input remains here. */}
             <input
               ref={fileInputRef}
               type="file"
@@ -1739,14 +1720,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             onTouchEnd={handleLineupTouchEnd}
             data-testid="lineup-swipe-area"
           >
-            {/* Game tabs: the planner's core loop is flipping between the set's
-                games while nudging minutes toward fair - so any game is ONE tap
-                away (no round trip through the overview). Short labels match the
-                balance strip (P1/G1…); an amber dot marks an incomplete lineup.
-                Each tab carries the standalone planner's include dot (top-right):
-                tap it to count the game in/out of the totals - this is the ONLY
-                place inclusion is toggled, so the strip renders even for a
-                single-game plan. Excluded tabs dim like the standalone's ribbon. */}
+            {/* Game ribbon (standalone-planner style): two-line tabs - short
+                label on top, the GAME NAME under it - so the strip carries each
+                game's identity, not anonymous pills. The active tab gets the
+                standalone's amber accent; an amber dot after the short label
+                marks an incomplete lineup. Each tab carries the include dot
+                (top-right): tap it to count the game in/out of the totals -
+                this is the ONLY place inclusion is toggled, so the strip
+                renders even for a single-game plan. Excluded tabs dim. */}
             <nav
               aria-label={t('playtimePlanner.lineup.gameTabs', 'Switch game')}
               className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1"
@@ -1772,20 +1753,33 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
                       className={[
-                        'relative pl-3.5 pr-7 py-2 rounded-md text-sm font-medium tabular-nums transition-colors',
+                        'w-28 pl-3 pr-6 py-2 rounded-lg text-left border transition-colors',
                         isCurrent
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600',
+                          ? 'bg-slate-700 border-amber-400/60'
+                          : 'bg-slate-800 border-slate-600 hover:bg-slate-700',
                         g.included ? '' : 'opacity-50',
                       ].join(' ')}
                     >
-                      {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
-                      {incomplete && (
-                        <span
-                          className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-400"
-                          aria-hidden="true"
-                        />
-                      )}
+                      <span
+                        className={`block text-[11px] font-semibold uppercase tracking-wide tabular-nums ${
+                          isCurrent ? 'text-amber-400' : 'text-slate-400'
+                        }`}
+                      >
+                        {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
+                        {incomplete && (
+                          <span
+                            className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 ml-1.5 align-middle"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </span>
+                      <span
+                        className={`block text-sm font-medium truncate ${
+                          isCurrent ? 'text-white' : 'text-slate-300'
+                        }`}
+                      >
+                        {g.label}
+                      </span>
                     </button>
                     <button
                       type="button"
@@ -1816,23 +1810,51 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               highlightPlayerIds={highlightPlayerIds}
               onToggleHighlight={toggleHighlight}
             />
+            {/* Game name: plain text + explicit pencil (the always-editable
+                inline input was invisible as an affordance). The pencil swaps
+                in an input; Enter/blur closes it. */}
             <div className="flex items-center justify-between gap-2">
-              <input
-                type="text"
-                value={editingGame.label}
-                aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  updateActivePlan(
-                    (plan) => ({
-                      ...plan,
-                      games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
-                    }),
-                    { coalesce: true },
-                  );
-                }}
-                className="flex-1 min-w-0 bg-transparent text-base font-semibold text-slate-100 rounded-md border-b border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 px-1 -mx-1"
-              />
+              {renamingGame ? (
+                <input
+                  type="text"
+                  autoFocus
+                  value={editingGame.label}
+                  aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateActivePlan(
+                      (plan) => ({
+                        ...plan,
+                        games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
+                      }),
+                      { coalesce: true },
+                    );
+                  }}
+                  onBlur={() => setRenamingGame(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                      e.stopPropagation();
+                      setRenamingGame(false);
+                    }
+                  }}
+                  className="flex-1 min-w-0 bg-transparent text-base font-semibold text-slate-100 rounded-md border-b border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 px-1 -mx-1"
+                />
+              ) : (
+                <span className="flex items-center gap-1 min-w-0">
+                  <span data-testid="lineup-game-title" className="text-base font-semibold text-slate-100 truncate">
+                    {editingGame.label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRenamingGame(true)}
+                    aria-label={t('playtimePlanner.lineup.renameGame', 'Rename game')}
+                    title={t('playtimePlanner.lineup.renameGame', 'Rename game')}
+                    className={`${iconButtonEditStyle} shrink-0`}
+                  >
+                    <HiOutlinePencil className="w-4 h-4" />
+                  </button>
+                </span>
+              )}
               <span className={`${subtextStyle} shrink-0`}>
                 {getPresetById(editingGame.formationId)?.name ?? '-'}
               </span>
@@ -2020,12 +2042,46 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         })()}
 
       <ModalFooter>
-        {/* Export is the one plan action that lives outside the manager's 3-dot
-            menu - left-aligned in the footer, away from navigation. */}
+        {/* Left side of the footer holds the view's utility actions (house
+            pattern - navigation stays right): manager = Import JSON, overview =
+            Export JSON, field views = undo/redo. */}
+        {view === 'manager' && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`${secondaryButtonStyle} mr-auto`}
+          >
+            {t('playtimePlanner.versions.import', 'Import JSON')}
+          </button>
+        )}
         {view === 'overview' && activePlan && (
           <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} mr-auto`}>
             {t('playtimePlanner.versions.export', 'Export JSON')}
           </button>
+        )}
+        {activePlan && (view === 'lineup' || view === 'grid') && (
+          <div className="flex gap-1.5 mr-auto">
+            <button
+              type="button"
+              onClick={() => applyHistory(-1)}
+              disabled={!canUndo}
+              aria-label={t('controlBar.undo', 'Undo')}
+              title={t('controlBar.undo', 'Undo')}
+              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
+            >
+              <HiOutlineArrowUturnLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => applyHistory(1)}
+              disabled={!canRedo}
+              aria-label={t('controlBar.redo', 'Redo')}
+              title={t('controlBar.redo', 'Redo')}
+              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
+            >
+              <HiOutlineArrowUturnRight className="w-4 h-4" />
+            </button>
+          </div>
         )}
         {(view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') && (
           <button

@@ -3224,7 +3224,8 @@
       "notInGame": "Ei pelaa tässä pelissä",
       "gameName": "Pelin nimi",
       "includedToggle": "Mukana laskuissa - napauta jättääksesi pois",
-      "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan"
+      "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan",
+      "renameGame": "Nimeä peli uudelleen"
     },
     "subs": {
       "heading": "Vaihdot",

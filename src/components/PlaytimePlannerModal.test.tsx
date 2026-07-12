@@ -429,7 +429,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(stripCell, { touches: [{ clientX: 300, clientY: 100 }] });
       fireEvent.touchEnd(stripCell, { changedTouches: [{ clientX: 100, clientY: 100 }] });
     });
-    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
   });
 
   it('grid view shows every game as an editable card with the totals strip on top', async () => {
@@ -567,7 +567,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(tabs, { touches: [{ clientX: 300, clientY: 100 }] });
       fireEvent.touchEnd(tabs, { changedTouches: [{ clientX: 100, clientY: 100 }] });
     });
-    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
   });
 
   it('undo is disabled on a freshly opened plan (history never crosses plans)', async () => {
@@ -651,14 +651,14 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
-    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
 
     const area = screen.getByTestId('lineup-swipe-area');
     await act(async () => {
       fireEvent.touchStart(area, { touches: [{ clientX: 300, clientY: 200 }] });
       fireEvent.touchEnd(area, { changedTouches: [{ clientX: 120, clientY: 210 }] });
     });
-    expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 2');
 
     // Swiping right at the LAST game clamps (no wrap) - stays on Game 2... swipe
     // right goes BACK to Game 1.
@@ -666,7 +666,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(area, { touches: [{ clientX: 120, clientY: 200 }] });
       fireEvent.touchEnd(area, { changedTouches: [{ clientX: 300, clientY: 210 }] });
     });
-    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
   });
 
   it('switches between games with one tap via the lineup game tabs', async () => {
@@ -685,15 +685,38 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
-    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
 
-    // Tab labels use the short game code (G1/G2, P1/P2 in fi).
+    // Ribbon tabs carry the short code AND the game name.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'G2' }));
+      fireEvent.click(screen.getByRole('button', { name: 'G2 Game 2' }));
     });
-    expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 2');
     // Current tab is marked for assistive tech.
-    expect(screen.getByRole('button', { name: 'G2' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: 'G2 Game 2' })).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('renames a game via the explicit pencil in the game view', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
+    });
+
+    // Read-only until the pencil is tapped.
+    expect(screen.queryByLabelText('Game name')).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Rename game' }));
+    });
+    const input = screen.getByLabelText('Game name');
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'Final' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+    // Edit mode closed; the new name shows in the title and on the ribbon tab.
+    expect(screen.queryByLabelText('Game name')).not.toBeInTheDocument();
+    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Final');
   });
 
   it('adds and removes a substitution from the lineup view', async () => {
