@@ -3200,7 +3200,11 @@
       "suggestConfirmLabel": "Ehdota",
       "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä.",
       "gridButton": "Kaikki pelit rinnakkain",
-      "notCounted": "Ei mukana laskuissa"
+      "notCounted": "Ei mukana laskuissa",
+      "addGame": "Lisää peli",
+      "removeGame": "Poista viimeinen peli",
+      "trimConfirmTitle": "Poistetaanko {{name}}?",
+      "trimConfirmMessage": "Pelin kokoonpano ja vaihdot poistetaan. Kumoa palauttaa ne."
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",

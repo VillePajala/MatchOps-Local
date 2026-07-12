@@ -12,6 +12,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  HiChevronDown,
   HiChevronRight,
   HiOutlineArchiveBox,
   HiOutlineArrowUturnLeft,
@@ -32,6 +33,7 @@ import { getTournaments } from '@/utils/tournaments';
 import type { Team, Season, Tournament } from '@/types';
 import { PRESETS_BY_SIZE, FIELD_SIZES, getPresetById } from '@/config/formationPresets';
 import logger from '@/utils/logger';
+import { generateId } from '@/utils/idGenerator';
 import {
   ModalContainer,
   ModalHeader,
@@ -143,10 +145,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const [showArchived, setShowArchived] = useState(false);
+  // Overview "Games & format" editor (collapsed by default - the header line
+  // doubles as the format summary) and the pending remove-last-game confirm.
+  const [showFormatEditor, setShowFormatEditor] = useState(false);
+  const [trimConfirm, setTrimConfirm] = useState<PlanGame | null>(null);
   // replacingId: plan player whose replacement is being chosen (Phase 4);
-  // removeTarget: plan player pending the destructive remove confirm.
+  // removeQueue: plan players pending the destructive remove confirm, asked one
+  // at a time (a team switch or mass-uncheck can queue several). Cancel skips
+  // just that player.
   const [replacingId, setReplacingId] = useState<string | null>(null);
-  const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
+  const [removeQueue, setRemoveQueue] = useState<PlanPlayer[]>([]);
+  const removeTarget = removeQueue[0] ?? null;
   // "Suggest fair lineup" pending confirm (it overwrites included games).
   const [showSuggestConfirm, setShowSuggestConfirm] = useState(false);
   // Open substitution sheet target: which game + slot (null = closed). Game id
@@ -845,7 +854,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const handleRemovePlanPlayer = useCallback(
     (playerId: string) => {
       updateActivePlan((plan) => removePlayerFromPlan(plan, playerId));
-      setRemoveTarget(null);
+      setRemoveQueue((q) => q.slice(1));
       // A dangling highlight would ghost-dim the whole lineup with no cell left
       // to un-toggle it.
       setHighlightPlayerIds((prev) => prev.filter((id) => id !== playerId));
@@ -853,10 +862,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [updateActivePlan],
   );
   // Overview checkbox diffing: additions apply instantly; unchecking a player
-  // with lineup spots or subs routes through the existing impact confirm
-  // (one at a time - a mass-uncheck confirms the first and leaves the rest
-  // checked until it is answered). Zero-impact removals just leave; undo covers
-  // them like any other edit.
+  // with lineup spots or subs routes through the impact-confirm QUEUE (asked
+  // one at a time). Zero-impact removals just leave; undo covers them like any
+  // other edit.
   const handleOverviewRosterChange = useCallback(
     (ids: string[]) => {
       if (!activePlan) return;
@@ -881,10 +889,128 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         });
         setHighlightPlayerIds((prev) => prev.filter((id) => !cleanIds.has(id)));
       }
-      if (impacted.length > 0) setRemoveTarget(impacted[0]);
+      if (impacted.length > 0) setRemoveQueue(impacted);
     },
     [activePlan, overviewRoster, updateActivePlan],
   );
+
+  // Team change on an EXISTING plan (overview format editor). Mirrors creation's
+  // name-matching against the master roster, but goes through the plan roster's
+  // add/remove machinery: matched players join instantly, unmatched ones with
+  // lineup spots queue through the impact confirm. Game durations are NOT
+  // rewritten - the coach edits lengths in the same card if needed.
+  const handleOverviewTeamChange = useCallback(
+    async (nextTeamId: string) => {
+      if (!activePlan) return;
+      const requestId = ++teamSelectRef.current;
+      if (!nextTeamId) {
+        // Freehand again: unstamp the source team, keep the roster as-is.
+        updateActivePlan((plan) => ({ ...plan, teamId: undefined }));
+        return;
+      }
+      try {
+        const teamRoster = await getTeamRoster(nextTeamId, user?.id);
+        if (teamSelectRef.current !== requestId) return;
+        const names = new Set(teamRoster.map((tp) => tp.name.trim().toLowerCase()));
+        const matched = roster.filter((p) => names.has(p.name.trim().toLowerCase()));
+        const matchedIds = new Set(matched.map((p) => p.id));
+        const current = new Set(activePlan.players.map((p) => p.id));
+        const additions = matched
+          .filter((p) => !current.has(p.id))
+          .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
+        const removals = activePlan.players.filter((p) => !matchedIds.has(p.id));
+        const impacted = removals.filter((p) => {
+          const impact = playerPlanImpact(activePlan, p.id);
+          return impact.startingCount + impact.subCount > 0;
+        });
+        const cleanIds = new Set(removals.filter((p) => !impacted.includes(p)).map((p) => p.id));
+        updateActivePlan((plan) => {
+          let updated: PlaytimePlan = { ...plan, teamId: nextTeamId };
+          for (const pp of additions) updated = addPlayerToPlan(updated, pp);
+          for (const id of cleanIds) updated = removePlayerFromPlan(updated, id);
+          return updated;
+        });
+        setHighlightPlayerIds((prev) => prev.filter((id) => !cleanIds.has(id)));
+        if (impacted.length > 0) setRemoveQueue(impacted);
+      } catch (error) {
+        if (teamSelectRef.current !== requestId) return;
+        logger.error('[PlaytimePlannerModal] Failed to load team roster:', error);
+        showToast(t('playtimePlanner.setup.teamLoadError', "Could not load that team's roster."), 'error');
+      }
+    },
+    [activePlan, roster, updateActivePlan, user, showToast, t],
+  );
+
+  // Overview format edits apply to EVERY game, like creation's single format.
+  // Formation changes keep players by slot index where slots overlap (gk, s0…)
+  // and drop assignments/subs whose slot no longer exists - undo restores.
+  const handleFormationChange = useCallback(
+    (fid: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => {
+          const next = { ...g, formationId: fid };
+          const slotIds = new Set(getGameSlots(fid).map((slot) => slot.slotId));
+          return {
+            ...next,
+            startingSlots: ensureStartingSlots(next),
+            subs: g.subs.filter((sub) => slotIds.has(sub.slotId)),
+          };
+        }),
+      }));
+    },
+    [updateActivePlan],
+  );
+  const handleDurationChange = useCallback(
+    (patch: Partial<Pick<PlanGame, 'numberOfPeriods' | 'periodMinutes'>>) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => ({ ...g, ...patch })),
+      }));
+    },
+    [updateActivePlan],
+  );
+
+  // Add/remove games after creation. New games copy the last game's format;
+  // removing always takes the LAST game and asks first if it has content.
+  const handleAddGame = useCallback(() => {
+    updateActivePlan((plan) => {
+      if (plan.games.length >= 20) return plan;
+      const last = plan.games[plan.games.length - 1];
+      return {
+        ...plan,
+        games: [
+          ...plan.games,
+          {
+            id: generateId('ptg'),
+            label: t('playtimePlanner.overview.gameLabel', 'Game {{n}}', { n: plan.games.length + 1 }),
+            formationId: last?.formationId ?? DEFAULT_FORMATION,
+            numberOfPeriods: last?.numberOfPeriods ?? 2,
+            periodMinutes: last?.periodMinutes ?? 12,
+            included: true,
+            startingSlots: [],
+            subs: [],
+          },
+        ],
+      };
+    });
+  }, [updateActivePlan, t]);
+  const performRemoveGame = useCallback(
+    (gameId: string) => {
+      updateActivePlan((plan) =>
+        plan.games.length > 1 ? { ...plan, games: plan.games.filter((g) => g.id !== gameId) } : plan,
+      );
+      setTrimConfirm(null);
+    },
+    [updateActivePlan],
+  );
+  const requestRemoveLastGame = useCallback(() => {
+    if (!activePlan || activePlan.games.length <= 1) return;
+    const last = activePlan.games[activePlan.games.length - 1];
+    const hasContent = last.startingSlots.some((slot) => slot.playerId) || last.subs.length > 0;
+    if (hasContent) setTrimConfirm(last);
+    else performRemoveGame(last.id);
+  }, [activePlan, performRemoveGame]);
 
   // Plan deletion is confirmed via the app's ConfirmationModal (danger variant),
   // matching every other destructive action in the app. isDeleting gates re-entry:
@@ -977,7 +1103,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (e.key !== 'Escape') return;
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
-      if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
+      if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || trimConfirm !== null || showSuggestConfirm) return;
       // The manager's actions menu is open: Escape closes it, nothing else.
       if (actionsMenuId !== null) {
         setActionsMenuId(null);
@@ -1000,7 +1126,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, deleteTarget, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
+  }, [isOpen, view, onClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -1377,18 +1503,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
               noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
             />
-            <div className="flex items-center justify-between gap-2">
-              <p className={subtextStyle}>
-                {t('playtimePlanner.overview.formatSummary', '{{games}} games · {{periods}}×{{minutes}} min', {
-                  games: activePlan.games.length,
-                  periods: activePlan.games[0]?.numberOfPeriods ?? 0,
-                  minutes: activePlan.games[0]?.periodMinutes ?? 0,
-                })}
-                {' · '}
-                {getPresetById(activePlan.games[0]?.formationId ?? '')?.name ?? '-'}
-              </p>
-              {/* Replace-a-player (keeps their minutes) still lives in the
-                  players view - checkboxes only add/remove. */}
+            {/* Replace-a-player (keeps their minutes) still lives in the
+                players view - checkboxes only add/remove. */}
+            <div className="flex justify-end">
               <button
                 type="button"
                 onClick={() => setView('players')}
@@ -1396,6 +1513,135 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               >
                 {t('playtimePlanner.overview.editPlayers', 'Edit players')}
               </button>
+            </div>
+
+            {/* Games & format stays editable AFTER creation - same fields as
+                setup, applied to the whole plan. The collapsed header doubles
+                as the old format summary line. */}
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setShowFormatEditor((v) => !v)}
+                aria-expanded={showFormatEditor}
+                className="w-full flex items-center justify-between gap-2 text-left"
+              >
+                <span className="min-w-0">
+                  <span className="block text-lg font-semibold text-slate-200">
+                    {t('playtimePlanner.setup.formatHeading', 'Games & format')}
+                  </span>
+                  <span className={subtextStyle}>
+                    {t('playtimePlanner.overview.formatSummary', '{{games}} games · {{periods}}×{{minutes}} min', {
+                      games: activePlan.games.length,
+                      periods: activePlan.games[0]?.numberOfPeriods ?? 0,
+                      minutes: activePlan.games[0]?.periodMinutes ?? 0,
+                    })}
+                    {' · '}
+                    {getPresetById(activePlan.games[0]?.formationId ?? '')?.name ?? '-'}
+                  </span>
+                </span>
+                <HiChevronDown
+                  aria-hidden="true"
+                  className={`w-5 h-5 text-slate-400 shrink-0 transition-transform ${showFormatEditor ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showFormatEditor && (
+                <>
+                  {teams.length > 0 && (
+                    <div>
+                      <label htmlFor="overview-team" className={labelStyle}>{t('playtimePlanner.setup.teamLabel', 'Team (optional)')}</label>
+                      <select
+                        id="overview-team"
+                        value={activePlan.teamId ?? ''}
+                        onChange={(e) => void handleOverviewTeamChange(e.target.value)}
+                        className={selectStyle}
+                      >
+                        <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
+                        {teams.map((tm) => (
+                          <option key={tm.id} value={tm.id}>
+                            {tm.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelStyle}>{t('playtimePlanner.setup.gamesLabel', 'Number of games')}</label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={requestRemoveLastGame}
+                          disabled={activePlan.games.length <= 1}
+                          aria-label={t('playtimePlanner.overview.removeGame', 'Remove last game')}
+                          title={t('playtimePlanner.overview.removeGame', 'Remove last game')}
+                          className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
+                        >
+                          <span aria-hidden="true" className="block w-4 text-center leading-4">&minus;</span>
+                        </button>
+                        <span className="w-8 text-center text-slate-100 tabular-nums">{activePlan.games.length}</span>
+                        <button
+                          type="button"
+                          onClick={handleAddGame}
+                          disabled={activePlan.games.length >= 20}
+                          aria-label={t('playtimePlanner.overview.addGame', 'Add game')}
+                          title={t('playtimePlanner.overview.addGame', 'Add game')}
+                          className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
+                        >
+                          <span aria-hidden="true" className="block w-4 text-center leading-4">+</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="overview-formation" className={labelStyle}>{t('playtimePlanner.setup.formationLabel', 'Formation')}</label>
+                      <select
+                        id="overview-formation"
+                        value={activePlan.games[0]?.formationId ?? DEFAULT_FORMATION}
+                        onChange={(e) => handleFormationChange(e.target.value)}
+                        className={selectStyle}
+                      >
+                        {formationOptions.map(({ size, presets }) => (
+                          <optgroup key={size} label={size}>
+                            {presets.map((preset) => (
+                              <option key={preset.id} value={preset.id}>
+                                {preset.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="overview-periods" className={labelStyle}>{t('playtimePlanner.setup.periodsLabel', 'Periods')}</label>
+                      <select
+                        id="overview-periods"
+                        value={activePlan.games[0]?.numberOfPeriods ?? 2}
+                        onChange={(e) => handleDurationChange({ numberOfPeriods: Number(e.target.value) })}
+                        className={selectStyle}
+                      >
+                        <option value={1}>1</option>
+                        <option value={2}>2</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="overview-period-minutes" className={labelStyle}>{t('playtimePlanner.setup.periodMinutesLabel', 'Minutes per period')}</label>
+                      <input
+                        id="overview-period-minutes"
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={activePlan.games[0]?.periodMinutes ?? 12}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) =>
+                          handleDurationChange({
+                            periodMinutes: Math.max(1, Math.min(60, Math.floor(Number(e.target.value) || 1))),
+                          })
+                        }
+                        className={inputBaseStyle}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <button
@@ -1654,7 +1900,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setRemoveTarget(p)}
+                        onClick={() => setRemoveQueue([p])}
                         className="text-sm text-red-400 hover:text-red-300 py-2 px-2"
                       >
                         {t('playtimePlanner.players.removeAction', 'Remove')}
@@ -1852,7 +2098,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         onConfirm={() => {
           if (removeTarget) handleRemovePlanPlayer(removeTarget.id);
         }}
-        onCancel={() => setRemoveTarget(null)}
+        onCancel={() => setRemoveQueue((q) => q.slice(1))}
         confirmLabel={t('playtimePlanner.players.removeAction', 'Remove')}
         variant="danger"
       />
@@ -1865,6 +2111,20 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
         isConfirming={isDeleting}
+      />
+      <ConfirmationModal
+        isOpen={trimConfirm !== null}
+        title={t('playtimePlanner.overview.trimConfirmTitle', 'Remove {{name}}?', { name: trimConfirm?.label ?? '' })}
+        message={t(
+          'playtimePlanner.overview.trimConfirmMessage',
+          'Its lineup and substitutions are deleted. Undo restores them.',
+        )}
+        onConfirm={() => {
+          if (trimConfirm) performRemoveGame(trimConfirm.id);
+        }}
+        onCancel={() => setTrimConfirm(null)}
+        confirmLabel={t('common.delete', 'Delete')}
+        variant="danger"
       />
       <ConfirmationModal
         isOpen={bulkReapplyTarget !== null}
