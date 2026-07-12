@@ -46,6 +46,7 @@ import {
   inputBaseStyle,
   selectStyle,
   cardStyle,
+  iconButtonDangerStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
 } from '@/styles/modalStyles';
@@ -112,7 +113,11 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-type View = 'loading' | 'manager' | 'setup' | 'overview' | 'lineup' | 'balance' | 'players' | 'grid';
+type View = 'loading' | 'manager' | 'setup' | 'games' | 'minutes' | 'plan';
+/** The three peer tabs of an OPEN plan (standalone-planner structure). */
+const PLAN_TABS = ['games', 'minutes', 'plan'] as const;
+type PlanTab = (typeof PLAN_TABS)[number];
+const isPlanTab = (v: View): v is PlanTab => (PLAN_TABS as readonly string[]).includes(v);
 
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   isOpen,
@@ -149,6 +154,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // doubles as the format summary) and the pending remove-last-game confirm.
   const [showFormatEditor, setShowFormatEditor] = useState(false);
   const [trimConfirm, setTrimConfirm] = useState<PlanGame | null>(null);
+  // Games tab layout: one editable field, or every game side by side
+  // (standalone's view toggle; replaces the old separate grid view).
+  const [gamesLayout, setGamesLayout] = useState<'single' | 'grid'>('single');
+  // Plan tab: collapsed replace-a-player section (the one roster edit that
+  // checkboxes can't express - it hands spots and subs over).
+  const [showReplace, setShowReplace] = useState(false);
   // replacingId: plan player whose replacement is being chosen (Phase 4);
   // removeQueue: plan players pending the destructive remove confirm, asked one
   // at a time (a team switch or mass-uncheck can queue several). Cancel skips
@@ -338,7 +349,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (saved) {
       setActivePlan(saved);
       seedHistory(saved);
-      setView('overview');
+      setView('games');
       void refreshPlanList();
     } else {
       showToast(
@@ -472,12 +483,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const handleLineupTouchEnd = (e: React.TouchEvent) => {
     const start = swipeRef.current;
     swipeRef.current = null;
-    if (!start || !activePlan || !editingGameId) return;
+    if (!start || !activePlan) return;
+    // editingGameId may still be null right after opening a plan - the games
+    // tab falls back to the first game, and so does the swipe.
+    const currentId = editingGameId ?? activePlan.games[0]?.id;
+    if (!currentId) return;
     const touch = e.changedTouches[0];
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
     if (Date.now() - start.at > 700 || Math.abs(dx) < 60 || Math.abs(dx) < 1.4 * Math.abs(dy)) return;
-    const idx = activePlan.games.findIndex((g) => g.id === editingGameId);
+    const idx = activePlan.games.findIndex((g) => g.id === currentId);
     const nextGame = activePlan.games[dx < 0 ? idx + 1 : idx - 1];
     if (nextGame) {
       setEditingGameId(nextGame.id);
@@ -554,7 +569,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setEditingGameId(null);
         setReplacingId(null);
         setHighlightPlayerIds([]);
-        setView('overview');
+        setView('games');
       } else {
         // Target is gone (e.g. deleted in another tab). Tell the user instead of
         // letting the controlled <select> silently snap back with no explanation.
@@ -758,7 +773,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setEditingGameId(null);
         setReplacingId(null);
         setHighlightPlayerIds([]);
-        setView('overview');
+        setView('games');
         await refreshPlanList();
       } catch (error) {
         logger.error('[PlaytimePlannerModal] Import failed:', error);
@@ -835,12 +850,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     });
   }, []);
 
-  const handleAddPlanPlayer = useCallback(
-    (player: { id: string; name: string }) => {
-      updateActivePlan((plan) => addPlayerToPlan(plan, player));
-    },
-    [updateActivePlan],
-  );
   const handleReplacePlanPlayer = useCallback(
     (oldId: string, replacement: { id: string; name: string }) => {
       updateActivePlan((plan) => replacePlayerInPlan(plan, oldId, replacement));
@@ -972,7 +981,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   );
 
   // Add/remove games after creation. New games copy the last game's format;
-  // removing always takes the LAST game and asks first if it has content.
+  // removal is per-row on the plan tab and asks first if the game has content.
   const handleAddGame = useCallback(() => {
     updateActivePlan((plan) => {
       if (plan.games.length >= 20) return plan;
@@ -1004,13 +1013,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     },
     [updateActivePlan],
   );
-  const requestRemoveLastGame = useCallback(() => {
-    if (!activePlan || activePlan.games.length <= 1) return;
-    const last = activePlan.games[activePlan.games.length - 1];
-    const hasContent = last.startingSlots.some((slot) => slot.playerId) || last.subs.length > 0;
-    if (hasContent) setTrimConfirm(last);
-    else performRemoveGame(last.id);
-  }, [activePlan, performRemoveGame]);
+  const requestRemoveGame = useCallback(
+    (game: PlanGame) => {
+      if (!activePlan || activePlan.games.length <= 1) return;
+      const hasContent = game.startingSlots.some((slot) => slot.playerId) || game.subs.length > 0;
+      if (hasContent) setTrimConfirm(game);
+      else performRemoveGame(game.id);
+    },
+    [activePlan, performRemoveGame],
+  );
 
   // Plan deletion is confirmed via the app's ConfirmationModal (danger variant),
   // matching every other destructive action in the app. isDeleting gates re-entry:
@@ -1086,7 +1097,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const handleOpenPlan = useCallback(
     (id: string) => {
       if (activePlan?.id === id) {
-        setView('overview');
+        setView('games');
         return;
       }
       void handleSwitchPlan(id);
@@ -1094,9 +1105,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [activePlan?.id, handleSwitchPlan],
   );
 
-  // Escape steps BACK from a sub-view (lineup/balance -> overview) and only
-  // closes the planner from the top-level views - matching how deep the user is,
-  // instead of throwing away their navigation context.
+  // Escape steps back one level: plan tabs -> manager -> close.
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -1114,11 +1123,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setSubSheetTarget(null);
         return;
       }
-      if (view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') {
-        setEditingGameId(null);
-        setReplacingId(null);
-        setView('overview');
-      } else if (view === 'overview') {
+      if (isPlanTab(view)) {
         void handleBackToManager();
       } else {
         onClose();
@@ -1142,33 +1147,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [],
   );
 
-  const editingGame = activePlan?.games.find((g) => g.id === editingGameId) ?? null;
+  const editingGame = activePlan?.games.find((g) => g.id === editingGameId) ?? activePlan?.games[0] ?? null;
 
   if (!isOpen) return null;
 
   return (
     <ModalContainer>
-      {/* Header: the tool name only until a plan is open - then the PLAN owns
-          the screen and its name is the title. On the overview the title is
-          directly editable (the old plan-name form card is gone). */}
-      {activePlan && view !== 'manager' && view !== 'setup' && view !== 'loading' ? (
-        view === 'overview' ? (
-          <div className={headerStyle}>
-            <input
-              type="text"
-              value={activePlan.name}
-              onChange={(e) => {
-                const value = e.target.value;
-                updateActivePlan((plan) => ({ ...plan, name: value }), { coalesce: true });
-              }}
-              aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
-              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-            />
-          </div>
-        ) : view === 'lineup' && editingGame ? (
-          // The game view is about ONE game, so the header names (and renames)
-          // it - freeing the row the title used to take between the fairness
-          // strip and the field.
+      {/* Header names what's on screen: tool name outside a plan; the ACTIVE
+          GAME (tap-editable) on the single-game surface; the plan name
+          (tap-editable on the plan tab) everywhere else in an open plan. */}
+      {activePlan && isPlanTab(view) ? (
+        view === 'games' && gamesLayout === 'single' && editingGame ? (
           <div className={headerStyle}>
             <input
               type="text"
@@ -1184,6 +1173,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 );
               }}
               aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
+              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            />
+          </div>
+        ) : view === 'plan' ? (
+          <div className={headerStyle}>
+            <input
+              type="text"
+              value={activePlan.name}
+              onChange={(e) => {
+                const value = e.target.value;
+                updateActivePlan((plan) => ({ ...plan, name: value }), { coalesce: true });
+              }}
+              aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
               className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
             />
           </div>
@@ -1203,6 +1205,38 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
             {t('playtimePlanner.manager.new', 'New plan')}
           </button>
+        </div>
+      )}
+
+      {/* The three peer tabs of an open plan (standalone structure, house tab
+          styling from GameStats): the working surface, the fairness read, and
+          the plan's data. No hub page, no Back-stepping between them. */}
+      {activePlan && isPlanTab(view) && (
+        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+          <div className="flex w-full gap-2" role="tablist">
+            {(
+              [
+                ['games', t('playtimePlanner.tabs.games', 'Games')],
+                ['minutes', t('playtimePlanner.tabs.minutes', 'Minutes')],
+                ['plan', t('playtimePlanner.tabs.plan', 'Plan')],
+              ] as [PlanTab, string][]
+            ).map(([tab, label]) => (
+              <button
+                key={tab}
+                role="tab"
+                aria-selected={view === tab}
+                onClick={() => {
+                  setSubSheetTarget(null);
+                  setView(tab);
+                }}
+                className={`flex-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  view === tab ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1486,7 +1520,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
 
-        {view === 'overview' && activePlan && (
+        {view === 'plan' && activePlan && (
           <div className="space-y-4">
             {/* Roster as checkboxes in the SAME gradient picker as creation -
                 checking adds a player to the plan, unchecking removes (with an
@@ -1500,16 +1534,75 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
               noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
             />
-            {/* Replace-a-player (keeps their minutes) still lives in the
-                players view - checkboxes only add/remove. */}
-            <div className="flex justify-end">
+            {/* Replace-a-player - the one roster edit checkboxes can't express:
+                hands one player's lineup spots and subs to another. */}
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
               <button
                 type="button"
-                onClick={() => setView('players')}
-                className="text-sm font-medium text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 shrink-0"
+                onClick={() => setShowReplace((v) => !v)}
+                aria-expanded={showReplace}
+                className="w-full flex items-center justify-between gap-2 text-left"
               >
-                {t('playtimePlanner.overview.editPlayers', 'Edit players')}
+                <span className="min-w-0">
+                  <span className="block text-lg font-semibold text-slate-200">
+                    {t('playtimePlanner.players.replaceTitle', 'Replace a player')}
+                  </span>
+                  <span className={subtextStyle}>
+                    {t(
+                      'playtimePlanner.players.hint',
+                      'Changes affect this plan only. Created games update when you re-apply the plan; played games are never changed.',
+                    )}
+                  </span>
+                </span>
+                <HiChevronDown
+                  aria-hidden="true"
+                  className={`w-5 h-5 text-slate-400 shrink-0 transition-transform ${showReplace ? 'rotate-180' : ''}`}
+                />
               </button>
+              {showReplace &&
+                (rosterCandidates.length === 0 ? (
+                  <p className={subtextStyle}>
+                    {t('playtimePlanner.players.noCandidates', 'Everyone from your roster is already in this plan.')}
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {activePlan.players.map((p) => (
+                      <li key={p.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-base text-slate-100 font-medium">{p.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setReplacingId(replacingId === p.id ? null : p.id)}
+                            className="text-sm font-medium text-indigo-400 hover:text-indigo-300 py-2 px-2"
+                          >
+                            {t('playtimePlanner.players.replaceAction', 'Replace')}
+                          </button>
+                        </div>
+                        {replacingId === p.id && (
+                          <div className="space-y-1.5">
+                            <p className={subtextStyle}>
+                              {t('playtimePlanner.players.replacingHint', 'Choose who takes over {{name}}\u0027s lineup spots and subs:', {
+                                name: p.name,
+                              })}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {rosterCandidates.map((c) => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => handleReplacePlanPlayer(p.id, c)}
+                                  className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm hover:bg-indigo-600"
+                                >
+                                  {c.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ))}
             </div>
 
             {/* Games & format stays editable AFTER creation - same fields as
@@ -1562,32 +1655,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={labelStyle}>{t('playtimePlanner.setup.gamesLabel', 'Number of games')}</label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={requestRemoveLastGame}
-                          disabled={activePlan.games.length <= 1}
-                          aria-label={t('playtimePlanner.overview.removeGame', 'Remove last game')}
-                          title={t('playtimePlanner.overview.removeGame', 'Remove last game')}
-                          className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
-                        >
-                          <span aria-hidden="true" className="block w-4 text-center leading-4">&minus;</span>
-                        </button>
-                        <span className="w-8 text-center text-slate-100 tabular-nums">{activePlan.games.length}</span>
-                        <button
-                          type="button"
-                          onClick={handleAddGame}
-                          disabled={activePlan.games.length >= 20}
-                          aria-label={t('playtimePlanner.overview.addGame', 'Add game')}
-                          title={t('playtimePlanner.overview.addGame', 'Add game')}
-                          className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
-                        >
-                          <span aria-hidden="true" className="block w-4 text-center leading-4">+</span>
-                        </button>
-                      </div>
-                    </div>
                     <div>
                       <label htmlFor="overview-formation" className={labelStyle}>{t('playtimePlanner.setup.formationLabel', 'Formation')}</label>
                       <select
@@ -1643,29 +1710,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
             <button
               type="button"
-              onClick={() => setView('balance')}
-              className={`${primaryButtonStyle} w-full`}
-            >
-              {t('playtimePlanner.balance.view', 'View playing-time balance')}
-            </button>
-
-            <button
-              type="button"
               onClick={() => setShowSuggestConfirm(true)}
               className={`${secondaryButtonStyle} w-full`}
             >
               {t('playtimePlanner.overview.suggestButton', 'Suggest fair lineups')}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setView('grid')}
-              className={`${secondaryButtonStyle} w-full`}
-            >
-              {t('playtimePlanner.overview.gridButton', 'All games side by side')}
-            </button>
-
-            {/* Games list un-nested from a card for full house-modal width. */}
+            {/* Games are EDITED here as data (standalone Settings-tab pattern):
+                rename, remove, add. Navigation between games lives on the Games
+                tab's ribbon - no more navigate-only cards. */}
             <div>
               <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
@@ -1675,39 +1728,46 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   return (
                     <div
                       key={game.id}
-                      className={`bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg overflow-hidden transition-all ${game.included ? '' : 'opacity-60'}`}
+                      className={`p-3 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 space-y-1.5 transition-all ${game.included ? '' : 'opacity-60'}`}
                     >
-                      {/* The whole card head IS the way in: label + fill state +
-                          chevron, one obvious tap target (the old tiny "Edit
-                          lineup" text link was easy to miss). Renaming happens
-                          inside the game view. */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingGameId(game.id);
-                          setSubSheetTarget(null);
-                          setView('lineup');
-                        }}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left cursor-pointer hover:bg-slate-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                      >
-                        <span className="min-w-0">
-                          <span className="block text-base font-semibold text-slate-100 truncate">
-                            {game.label}
-                          </span>
-                          <span className={subtextStyle}>
-                            {t('playtimePlanner.overview.placedCount', '{{placed}}/{{total}} placed', {
-                              placed,
-                              total: slotCount,
-                            })}
-                            {!game.included && (
-                              <> · {t('playtimePlanner.overview.notCounted', 'Not counted')}</>
-                            )}
-                          </span>
-                        </span>
-                        <HiChevronRight aria-hidden="true" className="w-5 h-5 text-slate-500 shrink-0" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={game.label}
+                          aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            updateActivePlan(
+                              (plan) => ({
+                                ...plan,
+                                games: plan.games.map((g) => (g.id === game.id ? { ...g, label: value } : g)),
+                              }),
+                              { coalesce: true },
+                            );
+                          }}
+                          className={inputBaseStyle}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => requestRemoveGame(game)}
+                          disabled={activePlan.games.length <= 1}
+                          aria-label={`${t('playtimePlanner.overview.removeGame', 'Remove game')}: ${game.label}`}
+                          title={t('playtimePlanner.overview.removeGame', 'Remove game')}
+                          className={`${iconButtonDangerStyle} shrink-0`}
+                        >
+                          <HiOutlineTrash className="w-5 h-5" />
+                        </button>
+                      </div>
+                      <p className={subtextStyle}>
+                        {t('playtimePlanner.overview.placedCount', '{{placed}}/{{total}} placed', {
+                          placed,
+                          total: slotCount,
+                        })}
+                        {!game.included && (
+                          <> · {t('playtimePlanner.overview.notCounted', 'Not counted')}</>
+                        )}
+                      </p>
                       {(linkedCounts[game.id] ?? 0) > 0 && (
-                        <div className="px-4 pb-3">
                         <button
                           type="button"
                           onClick={() => setBulkReapplyTarget(game)}
@@ -1718,24 +1778,65 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                             count: linkedCounts[game.id],
                           })}
                         </button>
-                        </div>
                       )}
                     </div>
                   );
                 })}
               </div>
+              <button
+                type="button"
+                onClick={handleAddGame}
+                disabled={activePlan.games.length >= 20}
+                className={`${secondaryButtonStyle} w-full mt-2`}
+              >
+                {t('playtimePlanner.overview.addGame', 'Add game')}
+              </button>
             </div>
 
           </div>
         )}
 
-        {view === 'lineup' && activePlan && editingGame && (
+        {view === 'games' && activePlan && editingGame && (
           <div
             className="space-y-3"
-            onTouchStart={handleLineupTouchStart}
-            onTouchEnd={handleLineupTouchEnd}
+            onTouchStart={gamesLayout === 'single' ? handleLineupTouchStart : undefined}
+            onTouchEnd={gamesLayout === 'single' ? handleLineupTouchEnd : undefined}
             data-testid="lineup-swipe-area"
           >
+            {/* Layout toggle (standalone's view toggle): one editable field, or
+                every game side by side. Only offered with 2+ games. */}
+            {activePlan.games.length > 1 && (
+              <div className="flex justify-end">
+                <div
+                  role="group"
+                  aria-label={t('playtimePlanner.lineup.viewToggle', 'Layout')}
+                  className="flex gap-1 rounded-md bg-slate-800 border border-slate-600 p-1"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setGamesLayout('single')}
+                    aria-pressed={gamesLayout === 'single'}
+                    className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                      gamesLayout === 'single' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {t('playtimePlanner.lineup.viewSingle', 'Single game')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGamesLayout('grid')}
+                    aria-pressed={gamesLayout === 'grid'}
+                    className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                      gamesLayout === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {t('playtimePlanner.lineup.viewGrid', 'Side by side')}
+                  </button>
+                </div>
+              </div>
+            )}
+            {gamesLayout === 'single' ? (
+              <>
             {/* Game ribbon (standalone-planner style): two-line tabs - short
                 label on top, the GAME NAME under it - so the strip carries each
                 game's identity, not anonymous pills. The active tab gets the
@@ -1843,10 +1944,54 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 onRemove={(subId) => handleRemoveSub(editingGame.id, subId)}
               />
             </div>
+              </>
+            ) : (
+              <>
+                <PlanFairnessStrip
+                  rows={fairness.rows}
+                  highlightPlayerIds={highlightPlayerIds}
+                  onToggleHighlight={toggleHighlight}
+                />
+                {/* All games side by side (stacked on phones): every card is the
+                    SAME fully editable field as the single-game layout -
+                    tap-assign, sub sheet, live minutes. */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  {activePlan.games.map((g) => (
+                    <div
+                      key={g.id}
+                      className={`${cardStyle} space-y-2 ${!g.included ? 'opacity-60' : ''}`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-slate-100">{g.label}</h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingGameId(g.id);
+                            setSubSheetTarget(null);
+                            setGamesLayout('single');
+                          }}
+                          className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
+                        >
+                          {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
+                        </button>
+                      </div>
+                      <PlanFieldView
+                        game={g}
+                        players={activePlan.players}
+                        onAssign={(slotId, playerId) => handleAssign(g.id, slotId, playerId)}
+                        minutesByPlayer={fairness.byPlayer}
+                        highlightPlayerIds={highlightPlayerIds}
+                        onRequestSub={(slotId) => setSubSheetTarget({ gameId: g.id, slotId })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {view === 'balance' && activePlan && (
+        {view === 'minutes' && activePlan && (
           <PlanBalanceView
             plan={activePlan}
             highlightPlayerIds={highlightPlayerIds}
@@ -1855,141 +2000,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             onOpenGame={(gameId) => {
               setEditingGameId(gameId);
               setSubSheetTarget(null);
-              setView('lineup');
+              setGamesLayout('single');
+              setView('games');
             }}
           />
-        )}
-
-        {view === 'players' && activePlan && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.players.title', 'Plan players')}</h3>
-              <p className={subtextStyle}>
-                {t(
-                  'playtimePlanner.players.hint',
-                  'Changes affect this plan only. Created games update when you re-apply the plan; played games are never changed.',
-                )}
-              </p>
-            </div>
-
-            <ul className="space-y-2">
-              {activePlan.players.map((p) => (
-                <li
-                  key={p.id}
-                  className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all rounded-lg p-4 space-y-2"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-base text-slate-100 font-medium">{p.name}</span>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setReplacingId(replacingId === p.id ? null : p.id)}
-                        disabled={rosterCandidates.length === 0}
-                        className="text-sm font-medium text-indigo-400 hover:text-indigo-300 disabled:text-slate-600 py-2 px-2"
-                      >
-                        {t('playtimePlanner.players.replaceAction', 'Replace')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setRemoveQueue([p])}
-                        className="text-sm text-red-400 hover:text-red-300 py-2 px-2"
-                      >
-                        {t('playtimePlanner.players.removeAction', 'Remove')}
-                      </button>
-                    </div>
-                  </div>
-                  {replacingId === p.id && (
-                    <div className="space-y-1.5">
-                      <p className={subtextStyle}>
-                        {t('playtimePlanner.players.replacingHint', 'Choose who takes over {{name}}\u0027s lineup spots and subs:', {
-                          name: p.name,
-                        })}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {rosterCandidates.map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => handleReplacePlanPlayer(p.id, c)}
-                            className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm hover:bg-indigo-600"
-                          >
-                            {c.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-
-            <div className={cardStyle}>
-              <h4 className="text-base font-semibold text-slate-200 mb-2">{t('playtimePlanner.players.addHeading', 'Add players')}</h4>
-              {rosterCandidates.length === 0 ? (
-                <p className={subtextStyle}>
-                  {t('playtimePlanner.players.noCandidates', 'Everyone from your roster is already in this plan.')}
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {rosterCandidates.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => handleAddPlanPlayer(c)}
-                      className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-200 text-sm hover:bg-slate-600"
-                    >
-                      + {c.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        {view === 'grid' && activePlan && (
-          <div className="space-y-3">
-            <div>
-              <PlanFairnessStrip
-                rows={fairness.rows}
-                highlightPlayerIds={highlightPlayerIds}
-                onToggleHighlight={toggleHighlight}
-              />
-            </div>
-            {/* All games side by side (stacked on phones): every card is the SAME
-                fully editable field as the single-game view - tap-assign, sub
-                sheet, live minutes - with the totals strip above them all. */}
-            <div className="grid gap-4 md:grid-cols-2">
-              {activePlan.games.map((g) => (
-                <div
-                  key={g.id}
-                  className={`${cardStyle} space-y-2 ${!g.included ? 'opacity-60' : ''}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-slate-100">{g.label}</h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingGameId(g.id);
-                        setSubSheetTarget(null);
-                        setView('lineup');
-                      }}
-                      className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
-                    >
-                      {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
-                    </button>
-                  </div>
-                  <PlanFieldView
-                    game={g}
-                    players={activePlan.players}
-                    onAssign={(slotId, playerId) => handleAssign(g.id, slotId, playerId)}
-                    minutesByPlayer={fairness.byPlayer}
-                    highlightPlayerIds={highlightPlayerIds}
-                    onRequestSub={(slotId) => setSubSheetTarget({ gameId: g.id, slotId })}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
         )}
       </ScrollableContent>
 
@@ -2011,9 +2025,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         })()}
 
       <ModalFooter>
-        {/* Left side of the footer holds the view's utility actions (house
-            pattern - navigation stays right): manager = Import JSON, overview =
-            Export JSON, field views = undo/redo. */}
+        {/* Left side of the footer holds the tab's utility actions (house
+            pattern - navigation stays right): manager = Import JSON, undo/redo
+            on the editing tabs, Export JSON on the plan tab. */}
         {view === 'manager' && (
           <button
             type="button"
@@ -2023,12 +2037,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             {t('playtimePlanner.versions.import', 'Import JSON')}
           </button>
         )}
-        {view === 'overview' && activePlan && (
+        {view === 'plan' && activePlan && (
           <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} mr-auto`}>
             {t('playtimePlanner.versions.export', 'Export JSON')}
           </button>
         )}
-        {activePlan && (view === 'lineup' || view === 'grid') && (
+        {activePlan && (view === 'games' || view === 'plan') && (
           <div className="flex gap-1.5 mr-auto">
             <button
               type="button"
@@ -2052,21 +2066,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             </button>
           </div>
         )}
-        {(view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingGameId(null);
-              setReplacingId(null);
-              setSubSheetTarget(null);
-              setView('overview');
-            }}
-            className={secondaryButtonStyle}
-          >
-            {t('playtimePlanner.lineup.back', 'Back')}
-          </button>
-        )}
-        {view === 'overview' && (
+        {isPlanTab(view) && (
           <button type="button" onClick={() => void handleBackToManager()} className={secondaryButtonStyle}>
             {t('playtimePlanner.lineup.back', 'Back')}
           </button>

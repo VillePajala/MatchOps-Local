@@ -3192,17 +3192,15 @@
       "reapplyDoneMissing_other": "Updated {{count}} games. Not in a game roster, skipped: {{names}}.",
       "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
       "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated.",
-      "editPlayers": "Edit players",
       "suggestButton": "Suggest fair lineups",
       "suggestConfirmTitle": "Suggest fair lineups?",
       "suggestConfirmMessage": "Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.",
       "suggestConfirmWarning": "Current lineups and substitutions of included games will be replaced. Undo restores them.",
       "suggestConfirmLabel": "Suggest",
       "suggestDone": "Fair lineups suggested - check the balance view.",
-      "gridButton": "All games side by side",
       "notCounted": "Not counted",
       "addGame": "Add game",
-      "removeGame": "Remove last game",
+      "removeGame": "Remove game",
       "trimConfirmTitle": "Remove {{name}}?",
       "trimConfirmMessage": "Its lineup and substitutions are deleted. Undo restores them."
     },
@@ -3224,7 +3222,10 @@
       "notInGame": "Not in this game",
       "gameName": "Game name",
       "includedToggle": "Counted in totals - tap to exclude",
-      "excludedToggle": "Excluded from totals - tap to include"
+      "excludedToggle": "Excluded from totals - tap to include",
+      "viewToggle": "Layout",
+      "viewSingle": "Single game",
+      "viewGrid": "Side by side"
     },
     "subs": {
       "heading": "Substitutions",
@@ -3239,7 +3240,6 @@
     },
     "balance": {
       "title": "Playing-time balance",
-      "view": "View playing-time balance",
       "fairShare": "Share {{minutes}}' each",
       "gamesCounted_one": "{{count}} game counted",
       "gamesCounted_other": "{{count}} games counted",
@@ -3266,15 +3266,14 @@
     },
     "gkShort": "GK",
     "players": {
-      "title": "Plan players",
       "hint": "Changes affect this plan only. Created games update when you re-apply the plan; played games are never changed.",
       "replaceAction": "Replace",
       "removeAction": "Remove",
       "replacingHint": "Choose who takes over {{name}}'s lineup spots and subs:",
-      "addHeading": "Add players",
       "noCandidates": "Everyone from your roster is already in this plan.",
       "removeConfirmTitle": "Remove player?",
-      "removeConfirmMessage": "{{name}} - starting spots: {{starting}}, planned subs: {{subs}}. The spots become empty and the subs are deleted."
+      "removeConfirmMessage": "{{name}} - starting spots: {{starting}}, planned subs: {{subs}}. The spots become empty and the subs are deleted.",
+      "replaceTitle": "Replace a player"
     },
     "subSheet": {
       "title": "Substitution · {{position}} ({{player}})",
@@ -3289,6 +3288,11 @@
       "unarchive": "Unarchive",
       "archivedBadge": "Archived",
       "showArchived": "Show archived"
+    },
+    "tabs": {
+      "games": "Games",
+      "minutes": "Minutes",
+      "plan": "Plan"
     }
   }
 }
