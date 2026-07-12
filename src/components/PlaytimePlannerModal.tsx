@@ -11,7 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HiChevronRight, HiOutlineArrowUturnLeft, HiOutlineArrowUturnRight, HiOutlineUsers } from 'react-icons/hi2';
+import { HiChevronRight, HiOutlineArrowUturnLeft, HiOutlineArrowUturnRight, HiOutlineTrash, HiOutlineUsers } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
@@ -35,6 +35,7 @@ import {
   primaryButtonStyle,
   secondaryButtonStyle,
   dangerButtonStyle,
+  iconButtonDangerStyle,
 } from '@/styles/modalStyles';
 import {
   getPlans,
@@ -125,7 +126,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // bulkReapplyTarget: planned game pending the bulk "update linked games" confirm.
   const [bulkReapplyTarget, setBulkReapplyTarget] = useState<PlanGame | null>(null);
   const [isBulkReapplying, setIsBulkReapplying] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PlaytimePlan | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   // replacingId: plan player whose replacement is being chosen (Phase 4);
   // removeTarget: plan player pending the destructive remove confirm.
@@ -791,49 +792,58 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // matching every other destructive action in the app. isDeleting gates re-entry:
   // a double-tap used to race two deletes, and the second (finding the plan gone)
   // showed a spurious "could not delete" toast after a successful delete.
-  const performDelete = async () => {
-    if (!activePlan || isDeleting) return;
+  const performDelete = async (target: PlaytimePlan) => {
+    if (isDeleting) return;
+    const isActive = activePlan?.id === target.id;
     // Cancel any pending autosave for the plan we're about to remove, but KEEP the
     // dirty state until the delete succeeds - if it fails, the plan still exists
     // and silently discarding the user's last ~600ms of edits would desync the
     // on-screen plan from storage.
-    if (saveTimerRef.current) {
+    if (isActive && saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
     }
-    const deleted = await deletePlan(activePlan.id);
+    const deleted = await deletePlan(target.id);
     if (!deleted) {
       showToast(t('playtimePlanner.deleteError', 'Could not delete the plan.'), 'error');
-      // The plan survives - persist its pending edits now instead of dropping them.
-      const pending = dirtyPlanRef.current;
-      dirtyPlanRef.current = null;
-      if (pending) void persist(pending);
+      if (isActive) {
+        // The plan survives - persist its pending edits now instead of dropping them.
+        const pending = dirtyPlanRef.current;
+        dirtyPlanRef.current = null;
+        if (pending) void persist(pending);
+      }
       return;
     }
-    dirtyPlanRef.current = null;
+    if (isActive) dirtyPlanRef.current = null;
     // Purge links pointing at the deleted plan so linked games don't keep offering
     // a "Re-apply plan" that can only fail. Best-effort (links are also validated
     // against the plan on read).
-    await deletePlanLinksForPlan(activePlan.id).catch(() => {});
+    await deletePlanLinksForPlan(target.id).catch(() => {});
     const plans = await getPlans();
     const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     setPlanList(list);
-    setActivePlan(null);
-    seedHistory(null);
+    if (isActive) {
+      setActivePlan(null);
+      seedHistory(null);
+    }
     if (list.length > 0) {
-      setView('manager');
+      if (isActive || view === 'manager') setView('manager');
     } else {
+      setActivePlan(null);
+      seedHistory(null);
       resetSetupForm(roster);
       setView('setup');
     }
   };
   const handleDeleteConfirmed = async () => {
+    const target = deleteTarget;
+    if (!target) return;
     setIsDeleting(true);
     try {
-      await performDelete();
+      await performDelete(target);
     } finally {
       setIsDeleting(false);
-      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -869,7 +879,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (e.key !== 'Escape') return;
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
-      if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
+      if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
       // The sub sheet is open: Escape closes it, nothing else.
       if (subSheetTarget !== null) {
         setSubSheetTarget(null);
@@ -887,7 +897,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget, handleBackToManager]);
+  }, [isOpen, view, onClose, deleteTarget, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -1091,23 +1101,37 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.manager.title', 'Plans')}</h3>
             <div className="space-y-2">
               {planList.map((p) => (
-                <button
+                <div
                   key={p.id}
-                  type="button"
-                  onClick={() => handleOpenPlan(p.id)}
-                  className="w-full flex items-center justify-between gap-3 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all rounded-lg p-4 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  className="flex items-center gap-1 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all rounded-lg"
                 >
-                  <span className="min-w-0">
-                    <span className="block text-base font-semibold text-slate-100 truncate">{p.name}</span>
-                    <span className={subtextStyle}>
-                      {t('playtimePlanner.manager.meta', '{{games}} games · {{players}} players', {
-                        games: p.games.length,
-                        players: p.players.length,
-                      })}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenPlan(p.id)}
+                    className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-lg"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-base font-semibold text-slate-100 truncate">{p.name}</span>
+                      <span className={subtextStyle}>
+                        {t('playtimePlanner.manager.meta', '{{games}} games · {{players}} players', {
+                          games: p.games.length,
+                          players: p.players.length,
+                        })}
+                      </span>
                     </span>
-                  </span>
-                  <HiChevronRight aria-hidden="true" className="w-5 h-5 text-slate-500 shrink-0" />
-                </button>
+                    <HiChevronRight aria-hidden="true" className="w-5 h-5 text-slate-500 shrink-0" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget(p)}
+                    disabled={isDeleting}
+                    aria-label={`${t('playtimePlanner.overview.deletePlan', 'Delete')}: ${p.name}`}
+                    title={t('playtimePlanner.overview.deletePlan', 'Delete')}
+                    className={`${iconButtonDangerStyle} shrink-0 mr-2`}
+                  >
+                    <HiOutlineTrash className="w-5 h-5" />
+                  </button>
+                </div>
               ))}
             </div>
             </div>
@@ -1161,7 +1185,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={() => activePlan && setDeleteTarget(activePlan)}
                 disabled={isDeleting}
                 className={`${dangerButtonStyle} flex-1 whitespace-nowrap`}
               >
@@ -1633,11 +1657,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         variant="danger"
       />
       <ConfirmationModal
-        isOpen={showDeleteConfirm}
-        title={t('playtimePlanner.overview.confirmDeleteTitle', 'Delete plan?')}
+        isOpen={deleteTarget !== null}
+        title={deleteTarget?.name ?? t('playtimePlanner.overview.confirmDeleteTitle', 'Delete plan?')}
         message={t('playtimePlanner.overview.confirmDelete', 'Delete this plan? This cannot be undone.')}
         onConfirm={() => void handleDeleteConfirmed()}
-        onCancel={() => setShowDeleteConfirm(false)}
+        onCancel={() => setDeleteTarget(null)}
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
         isConfirming={isDeleting}

@@ -56,6 +56,7 @@ jest.mock('@/utils/playtimePlanner/gameSubs', () => ({
 const mockGetAllPlanLinks = jest.fn(async (): Promise<Record<string, { planId: string; planGameId: string }>> => ({}));
 jest.mock('@/utils/playtimePlanner/planLinks', () => ({
   getAllPlanLinks: () => mockGetAllPlanLinks(),
+  deletePlanLinksForPlan: jest.fn(async () => true),
 }));
 
 const roster: Player[] = [
@@ -153,7 +154,12 @@ afterEach(() => {
 // enter it by tapping its row first.
 const enterPlan = async (name: string | RegExp = /Saved Cup/) => {
   const pattern = typeof name === 'string' ? new RegExp(name) : name;
-  const row = await screen.findByRole('button', { name: pattern });
+  // Each manager row has TWO buttons matching the plan name: the open button
+  // (name from content, no aria-label) and the trash icon (aria-label
+  // "Delete: <name>"). Pick the open one.
+  const row = (await screen.findAllByRole('button', { name: pattern })).find(
+    (b) => !b.getAttribute('aria-label'),
+  )!;
   await act(async () => {
     fireEvent.click(row);
   });
@@ -227,7 +233,9 @@ describe('PlaytimePlannerModal', () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     // Manager first: the plan is a row with its meta, not an open workspace.
-    const row = await screen.findByRole('button', { name: /Saved Cup/ });
+    const row = (await screen.findAllByRole('button', { name: /Saved Cup/ })).find(
+      (b) => !b.getAttribute('aria-label'),
+    )!;
     expect(row).toHaveTextContent('1 games · 1 players');
     expect(screen.queryByDisplayValue('Saved Cup')).not.toBeInTheDocument();
     await act(async () => {
@@ -240,7 +248,7 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     });
-    expect(screen.getByRole('button', { name: /Saved Cup/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Saved Cup/ }).length).toBeGreaterThan(0);
   });
 
   it('bulk re-applies the plan to linked unplayed games (Phase 3.4)', async () => {
@@ -896,6 +904,26 @@ describe('PlaytimePlannerModal', () => {
     }
   });
 
+  it('deletes a plan straight from the manager row (trash icon + confirm)', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await screen.findAllByRole('button', { name: /Saved Cup/ });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Delete: Saved Cup' }));
+    });
+    // Confirm dialog names the plan; nothing deleted before confirming.
+    expect(mockDeletePlan).not.toHaveBeenCalled();
+    mockGetPlans.mockResolvedValue({}); // list refresh after delete finds none
+    const confirmButtons = screen.getAllByRole('button', { name: 'Delete' });
+    await act(async () => {
+      fireEvent.click(confirmButtons[confirmButtons.length - 1]);
+    });
+    expect(mockDeletePlan).toHaveBeenCalledWith('existing');
+    // Last plan gone -> falls through to setup.
+    await waitFor(() => expect(screen.getByText('Create plan')).toBeInTheDocument());
+  });
+
   it('persists a pending edit before opening another plan from the manager', async () => {
     const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
     mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
@@ -928,8 +956,8 @@ describe('PlaytimePlannerModal', () => {
     const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
     mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await screen.findByRole('button', { name: /Saved Cup/ });
-    expect(screen.getByRole('button', { name: /Plan B/ })).toBeInTheDocument();
+    await screen.findAllByRole('button', { name: /Saved Cup/ });
+    expect(screen.getAllByRole('button', { name: /Plan B/ }).length).toBeGreaterThan(0);
     await enterPlan(/Plan B/);
     await waitFor(() => expect(screen.getByDisplayValue('Plan B')).toBeInTheDocument());
   });
