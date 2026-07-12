@@ -37,6 +37,29 @@ const makeGame = (subs: PlanGame['subs'] = []): PlanGame => ({
 afterEach(() => cleanup());
 
 describe('PlanSubSheet', () => {
+  it('lists subs already planned for the slot and removes one in place', () => {
+    const onRemove = jest.fn();
+    const game = makeGame([
+      { id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 12 * 60 },
+      { id: 'x2', slotId: 's0', inPlayerId: 'p3', timeSeconds: 6 * 60 },
+    ]);
+    render(
+      <PlanSubSheet
+        game={game}
+        slotId="gk"
+        players={players}
+        onAdd={jest.fn()}
+        onRemove={onRemove}
+        onClose={jest.fn()}
+      />,
+    );
+    // Only THIS slot's planned change is listed (s0's is not).
+    expect(screen.getByText(/12' Sam/)).toBeInTheDocument();
+    expect(screen.queryByText(/6' Jo/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(onRemove).toHaveBeenCalledWith('x1');
+  });
+
   it('names the position + outgoing player and pre-fills the minute to half-time', () => {
     render(
       <PlanSubSheet game={makeGame()} slotId="gk" players={players} onAdd={jest.fn()} onClose={jest.fn()} />,

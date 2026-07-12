@@ -442,7 +442,7 @@ describe('PlaytimePlannerModal', () => {
     // Both game cards render with their own editable field (bench hint per card).
     expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Game 2' })).toBeInTheDocument();
-    expect(screen.getAllByText('Tap a player to place them, or a position first.')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Auto-fill' })).toHaveLength(2);
     // The shared strip sits above the cards.
     expect(screen.getByRole('button', { name: /Playing-time totals/ })).toBeInTheDocument();
     // The toggle returns to the single-game layout (header edits the game).
@@ -475,10 +475,14 @@ describe('PlaytimePlannerModal', () => {
       'success',
     );
 
-    // Generated overwrite is one undo away (footer, same tab).
+    // Generated overwrite is one undo away - undo lives on the Games tab.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     });
+    await openPlanTab();
     expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
   });
 

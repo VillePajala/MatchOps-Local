@@ -26,6 +26,8 @@ interface PlanSubSheetProps {
   players: PlanPlayer[];
   minutesByPlayer?: Record<string, PlanPlayerMinutes>;
   onAdd: (sub: PlanSub) => void;
+  /** Remove an already-scheduled sub for this slot (listed in the sheet). */
+  onRemove?: (subId: string) => void;
   onClose: () => void;
 }
 
@@ -35,6 +37,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
   players,
   minutesByPlayer,
   onAdd,
+  onRemove,
   onClose,
 }) => {
   const { t } = useTranslation();
@@ -48,6 +51,13 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
   const positionLabel = slot?.isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${slotIndex}`;
   const occupantId = starting.find((a) => a.slotId === slotId)?.playerId ?? null;
   const occupantName = occupantId ? nameById.get(occupantId) ?? occupantId : '';
+
+  // Subs already scheduled INTO this slot, earliest first - managed right here
+  // so removing a planned change never requires hunting the list below the field.
+  const slotSubs = useMemo(
+    () => game.subs.filter((sub) => sub.slotId === slotId).sort((a, b) => a.timeSeconds - b.timeSeconds),
+    [game.subs, slotId],
+  );
 
   const benchIds = useMemo(
     () => availableSubInIds(players.map((p) => p.id), starting, game.subs),
@@ -123,6 +133,35 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             </span>
           )}
         </div>
+
+        {/* Already-planned changes for this slot - removable in place. */}
+        {onRemove && slotSubs.length > 0 && (
+          <div className="mb-3">
+            <p className={`${labelStyle} mb-1.5`}>
+              {t('playtimePlanner.subSheet.existing', 'Planned for this position')}
+            </p>
+            <ul className="space-y-1.5">
+              {slotSubs.map((sub) => (
+                <li
+                  key={sub.id}
+                  className="flex items-center justify-between gap-2 bg-slate-700/60 border border-slate-600 rounded-md px-3 py-1.5"
+                >
+                  <span className="text-sm text-slate-100 tabular-nums">
+                    {Math.round(sub.timeSeconds / 60)}&#39;{' '}
+                    {sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(sub.id)}
+                    className="text-sm text-red-400 hover:text-red-300 py-1 px-1.5"
+                  >
+                    {t('playtimePlanner.subs.remove', 'Remove')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Live bench grid: tap = create the sub. Tinted minutes make the fair pick obvious. */}
         <p className={`${labelStyle} mb-1.5`}>{t('playtimePlanner.subs.inLabel', 'Player on')}</p>

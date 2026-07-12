@@ -329,7 +329,10 @@ describe('Translation File Validation', () => {
       //     lineup.viewToggle/viewSingle/viewGrid, players.replaceTitle;
       //     -5: balance.view, overview.gridButton/editPlayers,
       //     players.title/addHeading - hub buttons replaced by peer tabs)
-      expect(enKeys.length).toBe(2806);
+      // -3 net: field polish (+1 subSheet.existing - in-sheet sub removal;
+      //     -4: lineup.hint/pickForSlot/viewToggle, subs.addHint -
+      //     instruction copy removed, toggle became one icon button)
+      expect(enKeys.length).toBe(2803);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -382,7 +385,10 @@ describe('Translation File Validation', () => {
       //     lineup.viewToggle/viewSingle/viewGrid, players.replaceTitle;
       //     -5: balance.view, overview.gridButton/editPlayers,
       //     players.title/addHeading - hub buttons replaced by peer tabs)
-      expect(fiKeys.length).toBe(2806);
+      // -3 net: field polish (+1 subSheet.existing - in-sheet sub removal;
+      //     -4: lineup.hint/pickForSlot/viewToggle, subs.addHint -
+      //     instruction copy removed, toggle became one icon button)
+      expect(fiKeys.length).toBe(2803);
     });
   });
 });

@@ -49,11 +49,11 @@ describe('PlanSubsEditor', () => {
     expect(onRemove).toHaveBeenCalledWith('x1');
   });
 
-  it('points at the field flow for adding a sub', () => {
+  it('is list-only: no add form (creation lives on the field)', () => {
     render(<PlanSubsEditor game={makeGame()} players={players} onRemove={jest.fn()} />);
-    expect(screen.getByText('To add one: tap a player on the field, then "Sub…".')).toBeInTheDocument();
-    // No dropdown form remains.
+    // No dropdown form (and no instruction copy) remains.
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.queryByText(/To add one/)).not.toBeInTheDocument();
   });
 
   it('shows the empty state when nothing is scheduled', () => {

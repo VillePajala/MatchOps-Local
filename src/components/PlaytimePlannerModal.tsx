@@ -20,6 +20,7 @@ import {
   HiOutlineDocumentDuplicate,
   HiOutlineEllipsisVertical,
   HiOutlinePencil,
+  HiOutlineSquares2X2,
   HiOutlineTrash,
   HiOutlineUsers,
 } from 'react-icons/hi2';
@@ -1803,38 +1804,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             onTouchEnd={gamesLayout === 'single' ? handleLineupTouchEnd : undefined}
             data-testid="lineup-swipe-area"
           >
-            {/* Layout toggle (standalone's view toggle): one editable field, or
-                every game side by side. Only offered with 2+ games. */}
-            {activePlan.games.length > 1 && (
-              <div className="flex justify-end">
-                <div
-                  role="group"
-                  aria-label={t('playtimePlanner.lineup.viewToggle', 'Layout')}
-                  className="flex gap-1 rounded-md bg-slate-800 border border-slate-600 p-1"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setGamesLayout('single')}
-                    aria-pressed={gamesLayout === 'single'}
-                    className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
-                      gamesLayout === 'single' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {t('playtimePlanner.lineup.viewSingle', 'Single game')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setGamesLayout('grid')}
-                    aria-pressed={gamesLayout === 'grid'}
-                    className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
-                      gamesLayout === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'
-                    }`}
-                  >
-                    {t('playtimePlanner.lineup.viewGrid', 'Side by side')}
-                  </button>
-                </div>
-              </div>
-            )}
             {gamesLayout === 'single' ? (
               <>
             {/* Game ribbon (standalone-planner style): two-line tabs - short
@@ -1845,9 +1814,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 (top-right): tap it to count the game in/out of the totals -
                 this is the ONLY place inclusion is toggled, so the strip
                 renders even for a single-game plan. Excluded tabs dim. */}
+            <div className="flex items-center gap-1.5">
             <nav
               aria-label={t('playtimePlanner.lineup.gameTabs', 'Switch game')}
-              className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1"
+              className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 flex-1 min-w-0"
               onTouchStart={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
               onTouchEnd={(e) => e.stopPropagation()}
@@ -1922,6 +1892,20 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 );
               })}
             </nav>
+            {/* One icon toggles the layout: grid icon flips to side-by-side and
+                back (label always names the layout a tap gives you). */}
+            {activePlan.games.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setGamesLayout('grid')}
+                aria-label={t('playtimePlanner.lineup.viewGrid', 'Side by side')}
+                title={t('playtimePlanner.lineup.viewGrid', 'Side by side')}
+                className="shrink-0 p-2 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
+              >
+                <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
+              </button>
+            )}
+            </div>
             <div className="w-full max-w-sm mx-auto">
               <PlanFairnessStrip
                 rows={fairness.rows}
@@ -1947,6 +1931,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </>
             ) : (
               <>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setGamesLayout('single')}
+                    aria-label={t('playtimePlanner.lineup.viewSingle', 'Single game')}
+                    title={t('playtimePlanner.lineup.viewSingle', 'Single game')}
+                    className="shrink-0 p-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+                  >
+                    <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
+                  </button>
+                </div>
                 <PlanFairnessStrip
                   rows={fairness.rows}
                   highlightPlayerIds={highlightPlayerIds}
@@ -2019,6 +2014,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               players={activePlan.players}
               minutesByPlayer={fairness.byPlayer}
               onAdd={(sub) => handleAddSub(subSheetTarget.gameId, sub)}
+              onRemove={(subId) => handleRemoveSub(subSheetTarget.gameId, subId)}
               onClose={() => setSubSheetTarget(null)}
             />
           );
@@ -2038,11 +2034,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </button>
         )}
         {view === 'plan' && activePlan && (
-          <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} mr-auto`}>
+          <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} mr-auto min-w-[9rem]`}>
             {t('playtimePlanner.versions.export', 'Export JSON')}
           </button>
         )}
-        {activePlan && (view === 'games' || view === 'plan') && (
+        {activePlan && view === 'games' && (
           <div className="flex gap-1.5 mr-auto">
             <button
               type="button"

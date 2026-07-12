@@ -3210,10 +3210,8 @@
       "back": "Takaisin",
       "slotFilled": "{{position}}: {{player}}",
       "slotEmpty": "{{position}}: tyhjä",
-      "pickForSlot": "Napauta pelaaja tähän paikkaan",
       "clearSlot": "Tyhjennä",
       "benchEmpty": "Kaikki ovat kentällä.",
-      "hint": "Napauta pelaajaa sijoittaaksesi hänet, tai valitse ensin paikka.",
       "benchHeading": "Vaihtopenkki",
       "autoFill": "Täytä automaattisesti",
       "gameTabs": "Vaihda peliä",
@@ -3223,7 +3221,6 @@
       "gameName": "Pelin nimi",
       "includedToggle": "Mukana laskuissa - napauta jättääksesi pois",
       "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan",
-      "viewToggle": "Asettelu",
       "viewSingle": "Yksi peli",
       "viewGrid": "Rinnakkain"
     },
@@ -3235,8 +3232,7 @@
       "noBench": "Ei vaihtopelaajia käytettävissä.",
       "inLabel": "Kentälle",
       "timeLabel": "Minuutti",
-      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})",
-      "addHint": "Lisää vaihto: napauta pelaajaa kentällä ja valitse \"Vaihto…\"."
+      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})"
     },
     "balance": {
       "title": "Peliaikatasapaino",
@@ -3277,7 +3273,8 @@
     },
     "subSheet": {
       "title": "Vaihto · {{position}} ({{player}})",
-      "halftime": "puoliaika"
+      "halftime": "puoliaika",
+      "existing": "Tähän paikkaan suunnitellut"
     },
     "manager": {
       "title": "Suunnitelmat",
