@@ -48,6 +48,11 @@ interface PlanFieldViewProps {
    * dimmed) - the cross-surface "track this kid" primitive. Null = no highlight.
    */
   highlightPlayerId?: string | null;
+  /**
+   * Open the substitution sheet for a slot (shown as a "Sub…" action when a
+   * filled slot is selected). Omit to hide the action (read-only embeds).
+   */
+  onRequestSub?: (slotId: string) => void;
 }
 
 /** Short display token for a disc: nickname, else first name, else initials. */
@@ -64,6 +69,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   onAssign,
   minutesByPlayer,
   highlightPlayerId = null,
+  onRequestSub,
 }) => {
   const { t } = useTranslation();
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
@@ -108,6 +114,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   }, [game.subs]);
 
   const activeOccupant = activeSlotId ? playerBySlot.get(activeSlotId) ?? null : null;
+
+  // Bench players scheduled to come on in THIS game; the rest sit out the whole
+  // game - flagged with a red border so a full-game benching is never an accident.
+  const enteringIds = useMemo(
+    () => new Set(game.subs.map((s) => s.inPlayerId).filter((id): id is string => id !== null)),
+    [game.subs],
+  );
 
   // The ramp only makes sense with minutes data; without it the classic
   // indigo/amber discs render (read-only embeds stay untouched).
@@ -293,6 +306,15 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : t('playtimePlanner.lineup.hint', 'Tap a player to place them, or a position first.')}
           </p>
           <div className="flex items-center gap-3 shrink-0">
+            {activeSlotId && activeOccupant && onRequestSub && (
+              <button
+                type="button"
+                onClick={() => onRequestSub(activeSlotId)}
+                className="text-xs font-medium text-sky-300 hover:text-sky-200 py-2.5 px-2 -my-2.5"
+              >
+                {t('playtimePlanner.lineup.subAction', 'Sub…')}
+              </button>
+            )}
             {activeSlotId && activeOccupant && (
               <button
                 type="button"
@@ -322,13 +344,16 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             {bench.map((id) => {
               const fair = minutesByPlayer?.[id];
               const involved = highlightPlayerId === id;
+              const sitsOut = !enteringIds.has(id);
               return (
                 <button
                   key={id}
                   type="button"
                   onClick={() => handleBenchClick(id)}
+                  title={sitsOut ? t('playtimePlanner.lineup.notInGame', 'Not in this game') : undefined}
                   className={[
-                    'px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border border-slate-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                    'px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                    sitsOut ? 'border-red-500/80' : 'border-slate-500/40',
                     dimClass(involved),
                     highlightPlayerId && involved ? 'ring-2 ring-amber-300' : '',
                   ].join(' ')}
@@ -340,6 +365,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       style={{ color: fairnessText(fair.ratio) }}
                     >
                       {fair.minutes}&#39;
+                    </span>
+                  )}
+                  {sitsOut && (
+                    <span className="sr-only">
+                      {' '}
+                      {t('playtimePlanner.lineup.notInGame', 'Not in this game')}
                     </span>
                   )}
                 </button>

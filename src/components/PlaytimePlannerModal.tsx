@@ -72,6 +72,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import PlanFieldView, { type PlanPlayerMinutes } from '@/components/PlanFieldView';
 import PlanFairnessStrip, { type FairnessStripRow } from '@/components/PlanFairnessStrip';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
+import PlanSubSheet from '@/components/PlanSubSheet';
 import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
@@ -127,6 +128,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // removeTarget: plan player pending the destructive remove confirm.
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
+  // Slot whose substitution sheet is open (lineup view; null = closed).
+  const [subSheetSlotId, setSubSheetSlotId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Setup form state.
@@ -275,6 +278,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
       if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null) return;
+      // The sub sheet is open: Escape closes it, nothing else.
+      if (subSheetSlotId !== null) {
+        setSubSheetSlotId(null);
+        return;
+      }
       if (view === 'lineup' || view === 'balance' || view === 'players') {
         setEditingGameId(null);
         setReplacingId(null);
@@ -285,7 +293,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget]);
+  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, subSheetSlotId]);
 
   const togglePlayer = (id: string) => {
     setSelectedIds((prev) => {
@@ -1106,7 +1114,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     <button
                       key={g.id}
                       type="button"
-                      onClick={() => setEditingGameId(g.id)}
+                      onClick={() => {
+                        setEditingGameId(g.id);
+                        setSubSheetSlotId(null);
+                      }}
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
                       className={[
@@ -1147,15 +1158,25 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
               minutesByPlayer={fairness.byPlayer}
               highlightPlayerId={highlightPlayerId}
+              onRequestSub={(slotId) => setSubSheetSlotId(slotId)}
             />
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor
                 game={editingGame}
                 players={activePlan.players}
-                onAdd={(sub) => handleAddSub(editingGame.id, sub)}
                 onRemove={(subId) => handleRemoveSub(editingGame.id, subId)}
               />
             </div>
+            {subSheetSlotId !== null && (
+              <PlanSubSheet
+                game={editingGame}
+                slotId={subSheetSlotId}
+                players={activePlan.players}
+                minutesByPlayer={fairness.byPlayer}
+                onAdd={(sub) => handleAddSub(editingGame.id, sub)}
+                onClose={() => setSubSheetSlotId(null)}
+              />
+            )}
           </div>
         )}
 
@@ -1264,6 +1285,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             onClick={() => {
               setEditingGameId(null);
               setReplacingId(null);
+              setSubSheetSlotId(null);
               setView('overview');
             }}
             className={`${secondaryButtonStyle} flex-1`}

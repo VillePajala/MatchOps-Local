@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor, fireEvent, act, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, cleanup, within } from '@testing-library/react';
 import PlaytimePlannerModal from './PlaytimePlannerModal';
 import type { Player } from '@/types';
 
@@ -419,14 +419,17 @@ describe('PlaytimePlannerModal', () => {
       );
     });
 
-    // Subs editor: choose position (GK) + incoming (Sam), then add.
-    const [posSelect, inSelect] = screen.getAllByRole('combobox');
+    // New flow: select the GK slot again, open the sub sheet, tap Sam.
     await act(async () => {
-      fireEvent.change(posSelect, { target: { value: 'gk' } });
-      fireEvent.change(inSelect, { target: { value: 'p2' } });
+      fireEvent.click(screen.getByLabelText('GK: Alex'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add substitution' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
+    });
+    // The sheet names the position + outgoing player; one tap creates the sub.
+    expect(screen.getByRole('dialog', { name: 'Substitution · GK (Alex)' })).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog', { name: 'Substitution · GK (Alex)' })).getByRole('button', { name: /Sam/ }));
     });
     await waitFor(() => expect(screen.getByText(/Sam in for Alex \(GK\)/)).toBeInTheDocument());
 
