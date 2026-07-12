@@ -1000,12 +1000,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         </option>
                       ))}
                     </select>
-                    <p className={subtextStyle}>
-                      {t(
-                        'playtimePlanner.setup.teamHint',
-                        'Picks the team roster and its competition durations - like new game setup.',
-                      )}
-                    </p>
                   </div>
                 )}
                 </div>

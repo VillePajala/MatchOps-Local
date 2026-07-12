@@ -3163,7 +3163,6 @@
       "create": "Luo suunnitelma",
       "teamLabel": "Joukkue (valinnainen)",
       "teamNone": "Ei joukkuetta - kaikki pelaajat",
-      "teamHint": "Poimii joukkueen kokoonpanon ja sen sarjan jaksojen kestot - kuten uuden pelin luonnissa.",
       "teamLoadError": "Joukkueen kokoonpanoa ei voitu ladata.",
       "detailsHeading": "Suunnitelman tiedot",
       "formatHeading": "Pelit ja muoto",
