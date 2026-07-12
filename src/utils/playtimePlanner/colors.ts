@@ -36,3 +36,17 @@ export function fairnessCell(ratio: number | null): string {
   const hue = fairnessHue(ratio);
   return hue === null ? '#334155' : `hsl(${hue}, 60%, 36%)`;
 }
+
+/**
+ * Whole-chip solid colours for the minutes view, ported from the standalone's
+ * `ratioColors`: the chip background IS the signal, with banded text contrast -
+ * cream text on the dark red/green ends, near-black text on the bright yellow
+ * middle (a mid-lightness yellow needs dark text to stay readable).
+ */
+export function fairnessChipColors(ratio: number | null): { bg: string; fg: string } {
+  const hue = fairnessHue(ratio);
+  if (hue === null) return { bg: '#475569', fg: '#e2e8f0' };
+  if (hue < 35) return { bg: `hsl(${hue}, 72%, 46%)`, fg: '#fef2f2' };
+  if (hue < 85) return { bg: `hsl(${hue}, 78%, 60%)`, fg: '#1a1a1a' };
+  return { bg: `hsl(${hue}, 55%, 40%)`, fg: '#ecfdf5' };
+}

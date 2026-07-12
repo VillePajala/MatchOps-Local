@@ -3233,8 +3233,15 @@
       "gamesCounted_other": "{{count}} games counted",
       "noGames": "No games counted yet. Mark games as included.",
       "ofFairShare": "{{pct}}% of share",
-      "notPlaying": "Not playing: {{games}}",
-      "gameShort": "G{{n}}"
+      "gameShort": "G{{n}}",
+      "zeroMinutes_one": "{{count}} player with 0 minutes",
+      "zeroMinutes_other": "{{count}} players with 0 minutes",
+      "spreadLabel": "{{spread}} min spread ({{min}}' - {{max}}')",
+      "spreadDetail": "Least: {{least}} · Most: {{most}}",
+      "gkLabel": "Only {{name}} plays goalkeeper",
+      "gkDetail": "Consider rotating goalkeepers",
+      "focusDelta": "{{delta}} min vs average",
+      "focusOnShare": "on fair share"
     },
     "versions": {
       "switchLabel": "Plan",

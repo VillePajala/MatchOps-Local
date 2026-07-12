@@ -35,7 +35,7 @@ describe('PlanFairnessStrip', () => {
   });
 
   it('marks the highlighted cell and dims the rest', () => {
-    render(<PlanFairnessStrip rows={rows} highlightPlayerId="b" onToggleHighlight={jest.fn()} />);
+    render(<PlanFairnessStrip rows={rows} highlightPlayerIds={["b"]} onToggleHighlight={jest.fn()} />);
     const highlighted = screen.getByRole('button', { name: /Eino/ });
     expect(highlighted).toHaveAttribute('aria-pressed', 'true');
     expect(highlighted.className).toContain('ring-amber-300');

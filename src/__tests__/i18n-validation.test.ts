@@ -307,7 +307,10 @@ describe('Translation File Validation', () => {
       // +1 net: sub bottom sheet (+5: lineup.subAction, lineup.notInGame, subs.addHint,
       //         subSheet.title, subSheet.halftime; -4: the old dropdown form's
       //         subs.slotLabel/choose/add/noSlots)
-      expect(enKeys.length).toBe(2778);
+      // +7 net: minutes-view redesign (+8: balance zeroMinutes pair, spreadLabel/Detail,
+      //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
+      //         the zero-minutes warning)
+      expect(enKeys.length).toBe(2785);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -338,7 +341,10 @@ describe('Translation File Validation', () => {
       // +1 net: sub bottom sheet (+5: lineup.subAction, lineup.notInGame, subs.addHint,
       //         subSheet.title, subSheet.halftime; -4: the old dropdown form's
       //         subs.slotLabel/choose/add/noSlots)
-      expect(fiKeys.length).toBe(2778);
+      // +7 net: minutes-view redesign (+8: balance zeroMinutes pair, spreadLabel/Detail,
+      //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
+      //         the zero-minutes warning)
+      expect(fiKeys.length).toBe(2785);
     });
   });
 });
