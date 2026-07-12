@@ -3195,7 +3195,13 @@
       "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
       "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
       "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui.",
-      "editPlayers": "Muokkaa pelaajia"
+      "editPlayers": "Muokkaa pelaajia",
+      "suggestButton": "Ehdota reilut kokoonpanot",
+      "suggestConfirmTitle": "Ehdotetaanko reilut kokoonpanot?",
+      "suggestConfirmMessage": "Rakentaa avauskokoonpanot ja puoliaikavaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan. Maalivahtia ei koskaan vaihdeta kesken pelin.",
+      "suggestConfirmWarning": "Mukana olevien pelien nykyiset kokoonpanot ja vaihdot korvataan. Kumoa palauttaa ne.",
+      "suggestConfirmLabel": "Ehdota",
+      "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä."
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",

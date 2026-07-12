@@ -368,6 +368,34 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByRole('button', { name: '+ Alex' })).toBeInTheDocument();
   });
 
+  it('suggests fair lineups behind a confirm, and undo restores the old state', async () => {
+    // Plan has one game with an empty lineup; the generator fills it.
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await screen.findByDisplayValue('Saved Cup');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Suggest fair lineups' }));
+    });
+    // Nothing changes until confirmed.
+    expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Suggest' }));
+    });
+    // 8v8 formation, but only 1 roster player -> exactly 1 placed.
+    await waitFor(() => expect(screen.getByText(/1\/\d+ placed/)).toBeInTheDocument());
+    expect(mockShowToast).toHaveBeenCalledWith(
+      'Fair lineups suggested - check the balance view.',
+      'success',
+    );
+
+    // Generated overwrite is one undo away.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    });
+    expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
+  });
+
   it('undo reverts the last edit and redo restores it', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
