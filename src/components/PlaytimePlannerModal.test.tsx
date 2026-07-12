@@ -1103,4 +1103,99 @@ describe('PlaytimePlannerModal', () => {
     });
     await waitFor(() => expect(screen.queryByText('Archived')).not.toBeInTheDocument());
   });
+
+  it('edits games & format after creation: add game, remove-with-confirm, change minutes', async () => {
+    const filledGame = {
+      ...existingPlan.games[0],
+      startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: { ...existingPlan, games: [filledGame] } });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByDisplayValue('Saved Cup');
+
+    // Collapsed header doubles as the summary; expand the editor.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Games & format/ }));
+    });
+
+    // Add: a second game appears in the games list with the next label.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add game' }));
+    });
+    expect(screen.getByRole('button', { name: /Game 2/ })).toBeInTheDocument();
+
+    // Duration edits apply to every game (summary shows the new minutes).
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Minutes per period'), { target: { value: '20' } });
+    });
+    expect(screen.getByText(/2×20 min/)).toBeInTheDocument();
+
+    // Remove: Game 2 is empty -> leaves silently. Removing again targets the
+    // FILLED Game 1... but a single game can never be removed.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove last game' }));
+    });
+    expect(screen.queryByRole('button', { name: /Game 2/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove last game' })).toBeDisabled();
+  });
+
+  it('asks before removing a game that has lineup content', async () => {
+    const filled = {
+      ...existingPlan.games[0],
+      id: 'g2',
+      label: 'Game 2',
+      startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+    };
+    mockGetPlans.mockResolvedValue({
+      existing: { ...existingPlan, games: [existingPlan.games[0], filled] },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByDisplayValue('Saved Cup');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Games & format/ }));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Remove last game' }));
+    });
+    // Confirm names the game; nothing removed before confirming.
+    expect(screen.getByText('Remove Game 2?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Game 2/ })).toBeInTheDocument();
+    const deleteButtons = screen.getAllByRole('button', { name: 'Delete' });
+    await act(async () => {
+      fireEvent.click(deleteButtons[deleteButtons.length - 1]);
+    });
+    expect(screen.queryByRole('button', { name: /Game 2/ })).not.toBeInTheDocument();
+  });
+
+  it('changes the source team after creation: matched players join, impacted ones confirm out', async () => {
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'Reds' }]);
+    mockGetTeamRoster.mockResolvedValue([{ id: 'tp1', name: 'Sam' }]);
+    const filledGame = {
+      ...existingPlan.games[0],
+      startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: { ...existingPlan, games: [filledGame] } });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByDisplayValue('Saved Cup');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Games & format/ }));
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Team (optional)'), { target: { value: 't1' } });
+    });
+    // Sam (on the team, name-matched to the master roster) joined instantly.
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Sam' })).toBeChecked());
+    // Alex is not on the team and holds a lineup spot -> impact confirm.
+    expect(screen.getByText('Remove player?')).toBeInTheDocument();
+    const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
+    await act(async () => {
+      fireEvent.click(removeButtons[removeButtons.length - 1]);
+    });
+    expect(screen.getByRole('checkbox', { name: 'Alex' })).not.toBeChecked();
+  });
 });

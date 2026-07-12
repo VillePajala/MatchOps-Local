@@ -321,7 +321,9 @@ describe('Translation File Validation', () => {
       //         by roster checkboxes and tab dots)
       // +5: manager 3-dot menu + archive (manager.actions/archive/unarchive/
       //     archivedBadge/showArchived)
-      expect(enKeys.length).toBe(2800);
+      // +4: overview format editor (overview.addGame/removeGame/
+      //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
+      expect(enKeys.length).toBe(2804);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -366,7 +368,9 @@ describe('Translation File Validation', () => {
       //         by roster checkboxes and tab dots)
       // +5: manager 3-dot menu + archive (manager.actions/archive/unarchive/
       //     archivedBadge/showArchived)
-      expect(fiKeys.length).toBe(2800);
+      // +4: overview format editor (overview.addGame/removeGame/
+      //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
+      expect(fiKeys.length).toBe(2804);
     });
   });
 });

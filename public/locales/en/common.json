@@ -3200,7 +3200,11 @@
       "suggestConfirmLabel": "Suggest",
       "suggestDone": "Fair lineups suggested - check the balance view.",
       "gridButton": "All games side by side",
-      "notCounted": "Not counted"
+      "notCounted": "Not counted",
+      "addGame": "Add game",
+      "removeGame": "Remove last game",
+      "trimConfirmTitle": "Remove {{name}}?",
+      "trimConfirmMessage": "Its lineup and substitutions are deleted. Undo restores them."
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",
