@@ -46,7 +46,10 @@ export function fairnessCell(ratio: number | null): string {
 export function fairnessChipColors(ratio: number | null): { bg: string; fg: string } {
   const hue = fairnessHue(ratio);
   if (hue === null) return { bg: '#475569', fg: '#e2e8f0' };
-  if (hue < 35) return { bg: `hsl(${hue}, 72%, 46%)`, fg: '#fef2f2' };
+  // Cream text only survives on the deep-red end; from hue 20 the orange bg
+  // is too light for it (WCAG < 3:1 at the band edge), so dark text takes over.
+  if (hue < 20) return { bg: `hsl(${hue}, 72%, 46%)`, fg: '#fef2f2' };
+  if (hue < 35) return { bg: `hsl(${hue}, 72%, 50%)`, fg: '#1a1a1a' };
   if (hue < 85) return { bg: `hsl(${hue}, 78%, 60%)`, fg: '#1a1a1a' };
   return { bg: `hsl(${hue}, 55%, 40%)`, fg: '#ecfdf5' };
 }

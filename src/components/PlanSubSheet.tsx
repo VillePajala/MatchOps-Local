@@ -108,7 +108,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
         ref={dialogRef}
       >
         <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
-        <h4 className="text-sm font-semibold text-slate-100">
+        <h4 className="text-base font-semibold text-slate-100">
           {t('playtimePlanner.subSheet.title', 'Substitution · {{position}} ({{player}})', {
             position: positionLabel,
             player: occupantName,
@@ -130,7 +130,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(-1)}
             aria-label="-1"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             −
           </button>
@@ -141,7 +141,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(1)}
             aria-label="+1"
-            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             +
           </button>
@@ -170,7 +170,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
               {slotSubs.map((sub) => (
                 <li
                   key={sub.id}
-                  className="flex items-center justify-between gap-2 bg-slate-700/60 border border-slate-600 rounded-md px-3 py-1.5"
+                  className="flex items-center justify-between gap-2 bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-1.5"
                 >
                   <span className="text-sm text-slate-100 tabular-nums">
                     {Math.round(sub.timeSeconds / 60)}&#39;{' '}
@@ -179,7 +179,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                   <button
                     type="button"
                     onClick={() => onRemove(sub.id)}
-                    className="text-sm text-red-400 hover:text-red-300 py-1 px-1.5"
+                    className="text-sm text-red-400 hover:text-red-300 py-2 px-2"
                   >
                     {t('playtimePlanner.subs.remove', 'Remove')}
                   </button>

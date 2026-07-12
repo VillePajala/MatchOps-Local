@@ -54,7 +54,7 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
 
   return (
     <div className="max-w-sm mx-auto space-y-3">
-      <h4 className="text-base font-semibold text-slate-200">{t('playtimePlanner.subs.heading', 'Substitutions')}</h4>
+      <h4 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.subs.heading', 'Substitutions')}</h4>
 
       {sortedSubs.length === 0 ? (
         <p className={subtextStyle}>{t('playtimePlanner.subs.none', 'No substitutions yet.')}</p>
