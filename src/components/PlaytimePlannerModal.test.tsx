@@ -486,6 +486,34 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
   });
 
+  it('does NOT coalesce renames of two different games into one undo step', async () => {
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [existingPlan.games[0], { ...existingPlan.games[0], id: 'g2', label: 'Game 2' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final A' } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'G2 Game 2' }));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final B' } });
+    });
+
+    // One undo reverts ONLY the second rename (different coalesce keys).
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    });
+    expect(screen.getByLabelText('Game name')).toHaveValue('Game 2');
+    expect(screen.getByRole('button', { name: 'G1 Final A' })).toBeInTheDocument();
+  });
+
   it('undo reverts the last edit and redo restores it', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
