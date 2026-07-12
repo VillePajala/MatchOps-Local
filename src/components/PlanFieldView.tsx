@@ -243,8 +243,8 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     })) + (subsLabel ? `; ${subsLabel}` : '')
               }
               aria-pressed={isActive}
-              className={`absolute -translate-y-1/2 flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 ${
-                hasSubs ? '' : '-translate-x-1/2'
+              className={`absolute flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 ${
+                hasSubs ? 'z-10' : '-translate-x-1/2 -translate-y-1/2'
               } ${dimClass(involved)}`}
               style={{
                 left: `${slot.relX * 100}%`,
@@ -252,6 +252,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 // A pill is wider than a disc: shift its anchor by relX so edge
                 // slots grow toward the field center instead of clipping at the
                 // overflow-hidden pitch border (relX 0.5 = the usual -50%).
+                // NOTE: pills take their FULL offset from this inline transform -
+                // Tailwind 4 translate classes use the CSS `translate` property
+                // and would COMPOSE with it (the doubled-shift bug).
                 ...(hasSubs ? { transform: `translate(-${(slot.relX * 100).toFixed(1)}%, -50%)` } : {}),
               }}
             >
@@ -262,13 +265,16 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                    visible, no tap or tooltip needed on the sideline. */
                 <span
                   className={[
-                    'flex rounded-full overflow-hidden border-2 h-10 transition-colors',
+                    'flex overflow-hidden border-2 transition-colors',
+                    slotSubs.length > 1 ? 'flex-col rounded-2xl' : 'rounded-full h-10',
                     rampMode ? 'border-white/90' : 'border-indigo-300',
                     isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : hlRing(involved),
                   ].join(' ')}
                 >
                   <span
-                    className="flex items-center px-2 text-[10px] font-bold text-white whitespace-nowrap"
+                    className={`flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap ${
+                      slotSubs.length > 1 ? 'py-1' : ''
+                    }`}
                     style={{
                       backgroundColor: filled ? fillFor(playerId) ?? '#4f46e5' : 'rgba(15,23,42,0.7)',
                       textShadow: '0 1px 2px rgba(0,0,0,0.5)',
@@ -281,7 +287,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     return (
                       <span
                         key={sub.id}
-                        className="flex flex-col items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-l-2 border-dashed border-white/70"
+                        className={[
+                          'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-dashed border-white/70 gap-1',
+                          slotSubs.length > 1 ? 'flex-row py-1 border-t-2' : 'flex-col border-l-2',
+                        ].join(' ')}
                         style={{
                           backgroundColor: fillFor(sub.inPlayerId) ?? '#4338ca',
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',
