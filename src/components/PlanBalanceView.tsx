@@ -19,6 +19,12 @@ import { labelStyle, subtextStyle } from '@/styles/modalStyles';
 
 interface PlanBalanceViewProps {
   plan: PlaytimePlan;
+  /**
+   * Open one game's lineup editor. When provided, the per-game chips become
+   * buttons - seeing "P3 0'" in red and fixing it is then ONE tap, not a
+   * Back -> scroll -> Edit lineup round trip.
+   */
+  onOpenGame?: (gameId: string) => void;
 }
 
 const bandFill: Record<FairnessBand, string> = {
@@ -35,7 +41,7 @@ const toMin = (sec: number): number => Math.round(sec / 60);
 // as "past fair" before the bar saturates at 100%.
 const FAIR_SHARE_BAR_PCT = 66;
 
-const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
+const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan, onOpenGame }) => {
   const { t } = useTranslation();
 
   const { minutes, gameTotals, nameById } = useMemo(() => {
@@ -112,9 +118,25 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan }) => {
                       : ratio >= 0.05
                         ? 'text-amber-400'
                         : 'text-red-400';
-                  return (
-                    <span key={g.id} className={`text-[10px] tabular-nums ${tone}`} title={g.label}>
+                  const chip = (
+                    <>
                       {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}&nbsp;{toMin(sec)}&#39;
+                    </>
+                  );
+                  return onOpenGame ? (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => onOpenGame(g.id)}
+                      title={g.label}
+                      aria-label={g.label}
+                      className={`text-[10px] tabular-nums ${tone} px-1.5 py-1 -my-1 rounded hover:bg-slate-700/60 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400`}
+                    >
+                      {chip}
+                    </button>
+                  ) : (
+                    <span key={g.id} className={`text-[10px] tabular-nums ${tone}`} title={g.label}>
+                      {chip}
                     </span>
                   );
                 })}

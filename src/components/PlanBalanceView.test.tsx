@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within, fireEvent } from '@testing-library/react';
 import PlanBalanceView from './PlanBalanceView';
 import type { PlaytimePlan, PlanGame } from '@/utils/playtimePlanner/types';
 
@@ -69,6 +69,21 @@ describe('PlanBalanceView', () => {
     render(<PlanBalanceView plan={plan([game()])} />);
     // Sam/Jo/Max/Kai never take the field -> flagged as not playing Game 1.
     expect(screen.getAllByText('Not playing: Game 1').length).toBeGreaterThan(0);
+  });
+
+  it('per-game chips jump to that game\'s lineup when onOpenGame is provided', () => {
+    const onOpenGame = jest.fn();
+    render(<PlanBalanceView plan={plan([game()])} onOpenGame={onOpenGame} />);
+    // Chips render as buttons labelled with the game's full label; one per player
+    // row - clicking any of them opens that game's lineup in one tap.
+    const chips = screen.getAllByRole('button', { name: 'Game 1' });
+    fireEvent.click(chips[0]);
+    expect(onOpenGame).toHaveBeenCalledWith('g1');
+  });
+
+  it('per-game chips stay plain text without onOpenGame (read-only embeds)', () => {
+    render(<PlanBalanceView plan={plan([game()])} />);
+    expect(screen.queryByRole('button', { name: 'Game 1' })).not.toBeInTheDocument();
   });
 
   it('reports no games counted when none are included', () => {

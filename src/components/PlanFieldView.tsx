@@ -16,13 +16,36 @@ import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { subtextStyle } from '@/styles/modalStyles';
 import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
+import type { FairnessBand } from '@/utils/playtimePlanner/minutes';
+
+/** A player's cumulative planned minutes across the WHOLE plan + fairness band. */
+export interface PlanPlayerMinutes {
+  minutes: number;
+  band: FairnessBand;
+}
 
 interface PlanFieldViewProps {
   game: PlanGame;
   players: PlanPlayer[];
   /** Assign (or clear with null) the given slot. */
   onAssign: (slotId: string, playerId: string | null) => void;
+  /**
+   * Optional live fairness read (cumulative minutes across the plan, keyed by
+   * player id). When provided, bench chips and filled discs show each player's
+   * total minutes tinted by band - so the coach sees the effect of a swap
+   * WHILE editing instead of round-tripping to the balance view. Number +
+   * colour together (never colour alone).
+   */
+  minutesByPlayer?: Record<string, PlanPlayerMinutes>;
 }
+
+/** Text tints matching the balance view's band colours (red/green/blue). */
+const bandText: Record<FairnessBand, string> = {
+  under: 'text-red-400',
+  fair: 'text-green-400',
+  over: 'text-sky-400',
+  none: 'text-slate-400',
+};
 
 /** Short display token for a disc: nickname, else first name, else initials. */
 const shortName = (name: string): string => {
@@ -32,7 +55,7 @@ const shortName = (name: string): string => {
   return first.length > 10 ? `${first.slice(0, 9)}…` : first;
 };
 
-const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }) => {
+const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign, minutesByPlayer }) => {
   const { t } = useTranslation();
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
 
@@ -164,6 +187,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
               >
                 {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
               </span>
+              {filled && playerId && minutesByPlayer?.[playerId] && (
+                <span
+                  className={`mt-0.5 text-[10px] font-semibold tabular-nums leading-tight ${bandText[minutesByPlayer[playerId].band]}`}
+                >
+                  {minutesByPlayer[playerId].minutes}&#39;
+                </span>
+              )}
               {firstSub && (
                 <span
                   className="mt-0.5 px-1 rounded-full bg-sky-600 text-white text-[8px] font-semibold leading-tight whitespace-nowrap max-w-[3.5rem] truncate shadow"
@@ -220,16 +250,24 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign }
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {bench.map((id) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => handleBenchClick(id)}
-                className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border border-slate-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              >
-                {nameById.get(id) ?? id}
-              </button>
-            ))}
+            {bench.map((id) => {
+              const fair = minutesByPlayer?.[id];
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => handleBenchClick(id)}
+                  className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border border-slate-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                >
+                  {nameById.get(id) ?? id}
+                  {fair && (
+                    <span className={`ml-1.5 tabular-nums text-xs font-semibold ${bandText[fair.band]}`}>
+                      {fair.minutes}&#39;
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

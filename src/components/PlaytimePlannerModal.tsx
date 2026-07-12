@@ -63,11 +63,13 @@ import {
 } from '@/utils/playtimePlanner/reapply';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getAllPlanLinks, deletePlanLinksForPlan } from '@/utils/playtimePlanner/planLinks';
+import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
+import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
 import { getSavedGames, saveGame as utilSaveGame } from '@/utils/savedGames';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import PlanFieldView from '@/components/PlanFieldView';
+import PlanFieldView, { type PlanPlayerMinutes } from '@/components/PlanFieldView';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
 import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
@@ -626,6 +628,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
   }, [roster, activePlan]);
 
+  // Live fairness read for the lineup view: cumulative planned minutes per player
+  // across the WHOLE plan, recomputed on every edit (the engine is pure + fast at
+  // this scale). This is what makes a swap's effect visible while editing.
+  const minutesByPlayer = useMemo(() => {
+    if (!activePlan) return {} as Record<string, PlanPlayerMinutes>;
+    const m = computePlanMinutes(toEnginePlan(activePlan));
+    const rec: Record<string, PlanPlayerMinutes> = {};
+    for (const pl of m.players) {
+      rec[pl.playerId] = { minutes: Math.round(pl.totalSeconds / 60), band: pl.band };
+    }
+    return rec;
+  }, [activePlan]);
+
   const handleAddPlanPlayer = useCallback(
     (player: { id: string; name: string }) => {
       updateActivePlan((plan) => addPlayerToPlan(plan, player));
@@ -1106,6 +1121,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               game={editingGame}
               players={activePlan.players}
               onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
+              minutesByPlayer={minutesByPlayer}
             />
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor
@@ -1119,7 +1135,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'balance' && activePlan && (
-          <PlanBalanceView plan={activePlan} />
+          <PlanBalanceView
+            plan={activePlan}
+            onOpenGame={(gameId) => {
+              setEditingGameId(gameId);
+              setView('lineup');
+            }}
+          />
         )}
 
         {view === 'players' && activePlan && (
