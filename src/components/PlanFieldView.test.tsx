@@ -76,14 +76,34 @@ describe('PlanFieldView', () => {
     expect(new Set(assignedPlayers).size).toBe(5);
   });
 
-  it('shows a sub badge on a slot that has a planned substitution', () => {
+  it('renders a slot with a planned sub as a divided pill: both names + minute visible', () => {
     const game: PlanGame = {
       ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
       subs: [{ id: 's1', slotId: 'gk', timeSeconds: 6 * 60, inPlayerId: 'p2' }],
     };
     render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
-    // The badge marks the scheduled change on the pitch (minute + incoming player).
-    expect(screen.getByText(/⇄ 6'/)).toBeInTheDocument();
+    // Starter and incoming player are BOTH permanently on the field (no tooltip),
+    // with the sub minute as a tag on the incoming segment.
+    const slot = screen.getByLabelText('GK: Alex');
+    expect(slot).toHaveTextContent('Alex');
+    expect(slot).toHaveTextContent("6'");
+    expect(slot).toHaveTextContent('Sam');
+  });
+
+  it('highlight mode rings the tracked player and dims the rest', () => {
+    render(
+      <PlanFieldView
+        game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
+        players={players}
+        onAssign={jest.fn()}
+        highlightPlayerId="p2"
+      />,
+    );
+    // Sam (bench) is tracked: ringed, not dimmed. Alex's disc dims.
+    const sam = screen.getByRole('button', { name: /^Sam/ });
+    expect(sam.className).toContain('ring-amber-300');
+    const alexSlot = screen.getByLabelText('GK: Alex');
+    expect(alexSlot.className).toContain('opacity-35');
   });
 
   it('clears an occupied slot', () => {
@@ -110,8 +130,8 @@ describe('PlanFieldView', () => {
         players={players}
         onAssign={jest.fn()}
         minutesByPlayer={{
-          p1: { minutes: 42, band: 'fair' },
-          p2: { minutes: 6, band: 'under' },
+          p1: { minutes: 42, ratio: 1.0 },
+          p2: { minutes: 6, ratio: 0.2 },
         }}
       />,
     );

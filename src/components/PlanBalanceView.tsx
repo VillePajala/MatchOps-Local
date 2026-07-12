@@ -12,9 +12,10 @@
 
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { computePlanMinutes, type FairnessBand } from '@/utils/playtimePlanner/minutes';
+import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
 import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
 import { gameTotalSeconds, type PlaytimePlan } from '@/utils/playtimePlanner/types';
+import { fairnessCell } from '@/utils/playtimePlanner/colors';
 import { labelStyle, subtextStyle } from '@/styles/modalStyles';
 
 interface PlanBalanceViewProps {
@@ -26,13 +27,6 @@ interface PlanBalanceViewProps {
    */
   onOpenGame?: (gameId: string) => void;
 }
-
-const bandFill: Record<FairnessBand, string> = {
-  under: 'bg-red-500',
-  fair: 'bg-green-500',
-  over: 'bg-blue-500',
-  none: 'bg-slate-600',
-};
 
 const toMin = (sec: number): number => Math.round(sec / 60);
 
@@ -104,7 +98,9 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({ plan, onOpenGame }) =
                 </span>
               </div>
               <div className="mt-1 h-2 rounded-full bg-slate-700/60 overflow-hidden">
-                <div className={`h-full ${bandFill[p.band]}`} style={{ width: `${fillW}%` }} />
+                {/* One continuous red→green ramp (same as the field discs); more
+                    minutes just reads greener - no separate "over" colour. */}
+                <div className="h-full" style={{ width: `${fillW}%`, backgroundColor: fairnessCell(p.ratio) }} />
               </div>
               {/* Per-game strip */}
               <div className="mt-1 flex flex-wrap gap-1">

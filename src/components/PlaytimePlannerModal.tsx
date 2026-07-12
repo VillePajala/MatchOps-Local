@@ -70,6 +70,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import PlanFieldView, { type PlanPlayerMinutes } from '@/components/PlanFieldView';
+import PlanFairnessStrip, { type FairnessStripRow } from '@/components/PlanFairnessStrip';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
 import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
@@ -444,6 +445,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setActivePlan(p);
         setEditingGameId(null);
         setReplacingId(null);
+        setHighlightPlayerId(null);
         setView('overview');
       } else {
         // Target is gone (e.g. deleted in another tab). Tell the user instead of
@@ -568,6 +570,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setActivePlan(saved);
     setEditingGameId(null);
     setReplacingId(null);
+    setHighlightPlayerId(null);
     setView('overview');
     await refreshPlanList();
   }, [activePlan, flushSave, refreshPlanList, showToast, t]);
@@ -606,6 +609,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setActivePlan(imported);
         setEditingGameId(null);
         setReplacingId(null);
+        setHighlightPlayerId(null);
         setView('overview');
         await refreshPlanList();
       } catch (error) {
@@ -630,16 +634,31 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   // Live fairness read for the lineup view: cumulative planned minutes per player
   // across the WHOLE plan, recomputed on every edit (the engine is pure + fast at
-  // this scale). This is what makes a swap's effect visible while editing.
-  const minutesByPlayer = useMemo(() => {
-    if (!activePlan) return {} as Record<string, PlanPlayerMinutes>;
-    const m = computePlanMinutes(toEnginePlan(activePlan));
-    const rec: Record<string, PlanPlayerMinutes> = {};
-    for (const pl of m.players) {
-      rec[pl.playerId] = { minutes: Math.round(pl.totalSeconds / 60), band: pl.band };
+  // this scale). One engine run feeds both the per-player map (disc fills, bench
+  // tints) and the sorted worst-first strip rows.
+  const fairness = useMemo(() => {
+    if (!activePlan) {
+      return { byPlayer: {} as Record<string, PlanPlayerMinutes>, rows: [] as FairnessStripRow[] };
     }
-    return rec;
+    const m = computePlanMinutes(toEnginePlan(activePlan));
+    const planNameById = new Map(activePlan.players.map((pp) => [pp.id, pp.name]));
+    const byPlayer: Record<string, PlanPlayerMinutes> = {};
+    const rows: (FairnessStripRow & { totalSeconds: number })[] = [];
+    for (const pl of m.players) {
+      const entry = { minutes: Math.round(pl.totalSeconds / 60), ratio: pl.ratio };
+      byPlayer[pl.playerId] = entry;
+      rows.push({
+        id: pl.playerId,
+        name: planNameById.get(pl.playerId) ?? pl.playerId,
+        totalSeconds: pl.totalSeconds,
+        ...entry,
+      });
+    }
+    rows.sort((a, b) => a.totalSeconds - b.totalSeconds || a.name.localeCompare(b.name));
+    return { byPlayer, rows };
   }, [activePlan]);
+  // Cross-surface highlight: tap a strip cell to track one player everywhere.
+  const [highlightPlayerId, setHighlightPlayerId] = useState<string | null>(null);
 
   const handleAddPlanPlayer = useCallback(
     (player: { id: string; name: string }) => {
@@ -1111,6 +1130,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 })}
               </nav>
             )}
+            <PlanFairnessStrip
+              rows={fairness.rows}
+              highlightPlayerId={highlightPlayerId}
+              onToggleHighlight={(id) => setHighlightPlayerId((prev) => (prev === id ? null : id))}
+            />
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-slate-100">{editingGame.label}</h3>
               <span className={subtextStyle}>
@@ -1121,7 +1145,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               game={editingGame}
               players={activePlan.players}
               onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
-              minutesByPlayer={minutesByPlayer}
+              minutesByPlayer={fairness.byPlayer}
+              highlightPlayerId={highlightPlayerId}
             />
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor

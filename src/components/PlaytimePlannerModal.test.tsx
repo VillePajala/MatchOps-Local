@@ -301,7 +301,13 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByLabelText('GK: empty'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^Alex/ }));
+      // Both the fairness strip and the bench render an "Alex" button; the
+      // bench chip is the pill-shaped one (rounded-full).
+      fireEvent.click(
+        screen
+          .getAllByRole('button', { name: /^Alex/ })
+          .find((b) => b.className.includes('rounded-full'))!,
+      );
     });
 
     // Back to the plan; the placed count now reflects the assignment.
@@ -404,7 +410,13 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByLabelText('GK: empty'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^Alex/ }));
+      // Both the fairness strip and the bench render an "Alex" button; the
+      // bench chip is the pill-shaped one (rounded-full).
+      fireEvent.click(
+        screen
+          .getAllByRole('button', { name: /^Alex/ })
+          .find((b) => b.className.includes('rounded-full'))!,
+      );
     });
 
     // Subs editor: choose position (GK) + incoming (Sam), then add.

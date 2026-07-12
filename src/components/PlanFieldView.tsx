@@ -9,19 +9,27 @@
  * built for free drag on the live game. Interaction is tap-to-assign: tap a
  * position to select it, then tap a bench player to place them (a player can
  * only hold one slot). Mobile-first and keyboard-accessible.
+ *
+ * When `minutesByPlayer` is provided, the field doubles as the balance view:
+ * every disc is FILLED with the player's fairness colour (one red→green ramp,
+ * standalone-planner style) with a white border so it never blends into the
+ * grass, and a slot with scheduled subs stretches into a divided pill - one
+ * segment per time window ("Onni | 12' Eino"), each tinted by its own player's
+ * ramp colour. Colour never stands alone: the minutes number is always printed.
  */
 
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
+import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
 import { subtextStyle } from '@/styles/modalStyles';
 import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
-import type { FairnessBand } from '@/utils/playtimePlanner/minutes';
 
-/** A player's cumulative planned minutes across the WHOLE plan + fairness band. */
+/** A player's cumulative planned minutes across the WHOLE plan + fair-share ratio. */
 export interface PlanPlayerMinutes {
   minutes: number;
-  band: FairnessBand;
+  /** totalSeconds / fairShareSeconds; null when no field time exists yet. */
+  ratio: number | null;
 }
 
 interface PlanFieldViewProps {
@@ -31,21 +39,16 @@ interface PlanFieldViewProps {
   onAssign: (slotId: string, playerId: string | null) => void;
   /**
    * Optional live fairness read (cumulative minutes across the plan, keyed by
-   * player id). When provided, bench chips and filled discs show each player's
-   * total minutes tinted by band - so the coach sees the effect of a swap
-   * WHILE editing instead of round-tripping to the balance view. Number +
-   * colour together (never colour alone).
+   * player id). When provided, discs fill with the ramp colour and bench chips
+   * show tinted totals - the effect of a swap is visible WHILE editing.
    */
   minutesByPlayer?: Record<string, PlanPlayerMinutes>;
+  /**
+   * Highlight one player everywhere (their discs/chips ringed, everyone else
+   * dimmed) - the cross-surface "track this kid" primitive. Null = no highlight.
+   */
+  highlightPlayerId?: string | null;
 }
-
-/** Text tints matching the balance view's band colours (red/green/blue). */
-const bandText: Record<FairnessBand, string> = {
-  under: 'text-red-400',
-  fair: 'text-green-400',
-  over: 'text-sky-400',
-  none: 'text-slate-400',
-};
 
 /** Short display token for a disc: nickname, else first name, else initials. */
 const shortName = (name: string): string => {
@@ -55,7 +58,13 @@ const shortName = (name: string): string => {
   return first.length > 10 ? `${first.slice(0, 9)}…` : first;
 };
 
-const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign, minutesByPlayer }) => {
+const PlanFieldView: React.FC<PlanFieldViewProps> = ({
+  game,
+  players,
+  onAssign,
+  minutesByPlayer,
+  highlightPlayerId = null,
+}) => {
   const { t } = useTranslation();
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
 
@@ -85,8 +94,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign, 
     [emptySlots],
   );
   // Planned subs grouped by the slot they come into, earliest first - drives the
-  // on-pitch sub badges so a scheduled change is visible on the field, not just
-  // in the list below.
+  // divided pill so a scheduled change is visible on the field itself.
   const subsBySlot = useMemo(() => {
     const m = new Map<string, PlanSub[]>();
     [...game.subs]
@@ -100,6 +108,21 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign, 
   }, [game.subs]);
 
   const activeOccupant = activeSlotId ? playerBySlot.get(activeSlotId) ?? null : null;
+
+  // The ramp only makes sense with minutes data; without it the classic
+  // indigo/amber discs render (read-only embeds stay untouched).
+  const rampMode = !!minutesByPlayer;
+  const fillFor = (playerId: string | null): string | undefined => {
+    if (!rampMode || !playerId) return undefined;
+    return fairnessFill(minutesByPlayer?.[playerId]?.ratio ?? null);
+  };
+
+  // Highlight primitive: with a highlight active, everything NOT involving that
+  // player drops back; their own discs/chips get an amber ring.
+  const dimClass = (involved: boolean): string =>
+    highlightPlayerId ? (involved ? '' : 'opacity-35') : '';
+  const hlRing = (involved: boolean): string =>
+    highlightPlayerId && involved ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-green-800' : '';
 
   const handleSlotClick = (slotId: string) => {
     setActiveSlotId((prev) => (prev === slotId ? null : slotId));
@@ -153,8 +176,20 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign, 
           // GK shorthand is localized (fi coaches read "MV", not "GK").
           const positionLabel = slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${i}`;
           const slotSubs = subsBySlot.get(slot.slotId) ?? [];
-          const firstSub = slotSubs[0];
-          const subInName = firstSub?.inPlayerId ? nameById.get(firstSub.inPlayerId) : null;
+          const hasSubs = filled && slotSubs.length > 0;
+          const involved =
+            !!highlightPlayerId &&
+            (playerId === highlightPlayerId || slotSubs.some((s) => s.inPlayerId === highlightPlayerId));
+          // In ramp mode role colour gives way to the fairness fill; the GK keeps
+          // identity via an amber border + the localized "MV" tag inside the disc.
+          const discClasses = rampMode
+            ? slot.isGoalie
+              ? 'border-amber-400 text-white'
+              : 'border-white/90 text-white'
+            : slot.isGoalie
+              ? 'bg-amber-500 text-slate-900 border-amber-300'
+              : 'bg-indigo-600 text-white border-indigo-300';
+
           return (
             <button
               key={slot.slotId}
@@ -171,42 +206,76 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign, 
                     })
               }
               aria-pressed={isActive}
-              className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800"
+              className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 ${dimClass(involved)}`}
               style={{ left: `${slot.relX * 100}%`, top: `${slot.relY * 100}%` }}
             >
-              <span
-                className={[
-                  'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-colors',
-                  filled
-                    ? slot.isGoalie
-                      ? 'bg-amber-500 text-slate-900 border-amber-300'
-                      : 'bg-indigo-600 text-white border-indigo-300'
-                    : 'bg-slate-900/70 text-white border-dashed border-white/80',
-                  isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : '',
-                ].join(' ')}
-              >
-                {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
-              </span>
-              {filled && playerId && minutesByPlayer?.[playerId] && (
+              {hasSubs ? (
+                /* Divided pill: one segment per time window, left→right = time.
+                   Each segment is tinted by ITS OWN player's ramp colour, the
+                   sub segments carry the minute tag - both names permanently
+                   visible, no tap or tooltip needed on the sideline. */
                 <span
-                  className={`mt-0.5 text-[10px] font-semibold tabular-nums leading-tight ${bandText[minutesByPlayer[playerId].band]}`}
+                  className={[
+                    'flex rounded-full overflow-hidden border-2 h-10 transition-colors',
+                    rampMode ? 'border-white/90' : 'border-indigo-300',
+                    isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : hlRing(involved),
+                  ].join(' ')}
                 >
-                  {minutesByPlayer[playerId].minutes}&#39;
+                  <span
+                    className="flex items-center px-2 text-[10px] font-bold text-white whitespace-nowrap"
+                    style={{ backgroundColor: fillFor(playerId) ?? '#4f46e5', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+                  >
+                    {shortName(name ?? '')}
+                  </span>
+                  {slotSubs.map((sub) => {
+                    const inName = sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?';
+                    return (
+                      <span
+                        key={sub.id}
+                        className="flex flex-col items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-l-2 border-dashed border-white/70"
+                        style={{
+                          backgroundColor: fillFor(sub.inPlayerId) ?? '#4338ca',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                        }}
+                      >
+                        <span className="text-[8px] font-extrabold text-amber-200 leading-none tabular-nums">
+                          {Math.round(sub.timeSeconds / 60)}&#39;
+                        </span>
+                        {shortName(inName)}
+                      </span>
+                    );
+                  })}
+                </span>
+              ) : (
+                <span
+                  className={[
+                    'w-11 h-11 rounded-full flex flex-col items-center justify-center text-[10px] font-bold border-2 transition-colors',
+                    filled ? discClasses : 'bg-slate-900/70 text-white border-dashed border-white/80',
+                    isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : hlRing(involved),
+                  ].join(' ')}
+                  style={
+                    filled && rampMode
+                      ? { backgroundColor: fillFor(playerId), textShadow: '0 1px 2px rgba(0,0,0,0.5)' }
+                      : undefined
+                  }
+                >
+                  {filled && rampMode && slot.isGoalie && (
+                    <span className="text-[7px] font-extrabold tracking-wide text-amber-200 leading-none">
+                      {t('playtimePlanner.gkShort', 'GK')}
+                    </span>
+                  )}
+                  {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
                 </span>
               )}
-              {firstSub && (
+              {filled && playerId && minutesByPlayer?.[playerId] && (
                 <span
-                  className="mt-0.5 px-1 rounded-full bg-sky-600 text-white text-[8px] font-semibold leading-tight whitespace-nowrap max-w-[3.5rem] truncate shadow"
-                  title={slotSubs
-                    .map(
-                      (s) =>
-                        `${Math.round(s.timeSeconds / 60)}' ${s.inPlayerId ? nameById.get(s.inPlayerId) ?? '' : ''}`,
-                    )
-                    .join(', ')}
+                  className="mt-0.5 text-[10px] font-semibold tabular-nums leading-tight"
+                  style={{
+                    color: fairnessText(minutesByPlayer[playerId].ratio),
+                    textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+                  }}
                 >
-                  ⇄ {Math.round(firstSub.timeSeconds / 60)}&#39;
-                  {subInName ? ` ${shortName(subInName)}` : ''}
-                  {slotSubs.length > 1 ? ` +${slotSubs.length - 1}` : ''}
+                  {minutesByPlayer[playerId].minutes}&#39;
                 </span>
               )}
             </button>
@@ -252,16 +321,24 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({ game, players, onAssign, 
           <div className="flex flex-wrap gap-2">
             {bench.map((id) => {
               const fair = minutesByPlayer?.[id];
+              const involved = highlightPlayerId === id;
               return (
                 <button
                   key={id}
                   type="button"
                   onClick={() => handleBenchClick(id)}
-                  className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border border-slate-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  className={[
+                    'px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border border-slate-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                    dimClass(involved),
+                    highlightPlayerId && involved ? 'ring-2 ring-amber-300' : '',
+                  ].join(' ')}
                 >
                   {nameById.get(id) ?? id}
                   {fair && (
-                    <span className={`ml-1.5 tabular-nums text-xs font-semibold ${bandText[fair.band]}`}>
+                    <span
+                      className="ml-1.5 tabular-nums text-xs font-semibold"
+                      style={{ color: fairnessText(fair.ratio) }}
+                    >
                       {fair.minutes}&#39;
                     </span>
                   )}
