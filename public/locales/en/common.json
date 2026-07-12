@@ -3163,7 +3163,6 @@
       "create": "Create plan",
       "teamLabel": "Team (optional)",
       "teamNone": "No team - all players",
-      "teamHint": "Picks the team roster and its competition durations - like new game setup.",
       "teamLoadError": "Could not load that team's roster.",
       "detailsHeading": "Plan details",
       "formatHeading": "Games & format",

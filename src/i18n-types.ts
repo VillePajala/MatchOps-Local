@@ -1752,7 +1752,6 @@ export type TranslationKey =
   | 'playtimePlanner.setup.rosterEmpty'
   | 'playtimePlanner.setup.rosterEmptyHint'
   | 'playtimePlanner.setup.rosterLabel'
-  | 'playtimePlanner.setup.teamHint'
   | 'playtimePlanner.setup.teamLabel'
   | 'playtimePlanner.setup.teamLoadError'
   | 'playtimePlanner.setup.teamNone'

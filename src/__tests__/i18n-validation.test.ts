@@ -314,7 +314,8 @@ describe('Translation File Validation', () => {
       // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
       // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
       //         -1: versions.switchLabel, dropdown replaced by the manager)
-      expect(enKeys.length).toBe(2795);
+      // -1: playtimePlanner.setup.teamHint (explanatory text under team select removed)
+      expect(enKeys.length).toBe(2794);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -352,7 +353,8 @@ describe('Translation File Validation', () => {
       // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
       // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
       //         -1: versions.switchLabel, dropdown replaced by the manager)
-      expect(fiKeys.length).toBe(2795);
+      // -1: playtimePlanner.setup.teamHint (explanatory text under team select removed)
+      expect(fiKeys.length).toBe(2794);
     });
   });
 });
