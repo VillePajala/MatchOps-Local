@@ -11,7 +11,17 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { HiChevronRight, HiOutlineArrowUturnLeft, HiOutlineArrowUturnRight, HiOutlineTrash, HiOutlineUsers } from 'react-icons/hi2';
+import {
+  HiChevronRight,
+  HiOutlineArchiveBox,
+  HiOutlineArrowUturnLeft,
+  HiOutlineArrowUturnRight,
+  HiOutlineDocumentDuplicate,
+  HiOutlineEllipsisVertical,
+  HiOutlinePencil,
+  HiOutlineTrash,
+  HiOutlineUsers,
+} from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
@@ -36,8 +46,6 @@ import {
   cardStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
-  dangerButtonStyle,
-  iconButtonDangerStyle,
 } from '@/styles/modalStyles';
 import {
   getPlans,
@@ -130,6 +138,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [isBulkReapplying, setIsBulkReapplying] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PlaytimePlan | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Manager rows: which plan's 3-dot actions menu is open (null = none), and
+  // whether archived plans are listed (same pattern as the competitions modal).
+  const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+  const [showArchived, setShowArchived] = useState(false);
   // replacingId: plan player whose replacement is being chosen (Phase 4);
   // removeTarget: plan player pending the destructive remove confirm.
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -644,23 +657,61 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     [activePlan, linkedCounts, user, flushSave, onFlushLiveGame, queryClient, refreshLinkedCounts, onLinkedGamesUpdated, showToast, t],
   );
 
-  const handleDuplicate = useCallback(async () => {
-    if (!activePlan) return;
-    await flushSave();
-    const suffix = ` ${t('playtimePlanner.versions.copySuffix', '(copy)')}`;
-    const saved = await savePlan(duplicatePlan(activePlan, suffix));
-    if (!saved) {
-      showToast(t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'), 'error');
-      return;
-    }
-    setActivePlan(saved);
-    seedHistory(saved);
-    setEditingGameId(null);
-    setReplacingId(null);
-    setHighlightPlayerIds([]);
-    setView('overview');
-    await refreshPlanList();
-  }, [activePlan, flushSave, refreshPlanList, seedHistory, showToast, t]);
+  // Duplicate from the manager's 3-dot menu: the copy lands as a new row (the
+  // user stays in the manager) instead of opening. When the source is the
+  // still-loaded plan, its pending edits are flushed and used so the copy
+  // matches what the user last saw.
+  const handleDuplicate = useCallback(
+    async (target: PlaytimePlan) => {
+      const isActive = activePlan?.id === target.id;
+      if (isActive) await flushSave();
+      const source = isActive && activePlan ? activePlan : target;
+      const suffix = ` ${t('playtimePlanner.versions.copySuffix', '(copy)')}`;
+      // A copy always starts active, even when duplicated off an archived plan.
+      const saved = await savePlan({ ...duplicatePlan(source, suffix), archived: false });
+      if (!saved) {
+        showToast(t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'), 'error');
+        return;
+      }
+      await refreshPlanList();
+    },
+    [activePlan, flushSave, refreshPlanList, showToast, t],
+  );
+
+  // Archive/unarchive from the manager. If the target is the still-loaded plan,
+  // the in-memory copy and history reseed too - otherwise a later autosave of
+  // the stale copy would silently flip the flag back.
+  const handleToggleArchive = useCallback(
+    async (target: PlaytimePlan) => {
+      const isActive = activePlan?.id === target.id;
+      if (isActive) await flushSave();
+      const base = isActive && activePlan ? activePlan : target;
+      const saved = await savePlan({ ...base, archived: !base.archived });
+      if (!saved) {
+        showToast(t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'), 'error');
+        return;
+      }
+      if (isActive) {
+        setActivePlan(saved);
+        seedHistory(saved);
+      }
+      await refreshPlanList();
+    },
+    [activePlan, flushSave, refreshPlanList, seedHistory, showToast, t],
+  );
+
+  // Close the manager's actions menu on any outside tap (house pattern from the
+  // competitions modal).
+  useEffect(() => {
+    if (!actionsMenuId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setActionsMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [actionsMenuId]);
 
   const handleExport = useCallback(() => {
     if (!activePlan) return;
@@ -927,6 +978,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
       if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
+      // The manager's actions menu is open: Escape closes it, nothing else.
+      if (actionsMenuId !== null) {
+        setActionsMenuId(null);
+        return;
+      }
       // The sub sheet is open: Escape closes it, nothing else.
       if (subSheetTarget !== null) {
         setSubSheetTarget(null);
@@ -944,7 +1000,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, deleteTarget, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget, handleBackToManager]);
+  }, [isOpen, view, onClose, deleteTarget, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -1167,12 +1223,26 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             {/* Rows sit directly on the background like LoadGame's list - an
                 outer card double-insets them and reads narrower than the app. */}
             <div>
-            <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.manager.title', 'Plans')}</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.manager.title', 'Plans')}</h3>
+              {planList.some((p) => p.archived) && (
+                <button
+                  type="button"
+                  onClick={() => setShowArchived((v) => !v)}
+                  aria-pressed={showArchived}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                    showArchived ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {t('playtimePlanner.manager.showArchived', 'Show archived')}
+                </button>
+              )}
+            </div>
             <div className="space-y-2">
-              {planList.map((p) => (
+              {planList.filter((p) => showArchived || !p.archived).map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-1 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all rounded-lg"
+                  className={`flex items-center gap-1 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all rounded-lg ${p.archived ? 'opacity-60' : ''}`}
                 >
                   <button
                     type="button"
@@ -1180,7 +1250,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     className="flex-1 min-w-0 flex items-center justify-between gap-3 p-4 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 rounded-lg"
                   >
                     <span className="min-w-0">
-                      <span className="block text-base font-semibold text-slate-100 truncate">{p.name}</span>
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="text-base font-semibold text-slate-100 truncate">{p.name}</span>
+                        {p.archived && (
+                          <span className="shrink-0 text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
+                            {t('playtimePlanner.manager.archivedBadge', 'Archived')}
+                          </span>
+                        )}
+                      </span>
                       <span className={subtextStyle}>
                         {t('playtimePlanner.manager.meta', '{{games}} games · {{players}} players', {
                           games: p.games.length,
@@ -1190,16 +1267,74 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     </span>
                     <HiChevronRight aria-hidden="true" className="w-5 h-5 text-slate-500 shrink-0" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteTarget(p)}
-                    disabled={isDeleting}
-                    aria-label={`${t('playtimePlanner.overview.deletePlan', 'Delete')}: ${p.name}`}
-                    title={t('playtimePlanner.overview.deletePlan', 'Delete')}
-                    className={`${iconButtonDangerStyle} shrink-0 mr-2`}
+                  {/* 3-dot actions menu - same pattern as the competitions list:
+                      edit (open), duplicate, archive, delete. No standing red
+                      button anywhere. */}
+                  <div
+                    className="relative shrink-0 mr-2"
+                    ref={actionsMenuId === p.id ? actionsMenuRef : null}
                   >
-                    <HiOutlineTrash className="w-5 h-5" />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setActionsMenuId(actionsMenuId === p.id ? null : p.id)}
+                      aria-label={`${t('playtimePlanner.manager.actions', 'Plan actions')}: ${p.name}`}
+                      aria-expanded={actionsMenuId === p.id}
+                      className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
+                    >
+                      <HiOutlineEllipsisVertical className="w-5 h-5" />
+                    </button>
+                    {actionsMenuId === p.id && (
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionsMenuId(null);
+                            handleOpenPlan(p.id);
+                          }}
+                          className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                        >
+                          <HiOutlinePencil className="w-4 h-4" />
+                          {t('common.edit', 'Edit')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionsMenuId(null);
+                            void handleDuplicate(p);
+                          }}
+                          className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                        >
+                          <HiOutlineDocumentDuplicate className="w-4 h-4" />
+                          {t('playtimePlanner.versions.duplicate', 'Duplicate')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionsMenuId(null);
+                            void handleToggleArchive(p);
+                          }}
+                          className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                        >
+                          <HiOutlineArchiveBox className="w-4 h-4" />
+                          {p.archived
+                            ? t('playtimePlanner.manager.unarchive', 'Unarchive')
+                            : t('playtimePlanner.manager.archive', 'Archive')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActionsMenuId(null);
+                            setDeleteTarget(p);
+                          }}
+                          disabled={isDeleting}
+                          className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 transition-colors"
+                        >
+                          <HiOutlineTrash className="w-4 h-4" />
+                          {t('playtimePlanner.overview.deletePlan', 'Delete')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1348,25 +1483,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </div>
             </div>
 
-            {/* Plan housekeeping last - duplicate/export/delete are rare actions
-                and sat awkwardly at the top of the composition (import lives in
-                the manager, where new plans arrive). */}
-            <div className="flex gap-2 pt-2">
-              <button type="button" onClick={handleDuplicate} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
-                {t('playtimePlanner.versions.duplicate', 'Duplicate')}
-              </button>
-              <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
-                {t('playtimePlanner.versions.export', 'Export JSON')}
-              </button>
-              <button
-                type="button"
-                onClick={() => activePlan && setDeleteTarget(activePlan)}
-                disabled={isDeleting}
-                className={`${dangerButtonStyle} flex-1 whitespace-nowrap`}
-              >
-                {t('playtimePlanner.overview.deletePlan', 'Delete')}
-              </button>
-            </div>
           </div>
         )}
 
@@ -1658,6 +1774,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         })()}
 
       <ModalFooter>
+        {/* Export is the one plan action that lives outside the manager's 3-dot
+            menu - left-aligned in the footer, away from navigation. */}
+        {view === 'overview' && activePlan && (
+          <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} mr-auto`}>
+            {t('playtimePlanner.versions.export', 'Export JSON')}
+          </button>
+        )}
         {(view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') && (
           <button
             type="button"
