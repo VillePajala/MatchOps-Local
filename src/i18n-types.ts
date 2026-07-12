@@ -1692,7 +1692,6 @@ export type TranslationKey =
   | 'playtimePlanner.lineup.includedToggle'
   | 'playtimePlanner.lineup.notInGame'
   | 'playtimePlanner.lineup.pickForSlot'
-  | 'playtimePlanner.lineup.renameGame'
   | 'playtimePlanner.lineup.slotEmpty'
   | 'playtimePlanner.lineup.slotFilled'
   | 'playtimePlanner.lineup.subAction'
