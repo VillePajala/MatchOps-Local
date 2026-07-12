@@ -325,7 +325,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
                 </span>
               )}
-              {filled && playerId && minutesByPlayer?.[playerId] && (
+              {!hasSubs && filled && playerId && minutesByPlayer?.[playerId] && (
                 <span
                   className="mt-0.5 text-[10px] font-semibold tabular-nums leading-tight"
                   style={{
@@ -350,12 +350,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               ? t('playtimePlanner.lineup.pickForSlot', 'Tap a player for this position')
               : t('playtimePlanner.lineup.hint', 'Tap a player to place them, or a position first.')}
           </p>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {activeSlotId && activeOccupant && onRequestSub && (
               <button
                 type="button"
                 onClick={() => onRequestSub(activeSlotId)}
-                className="text-xs font-medium text-sky-300 hover:text-sky-200 py-2.5 px-2 -my-2.5"
+                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-sky-600/20 border-sky-500/50 text-sky-200 hover:bg-sky-600/30"
               >
                 {t('playtimePlanner.lineup.subAction', 'Sub…')}
               </button>
@@ -364,7 +364,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="text-xs text-red-400 hover:text-red-300 py-2.5 px-2 -my-2.5"
+                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-red-600/15 border-red-500/50 text-red-300 hover:bg-red-600/25"
               >
                 {t('playtimePlanner.lineup.clearSlot', 'Clear')}
               </button>
@@ -373,7 +373,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               <button
                 type="button"
                 onClick={handleAutoFill}
-                className="text-xs font-medium text-indigo-300 hover:text-indigo-200 py-2.5 px-2 -my-2.5"
+                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-indigo-600/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-600/30"
               >
                 {t('playtimePlanner.lineup.autoFill', 'Auto-fill')}
               </button>
