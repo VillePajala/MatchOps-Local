@@ -323,7 +323,8 @@ describe('Translation File Validation', () => {
       //     archivedBadge/showArchived)
       // +4: overview format editor (overview.addGame/removeGame/
       //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
-      expect(enKeys.length).toBe(2804);
+      // +1: lineup.renameGame (explicit pencil rename in the game view)
+      expect(enKeys.length).toBe(2805);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -370,7 +371,8 @@ describe('Translation File Validation', () => {
       //     archivedBadge/showArchived)
       // +4: overview format editor (overview.addGame/removeGame/
       //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
-      expect(fiKeys.length).toBe(2804);
+      // +1: lineup.renameGame (explicit pencil rename in the game view)
+      expect(fiKeys.length).toBe(2805);
     });
   });
 });

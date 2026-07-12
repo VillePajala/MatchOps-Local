@@ -291,3 +291,26 @@ migration). (Status: **shipped**, reworked on `feat/playtime-3.5-link-store`.)
    team is dropped.
 5. **Undo: none.** The confirm dialog + unplayed-only guard are the safety net
    (small blast radius; always asks first). No snapshot/revert in 3.x.
+
+## 10. Design decisions to think about (parked 2026-07-12, do NOT fix yet)
+
+1. **Dark card container vs bare list items.** The planner's manager/overview
+   lists sit directly on the modal background (no `cardStyle` wrapper), unlike
+   most of the app - competitions (SeasonTournament) wraps its lists in the
+   dark card and keeps rows wide via negative margins (`-mx-2 sm:-mx-4
+   md:-mx-6`). The bare look reads fresh in some contexts. Open question:
+   revert the planner to cards (negative-margin trick), or modernize the WHOLE
+   app toward the barer style. App-wide styling pass candidate.
+2. **Plan manager layout vs house convention.** House pattern (TeamManager,
+   RosterSettings, SeasonTournament): create-new is a full-width primary button
+   PINNED at the top under the header (fixed section, not in the scroll);
+   utility actions (import/export) live LEFT-aligned in the footer. Plan
+   manager currently has "New plan" + "Import JSON" at the bottom of the
+   scroll content. Align when styling direction is decided.
+3. **Game rename placement + game tabs.** Renaming currently lives as an
+   inline input at the top of the game view - hard to discover. Idea: make the
+   game tabs bigger (standalone-planner ribbon style: label + name + include
+   dot) so tabs carry the game name, and move renaming somewhere explicit.
+4. **Undo/redo placement.** The undo/redo row as the first element of the game
+   view breaks up the composition. Candidates: field-view toolbar row (with
+   Sub/Clear/Auto-fill), floating corner buttons, or the footer.
