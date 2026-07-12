@@ -361,7 +361,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               <button
                 type="button"
                 onClick={() => onRequestSub(activeSlotId)}
-                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-sky-600/20 border-sky-500/50 text-sky-200 hover:bg-sky-600/30"
+                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-indigo-600/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-600/30"
               >
                 {t('playtimePlanner.lineup.subAction', 'Sub…')}
               </button>

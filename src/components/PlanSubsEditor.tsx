@@ -67,7 +67,7 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
             return (
               <li
                 key={sub.id}
-                className="flex items-center justify-between bg-slate-800/40 border border-slate-700/50 rounded px-3 py-1.5 text-sm text-slate-200"
+                className="flex items-center justify-between bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-1.5 text-sm text-slate-200"
               >
                 <span>
                   {outName
@@ -86,7 +86,7 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
                 <button
                   type="button"
                   onClick={() => onRemove(sub.id)}
-                  className="text-xs text-red-400 hover:text-red-300 ml-2 py-2 px-2 -my-1.5 -mr-2"
+                  className="text-sm text-red-400 hover:text-red-300 ml-2 py-2 px-2 -my-1.5 -mr-2"
                 >
                   {t('playtimePlanner.subs.remove', 'Remove')}
                 </button>

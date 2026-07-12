@@ -171,7 +171,7 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByText('Alex')).toBeInTheDocument();
     expect(screen.getByText('Sam')).toBeInTheDocument();
     // All players selected by default (interpolated count).
-    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('2 / 2');
   });
 
   it('creates a plan (5 games, 2 selected players) and moves to the overview', async () => {
@@ -196,7 +196,7 @@ describe('PlaytimePlannerModal', () => {
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByText('Create plan')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('None'));
+    fireEvent.click(screen.getByLabelText('Select All'));
     await waitFor(() =>
       expect(screen.getByText('Create plan').closest('button')).toBeDisabled(),
     );
@@ -667,7 +667,7 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
 
     // Both players selected by default (freehand).
-    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('2 / 2');
 
     // Choose the team (the select currently shows the "No team" option text).
     await act(async () => {
@@ -675,7 +675,7 @@ describe('PlaytimePlannerModal', () => {
     });
 
     // Roster narrows to the team's matching players; durations come from its season.
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('1 / 2'));
     expect(screen.getByDisplayValue('20')).toBeInTheDocument(); // periodDuration inherited
 
     // Creating the plan stamps the teamId.
@@ -693,7 +693,7 @@ describe('PlaytimePlannerModal', () => {
     mockGetTeamRoster.mockRejectedValue(new Error('boom'));
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
-    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('2 / 2');
 
     await act(async () => {
       fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
@@ -703,7 +703,7 @@ describe('PlaytimePlannerModal', () => {
       expect(mockShowToast).toHaveBeenCalledWith("Could not load that team's roster.", 'error'),
     );
     // Durations are deferred until the roster loads, so nothing half-applied.
-    expect(screen.getByText('2 selected')).toBeInTheDocument();
+    expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('2 / 2');
     expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
 
     // teamId must NOT be stamped after a failed load: creating yields a plan without one.
@@ -739,14 +739,14 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.change(sel, { target: { value: 't2' } });
     });
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('1 / 2'));
 
     // t1's late response must be discarded (selection stays at t2's 1, not 2).
     await act(async () => {
       resolveT1?.();
     });
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
-    expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('1 / 2'));
+    expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).not.toContain('2 / 2');
   });
 
   it('reverts roster AND durations to defaults when switching back to "No team"', async () => {
@@ -760,14 +760,14 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.change(screen.getByDisplayValue('No team - all players'), { target: { value: 't1' } });
     });
-    await waitFor(() => expect(screen.getByText('1 selected')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('1 / 2'));
     expect(screen.getByDisplayValue('20')).toBeInTheDocument();
 
     // Deselect: full roster back AND durations revert to the default 12.
     await act(async () => {
       fireEvent.change(screen.getByDisplayValue('U10'), { target: { value: '' } });
     });
-    await waitFor(() => expect(screen.getByText('2 selected')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('2 / 2'));
     expect(screen.getByDisplayValue('12')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
   });

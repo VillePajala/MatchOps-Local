@@ -11,6 +11,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { HiChevronRight, HiOutlineArrowUturnLeft, HiOutlineArrowUturnRight, HiOutlineUsers } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
@@ -74,6 +75,7 @@ import PlanFieldView, { type PlanPlayerMinutes } from '@/components/PlanFieldVie
 import PlanFairnessStrip, { type FairnessStripRow } from '@/components/PlanFairnessStrip';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
 import PlanSubSheet from '@/components/PlanSubSheet';
+import PlayerSelectionSection from '@/components/PlayerSelectionSection';
 import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
@@ -289,15 +291,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   }, [isOpen, user?.id, seedHistory]);
 
 
-
-  const togglePlayer = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const handleCreate = async () => {
     const players = roster
@@ -918,21 +911,33 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     <ModalContainer>
       <ModalHeader title={t('playtimePlanner.title', 'Lineup planner')} />
 
-      <ScrollableContent className="px-6 py-5">
+      <ScrollableContent className="px-6 py-4">
         {view === 'loading' && (
-          <p className={subtextStyle}>{t('common.loading', 'Loading...')}</p>
+          <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+            <svg className="animate-spin h-8 w-8 mb-3 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            {t('common.loading', 'Loading...')}
+          </div>
         )}
 
         {view === 'setup' && (
-          <div className="max-w-lg mx-auto space-y-5">
+          <div className="max-w-lg mx-auto space-y-4">
             {roster.length === 0 ? (
-              <div className={cardStyle}>
-                <p className="text-slate-300">
+              <div className="text-center py-8">
+                <HiOutlineUsers className="w-12 h-12 mx-auto mb-3 text-slate-600" aria-hidden="true" />
+                <p className="text-lg font-medium text-slate-300 mb-1">
                   {t('playtimePlanner.setup.rosterEmpty', 'Add players to your roster first.')}
+                </p>
+                <p className="text-slate-500 text-sm">
+                  {t('playtimePlanner.setup.rosterEmptyHint', 'Open Roster from the main menu to add your squad.')}
                 </p>
               </div>
             ) : (
               <>
+                <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
+                <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.setup.detailsHeading', 'Plan details')}</h3>
                 <div>
                   <label className={labelStyle}>{t('playtimePlanner.setup.nameLabel', 'Plan name')}</label>
                   <input
@@ -967,48 +972,22 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     </p>
                   </div>
                 )}
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className={labelStyle}>{t('playtimePlanner.setup.rosterLabel', 'Players')}</label>
-                    <div className="flex gap-3 text-xs">
-                      <button
-                        type="button"
-                        className="text-indigo-400 hover:text-indigo-300"
-                        onClick={() => setSelectedIds(new Set(roster.map((p) => p.id)))}
-                      >
-                        {t('playtimePlanner.setup.selectAll', 'All')}
-                      </button>
-                      <button
-                        type="button"
-                        className="text-slate-400 hover:text-slate-300"
-                        onClick={() => setSelectedIds(new Set())}
-                      >
-                        {t('playtimePlanner.setup.selectNone', 'None')}
-                      </button>
-                    </div>
-                  </div>
-                  <div className={`${cardStyle} max-h-52 overflow-y-auto grid grid-cols-2 gap-1`}>
-                    {roster.map((p) => (
-                      <label
-                        key={p.id}
-                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-800/60 cursor-pointer text-sm text-slate-200"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(p.id)}
-                          onChange={() => togglePlayer(p.id)}
-                          className="accent-indigo-500"
-                        />
-                        <span className="truncate">{p.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className={`${subtextStyle} mt-1`}>
-                    {t('playtimePlanner.setup.playersSelected', '{{count}} selected', { count: selectedIds.size })}
-                  </p>
                 </div>
 
+                {/* House roster picker - the same component new-game setup and
+                    game settings use (gradient card, Select All, yellow counter). */}
+                <PlayerSelectionSection
+                  availablePlayers={roster}
+                  selectedPlayerIds={[...selectedIds]}
+                  onSelectedPlayersChange={(ids) => setSelectedIds(new Set(ids))}
+                  title={t('playtimePlanner.setup.rosterLabel', 'Players')}
+                  playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
+                  selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
+                  noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
+                />
+
+                <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner">
+                <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.setup.formatHeading', 'Games & format')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelStyle}>{t('playtimePlanner.setup.gamesLabel', 'Number of games')}</label>
@@ -1066,6 +1045,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     />
                   </div>
                 </div>
+                </div>
 
                 <button
                   type="button"
@@ -1088,9 +1068,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               disabled={!canUndo}
               aria-label={t('controlBar.undo', 'Undo')}
               title={t('controlBar.undo', 'Undo')}
-              className="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm disabled:opacity-40 disabled:cursor-default hover:bg-slate-700"
+              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
             >
-              ↶
+              <HiOutlineArrowUturnLeft className="w-4 h-4" />
             </button>
             <button
               type="button"
@@ -1098,9 +1078,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               disabled={!canRedo}
               aria-label={t('controlBar.redo', 'Redo')}
               title={t('controlBar.redo', 'Redo')}
-              className="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm disabled:opacity-40 disabled:cursor-default hover:bg-slate-700"
+              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
             >
-              ↷
+              <HiOutlineArrowUturnRight className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -1115,10 +1095,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   key={p.id}
                   type="button"
                   onClick={() => handleOpenPlan(p.id)}
-                  className="w-full flex items-center justify-between gap-3 bg-slate-800/60 border border-slate-600/50 rounded-md px-4 py-3 text-left hover:bg-slate-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                  className="w-full flex items-center justify-between gap-3 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all rounded-lg p-4 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                 >
                   <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-slate-100 truncate">{p.name}</span>
+                    <span className="block text-base font-semibold text-slate-100 truncate">{p.name}</span>
                     <span className={subtextStyle}>
                       {t('playtimePlanner.manager.meta', '{{games}} games · {{players}} players', {
                         games: p.games.length,
@@ -1126,9 +1106,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       })}
                     </span>
                   </span>
-                  <span aria-hidden="true" className="text-slate-500 text-lg shrink-0">
-                    ›
-                  </span>
+                  <HiChevronRight aria-hidden="true" className="w-5 h-5 text-slate-500 shrink-0" />
                 </button>
               ))}
             </div>
@@ -1158,7 +1136,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'overview' && activePlan && (
-          <div className="max-w-lg mx-auto space-y-5">
+          <div className="max-w-lg mx-auto space-y-4">
             <div className={cardStyle}>
               <label className={labelStyle}>{t('playtimePlanner.setup.nameLabel', 'Plan name')}</label>
               <input
@@ -1199,7 +1177,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setView('players')}
-                  className="text-xs font-medium text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 shrink-0"
+                  className="text-sm font-medium text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 shrink-0"
                 >
                   {t('playtimePlanner.overview.editPlayers', 'Edit players')}
                 </button>
@@ -1248,7 +1226,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   return (
                     <div
                       key={game.id}
-                      className="bg-slate-800/60 border border-slate-600/50 rounded-md overflow-hidden"
+                      className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg overflow-hidden transition-all"
                     >
                       {/* The whole card head IS the way in: label + fill state +
                           chevron, one obvious tap target (the old tiny "Edit
@@ -1261,10 +1239,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           setSubSheetTarget(null);
                           setView('lineup');
                         }}
-                        className="w-full flex items-center justify-between gap-3 px-3 py-3 text-left hover:bg-slate-700/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left cursor-pointer hover:bg-slate-600/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                       >
                         <span className="min-w-0">
-                          <span className="block text-sm font-semibold text-slate-100 truncate">
+                          <span className="block text-base font-semibold text-slate-100 truncate">
                             {game.label}
                           </span>
                           <span className={subtextStyle}>
@@ -1274,11 +1252,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                             })}
                           </span>
                         </span>
-                        <span aria-hidden="true" className="text-slate-500 text-lg shrink-0">
-                          ›
-                        </span>
+                        <HiChevronRight aria-hidden="true" className="w-5 h-5 text-slate-500 shrink-0" />
                       </button>
-                      <div className="flex items-center justify-between px-3 pb-2">
+                      <div className="flex items-center justify-between px-4 pb-2">
                         <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap py-1">
                           <input
                             type="checkbox"
@@ -1290,13 +1266,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                                 games: plan.games.map((g, gi) => (gi === i ? { ...g, included: checked } : g)),
                               }));
                             }}
-                            className="accent-indigo-500"
+                            className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
                           />
                           {t('playtimePlanner.overview.included', 'Included')}
                         </label>
                       </div>
                       {(linkedCounts[game.id] ?? 0) > 0 && (
-                        <div className="px-3 pb-3">
+                        <div className="px-4 pb-3">
                         <button
                           type="button"
                           onClick={() => setBulkReapplyTarget(game)}
@@ -1356,8 +1332,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         isCurrent
                           ? 'bg-indigo-600 text-white'
                           : g.included
-                            ? 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
-                            : 'bg-slate-800/50 text-slate-500 border border-slate-700/50',
+                            ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            : 'bg-slate-700 text-slate-300 opacity-50',
                       ].join(' ')}
                     >
                       {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
@@ -1392,7 +1368,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     { coalesce: true },
                   );
                 }}
-                className="flex-1 min-w-0 bg-transparent text-base font-semibold text-slate-100 border-b border-transparent focus:border-slate-500 focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent text-base font-semibold text-slate-100 rounded-md border-b border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 px-1 -mx-1"
               />
               <span className={`${subtextStyle} shrink-0`}>
                 {getPresetById(editingGame.formationId)?.name ?? '-'}
@@ -1431,7 +1407,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'players' && activePlan && (
-          <div className="max-w-lg mx-auto space-y-5">
+          <div className="max-w-lg mx-auto space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.players.title', 'Plan players')}</h3>
               <p className={subtextStyle}>
@@ -1446,23 +1422,23 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               {activePlan.players.map((p) => (
                 <li
                   key={p.id}
-                  className="bg-slate-800/40 border border-slate-700/50 rounded-md px-3 py-2 space-y-2"
+                  className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all rounded-lg p-4 space-y-2"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm text-slate-100 font-medium">{p.name}</span>
+                    <span className="text-base text-slate-100 font-medium">{p.name}</span>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={() => setReplacingId(replacingId === p.id ? null : p.id)}
                         disabled={rosterCandidates.length === 0}
-                        className="text-xs font-medium text-indigo-400 hover:text-indigo-300 disabled:text-slate-600 py-2 px-2"
+                        className="text-sm font-medium text-indigo-400 hover:text-indigo-300 disabled:text-slate-600 py-2 px-2"
                       >
                         {t('playtimePlanner.players.replaceAction', 'Replace')}
                       </button>
                       <button
                         type="button"
                         onClick={() => setRemoveTarget(p)}
-                        className="text-xs text-red-400 hover:text-red-300 py-2 px-2"
+                        className="text-sm text-red-400 hover:text-red-300 py-2 px-2"
                       >
                         {t('playtimePlanner.players.removeAction', 'Remove')}
                       </button>
@@ -1481,7 +1457,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                             key={c.id}
                             type="button"
                             onClick={() => handleReplacePlanPlayer(p.id, c)}
-                            className="px-3 py-1.5 rounded-md bg-slate-700 text-slate-100 text-sm hover:bg-indigo-600"
+                            className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm hover:bg-indigo-600"
                           >
                             {c.name}
                           </button>
@@ -1506,7 +1482,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       key={c.id}
                       type="button"
                       onClick={() => handleAddPlanPlayer(c)}
-                      className="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm hover:bg-slate-700"
+                      className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-200 text-sm hover:bg-slate-600"
                     >
                       + {c.name}
                     </button>
@@ -1532,9 +1508,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               {activePlan.games.map((g) => (
                 <div
                   key={g.id}
-                  className={`rounded-lg border border-slate-700/50 bg-slate-800/30 p-3 space-y-2 ${
-                    !g.included ? 'opacity-60' : ''
-                  }`}
+                  className={`${cardStyle} space-y-2 ${!g.included ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold text-slate-100">{g.label}</h3>
@@ -1545,7 +1519,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         setSubSheetTarget(null);
                         setView('lineup');
                       }}
-                      className="text-xs text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
+                      className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
                     >
                       {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
                     </button>

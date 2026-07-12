@@ -17,6 +17,7 @@
  */
 
 import React, { useState } from 'react';
+import { HiChevronDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { fairnessCell } from '@/utils/playtimePlanner/colors';
 
@@ -59,9 +60,10 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
         aria-expanded={!collapsed}
         className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-200 py-1.5 -my-1"
       >
-        <span aria-hidden="true" className="text-[9px]">
-          {collapsed ? '▸' : '▾'}
-        </span>
+        <HiChevronDown
+          aria-hidden="true"
+          className={`w-3.5 h-3.5 transition-transform ${collapsed ? '-rotate-90' : ''}`}
+        />
         {t('playtimePlanner.lineup.fairnessStrip', 'Playing-time totals')}
       </button>
       {!collapsed && (

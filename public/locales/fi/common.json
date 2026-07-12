@@ -3156,9 +3156,6 @@
       "namePlaceholder": "esim. Sunnuntain turnaus",
       "rosterLabel": "Pelaajat",
       "rosterEmpty": "Lisää ensin pelaajia kokoonpanoosi.",
-      "selectAll": "Kaikki",
-      "selectNone": "Ei yhtään",
-      "playersSelected": "{{count}} valittu",
       "gamesLabel": "Pelien määrä",
       "formationLabel": "Muodostelma",
       "periodsLabel": "Jaksot",
@@ -3167,7 +3164,10 @@
       "teamLabel": "Joukkue (valinnainen)",
       "teamNone": "Ei joukkuetta - kaikki pelaajat",
       "teamHint": "Poimii joukkueen kokoonpanon ja sen sarjan jaksojen kestot - kuten uuden pelin luonnissa.",
-      "teamLoadError": "Joukkueen kokoonpanoa ei voitu ladata."
+      "teamLoadError": "Joukkueen kokoonpanoa ei voitu ladata.",
+      "detailsHeading": "Suunnitelman tiedot",
+      "formatHeading": "Pelit ja muoto",
+      "rosterEmptyHint": "Avaa Kokoonpano päävalikosta ja lisää pelaajat."
     },
     "overview": {
       "gameLabel": "Peli {{n}}",

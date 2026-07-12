@@ -44,10 +44,11 @@ interface Warning {
   players: string[];
 }
 
+// House alert palette (modalStyles' -900/30 bg + -700 border scale).
 const warningTone: Record<Warning['kind'], string> = {
-  zero: 'bg-red-500/15 border-red-500/50 text-red-200',
-  spread: 'bg-orange-400/15 border-orange-400/50 text-orange-200',
-  gk: 'bg-sky-400/15 border-sky-400/50 text-sky-200',
+  zero: 'bg-red-900/30 border-red-700 text-red-200',
+  spread: 'bg-amber-900/30 border-amber-700 text-amber-200',
+  gk: 'bg-sky-900/30 border-sky-700 text-sky-200',
 };
 
 const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
@@ -222,7 +223,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               key={w.kind}
               type="button"
               onClick={() => onReplaceHighlights(w.players)}
-              className={`flex flex-col items-start gap-0.5 px-3 py-2 rounded-md border text-left ${warningTone[w.kind]}`}
+              className={`flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left cursor-pointer ${warningTone[w.kind]}`}
             >
               <span className="text-[13px] font-bold">{w.label}</span>
               <span className="text-[11px] opacity-85">{w.detail}</span>

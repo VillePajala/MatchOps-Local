@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
 import { availableSubInIds, defaultSubTimeSeconds, makeSub } from '@/utils/playtimePlanner/subs';
 import { fairnessText } from '@/utils/playtimePlanner/colors';
+import { labelStyle } from '@/styles/modalStyles';
 import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
 import type { PlanPlayerMinutes } from '@/components/PlanFieldView';
 
@@ -81,7 +82,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
           position: positionLabel,
           player: occupantName,
         })}
-        className="w-full max-w-sm bg-slate-900 border border-slate-700 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+        className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
         ref={(el) => el?.focus()}
@@ -96,14 +97,12 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
 
         {/* Minute stepper - pre-filled to half-time so the common case is zero edits. */}
         <div className="flex items-center gap-2 mt-3 mb-3">
-          <span className="text-xs text-slate-400 uppercase tracking-wide">
-            {t('playtimePlanner.subs.timeLabel', 'Minute')}
-          </span>
+          <span className={labelStyle}>{t('playtimePlanner.subs.timeLabel', 'Minute')}</span>
           <button
             type="button"
             onClick={() => step(-1)}
             aria-label="-1"
-            className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-lg leading-none"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             −
           </button>
@@ -114,7 +113,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             type="button"
             onClick={() => step(1)}
             aria-label="+1"
-            className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-600 text-slate-100 text-lg leading-none"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             +
           </button>
@@ -126,9 +125,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
         </div>
 
         {/* Live bench grid: tap = create the sub. Tinted minutes make the fair pick obvious. */}
-        <p className="text-[11px] text-slate-400 uppercase tracking-wide mb-1.5">
-          {t('playtimePlanner.subs.inLabel', 'Player on')}
-        </p>
+        <p className={`${labelStyle} mb-1.5`}>{t('playtimePlanner.subs.inLabel', 'Player on')}</p>
         {benchIds.length === 0 ? (
           <p className="text-sm text-slate-400">
             {t('playtimePlanner.subs.noBench', 'No bench players available.')}
@@ -142,7 +139,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                   key={id}
                   type="button"
                   onClick={() => pick(id)}
-                  className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-indigo-600 border border-slate-600 text-sm font-medium text-slate-100"
+                  className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-indigo-600 border border-slate-500/40 text-sm font-medium text-slate-100"
                 >
                   {nameById.get(id) ?? id}
                   {fair && (
