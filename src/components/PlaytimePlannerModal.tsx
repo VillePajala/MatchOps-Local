@@ -158,6 +158,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Games tab layout: one editable field, or every game side by side
   // (standalone's view toggle; replaces the old separate grid view).
   const [gamesLayout, setGamesLayout] = useState<'single' | 'grid'>('single');
+  // Fairness strip fold state lives HERE so it survives tab/layout switches
+  // (local state reset on every unmount re-expanded it constantly).
+  const [stripCollapsed, setStripCollapsed] = useState(false);
+  const ribbonRef = useRef<HTMLElement | null>(null);
   // Plan tab: collapsed replace-a-player section (the one roster edit that
   // checkboxes can't express - it hands spots and subs over).
   const [showReplace, setShowReplace] = useState(false);
@@ -273,6 +277,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   useEffect(() => {
     resetSetupFormRef.current = resetSetupForm;
   }, [resetSetupForm]);
+  const loadErrorToastRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    loadErrorToastRef.current = () =>
+      showToast(t('playtimePlanner.loadError', 'Could not load your plans. Close the planner and try again.'), 'error');
+  }, [showToast, t]);
 
   // Load roster + any existing plan when the modal opens.
   useEffect(() => {
@@ -302,6 +311,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           setRoster([]);
           resetSetupFormRef.current([]);
           setView('setup');
+          // Without this a user WITH saved plans dead-ends on an empty setup
+          // screen with no explanation (mobile IndexedDB reads can fail once).
+          loadErrorToastRef.current();
         }
       }
       // Team/season/tournament data is best-effort: it only feeds the optional
@@ -1185,6 +1197,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   const editingGame = activePlan?.games.find((g) => g.id === editingGameId) ?? activePlan?.games[0] ?? null;
 
+  // Keep the active game's ribbon tab in view - jumping to G14 from the
+  // Minutes tab (or by swiping) must not leave the ribbon showing G1-G4.
+  const editingGameIdResolved = editingGame?.id ?? null;
+  useEffect(() => {
+    if (view !== 'games' || !editingGameIdResolved) return;
+    const el = ribbonRef.current?.querySelector(`[data-game-id="${editingGameIdResolved}"]`);
+    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [view, editingGameIdResolved]);
+
   if (!isOpen) return null;
 
   return (
@@ -1249,7 +1270,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           the plan's data. No hub page, no Back-stepping between them. */}
       {activePlan && isPlanTab(view) && (
         <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <div className="flex w-full gap-2" role="tablist">
+          <div
+            className="flex w-full gap-2"
+            role="tablist"
+            onKeyDown={(e) => {
+              if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+              const idx = PLAN_TABS.indexOf(view as PlanTab);
+              const next = PLAN_TABS[(idx + (e.key === 'ArrowRight' ? 1 : PLAN_TABS.length - 1)) % PLAN_TABS.length];
+              setSubSheetTarget(null);
+              setView(next);
+              (e.currentTarget.querySelector(`#planner-tab-${next}`) as HTMLElement | null)?.focus();
+            }}
+          >
             {(
               [
                 ['games', t('playtimePlanner.tabs.games', 'Games')],
@@ -1259,8 +1291,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             ).map(([tab, label]) => (
               <button
                 key={tab}
+                id={`planner-tab-${tab}`}
                 role="tab"
                 aria-selected={view === tab}
+                aria-controls={`planner-panel-${tab}`}
+                tabIndex={view === tab ? 0 : -1}
                 onClick={() => {
                   setSubSheetTarget(null);
                   setView(tab);
@@ -1557,7 +1592,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'plan' && activePlan && (
-          <div className="space-y-4">
+          <div role="tabpanel" id="planner-panel-plan" aria-labelledby="planner-tab-plan" className="space-y-4">
             {/* Roster as checkboxes in the SAME gradient picker as creation -
                 checking adds a player to the plan, unchecking removes (with an
                 impact confirm when they hold lineup spots). */}
@@ -1842,7 +1877,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
         {view === 'games' && activePlan && editingGame && (
           <div
-            className="space-y-3"
+            role="tabpanel"
+            id="planner-panel-games"
+            aria-labelledby="planner-tab-games"
+            className="space-y-4"
             onTouchStart={gamesLayout === 'single' ? handleLineupTouchStart : undefined}
             onTouchEnd={gamesLayout === 'single' ? handleLineupTouchEnd : undefined}
             data-testid="lineup-swipe-area"
@@ -1859,6 +1897,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 renders even for a single-game plan. Excluded tabs dim. */}
             <div className="flex items-center gap-1.5">
             <nav
+              ref={ribbonRef}
               aria-label={t('playtimePlanner.lineup.gameTabs', 'Switch game')}
               className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 flex-1 min-w-0"
               onTouchStart={(e) => e.stopPropagation()}
@@ -1873,7 +1912,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   ? t('playtimePlanner.lineup.includedToggle', 'Counted in totals - tap to exclude')
                   : t('playtimePlanner.lineup.excludedToggle', 'Excluded from totals - tap to include');
                 return (
-                  <div key={g.id} className="relative shrink-0">
+                  <div key={g.id} data-game-id={g.id} className="relative shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1897,10 +1936,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       >
                         {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
                         {incomplete && (
-                          <span
-                            className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 ml-1.5 align-middle"
-                            aria-hidden="true"
-                          />
+                          /* Placed count instead of a second dot - two unlabeled
+                             dots (incomplete vs included) were indistinguishable. */
+                          <span className="ml-1.5 text-amber-400 normal-case">
+                            {placedCount}/{getGameSlots(g.formationId).length}
+                          </span>
                         )}
                       </span>
                       <span
@@ -1922,12 +1962,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       aria-pressed={g.included}
                       aria-label={`${toggleTitle}: ${g.label}`}
                       title={toggleTitle}
-                      className="absolute top-0 right-0 p-1.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                      className="absolute top-0 right-0 p-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 after:absolute after:-inset-1.5 after:content-['']"
                     >
                       <span
                         aria-hidden="true"
                         className={`block w-2.5 h-2.5 rounded-full border transition-colors ${
-                          g.included ? 'bg-emerald-400 border-emerald-300' : 'bg-transparent border-slate-400'
+                          g.included ? 'bg-green-400 border-green-300' : 'bg-transparent border-slate-400'
                         }`}
                       />
                     </button>
@@ -1954,6 +1994,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 rows={fairness.rows}
                 highlightPlayerIds={highlightPlayerIds}
                 onToggleHighlight={toggleHighlight}
+                collapsed={stripCollapsed}
+                onToggleCollapsed={() => setStripCollapsed((c) => !c)}
               />
             </div>
             <PlanFieldView
@@ -1990,6 +2032,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   rows={fairness.rows}
                   highlightPlayerIds={highlightPlayerIds}
                   onToggleHighlight={toggleHighlight}
+                  collapsed={stripCollapsed}
+                  onToggleCollapsed={() => setStripCollapsed((c) => !c)}
                 />
                 {/* All games side by side (stacked on phones): every card is the
                     SAME fully editable field as the single-game layout -
@@ -2001,18 +2045,51 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       className={`${cardStyle} space-y-2 ${!g.included ? 'opacity-60' : ''}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-sm font-semibold text-slate-100">{g.label}</h3>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingGameId(g.id);
-                            setSubSheetTarget(null);
-                            setGamesLayout('single');
-                          }}
-                          className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
-                        >
-                          {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
-                        </button>
+                        <h3 className="text-sm font-semibold text-slate-100 min-w-0 truncate">{g.label}</h3>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingGameId(g.id);
+                              setSubSheetTarget(null);
+                              setGamesLayout('single');
+                            }}
+                            className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
+                          >
+                            {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
+                          </button>
+                          {/* Same include toggle as the ribbon dot - the grid is
+                              the comparison view, so counting a game in/out must
+                              not require leaving it. */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateActivePlan((plan) => ({
+                                ...plan,
+                                games: plan.games.map((gg) => (gg.id === g.id ? { ...gg, included: !gg.included } : gg)),
+                              }))
+                            }
+                            aria-pressed={g.included}
+                            aria-label={`${
+                              g.included
+                                ? t('playtimePlanner.lineup.includedToggle', 'Counted in totals - tap to exclude')
+                                : t('playtimePlanner.lineup.excludedToggle', 'Excluded from totals - tap to include')
+                            }: ${g.label}`}
+                            title={
+                              g.included
+                                ? t('playtimePlanner.lineup.includedToggle', 'Counted in totals - tap to exclude')
+                                : t('playtimePlanner.lineup.excludedToggle', 'Excluded from totals - tap to include')
+                            }
+                            className="p-2 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                          >
+                            <span
+                              aria-hidden="true"
+                              className={`block w-2.5 h-2.5 rounded-full border transition-colors ${
+                                g.included ? 'bg-green-400 border-green-300' : 'bg-transparent border-slate-400'
+                              }`}
+                            />
+                          </button>
+                        </div>
                       </div>
                       <PlanFieldView
                         game={g}
@@ -2031,6 +2108,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'minutes' && activePlan && (
+          <div role="tabpanel" id="planner-panel-minutes" aria-labelledby="planner-tab-minutes">
           <PlanBalanceView
             plan={activePlan}
             highlightPlayerIds={highlightPlayerIds}
@@ -2043,6 +2121,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               setView('games');
             }}
           />
+          </div>
         )}
       </ScrollableContent>
 
@@ -2130,7 +2209,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
         warningMessage={t(
           'playtimePlanner.overview.suggestConfirmWarning',
-          'Current lineups and substitutions of included games will be replaced. Undo restores them.',
+          'Current lineups and substitutions of included games will be replaced. Undo (on the Games tab) restores them.',
         )}
         onConfirm={() => {
           setShowSuggestConfirm(false);
@@ -2182,7 +2261,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         title={t('playtimePlanner.overview.trimConfirmTitle', 'Remove {{name}}?', { name: trimConfirm?.label ?? '' })}
         message={t(
           'playtimePlanner.overview.trimConfirmMessage',
-          'Its lineup and substitutions are deleted. Undo restores them.',
+          'Its lineup and substitutions are deleted. Undo (on the Games tab) restores them.',
         )}
         onConfirm={() => {
           if (trimConfirm) performRemoveGame(trimConfirm.id);

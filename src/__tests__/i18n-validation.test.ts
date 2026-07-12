@@ -332,7 +332,9 @@ describe('Translation File Validation', () => {
       // -3 net: field polish (+1 subSheet.existing - in-sheet sub removal;
       //     -4: lineup.hint/pickForSlot/viewToggle, subs.addHint -
       //     instruction copy removed, toggle became one icon button)
-      expect(enKeys.length).toBe(2803);
+      // +2: lineup.noPlayers (zero-player empty state) + loadError (initial
+      //     load-failure toast) - review batch B
+      expect(enKeys.length).toBe(2805);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -388,7 +390,9 @@ describe('Translation File Validation', () => {
       // -3 net: field polish (+1 subSheet.existing - in-sheet sub removal;
       //     -4: lineup.hint/pickForSlot/viewToggle, subs.addHint -
       //     instruction copy removed, toggle became one icon button)
-      expect(fiKeys.length).toBe(2803);
+      // +2: lineup.noPlayers (zero-player empty state) + loadError (initial
+      //     load-failure toast) - review batch B
+      expect(fiKeys.length).toBe(2805);
     });
   });
 });

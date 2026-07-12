@@ -3195,14 +3195,14 @@
       "suggestButton": "Suggest fair lineups",
       "suggestConfirmTitle": "Suggest fair lineups?",
       "suggestConfirmMessage": "Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.",
-      "suggestConfirmWarning": "Current lineups and substitutions of included games will be replaced. Undo restores them.",
+      "suggestConfirmWarning": "Current lineups and substitutions of included games will be replaced. Undo (on the Games tab) restores them.",
       "suggestConfirmLabel": "Suggest",
       "suggestDone": "Fair lineups suggested - check the balance view.",
       "notCounted": "Not counted",
       "addGame": "Add game",
       "removeGame": "Remove game",
       "trimConfirmTitle": "Remove {{name}}?",
-      "trimConfirmMessage": "Its lineup and substitutions are deleted. Undo restores them."
+      "trimConfirmMessage": "Its lineup and substitutions are deleted. Undo (on the Games tab) restores them."
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",
@@ -3222,7 +3222,8 @@
       "includedToggle": "Counted in totals - tap to exclude",
       "excludedToggle": "Excluded from totals - tap to include",
       "viewSingle": "Single game",
-      "viewGrid": "Side by side"
+      "viewGrid": "Side by side",
+      "noPlayers": "No players in this plan - add them on the Plan tab."
     },
     "subs": {
       "heading": "Substitutions",
@@ -3290,6 +3291,7 @@
       "games": "Games",
       "minutes": "Minutes",
       "plan": "Plan"
-    }
+    },
+    "loadError": "Could not load your plans. Close the planner and try again."
   }
 }

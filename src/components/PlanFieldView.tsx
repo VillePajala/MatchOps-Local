@@ -383,7 +383,11 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             )}
           </div>
         )}
-        {bench.length === 0 ? (
+        {players.length === 0 ? (
+          <p className={subtextStyle}>
+            {t('playtimePlanner.lineup.noPlayers', 'No players in this plan - add them on the Plan tab.')}
+          </p>
+        ) : bench.length === 0 ? (
           <p className={subtextStyle}>
             {t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
           </p>
@@ -393,6 +397,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               const fair = minutesByPlayer?.[id];
               const involved = isTracked(id);
               const sitsOut = !enteringIds.has(id);
+              // Field full and no slot selected: a tap has no target, so the
+              // disc reads inert instead of dying silently.
+              const inert = !activeSlotId && emptyFillOrder.length === 0;
               return (
                 /* Bench players render as DISCS - the same visual object as the
                    players on the pitch - so "tap to place/swap" is obvious. */
@@ -400,8 +407,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   key={id}
                   type="button"
                   onClick={() => handleBenchClick(id)}
+                  disabled={inert}
                   title={sitsOut ? t('playtimePlanner.lineup.notInGame', 'Not in this game') : undefined}
-                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${dimClass(involved)}`}
+                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed ${dimClass(involved)}`}
                 >
                   <span
                     className={[
