@@ -183,7 +183,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const seedHistory = useCallback((plan: PlaytimePlan | null) => {
     historyRef.current = plan ? { stack: [plan], index: 0 } : { stack: [], index: -1 };
     pendingEditRef.current = null;
-    lastEditCoalescedRef.current = false;
+    lastEditCoalescedRef.current = null;
     setHistoryTick((t) => t + 1);
   }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -329,34 +329,43 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
 
 
+  // isCreating gates a double-tap: two taps inside the IndexedDB-write window
+  // used to create two identical plans.
+  const [isCreating, setIsCreating] = useState(false);
   const handleCreate = async () => {
-    const players = roster
-      .filter((p) => selectedIds.has(p.id))
-      // Store the disc name (nickname first, like the field) so the planner shows
-      // the same short name the created game will - not the full legal name.
-      .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
-    if (players.length === 0) return;
-    const plan = createPlan({
-      name: name.trim() || t('playtimePlanner.setup.defaultName', 'Tournament plan'),
-      players,
-      gameCount,
-      formationId,
-      numberOfPeriods,
-      periodMinutes,
-      teamId: teamId || undefined,
-      gameLabel: (i) => t('playtimePlanner.overview.gameLabel', 'Game {{n}}', { n: i + 1 }),
-    });
-    const saved = await savePlan(plan);
-    if (saved) {
-      setActivePlan(saved);
-      seedHistory(saved);
-      setView('games');
-      void refreshPlanList();
-    } else {
-      showToast(
-        t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'),
-        'error',
-      );
+    if (isCreating) return;
+    setIsCreating(true);
+    try {
+      const players = roster
+        .filter((p) => selectedIds.has(p.id))
+        // Store the disc name (nickname first, like the field) so the planner shows
+        // the same short name the created game will - not the full legal name.
+        .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
+      if (players.length === 0) return;
+      const plan = createPlan({
+        name: name.trim() || t('playtimePlanner.setup.defaultName', 'Tournament plan'),
+        players,
+        gameCount,
+        formationId,
+        numberOfPeriods,
+        periodMinutes,
+        teamId: teamId || undefined,
+        gameLabel: (i) => t('playtimePlanner.overview.gameLabel', 'Game {{n}}', { n: i + 1 }),
+      });
+      const saved = await savePlan(plan);
+      if (saved) {
+        setActivePlan(saved);
+        seedHistory(saved);
+        setView('games');
+        void refreshPlanList();
+      } else {
+        showToast(
+          t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'),
+          'error',
+        );
+      }
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -395,14 +404,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   // The updater stays PURE (React StrictMode double-invokes it - side effects
   // here double-pushed history). pendingEditRef marks the commit as a user edit;
-  // the effect below records it exactly once. coalesce=true (text inputs) makes
-  // consecutive edits REPLACE the top history entry instead of pushing one per
-  // keystroke, so typing a name costs one undo slot, not twenty.
-  const pendingEditRef = useRef<null | { coalesce: boolean }>(null);
-  const lastEditCoalescedRef = useRef(false);
+  // the effect below records it exactly once. A coalesceKey (text inputs) makes
+  // consecutive edits TO THE SAME FIELD replace the top history entry instead of
+  // pushing one per keystroke - the key match keeps renames of two different
+  // games (or a game and the plan) from merging into one undo step.
+  const pendingEditRef = useRef<null | { coalesceKey: string | null }>(null);
+  const lastEditCoalescedRef = useRef<string | null>(null);
   const updateActivePlan = useCallback(
-    (mutate: (plan: PlaytimePlan) => PlaytimePlan, opts?: { coalesce?: boolean }) => {
-      pendingEditRef.current = { coalesce: opts?.coalesce ?? false };
+    (mutate: (plan: PlaytimePlan) => PlaytimePlan, opts?: { coalesceKey?: string }) => {
+      pendingEditRef.current = { coalesceKey: opts?.coalesceKey ?? null };
       setActivePlan((prev) => (prev ? mutate(prev) : prev));
     },
     [],
@@ -420,7 +430,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       h.stack = [activePlan];
       h.index = 0;
     } else if (h.stack[h.index] !== activePlan) {
-      const replaceTop = pending.coalesce && lastEditCoalescedRef.current && h.index === h.stack.length - 1 && h.index > 0;
+      const replaceTop =
+        pending.coalesceKey !== null &&
+        lastEditCoalescedRef.current === pending.coalesceKey &&
+        h.index === h.stack.length - 1 &&
+        h.index > 0;
       h.stack = h.stack.slice(0, h.index + 1);
       if (replaceTop) {
         h.stack[h.stack.length - 1] = activePlan;
@@ -430,7 +444,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       }
       h.index = h.stack.length - 1;
     }
-    lastEditCoalescedRef.current = pending.coalesce;
+    lastEditCoalescedRef.current = pending.coalesceKey;
     setHistoryTick((t) => t + 1);
     dirtyPlanRef.current = activePlan;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -452,7 +466,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       h.index = ni;
       const restored = h.stack[ni];
       pendingEditRef.current = null; // restoring is not an edit
-      lastEditCoalescedRef.current = false;
+      lastEditCoalescedRef.current = null;
       setActivePlan(restored);
       // The restored roster may lack currently-highlighted players (undo of a
       // replace/remove) - prune, or the whole lineup ghost-dims with no cell
@@ -562,6 +576,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const handleSwitchPlan = useCallback(
     async (id: string) => {
       if (id === activePlan?.id) return;
+      teamSelectRef.current++; // invalidate any in-flight team-roster fetch
       await flushSave(); // persist the outgoing plan before reading the target
       const p = await getPlan(id);
       if (p) {
@@ -864,7 +879,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const handleRemovePlanPlayer = useCallback(
     (playerId: string) => {
       updateActivePlan((plan) => removePlayerFromPlan(plan, playerId));
-      setRemoveQueue((q) => q.slice(1));
+      // Advance only when the confirmed player is still the queue head - a
+      // double-tap otherwise slices twice and silently skips the next player.
+      setRemoveQueue((q) => (q[0]?.id === playerId ? q.slice(1) : q));
       // A dangling highlight would ghost-dim the whole lineup with no cell left
       // to un-toggle it.
       setHighlightPlayerIds((prev) => prev.filter((id) => id !== playerId));
@@ -934,7 +951,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           return impact.startingCount + impact.subCount > 0;
         });
         const cleanIds = new Set(removals.filter((p) => !impacted.includes(p)).map((p) => p.id));
+        const targetPlanId = activePlan.id;
         updateActivePlan((plan) => {
+          // Belt and braces: never apply a diff computed for one plan to another
+          // (the requestId guard covers nav paths, this covers everything else).
+          if (plan.id !== targetPlanId) return plan;
           let updated: PlaytimePlan = { ...plan, teamId: nextTeamId };
           for (const pp of additions) updated = addPlayerToPlan(updated, pp);
           for (const id of cleanIds) updated = removePlayerFromPlan(updated, id);
@@ -1010,6 +1031,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       updateActivePlan((plan) =>
         plan.games.length > 1 ? { ...plan, games: plan.games.filter((g) => g.id !== gameId) } : plan,
       );
+      // A stale id would misroute the swipe gesture (findIndex -1 walks to
+      // games[0]); null falls back to the first game everywhere.
+      setEditingGameId((id) => (id === gameId ? null : id));
       setTrimConfirm(null);
     },
     [updateActivePlan],
@@ -1086,6 +1110,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Leave the open plan back to the manager: persist pending edits first so the
   // list shows fresh names/metadata.
   const handleBackToManager = useCallback(async () => {
+    teamSelectRef.current++; // invalidate any in-flight team-roster fetch
     await flushSave();
     await refreshPlanList();
     setEditingGameId(null);
@@ -1114,6 +1139,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
       if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || trimConfirm !== null || showSuggestConfirm) return;
+      // Typing in a field: Escape dismisses the field (the desktop reflex),
+      // never yanks the user off the screen mid-edit.
+      const focused = document.activeElement;
+      if (
+        focused instanceof HTMLElement &&
+        (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA' || focused.tagName === 'SELECT')
+      ) {
+        focused.blur();
+        return;
+      }
       // The manager's actions menu is open: Escape closes it, nothing else.
       if (actionsMenuId !== null) {
         setActionsMenuId(null);
@@ -1170,7 +1205,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     ...plan,
                     games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
                   }),
-                  { coalesce: true },
+                  { coalesceKey: `game-label:${editingGame.id}` },
                 );
               }}
               aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
@@ -1184,7 +1219,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               value={activePlan.name}
               onChange={(e) => {
                 const value = e.target.value;
-                updateActivePlan((plan) => ({ ...plan, name: value }), { coalesce: true });
+                updateActivePlan((plan) => ({ ...plan, name: value }), { coalesceKey: 'plan-name' });
               }}
               aria-label={t('playtimePlanner.setup.nameLabel', 'Plan name')}
               className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
@@ -1374,7 +1409,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 <button
                   type="button"
                   onClick={handleCreate}
-                  disabled={selectedIds.size === 0}
+                  disabled={selectedIds.size === 0 || isCreating}
                   className={`${primaryButtonStyle} w-full`}
                 >
                   {t('playtimePlanner.setup.create', 'Create plan')}
@@ -1711,7 +1746,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
             <button
               type="button"
-              onClick={() => setShowSuggestConfirm(true)}
+              onClick={() => {
+                // Never ask consent for a no-op: with nothing included the
+                // confirm would "accept" and then do nothing.
+                if (!activePlan.games.some((g) => g.included)) {
+                  showToast(t('playtimePlanner.balance.noGames', 'No games counted yet. Mark games as included.'), 'info');
+                  return;
+                }
+                setShowSuggestConfirm(true);
+              }}
               className={`${secondaryButtonStyle} w-full`}
             >
               {t('playtimePlanner.overview.suggestButton', 'Suggest fair lineups')}
@@ -1743,7 +1786,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                                 ...plan,
                                 games: plan.games.map((g) => (g.id === game.id ? { ...g, label: value } : g)),
                               }),
-                              { coalesce: true },
+                              { coalesceKey: `game-label:${game.id}` },
                             );
                           }}
                           className={inputBaseStyle}
@@ -1914,6 +1957,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               />
             </div>
             <PlanFieldView
+              key={editingGame.id}
               game={editingGame}
               players={activePlan.players}
               onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}

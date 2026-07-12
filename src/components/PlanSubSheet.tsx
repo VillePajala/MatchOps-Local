@@ -10,7 +10,7 @@
  * creates the sub and closes the sheet. Replaces the old three-dropdown form.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
 import { availableSubInIds, defaultSubTimeSeconds, makeSub } from '@/utils/playtimePlanner/subs';
@@ -71,6 +71,16 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
   const [minute, setMinute] = useState(() => Math.min(maxMinute, Math.max(1, defaultMinute)));
   const atHalftime = minute === defaultMinute && game.numberOfPeriods === 2;
 
+  // Focus the dialog ONCE on mount (an inline callback ref re-fired on every
+  // render, yanking focus off the minute stepper after each press) and hand
+  // focus back to the opener on close.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialogRef.current?.focus();
+    return () => opener?.focus();
+  }, []);
+
   const step = (delta: number) =>
     setMinute((m) => Math.min(maxMinute, Math.max(1, m + delta)));
 
@@ -95,7 +105,7 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
         className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         tabIndex={-1}
-        ref={(el) => el?.focus()}
+        ref={dialogRef}
       >
         <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
         <h4 className="text-sm font-semibold text-slate-100">
