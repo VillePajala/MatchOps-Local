@@ -3224,8 +3224,7 @@
       "notInGame": "Not in this game",
       "gameName": "Game name",
       "includedToggle": "Counted in totals - tap to exclude",
-      "excludedToggle": "Excluded from totals - tap to include",
-      "renameGame": "Rename game"
+      "excludedToggle": "Excluded from totals - tap to include"
     },
     "subs": {
       "heading": "Substitutions",

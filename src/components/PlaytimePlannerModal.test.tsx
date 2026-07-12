@@ -429,7 +429,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(stripCell, { touches: [{ clientX: 300, clientY: 100 }] });
       fireEvent.touchEnd(stripCell, { changedTouches: [{ clientX: 100, clientY: 100 }] });
     });
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
   });
 
   it('grid view shows every game as an editable card with the totals strip on top', async () => {
@@ -504,43 +504,46 @@ describe('PlaytimePlannerModal', () => {
     });
     expect(screen.getByDisplayValue('Renamed Cup')).toBeInTheDocument();
 
-    // Undo/redo live in the lineup view; the header shows the plan name there.
+    // Undo/redo live in the game view; there the header edits the GAME name.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
     await act(async () => {
+      fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final' } });
+    });
+    await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     });
-    expect(screen.getByRole('heading', { name: 'Saved Cup' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
     });
-    expect(screen.getByRole('heading', { name: 'Renamed Cup' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Final')).toBeInTheDocument();
   });
 
   it('coalesces consecutive keystrokes into ONE undo step', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
-    const nameInput = await screen.findByDisplayValue('Saved Cup');
+    await screen.findByDisplayValue('Saved Cup');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
+    });
 
-    // Three keystrokes of a rename...
-    for (const v of ['Saved Cup A', 'Saved Cup AB', 'Saved Cup ABC']) {
+    // Three keystrokes of a game rename in the header...
+    const nameInput = screen.getByLabelText('Game name');
+    for (const v of ['Game 1 A', 'Game 1 AB', 'Game 1 ABC']) {
       await act(async () => {
         fireEvent.change(nameInput, { target: { value: v } });
       });
     }
-    expect(screen.getByDisplayValue('Saved Cup ABC')).toBeInTheDocument();
-    // ...revert with a SINGLE undo (not one per keystroke) - from the lineup
-    // view, where the undo/redo buttons live.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
-    });
+    expect(screen.getByDisplayValue('Game 1 ABC')).toBeInTheDocument();
+    // ...revert with a SINGLE undo (not one per keystroke).
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     });
-    expect(screen.getByRole('heading', { name: 'Saved Cup' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
@@ -567,7 +570,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(tabs, { touches: [{ clientX: 300, clientY: 100 }] });
       fireEvent.touchEnd(tabs, { changedTouches: [{ clientX: 100, clientY: 100 }] });
     });
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
   });
 
   it('undo is disabled on a freshly opened plan (history never crosses plans)', async () => {
@@ -651,14 +654,14 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
 
     const area = screen.getByTestId('lineup-swipe-area');
     await act(async () => {
       fireEvent.touchStart(area, { touches: [{ clientX: 300, clientY: 200 }] });
       fireEvent.touchEnd(area, { changedTouches: [{ clientX: 120, clientY: 210 }] });
     });
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 2');
+    expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
 
     // Swiping right at the LAST game clamps (no wrap) - stays on Game 2... swipe
     // right goes BACK to Game 1.
@@ -666,7 +669,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(area, { touches: [{ clientX: 120, clientY: 200 }] });
       fireEvent.touchEnd(area, { changedTouches: [{ clientX: 300, clientY: 210 }] });
     });
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
   });
 
   it('switches between games with one tap via the lineup game tabs', async () => {
@@ -685,38 +688,40 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 1');
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
 
     // Ribbon tabs carry the short code AND the game name.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'G2 Game 2' }));
     });
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Game 2');
+    expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     // Current tab is marked for assistive tech.
     expect(screen.getByRole('button', { name: 'G2 Game 2' })).toHaveAttribute('aria-current', 'true');
   });
 
-  it('renames a game via the explicit pencil in the game view', async () => {
-    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+  it('renames a game by editing the header title in the game view', async () => {
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [existingPlan.games[0], { ...existingPlan.games[0], id: 'g2', label: 'Game 2' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
 
-    // Read-only until the pencil is tapped.
-    expect(screen.queryByLabelText('Game name')).not.toBeInTheDocument();
+    // The header IS the game name - tap-editable, no separate row.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Rename game' }));
+      fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final' } });
     });
-    const input = screen.getByLabelText('Game name');
+    // The ribbon tab picks up the new name; switching games swaps the header.
+    expect(screen.getByRole('button', { name: 'G1 Final' })).toBeInTheDocument();
     await act(async () => {
-      fireEvent.change(input, { target: { value: 'Final' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.click(screen.getByRole('button', { name: 'G2 Game 2' }));
     });
-    // Edit mode closed; the new name shows in the title and on the ribbon tab.
-    expect(screen.queryByLabelText('Game name')).not.toBeInTheDocument();
-    expect(screen.getByTestId('lineup-game-title')).toHaveTextContent('Final');
+    expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Final')).not.toBeInTheDocument();
   });
 
   it('adds and removes a substitution from the lineup view', async () => {

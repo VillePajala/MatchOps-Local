@@ -46,7 +46,6 @@ import {
   inputBaseStyle,
   selectStyle,
   cardStyle,
-  iconButtonEditStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
 } from '@/styles/modalStyles';
@@ -150,11 +149,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // doubles as the format summary) and the pending remove-last-game confirm.
   const [showFormatEditor, setShowFormatEditor] = useState(false);
   const [trimConfirm, setTrimConfirm] = useState<PlanGame | null>(null);
-  // Explicit game-rename mode (pencil in the game view); leaves with the game.
-  const [renamingGame, setRenamingGame] = useState(false);
-  useEffect(() => {
-    setRenamingGame(false);
-  }, [editingGameId, view]);
   // replacingId: plan player whose replacement is being chosen (Phase 4);
   // removeQueue: plan players pending the destructive remove confirm, asked one
   // at a time (a team switch or mass-uncheck can queue several). Cancel skips
@@ -1171,6 +1165,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
             />
           </div>
+        ) : view === 'lineup' && editingGame ? (
+          // The game view is about ONE game, so the header names (and renames)
+          // it - freeing the row the title used to take between the fairness
+          // strip and the field.
+          <div className={headerStyle}>
+            <input
+              type="text"
+              value={editingGame.label}
+              onChange={(e) => {
+                const value = e.target.value;
+                updateActivePlan(
+                  (plan) => ({
+                    ...plan,
+                    games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
+                  }),
+                  { coalesce: true },
+                );
+              }}
+              aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
+              className={`${titleStyle} w-full bg-transparent text-center rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            />
+          </div>
         ) : (
           <div className={headerStyle}>
             <h2 className={`${titleStyle} truncate`}>{activePlan.name}</h2>
@@ -1810,55 +1826,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               highlightPlayerIds={highlightPlayerIds}
               onToggleHighlight={toggleHighlight}
             />
-            {/* Game name: plain text + explicit pencil (the always-editable
-                inline input was invisible as an affordance). The pencil swaps
-                in an input; Enter/blur closes it. */}
-            <div className="flex items-center justify-between gap-2">
-              {renamingGame ? (
-                <input
-                  type="text"
-                  autoFocus
-                  value={editingGame.label}
-                  aria-label={t('playtimePlanner.lineup.gameName', 'Game name')}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    updateActivePlan(
-                      (plan) => ({
-                        ...plan,
-                        games: plan.games.map((g) => (g.id === editingGame.id ? { ...g, label: value } : g)),
-                      }),
-                      { coalesce: true },
-                    );
-                  }}
-                  onBlur={() => setRenamingGame(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === 'Escape') {
-                      e.stopPropagation();
-                      setRenamingGame(false);
-                    }
-                  }}
-                  className="flex-1 min-w-0 bg-transparent text-base font-semibold text-slate-100 rounded-md border-b border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 px-1 -mx-1"
-                />
-              ) : (
-                <span className="flex items-center gap-1 min-w-0">
-                  <span data-testid="lineup-game-title" className="text-base font-semibold text-slate-100 truncate">
-                    {editingGame.label}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setRenamingGame(true)}
-                    aria-label={t('playtimePlanner.lineup.renameGame', 'Rename game')}
-                    title={t('playtimePlanner.lineup.renameGame', 'Rename game')}
-                    className={`${iconButtonEditStyle} shrink-0`}
-                  >
-                    <HiOutlinePencil className="w-4 h-4" />
-                  </button>
-                </span>
-              )}
-              <span className={`${subtextStyle} shrink-0`}>
-                {getPresetById(editingGame.formationId)?.name ?? '-'}
-              </span>
-            </div>
             <PlanFieldView
               game={editingGame}
               players={activePlan.players}
