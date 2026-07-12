@@ -120,6 +120,14 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
           <span className={labelStyle}>{t('playtimePlanner.subs.timeLabel', 'Minute')}</span>
           <button
             type="button"
+            onClick={() => step(-5)}
+            aria-label="-5"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          >
+            −5
+          </button>
+          <button
+            type="button"
             onClick={() => step(-1)}
             aria-label="-1"
             className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -136,6 +144,14 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
             className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-lg leading-none hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             +
+          </button>
+          <button
+            type="button"
+            onClick={() => step(5)}
+            aria-label="+5"
+            className="w-9 h-9 rounded-md bg-slate-700 border border-slate-600 text-slate-100 text-xs font-semibold leading-none hover:bg-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          >
+            +5
           </button>
           {atHalftime && (
             <span className="text-xs text-slate-400">

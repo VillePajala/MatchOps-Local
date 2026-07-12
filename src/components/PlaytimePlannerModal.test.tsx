@@ -500,7 +500,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final A' } });
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'G2 Game 2' }));
+      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
     });
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final B' } });
@@ -511,7 +511,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     });
     expect(screen.getByLabelText('Game name')).toHaveValue('Game 2');
-    expect(screen.getByRole('button', { name: 'G1 Final A' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^G1 .*Final A$/ })).toBeInTheDocument();
   });
 
   it('undo reverts the last edit and redo restores it', async () => {
@@ -687,11 +687,11 @@ describe('PlaytimePlannerModal', () => {
 
     // Ribbon tabs carry the short code AND the game name.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'G2 Game 2' }));
+      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
     });
     expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     // Current tab is marked for assistive tech.
-    expect(screen.getByRole('button', { name: 'G2 Game 2' })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('button', { name: /^G2 .*Game 2$/ })).toHaveAttribute('aria-current', 'true');
   });
 
   it('renames a game by editing the header title in the game view', async () => {
@@ -709,9 +709,9 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final' } });
     });
     // The ribbon tab picks up the new name; switching games swaps the header.
-    expect(screen.getByRole('button', { name: 'G1 Final' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^G1 .*Final$/ })).toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'G2 Game 2' }));
+      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
     });
     expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Final')).not.toBeInTheDocument();

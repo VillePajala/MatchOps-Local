@@ -33,6 +33,9 @@ interface PlanFairnessStripProps {
   rows: FairnessStripRow[];
   highlightPlayerIds?: readonly string[];
   onToggleHighlight: (playerId: string) => void;
+  /** Controlled fold state (lifted so it survives tab/layout unmounts). */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 const firstName = (name: string): string => name.trim().split(/\s+/)[0] || '?';
@@ -41,9 +44,13 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
   rows,
   highlightPlayerIds = [],
   onToggleHighlight,
+  collapsed: collapsedProp,
+  onToggleCollapsed,
 }) => {
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsedLocal, setCollapsedLocal] = useState(false);
+  const collapsed = collapsedProp ?? collapsedLocal;
+  const toggleCollapsed = onToggleCollapsed ?? (() => setCollapsedLocal((c) => !c));
   if (rows.length === 0) return null;
   const anyHighlight = highlightPlayerIds.length > 0;
   return (
@@ -56,7 +63,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
     >
       <button
         type="button"
-        onClick={() => setCollapsed((c) => !c)}
+        onClick={toggleCollapsed}
         aria-expanded={!collapsed}
         className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-200 py-1.5 -my-1"
       >

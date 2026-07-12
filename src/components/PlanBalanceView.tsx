@@ -205,7 +205,9 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
         <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.balance.title', 'Playing-time balance')}</h3>
         <p className={subtextStyle}>
           {fairMin === null
-            ? t('playtimePlanner.balance.noGames', 'No games counted yet. Mark games as included.')
+            ? plan.players.length === 0
+              ? t('playtimePlanner.lineup.noPlayers', 'No players in this plan - add them on the Plan tab.')
+              : t('playtimePlanner.balance.noGames', 'No games counted yet. Mark games as included.')
             : `${t('playtimePlanner.balance.fairShare', "Share {{minutes}}' each", {
                 minutes: fairMin,
               })} · ${t('playtimePlanner.balance.gamesCounted', '{{count}} games counted', {
