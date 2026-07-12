@@ -130,9 +130,14 @@ jest.mock('@/utils/logger', () => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockGetPlans.mockResolvedValue({});
+  // Mirror real storage: getPlan reads the same collection getPlans serves, so
+  // opening a plan from the manager resolves without per-test wiring.
+  mockGetPlan.mockImplementation(async (id: string) => {
+    const all = (await mockGetPlans()) as Record<string, unknown>;
+    return (all?.[id] as never) ?? null;
+  });
   mockSavePlan.mockImplementation(async (plan) => plan);
   mockDeletePlan.mockResolvedValue(true);
-  mockGetPlan.mockResolvedValue(null);
   mockImportPlan.mockResolvedValue(null);
   mockGetTeams.mockResolvedValue([]);
   mockGetTeamRoster.mockResolvedValue([]);
@@ -143,6 +148,16 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
 });
+
+// The planner now opens on the plan MANAGER; tests that work inside a plan
+// enter it by tapping its row first.
+const enterPlan = async (name: string | RegExp = /Saved Cup/) => {
+  const pattern = typeof name === 'string' ? new RegExp(name) : name;
+  const row = await screen.findByRole('button', { name: pattern });
+  await act(async () => {
+    fireEvent.click(row);
+  });
+};
 
 describe('PlaytimePlannerModal', () => {
   it('renders nothing when closed', () => {
@@ -172,9 +187,9 @@ describe('PlaytimePlannerModal', () => {
     expect(savedPlan.players).toHaveLength(2);
     expect(savedPlan.games).toHaveLength(5);
 
-    // Overview view now shows management controls.
-    await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument());
-    expect(screen.getByText('New')).toBeInTheDocument();
+    // The created plan opens straight into its workspace.
+    await waitFor(() => expect(screen.getByDisplayValue('Tournament plan')).toBeInTheDocument());
+    expect(screen.getByText('Delete')).toBeInTheDocument(); // plan toolbar
   });
 
   it('disables create when no players are selected', async () => {
@@ -208,11 +223,24 @@ describe('PlaytimePlannerModal', () => {
     ],
   };
 
-  it('opens straight to the overview when a plan already exists', async () => {
+  it('opens on the plan manager and enters a plan on tap', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument());
+    // Manager first: the plan is a row with its meta, not an open workspace.
+    const row = await screen.findByRole('button', { name: /Saved Cup/ });
+    expect(row).toHaveTextContent('1 games · 1 players');
+    expect(screen.queryByDisplayValue('Saved Cup')).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(row);
+    });
+    // Inside: the workspace with the editable name and the plan toolbar.
+    expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
+    // Back returns to the manager.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    });
+    expect(screen.getByRole('button', { name: /Saved Cup/ })).toBeInTheDocument();
   });
 
   it('bulk re-applies the plan to linked unplayed games (Phase 3.4)', async () => {
@@ -234,6 +262,7 @@ describe('PlaytimePlannerModal', () => {
     } as never);
 
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} onLinkedGamesUpdated={onLinkedGamesUpdated} />);
+    await enterPlan();
 
     // The "update N games" affordance appears once the linked count resolves.
     const button = await screen.findByText('Update 1 games created from this');
@@ -258,6 +287,7 @@ describe('PlaytimePlannerModal', () => {
   it('autosaves an overview edit (debounced) to the plan name', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     const nameInput = await screen.findByDisplayValue('Saved Cup');
 
     await act(async () => {
@@ -287,13 +317,14 @@ describe('PlaytimePlannerModal', () => {
   it('edits a lineup end-to-end: assign a player and the placed count updates', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Edit lineup')).toBeInTheDocument());
+    await enterPlan();
+    await screen.findByRole('button', { name: /Game 1/ });
     // 8v8-2-1-2-1-1 => GK + 7 = 8 slots, none placed yet.
     expect(screen.getByText('0/8 placed')).toBeInTheDocument();
 
     // Open the lineup editor for the game.
     await act(async () => {
-      fireEvent.click(screen.getByText('Edit lineup'));
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
 
     // Assign the one roster player (Alex) to the goalkeeper slot.
@@ -321,6 +352,7 @@ describe('PlaytimePlannerModal', () => {
     // Plan holds only Alex; master roster also has Sam -> Sam is the candidate.
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await waitFor(() => expect(screen.getByText('Edit players')).toBeInTheDocument());
     await act(async () => {
       fireEvent.click(screen.getByText('Edit players'));
@@ -348,6 +380,7 @@ describe('PlaytimePlannerModal', () => {
   it('removes a plan player only after an impact confirm (Phase 4)', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await waitFor(() => expect(screen.getByText('Edit players')).toBeInTheDocument());
     await act(async () => {
       fireEvent.click(screen.getByText('Edit players'));
@@ -375,9 +408,9 @@ describe('PlaytimePlannerModal', () => {
     };
     mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await enterPlan();
     await act(async () => {
-      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
 
     // A horizontal swipe starting on a strip cell must stay in the strip.
@@ -388,7 +421,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(stripCell, { touches: [{ clientX: 300, clientY: 100 }] });
       fireEvent.touchEnd(stripCell, { changedTouches: [{ clientX: 100, clientY: 100 }] });
     });
-    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
   });
 
   it('grid view shows every game as an editable card with the totals strip on top', async () => {
@@ -398,6 +431,7 @@ describe('PlaytimePlannerModal', () => {
     };
     mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await screen.findByDisplayValue('Saved Cup');
 
     await act(async () => {
@@ -420,6 +454,7 @@ describe('PlaytimePlannerModal', () => {
     // Plan has one game with an empty lineup; the generator fills it.
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await screen.findByDisplayValue('Saved Cup');
 
     await act(async () => {
@@ -447,6 +482,7 @@ describe('PlaytimePlannerModal', () => {
   it('undo reverts the last edit and redo restores it', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     const nameInput = await screen.findByDisplayValue('Saved Cup');
 
     await act(async () => {
@@ -468,6 +504,7 @@ describe('PlaytimePlannerModal', () => {
   it('coalesces consecutive keystrokes into ONE undo step', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     const nameInput = await screen.findByDisplayValue('Saved Cup');
 
     // Three keystrokes of a rename...
@@ -496,9 +533,9 @@ describe('PlaytimePlannerModal', () => {
     };
     mockGetPlans.mockResolvedValue({ existing: threeGamePlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await enterPlan();
     await act(async () => {
-      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
 
     // A drag that starts on the tab strip stays in the strip (it scrolls it,
@@ -508,12 +545,13 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(tabs, { touches: [{ clientX: 300, clientY: 100 }] });
       fireEvent.touchEnd(tabs, { changedTouches: [{ clientX: 100, clientY: 100 }] });
     });
-    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
   });
 
   it('undo is disabled on a freshly opened plan (history never crosses plans)', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await screen.findByDisplayValue('Saved Cup');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
@@ -526,18 +564,18 @@ describe('PlaytimePlannerModal', () => {
     };
     mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await enterPlan();
     await act(async () => {
-      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
-    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
 
     const area = screen.getByTestId('lineup-swipe-area');
     await act(async () => {
       fireEvent.touchStart(area, { touches: [{ clientX: 300, clientY: 200 }] });
       fireEvent.touchEnd(area, { changedTouches: [{ clientX: 120, clientY: 210 }] });
     });
-    expect(screen.getByRole('heading', { name: 'Game 2' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
 
     // Swiping right at the LAST game clamps (no wrap) - stays on Game 2... swipe
     // right goes BACK to Game 1.
@@ -545,7 +583,7 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchStart(area, { touches: [{ clientX: 120, clientY: 200 }] });
       fireEvent.touchEnd(area, { changedTouches: [{ clientX: 300, clientY: 210 }] });
     });
-    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
   });
 
   it('switches between games with one tap via the lineup game tabs', async () => {
@@ -560,17 +598,17 @@ describe('PlaytimePlannerModal', () => {
     };
     mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await enterPlan();
     await act(async () => {
-      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
-    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
 
     // Tab labels use the short game code (G1/G2, P1/P2 in fi).
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'G2' }));
     });
-    expect(screen.getByRole('heading', { name: 'Game 2' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Game 2')).toBeInTheDocument();
     // Current tab is marked for assistive tech.
     expect(screen.getByRole('button', { name: 'G2' })).toHaveAttribute('aria-current', 'true');
   });
@@ -580,9 +618,10 @@ describe('PlaytimePlannerModal', () => {
       existing: { ...existingPlan, players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }] },
     });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Edit lineup')).toBeInTheDocument());
+    await enterPlan();
+    await screen.findByRole('button', { name: /Game 1/ });
     await act(async () => {
-      fireEvent.click(screen.getByText('Edit lineup'));
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
     });
 
     // Place Alex as goalkeeper so there is a starter to sub off.
@@ -760,6 +799,7 @@ describe('PlaytimePlannerModal', () => {
   it('navigates to the balance view and back', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await waitFor(() => expect(screen.getByText('View playing-time balance')).toBeInTheDocument());
 
     await act(async () => {
@@ -776,6 +816,7 @@ describe('PlaytimePlannerModal', () => {
   it('duplicates the active plan under a copy name', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await waitFor(() => expect(screen.getByText('Duplicate')).toBeInTheDocument());
 
     await act(async () => {
@@ -797,6 +838,7 @@ describe('PlaytimePlannerModal', () => {
     });
     try {
       render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
       await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
       await act(async () => {
         fireEvent.click(screen.getByText('Export JSON'));
@@ -840,6 +882,7 @@ describe('PlaytimePlannerModal', () => {
       });
     try {
       render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan(/Cup A\/B/);
       await waitFor(() => expect(screen.getByText('Export JSON')).toBeInTheDocument());
       await act(async () => {
         fireEvent.click(screen.getByText('Export JSON'));
@@ -853,71 +896,49 @@ describe('PlaytimePlannerModal', () => {
     }
   });
 
-  it('persists a pending edit before reading the target plan on switch', async () => {
+  it('persists a pending edit before opening another plan from the manager', async () => {
     const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
     mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
-    let saveResolved = false;
-    mockSavePlan.mockImplementation(async (p) => {
-      await Promise.resolve();
-      saveResolved = true;
-      return p;
-    });
-    mockGetPlan.mockImplementation(async (id: string) => {
-      // The pending edit must be persisted before the target read runs (race fix).
-      expect(saveResolved).toBe(true);
-      return id === 'b' ? planB : existingPlan;
-    });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    // Use the game-label input to dirty the plan: its value ('Game 1') is unique,
-    // whereas the plan name collides with the switcher's selected-option text.
-    await waitFor(() => expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument());
-
-    // Dirty the active plan (schedules a debounced save), then switch immediately.
+    await enterPlan();
+    const nameInput = screen.getByDisplayValue('Saved Cup');
     await act(async () => {
-      fireEvent.change(screen.getByDisplayValue('Game 1'), { target: { value: 'Match 1' } });
+      fireEvent.change(nameInput, { target: { value: 'Edited Cup' } });
     });
+    // Back to the manager flushes the pending edit before anything reloads.
     await act(async () => {
-      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'b' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     });
-    await waitFor(() => expect(mockGetPlan).toHaveBeenCalledWith('b'));
-    expect(mockSavePlan).toHaveBeenCalled();
+    await waitFor(() => expect(mockSavePlan).toHaveBeenCalled());
+    expect(mockSavePlan.mock.calls[mockSavePlan.mock.calls.length - 1][0].name).toBe('Edited Cup');
+    await enterPlan(/Plan B/);
+    await waitFor(() => expect(screen.getByDisplayValue('Plan B')).toBeInTheDocument());
   });
 
-  it('shows a toast when switching to a plan that no longer exists', async () => {
+  it('shows a toast when opening a plan that no longer exists', async () => {
     const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
     mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
-    mockGetPlan.mockResolvedValue(null); // target vanished (e.g. deleted elsewhere)
+    mockGetPlan.mockResolvedValue(null); // storage lost it (e.g. another tab)
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Plan')).toBeInTheDocument());
-
-    await act(async () => {
-      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'b' } });
-    });
-    await waitFor(() =>
-      expect(mockShowToast).toHaveBeenCalledWith('Could not open that plan.', 'error'),
-    );
+    await enterPlan(/Plan B/);
+    await waitFor(() => expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error'));
   });
 
-  it('shows a plan switcher when multiple plans exist and switches between them', async () => {
+  it('lists every plan in the manager and opens the chosen one', async () => {
     const planB = { ...existingPlan, id: 'b', name: 'Plan B' };
     mockGetPlans.mockResolvedValue({ existing: existingPlan, b: planB });
-    mockGetPlan.mockImplementation(async (id: string) => (id === 'b' ? planB : existingPlan));
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await waitFor(() => expect(screen.getByText('Plan')).toBeInTheDocument());
-
-    // The overview's only <select> is the plan switcher.
-    const switcher = screen.getByRole('combobox');
-    await act(async () => {
-      fireEvent.change(switcher, { target: { value: 'b' } });
-    });
-    await waitFor(() => expect(mockGetPlan).toHaveBeenCalledWith('b'));
-    await waitFor(() => expect((switcher as HTMLSelectElement).value).toBe('b'));
+    await screen.findByRole('button', { name: /Saved Cup/ });
+    expect(screen.getByRole('button', { name: /Plan B/ })).toBeInTheDocument();
+    await enterPlan(/Plan B/);
+    await waitFor(() => expect(screen.getByDisplayValue('Plan B')).toBeInTheDocument());
   });
 
   it('shows an error toast when delete fails', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockDeletePlan.mockResolvedValue(false);
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
     await waitFor(() => expect(screen.getByText('Delete')).toBeInTheDocument());
 
     // Footer button opens the ConfirmationModal; the destructive action runs

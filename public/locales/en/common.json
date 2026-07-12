@@ -3219,7 +3219,8 @@
       "gameTabs": "Switch game",
       "fairnessStrip": "Playing-time totals",
       "subAction": "Sub…",
-      "notInGame": "Not in this game"
+      "notInGame": "Not in this game",
+      "gameName": "Game name"
     },
     "subs": {
       "heading": "Substitutions",
@@ -3251,7 +3252,6 @@
       "focusOnShare": "on fair share"
     },
     "versions": {
-      "switchLabel": "Plan",
       "duplicate": "Duplicate",
       "export": "Export JSON",
       "import": "Import JSON",
@@ -3275,6 +3275,11 @@
     "subSheet": {
       "title": "Substitution · {{position}} ({{player}})",
       "halftime": "half-time"
+    },
+    "manager": {
+      "title": "Plans",
+      "new": "New plan",
+      "meta": "{{games}} games · {{players}} players"
     }
   }
 }
