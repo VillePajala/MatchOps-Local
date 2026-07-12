@@ -3192,17 +3192,15 @@
       "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
       "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
       "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui.",
-      "editPlayers": "Muokkaa pelaajia",
       "suggestButton": "Ehdota reilut kokoonpanot",
       "suggestConfirmTitle": "Ehdotetaanko reilut kokoonpanot?",
       "suggestConfirmMessage": "Rakentaa avauskokoonpanot ja puoliaikavaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan. Maalivahtia ei koskaan vaihdeta kesken pelin.",
       "suggestConfirmWarning": "Mukana olevien pelien nykyiset kokoonpanot ja vaihdot korvataan. Kumoa palauttaa ne.",
       "suggestConfirmLabel": "Ehdota",
       "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä.",
-      "gridButton": "Kaikki pelit rinnakkain",
       "notCounted": "Ei mukana laskuissa",
       "addGame": "Lisää peli",
-      "removeGame": "Poista viimeinen peli",
+      "removeGame": "Poista peli",
       "trimConfirmTitle": "Poistetaanko {{name}}?",
       "trimConfirmMessage": "Pelin kokoonpano ja vaihdot poistetaan. Kumoa palauttaa ne."
     },
@@ -3224,7 +3222,10 @@
       "notInGame": "Ei pelaa tässä pelissä",
       "gameName": "Pelin nimi",
       "includedToggle": "Mukana laskuissa - napauta jättääksesi pois",
-      "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan"
+      "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan",
+      "viewToggle": "Asettelu",
+      "viewSingle": "Yksi peli",
+      "viewGrid": "Rinnakkain"
     },
     "subs": {
       "heading": "Vaihdot",
@@ -3239,7 +3240,6 @@
     },
     "balance": {
       "title": "Peliaikatasapaino",
-      "view": "Näytä peliaikatasapaino",
       "fairShare": "Osuus {{minutes}}' / pelaaja",
       "gamesCounted_one": "{{count}} peli laskettu",
       "gamesCounted_other": "{{count}} peliä laskettu",
@@ -3266,15 +3266,14 @@
     },
     "gkShort": "MV",
     "players": {
-      "title": "Suunnitelman pelaajat",
       "hint": "Muutokset koskevat vain tätä suunnitelmaa. Luodut pelit päivittyvät, kun otat suunnitelman uudelleen käyttöön; pelattuja pelejä ei koskaan muuteta.",
       "replaceAction": "Korvaa",
       "removeAction": "Poista",
       "replacingHint": "Valitse, kuka ottaa pelaajan {{name}} avauspaikat ja vaihdot:",
-      "addHeading": "Lisää pelaajia",
       "noCandidates": "Kaikki pelaajalistasi pelaajat ovat jo tässä suunnitelmassa.",
       "removeConfirmTitle": "Poistetaanko pelaaja?",
-      "removeConfirmMessage": "{{name}} - avauspaikkoja: {{starting}}, suunniteltuja vaihtoja: {{subs}}. Paikat tyhjenevät ja vaihdot poistetaan."
+      "removeConfirmMessage": "{{name}} - avauspaikkoja: {{starting}}, suunniteltuja vaihtoja: {{subs}}. Paikat tyhjenevät ja vaihdot poistetaan.",
+      "replaceTitle": "Korvaa pelaaja"
     },
     "subSheet": {
       "title": "Vaihto · {{position}} ({{player}})",
@@ -3289,6 +3288,11 @@
       "unarchive": "Palauta arkistosta",
       "archivedBadge": "Arkistoitu",
       "showArchived": "Näytä arkistoidut"
+    },
+    "tabs": {
+      "games": "Pelit",
+      "minutes": "Minuutit",
+      "plan": "Suunnitelma"
     }
   }
 }

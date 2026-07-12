@@ -325,7 +325,11 @@ describe('Translation File Validation', () => {
       //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
       // +1 then -1: lineup.renameGame (pencil rename, superseded same day by
       //     the tap-editable game name in the header)
-      expect(enKeys.length).toBe(2804);
+      // +2 net: tabs restructure (+7: tabs.games/minutes/plan,
+      //     lineup.viewToggle/viewSingle/viewGrid, players.replaceTitle;
+      //     -5: balance.view, overview.gridButton/editPlayers,
+      //     players.title/addHeading - hub buttons replaced by peer tabs)
+      expect(enKeys.length).toBe(2806);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -374,7 +378,11 @@ describe('Translation File Validation', () => {
       //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
       // +1 then -1: lineup.renameGame (pencil rename, superseded same day by
       //     the tap-editable game name in the header)
-      expect(fiKeys.length).toBe(2804);
+      // +2 net: tabs restructure (+7: tabs.games/minutes/plan,
+      //     lineup.viewToggle/viewSingle/viewGrid, players.replaceTitle;
+      //     -5: balance.view, overview.gridButton/editPlayers,
+      //     players.title/addHeading - hub buttons replaced by peer tabs)
+      expect(fiKeys.length).toBe(2806);
     });
   });
 });
