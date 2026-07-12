@@ -311,7 +311,8 @@ describe('Translation File Validation', () => {
       //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
       //         the zero-minutes warning)
       // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
-      expect(enKeys.length).toBe(2791);
+      // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
+      expect(enKeys.length).toBe(2792);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -346,7 +347,8 @@ describe('Translation File Validation', () => {
       //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
       //         the zero-minutes warning)
       // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
-      expect(fiKeys.length).toBe(2791);
+      // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
+      expect(fiKeys.length).toBe(2792);
     });
   });
 });

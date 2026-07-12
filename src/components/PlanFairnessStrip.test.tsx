@@ -20,7 +20,7 @@ afterEach(() => cleanup());
 describe('PlanFairnessStrip', () => {
   it('renders every player as a cell with first name + minutes (worst-off first)', () => {
     render(<PlanFairnessStrip rows={rows} onToggleHighlight={jest.fn()} />);
-    const cells = screen.getAllByRole('button');
+    const cells = screen.getAllByRole('button').filter((b) => b.hasAttribute('aria-pressed'));
     expect(cells).toHaveLength(3);
     // First name only keeps cells compact; the number is always printed.
     expect(cells[0]).toHaveTextContent('Onni');
@@ -40,6 +40,20 @@ describe('PlanFairnessStrip', () => {
     expect(highlighted).toHaveAttribute('aria-pressed', 'true');
     expect(highlighted.className).toContain('ring-amber-300');
     expect(screen.getByRole('button', { name: /Onni/ }).className).toContain('opacity-45');
+  });
+
+  it('collapses and expands via the header toggle (large squads fold away)', () => {
+    render(<PlanFairnessStrip rows={rows} onToggleHighlight={jest.fn()} />);
+    const toggle = screen.getByRole('button', { name: /Playing-time totals/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /Onni/ })).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: /Onni/ })).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: /Onni/ })).toBeInTheDocument();
   });
 
   it('renders nothing for an empty plan', () => {
