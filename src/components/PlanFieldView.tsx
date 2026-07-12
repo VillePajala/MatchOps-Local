@@ -22,7 +22,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
-import { subtextStyle } from '@/styles/modalStyles';
+import { subtextStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import { gameTotalSeconds, type PlanGame, type PlanPlayer, type PlanSub } from '@/utils/playtimePlanner/types';
 
 /** A player's cumulative planned minutes across the WHOLE plan + fair-share ratio. */
@@ -190,6 +190,16 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
         <div className="absolute inset-3 border-2 border-white/25 rounded" />
         <div className="absolute left-3 right-3 top-1/2 h-0.5 bg-white/25 -translate-y-1/2" />
         <div className="absolute left-1/2 top-1/2 w-16 h-16 border-2 border-white/25 rounded-full -translate-x-1/2 -translate-y-1/2" />
+        {/* Goal mouths, drawn beyond each goal line (own goal at the bottom,
+            where the GK stands). */}
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[9px] w-14 border-2 border-b-0 border-white/40 rounded-t-sm"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute left-1/2 -translate-x-1/2 bottom-[3px] h-[9px] w-14 border-2 border-t-0 border-white/40 rounded-b-sm"
+        />
 
         {slots.map((slot, i) => {
           const playerId = playerBySlot.get(slot.slotId) ?? null;
@@ -347,72 +357,70 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
         })}
       </div>
 
-      {/* Assignment panel - the bench keeps one consistent look whether or not a
-          slot is selected; only the hint and the Clear / Auto-fill actions adapt. */}
-      <div className="max-w-sm mx-auto space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm text-slate-300">
-            {activeSlotId
-              ? t('playtimePlanner.lineup.pickForSlot', 'Tap a player for this position')
-              : t('playtimePlanner.lineup.hint', 'Tap a player to place them, or a position first.')}
-          </p>
-          <div className="flex items-center gap-2 shrink-0">
+      {/* Assignment panel - no instruction copy: the actions row and the bench
+          discs ARE the affordances. Solid full-width house buttons. */}
+      <div className="max-w-sm mx-auto space-y-3">
+        {((activeSlotId && activeOccupant) || (emptySlots.length > 0 && bench.length > 0)) && (
+          <div className="flex gap-2">
             {activeSlotId && activeOccupant && onRequestSub && (
               <button
                 type="button"
                 onClick={() => onRequestSub(activeSlotId)}
-                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-indigo-600/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-600/30"
+                className={`${primaryButtonStyle} flex-1`}
               >
                 {t('playtimePlanner.lineup.subAction', 'Sub…')}
               </button>
             )}
             {activeSlotId && activeOccupant && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-red-600/15 border-red-500/50 text-red-300 hover:bg-red-600/25"
-              >
+              <button type="button" onClick={handleClear} className={`${dangerButtonStyle} flex-1`}>
                 {t('playtimePlanner.lineup.clearSlot', 'Clear')}
               </button>
             )}
             {emptySlots.length > 0 && bench.length > 0 && (
-              <button
-                type="button"
-                onClick={handleAutoFill}
-                className="px-3 py-1.5 rounded-md text-xs font-semibold border bg-indigo-600/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-600/30"
-              >
+              <button type="button" onClick={handleAutoFill} className={`${secondaryButtonStyle} flex-1`}>
                 {t('playtimePlanner.lineup.autoFill', 'Auto-fill')}
               </button>
             )}
           </div>
-        </div>
+        )}
         {bench.length === 0 ? (
           <p className={subtextStyle}>
             {t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-2">
             {bench.map((id) => {
               const fair = minutesByPlayer?.[id];
               const involved = isTracked(id);
               const sitsOut = !enteringIds.has(id);
               return (
+                /* Bench players render as DISCS - the same visual object as the
+                   players on the pitch - so "tap to place/swap" is obvious. */
                 <button
                   key={id}
                   type="button"
                   onClick={() => handleBenchClick(id)}
                   title={sitsOut ? t('playtimePlanner.lineup.notInGame', 'Not in this game') : undefined}
-                  className={[
-                    'px-3 py-1.5 rounded-full bg-slate-700 hover:bg-slate-600 text-sm text-white border focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
-                    sitsOut ? 'border-red-500/80' : 'border-slate-500/40',
-                    dimClass(involved),
-                    anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
-                  ].join(' ')}
+                  className={`flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${dimClass(involved)}`}
                 >
-                  {nameById.get(id) ?? id}
+                  <span
+                    className={[
+                      'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors',
+                      sitsOut ? 'border-red-500/80' : 'border-white/60',
+                      fair ? '' : 'bg-slate-700 hover:bg-slate-600',
+                      anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
+                    ].join(' ')}
+                    style={
+                      fair
+                        ? { backgroundColor: fairnessFill(fair.ratio), textShadow: '0 1px 2px rgba(0,0,0,0.5)' }
+                        : undefined
+                    }
+                  >
+                    {shortName(nameById.get(id) ?? id)}
+                  </span>
                   {fair && (
                     <span
-                      className="ml-1.5 tabular-nums text-xs font-semibold"
+                      className="mt-0.5 text-[10px] font-semibold tabular-nums leading-tight"
                       style={{ color: fairnessText(fair.ratio) }}
                     >
                       {fair.minutes}&#39;

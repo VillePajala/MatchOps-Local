@@ -99,9 +99,6 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
       {/* Creation moved to the field: tap a filled disc, choose "Sub…" - the
           bottom sheet has the minute + a live bench grid. This list is for
           reviewing and removing what's scheduled. */}
-      <p className={subtextStyle}>
-        {t('playtimePlanner.subs.addHint', 'To add one: tap a player on the field, then "Sub…".')}
-      </p>
     </div>
   );
 };

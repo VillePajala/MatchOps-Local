@@ -3210,10 +3210,8 @@
       "back": "Back",
       "slotFilled": "{{position}}: {{player}}",
       "slotEmpty": "{{position}}: empty",
-      "pickForSlot": "Tap a player for this position",
       "clearSlot": "Clear",
       "benchEmpty": "Everyone is on the field.",
-      "hint": "Tap a player to place them, or a position first.",
       "benchHeading": "Bench",
       "autoFill": "Auto-fill",
       "gameTabs": "Switch game",
@@ -3223,7 +3221,6 @@
       "gameName": "Game name",
       "includedToggle": "Counted in totals - tap to exclude",
       "excludedToggle": "Excluded from totals - tap to include",
-      "viewToggle": "Layout",
       "viewSingle": "Single game",
       "viewGrid": "Side by side"
     },
@@ -3235,8 +3232,7 @@
       "noBench": "No bench players available.",
       "inLabel": "Player on",
       "timeLabel": "Minute",
-      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})",
-      "addHint": "To add one: tap a player on the field, then \"Sub…\"."
+      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})"
     },
     "balance": {
       "title": "Playing-time balance",
@@ -3277,7 +3273,8 @@
     },
     "subSheet": {
       "title": "Substitution · {{position}} ({{player}})",
-      "halftime": "half-time"
+      "halftime": "half-time",
+      "existing": "Planned for this position"
     },
     "manager": {
       "title": "Plans",

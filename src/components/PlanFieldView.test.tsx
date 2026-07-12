@@ -42,11 +42,6 @@ describe('PlanFieldView', () => {
     const onAssign = jest.fn();
     render(<PlanFieldView game={makeGame()} players={players} onAssign={onAssign} />);
 
-    // Before selecting a slot, the hint is shown.
-    expect(
-      screen.getByText('Tap a player to place them, or a position first.'),
-    ).toBeInTheDocument();
-
     // Tap the goalkeeper slot (unique aria-label), then a bench player.
     fireEvent.click(screen.getByLabelText('GK: empty'));
     fireEvent.click(screen.getByRole('button', { name: /^Alex/ }));
@@ -132,9 +127,9 @@ describe('PlanFieldView', () => {
         highlightPlayerIds={["p2"]}
       />,
     );
-    // Sam (bench) is tracked: ringed, not dimmed. Alex's disc dims.
+    // Sam (bench) is tracked: their DISC (inner span) is ringed, not dimmed.
     const sam = screen.getByRole('button', { name: /^Sam/ });
-    expect(sam.className).toContain('ring-amber-300');
+    expect(sam.querySelector('span')?.className).toContain('ring-amber-300');
     const alexSlot = screen.getByLabelText('GK: Alex');
     expect(alexSlot.className).toContain('opacity-35');
   });
