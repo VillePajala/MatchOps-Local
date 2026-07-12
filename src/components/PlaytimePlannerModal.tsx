@@ -143,6 +143,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [, setHistoryTick] = useState(0);
   const seedHistory = useCallback((plan: PlaytimePlan | null) => {
     historyRef.current = plan ? { stack: [plan], index: 0 } : { stack: [], index: -1 };
+    pendingEditRef.current = null;
+    lastEditCoalescedRef.current = false;
     setHistoryTick((t) => t + 1);
   }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -384,38 +386,54 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     return pending ? persist(pending) : Promise.resolve();
   }, [persist]);
 
+  // The updater stays PURE (React StrictMode double-invokes it - side effects
+  // here double-pushed history). pendingEditRef marks the commit as a user edit;
+  // the effect below records it exactly once. coalesce=true (text inputs) makes
+  // consecutive edits REPLACE the top history entry instead of pushing one per
+  // keystroke, so typing a name costs one undo slot, not twenty.
+  const pendingEditRef = useRef<null | { coalesce: boolean }>(null);
+  const lastEditCoalescedRef = useRef(false);
   const updateActivePlan = useCallback(
-    (mutate: (plan: PlaytimePlan) => PlaytimePlan) => {
-      setActivePlan((prev) => {
-        if (!prev) return prev;
-        const next = mutate(prev);
-        if (next !== prev) {
-          // Record the edit: drop any redo tail, push, cap the stack (50 covers a
-          // whole planning session; older states just fall off the far end).
-          const h = historyRef.current;
-          if (h.stack.length === 0) {
-            h.stack = [prev];
-            h.index = 0;
-          }
-          h.stack = h.stack.slice(0, h.index + 1);
-          h.stack.push(next);
-          if (h.stack.length > 50) h.stack.shift();
-          h.index = h.stack.length - 1;
-          setHistoryTick((t) => t + 1);
-        }
-        dirtyPlanRef.current = next;
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = setTimeout(() => {
-          saveTimerRef.current = null;
-          const pending = dirtyPlanRef.current;
-          dirtyPlanRef.current = null;
-          if (pending) void persist(pending);
-        }, 600);
-        return next;
-      });
+    (mutate: (plan: PlaytimePlan) => PlaytimePlan, opts?: { coalesce?: boolean }) => {
+      pendingEditRef.current = { coalesce: opts?.coalesce ?? false };
+      setActivePlan((prev) => (prev ? mutate(prev) : prev));
     },
-    [persist],
+    [],
   );
+
+  // Record the committed edit: push (or coalesce into) the history stack and
+  // schedule the debounced persist. Runs once per commit regardless of how many
+  // updateActivePlan calls batched into it (Auto-fill's burst = ONE undo step).
+  useEffect(() => {
+    const pending = pendingEditRef.current;
+    if (!pending || !activePlan) return;
+    pendingEditRef.current = null;
+    const h = historyRef.current;
+    if (h.stack.length === 0) {
+      h.stack = [activePlan];
+      h.index = 0;
+    } else if (h.stack[h.index] !== activePlan) {
+      const replaceTop = pending.coalesce && lastEditCoalescedRef.current && h.index === h.stack.length - 1 && h.index > 0;
+      h.stack = h.stack.slice(0, h.index + 1);
+      if (replaceTop) {
+        h.stack[h.stack.length - 1] = activePlan;
+      } else {
+        h.stack.push(activePlan);
+        if (h.stack.length > 50) h.stack.shift();
+      }
+      h.index = h.stack.length - 1;
+    }
+    lastEditCoalescedRef.current = pending.coalesce;
+    setHistoryTick((t) => t + 1);
+    dirtyPlanRef.current = activePlan;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      const toSave = dirtyPlanRef.current;
+      dirtyPlanRef.current = null;
+      if (toSave) void persist(toSave);
+    }, 600);
+  }, [activePlan, persist]);
 
   // Step through the snapshot stack WITHOUT pushing; the restored state persists
   // through the same debounced autosave as a normal edit.
@@ -426,7 +444,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (ni < 0 || ni >= h.stack.length) return;
       h.index = ni;
       const restored = h.stack[ni];
+      pendingEditRef.current = null; // restoring is not an edit
+      lastEditCoalescedRef.current = false;
       setActivePlan(restored);
+      // The restored roster may lack currently-highlighted players (undo of a
+      // replace/remove) - prune, or the whole lineup ghost-dims with no cell
+      // left to un-toggle.
+      setHighlightPlayerIds((prev) => prev.filter((id) => restored.players.some((pl) => pl.id === id)));
       dirtyPlanRef.current = restored;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
@@ -1081,7 +1105,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 value={activePlan.name}
                 onChange={(e) => {
                   const value = e.target.value;
-                  updateActivePlan((plan) => ({ ...plan, name: value }));
+                  updateActivePlan((plan) => ({ ...plan, name: value }), { coalesce: true });
                 }}
                 className={inputBaseStyle}
               />
@@ -1180,10 +1204,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           value={game.label}
                           onChange={(e) => {
                             const value = e.target.value;
-                            updateActivePlan((plan) => ({
-                              ...plan,
-                              games: plan.games.map((g, gi) => (gi === i ? { ...g, label: value } : g)),
-                            }));
+                            updateActivePlan(
+                              (plan) => ({
+                                ...plan,
+                                games: plan.games.map((g, gi) => (gi === i ? { ...g, label: value } : g)),
+                              }),
+                              { coalesce: true },
+                            );
                           }}
                           className={`${inputBaseStyle} flex-1`}
                         />
@@ -1258,6 +1285,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               <nav
                 aria-label={t('playtimePlanner.lineup.gameTabs', 'Switch game')}
                 className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1"
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
               >
                 {activePlan.games.map((g, i) => {
                   const isCurrent = g.id === editingGame.id;
@@ -1532,6 +1562,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
         onConfirm={() => {
           setShowSuggestConfirm(false);
+          if (!activePlan?.games.some((g) => g.included)) {
+            showToast(t('playtimePlanner.balance.noGames', 'No games counted yet. Mark games as included.'), 'info');
+            return;
+          }
           updateActivePlan((plan) => suggestFairShareLineup(plan));
           showToast(t('playtimePlanner.overview.suggestDone', 'Fair lineups suggested - check the balance view.'), 'success');
         }}

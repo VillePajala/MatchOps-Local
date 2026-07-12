@@ -87,6 +87,13 @@ describe('suggestFairShareLineup', () => {
     expect(strip(a)).toBe(strip(b));
   });
 
+  it('returns the SAME reference when nothing is included (no phantom edit)', () => {
+    const allExcluded = plan([game('g1', { included: false })]);
+    expect(suggestFairShareLineup(allExcluded)).toBe(allExcluded);
+    const noPlayers = plan([game('g1')], 0);
+    expect(suggestFairShareLineup(noPlayers)).toBe(noPlayers);
+  });
+
   it('handles a roster smaller than the formation (empty slots, no subs)', () => {
     const result = suggestFairShareLineup(plan([game('g1')], 3));
     const g = result.games[0];

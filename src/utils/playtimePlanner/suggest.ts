@@ -25,6 +25,9 @@ import { gameTotalSeconds } from './types';
  * Returns a NEW plan; the input is never mutated.
  */
 export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
+  // Nothing to generate: return the SAME reference so callers (history, the
+  // debounced autosave) treat it as a no-op rather than a phantom edit.
+  if (!plan.games.some((g) => g.included) || plan.players.length === 0) return plan;
   // Accumulated planned seconds per player across the generated schedule.
   const acc = new Map<string, number>(plan.players.map((p) => [p.id, 0]));
   // Stable pecking order for ties: roster order (coach-entered), not names.

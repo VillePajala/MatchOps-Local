@@ -465,6 +465,52 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByDisplayValue('Renamed Cup')).toBeInTheDocument();
   });
 
+  it('coalesces consecutive keystrokes into ONE undo step', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    const nameInput = await screen.findByDisplayValue('Saved Cup');
+
+    // Three keystrokes of a rename...
+    for (const v of ['Saved Cup A', 'Saved Cup AB', 'Saved Cup ABC']) {
+      await act(async () => {
+        fireEvent.change(nameInput, { target: { value: v } });
+      });
+    }
+    expect(screen.getByDisplayValue('Saved Cup ABC')).toBeInTheDocument();
+    // ...revert with a SINGLE undo (not one per keystroke).
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    });
+    expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+  });
+
+  it('swiping ON the game-tab strip does not ALSO flip via the swipe handler', async () => {
+    const threeGamePlan = {
+      ...existingPlan,
+      games: [
+        existingPlan.games[0],
+        { ...existingPlan.games[0], id: 'g2', label: 'Game 2' },
+        { ...existingPlan.games[0], id: 'g3', label: 'Game 3' },
+      ],
+    };
+    mockGetPlans.mockResolvedValue({ existing: threeGamePlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+    });
+
+    // A drag that starts on the tab strip stays in the strip (it scrolls it,
+    // never triggers the lineup's game-flip).
+    const tabs = screen.getByRole('navigation', { name: 'Switch game' });
+    await act(async () => {
+      fireEvent.touchStart(tabs, { touches: [{ clientX: 300, clientY: 100 }] });
+      fireEvent.touchEnd(tabs, { changedTouches: [{ clientX: 100, clientY: 100 }] });
+    });
+    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+  });
+
   it('undo is disabled on a freshly opened plan (history never crosses plans)', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
