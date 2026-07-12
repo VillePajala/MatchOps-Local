@@ -3201,7 +3201,8 @@
       "suggestConfirmMessage": "Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.",
       "suggestConfirmWarning": "Current lineups and substitutions of included games will be replaced. Undo restores them.",
       "suggestConfirmLabel": "Suggest",
-      "suggestDone": "Fair lineups suggested - check the balance view."
+      "suggestDone": "Fair lineups suggested - check the balance view.",
+      "gridButton": "All games side by side"
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",

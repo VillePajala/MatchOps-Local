@@ -368,6 +368,54 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByRole('button', { name: '+ Alex' })).toBeInTheDocument();
   });
 
+  it('swiping ON the fairness strip does NOT flip the game (touch isolation)', async () => {
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [existingPlan.games[0], { ...existingPlan.games[0], id: 'g2', label: 'Game 2' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+    });
+
+    // A horizontal swipe starting on a strip cell must stay in the strip.
+    const stripCell = screen
+      .getAllByRole('button', { name: /Alex/ })
+      .find((b) => b.getAttribute('title') === 'Alex')!;
+    await act(async () => {
+      fireEvent.touchStart(stripCell, { touches: [{ clientX: 300, clientY: 100 }] });
+      fireEvent.touchEnd(stripCell, { changedTouches: [{ clientX: 100, clientY: 100 }] });
+    });
+    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+  });
+
+  it('grid view shows every game as an editable card with the totals strip on top', async () => {
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [existingPlan.games[0], { ...existingPlan.games[0], id: 'g2', label: 'Game 2' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await screen.findByDisplayValue('Saved Cup');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'All games side by side' }));
+    });
+    // Both game cards render with their own editable field (bench hint per card).
+    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Game 2' })).toBeInTheDocument();
+    expect(screen.getAllByText('Tap a player to place them, or a position first.')).toHaveLength(2);
+    // The shared strip sits above the cards.
+    expect(screen.getByRole('button', { name: /Playing-time totals/ })).toBeInTheDocument();
+    // Back returns to the overview.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    });
+    expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument();
+  });
+
   it('suggests fair lineups behind a confirm, and undo restores the old state', async () => {
     // Plan has one game with an empty lineup; the generator fills it.
     mockGetPlans.mockResolvedValue({ existing: existingPlan });

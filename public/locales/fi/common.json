@@ -3201,7 +3201,8 @@
       "suggestConfirmMessage": "Rakentaa avauskokoonpanot ja puoliaikavaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan. Maalivahtia ei koskaan vaihdeta kesken pelin.",
       "suggestConfirmWarning": "Mukana olevien pelien nykyiset kokoonpanot ja vaihdot korvataan. Kumoa palauttaa ne.",
       "suggestConfirmLabel": "Ehdota",
-      "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä."
+      "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä.",
+      "gridButton": "Kaikki pelit rinnakkain"
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",

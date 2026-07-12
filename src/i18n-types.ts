@@ -1705,6 +1705,7 @@ export type TranslationKey =
   | 'playtimePlanner.overview.formatSummary'
   | 'playtimePlanner.overview.gameLabel'
   | 'playtimePlanner.overview.gamesHeading'
+  | 'playtimePlanner.overview.gridButton'
   | 'playtimePlanner.overview.included'
   | 'playtimePlanner.overview.newPlan'
   | 'playtimePlanner.overview.placedCount'

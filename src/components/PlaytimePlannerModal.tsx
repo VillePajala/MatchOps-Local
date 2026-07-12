@@ -97,7 +97,7 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance' | 'players';
+type View = 'loading' | 'setup' | 'overview' | 'lineup' | 'balance' | 'players' | 'grid';
 
 const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   isOpen,
@@ -131,8 +131,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
   // "Suggest fair lineup" pending confirm (it overwrites included games).
   const [showSuggestConfirm, setShowSuggestConfirm] = useState(false);
-  // Slot whose substitution sheet is open (lineup view; null = closed).
-  const [subSheetSlotId, setSubSheetSlotId] = useState<string | null>(null);
+  // Open substitution sheet target: which game + slot (null = closed). Game id
+  // is part of the target because the grid view edits ALL games at once.
+  const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
   // Undo/redo: full-state snapshots of the ACTIVE plan (standalone-planner
   // style). Refs hold the stack (no re-render per edit); historyTick forces the
   // toolbar's disabled states to refresh. The stack reseeds whenever the plan
@@ -294,11 +295,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       // registered earlier, so it would fire FIRST and also navigate - skip.
       if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
       // The sub sheet is open: Escape closes it, nothing else.
-      if (subSheetSlotId !== null) {
-        setSubSheetSlotId(null);
+      if (subSheetTarget !== null) {
+        setSubSheetTarget(null);
         return;
       }
-      if (view === 'lineup' || view === 'balance' || view === 'players') {
+      if (view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') {
         setEditingGameId(null);
         setReplacingId(null);
         setView('overview');
@@ -308,7 +309,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetSlotId]);
+  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetTarget]);
 
   const togglePlayer = (id: string) => {
     setSelectedIds((prev) => {
@@ -461,7 +462,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     const nextGame = activePlan.games[dx < 0 ? idx + 1 : idx - 1];
     if (nextGame) {
       setEditingGameId(nextGame.id);
-      setSubSheetSlotId(null);
+      setSubSheetTarget(null);
     }
   };
 
@@ -1028,7 +1029,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
 
-        {activePlan && (view === 'overview' || view === 'lineup' || view === 'balance' || view === 'players') && (
+        {activePlan && (view === 'overview' || view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') && (
           <div className="max-w-lg mx-auto flex justify-end gap-1.5 mb-2">
             <button
               type="button"
@@ -1154,6 +1155,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               {t('playtimePlanner.overview.suggestButton', 'Suggest fair lineups')}
             </button>
 
+            <button
+              type="button"
+              onClick={() => setView('grid')}
+              className={`${secondaryButtonStyle} w-full`}
+            >
+              {t('playtimePlanner.overview.gridButton', 'All games side by side')}
+            </button>
+
             <div>
               <h3 className={`${labelStyle} mb-2`}>{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
@@ -1205,7 +1214,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           type="button"
                           onClick={() => {
                             setEditingGameId(game.id);
-                            setSubSheetSlotId(null);
+                            setSubSheetTarget(null);
                             setView('lineup');
                           }}
                           className="text-xs text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 -mx-2"
@@ -1260,7 +1269,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       type="button"
                       onClick={() => {
                         setEditingGameId(g.id);
-                        setSubSheetSlotId(null);
+                        setSubSheetTarget(null);
                       }}
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
@@ -1302,7 +1311,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
               minutesByPlayer={fairness.byPlayer}
               highlightPlayerIds={highlightPlayerIds}
-              onRequestSub={(slotId) => setSubSheetSlotId(slotId)}
+              onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
             />
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor
@@ -1311,16 +1320,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 onRemove={(subId) => handleRemoveSub(editingGame.id, subId)}
               />
             </div>
-            {subSheetSlotId !== null && (
-              <PlanSubSheet
-                game={editingGame}
-                slotId={subSheetSlotId}
-                players={activePlan.players}
-                minutesByPlayer={fairness.byPlayer}
-                onAdd={(sub) => handleAddSub(editingGame.id, sub)}
-                onClose={() => setSubSheetSlotId(null)}
-              />
-            )}
           </div>
         )}
 
@@ -1332,7 +1331,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             onReplaceHighlights={replaceHighlights}
             onOpenGame={(gameId) => {
               setEditingGameId(gameId);
-              setSubSheetSlotId(null);
+              setSubSheetTarget(null);
               setView('lineup');
             }}
           />
@@ -1424,16 +1423,80 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             </div>
           </div>
         )}
+        {view === 'grid' && activePlan && (
+          <div className="space-y-3">
+            <div className="max-w-lg mx-auto md:max-w-none">
+              <PlanFairnessStrip
+                rows={fairness.rows}
+                highlightPlayerIds={highlightPlayerIds}
+                onToggleHighlight={toggleHighlight}
+              />
+            </div>
+            {/* All games side by side (stacked on phones): every card is the SAME
+                fully editable field as the single-game view - tap-assign, sub
+                sheet, live minutes - with the totals strip above them all. */}
+            <div className="grid gap-4 md:grid-cols-2">
+              {activePlan.games.map((g) => (
+                <div
+                  key={g.id}
+                  className={`rounded-lg border border-slate-700/50 bg-slate-800/30 p-3 space-y-2 ${
+                    !g.included ? 'opacity-60' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-slate-100">{g.label}</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingGameId(g.id);
+                        setSubSheetTarget(null);
+                        setView('lineup');
+                      }}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
+                    >
+                      {t('playtimePlanner.overview.editLineup', 'Edit lineup')}
+                    </button>
+                  </div>
+                  <PlanFieldView
+                    game={g}
+                    players={activePlan.players}
+                    onAssign={(slotId, playerId) => handleAssign(g.id, slotId, playerId)}
+                    minutesByPlayer={fairness.byPlayer}
+                    highlightPlayerIds={highlightPlayerIds}
+                    onRequestSub={(slotId) => setSubSheetTarget({ gameId: g.id, slotId })}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </ScrollableContent>
 
+      {subSheetTarget !== null &&
+        activePlan &&
+        (() => {
+          const sheetGame = activePlan.games.find((g) => g.id === subSheetTarget.gameId);
+          if (!sheetGame) return null;
+          return (
+            <PlanSubSheet
+              game={sheetGame}
+              slotId={subSheetTarget.slotId}
+              players={activePlan.players}
+              minutesByPlayer={fairness.byPlayer}
+              onAdd={(sub) => handleAddSub(subSheetTarget.gameId, sub)}
+              onClose={() => setSubSheetTarget(null)}
+            />
+          );
+        })()}
+
       <ModalFooter>
-        {(view === 'lineup' || view === 'balance' || view === 'players') && (
+        {(view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') && (
           <button
             type="button"
             onClick={() => {
               setEditingGameId(null);
               setReplacingId(null);
-              setSubSheetSlotId(null);
+              setSubSheetTarget(null);
               setView('overview');
             }}
             className={`${secondaryButtonStyle} flex-1`}
