@@ -130,6 +130,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
   // Slot whose substitution sheet is open (lineup view; null = closed).
   const [subSheetSlotId, setSubSheetSlotId] = useState<string | null>(null);
+  // Undo/redo: full-state snapshots of the ACTIVE plan (standalone-planner
+  // style). Refs hold the stack (no re-render per edit); historyTick forces the
+  // toolbar's disabled states to refresh. The stack reseeds whenever the plan
+  // IDENTITY changes (load/switch/create/duplicate/import) - history never
+  // crosses plans.
+  const historyRef = useRef<{ stack: PlaytimePlan[]; index: number }>({ stack: [], index: -1 });
+  const [, setHistoryTick] = useState(0);
+  const seedHistory = useCallback((plan: PlaytimePlan | null) => {
+    historyRef.current = plan ? { stack: [plan], index: 0 } : { stack: [], index: -1 };
+    setHistoryTick((t) => t + 1);
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Setup form state.
@@ -232,6 +243,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setPlanList(list);
         if (list.length > 0) {
           setActivePlan(list[0]);
+          seedHistory(list[0]);
           setView('overview');
         } else {
           resetSetupFormRef.current(players);
@@ -266,7 +278,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, user?.id]);
+  }, [isOpen, user?.id, seedHistory]);
 
   // Escape steps BACK from a sub-view (lineup/balance -> overview) and only
   // closes the planner from the top-level views - matching how deep the user is,
@@ -324,6 +336,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     const saved = await savePlan(plan);
     if (saved) {
       setActivePlan(saved);
+      seedHistory(saved);
       setView('overview');
       void refreshPlanList();
     } else {
@@ -372,6 +385,20 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       setActivePlan((prev) => {
         if (!prev) return prev;
         const next = mutate(prev);
+        if (next !== prev) {
+          // Record the edit: drop any redo tail, push, cap the stack (50 covers a
+          // whole planning session; older states just fall off the far end).
+          const h = historyRef.current;
+          if (h.stack.length === 0) {
+            h.stack = [prev];
+            h.index = 0;
+          }
+          h.stack = h.stack.slice(0, h.index + 1);
+          h.stack.push(next);
+          if (h.stack.length > 50) h.stack.shift();
+          h.index = h.stack.length - 1;
+          setHistoryTick((t) => t + 1);
+        }
         dirtyPlanRef.current = next;
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
         saveTimerRef.current = setTimeout(() => {
@@ -385,6 +412,55 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     },
     [persist],
   );
+
+  // Step through the snapshot stack WITHOUT pushing; the restored state persists
+  // through the same debounced autosave as a normal edit.
+  const applyHistory = useCallback(
+    (delta: -1 | 1) => {
+      const h = historyRef.current;
+      const ni = h.index + delta;
+      if (ni < 0 || ni >= h.stack.length) return;
+      h.index = ni;
+      const restored = h.stack[ni];
+      setActivePlan(restored);
+      dirtyPlanRef.current = restored;
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        saveTimerRef.current = null;
+        const pending = dirtyPlanRef.current;
+        dirtyPlanRef.current = null;
+        if (pending) void persist(pending);
+      }, 600);
+      setHistoryTick((t) => t + 1);
+    },
+    [persist],
+  );
+  const canUndo = historyRef.current.index > 0;
+  const canRedo = historyRef.current.index < historyRef.current.stack.length - 1;
+
+  // Horizontal swipe on the lineup flips to the previous/next game (standalone
+  // heuristic: >60px, clearly more horizontal than vertical, <700ms). Complements
+  // the tab strip for one-handed use.
+  const swipeRef = useRef<{ x: number; y: number; at: number } | null>(null);
+  const handleLineupTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    swipeRef.current = { x: touch.clientX, y: touch.clientY, at: Date.now() };
+  };
+  const handleLineupTouchEnd = (e: React.TouchEvent) => {
+    const start = swipeRef.current;
+    swipeRef.current = null;
+    if (!start || !activePlan || !editingGameId) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Date.now() - start.at > 700 || Math.abs(dx) < 60 || Math.abs(dx) < 1.4 * Math.abs(dy)) return;
+    const idx = activePlan.games.findIndex((g) => g.id === editingGameId);
+    const nextGame = activePlan.games[dx < 0 ? idx + 1 : idx - 1];
+    if (nextGame) {
+      setEditingGameId(nextGame.id);
+      setSubSheetSlotId(null);
+    }
+  };
 
   // Assign (or clear) a player in a game's starting lineup. Normalizes the
   // game's slots to its formation first, so stored data always matches the shape.
@@ -451,6 +527,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       const p = await getPlan(id);
       if (p) {
         setActivePlan(p);
+        seedHistory(p);
         setEditingGameId(null);
         setReplacingId(null);
         setHighlightPlayerId(null);
@@ -462,7 +539,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         await refreshPlanList();
       }
     },
-    [activePlan?.id, flushSave, refreshPlanList, showToast, t],
+    [activePlan?.id, flushSave, refreshPlanList, seedHistory, showToast, t],
   );
 
   // Phase 3.4: tally unplayed real games created from each planned game so the
@@ -576,12 +653,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       return;
     }
     setActivePlan(saved);
+    seedHistory(saved);
     setEditingGameId(null);
     setReplacingId(null);
     setHighlightPlayerId(null);
     setView('overview');
     await refreshPlanList();
-  }, [activePlan, flushSave, refreshPlanList, showToast, t]);
+  }, [activePlan, flushSave, refreshPlanList, seedHistory, showToast, t]);
 
   const handleExport = useCallback(() => {
     if (!activePlan) return;
@@ -615,6 +693,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           return;
         }
         setActivePlan(imported);
+        seedHistory(imported);
         setEditingGameId(null);
         setReplacingId(null);
         setHighlightPlayerId(null);
@@ -625,7 +704,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         showToast(t('playtimePlanner.versions.importError', 'Could not read that file as a plan.'), 'error');
       }
     },
-    [refreshPlanList, showToast, t],
+    [refreshPlanList, seedHistory, showToast, t],
   );
 
   // Roster editing (Phase 4): add / replace / remove players on an existing plan.
@@ -728,9 +807,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setPlanList(list);
     if (list.length > 0) {
       setActivePlan(list[0]);
+      seedHistory(list[0]);
       setView('overview');
     } else {
       setActivePlan(null);
+      seedHistory(null);
       resetSetupForm(roster);
       setView('setup');
     }
@@ -929,6 +1010,31 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
 
+        {activePlan && (view === 'overview' || view === 'lineup' || view === 'balance' || view === 'players') && (
+          <div className="max-w-lg mx-auto flex justify-end gap-1.5 mb-2">
+            <button
+              type="button"
+              onClick={() => applyHistory(-1)}
+              disabled={!canUndo}
+              aria-label={t('controlBar.undo', 'Undo')}
+              title={t('controlBar.undo', 'Undo')}
+              className="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm disabled:opacity-40 disabled:cursor-default hover:bg-slate-700"
+            >
+              ↶
+            </button>
+            <button
+              type="button"
+              onClick={() => applyHistory(1)}
+              disabled={!canRedo}
+              aria-label={t('controlBar.redo', 'Redo')}
+              title={t('controlBar.redo', 'Redo')}
+              className="px-3 py-1.5 rounded-md bg-slate-800 border border-slate-700 text-slate-200 text-sm disabled:opacity-40 disabled:cursor-default hover:bg-slate-700"
+            >
+              ↷
+            </button>
+          </div>
+        )}
+
         {view === 'overview' && activePlan && (
           <div className="max-w-lg mx-auto space-y-5">
             {/* Plan switcher (only when more than one plan exists) */}
@@ -1102,7 +1208,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         )}
 
         {view === 'lineup' && activePlan && editingGame && (
-          <div className="max-w-lg mx-auto space-y-3">
+          <div
+            className="max-w-lg mx-auto space-y-3"
+            onTouchStart={handleLineupTouchStart}
+            onTouchEnd={handleLineupTouchEnd}
+            data-testid="lineup-swipe-area"
+          >
             {/* Game tabs: the planner's core loop is flipping between the set's
                 games while nudging minutes toward fair - so any game is ONE tap
                 away (no round trip through the overview). Short labels match the

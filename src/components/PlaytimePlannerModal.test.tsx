@@ -368,6 +368,64 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByRole('button', { name: '+ Alex' })).toBeInTheDocument();
   });
 
+  it('undo reverts the last edit and redo restores it', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    const nameInput = await screen.findByDisplayValue('Saved Cup');
+
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'Renamed Cup' } });
+    });
+    expect(screen.getByDisplayValue('Renamed Cup')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    });
+    expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
+    });
+    expect(screen.getByDisplayValue('Renamed Cup')).toBeInTheDocument();
+  });
+
+  it('undo is disabled on a freshly opened plan (history never crosses plans)', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await screen.findByDisplayValue('Saved Cup');
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
+  });
+
+  it('a horizontal swipe on the lineup flips to the next game', async () => {
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [existingPlan.games[0], { ...existingPlan.games[0], id: 'g2', label: 'Game 2' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getAllByText('Edit lineup')[0]).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getAllByText('Edit lineup')[0]);
+    });
+    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+
+    const area = screen.getByTestId('lineup-swipe-area');
+    await act(async () => {
+      fireEvent.touchStart(area, { touches: [{ clientX: 300, clientY: 200 }] });
+      fireEvent.touchEnd(area, { changedTouches: [{ clientX: 120, clientY: 210 }] });
+    });
+    expect(screen.getByRole('heading', { name: 'Game 2' })).toBeInTheDocument();
+
+    // Swiping right at the LAST game clamps (no wrap) - stays on Game 2... swipe
+    // right goes BACK to Game 1.
+    await act(async () => {
+      fireEvent.touchStart(area, { touches: [{ clientX: 120, clientY: 200 }] });
+      fireEvent.touchEnd(area, { changedTouches: [{ clientX: 300, clientY: 210 }] });
+    });
+    expect(screen.getByRole('heading', { name: 'Game 1' })).toBeInTheDocument();
+  });
+
   it('switches between games with one tap via the lineup game tabs', async () => {
     // Two-game plan: the tab strip renders (hidden for single-game plans) and
     // jumping Game 1 -> Game 2 is a single tap, no round trip via the overview.
