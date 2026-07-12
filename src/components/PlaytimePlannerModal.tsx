@@ -720,6 +720,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
   }, [roster, activePlan]);
 
+  // Overview roster checkboxes (same gradient picker as creation): the full
+  // master roster, plus any plan players no longer on it (imported plans),
+  // with the plan's members checked.
+  const overviewRoster = useMemo((): Player[] => {
+    if (!activePlan) return [];
+    const known = new Set(roster.map((p) => p.id));
+    const extras: Player[] = activePlan.players
+      .filter((pp) => !known.has(pp.id))
+      .map((pp) => ({ id: pp.id, name: pp.name }));
+    return [...roster, ...extras];
+  }, [roster, activePlan]);
+
   // Live fairness read for the lineup view: cumulative planned minutes per player
   // across the WHOLE plan, recomputed on every edit (the engine is pure + fast at
   // this scale). One engine run feeds both the per-player map (disc fills, bench
@@ -788,6 +800,39 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       setHighlightPlayerIds((prev) => prev.filter((id) => id !== playerId));
     },
     [updateActivePlan],
+  );
+  // Overview checkbox diffing: additions apply instantly; unchecking a player
+  // with lineup spots or subs routes through the existing impact confirm
+  // (one at a time - a mass-uncheck confirms the first and leaves the rest
+  // checked until it is answered). Zero-impact removals just leave; undo covers
+  // them like any other edit.
+  const handleOverviewRosterChange = useCallback(
+    (ids: string[]) => {
+      if (!activePlan) return;
+      const next = new Set(ids);
+      const current = new Set(activePlan.players.map((p) => p.id));
+      const additions = overviewRoster
+        .filter((p) => next.has(p.id) && !current.has(p.id))
+        .map((p) => ({ id: p.id, name: p.nickname?.trim() || p.name }));
+      const removals = activePlan.players.filter((p) => !next.has(p.id));
+      const impacted = removals.filter((p) => {
+        const impact = playerPlanImpact(activePlan, p.id);
+        return impact.startingCount + impact.subCount > 0;
+      });
+      const clean = removals.filter((p) => !impacted.includes(p));
+      if (additions.length > 0 || clean.length > 0) {
+        const cleanIds = new Set(clean.map((p) => p.id));
+        updateActivePlan((plan) => {
+          let updated = plan;
+          for (const pp of additions) updated = addPlayerToPlan(updated, pp);
+          for (const id of cleanIds) updated = removePlayerFromPlan(updated, id);
+          return updated;
+        });
+        setHighlightPlayerIds((prev) => prev.filter((id) => !cleanIds.has(id)));
+      }
+      if (impacted.length > 0) setRemoveTarget(impacted[0]);
+    },
+    [activePlan, overviewRoster, updateActivePlan],
   );
 
   // Plan deletion is confirmed via the app's ConfirmationModal (danger variant),
@@ -1090,7 +1135,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
 
-        {activePlan && (view === 'overview' || view === 'lineup' || view === 'balance' || view === 'players' || view === 'grid') && (
+        {/* Undo/redo only where edits are dense (field views) - on the overview
+            they broke up the composition without earning their place. */}
+        {activePlan && (view === 'lineup' || view === 'grid') && (
           <div className="flex justify-end gap-1.5 mb-2">
             <button
               type="button"
@@ -1183,38 +1230,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
         {view === 'overview' && activePlan && (
           <div className="space-y-4">
-            {/* Plan toolbar - duplicate/export/delete for THIS plan (import lives
-                in the manager, where new plans arrive). */}
-            <div className="flex gap-2">
-              <button type="button" onClick={handleDuplicate} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
-                {t('playtimePlanner.versions.duplicate', 'Duplicate')}
-              </button>
-              <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
-                {t('playtimePlanner.versions.export', 'Export JSON')}
-              </button>
-              <button
-                type="button"
-                onClick={() => activePlan && setDeleteTarget(activePlan)}
-                disabled={isDeleting}
-                className={`${dangerButtonStyle} flex-1 whitespace-nowrap`}
-              >
-                {t('playtimePlanner.overview.deletePlan', 'Delete')}
-              </button>
-            </div>
-
-            <div className={cardStyle}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-slate-200">
-                  {t('playtimePlanner.overview.rosterSummary', '{{count}} players', { count: activePlan.players.length })}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setView('players')}
-                  className="text-sm font-medium text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 shrink-0"
-                >
-                  {t('playtimePlanner.overview.editPlayers', 'Edit players')}
-                </button>
-              </div>
+            {/* Roster as checkboxes in the SAME gradient picker as creation -
+                checking adds a player to the plan, unchecking removes (with an
+                impact confirm when they hold lineup spots). */}
+            <PlayerSelectionSection
+              availablePlayers={overviewRoster}
+              selectedPlayerIds={activePlan.players.map((p) => p.id)}
+              onSelectedPlayersChange={handleOverviewRosterChange}
+              title={t('playtimePlanner.setup.rosterLabel', 'Players')}
+              playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
+              selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
+              noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
+            />
+            <div className="flex items-center justify-between gap-2">
               <p className={subtextStyle}>
                 {t('playtimePlanner.overview.formatSummary', '{{games}} games · {{periods}}×{{minutes}} min', {
                   games: activePlan.games.length,
@@ -1224,6 +1252,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 {' · '}
                 {getPresetById(activePlan.games[0]?.formationId ?? '')?.name ?? '-'}
               </p>
+              {/* Replace-a-player (keeps their minutes) still lives in the
+                  players view - checkboxes only add/remove. */}
+              <button
+                type="button"
+                onClick={() => setView('players')}
+                className="text-sm font-medium text-indigo-400 hover:text-indigo-300 py-2.5 px-2 -my-2.5 shrink-0"
+              >
+                {t('playtimePlanner.overview.editPlayers', 'Edit players')}
+              </button>
             </div>
 
             <button
@@ -1254,13 +1291,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             <div>
               <h3 className="text-lg font-semibold text-slate-200 mb-3">{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
-                {activePlan.games.map((game, i) => {
+                {activePlan.games.map((game) => {
                   const slotCount = getGameSlots(game.formationId).length;
                   const placed = ensureStartingSlots(game).filter((s) => s.playerId).length;
                   return (
                     <div
                       key={game.id}
-                      className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg overflow-hidden transition-all"
+                      className={`bg-gradient-to-br from-slate-600/50 to-slate-800/30 rounded-lg overflow-hidden transition-all ${game.included ? '' : 'opacity-60'}`}
                     >
                       {/* The whole card head IS the way in: label + fill state +
                           chevron, one obvious tap target (the old tiny "Edit
@@ -1284,27 +1321,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                               placed,
                               total: slotCount,
                             })}
+                            {!game.included && (
+                              <> · {t('playtimePlanner.overview.notCounted', 'Not counted')}</>
+                            )}
                           </span>
                         </span>
                         <HiChevronRight aria-hidden="true" className="w-5 h-5 text-slate-500 shrink-0" />
                       </button>
-                      <div className="flex items-center justify-between px-4 pb-2">
-                        <label className="flex items-center gap-2 text-xs text-slate-300 whitespace-nowrap py-1">
-                          <input
-                            type="checkbox"
-                            checked={game.included}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              updateActivePlan((plan) => ({
-                                ...plan,
-                                games: plan.games.map((g, gi) => (gi === i ? { ...g, included: checked } : g)),
-                              }));
-                            }}
-                            className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                          />
-                          {t('playtimePlanner.overview.included', 'Included')}
-                        </label>
-                      </div>
                       {(linkedCounts[game.id] ?? 0) > 0 && (
                         <div className="px-4 pb-3">
                         <button
@@ -1324,6 +1347,26 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 })}
               </div>
             </div>
+
+            {/* Plan housekeeping last - duplicate/export/delete are rare actions
+                and sat awkwardly at the top of the composition (import lives in
+                the manager, where new plans arrive). */}
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={handleDuplicate} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
+                {t('playtimePlanner.versions.duplicate', 'Duplicate')}
+              </button>
+              <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} flex-1 whitespace-nowrap`}>
+                {t('playtimePlanner.versions.export', 'Export JSON')}
+              </button>
+              <button
+                type="button"
+                onClick={() => activePlan && setDeleteTarget(activePlan)}
+                disabled={isDeleting}
+                className={`${dangerButtonStyle} flex-1 whitespace-nowrap`}
+              >
+                {t('playtimePlanner.overview.deletePlan', 'Delete')}
+              </button>
+            </div>
           </div>
         )}
 
@@ -1337,23 +1380,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             {/* Game tabs: the planner's core loop is flipping between the set's
                 games while nudging minutes toward fair - so any game is ONE tap
                 away (no round trip through the overview). Short labels match the
-                balance strip (P1/G1…); an amber dot marks an incomplete lineup so
-                the coach sees where work remains while flipping. */}
-            {activePlan.games.length > 1 && (
-              <nav
-                aria-label={t('playtimePlanner.lineup.gameTabs', 'Switch game')}
-                className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1"
-                onTouchStart={(e) => e.stopPropagation()}
-                onTouchMove={(e) => e.stopPropagation()}
-                onTouchEnd={(e) => e.stopPropagation()}
-              >
-                {activePlan.games.map((g, i) => {
-                  const isCurrent = g.id === editingGame.id;
-                  const placedCount = ensureStartingSlots(g).filter((a) => a.playerId).length;
-                  const incomplete = placedCount < getGameSlots(g.formationId).length;
-                  return (
+                balance strip (P1/G1…); an amber dot marks an incomplete lineup.
+                Each tab carries the standalone planner's include dot (top-right):
+                tap it to count the game in/out of the totals - this is the ONLY
+                place inclusion is toggled, so the strip renders even for a
+                single-game plan. Excluded tabs dim like the standalone's ribbon. */}
+            <nav
+              aria-label={t('playtimePlanner.lineup.gameTabs', 'Switch game')}
+              className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1"
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+            >
+              {activePlan.games.map((g, i) => {
+                const isCurrent = g.id === editingGame.id;
+                const placedCount = ensureStartingSlots(g).filter((a) => a.playerId).length;
+                const incomplete = placedCount < getGameSlots(g.formationId).length;
+                const toggleTitle = g.included
+                  ? t('playtimePlanner.lineup.includedToggle', 'Counted in totals - tap to exclude')
+                  : t('playtimePlanner.lineup.excludedToggle', 'Excluded from totals - tap to include');
+                return (
+                  <div key={g.id} className="relative shrink-0">
                     <button
-                      key={g.id}
                       type="button"
                       onClick={() => {
                         setEditingGameId(g.id);
@@ -1362,26 +1410,45 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
                       className={[
-                        'relative shrink-0 px-3.5 py-2 rounded-md text-sm font-medium tabular-nums transition-colors',
+                        'relative pl-3.5 pr-7 py-2 rounded-md text-sm font-medium tabular-nums transition-colors',
                         isCurrent
                           ? 'bg-indigo-600 text-white'
-                          : g.included
-                            ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            : 'bg-slate-700 text-slate-300 opacity-50',
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600',
+                        g.included ? '' : 'opacity-50',
                       ].join(' ')}
                     >
                       {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
                       {incomplete && (
                         <span
-                          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400"
+                          className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-400"
                           aria-hidden="true"
                         />
                       )}
                     </button>
-                  );
-                })}
-              </nav>
-            )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateActivePlan((plan) => ({
+                          ...plan,
+                          games: plan.games.map((gg) => (gg.id === g.id ? { ...gg, included: !gg.included } : gg)),
+                        }))
+                      }
+                      aria-pressed={g.included}
+                      aria-label={`${toggleTitle}: ${g.label}`}
+                      title={toggleTitle}
+                      className="absolute top-0 right-0 p-1.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`block w-2.5 h-2.5 rounded-full border transition-colors ${
+                          g.included ? 'bg-emerald-400 border-emerald-300' : 'bg-transparent border-slate-400'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </nav>
             <PlanFairnessStrip
               rows={fairness.rows}
               highlightPlayerIds={highlightPlayerIds}

@@ -3170,10 +3170,8 @@
     },
     "overview": {
       "gameLabel": "Game {{n}}",
-      "rosterSummary": "{{count}} players",
       "formatSummary": "{{games}} games · {{periods}}×{{minutes}} min",
       "gamesHeading": "Games",
-      "included": "Included",
       "newPlan": "New",
       "deletePlan": "Delete",
       "confirmDelete": "Delete this plan? This cannot be undone.",
@@ -3201,7 +3199,8 @@
       "suggestConfirmWarning": "Current lineups and substitutions of included games will be replaced. Undo restores them.",
       "suggestConfirmLabel": "Suggest",
       "suggestDone": "Fair lineups suggested - check the balance view.",
-      "gridButton": "All games side by side"
+      "gridButton": "All games side by side",
+      "notCounted": "Not counted"
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",
@@ -3219,7 +3218,9 @@
       "fairnessStrip": "Playing-time totals",
       "subAction": "Sub…",
       "notInGame": "Not in this game",
-      "gameName": "Game name"
+      "gameName": "Game name",
+      "includedToggle": "Counted in totals - tap to exclude",
+      "excludedToggle": "Excluded from totals - tap to include"
     },
     "subs": {
       "heading": "Substitutions",
