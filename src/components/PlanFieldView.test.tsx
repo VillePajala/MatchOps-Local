@@ -131,7 +131,7 @@ describe('PlanFieldView', () => {
     const sam = screen.getByRole('button', { name: /^Sam/ });
     expect(sam.querySelector('span')?.className).toContain('ring-amber-300');
     const alexSlot = screen.getByLabelText('GK: Alex');
-    expect(alexSlot.className).toContain('opacity-35');
+    expect(alexSlot.className).toContain('opacity-40');
   });
 
   it('clears an occupied slot', () => {

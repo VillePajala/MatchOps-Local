@@ -1258,7 +1258,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       {/* House pattern (TeamManager/RosterSettings): create-new is a full-width
           primary button PINNED under the header, not buried in the scroll. */}
       {view === 'manager' && (
-        <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
             {t('playtimePlanner.manager.new', 'New plan')}
           </button>
@@ -1517,7 +1517,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       aria-expanded={actionsMenuId === p.id}
                       className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
                     >
-                      <HiOutlineEllipsisVertical className="w-5 h-5" />
+                      <HiOutlineEllipsisVertical className="w-4 h-4" />
                     </button>
                     {actionsMenuId === p.id && (
                       <div className="absolute right-0 top-full mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
@@ -1662,7 +1662,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                                   key={c.id}
                                   type="button"
                                   onClick={() => handleReplacePlanPlayer(p.id, c)}
-                                  className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm hover:bg-indigo-600"
+                                  className="px-3 py-1.5 rounded-full bg-slate-700 border border-slate-500/40 text-slate-100 text-sm font-medium hover:bg-indigo-600"
                                 >
                                   {c.name}
                                 </button>
@@ -1983,7 +1983,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 onClick={() => setGamesLayout('grid')}
                 aria-label={t('playtimePlanner.lineup.viewGrid', 'Side by side')}
                 title={t('playtimePlanner.lineup.viewGrid', 'Side by side')}
-                className="shrink-0 p-2 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
+                className="shrink-0 p-2 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
               >
                 <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
               </button>
@@ -2023,7 +2023,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     onClick={() => setGamesLayout('single')}
                     aria-label={t('playtimePlanner.lineup.viewSingle', 'Single game')}
                     title={t('playtimePlanner.lineup.viewSingle', 'Single game')}
-                    className="shrink-0 p-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+                    className="shrink-0 p-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                   >
                     <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
                   </button>
@@ -2151,7 +2151,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`${secondaryButtonStyle} mr-auto`}
+            className={`${secondaryButtonStyle} mr-auto min-w-[9rem]`}
           >
             {t('playtimePlanner.versions.import', 'Import JSON')}
           </button>
@@ -2169,7 +2169,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               disabled={!canUndo}
               aria-label={t('controlBar.undo', 'Undo')}
               title={t('controlBar.undo', 'Undo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
+              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
               <HiOutlineArrowUturnLeft className="w-4 h-4" />
             </button>
@@ -2179,7 +2179,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               disabled={!canRedo}
               aria-label={t('controlBar.redo', 'Redo')}
               title={t('controlBar.redo', 'Redo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50"
+              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
               <HiOutlineArrowUturnRight className="w-4 h-4" />
             </button>

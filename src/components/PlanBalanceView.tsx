@@ -247,11 +247,11 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
               onClick={() => onToggleHighlight(p.playerId)}
               aria-pressed={highlighted}
               className={[
-                'flex items-center justify-between gap-2 px-4 py-3 min-h-[3.25rem] rounded-[10px] border border-black/25',
-                'text-left font-semibold text-[15px] shadow-[0_1px_2px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]',
+                'flex items-center justify-between gap-2 px-4 py-3 min-h-[3.25rem] rounded-lg border border-black/25',
+                'text-left font-semibold text-sm shadow-[0_1px_2px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
                 highlighted ? 'ring-2 ring-amber-300 ring-offset-2 ring-offset-slate-900 brightness-110' : '',
-                anyHighlight && !highlighted ? 'opacity-50' : '',
+                anyHighlight && !highlighted ? 'opacity-40' : '',
               ].join(' ')}
               style={{ backgroundColor: c.bg, color: c.fg }}
             >
@@ -304,7 +304,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       style={{ width: `${barW}%`, backgroundColor: c.bg }}
                     />
                   </div>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
                     {t('playtimePlanner.balance.ofFairShare', '{{pct}}% of share', { pct })}
                     {deltaStr ? ` · ${deltaStr}` : ''}
                   </p>
@@ -335,9 +335,9 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       type="button"
                       onClick={() => onOpenGame(g.id)}
                       title={g.label}
-                      className={`${tileClasses} focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400`}
+                      className={`${tileClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400`}
                     >
-                      <span className="text-[9px] font-bold tracking-wide text-slate-500">
+                      <span className="text-[9px] font-bold tracking-wide text-slate-400">
                         {gameShort(i)}
                       </span>
                       <span className="text-[11px] font-bold text-amber-300 truncate max-w-full">
@@ -347,7 +347,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                     </button>
                   ) : (
                     <div key={g.id} title={g.label} className={tileClasses}>
-                      <span className="text-[9px] font-bold tracking-wide text-slate-500">
+                      <span className="text-[9px] font-bold tracking-wide text-slate-400">
                         {gameShort(i)}
                       </span>
                       <span className="text-[11px] font-bold text-amber-300 truncate max-w-full">

@@ -39,7 +39,7 @@ describe('PlanFairnessStrip', () => {
     const highlighted = screen.getByRole('button', { name: /Eino/ });
     expect(highlighted).toHaveAttribute('aria-pressed', 'true');
     expect(highlighted.className).toContain('ring-amber-300');
-    expect(screen.getByRole('button', { name: /Onni/ }).className).toContain('opacity-45');
+    expect(screen.getByRole('button', { name: /Onni/ }).className).toContain('opacity-40');
   });
 
   it('collapses and expands via the header toggle (large squads fold away)', () => {

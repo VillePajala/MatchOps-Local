@@ -145,7 +145,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   const isTracked = (playerId: string | null): boolean =>
     playerId !== null && highlightPlayerIds.includes(playerId);
   const dimClass = (involved: boolean): string =>
-    anyHighlight ? (involved ? '' : 'opacity-35') : '';
+    anyHighlight ? (involved ? '' : 'opacity-40') : '';
   const hlRing = (involved: boolean): string =>
     anyHighlight && involved ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-green-800' : '';
 
@@ -308,7 +308,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                           slotSubs.length > 1 ? 'flex-row py-1 border-t-2' : 'flex-col border-l-2',
                         ].join(' ')}
                         style={{
-                          backgroundColor: fillFor(sub.inPlayerId) ?? '#4338ca',
+                          backgroundColor: fillFor(sub.inPlayerId) ?? '#4f46e5',
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                         }}
                       >

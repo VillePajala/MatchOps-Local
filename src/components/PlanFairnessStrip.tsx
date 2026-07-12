@@ -92,7 +92,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
                   'w-full px-1.5 py-1 rounded-md text-center leading-tight',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
                   highlighted ? 'ring-2 ring-amber-300' : '',
-                  anyHighlight && !highlighted ? 'opacity-45' : '',
+                  anyHighlight && !highlighted ? 'opacity-40' : '',
                 ].join(' ')}
                 style={{ backgroundColor: fairnessCell(row.ratio) }}
               >
