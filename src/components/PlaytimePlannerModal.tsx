@@ -1821,11 +1821,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 );
               })}
             </nav>
-            <PlanFairnessStrip
-              rows={fairness.rows}
-              highlightPlayerIds={highlightPlayerIds}
-              onToggleHighlight={toggleHighlight}
-            />
+            <div className="w-full max-w-sm mx-auto">
+              <PlanFairnessStrip
+                rows={fairness.rows}
+                highlightPlayerIds={highlightPlayerIds}
+                onToggleHighlight={toggleHighlight}
+              />
+            </div>
             <PlanFieldView
               game={editingGame}
               players={activePlan.players}

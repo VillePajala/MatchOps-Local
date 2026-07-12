@@ -70,7 +70,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
         <div
           role="group"
           aria-label={t('playtimePlanner.lineup.fairnessStrip', 'Playing-time totals')}
-          className="flex flex-wrap gap-1 mt-1"
+          className="grid grid-cols-[repeat(auto-fit,minmax(3.4rem,1fr))] gap-1 mt-1"
         >
           {rows.map((row) => {
             const highlighted = highlightPlayerIds.includes(row.id);
@@ -82,7 +82,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
                 aria-pressed={highlighted}
                 title={row.name}
                 className={[
-                  'shrink-0 min-w-[3.4rem] px-1.5 py-1 rounded-md text-center leading-tight',
+                  'w-full px-1.5 py-1 rounded-md text-center leading-tight',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
                   highlighted ? 'ring-2 ring-amber-300' : '',
                   anyHighlight && !highlighted ? 'opacity-45' : '',
@@ -90,7 +90,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
                 style={{ backgroundColor: fairnessCell(row.ratio) }}
               >
                 <span
-                  className="block text-[11px] font-bold text-white truncate max-w-[4.5rem]"
+                  className="block text-[11px] font-bold text-white truncate"
                   style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
                 >
                   {firstName(row.name)}
