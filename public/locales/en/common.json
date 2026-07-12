@@ -3209,7 +3209,8 @@
       "hint": "Tap a player to place them, or a position first.",
       "benchHeading": "Bench",
       "autoFill": "Auto-fill",
-      "gameTabs": "Switch game"
+      "gameTabs": "Switch game",
+      "fairnessStrip": "Playing-time totals"
     },
     "subs": {
       "heading": "Substitutions",
