@@ -62,13 +62,15 @@ describe('PlanSubSheet', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('clamps the minute to the game length', () => {
+  it('clamps the minute strictly below the final whistle', () => {
+    // 2×12 min game: max is 23' - a sub AT 24' would grant zero seconds and
+    // silently defeat the full-game bench alarm.
     render(
       <PlanSubSheet game={makeGame()} slotId="gk" players={players} onAdd={jest.fn()} onClose={jest.fn()} />,
     );
     const plus = screen.getByRole('button', { name: '+1' });
-    for (let i = 0; i < 30; i++) fireEvent.click(plus); // 12 + 30 tries, cap = 24
-    expect(screen.getByText("24'")).toBeInTheDocument();
+    for (let i = 0; i < 30; i++) fireEvent.click(plus);
+    expect(screen.getByText("23'")).toBeInTheDocument();
   });
 
   it('excludes players already coming on, and shows tinted cumulative minutes', () => {

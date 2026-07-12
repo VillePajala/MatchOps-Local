@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
 import { subtextStyle } from '@/styles/modalStyles';
-import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
+import { gameTotalSeconds, type PlanGame, type PlanPlayer, type PlanSub } from '@/utils/playtimePlanner/types';
 
 /** A player's cumulative planned minutes across the WHOLE plan + fair-share ratio. */
 export interface PlanPlayerMinutes {
@@ -117,9 +117,18 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
 
   // Bench players scheduled to come on in THIS game; the rest sit out the whole
   // game - flagged with a red border so a full-game benching is never an accident.
+  // A sub at (or past) the final whistle grants zero seconds and must not
+  // silence the alarm.
+  const totalSeconds = gameTotalSeconds(game);
   const enteringIds = useMemo(
-    () => new Set(game.subs.map((s) => s.inPlayerId).filter((id): id is string => id !== null)),
-    [game.subs],
+    () =>
+      new Set(
+        game.subs
+          .filter((s) => s.timeSeconds < totalSeconds)
+          .map((s) => s.inPlayerId)
+          .filter((id): id is string => id !== null),
+      ),
+    [game.subs, totalSeconds],
   );
 
   // The ramp only makes sense with minutes data; without it the classic
@@ -189,10 +198,23 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           // GK shorthand is localized (fi coaches read "MV", not "GK").
           const positionLabel = slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${i}`;
           const slotSubs = subsBySlot.get(slot.slotId) ?? [];
-          const hasSubs = filled && slotSubs.length > 0;
+          // The pill renders whenever subs are scheduled - even with the starter
+          // cleared (the engine still grants the incoming player minutes, so the
+          // field must not pretend the slot is plain empty).
+          const hasSubs = slotSubs.length > 0;
           const involved =
             !!highlightPlayerId &&
             (playerId === highlightPlayerId || slotSubs.some((s) => s.inPlayerId === highlightPlayerId));
+          // Screen readers: aria-label OVERRIDES the button's contents, so the
+          // pill's incoming players must be folded into the label explicitly.
+          const subsLabel = slotSubs
+            .map(
+              (sub) =>
+                `${Math.round(sub.timeSeconds / 60)}' ${
+                  sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?'
+                }`,
+            )
+            .join(', ');
           // In ramp mode role colour gives way to the fairness fill; the GK keeps
           // identity via an amber border + the localized "MV" tag inside the disc.
           const discClasses = rampMode
@@ -209,18 +231,27 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               type="button"
               onClick={() => handleSlotClick(slot.slotId)}
               aria-label={
-                filled
+                (filled
                   ? t('playtimePlanner.lineup.slotFilled', '{{position}}: {{player}}', {
                       position: positionLabel,
                       player: name ?? '',
                     })
                   : t('playtimePlanner.lineup.slotEmpty', '{{position}}: empty', {
                       position: positionLabel,
-                    })
+                    })) + (subsLabel ? `; ${subsLabel}` : '')
               }
               aria-pressed={isActive}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 ${dimClass(involved)}`}
-              style={{ left: `${slot.relX * 100}%`, top: `${slot.relY * 100}%` }}
+              className={`absolute -translate-y-1/2 flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 ${
+                hasSubs ? '' : '-translate-x-1/2'
+              } ${dimClass(involved)}`}
+              style={{
+                left: `${slot.relX * 100}%`,
+                top: `${slot.relY * 100}%`,
+                // A pill is wider than a disc: shift its anchor by relX so edge
+                // slots grow toward the field center instead of clipping at the
+                // overflow-hidden pitch border (relX 0.5 = the usual -50%).
+                ...(hasSubs ? { transform: `translate(-${(slot.relX * 100).toFixed(1)}%, -50%)` } : {}),
+              }}
             >
               {hasSubs ? (
                 /* Divided pill: one segment per time window, left→right = time.
@@ -236,9 +267,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 >
                   <span
                     className="flex items-center px-2 text-[10px] font-bold text-white whitespace-nowrap"
-                    style={{ backgroundColor: fillFor(playerId) ?? '#4f46e5', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+                    style={{
+                      backgroundColor: filled ? fillFor(playerId) ?? '#4f46e5' : 'rgba(15,23,42,0.7)',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                    }}
                   >
-                    {shortName(name ?? '')}
+                    {filled ? shortName(name ?? '') : '+'}
                   </span>
                   {slotSubs.map((sub) => {
                     const inName = sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?';
