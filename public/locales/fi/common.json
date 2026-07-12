@@ -3170,10 +3170,8 @@
     },
     "overview": {
       "gameLabel": "Peli {{n}}",
-      "rosterSummary": "{{count}} pelaajaa",
       "formatSummary": "{{games}} peliä · {{periods}}×{{minutes}} min",
       "gamesHeading": "Pelit",
-      "included": "Mukana",
       "newPlan": "Uusi",
       "deletePlan": "Poista",
       "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
@@ -3201,7 +3199,8 @@
       "suggestConfirmWarning": "Mukana olevien pelien nykyiset kokoonpanot ja vaihdot korvataan. Kumoa palauttaa ne.",
       "suggestConfirmLabel": "Ehdota",
       "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä.",
-      "gridButton": "Kaikki pelit rinnakkain"
+      "gridButton": "Kaikki pelit rinnakkain",
+      "notCounted": "Ei mukana laskuissa"
     },
     "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
     "deleteError": "Suunnitelman poistaminen epäonnistui.",
@@ -3219,7 +3218,9 @@
       "fairnessStrip": "Peliaikakertymä",
       "subAction": "Vaihto…",
       "notInGame": "Ei pelaa tässä pelissä",
-      "gameName": "Pelin nimi"
+      "gameName": "Pelin nimi",
+      "includedToggle": "Mukana laskuissa - napauta jättääksesi pois",
+      "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan"
     },
     "subs": {
       "heading": "Vaihdot",

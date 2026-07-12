@@ -315,7 +315,11 @@ describe('Translation File Validation', () => {
       // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
       //         -1: versions.switchLabel, dropdown replaced by the manager)
       // -1: playtimePlanner.setup.teamHint (explanatory text under team select removed)
-      expect(enKeys.length).toBe(2794);
+      // +1 net: overview composition rework (+3: overview.notCounted,
+      //         lineup.includedToggle/excludedToggle - include dot on game tabs;
+      //         -2: overview.included checkbox, overview.rosterSummary - replaced
+      //         by roster checkboxes and tab dots)
+      expect(enKeys.length).toBe(2795);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -354,7 +358,11 @@ describe('Translation File Validation', () => {
       // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
       //         -1: versions.switchLabel, dropdown replaced by the manager)
       // -1: playtimePlanner.setup.teamHint (explanatory text under team select removed)
-      expect(fiKeys.length).toBe(2794);
+      // +1 net: overview composition rework (+3: overview.notCounted,
+      //         lineup.includedToggle/excludedToggle - include dot on game tabs;
+      //         -2: overview.included checkbox, overview.rosterSummary - replaced
+      //         by roster checkboxes and tab dots)
+      expect(fiKeys.length).toBe(2795);
     });
   });
 });

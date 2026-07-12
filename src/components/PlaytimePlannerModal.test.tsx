@@ -480,9 +480,15 @@ describe('PlaytimePlannerModal', () => {
       'success',
     );
 
-    // Generated overwrite is one undo away.
+    // Generated overwrite is one undo away - undo lives in the lineup view.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     });
     expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
   });
@@ -498,15 +504,19 @@ describe('PlaytimePlannerModal', () => {
     });
     expect(screen.getByDisplayValue('Renamed Cup')).toBeInTheDocument();
 
+    // Undo/redo live in the lineup view; the header shows the plan name there.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     });
-    expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Saved Cup' })).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
     });
-    expect(screen.getByDisplayValue('Renamed Cup')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Renamed Cup' })).toBeInTheDocument();
   });
 
   it('coalesces consecutive keystrokes into ONE undo step', async () => {
@@ -522,11 +532,15 @@ describe('PlaytimePlannerModal', () => {
       });
     }
     expect(screen.getByDisplayValue('Saved Cup ABC')).toBeInTheDocument();
-    // ...revert with a SINGLE undo (not one per keystroke).
+    // ...revert with a SINGLE undo (not one per keystroke) - from the lineup
+    // view, where the undo/redo buttons live.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     });
-    expect(screen.getByDisplayValue('Saved Cup')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Saved Cup' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
   });
 
@@ -561,8 +575,69 @@ describe('PlaytimePlannerModal', () => {
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
     await screen.findByDisplayValue('Saved Cup');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
+    });
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
+  });
+
+  it('overview roster checkboxes add instantly and route impacted removals through the confirm', async () => {
+    const planWithLineup = {
+      ...existingPlan,
+      games: [{ ...existingPlan.games[0], startingSlots: [{ slotId: 'gk', playerId: 'p1' }] }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: planWithLineup });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByDisplayValue('Saved Cup');
+
+    // Sam (master roster, not in the plan) joins with one tap - no confirm.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Sam' }));
+    });
+    expect(screen.getByRole('checkbox', { name: 'Sam' })).toBeChecked();
+
+    // Alex holds a lineup spot - unchecking names the damage before it happens.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Alex' }));
+    });
+    expect(screen.getByText('Remove player?')).toBeInTheDocument();
+    expect(screen.getByText(/starting spots: 1, planned subs: 0/)).toBeInTheDocument();
+    const removeButtons = screen.getAllByRole('button', { name: 'Remove' });
+    await act(async () => {
+      fireEvent.click(removeButtons[removeButtons.length - 1]);
+    });
+    expect(screen.getByRole('checkbox', { name: 'Alex' })).not.toBeChecked();
+  });
+
+  it('toggles a game in/out of totals via the tab include dot', async () => {
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [existingPlan.games[0], { ...existingPlan.games[0], id: 'g2', label: 'Game 2' }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Game 1/ }));
+    });
+
+    // The dot is the ONLY inclusion toggle (the overview checkbox is gone).
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Counted in totals - tap to exclude: Game 2' }),
+      );
+    });
+    expect(
+      screen.getByRole('button', { name: 'Excluded from totals - tap to include: Game 2' }),
+    ).toBeInTheDocument();
+
+    // The overview mirrors the exclusion on the game card.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    });
+    expect(screen.getByText(/Not counted/)).toBeInTheDocument();
   });
 
   it('a horizontal swipe on the lineup flips to the next game', async () => {
