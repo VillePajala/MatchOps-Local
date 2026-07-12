@@ -579,7 +579,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </button>
             {onOpenPlanner && (
               <button onClick={wrapModal(onOpenPlanner)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-                <HiOutlineTableCells className="w-5 h-5 mr-2" /> {t('controlBar.planner', 'Lineup planner')}
+                <HiOutlineTableCells className="w-5 h-5 mr-2" /> {t('controlBar.planner', 'Match planner')}
               </button>
             )}
             <button

@@ -200,7 +200,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   const fairMin = minutes.fairShareSeconds !== null ? toMin(minutes.fairShareSeconds) : null;
 
   return (
-    <div className="max-w-lg mx-auto space-y-4">
+    <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold text-slate-200">{t('playtimePlanner.balance.title', 'Playing-time balance')}</h3>
         <p className={subtextStyle}>
