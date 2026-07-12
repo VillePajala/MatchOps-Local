@@ -51,6 +51,7 @@ import {
   getGameSlots,
 } from '@/utils/playtimePlanner/lineup';
 import { addSub, removeSub, removeSubsBringingOn } from '@/utils/playtimePlanner/subs';
+import { suggestFairShareLineup } from '@/utils/playtimePlanner/suggest';
 import {
   addPlayerToPlan,
   removePlayerFromPlan,
@@ -128,6 +129,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // removeTarget: plan player pending the destructive remove confirm.
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<PlanPlayer | null>(null);
+  // "Suggest fair lineup" pending confirm (it overwrites included games).
+  const [showSuggestConfirm, setShowSuggestConfirm] = useState(false);
   // Slot whose substitution sheet is open (lineup view; null = closed).
   const [subSheetSlotId, setSubSheetSlotId] = useState<string | null>(null);
   // Undo/redo: full-state snapshots of the ACTIVE plan (standalone-planner
@@ -289,7 +292,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (e.key !== 'Escape') return;
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
-      if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null) return;
+      if (showDeleteConfirm || removeTarget !== null || bulkReapplyTarget !== null || showSuggestConfirm) return;
       // The sub sheet is open: Escape closes it, nothing else.
       if (subSheetSlotId !== null) {
         setSubSheetSlotId(null);
@@ -305,7 +308,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, subSheetSlotId]);
+  }, [isOpen, view, onClose, showDeleteConfirm, removeTarget, bulkReapplyTarget, showSuggestConfirm, subSheetSlotId]);
 
   const togglePlayer = (id: string) => {
     setSelectedIds((prev) => {
@@ -1143,6 +1146,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               {t('playtimePlanner.balance.view', 'View playing-time balance')}
             </button>
 
+            <button
+              type="button"
+              onClick={() => setShowSuggestConfirm(true)}
+              className={`${secondaryButtonStyle} w-full`}
+            >
+              {t('playtimePlanner.overview.suggestButton', 'Suggest fair lineups')}
+            </button>
+
             <div>
               <h3 className={`${labelStyle} mb-2`}>{t('playtimePlanner.overview.gamesHeading', 'Games')}</h3>
               <div className="space-y-2">
@@ -1445,6 +1456,26 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         </button>
       </ModalFooter>
 
+      <ConfirmationModal
+        isOpen={showSuggestConfirm}
+        title={t('playtimePlanner.overview.suggestConfirmTitle', 'Suggest fair lineups?')}
+        message={t(
+          'playtimePlanner.overview.suggestConfirmMessage',
+          'Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.',
+        )}
+        warningMessage={t(
+          'playtimePlanner.overview.suggestConfirmWarning',
+          'Current lineups and substitutions of included games will be replaced. Undo restores them.',
+        )}
+        onConfirm={() => {
+          setShowSuggestConfirm(false);
+          updateActivePlan((plan) => suggestFairShareLineup(plan));
+          showToast(t('playtimePlanner.overview.suggestDone', 'Fair lineups suggested - check the balance view.'), 'success');
+        }}
+        onCancel={() => setShowSuggestConfirm(false)}
+        confirmLabel={t('playtimePlanner.overview.suggestConfirmLabel', 'Suggest')}
+        variant="primary"
+      />
       <ConfirmationModal
         isOpen={removeTarget !== null}
         title={t('playtimePlanner.players.removeConfirmTitle', 'Remove player?')}

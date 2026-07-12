@@ -310,7 +310,8 @@ describe('Translation File Validation', () => {
       // +7 net: minutes-view redesign (+8: balance zeroMinutes pair, spreadLabel/Detail,
       //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
       //         the zero-minutes warning)
-      expect(enKeys.length).toBe(2785);
+      // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
+      expect(enKeys.length).toBe(2791);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -344,7 +345,8 @@ describe('Translation File Validation', () => {
       // +7 net: minutes-view redesign (+8: balance zeroMinutes pair, spreadLabel/Detail,
       //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
       //         the zero-minutes warning)
-      expect(fiKeys.length).toBe(2785);
+      // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
+      expect(fiKeys.length).toBe(2791);
     });
   });
 });

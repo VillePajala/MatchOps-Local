@@ -3195,7 +3195,13 @@
       "reapplyDoneMissing_other": "Updated {{count}} games. Not in a game roster, skipped: {{names}}.",
       "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
       "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated.",
-      "editPlayers": "Edit players"
+      "editPlayers": "Edit players",
+      "suggestButton": "Suggest fair lineups",
+      "suggestConfirmTitle": "Suggest fair lineups?",
+      "suggestConfirmMessage": "Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.",
+      "suggestConfirmWarning": "Current lineups and substitutions of included games will be replaced. Undo restores them.",
+      "suggestConfirmLabel": "Suggest",
+      "suggestDone": "Fair lineups suggested - check the balance view."
     },
     "saveError": "Could not save the plan. Your latest changes may not persist.",
     "deleteError": "Could not delete the plan.",
