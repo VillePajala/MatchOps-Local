@@ -2,6 +2,19 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-12",
+      "en": [
+        "Lineup planner got a major upgrade: player discs are coloured by fairness (red = needs minutes, green = fair share), substitutions show as split discs with both names, and a totals strip keeps every player's minutes visible while you edit.",
+        "New one-tap tools: \"Suggest fair lineups\" builds even rotations for the whole tournament, undo/redo, swipe between games, and an all-games side-by-side view.",
+        "Playing-time balance view redesigned: colour chips per player, warnings (0-minute players, big gaps, lone goalkeeper) and per-game detail cards."
+      ],
+      "fi": [
+        "Kokoonpanosuunnittelija sai ison päivityksen: pelaajakiekot värjäytyvät reiluuden mukaan (punainen = tarvitsee peliaikaa, vihreä = oma osuus täynnä), vaihdot näkyvät jaettuina kiekkoina molemmilla nimillä, ja peliaikakertymä pysyy näkyvissä muokatessa.",
+        "Uudet yhden napautuksen työkalut: \"Ehdota reilut kokoonpanot\" rakentaa tasaisen rotaation koko turnaukseen, kumoa/tee uudelleen, pyyhkäisy pelien välillä ja kaikki pelit rinnakkain -näkymä.",
+        "Peliaikanäkymä uudistettiin: värichipit pelaajittain, varoitukset (0 minuutin pelaajat, suuret erot, yksinäinen maalivahti) ja pelikohtaiset kortit."
+      ]
+    },
+    {
       "date": "2026-07-03",
       "en": [
         "New: Playing-Time Planner - plan fair minutes across a whole tournament before match day. From the start screen tap \"Plan playing time\": pick your squad, set each game's formation and length, tap players onto the pitch and schedule a half-time sub. A balance view then shows every kid's total minutes across all games, least-played first and coloured red to green - swap a green kid for a red one and the numbers update instantly. Save several plans, switch between them, and export or import a plan as a file. Fully offline; nothing is tied to your saved games yet (that comes next)."
