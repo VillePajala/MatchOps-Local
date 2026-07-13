@@ -17,6 +17,15 @@
       ]
     },
     {
+      "date": "2026-07-12",
+      "en": [
+        "Development infrastructure: made automated code-review comments post reliably on pull requests (no user-facing changes)."
+      ],
+      "fi": [
+        "Kehitysinfrastruktuuri: automaattisten koodikatselmointikommenttien julkaisu pull requesteihin toimii nyt luotettavasti (ei käyttäjälle näkyviä muutoksia)."
+      ]
+    },
+    {
       "date": "2026-07-03",
       "en": [
         "New: Playing-Time Planner - plan fair minutes across a whole tournament before match day. From the start screen tap \"Plan playing time\": pick your squad, set each game's formation and length, tap players onto the pitch and schedule a half-time sub. A balance view then shows every kid's total minutes across all games, least-played first and coloured red to green - swap a green kid for a red one and the numbers update instantly. Save several plans, switch between them, and export or import a plan as a file. Fully offline; nothing is tied to your saved games yet (that comes next)."
