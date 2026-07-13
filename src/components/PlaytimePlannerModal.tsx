@@ -1426,7 +1426,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                   {t('playtimePlanner.setup.rosterEmpty', 'Add players to your roster first.')}
                 </p>
                 <p className="text-slate-500 text-sm">
-                  {t('playtimePlanner.setup.rosterEmptyHint', 'Open Roster from the main menu to add your squad.')}
+                  {t('playtimePlanner.setup.rosterEmptyHint', 'Open All Players from the main menu to add your squad.')}
                 </p>
               </div>
             ) : (

@@ -291,6 +291,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       }
       const result = buildPrefillFromPlan(plan, game, availablePlayersForSetup);
       setSelectedPlayerIds(result.selectedPlayerIds);
+      // Seed the game's period config from the PLANNED game (still editable):
+      // without this a 2x12 plan lands in a 2x10 default game and the planned
+      // half-time sub prompt fires two minutes into the second half.
+      setLocalNumPeriods(game.numberOfPeriods === 1 ? 1 : 2);
+      setLocalPeriodDurationString(String(game.periodMinutes));
       setPrefillPayload({
         // Starters on the field + planned subs parked on the sideline in one array;
         // the sideline players render as waiting subs (desaturated, position-labelled).

@@ -52,7 +52,7 @@ BEGIN
   DELETE FROM game_tactical_data WHERE user_id = v_user_id;
   DELETE FROM player_assessments WHERE user_id = v_user_id;
 
-  -- Playtime planner stores (added in migration 036; no FKs among user tables)
+  -- Playtime planner stores (036; delete order matters since 038's link->plan FK)
   DELETE FROM playtime_game_subs WHERE user_id = v_user_id;
   DELETE FROM playtime_plan_links WHERE user_id = v_user_id;
   DELETE FROM playtime_plans WHERE user_id = v_user_id;
