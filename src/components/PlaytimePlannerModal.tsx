@@ -165,6 +165,24 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Fairness strip fold state lives HERE so it survives tab/layout switches
   // (local state reset on every unmount re-expanded it constantly).
   const [stripCollapsed, setStripCollapsed] = useState(false);
+  // Mobile-toolbar pattern for the tab strip: collapse while scrolling DOWN
+  // (working - content gets the full height), reappear on the first upward
+  // scroll (intent to navigate). Content area is critical in the planner.
+  const [tabsHidden, setTabsHidden] = useState(false);
+  const lastScrollTopRef = useRef(0);
+  const handleContentScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const y = e.currentTarget.scrollTop;
+    const last = lastScrollTopRef.current;
+    // Small hysteresis so micro-jitter (momentum, elastic) doesn't flicker.
+    if (y > last + 4 && y > 56) setTabsHidden(true);
+    else if (y < last - 4) setTabsHidden(false);
+    lastScrollTopRef.current = y;
+  }, []);
+  // Switching tabs (or leaving the plan) always reveals the strip again.
+  useEffect(() => {
+    setTabsHidden(false);
+    lastScrollTopRef.current = 0;
+  }, [view]);
   // Availability fold-out open/closed - lifted so "mark the same kids absent
   // across the morning games" survives ribbon taps (the field remounts per
   // game via key={editingGame.id}).
@@ -1364,7 +1382,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           styling from GameStats): the working surface, the fairness read, and
           the plan's data. No hub page, no Back-stepping between them. */}
       {activePlan && isPlanTab(view) && (
-        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        <div
+          className={`px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0 overflow-hidden transition-all duration-200 ${
+            tabsHidden ? 'max-h-0 py-0 opacity-0 border-b-0' : 'max-h-20 py-3 border-b border-slate-700/20'
+          }`}
+          aria-hidden={tabsHidden}
+        >
           <div
             className="flex w-full gap-2"
             role="tablist"
@@ -1406,7 +1429,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         </div>
       )}
 
-      <ScrollableContent className="px-6 py-4">
+      <ScrollableContent className="px-6 py-4" onScroll={handleContentScroll} data-testid="planner-scroll">
         {view === 'loading' && (
           <div className="flex flex-col items-center justify-center py-10 text-slate-400">
             <svg className="animate-spin h-8 w-8 mb-3 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">

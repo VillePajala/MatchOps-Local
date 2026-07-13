@@ -1060,6 +1060,32 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
   });
 
+  it('collapses the tab strip on scroll DOWN and reveals it on scroll UP', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+
+    const scroller = screen.getByTestId('planner-scroll');
+    const strip = screen.getByRole('tablist').parentElement!;
+    expect(strip.className).toContain('max-h-20');
+
+    // Scroll down past the threshold: strip collapses (content maximized).
+    Object.defineProperty(scroller, 'scrollTop', { value: 200, configurable: true });
+    await act(async () => {
+      fireEvent.scroll(scroller);
+    });
+    expect(strip.className).toContain('max-h-0');
+    expect(strip).toHaveAttribute('aria-hidden', 'true');
+
+    // The FIRST upward scroll brings it back (intent to navigate).
+    Object.defineProperty(scroller, 'scrollTop', { value: 150, configurable: true });
+    await act(async () => {
+      fireEvent.scroll(scroller);
+    });
+    expect(strip.className).toContain('max-h-20');
+  });
+
   it('switches to the Minutes tab and back to Games', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);

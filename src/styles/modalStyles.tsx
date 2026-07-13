@@ -161,8 +161,14 @@ export const ModalFooter: React.FC<{ children: React.ReactNode }> = ({ children 
   </div>
 );
 
-export const ScrollableContent: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`flex-1 overflow-y-auto min-h-0 ${className}`}>
+export const ScrollableContent: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  /** Optional scroll listener (e.g. collapse-on-scroll chrome). */
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  'data-testid'?: string;
+}> = ({ children, className = '', onScroll, 'data-testid': testId }) => (
+  <div className={`flex-1 overflow-y-auto min-h-0 ${className}`} onScroll={onScroll} data-testid={testId}>
     {children}
   </div>
 );
