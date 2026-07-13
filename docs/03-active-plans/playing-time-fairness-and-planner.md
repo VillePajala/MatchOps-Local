@@ -315,7 +315,12 @@ migration). (Status: **shipped**, reworked on `feat/playtime-3.5-link-store`.)
      pinned action: GameStats' tab bar, TeamManager/RosterSettings'
      pinned Add buttons, SeasonTournament's add-button grid. Content area
      wins on phones; access stays one small scroll-up away.
-   Decide both together so modals don't fork into three visual generations.
+   - **Background layer set** (root-caused 2026-07-13: THE "feels different"
+     culprit was one extra bottom glow layer): house modals disagree today -
+     SeasonTournament paints 2 layers, GameSettings 3, ModalBackgroundEffects
+     now matches GameSettings' 3. The pass should standardize ONE layer set
+     across all modals.
+   Decide all of it together so modals don't fork into visual generations.
 2. **DONE (2026-07-12). Plan manager layout vs house convention.** House pattern (TeamManager,
    RosterSettings, SeasonTournament): create-new is a full-width primary button
    PINNED at the top under the header (fixed section, not in the scroll);
