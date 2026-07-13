@@ -3172,7 +3172,6 @@
       "gameLabel": "Game {{n}}",
       "formatSummary": "{{games}} games · {{periods}}×{{minutes}} min",
       "gamesHeading": "Games",
-      "newPlan": "New",
       "deletePlan": "Delete",
       "confirmDelete": "Delete this plan? This cannot be undone.",
       "placedCount": "{{placed}}/{{total}} placed",
@@ -3212,7 +3211,6 @@
       "slotEmpty": "{{position}}: empty",
       "clearSlot": "Clear",
       "benchEmpty": "Everyone is on the field.",
-      "benchHeading": "Bench",
       "autoFill": "Auto-fill",
       "gameTabs": "Switch game",
       "fairnessStrip": "Playing-time totals",
@@ -3224,7 +3222,8 @@
       "viewSingle": "Single game",
       "viewGrid": "Side by side",
       "noPlayers": "No players in this plan - add them on the Plan tab.",
-      "absentHeading": "Absent from this game"
+      "absentHeading": "Absent from this game",
+      "benchEmptyAbsent": "Everyone is placed or absent."
     },
     "subs": {
       "heading": "Substitutions",
