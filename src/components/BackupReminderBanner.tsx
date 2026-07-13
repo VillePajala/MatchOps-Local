@@ -103,11 +103,12 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
 
   // Floating overlay card (fixed) rather than an inline banner, so it never steals
   // layout height from the field/app. App-style: slate card, indigo primary action.
-  // z-[45]: above the ControlBar and its dimming backdrop (z-40) so the buttons
-  // stay reachable, but BELOW the slide-out settings sidebar (z-50) - an
-  // informational banner must never overlay navigation chrome.
+  // z-[25]: BELOW the full-screen TimerOverlay (z-30), the sidebar backdrop (z-40),
+  // the sidebar (z-50) and modals - an overdue-backup reminder must never sit on
+  // top of live-game controls or navigation chrome. It floats clear of the bottom
+  // ControlBar spatially (bottom offset), so its buttons stay tappable in normal use.
   return (
-    <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] z-[45] flex justify-center px-4 pointer-events-none">
+    <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] z-[25] flex justify-center px-4 pointer-events-none">
       <div
         role="status"
         className="pointer-events-auto w-full max-w-md rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl p-3 flex flex-col gap-2"

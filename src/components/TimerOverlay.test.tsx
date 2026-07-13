@@ -126,5 +126,15 @@ describe('TimerOverlay', () => {
       render(<TimerOverlay {...baseProps} gameStatus="notStarted" plannedSubPrompt={prompt} />);
       expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
     });
+
+    it('keeps the nudge through a period break (half-time is when subs happen)', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="periodEnd" plannedSubPrompt={prompt} />);
+      expect(screen.getByRole('button', { name: /Got it/i })).toBeInTheDocument();
+    });
+
+    it('does not show the nudge after full time - nobody left to substitute', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" plannedSubPrompt={prompt} />);
+      expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
+    });
   });
 });

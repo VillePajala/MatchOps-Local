@@ -372,4 +372,43 @@ describe('write paths abort on read failure (sibling-wipe protection)', () => {
     const a = createPlan({ name: 'A', players: [], gameCount: 1, formationId: '5v5-2-2', numberOfPeriods: 2, periodMinutes: 12 });
     expect(parsePlanExport(JSON.stringify({ ...a, games: [] }))).toBeNull();
   });
+
+  it('parsePlanExport rejects a game bringing the same player on twice, or an already-starting player', () => {
+    // The UI can't produce either (availableSubInIds), so they only arrive via
+    // crafted JSON - where they would double-count that player's minutes.
+    const base = createPlan({ name: 'A', players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }], gameCount: 1, formationId: '5v5-2-2', numberOfPeriods: 2, periodMinutes: 12 });
+    const game = base.games[0];
+    const twiceIn = {
+      ...base,
+      games: [{
+        ...game,
+        subs: [
+          { id: 's1', slotId: 'slot-1', timeSeconds: 300, inPlayerId: 'p2' },
+          { id: 's2', slotId: 'slot-2', timeSeconds: 600, inPlayerId: 'p2' },
+        ],
+      }],
+    };
+    expect(parsePlanExport(JSON.stringify(twiceIn))).toBeNull();
+
+    const starterIn = {
+      ...base,
+      games: [{
+        ...game,
+        startingSlots: [{ slotId: 'slot-1', playerId: 'p1' }],
+        subs: [{ id: 's1', slotId: 'slot-2', timeSeconds: 300, inPlayerId: 'p1' }],
+      }],
+    };
+    expect(parsePlanExport(JSON.stringify(starterIn))).toBeNull();
+
+    // Sanity: a single, legal incoming sub still parses.
+    const legal = {
+      ...base,
+      games: [{
+        ...game,
+        startingSlots: [{ slotId: 'slot-1', playerId: 'p1' }],
+        subs: [{ id: 's1', slotId: 'slot-1', timeSeconds: 300, inPlayerId: 'p2' }],
+      }],
+    };
+    expect(parsePlanExport(JSON.stringify(legal))).not.toBeNull();
+  });
 });

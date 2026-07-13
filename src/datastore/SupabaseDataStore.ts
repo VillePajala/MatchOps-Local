@@ -4662,7 +4662,7 @@ export class SupabaseDataStore implements DataStore {
     // this edit-time stamp is >= the stored row's. A device pushing an old
     // queued edit can no longer regress a genuinely newer cloud row - the push
     // simply no-ops and hydration later brings the newer copy down.
-    const { error } = await this.withRetry(async () => {
+    const { data, error } = await this.withRetry(async () => {
       const result = await this.getClient().rpc('save_playtime_plan', {
         p_id: stamped.id,
         p_name: stamped.name,
@@ -4674,6 +4674,16 @@ export class SupabaseDataStore implements DataStore {
       return result;
     }, 'savePlaytimePlan');
     if (error) this.classifyAndThrowError(error, 'savePlaytimePlan');
+    // The RPC returns false when it REFUSED the write (a newer cloud row
+    // exists). Surface that per the interface contract - null means "not
+    // applied" - so the sync layer can pull the winning copy down instead of
+    // dequeuing the op as a success while this device silently diverges.
+    if (data === false) {
+      logger.info(
+        `[SupabaseDataStore] savePlaytimePlan(${stamped.id}): cloud row is newer, write skipped (LWW)`,
+      );
+      return null;
+    }
     return stamped;
   }
 

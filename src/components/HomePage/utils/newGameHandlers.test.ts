@@ -24,6 +24,13 @@ jest.mock('@/utils/playtimePlanner/planLinks', () => ({
 }));
 const mockSetPlanLink = setPlanLink as jest.MockedFunction<typeof setPlanLink>;
 
+// Same treatment for the planned-sub schedule store (keyed by game id).
+jest.mock('@/utils/playtimePlanner/gameSubs', () => ({
+  setGameSubs: jest.fn(async () => true),
+}));
+const mockSetGameSubs = jest.requireMock('@/utils/playtimePlanner/gameSubs')
+  .setGameSubs as jest.Mock;
+
 const createSetStateMock = <T,>(initial: T) => {
   let state = initial;
   const setter = jest.fn((updater: T | ((prev: T) => T)) => {
@@ -268,6 +275,52 @@ describe('newGameHandlers', () => {
         planId: 'plan-123',
         planGameId: 'plangame-456',
       });
+    });
+
+    it('stores a non-empty planned-sub schedule under the new game id', async () => {
+      mockSetGameSubs.mockClear();
+      const savedGamesState = createSetStateMock<SavedGamesCollection>({});
+      const deps = createTestDeps({
+        savedGames: savedGamesState.getState(),
+        setSavedGames: savedGamesState.setter,
+      });
+
+      const plannedSubs = [
+        { id: 'sub-1', slotId: 's0', timeSeconds: 720, inPlayerId: 'p2', outPlayerId: 'p1' },
+      ];
+      await startNewGameWithSetup(deps, createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        availablePlayersForGame: mockPlayers,
+        prefill: {
+          playersOnField: [{ id: 'p1', name: 'Player 1', isGoalie: false, relX: 0.5, relY: 0.5 }],
+          plannedSubs,
+          formationSnapPoints: [],
+        },
+      }));
+
+      expect(mockSetGameSubs).toHaveBeenCalledTimes(1);
+      expect(mockSetGameSubs).toHaveBeenCalledWith(expect.stringMatching(/^game_/), plannedSubs);
+    });
+
+    it('stores no sub schedule when the prefill has none (empty array is not written)', async () => {
+      mockSetGameSubs.mockClear();
+      const savedGamesState = createSetStateMock<SavedGamesCollection>({});
+      const deps = createTestDeps({
+        savedGames: savedGamesState.getState(),
+        setSavedGames: savedGamesState.setter,
+      });
+
+      await startNewGameWithSetup(deps, createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        availablePlayersForGame: mockPlayers,
+        prefill: {
+          playersOnField: [{ id: 'p1', name: 'Player 1', isGoalie: false, relX: 0.5, relY: 0.5 }],
+          plannedSubs: [],
+          formationSnapPoints: [],
+        },
+      }));
+
+      expect(mockSetGameSubs).not.toHaveBeenCalled();
     });
 
     it('writes no plan link for a normal (non-plan) game', async () => {
