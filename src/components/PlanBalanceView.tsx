@@ -288,7 +288,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
           return (
             <div
               key={playerId}
-              className="rounded-lg border border-slate-600/50 border-t-2 border-t-amber-400 bg-gradient-to-b from-slate-800/90 to-slate-900/95 p-3.5 shadow-lg"
+              className="rounded-lg border border-slate-600/50 bg-gradient-to-b from-slate-800/90 to-slate-900/95 p-3.5 shadow-lg"
             >
               <div className="flex items-baseline justify-between gap-3 mb-2.5">
                 <span className="flex-1 min-w-0 truncate text-lg font-bold text-slate-100">{name}</span>

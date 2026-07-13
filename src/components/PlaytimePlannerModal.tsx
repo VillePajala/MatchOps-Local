@@ -114,6 +114,10 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
+/** Which plan was open - survives a resume-from-background remount (pairs with
+ *  GameContainer's PLANNER_OPEN_KEY, which already restores the modal itself). */
+const PLANNER_ACTIVE_PLAN_KEY = 'matchops_planner_active_plan';
+
 type View = 'loading' | 'manager' | 'setup' | 'games' | 'minutes' | 'plan';
 /** The three peer tabs of an OPEN plan (standalone-planner structure). */
 const PLAN_TABS = ['games', 'minutes', 'plan'] as const;
@@ -283,6 +287,24 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       showToast(t('playtimePlanner.loadError', 'Could not load your plans. Close the planner and try again.'), 'error');
   }, [showToast, t]);
 
+  // Mirror of activePlan for effects that must READ it without re-running on
+  // every edit (the load effect below).
+  const activePlanRef = useRef<PlaytimePlan | null>(null);
+  useEffect(() => {
+    activePlanRef.current = activePlan;
+  }, [activePlan]);
+
+  // Remember which plan is open (session-scoped) so a background/resume
+  // remount restores the workspace instead of the manager.
+  useEffect(() => {
+    try {
+      if (activePlan && isPlanTab(view)) sessionStorage.setItem(PLANNER_ACTIVE_PLAN_KEY, activePlan.id);
+      else if (view === 'manager' || view === 'setup') sessionStorage.removeItem(PLANNER_ACTIVE_PLAN_KEY);
+    } catch {
+      // Session storage unavailable (private mode edge) - resume just degrades.
+    }
+  }, [activePlan, view]);
+
   // Load roster + any existing plan when the modal opens.
   useEffect(() => {
     if (!isOpen) return;
@@ -295,6 +317,29 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setRoster(players);
         const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setPlanList(list);
+        // Re-run with a plan already open (auth/user refresh when the app
+        // returns from the background): keep the user exactly where they were
+        // instead of dumping them back on the manager.
+        const open = activePlanRef.current;
+        if (open && plans[open.id]) return;
+        // Fresh mount after a background/resume remount: reopen the plan the
+        // session had open.
+        let resumeId: string | null = null;
+        try {
+          resumeId = sessionStorage.getItem(PLANNER_ACTIVE_PLAN_KEY);
+        } catch {
+          resumeId = null;
+        }
+        if (resumeId && plans[resumeId]) {
+          const resumed = plans[resumeId];
+          setActivePlan(resumed);
+          seedHistory(resumed);
+          setEditingGameId(null);
+          setReplacingId(null);
+          setHighlightPlayerIds([]);
+          setView('games');
+          return;
+        }
         if (list.length > 0) {
           // Step-by-step flow: pick (or create) a plan first; its workspace
           // opens only after an explicit choice.
@@ -1199,11 +1244,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   // Keep the active game's ribbon tab in view - jumping to G14 from the
   // Minutes tab (or by swiping) must not leave the ribbon showing G1-G4.
+  // HORIZONTAL only, by hand: scrollIntoView also scrolled the PAGE, yanking
+  // the user back to the top of the tab after every swipe on the field.
   const editingGameIdResolved = editingGame?.id ?? null;
   useEffect(() => {
     if (view !== 'games' || !editingGameIdResolved) return;
-    const el = ribbonRef.current?.querySelector(`[data-game-id="${editingGameIdResolved}"]`);
-    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    const nav = ribbonRef.current;
+    const el = nav?.querySelector(`[data-game-id="${editingGameIdResolved}"]`);
+    if (!nav || !(el instanceof HTMLElement)) return;
+    const nr = nav.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    if (er.left < nr.left) nav.scrollLeft += er.left - nr.left;
+    else if (er.right > nr.right) nav.scrollLeft += er.right - nr.right;
   }, [view, editingGameIdResolved]);
 
   if (!isOpen) return null;
@@ -1286,7 +1338,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               [
                 ['games', t('playtimePlanner.tabs.games', 'Games')],
                 ['minutes', t('playtimePlanner.tabs.minutes', 'Minutes')],
-                ['plan', t('playtimePlanner.tabs.plan', 'Plan')],
+                ['plan', t('playtimePlanner.tabs.plan', 'Settings')],
               ] as [PlanTab, string][]
             ).map(([tab, label]) => (
               <button
@@ -1975,19 +2027,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 );
               })}
             </nav>
-            {/* One icon toggles the layout: grid icon flips to side-by-side and
-                back (label always names the layout a tap gives you). */}
-            {activePlan.games.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setGamesLayout('grid')}
-                aria-label={t('playtimePlanner.lineup.viewGrid', 'Side by side')}
-                title={t('playtimePlanner.lineup.viewGrid', 'Side by side')}
-                className="shrink-0 p-2 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              >
-                <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
-              </button>
-            )}
             </div>
             <div className="w-full max-w-sm mx-auto">
               <PlanFairnessStrip
@@ -2017,17 +2056,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </>
             ) : (
               <>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setGamesLayout('single')}
-                    aria-label={t('playtimePlanner.lineup.viewSingle', 'Single game')}
-                    title={t('playtimePlanner.lineup.viewSingle', 'Single game')}
-                    className="shrink-0 p-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                  >
-                    <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
-                  </button>
-                </div>
                 <PlanFairnessStrip
                   rows={fairness.rows}
                   highlightPlayerIds={highlightPlayerIds}
@@ -2183,6 +2211,32 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             >
               <HiOutlineArrowUturnRight className="w-4 h-4" />
             </button>
+            {/* Layout toggle lives with the other games-tab utilities - inline
+                with the ribbon it read as a broken, misaligned extra tab. */}
+            {activePlan.games.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
+                aria-pressed={gamesLayout === 'grid'}
+                aria-label={
+                  gamesLayout === 'single'
+                    ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+                    : t('playtimePlanner.lineup.viewSingle', 'Single game')
+                }
+                title={
+                  gamesLayout === 'single'
+                    ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+                    : t('playtimePlanner.lineup.viewSingle', 'Single game')
+                }
+                className={`p-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                  gamesLayout === 'grid'
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                    : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                }`}
+              >
+                <HiOutlineSquares2X2 className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
         )}
         {isPlanTab(view) && (

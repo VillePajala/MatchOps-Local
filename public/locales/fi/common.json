@@ -3290,7 +3290,7 @@
     "tabs": {
       "games": "Pelit",
       "minutes": "Minuutit",
-      "plan": "Suunnitelma"
+      "plan": "Asetukset"
     },
     "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen."
   }

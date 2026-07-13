@@ -130,6 +130,9 @@ jest.mock('@/utils/logger', () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // The planner persists the open plan id per session (resume-from-background);
+  // stale keys must not leak a previous test's plan into the next render.
+  sessionStorage.clear();
   mockGetPlans.mockResolvedValue({});
   // Mirror real storage: getPlan reads the same collection getPlans serves, so
   // opening a plan from the manager resolves without per-test wiring.
@@ -154,7 +157,7 @@ afterEach(() => {
 // enter it by tapping its row first.
 const openPlanTab = async () => {
   await act(async () => {
-    fireEvent.click(screen.getByRole('tab', { name: 'Plan' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
   });
 };
 
@@ -237,6 +240,22 @@ describe('PlaytimePlannerModal', () => {
     ],
   };
 
+  it('resumes straight into the open plan after a background remount', async () => {
+    // GameContainer restores the modal itself; the session key restores WHICH
+    // plan was open, skipping the manager.
+    sessionStorage.setItem('matchops_planner_active_plan', 'existing');
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    // Lands on the Games tab of the remembered plan - no manager row tap.
+    await screen.findByLabelText('Game name');
+    expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
+    // Back to the manager clears the resume key.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    });
+    expect(sessionStorage.getItem('matchops_planner_active_plan')).toBeNull();
+  });
+
   it('opens on the plan manager and enters a plan on tap', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
@@ -251,7 +270,7 @@ describe('PlaytimePlannerModal', () => {
     });
     // Inside: the Games tab with the editable game-name header and the tabs.
     expect(screen.getByLabelText('Game name')).toHaveValue('Game 1');
-    expect(screen.getByRole('tab', { name: 'Plan' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Settings' })).toBeInTheDocument();
     // Back returns to the manager.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Back' }));
