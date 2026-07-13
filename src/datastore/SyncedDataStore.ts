@@ -27,6 +27,9 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
+import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
@@ -1539,6 +1542,52 @@ export class SyncedDataStore implements DataStore {
 
   async getTournamentReferences(tournamentId: string): Promise<EntityReferences> {
     return this.localStore.getTournamentReferences(tournamentId);
+  }
+
+  // ==========================================================================
+  // PLAYING-TIME PLANNER
+  // PR 2: local passthrough only - background queueing to Supabase lands in
+  // PR 4 (plan-doc §11). Behavior today is byte-identical to local mode.
+  // ==========================================================================
+
+  async getPlaytimePlans(): Promise<PlaytimePlanCollection> {
+    return this.localStore.getPlaytimePlans();
+  }
+
+  async savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null> {
+    return this.localStore.savePlaytimePlan(plan);
+  }
+
+  async deletePlaytimePlan(id: string): Promise<boolean> {
+    return this.localStore.deletePlaytimePlan(id);
+  }
+
+  async getPlaytimePlanLinks(): Promise<PlanLinksCollection> {
+    return this.localStore.getPlaytimePlanLinks();
+  }
+
+  async setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean> {
+    return this.localStore.setPlaytimePlanLink(gameId, link);
+  }
+
+  async deletePlaytimePlanLink(gameId: string): Promise<boolean> {
+    return this.localStore.deletePlaytimePlanLink(gameId);
+  }
+
+  async deletePlaytimePlanLinksForPlan(planId: string): Promise<boolean> {
+    return this.localStore.deletePlaytimePlanLinksForPlan(planId);
+  }
+
+  async getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]> {
+    return this.localStore.getPlaytimeGameSubs(gameId);
+  }
+
+  async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {
+    return this.localStore.setPlaytimeGameSubs(gameId, subs);
+  }
+
+  async deletePlaytimeGameSubs(gameId: string): Promise<boolean> {
+    return this.localStore.deletePlaytimeGameSubs(gameId);
   }
 
   async getTeamReferences(teamId: string): Promise<EntityReferences> {
