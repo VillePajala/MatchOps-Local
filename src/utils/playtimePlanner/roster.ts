@@ -34,6 +34,28 @@ export function playerPlanImpact(plan: PlaytimePlan, playerId: string): PlayerPl
   return { startingCount, subCount };
 }
 
+/**
+ * Repair a plan's absence data (self-healing for plans saved by older builds
+ * or merged across copies): an absentIds entry is only valid for a CURRENT
+ * roster member who is NOT placed or subbed in in that game. Returns the same
+ * reference when nothing needed fixing, so callers can treat it as a no-op.
+ */
+export function normalizePlanAbsences(plan: PlaytimePlan): PlaytimePlan {
+  const rosterIds = new Set(plan.players.map((p) => p.id));
+  let changed = false;
+  const games = plan.games.map((g) => {
+    if (!g.absentIds || g.absentIds.length === 0) return g;
+    const involved = new Set<string>();
+    for (const s of g.startingSlots) if (s.playerId) involved.add(s.playerId);
+    for (const sub of g.subs) if (sub.inPlayerId) involved.add(sub.inPlayerId);
+    const cleaned = g.absentIds.filter((id) => rosterIds.has(id) && !involved.has(id));
+    if (cleaned.length === g.absentIds.length) return g;
+    changed = true;
+    return { ...g, absentIds: cleaned };
+  });
+  return changed ? { ...plan, games } : plan;
+}
+
 /** Add a player to the plan roster (no-op if already in the plan). */
 export function addPlayerToPlan(plan: PlaytimePlan, player: PlanPlayer): PlaytimePlan {
   if (plan.players.some((p) => p.id === player.id)) return plan;

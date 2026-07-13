@@ -501,8 +501,8 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                       aria-pressed={absent}
                       className={`px-3 py-1.5 rounded-full text-sm border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
                         absent
-                          ? 'bg-red-900/30 border-red-700 text-red-300 line-through'
-                          : 'bg-slate-700 border-slate-500/40 text-slate-200 hover:bg-slate-600'
+                          ? 'bg-red-900/40 border-red-600 text-red-200 line-through font-medium'
+                          : 'bg-transparent border-slate-600/60 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
                       }`}
                     >
                       {p.name}

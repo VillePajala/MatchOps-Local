@@ -70,6 +70,7 @@ import { addSub, removeSub, removeSubsBringingOn } from '@/utils/playtimePlanner
 import { suggestFairShareLineup } from '@/utils/playtimePlanner/suggest';
 import {
   addPlayerToPlan,
+  normalizePlanAbsences,
   removePlayerFromPlan,
   replacePlayerInPlan,
   playerPlanImpact,
@@ -378,7 +379,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           resumeId = null;
         }
         if (resumeId && plans[resumeId]) {
-          const resumed = plans[resumeId];
+          const resumed = normalizePlanAbsences(plans[resumeId]);
           setActivePlan(resumed);
           seedHistory(resumed);
           setEditingGameId(null);
@@ -684,8 +685,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       await flushSave(); // persist the outgoing plan before reading the target
       const p = await getPlan(id);
       if (p) {
-        setActivePlan(p);
-        seedHistory(p);
+        // Self-heal stale absence data from older builds (placed-and-absent,
+        // removed players' ids) before the plan touches the UI or history.
+        const healed = normalizePlanAbsences(p);
+        setActivePlan(healed);
+        seedHistory(healed);
         setEditingGameId(null);
         setReplacingId(null);
         setHighlightPlayerIds([]);
@@ -897,8 +901,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           showToast(t('playtimePlanner.versions.importError', 'Could not read that file as a plan.'), 'error');
           return;
         }
-        setActivePlan(imported);
-        seedHistory(imported);
+        const healedImport = normalizePlanAbsences(imported);
+        setActivePlan(healedImport);
+        seedHistory(healedImport);
         setEditingGameId(null);
         setReplacingId(null);
         setHighlightPlayerIds([]);
