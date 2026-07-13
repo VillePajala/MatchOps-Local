@@ -3290,7 +3290,7 @@
     "tabs": {
       "games": "Games",
       "minutes": "Minutes",
-      "plan": "Plan"
+      "plan": "Settings"
     },
     "loadError": "Could not load your plans. Close the planner and try again."
   }
