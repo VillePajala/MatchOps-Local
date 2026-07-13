@@ -2072,21 +2072,21 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       className={[
                         'w-28 pl-3 pr-6 py-2 rounded-lg text-left border transition-colors',
                         isCurrent
-                          ? 'bg-slate-700 border-amber-400/60'
+                          ? 'bg-indigo-600 border-indigo-400/40'
                           : 'bg-slate-800 border-slate-600 hover:bg-slate-700',
                         g.included ? '' : 'opacity-50',
                       ].join(' ')}
                     >
                       <span
-                        className={`block text-[11px] font-semibold uppercase tracking-wide tabular-nums ${
-                          isCurrent ? 'text-amber-400' : 'text-slate-400'
+                        className={`block text-xs font-semibold tabular-nums ${
+                          isCurrent ? 'text-indigo-200' : 'text-slate-400'
                         }`}
                       >
                         {t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 })}
                         {incomplete && (
                           /* Placed count instead of a second dot - two unlabeled
                              dots (incomplete vs included) were indistinguishable. */
-                          <span className="ml-1.5 text-amber-400 normal-case">
+                          <span className="ml-1.5 text-amber-400">
                             {placedCount}/{getGameSlots(g.formationId).length}
                           </span>
                         )}

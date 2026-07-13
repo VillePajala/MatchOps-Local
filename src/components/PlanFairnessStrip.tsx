@@ -65,7 +65,7 @@ const PlanFairnessStrip: React.FC<PlanFairnessStripProps> = ({
         type="button"
         onClick={toggleCollapsed}
         aria-expanded={!collapsed}
-        className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-200 py-1.5 -my-1"
+        className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 py-1.5 -my-1"
       >
         <HiChevronDown
           aria-hidden="true"

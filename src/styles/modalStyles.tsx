@@ -29,10 +29,11 @@ export const modalContainerStyle =
  */
 export const ModalBackgroundEffects: React.FC = () => (
   <>
+    {/* Exactly the GameSettings layer set - an extra bottom glow here made
+        these modals read subtly hazier than the rest of the app. */}
     <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
     <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
     <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50 pointer-events-none" />
-    <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
   </>
 );
 

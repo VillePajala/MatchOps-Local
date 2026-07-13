@@ -333,7 +333,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       style={{ width: `${barW}%`, backgroundColor: c.bg }}
                     />
                   </div>
-                  <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                  <p className="mt-1 text-xs font-medium text-slate-400">
                     {t('playtimePlanner.balance.ofFairShare', '{{pct}}% of share', { pct })}
                     {deltaStr ? ` · ${deltaStr}` : ''}
                   </p>
@@ -366,7 +366,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                       title={g.label}
                       className={`${tileClasses} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400`}
                     >
-                      <span className="text-[9px] font-bold tracking-wide text-slate-400">
+                      <span className="text-[9px] font-medium text-slate-400">
                         {gameShort(i)}
                       </span>
                       <span className="text-[11px] font-bold text-amber-300 truncate max-w-full">
@@ -376,7 +376,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                     </button>
                   ) : (
                     <div key={g.id} title={g.label} className={tileClasses}>
-                      <span className="text-[9px] font-bold tracking-wide text-slate-400">
+                      <span className="text-[9px] font-medium text-slate-400">
                         {gameShort(i)}
                       </span>
                       <span className="text-[11px] font-bold text-amber-300 truncate max-w-full">
