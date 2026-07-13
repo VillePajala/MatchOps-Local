@@ -405,3 +405,32 @@ in defense this season?" becomes answerable.
 **Sequencing:** after planner finalization + cloud sync. Own initiative:
 PR 1 game-schema field + derivation of playerPositions, PR 2 confirm sheet,
 PR 3 stats views, PR 4 (later) live capture with the timer refactor.
+
+### §11 addendum — deep-review outcome (2026-07-13)
+
+Reviewed the full sync chain adversarially. Fixed:
+1. `clear_all_user_data` RPC missed the playtime tables ("Clear cloud data"
+   left ghost plans that hydration would resurrect) — migration 037 (verbatim
+   020 + three DELETEs), applied to staging. Account DELETION was never
+   affected (auth.users ON DELETE CASCADE).
+2. `SupabaseDataStore.savePlaytimePlan` re-stamped `updatedAt` at PUSH time,
+   letting a late offline push beat a genuinely newer edit — now preserves the
+   edit-time stamp end to end (local stamp → queue → cloud row).
+3. Migration wizard (`migrationService`, the first-sign-in "Sync") pushed
+   entity-by-entity and MISSED plans/links/subs — added.
+4. Full reverse migration (cloud→local) missed them too — added via the
+   timestamp-preserving restore helpers.
+5. Prefill selected ABSENT players into the real game's squad — excluded.
+
+Verified safe (no change needed): delete-account (cascade), local
+clearAllUserData (whole-DB wipe includes planner keys), fullBackup restore
+(writes plans back), SyncQueue dedup (update+delete coalesces to delete; the
+namespaced `plan:` entityId cannot collide), stale absentIds after roster
+edits (filter direction makes them inert).
+
+Known accepted limitation (parity with all other entities): a locally deleted
+plan whose delete op is still queued can be transiently resurrected by
+background hydration until the queue drains.
+
+**PROD MERGE CHECKLIST: apply migrations 036 AND 037 to prod (with the
+CLAUDE.md diff check) BEFORE merging to master.**

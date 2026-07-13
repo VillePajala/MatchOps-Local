@@ -129,7 +129,7 @@ describe('SupabaseDataStore — playtime planner', () => {
     });
   });
 
-  it('savePlaytimePlan upserts one row per plan with the composite conflict target', async () => {
+  it('savePlaytimePlan upserts one row per plan, PRESERVING the edit-time stamp', async () => {
     const saved = await dataStore.savePlaytimePlan(validPlan);
 
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('playtime_plans');
@@ -139,12 +139,12 @@ describe('SupabaseDataStore — playtime planner', () => {
     expect(row.id).toBe('ptp_1');
     expect(row.name).toBe('Saved Cup');
     expect(row.archived).toBe(false);
-    // The blob is the STAMPED plan (fresh updatedAt + current schema version),
-    // and the surfaced columns mirror it.
+    // The blob PRESERVES the edit-time stamp from the local store - per-plan
+    // LWW compares it, so a late offline push must NOT get a fresh timestamp.
     expect(row.data.version).toBe(PLAYTIME_PLAN_SCHEMA_VERSION);
-    expect(row.data.updatedAt).toBe(row.updated_at);
-    expect(saved?.updatedAt).toBe(row.updated_at);
-    expect(saved?.updatedAt).not.toBe(validPlan.updatedAt);
+    expect(row.data.updatedAt).toBe(validPlan.updatedAt);
+    expect(row.updated_at).toBe(validPlan.updatedAt);
+    expect(saved?.updatedAt).toBe(validPlan.updatedAt);
   });
 
   it('getPlaytimePlans returns valid blobs and DROPS a malformed row without failing', async () => {

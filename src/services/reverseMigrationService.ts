@@ -19,6 +19,8 @@
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { restorePlans, restorePlanLinks, restoreGameSubs } from '@/utils/playtimePlanner/localPlanStore';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
+import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import { getAuthService } from '@/datastore/factory';
 import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
@@ -267,6 +269,9 @@ interface CloudDataSnapshot {
   playerAdjustments: Map<string, PlayerStatAdjustment[]>; // playerId -> adjustments
   warmupPlan: WarmupPlan | null;
   settings: AppSettings | null;
+  playtimePlans: PlaytimePlanCollection;
+  playtimePlanLinks: PlanLinksCollection;
+  playtimeGameSubs: GameSubsCollection;
 }
 
 // =============================================================================
@@ -783,6 +788,15 @@ async function downloadFromCloud(
 
   reportProgress(0, REVERSE_MIGRATION_ENTITY_NAMES.SETTINGS);
   const settings = await cloudStore.getSettings();
+
+  // Playtime planner stores (plans + links + planned subs per linked game)
+  const playtimePlans = await cloudStore.getPlaytimePlans();
+  const playtimePlanLinks = await cloudStore.getPlaytimePlanLinks();
+  const playtimeGameSubs: GameSubsCollection = {};
+  for (const gameId of Object.keys(playtimePlanLinks)) {
+    const subs = await cloudStore.getPlaytimeGameSubs(gameId);
+    if (subs.length > 0) playtimeGameSubs[gameId] = subs;
+  }
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.SETTINGS);
 
   return {
@@ -796,6 +810,9 @@ async function downloadFromCloud(
     playerAdjustments,
     warmupPlan,
     settings,
+    playtimePlans,
+    playtimePlanLinks,
+    playtimeGameSubs,
   };
 }
 
@@ -997,6 +1014,22 @@ async function saveToLocal(
     }
   }
   progressStep('settings');
+
+  // Playtime planner stores - restore helpers PRESERVE cloud timestamps
+  // (a normal save would re-stamp updatedAt and defeat per-plan LWW) and let
+  // a newer local copy win, mirroring the per-entity skip logic above.
+  try {
+    counts.playtimePlans = await restorePlans(data.playtimePlans);
+    counts.playtimePlanLinks = await restorePlanLinks(data.playtimePlanLinks);
+    counts.playtimeGameSubs = await restoreGameSubs(data.playtimeGameSubs);
+  } catch (err) {
+    failures.push({
+      entityType: 'warmupPlan',
+      entityName: 'Playtime plans',
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+    logger.error('[ReverseMigration] Failed to save playtime plans:', err);
+  }
 
   return { counts, failures };
 }
