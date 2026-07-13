@@ -3166,7 +3166,7 @@
       "teamLoadError": "Could not load that team's roster.",
       "detailsHeading": "Plan details",
       "formatHeading": "Games & format",
-      "rosterEmptyHint": "Open Roster from the main menu to add your squad."
+      "rosterEmptyHint": "Open All Players from the main menu to add your squad."
     },
     "overview": {
       "gameLabel": "Game {{n}}",
@@ -3249,7 +3249,7 @@
       "spreadDetail": "Least: {{least}} · Most: {{most}}",
       "gkLabel": "Only {{name}} plays goalkeeper",
       "gkDetail": "Consider rotating goalkeepers",
-      "focusDelta": "{{delta}} min vs average",
+      "focusDelta": "{{delta}} min vs own share",
       "focusOnShare": "on fair share"
     },
     "versions": {

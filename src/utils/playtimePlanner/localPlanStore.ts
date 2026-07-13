@@ -56,20 +56,26 @@ export function createLocalPlanStore(io: PlanStoreIO): LocalPlanStore {
 // ── Plans ───────────────────────────────────────────────────────────────────
 
 /**
- * Read the full plan collection from storage. Validates **per entry** and keeps
- * the valid plans, dropping only a malformed/incompatible one - so a single bad
- * entry can never wipe out every other plan in the collection.
+ * STRICT read used inside write paths: an IO failure THROWS so the caller's
+ * write aborts - a failed read must never masquerade as an empty collection
+ * (the subsequent write would wipe every sibling plan). Per-entry validation
+ * stays tolerant: one malformed blob only drops itself.
  */
+const readPlansOrThrow = async (): Promise<PlaytimePlanCollection> => {
+  const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_PLANS_KEY, {});
+  if (!raw || typeof raw !== 'object') return {};
+  const valid: PlaytimePlanCollection = {};
+  for (const [id, plan] of Object.entries(raw)) {
+    if (isPlaytimePlan(plan)) valid[id] = plan;
+    else logger.warn(`[playtimePlanner] Dropping invalid stored plan "${id}"`);
+  }
+  return valid;
+};
+
+/** Tolerant read for QUERY paths: an IO failure degrades to "no plans". */
 const getPlans = async (): Promise<PlaytimePlanCollection> => {
   try {
-    const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_PLANS_KEY, {});
-    if (!raw || typeof raw !== 'object') return {};
-    const valid: PlaytimePlanCollection = {};
-    for (const [id, plan] of Object.entries(raw)) {
-      if (isPlaytimePlan(plan)) valid[id] = plan;
-      else logger.warn(`[playtimePlanner] Dropping invalid stored plan "${id}"`);
-    }
-    return valid;
+    return await readPlansOrThrow();
   } catch (error) {
     logger.error('[playtimePlanner] Failed to read plans:', error);
     return {};
@@ -85,7 +91,7 @@ const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null> => {
     // Serialize the read-modify-write so concurrent autosaves (e.g. fast typing)
     // can't clobber each other or drop a sibling plan from the collection.
     return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
-      const plans = await getPlans();
+      const plans = await readPlansOrThrow();
       const stamped: PlaytimePlan = {
         ...plan,
         // Never DOWN-stamp: a blob written by a newer app keeps its version,
@@ -107,7 +113,7 @@ const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null> => {
 const deletePlan = async (id: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
-      const plans = await getPlans();
+      const plans = await readPlansOrThrow();
       if (!(id in plans)) return true;
       delete plans[id];
       await io.setJSON(PLAYTIME_PLANS_KEY, plans);
@@ -131,16 +137,20 @@ const isPlanLink = (v: unknown): v is PlanLink =>
  * Read the full collection, validating per entry (a corrupt entry is dropped,
  * not the whole map) - same tolerance as the plan + sub stores.
  */
+const readLinksOrThrow = async (): Promise<PlanLinksCollection> => {
+  const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_PLAN_LINKS_KEY, {});
+  if (!raw || typeof raw !== 'object') return {};
+  const valid: PlanLinksCollection = {};
+  for (const [gameId, link] of Object.entries(raw)) {
+    if (isPlanLink(link)) valid[gameId] = link;
+    else logger.warn(`[playtimePlanner] Dropping invalid plan link for game "${gameId}"`);
+  }
+  return valid;
+};
+
 const readLinksCollection = async (): Promise<PlanLinksCollection> => {
   try {
-    const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_PLAN_LINKS_KEY, {});
-    if (!raw || typeof raw !== 'object') return {};
-    const valid: PlanLinksCollection = {};
-    for (const [gameId, link] of Object.entries(raw)) {
-      if (isPlanLink(link)) valid[gameId] = link;
-      else logger.warn(`[playtimePlanner] Dropping invalid plan link for game "${gameId}"`);
-    }
-    return valid;
+    return await readLinksOrThrow();
   } catch (error) {
     logger.error('[playtimePlanner] Failed to read plan links:', error);
     return {};
@@ -160,7 +170,7 @@ const getPlanLink = async (gameId: string): Promise<PlanLink | null> => {
 const setPlanLink = async (gameId: string, link: PlanLink): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
-      const all = await readLinksCollection();
+      const all = await readLinksOrThrow();
       all[gameId] = link;
       await io.setJSON(PLAYTIME_PLAN_LINKS_KEY, all);
       return true;
@@ -175,7 +185,7 @@ const setPlanLink = async (gameId: string, link: PlanLink): Promise<boolean> => 
 const deletePlanLink = async (gameId: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
-      const all = await readLinksCollection();
+      const all = await readLinksOrThrow();
       if (!(gameId in all)) return true;
       delete all[gameId];
       await io.setJSON(PLAYTIME_PLAN_LINKS_KEY, all);
@@ -195,7 +205,7 @@ const deletePlanLink = async (gameId: string): Promise<boolean> => {
 const deletePlanLinksForPlan = async (planId: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
-      const all = await readLinksCollection();
+      const all = await readLinksOrThrow();
       const remaining: PlanLinksCollection = {};
       let removed = 0;
       for (const [gameId, link] of Object.entries(all)) {
@@ -229,16 +239,20 @@ const isGameSubsEntry = (v: unknown): v is PlannedGameSub[] =>
  * Read the full collection, validating per entry (a corrupt entry is dropped,
  * not the whole map) - same tolerance as the plan store.
  */
+const readSubsOrThrow = async (): Promise<GameSubsCollection> => {
+  const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_GAME_SUBS_KEY, {});
+  if (!raw || typeof raw !== 'object') return {};
+  const valid: GameSubsCollection = {};
+  for (const [gameId, subs] of Object.entries(raw)) {
+    if (isGameSubsEntry(subs)) valid[gameId] = subs;
+    else logger.warn(`[playtimePlanner] Dropping invalid planned subs for game "${gameId}"`);
+  }
+  return valid;
+};
+
 const readSubsCollection = async (): Promise<GameSubsCollection> => {
   try {
-    const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_GAME_SUBS_KEY, {});
-    if (!raw || typeof raw !== 'object') return {};
-    const valid: GameSubsCollection = {};
-    for (const [gameId, subs] of Object.entries(raw)) {
-      if (isGameSubsEntry(subs)) valid[gameId] = subs;
-      else logger.warn(`[playtimePlanner] Dropping invalid planned subs for game "${gameId}"`);
-    }
-    return valid;
+    return await readSubsOrThrow();
   } catch (error) {
     logger.error('[playtimePlanner] Failed to read planned game subs:', error);
     return {};
@@ -258,7 +272,7 @@ const getGameSubs = async (gameId: string): Promise<PlannedGameSub[]> => {
 const setGameSubs = async (gameId: string, subs: PlannedGameSub[]): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_GAME_SUBS_KEY, async () => {
-      const all = await readSubsCollection();
+      const all = await readSubsOrThrow();
       if (subs.length === 0) delete all[gameId];
       else all[gameId] = subs;
       await io.setJSON(PLAYTIME_GAME_SUBS_KEY, all);
@@ -274,7 +288,7 @@ const setGameSubs = async (gameId: string, subs: PlannedGameSub[]): Promise<bool
 const deleteGameSubs = async (gameId: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_GAME_SUBS_KEY, async () => {
-      const all = await readSubsCollection();
+      const all = await readSubsOrThrow();
       if (!(gameId in all)) return true;
       delete all[gameId];
       await io.setJSON(PLAYTIME_GAME_SUBS_KEY, all);
@@ -296,7 +310,7 @@ const deleteGameSubs = async (gameId: string): Promise<boolean> => {
 const restorePlans = async (incoming: PlaytimePlanCollection): Promise<number> => {
   try {
     return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
-      const current = await getPlans();
+      const current = await readPlansOrThrow();
       let written = 0;
       for (const [id, plan] of Object.entries(incoming)) {
         // A blob from a NEWER app schema is skipped (not dropped): editing it
@@ -325,7 +339,7 @@ const restorePlans = async (incoming: PlaytimePlanCollection): Promise<number> =
 const restorePlanLinks = async (incoming: PlanLinksCollection): Promise<number> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
-      const current = await getAllPlanLinks();
+      const current = await readLinksOrThrow();
       let written = 0;
       for (const [gameId, link] of Object.entries(incoming)) {
         if (!(gameId in current)) {
@@ -346,9 +360,7 @@ const restorePlanLinks = async (incoming: PlanLinksCollection): Promise<number> 
 const restoreGameSubs = async (incoming: GameSubsCollection): Promise<number> => {
   try {
     return await withKeyLock(PLAYTIME_GAME_SUBS_KEY, async () => {
-      const current = await io
-        .getJSON<GameSubsCollection>(PLAYTIME_GAME_SUBS_KEY, {})
-        .then((raw) => (raw && typeof raw === 'object' ? raw : {}));
+      const current = await readSubsOrThrow();
       let written = 0;
       for (const [gameId, subs] of Object.entries(incoming)) {
         if (!(gameId in current) && Array.isArray(subs) && subs.length > 0) {

@@ -346,3 +346,30 @@ describe('versions & JSON (PR 1.6)', () => {
     expect(await importPlan(serializePlan(plan))).toBeNull();
   });
 });
+
+describe('write paths abort on read failure (sibling-wipe protection)', () => {
+  it('savePlan returns null and PRESERVES siblings when the pre-write read fails', async () => {
+    // Seed two plans.
+    const a = createPlan({ name: 'A', players: [], gameCount: 1, formationId: '5v5-2-2', numberOfPeriods: 2, periodMinutes: 12 });
+    const b = createPlan({ name: 'B', players: [], gameCount: 1, formationId: '5v5-2-2', numberOfPeriods: 2, periodMinutes: 12 });
+    expect(await savePlan(a)).not.toBeNull();
+    expect(await savePlan(b)).not.toBeNull();
+
+    // The NEXT read (inside savePlan's lock) fails transiently. Before the
+    // strict-read fix this masqueraded as an empty collection and the write
+    // erased every sibling.
+    const storage = jest.requireMock('@/utils/storage') as { getStorageJSON: jest.Mock };
+    storage.getStorageJSON.mockRejectedValueOnce(new Error('IndexedDB flake'));
+
+    const result = await savePlan({ ...a, name: 'A2' });
+    expect(result).toBeNull(); // write aborted, surfaced to the caller
+
+    const plans = await getPlans();
+    expect(Object.keys(plans).sort()).toEqual([a.id, b.id].sort()); // nothing wiped
+  });
+
+  it('parsePlanExport rejects a plan with zero games (blank Games tab guard)', () => {
+    const a = createPlan({ name: 'A', players: [], gameCount: 1, formationId: '5v5-2-2', numberOfPeriods: 2, periodMinutes: 12 });
+    expect(parsePlanExport(JSON.stringify({ ...a, games: [] }))).toBeNull();
+  });
+});

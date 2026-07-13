@@ -776,10 +776,11 @@ async function restorePlannerStores(
   if (plans && typeof plans === 'object') {
     // savePlaytimePlan in the LOCAL backend re-stamps updatedAt - correct here:
     // a restore IS this device's newest statement of the plan's content.
+    let restored = 0;
     for (const plan of Object.values(plans)) {
-      await dataStore.savePlaytimePlan(plan);
+      if (await dataStore.savePlaytimePlan(plan)) restored++;
     }
-    logger.log(`Restored ${Object.keys(plans).length} playtime plans`);
+    logger.log(`Restored ${restored}/${Object.keys(plans).length} playtime plans`);
   }
   const gameSubs = ls[PLAYTIME_GAME_SUBS_KEY];
   if (gameSubs && typeof gameSubs === 'object') {

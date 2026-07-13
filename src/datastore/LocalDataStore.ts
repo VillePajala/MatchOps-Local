@@ -479,18 +479,37 @@ export class LocalDataStore implements DataStore {
     // same database as every other entity (per-user when signed in). The
     // earlier module-global store wrote the legacy shared DB unconditionally -
     // leaking plans across accounts and escaping clearAllUserData.
+    // Retry parity with utils/storage's getStorageItem (retryCount=2 +
+    // backoff): mobile IndexedDB has transient failures (CLAUDE.md #262), and
+    // planner writes are read-modify-write - a flaky read must not surface as
+    // a throw the write path aborts on when one retry would have succeeded.
+    const withIoRetry = async <T,>(op: () => Promise<T>): Promise<T> => {
+      let lastError: unknown;
+      for (let attempt = 0; attempt <= 2; attempt++) {
+        try {
+          return await op();
+        } catch (error) {
+          lastError = error;
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, attempt)));
+          }
+        }
+      }
+      throw lastError;
+    };
     this.planStore = createLocalPlanStore({
       getJSON: async <T,>(key: string, defaultValue: T): Promise<T> => {
-        const raw = await this.storageGetItem(key);
+        const raw = await withIoRetry(() => this.storageGetItem(key));
         if (raw === null) return defaultValue;
         try {
           return JSON.parse(raw) as T;
-        } catch {
+        } catch (error) {
+          logger.warn(`[LocalDataStore] Corrupt JSON for planner key "${key}", using default`, { error });
           return defaultValue;
         }
       },
       setJSON: async (key: string, value: unknown): Promise<void> => {
-        await this.storageSetItem(key, JSON.stringify(value));
+        await withIoRetry(() => this.storageSetItem(key, JSON.stringify(value)));
       },
     });
 

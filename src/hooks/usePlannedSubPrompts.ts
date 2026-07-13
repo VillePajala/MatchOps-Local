@@ -55,10 +55,24 @@ export function usePlannedSubPrompts(
   // treats a mismatch as empty, so a game change takes effect immediately (no stale
   // prompts) without any synchronous setState in the effect.
   const [loaded, setLoaded] = useState<{ gameId: string; subs: PlannedGameSub[] } | null>(null);
+  // Dismissals persist per game in sessionStorage: a PWA background-kill or
+  // reload mid-match must not resurrect every already-handled prompt. The
+  // persisted set is DERIVED per game (no setState-in-effect); the in-memory
+  // set covers same-session immediacy and the union feeds the prompt filter.
   const [dismissed, setDismissed] = useState<{ gameId: string | null; ids: Set<string> }>(() => ({
     gameId: null,
     ids: new Set(),
   }));
+  const persistedDismissed = useMemo<ReadonlySet<string>>(() => {
+    if (!gameId || typeof window === 'undefined') return EMPTY_IDS;
+    try {
+      const raw = sessionStorage.getItem(`matchops_dismissed_sub_prompts_${gameId}`);
+      const ids: unknown = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(ids) ? (ids as string[]) : []);
+    } catch {
+      return EMPTY_IDS;
+    }
+  }, [gameId]);
 
   useEffect(() => {
     if (!gameId) return;
@@ -81,28 +95,41 @@ export function usePlannedSubPrompts(
       setDismissed((prev) => {
         const ids = prev.gameId === gameId ? new Set(prev.ids) : new Set<string>();
         ids.add(subId);
+        try {
+          sessionStorage.setItem(
+            `matchops_dismissed_sub_prompts_${gameId}`,
+            JSON.stringify([...new Set([...persistedDismissed, ...ids])]),
+          );
+        } catch {
+          // Session storage unavailable - dismissal just won't survive a reload.
+        }
         return { gameId, ids };
       });
     },
-    [gameId],
+    [gameId, persistedDismissed],
   );
 
   const prompt = useMemo<PlannedSubPrompt | null>(() => {
     const subs = loaded && loaded.gameId === gameId ? loaded.subs : [];
-    const dismissedIds = dismissed.gameId === gameId ? dismissed.ids : EMPTY_IDS;
+    const sessionIds = dismissed.gameId === gameId ? dismissed.ids : EMPTY_IDS;
     const due = subs
-      .filter((s) => s.timeSeconds <= timeElapsedInSeconds && !dismissedIds.has(s.id))
+      .filter(
+        (s) =>
+          s.timeSeconds <= timeElapsedInSeconds && !sessionIds.has(s.id) && !persistedDismissed.has(s.id),
+      )
       .sort((a, b) => a.timeSeconds - b.timeSeconds);
-    const next = due[0];
+    // Skip subs whose incoming player no longer resolves (deleted from the
+    // roster after the game was created) - a prompt reading "player_171..._abc
+    // on" helps nobody.
+    const next = due.find((s) => nameFor(players, s.inPlayerId) !== null);
     if (!next) return null;
-    const inName = nameFor(players, next.inPlayerId);
     return {
       subId: next.id,
       timeSeconds: next.timeSeconds,
-      inName: inName ?? next.inPlayerId,
+      inName: nameFor(players, next.inPlayerId) ?? next.inPlayerId,
       outName: nameFor(players, next.outPlayerId),
     };
-  }, [loaded, gameId, dismissed, timeElapsedInSeconds, players]);
+  }, [loaded, gameId, dismissed, persistedDismissed, timeElapsedInSeconds, players]);
 
   return { prompt, dismiss };
 }

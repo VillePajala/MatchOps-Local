@@ -133,6 +133,9 @@ export const parsePlanExport = (json: string): PlaytimePlan | null => {
   // Gate the plan's own version too, so a bare (unenveloped) future-schema plan is
   // rejected rather than imported with fields this build would silently drop.
   if (candidate.version > PLAYTIME_PLAN_SCHEMA_VERSION) return null;
+  // A plan with no games renders a blank Games tab - the app can never produce
+  // one (createPlan clamps to >=1, removal stops at 1), so reject crafted JSON.
+  if (candidate.games.length === 0) return null;
   return candidate;
 };
 

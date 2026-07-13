@@ -3166,7 +3166,7 @@
       "teamLoadError": "Joukkueen kokoonpanoa ei voitu ladata.",
       "detailsHeading": "Suunnitelman tiedot",
       "formatHeading": "Pelit ja muoto",
-      "rosterEmptyHint": "Avaa Kokoonpano päävalikosta ja lisää pelaajat."
+      "rosterEmptyHint": "Avaa Kaikki pelaajat päävalikosta ja lisää pelaajat."
     },
     "overview": {
       "gameLabel": "Peli {{n}}",
@@ -3249,7 +3249,7 @@
       "spreadDetail": "Vähiten: {{least}} · Eniten: {{most}}",
       "gkLabel": "Vain {{name}} pelaa maalivahtina",
       "gkDetail": "Harkitse maalivahtien kierrätystä",
-      "focusDelta": "{{delta}} min vs keskiarvo",
+      "focusDelta": "{{delta}} min vs omaa osuutta",
       "focusOnShare": "tasan oma osuus"
     },
     "versions": {

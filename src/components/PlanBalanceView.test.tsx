@@ -94,7 +94,7 @@ describe('PlanBalanceView', () => {
     );
     // Default focus = least-played (Jo sorts first among the 0' players): the
     // card is the only place the %-of-share line renders.
-    expect(screen.getByText(/0% of share · -24 min vs average/)).toBeInTheDocument();
+    expect(screen.getByText(/0% of share · -24 min vs own share/)).toBeInTheDocument();
     // Jo appears twice: his chip and his focus card.
     expect(screen.getAllByText('Jo')).toHaveLength(2);
     // Tile: G1 label + em dash position (never plays).
@@ -113,7 +113,7 @@ describe('PlanBalanceView', () => {
     );
     // Alex: full game = 100% of share, on fair share; his tile names the GK slot.
     expect(screen.getByText(/100% of share · on fair share/)).toBeInTheDocument();
-    expect(screen.getByText(/0% of share · -24 min vs average/)).toBeInTheDocument();
+    expect(screen.getByText(/0% of share · -24 min vs own share/)).toBeInTheDocument();
     expect(screen.getByText('GK')).toBeInTheDocument();
   });
 
