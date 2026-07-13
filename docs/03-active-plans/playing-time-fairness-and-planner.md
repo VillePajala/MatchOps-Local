@@ -301,13 +301,21 @@ migration). (Status: **shipped**, reworked on `feat/playtime-3.5-link-store`.)
 
 ## 10. Design decisions to think about (parked 2026-07-12, do NOT fix yet)
 
-1. **Dark card container vs bare list items.** The planner's manager/overview
-   lists sit directly on the modal background (no `cardStyle` wrapper), unlike
-   most of the app - competitions (SeasonTournament) wraps its lists in the
-   dark card and keeps rows wide via negative margins (`-mx-2 sm:-mx-4
-   md:-mx-6`). The bare look reads fresh in some contexts. Open question:
-   revert the planner to cards (negative-margin trick), or modernize the WHOLE
-   app toward the barer style. App-wide styling pass candidate.
+1. **App-wide modal chrome modernization (parked; the planner is the pilot).**
+   Two planner departures read fresher than the house style and are candidates
+   for adoption EVERYWHERE, as one styling pass:
+   - **Bare list items** (no `cardStyle` wrapper): planner lists sit directly
+     on the modal background; competitions wraps in the dark card with
+     negative margins (`-mx-2 sm:-mx-4 md:-mx-6`). Decide one way for the
+     whole app.
+   - **Collapse-on-scroll chrome** (shipped in the planner 2026-07-13): the
+     tab strip slides away on scroll DOWN and returns on the first scroll UP
+     (4px hysteresis, 56px threshold; `ScrollableContent` now takes
+     `onScroll`). Candidate for every modal with pinned navigation or a
+     pinned action: GameStats' tab bar, TeamManager/RosterSettings'
+     pinned Add buttons, SeasonTournament's add-button grid. Content area
+     wins on phones; access stays one small scroll-up away.
+   Decide both together so modals don't fork into three visual generations.
 2. **DONE (2026-07-12). Plan manager layout vs house convention.** House pattern (TeamManager,
    RosterSettings, SeasonTournament): create-new is a full-width primary button
    PINNED at the top under the header (fixed section, not in the scroll);
