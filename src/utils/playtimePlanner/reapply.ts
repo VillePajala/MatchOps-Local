@@ -91,7 +91,7 @@ export function buildReapplyPatch(
 export interface ReapplyDeps {
   getPlan: (id: string) => Promise<PlaytimePlan | null>;
   getPlanLink: (gameId: string) => Promise<PlanLink | null>;
-  saveGame: (id: string, game: AppState) => Promise<AppState | null>;
+  saveGame: (id: string, game: AppState) => Promise<AppState>;
   setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
 }
 
@@ -157,7 +157,7 @@ export interface BulkReapplyResult {
 export interface BulkReapplyDeps {
   getAllGames: () => Promise<Record<string, AppState>>;
   getAllPlanLinks: () => Promise<PlanLinksCollection>;
-  saveGame: (id: string, game: AppState) => Promise<AppState | null>;
+  saveGame: (id: string, game: AppState) => Promise<AppState>;
   setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
 }
 

@@ -459,6 +459,55 @@ describe('useGamePersistence', () => {
     });
 
     /**
+     * Deleting a game must also drop its planner bookkeeping (planned-sub
+     * schedule + plan link, both keyed by game id) or they accumulate as orphans.
+     * @critical
+     */
+    it('cleans up the planner stores for the deleted game id', async () => {
+      const { deleteGameSubs } = jest.requireMock('@/utils/playtimePlanner/gameSubs');
+      const { deletePlanLink } = jest.requireMock('@/utils/playtimePlanner/planLinks');
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: {} as AppState, game456: {} as AppState },
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleDeleteGame('game456');
+      });
+
+      expect(deleteGameSubs).toHaveBeenCalledWith('game456');
+      expect(deletePlanLink).toHaveBeenCalledWith('game456');
+    });
+
+    /**
+     * Planner cleanup failure must never fail the (already deleted) game delete.
+     * @edge-case
+     */
+    it('still completes the delete when planner cleanup fails (non-fatal)', async () => {
+      // The hook logs the cleanup failure (expected) - keep the console clean.
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { deleteGameSubs } = jest.requireMock('@/utils/playtimePlanner/gameSubs');
+      (deleteGameSubs as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: {} as AppState, game456: {} as AppState },
+        setSavedGames,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleDeleteGame('game456');
+      });
+
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalledTimes(1);
+      }, { timeout: 1000 });
+      consoleWarnSpy.mockRestore();
+    });
+
+    /**
      * Tests protection against deleting default game
      * @edge-case
      */

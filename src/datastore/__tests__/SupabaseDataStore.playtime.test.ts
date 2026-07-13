@@ -152,6 +152,14 @@ describe('SupabaseDataStore — playtime planner', () => {
     expect(saved?.updatedAt).toBe(validPlan.updatedAt);
   });
 
+  it('savePlaytimePlan returns null when the LWW RPC refuses the write (cloud row newer)', async () => {
+    // Migration 038's RPC returns false when the stored row's stamp is newer.
+    // That refusal must surface as null (interface: "null on failure/not
+    // applied") so the sync layer reconciles instead of celebrating.
+    mockRpc.mockResolvedValueOnce({ data: false, error: null });
+    await expect(dataStore.savePlaytimePlan(validPlan)).resolves.toBeNull();
+  });
+
   it('getPlaytimePlans returns valid blobs and DROPS a malformed row without failing', async () => {
     mockQueryBuilder.eq.mockResolvedValueOnce({
       data: [

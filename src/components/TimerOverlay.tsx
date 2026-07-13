@@ -319,9 +319,15 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </button>
         </div>
 
-        {/* Planned sub nudge (Playing-Time Planner) - persists until dismissed */}
-        {plannedSubPrompt && gameStatus !== 'notStarted' && (
-          <div className="w-full mb-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 flex items-center justify-between gap-3 pointer-events-auto">
+        {/* Planned sub nudge (Playing-Time Planner) - persists until dismissed.
+            Shown while the match is live INCLUDING period breaks (half-time is
+            exactly when planned subs happen), but never before kick-off or
+            after full time - there is nobody left to substitute. */}
+        {plannedSubPrompt && gameStatus !== 'notStarted' && gameStatus !== 'gameEnd' && (
+          <div
+            role="status"
+            className="w-full mb-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 flex items-center justify-between gap-3 pointer-events-auto"
+          >
             <div className="text-left">
               <div className="text-xs font-semibold uppercase tracking-wide text-amber-300">
                 {t('timerOverlay.plannedSubTitle', 'Planned sub')} · {formatTime(plannedSubPrompt.timeSeconds)}

@@ -160,7 +160,7 @@ export function createSyncExecutor(
     });
 
     try {
-      await executeSyncOperation(cloudStore, op);
+      await executeSyncOperation(cloudStore, op, localStore);
 
       logger.debug('[SyncExecutor] Sync operation completed', {
         entityType,
@@ -281,7 +281,8 @@ export function createSyncExecutor(
  */
 async function executeSyncOperation(
   cloudStore: DataStore,
-  op: SyncOperation
+  op: SyncOperation,
+  localStore?: DataStore
 ): Promise<void> {
   const { entityType, entityId, operation, data } = op;
 
@@ -327,7 +328,7 @@ async function executeSyncOperation(
       break;
 
     case 'playtimePlan':
-      await syncPlaytimePlan(cloudStore, operation, entityId, data);
+      await syncPlaytimePlan(cloudStore, operation, entityId, data, localStore);
       break;
 
     case 'playtimePlanLink':
@@ -527,13 +528,38 @@ async function syncPlaytimePlan(
   store: DataStore,
   operation: SyncOperation['operation'],
   entityId: string,
-  data: unknown
+  data: unknown,
+  localStore?: DataStore
 ): Promise<void> {
   if (operation === 'delete') {
     await store.deletePlaytimePlan(entityId);
+    return;
+  }
+  validateObjectData(data, 'playtimePlan', operation, entityId);
+  const applied = await store.savePlaytimePlan(data as PlaytimePlan);
+  if (applied !== null) return;
+
+  // The conditional-LWW RPC (migration 038) refused the write: a NEWER cloud
+  // row exists. That's a resolved conflict, not a failure - the op dequeues,
+  // but this device must converge NOW by pulling the winning copy down, not
+  // at some future full hydration.
+  logger.info(
+    `[SyncExecutor] playtimePlan ${entityId}: cloud copy is newer, pulling it down (LWW)`
+  );
+  if (!localStore) return; // one-way executor (no local store wired): nothing to reconcile
+  const cloudPlans = await store.getPlaytimePlans();
+  const winner = cloudPlans[entityId];
+  if (!winner) return; // row vanished between the RPC and the fetch (deleted elsewhere)
+  // Prefer the stamp-preserving restore helper (LocalDataStore): a plain
+  // savePlaytimePlan would re-stamp updatedAt to NOW and make the local copy
+  // claim to be newer than the cloud row it was copied from.
+  const restore = (
+    localStore as { restorePlaytimePlans?: (c: Record<string, PlaytimePlan>) => Promise<number> }
+  ).restorePlaytimePlans;
+  if (typeof restore === 'function') {
+    await restore.call(localStore, { [winner.id]: winner });
   } else {
-    validateObjectData(data, 'playtimePlan', operation, entityId);
-    await store.savePlaytimePlan(data as PlaytimePlan);
+    await localStore.savePlaytimePlan(winner);
   }
 }
 

@@ -81,25 +81,28 @@ export function buildPrefillFromPlan(
       .filter((a) => a.playerId && byId.has(a.playerId))
       .map((a) => [a.slotId, a.playerId as string]),
   );
-  const plannedSubs: PlannedGameSub[] = planGame.subs
+  // A player enters at most once (and never while already starting) - the plan
+  // editor enforces this, so a violation only reaches here via crafted/legacy
+  // data. Without the guard the duplicate would double-drive the live "sub now"
+  // reminders for a player already on the field.
+  const alreadyIn = new Set(occupantBySlot.values());
+  const plannedSubs: PlannedGameSub[] = [];
+  for (const sub of [...planGame.subs].sort((a, b) => a.timeSeconds - b.timeSeconds)) {
     // Skip subs with no incoming player, or an incoming player not in the roster -
     // there is no one to actually bring on. (Reported via missingPlayerIds below.)
-    .filter(
-      (sub): sub is typeof sub & { inPlayerId: string } =>
-        sub.inPlayerId !== null && byId.has(sub.inPlayerId),
-    )
-    .sort((a, b) => a.timeSeconds - b.timeSeconds)
-    .map((sub) => {
-      const outPlayerId = occupantBySlot.get(sub.slotId) ?? null;
-      occupantBySlot.set(sub.slotId, sub.inPlayerId); // incoming player now holds the slot
-      return {
-        id: sub.id,
-        timeSeconds: sub.timeSeconds,
-        slotId: sub.slotId,
-        inPlayerId: sub.inPlayerId,
-        outPlayerId,
-      };
+    if (sub.inPlayerId === null || !byId.has(sub.inPlayerId)) continue;
+    if (alreadyIn.has(sub.inPlayerId)) continue;
+    alreadyIn.add(sub.inPlayerId);
+    const outPlayerId = occupantBySlot.get(sub.slotId) ?? null;
+    occupantBySlot.set(sub.slotId, sub.inPlayerId); // incoming player now holds the slot
+    plannedSubs.push({
+      id: sub.id,
+      timeSeconds: sub.timeSeconds,
+      slotId: sub.slotId,
+      inPlayerId: sub.inPlayerId,
+      outPlayerId,
     });
+  }
 
   // Formation field positions the created game stores, so it rebuilds the dotted
   // sub-slot circles + on-field position labels on load (same as a placed game).

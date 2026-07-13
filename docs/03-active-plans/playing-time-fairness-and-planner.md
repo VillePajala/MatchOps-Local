@@ -173,18 +173,18 @@ local-only (like `playerPositions`); cloud is deferred (2.4).
   with live fairness feedback (ramp discs, totals strip, Minutes tab); "Suggest
   fair lineups" (greedy fair-share generator) is the one-tap starting point.
   A variance-minimising optimizer stays a later option; no current need.
-- **Availability entry** — OPEN, the last real feature gap. Planned design:
-  per-game "absent" toggle on bench discs (`absentIds` on PlanGame); absent
-  players are skipped by Suggest and drop out of that game's fair-share math.
+- **Availability entry** — DONE: per-game "absent" fold-out on the field view
+  (`absentIds` on PlanGame); absent players are skipped by Suggest and drop out
+  of that game's fair-share math (`normalizePlanAbsences` self-heals on load).
 - **Minutes granularity** — ANSWERED: arbitrary sub minutes (stepper ±1/±5),
   multiple sub windows per slot (stacked pills).
 - **Positions in fairness** — DEFERRED: v1 is pure minutes; minutes-by-line
   revisit only if coaches ask.
 - **Formation source** — DONE: app formation presets drive slot geometry.
 
-Remaining before "finalized": per-game availability (above), cloud sync for
-plans (deliberately after the feature is perfected; design doc first), the
-user's preview test round, then the merge chain (#650 → p2 → master).
+Nothing remains open: availability shipped, plan cloud sync shipped (§11), the
+preview test round is done. Last step is the merge chain (PR #649 → master,
+prod migrations 036-038 first - see the PROD MERGE CHECKLIST in §11).
 
 ## 8. Relationship to the rest
 

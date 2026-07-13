@@ -136,6 +136,19 @@ export const parsePlanExport = (json: string): PlaytimePlan | null => {
   // A plan with no games renders a blank Games tab - the app can never produce
   // one (createPlan clamps to >=1, removal stops at 1), so reject crafted JSON.
   if (candidate.games.length === 0) return null;
+  // Within one game a player may be brought on at most once, and never while
+  // already starting - the UI enforces this (availableSubInIds), so a violation
+  // can only arrive via crafted JSON, where it would silently double-count that
+  // player's minutes in the fairness math. Import-time check only: the read-time
+  // guard (isPlaytimePlan) must stay lenient so no stored plan is ever dropped.
+  for (const g of candidate.games) {
+    const involved = new Set(g.startingSlots.map((s) => s.playerId).filter(Boolean));
+    for (const sub of g.subs) {
+      if (sub.inPlayerId === null) continue;
+      if (involved.has(sub.inPlayerId)) return null;
+      involved.add(sub.inPlayerId);
+    }
+  }
   return candidate;
 };
 

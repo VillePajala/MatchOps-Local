@@ -91,6 +91,22 @@ describe('buildPrefillFromPlan', () => {
     ]);
   });
 
+  it('drops a duplicate incoming player and a sub bringing on a starter (crafted data)', () => {
+    // The plan editor can't produce either; a crafted/legacy plan must not
+    // double-drive the live sub prompts for one player.
+    const g = planGame({
+      subs: [
+        { id: 'x1', slotId: 's0', timeSeconds: 300, inPlayerId: 'f' },
+        { id: 'x2', slotId: 's1', timeSeconds: 600, inPlayerId: 'f' }, // duplicate in
+        { id: 'x3', slotId: 's2', timeSeconds: 700, inPlayerId: 'a' }, // already starting (GK)
+      ],
+    });
+    const res = buildPrefillFromPlan(plan(g), g, roster);
+    expect(res.plannedSubs).toEqual([
+      { id: 'x1', slotId: 's0', timeSeconds: 300, inPlayerId: 'f', outPlayerId: 'b' },
+    ]);
+  });
+
   it('reports and skips planned players not in the roster', () => {
     const g = planGame({
       startingSlots: [

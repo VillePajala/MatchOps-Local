@@ -492,6 +492,41 @@ describe('createSyncExecutor', () => {
       expect(mockStore.deletePlaytimePlan).toHaveBeenCalledWith('ptp_1');
     });
 
+    it('pulls the newer cloud copy down when the LWW RPC refuses the write', async () => {
+      // savePlaytimePlan returning null = migration 038's conditional upsert
+      // refused a stale push. The op must still succeed (conflict resolved,
+      // cloud won) AND the local store must converge to the winning copy via
+      // the stamp-preserving restore helper.
+      const stalePlan = { id: 'ptp_1', name: 'Stale', games: [] };
+      const cloudPlan = { id: 'ptp_1', name: 'Newer', games: [] };
+      mockStore.savePlaytimePlan.mockResolvedValueOnce(null);
+      mockStore.getPlaytimePlans.mockResolvedValueOnce(
+        { ptp_1: cloudPlan } as unknown as Awaited<ReturnType<DataStore['getPlaytimePlans']>>,
+      );
+      const restorePlaytimePlans = jest.fn().mockResolvedValue(1);
+      const localStore = { restorePlaytimePlans } as unknown as DataStore;
+
+      const executorWithLocal = createSyncExecutor(mockStore, localStore);
+      await executorWithLocal(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: stalePlan,
+      }));
+
+      expect(restorePlaytimePlans).toHaveBeenCalledWith({ ptp_1: cloudPlan });
+    });
+
+    it('treats an LWW refusal as success even without a local store wired', async () => {
+      mockStore.savePlaytimePlan.mockResolvedValueOnce(null);
+      await expect(executor(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: { id: 'ptp_1', name: 'Stale', games: [] },
+      }))).resolves.toBeUndefined();
+    });
+
     it('routes a plan-link delete WITH data.planId to delete-for-plan', async () => {
       await executor(createOperation({
         entityType: 'playtimePlanLink',
