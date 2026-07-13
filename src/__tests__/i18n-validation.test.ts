@@ -337,7 +337,9 @@ describe('Translation File Validation', () => {
       // +1: lineup.absentHeading (per-game availability chips)
       // -1 net: review round (+1 lineup.benchEmptyAbsent; -2 dead keys
       //     lineup.benchHeading, overview.newPlan)
-      expect(enKeys.length).toBe(2805);
+      // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
+      //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      expect(enKeys.length).toBe(2807);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -398,7 +400,9 @@ describe('Translation File Validation', () => {
       // +1: lineup.absentHeading (per-game availability chips)
       // -1 net: review round (+1 lineup.benchEmptyAbsent; -2 dead keys
       //     lineup.benchHeading, overview.newPlan)
-      expect(fiKeys.length).toBe(2805);
+      // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
+      //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      expect(fiKeys.length).toBe(2807);
     });
   });
 });

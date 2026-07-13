@@ -38,7 +38,7 @@ const toMin = (sec: number): number => Math.round(sec / 60);
 const FAIR_SHARE_BAR_PCT = 80;
 
 interface Warning {
-  kind: 'zero' | 'spread' | 'gk';
+  kind: 'zero' | 'sitout' | 'spread' | 'gk';
   label: string;
   detail: string;
   players: string[];
@@ -47,6 +47,7 @@ interface Warning {
 // House alert palette (modalStyles' -900/30 bg + -700 border scale).
 const warningTone: Record<Warning['kind'], string> = {
   zero: 'bg-red-900/30 border-red-700 text-red-200',
+  sitout: 'bg-amber-900/30 border-amber-700 text-amber-200',
   spread: 'bg-amber-900/30 border-amber-700 text-amber-200',
   gk: 'bg-sky-900/30 border-sky-700 text-sky-200',
 };
@@ -112,8 +113,12 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
     const out: Warning[] = [];
     const name = (id: string) => nameById.get(id) ?? id;
 
-    // 1. Players with zero minutes in an included game ("you forgot Liam in G3").
-    const zeroByPlayer = new Map<string, number[]>();
+    // 1a. Players with NO minutes anywhere (truly forgotten - red alarm).
+    // 1b. Players who sit out at least one FULL game but do play elsewhere -
+    //     that is normal rotation, so it is an amber note, NOT the red alarm.
+    //     (Auto-filled plans with varied starters made the old combined
+    //     warning shout "15 players with 0 minutes" at a full roster.)
+    const zeroGamesByPlayer = new Map<string, number[]>();
     plan.games.forEach((g, i) => {
       if (!g.included) return;
       // A marked absence is a decision, not a mistake - no alarm for it.
@@ -121,26 +126,45 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
       for (const p of minutes.players) {
         if (absent.has(p.playerId)) continue;
         if ((p.perGameSeconds[i] ?? 0) === 0) {
-          const arr = zeroByPlayer.get(p.playerId) ?? [];
+          const arr = zeroGamesByPlayer.get(p.playerId) ?? [];
           arr.push(i);
-          zeroByPlayer.set(p.playerId, arr);
+          zeroGamesByPlayer.set(p.playerId, arr);
         }
       }
     });
-    if (zeroByPlayer.size > 0) {
-      const ids = [...zeroByPlayer.keys()].sort((a, b) => name(a).localeCompare(name(b)));
-      const detail =
-        ids
-          .slice(0, 3)
-          .map((id) => `${name(id)} (${zeroByPlayer.get(id)!.map(gameShort).join(', ')})`)
-          .join(', ') + (ids.length > 3 ? ` +${ids.length - 3}` : '');
+    const totalById = new Map(minutes.players.map((p) => [p.playerId, p.totalSeconds]));
+    const describe = (ids: string[]) =>
+      ids
+        .slice(0, 3)
+        .map((id) => `${name(id)} (${zeroGamesByPlayer.get(id)!.map(gameShort).join(', ')})`)
+        .join(', ') + (ids.length > 3 ? ` +${ids.length - 3}` : '');
+    const sortByName = (a: string, b: string) => name(a).localeCompare(name(b));
+
+    const forgotten = [...zeroGamesByPlayer.keys()]
+      .filter((id) => (totalById.get(id) ?? 0) === 0)
+      .sort(sortByName);
+    if (forgotten.length > 0) {
       out.push({
         kind: 'zero',
         label: t('playtimePlanner.balance.zeroMinutes', '{{count}} players with 0 minutes', {
-          count: ids.length,
+          count: forgotten.length,
         }),
-        detail,
-        players: ids,
+        detail: describe(forgotten),
+        players: forgotten,
+      });
+    }
+
+    const sitsOut = [...zeroGamesByPlayer.keys()]
+      .filter((id) => (totalById.get(id) ?? 0) > 0)
+      .sort(sortByName);
+    if (sitsOut.length > 0) {
+      out.push({
+        kind: 'sitout',
+        label: t('playtimePlanner.balance.sitsOut', '{{count}} players sit out a full game', {
+          count: sitsOut.length,
+        }),
+        detail: describe(sitsOut),
+        players: sitsOut,
       });
     }
 

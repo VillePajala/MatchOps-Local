@@ -3250,7 +3250,9 @@
       "gkLabel": "Vain {{name}} pelaa maalivahtina",
       "gkDetail": "Harkitse maalivahtien kierrätystä",
       "focusDelta": "{{delta}} min vs omaa osuutta",
-      "focusOnShare": "tasan oma osuus"
+      "focusOnShare": "tasan oma osuus",
+      "sitsOut_one": "{{count}} pelaaja istuu kokonaisen pelin",
+      "sitsOut_other": "{{count}} pelaajaa istuu kokonaisen pelin"
     },
     "versions": {
       "duplicate": "Monista",

@@ -140,3 +140,45 @@ describe('PlanBalanceView', () => {
     expect(screen.getByText('No games counted yet. Mark games as included.')).toBeInTheDocument();
   });
 });
+
+describe('zero-minutes warning split (rotation vs forgotten)', () => {
+  const players = Array.from({ length: 4 }, (_, i) => ({ id: `p${i}`, name: `P${i}` }));
+  const mkGame = (id: string, starters: string[]): PlanGame => ({
+    id,
+    label: id,
+    formationId: '5v5-2-2',
+    numberOfPeriods: 2,
+    periodMinutes: 10,
+    included: true,
+    startingSlots: starters.map((pid, i) => ({ slotId: i === 0 ? 'gk' : `s${i - 1}`, playerId: pid })),
+    subs: [],
+  });
+
+  it('rotated starters (everyone plays somewhere) -> amber sits-out, NO red alarm', () => {
+    // G1 starts p0,p1; G2 starts p2,p3 - every player sits out one full game
+    // but everyone has minutes. The old combined warning shouted "4 players
+    // with 0 minutes" at a fully-used roster.
+    const plan = {
+      id: 'x', name: 'X', version: 1, createdAt: 'x', updatedAt: 'x',
+      players,
+      games: [mkGame('g1', ['p0', 'p1']), mkGame('g2', ['p2', 'p3'])],
+    };
+    render(
+      <PlanBalanceView plan={plan as never} onToggleHighlight={jest.fn()} onReplaceHighlights={jest.fn()} />,
+    );
+    expect(screen.queryByText(/players with 0 minutes/)).not.toBeInTheDocument();
+    expect(screen.getByText('4 players sit out a full game')).toBeInTheDocument();
+  });
+
+  it('a player with NO minutes anywhere still raises the red alarm', () => {
+    const plan = {
+      id: 'x', name: 'X', version: 1, createdAt: 'x', updatedAt: 'x',
+      players,
+      games: [mkGame('g1', ['p0', 'p1']), mkGame('g2', ['p0', 'p1'])],
+    };
+    render(
+      <PlanBalanceView plan={plan as never} onToggleHighlight={jest.fn()} onReplaceHighlights={jest.fn()} />,
+    );
+    expect(screen.getByText('2 players with 0 minutes')).toBeInTheDocument();
+  });
+});
