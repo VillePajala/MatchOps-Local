@@ -196,7 +196,7 @@ interface SkippedGame {
  */
 export interface EntityUploadFailure {
   /** Type of entity that failed */
-  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings' | 'playtimePlan';
+  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings' | 'playtimePlan' | 'playtimePlanLink' | 'playtimeGameSubs';
   /** ID of the entity (if available) */
   entityId?: string;
   /** Display name for the entity (for user-friendly error messages) */
@@ -1504,6 +1504,12 @@ async function uploadToCloud(
     try {
       await cloudStore.setPlaytimePlanLink(gameId, link);
     } catch (err) {
+      failures.push({
+        entityType: 'playtimePlanLink',
+        entityId: gameId,
+        entityName: `Plan link for game ${gameId}`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
       logger.error(`[MigrationService] Failed to upload playtime link for ${gameId}:`, err);
     }
   }
@@ -1511,6 +1517,12 @@ async function uploadToCloud(
     try {
       if (subs.length > 0) await cloudStore.setPlaytimeGameSubs(gameId, subs);
     } catch (err) {
+      failures.push({
+        entityType: 'playtimeGameSubs',
+        entityId: gameId,
+        entityName: `Planned subs for game ${gameId}`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
       logger.error(`[MigrationService] Failed to upload playtime subs for ${gameId}:`, err);
     }
   }

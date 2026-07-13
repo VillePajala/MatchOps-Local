@@ -112,6 +112,10 @@ export interface PushAllToCloudResult {
     warmupPlan: boolean;
     /** IDs of playtime plans that failed to push */
     playtimePlans: string[];
+    /** Game IDs whose plan link failed to push */
+    playtimePlanLinks: string[];
+    /** Game IDs whose planned subs failed to push */
+    playtimeGameSubs: string[];
   };
   /**
    * Warnings about orphaned references that were fixed during push.
@@ -1092,6 +1096,8 @@ export class SyncedDataStore implements DataStore {
         settings: false,
         warmupPlan: false,
         playtimePlans: [] as string[],
+        playtimePlanLinks: [] as string[],
+        playtimeGameSubs: [] as string[],
       },
     };
 
@@ -1493,6 +1499,7 @@ export class SyncedDataStore implements DataStore {
           );
           summary.playtimePlanLinks++;
         } catch (error) {
+          summary.failures.playtimePlanLinks.push(gameId);
           logger.error(`[SyncedDataStore] Failed playtime link for game ${gameId} after retries:`,
             getSafeErrorMessage(error));
         }
@@ -1509,6 +1516,7 @@ export class SyncedDataStore implements DataStore {
           );
           summary.playtimeGameSubs++;
         } catch (error) {
+          summary.failures.playtimeGameSubs.push(gameId);
           logger.error(`[SyncedDataStore] Failed playtime subs for game ${gameId} after retries:`,
             getSafeErrorMessage(error));
         }

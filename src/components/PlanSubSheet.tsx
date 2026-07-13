@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
 import { availableSubInIds, defaultSubTimeSeconds, makeSub } from '@/utils/playtimePlanner/subs';
 import { fairnessText } from '@/utils/playtimePlanner/colors';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { labelStyle } from '@/styles/modalStyles';
 import type { PlanGame, PlanPlayer, PlanSub } from '@/utils/playtimePlanner/types';
 import type { PlanPlayerMinutes } from '@/components/PlanFieldView';
@@ -82,6 +83,9 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
     dialogRef.current?.focus();
     return () => opener?.focus();
   }, []);
+  // House modal behaviour: Tab cycles inside the sheet and the app behind goes
+  // inert - without this, keyboard focus could wander into the backdrop.
+  useFocusTrap(dialogRef, true);
 
   const step = (delta: number) =>
     setMinute((m) => Math.min(maxMinute, Math.max(1, m + delta)));

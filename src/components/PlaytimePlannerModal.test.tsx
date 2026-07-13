@@ -258,6 +258,22 @@ describe('PlaytimePlannerModal', () => {
     expect(sessionStorage.getItem('matchops_planner_active_plan')).toBeNull();
   });
 
+  it('explicit Close from an open plan clears the resume key', async () => {
+    // The key exists so BACKGROUNDING resumes the workspace; a deliberate
+    // footer Close must not make the next open jump back into the plan.
+    const onClose = jest.fn();
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    render(<PlaytimePlannerModal isOpen onClose={onClose} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    expect(sessionStorage.getItem('matchops_planner_active_plan')).toBe('existing');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(sessionStorage.getItem('matchops_planner_active_plan')).toBeNull();
+  });
+
   it('opens on the plan manager and enters a plan on tap', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);

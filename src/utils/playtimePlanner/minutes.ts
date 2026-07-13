@@ -216,8 +216,15 @@ export function computePlanMinutes(plan: PlannedPlan): PlanMinutes {
     const absent = new Set(g.absentIds ?? []);
     const attending = plan.playerIds.filter((id) => !absent.has(id));
     if (attending.length === 0) return;
+    // The per-game denominator honours an explicit rosterSize the same way the
+    // plan-wide share does: absentees vacate their seat and the rest of the
+    // (possibly notional) roster splits the capacity. When rosterSize equals
+    // playerIds.length this is exactly attending.length.
+    const absentCount = plan.playerIds.length - attending.length;
+    const attendingCount = rosterSize - absentCount;
+    if (attendingCount <= 0) return;
     const capacity = Math.max(0, g.totalSeconds) * uniqueSlotIds(g).size;
-    const slice = capacity / attending.length;
+    const slice = capacity / attendingCount;
     attending.forEach((id) => attendingShare.set(id, (attendingShare.get(id) ?? 0) + slice));
   });
   const hasAbsences = plan.games.some((g) => g.included && (g.absentIds?.length ?? 0) > 0);

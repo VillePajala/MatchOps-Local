@@ -353,6 +353,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     }
   }, [activePlan, view]);
 
+  // Deliberate close abandons the resume intent: the key exists so a
+  // background/resume remount restores the workspace, not so an explicit
+  // Close re-enters the plan on the next open.
+  const handleClose = useCallback(() => {
+    try {
+      sessionStorage.removeItem(PLANNER_ACTIVE_PLAN_KEY);
+    } catch {
+      // Session storage unavailable - nothing to clear.
+    }
+    onClose();
+  }, [onClose]);
+
   // Load roster + any existing plan when the modal opens.
   useEffect(() => {
     if (!isOpen) return;
@@ -1310,12 +1322,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (isPlanTab(view)) {
         void handleBackToManager();
       } else {
-        onClose();
+        handleClose();
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, onClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
+  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -2349,7 +2361,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             {t('playtimePlanner.lineup.back', 'Back')}
           </button>
         )}
-        <button type="button" onClick={onClose} className={primaryButtonStyle}>
+        <button type="button" onClick={handleClose} className={primaryButtonStyle}>
           {t('common.close', 'Close')}
         </button>
       </ModalFooter>
