@@ -1084,6 +1084,16 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.scroll(scroller);
     });
     expect(strip.className).toContain('max-h-20');
+
+    // SLOW scrolling (many tiny events) must hide too - the accumulator makes
+    // speed irrelevant (a per-event delta gate never fired on slow scrolls).
+    for (const y of [154, 158, 162, 166]) {
+      Object.defineProperty(scroller, 'scrollTop', { value: y, configurable: true });
+      await act(async () => {
+        fireEvent.scroll(scroller);
+      });
+    }
+    expect(strip.className).toContain('max-h-0');
   });
 
   it('switches to the Minutes tab and back to Games', async () => {

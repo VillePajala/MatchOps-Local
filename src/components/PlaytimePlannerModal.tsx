@@ -170,18 +170,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // scroll (intent to navigate). Content area is critical in the planner.
   const [tabsHidden, setTabsHidden] = useState(false);
   const lastScrollTopRef = useRef(0);
+  // ACCUMULATED distance per direction (browser-toolbar behavior): slow
+  // scrolling emits many tiny events, so a per-event delta gate never fires -
+  // the accumulator makes speed irrelevant. Direction flip resets it.
+  const scrollAccRef = useRef(0);
   const handleContentScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const y = e.currentTarget.scrollTop;
-    const last = lastScrollTopRef.current;
-    // Small hysteresis so micro-jitter (momentum, elastic) doesn't flicker.
-    if (y > last + 4 && y > 56) setTabsHidden(true);
-    else if (y < last - 4) setTabsHidden(false);
+    const delta = y - lastScrollTopRef.current;
     lastScrollTopRef.current = y;
+    if (delta === 0) return;
+    scrollAccRef.current =
+      Math.sign(delta) === Math.sign(scrollAccRef.current) ? scrollAccRef.current + delta : delta;
+    // ~12px of downward travel hides (past the strip's own height so the top
+    // of the content is never covered); any ~8px upward travel - or reaching
+    // the top - reveals.
+    if (scrollAccRef.current > 12 && y > 56) setTabsHidden(true);
+    else if (scrollAccRef.current < -8 || y <= 0) setTabsHidden(false);
   }, []);
   // Switching tabs (or leaving the plan) always reveals the strip again.
   useEffect(() => {
     setTabsHidden(false);
     lastScrollTopRef.current = 0;
+    scrollAccRef.current = 0;
   }, [view]);
   // Availability fold-out open/closed - lifted so "mark the same kids absent
   // across the morning games" survives ribbon taps (the field remounts per
