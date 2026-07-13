@@ -336,3 +336,64 @@ describe('computePlanMinutes', () => {
     expect(a.totalSeconds).toBe(20 * MIN);
   });
 });
+
+describe('computePlanMinutes with per-game absences', () => {
+  it('splits each game among ATTENDING players and nulls fully-absent ratios', () => {
+    // Two 20-minute 2-slot games, roster of 4 (a, b, c, d).
+    // d is absent from BOTH games; c is absent from game 2.
+    const g1: PlannedGame = {
+      ...({} as PlannedGame),
+      id: 'g1',
+      totalSeconds: 20 * MIN,
+      slots: [
+        { slotId: 's0', startPlayerId: 'a' },
+        { slotId: 's1', startPlayerId: 'b' },
+      ],
+      subs: [],
+      included: true,
+      absentIds: ['d'],
+    };
+    const g2: PlannedGame = {
+      ...g1,
+      id: 'g2',
+      slots: [
+        { slotId: 's0', startPlayerId: 'a' },
+        { slotId: 's1', startPlayerId: 'b' },
+      ],
+      absentIds: ['c', 'd'],
+    };
+    const plan: PlannedPlan = { games: [g1, g2], playerIds: ['a', 'b', 'c', 'd'] };
+    const m = computePlanMinutes(plan);
+    const by = Object.fromEntries(m.players.map((p) => [p.playerId, p]));
+
+    // Game capacities: 40 player-min each. g1 splits among 3 attending
+    // (a,b,c -> 13.33 min each); g2 among 2 (a,b -> 20 min each).
+    // a plays 40 min vs share 33.33 -> ratio 1.2
+    expect(by.a.ratio).toBeCloseTo((40 * MIN) / ((40 / 3 + 20) * MIN), 5);
+    // c attends only g1: share 13.33 min, plays 0 -> ratio 0 (not null).
+    expect(by.c.ratio).toBe(0);
+    expect(by.c.deviationSeconds).toBeCloseTo(-(40 / 3) * MIN, 3);
+    // d attends nothing: no share, neutral (null) - never "deep red".
+    expect(by.d.ratio).toBeNull();
+    expect(by.d.band).toBe('none');
+  });
+
+  it('reduces EXACTLY to the legacy plan-wide share when nobody is absent', () => {
+    const g: PlannedGame = {
+      id: 'g1',
+      totalSeconds: 24 * MIN,
+      slots: [
+        { slotId: 's0', startPlayerId: 'a' },
+        { slotId: 's1', startPlayerId: null },
+      ],
+      subs: [],
+      included: true,
+    };
+    const plan: PlannedPlan = { games: [g], playerIds: ['a', 'b', 'c'] };
+    const m = computePlanMinutes(plan);
+    const a = m.players.find((p) => p.playerId === 'a')!;
+    // Plan-wide share: 48 player-min / 3 = 16 min. a plays 24.
+    expect(m.fairShareSeconds).toBe(16 * MIN);
+    expect(a.ratio).toBeCloseTo((24 * MIN) / (16 * MIN), 10);
+  });
+});

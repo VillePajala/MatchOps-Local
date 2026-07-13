@@ -3223,7 +3223,8 @@
       "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan",
       "viewSingle": "Yksi peli",
       "viewGrid": "Rinnakkain",
-      "noPlayers": "Suunnitelmassa ei ole pelaajia - lisää heidät Suunnitelma-välilehdellä."
+      "noPlayers": "Suunnitelmassa ei ole pelaajia - lisää heidät Suunnitelma-välilehdellä.",
+      "absentHeading": "Poissa tästä pelistä"
     },
     "subs": {
       "heading": "Vaihdot",

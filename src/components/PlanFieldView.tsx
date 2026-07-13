@@ -19,6 +19,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import { HiChevronDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
@@ -53,6 +54,8 @@ interface PlanFieldViewProps {
    * filled slot is selected). Omit to hide the action (read-only embeds).
    */
   onRequestSub?: (slotId: string) => void;
+  /** Toggle a player's absence for THIS game. Omit to hide the section. */
+  onToggleAbsent?: (playerId: string) => void;
 }
 
 /** Short display token for a disc: nickname, else first name, else initials. */
@@ -70,9 +73,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   minutesByPlayer,
   highlightPlayerIds = [],
   onRequestSub,
+  onToggleAbsent,
 }) => {
   const { t } = useTranslation();
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
+  const [showAbsence, setShowAbsence] = useState(false);
+  const absentSet = useMemo(() => new Set(game.absentIds ?? []), [game.absentIds]);
 
   const slots = useMemo(() => getGameSlots(game.formationId), [game.formationId]);
   const assignments = useMemo(() => ensureStartingSlots(game), [game]);
@@ -84,9 +90,11 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     () => new Map(assignments.map((a) => [a.slotId, a.playerId])),
     [assignments],
   );
+  // Absent players are not substitution candidates - they get their own
+  // section instead of bench discs.
   const bench = useMemo(
-    () => benchPlayerIds(players.map((p) => p.id), assignments),
-    [players, assignments],
+    () => benchPlayerIds(players.map((p) => p.id), assignments).filter((id) => !absentSet.has(id)),
+    [players, assignments, absentSet],
   );
   // Slots with no starter yet - autofill and quick-tap placement target these.
   const emptySlots = useMemo(
@@ -443,6 +451,53 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* Per-game availability: fold-out chip list of the whole plan roster.
+            Absent players leave the bench, Suggest skips them, and this game
+            stops counting toward their fair share. */}
+        {onToggleAbsent && players.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAbsence((v) => !v)}
+              aria-expanded={showAbsence}
+              className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-200 py-1.5 -my-1"
+            >
+              <HiChevronDown
+                aria-hidden="true"
+                className={`w-3.5 h-3.5 transition-transform ${showAbsence ? '' : '-rotate-90'}`}
+              />
+              {t('playtimePlanner.lineup.absentHeading', 'Absent from this game')}
+              {absentSet.size > 0 && <span className="text-red-400 normal-case">({absentSet.size})</span>}
+            </button>
+            {showAbsence && (
+              <div
+                role="group"
+                aria-label={t('playtimePlanner.lineup.absentHeading', 'Absent from this game')}
+                className="flex flex-wrap gap-1.5 mt-1"
+              >
+                {players.map((p) => {
+                  const absent = absentSet.has(p.id);
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => onToggleAbsent(p.id)}
+                      aria-pressed={absent}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                        absent
+                          ? 'bg-red-900/30 border-red-700 text-red-300 line-through'
+                          : 'bg-slate-700 border-slate-500/40 text-slate-200 hover:bg-slate-600'
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

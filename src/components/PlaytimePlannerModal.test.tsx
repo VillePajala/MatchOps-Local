@@ -825,6 +825,38 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByRole('button', { name: /^G2 .*Game 2$/ })).toHaveAttribute('aria-current', 'true');
   });
 
+  it('marks a placed player absent: slot clears, bench hides them, toggle restores', async () => {
+    const planWithLineup = {
+      ...existingPlan,
+      players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+      games: [{ ...existingPlan.games[0], startingSlots: [{ slotId: 'gk', playerId: 'p1' }] }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: planWithLineup });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('GK: Alex');
+
+    // Open the availability fold-out and mark the PLACED starter absent.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Absent from this game/ }));
+    });
+    const group = screen.getByRole('group', { name: 'Absent from this game' });
+    await act(async () => {
+      fireEvent.click(within(group).getByRole('button', { name: 'Alex' }));
+    });
+
+    // The goalkeeper slot is empty again and Alex is NOT offered on the bench.
+    expect(screen.getByLabelText('GK: empty')).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'Alex' })).toHaveAttribute('aria-pressed', 'true');
+
+    // Toggle back: Alex returns as a bench candidate (disc outside the group).
+    await act(async () => {
+      fireEvent.click(within(group).getByRole('button', { name: 'Alex' }));
+    });
+    const alexButtons = screen.getAllByRole('button', { name: /^Alex/ });
+    expect(alexButtons.some((b) => !group.contains(b))).toBe(true);
+  });
+
   it('renames a game by editing the header title in the game view', async () => {
     const twoGamePlan = {
       ...existingPlan,

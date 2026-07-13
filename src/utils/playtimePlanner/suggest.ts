@@ -48,8 +48,12 @@ export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
     const half = defaultSubTimeSeconds(game);
     const secondHalf = Math.max(0, total - half);
 
-    // XI = the least-played players right now; bench = the rest, same order.
-    const ordered = plan.players.map((p) => p.id).sort(byLeastPlayed);
+    // XI = the least-played ATTENDING players; absentees sit this game out.
+    const absent = new Set(game.absentIds ?? []);
+    const ordered = plan.players
+      .map((p) => p.id)
+      .filter((id) => !absent.has(id))
+      .sort(byLeastPlayed);
     const xi = ordered.slice(0, Math.min(slots.length, ordered.length));
     const bench = ordered.slice(xi.length);
 

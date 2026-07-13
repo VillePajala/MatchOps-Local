@@ -49,6 +49,9 @@ export interface PlanGame {
   periodMinutes: number;
   /** Whether this game counts toward the fair-share read. */
   included: boolean;
+  /** Players marked absent for THIS game (not coming): excluded from the
+   *  bench, from Suggest, and from this game's fair-share math. */
+  absentIds?: string[];
   /** Starting assignment per slot (populated in PR 1.3; empty on creation). */
   startingSlots: PlanSlotAssignment[];
   /** Substitution schedule (populated in PR 1.4; empty on creation). */

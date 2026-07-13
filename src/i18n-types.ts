@@ -1678,6 +1678,7 @@ export type TranslationKey =
   | 'playtimePlanner.balance.zeroMinutes_other'
   | 'playtimePlanner.deleteError'
   | 'playtimePlanner.gkShort'
+  | 'playtimePlanner.lineup.absentHeading'
   | 'playtimePlanner.lineup.autoFill'
   | 'playtimePlanner.lineup.back'
   | 'playtimePlanner.lineup.benchEmpty'

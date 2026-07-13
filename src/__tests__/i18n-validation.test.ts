@@ -334,7 +334,8 @@ describe('Translation File Validation', () => {
       //     instruction copy removed, toggle became one icon button)
       // +2: lineup.noPlayers (zero-player empty state) + loadError (initial
       //     load-failure toast) - review batch B
-      expect(enKeys.length).toBe(2805);
+      // +1: lineup.absentHeading (per-game availability chips)
+      expect(enKeys.length).toBe(2806);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -392,7 +393,8 @@ describe('Translation File Validation', () => {
       //     instruction copy removed, toggle became one icon button)
       // +2: lineup.noPlayers (zero-player empty state) + loadError (initial
       //     load-failure toast) - review batch B
-      expect(fiKeys.length).toBe(2805);
+      // +1: lineup.absentHeading (per-game availability chips)
+      expect(fiKeys.length).toBe(2806);
     });
   });
 });
