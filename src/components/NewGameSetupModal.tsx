@@ -420,7 +420,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const handleTeamSelection = async (teamId: string | null) => {
     // Increment request counter to track this request
     const requestId = ++teamSelectionRequestRef.current;
-    
+
+    // Switching teams invalidates a plan prefill: the planned lineup/subs
+    // belong to the previous team's squad and would otherwise ride silently
+    // into the new team's game (the master-roster reconciliation can't catch
+    // it - the old team's players are still valid master-roster members).
+    // Mirrors handlePrefillPlanChange's clearing.
+    if (teamId !== selectedTeamId) {
+      setPrefillPlanId('');
+      setPrefillGameId('');
+      setPrefillPayload(undefined);
+      setPrefillMissingCount(0);
+    }
+
     setSelectedTeamId(teamId);
     
     if (teamId) {

@@ -360,6 +360,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const modalRootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(modalRootRef, isOpen);
 
+  // Move focus IN on open and hand it back to the opener on close - the
+  // shared trap only cycles Tab, it never places focus (same contract as
+  // PlanSubSheet's own focus handling).
+  useEffect(() => {
+    if (!isOpen) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modalRootRef.current?.focus();
+    return () => opener?.focus();
+  }, [isOpen]);
+
   // Deliberate close abandons the resume intent: the key exists so a
   // background/resume remount restores the workspace, not so an explicit
   // Close re-enters the plan on the next open.

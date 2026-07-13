@@ -258,6 +258,47 @@ describe('PlaytimePlannerModal', () => {
     expect(sessionStorage.getItem('matchops_planner_active_plan')).toBeNull();
   });
 
+  describe('Escape ladder', () => {
+    it('steps back one level: games tab -> manager -> close', async () => {
+      const onClose = jest.fn();
+      mockGetPlans.mockResolvedValue({ existing: existingPlan });
+      render(<PlaytimePlannerModal isOpen onClose={onClose} />);
+      await enterPlan();
+      await screen.findByLabelText('Game name');
+
+      // From a plan tab: Escape returns to the manager, not out of the modal.
+      await act(async () => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect(onClose).not.toHaveBeenCalled();
+      expect((await screen.findAllByRole('button', { name: /Saved Cup/ })).length).toBeGreaterThan(0);
+
+      // From the manager: Escape closes.
+      await act(async () => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('only blurs a focused input - never navigates mid-edit', async () => {
+      const onClose = jest.fn();
+      mockGetPlans.mockResolvedValue({ existing: existingPlan });
+      render(<PlaytimePlannerModal isOpen onClose={onClose} />);
+      await enterPlan();
+      const nameInput = await screen.findByLabelText('Game name');
+      nameInput.focus();
+      expect(document.activeElement).toBe(nameInput);
+
+      await act(async () => {
+        fireEvent.keyDown(document, { key: 'Escape' });
+      });
+      // Field dismissed, still on the games tab, modal open.
+      expect(document.activeElement).not.toBe(nameInput);
+      expect(screen.getByLabelText('Game name')).toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+  });
+
   it('explicit Close from an open plan clears the resume key', async () => {
     // The key exists so BACKGROUNDING resumes the workspace; a deliberate
     // footer Close must not make the next open jump back into the plan.

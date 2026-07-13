@@ -136,7 +136,13 @@ const isPlanGame = (v: unknown): v is PlanGame =>
   v.startingSlots.every(isSlotAssignment) &&
   hasUniqueAssignedPlayers(v.startingSlots as PlanSlotAssignment[]) &&
   Array.isArray(v.subs) &&
-  v.subs.every(isSub);
+  v.subs.every(isSub) &&
+  // Optional, but when present it must be a string array - every consumer
+  // does `new Set(g.absentIds ?? [])`, which throws on a non-iterable.
+  // null is tolerated (the ?? fallback handles it) so a lenient writer
+  // can't get a whole stored plan dropped on read.
+  (v.absentIds == null ||
+    (Array.isArray(v.absentIds) && v.absentIds.every((id) => typeof id === 'string')));
 
 /** Type guard for a single stored plan. */
 export const isPlaytimePlan = (v: unknown): v is PlaytimePlan =>

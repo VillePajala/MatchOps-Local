@@ -19,6 +19,14 @@ jest.mock('@/utils/playtimePlanner/storage', () => ({
   getPlans: jest.fn(async () => ({})),
 }));
 
+// Team selection loads the team roster through the storage layer - stub it so
+// switching teams in tests never boots the real DataStore factory.
+jest.mock('@/utils/teams', () => ({
+  getTeamRoster: jest.fn(async () => [{ id: 'tp1', name: 'John Doe' }]),
+  getTeamDisplayName: jest.fn((team: { name: string }) => team.name),
+  getTeamBoundSeries: jest.fn(async () => []),
+}));
+
 
 // More robust i18n mock
 const translations: { [key: string]: string } = {
@@ -1238,6 +1246,41 @@ describe('NewGameSetupModal', () => {
       renderModal();
       await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
       expect(screen.queryByLabelText('Prefill from plan (optional)')).not.toBeInTheDocument();
+    });
+
+    test('switching Team after a plan prefill clears the prefill (no cross-team lineup)', async () => {
+      // The planned lineup belongs to the previous squad; carrying it into the
+      // new team's game would silently field the wrong players.
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      renderModal();
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      // Now switch the team - the prefill picker resets to "no plan".
+      const teamSelect = document.getElementById('teamSelectTop') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(teamSelect, { target: { value: 'team2' } });
+      });
+      await waitFor(() => {
+        expect((screen.getByLabelText('Prefill from plan (optional)') as HTMLSelectElement).value).toBe('');
+      });
+
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload rode along
     });
   });
 });

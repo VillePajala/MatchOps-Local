@@ -3842,6 +3842,31 @@ export class SupabaseDataStore implements DataStore {
       this.classifyAndThrowError(error, 'Failed to delete game');
     }
 
+    // Planner bookkeeping rides on separate tables keyed by game id with NO
+    // game_id FK (deliberate: a link/subs row may sync before its game row,
+    // so a DB cascade would reject legitimate writes). Cascade here instead,
+    // atomically with the game delete from the caller's viewpoint - the
+    // client's companion cleanup ops live in the sync queue and can be lost
+    // if the app closes before they flush, which would orphan these rows
+    // forever (hydration would resurrect them on every sign-in).
+    // Best-effort: the game itself is already gone, so a failure here only
+    // leaves cleanup for the queued companion ops.
+    for (const table of ['playtime_plan_links', 'playtime_game_subs'] as const) {
+      try {
+        await this.withRetry(async () => {
+          const result = await this.getClient()
+            .from(table)
+            .delete()
+            .eq('user_id', userId)
+            .eq('game_id', id);
+          throwIfTransient(result);
+          return result;
+        }, `deleteGame:${table}`);
+      } catch (cleanupError) {
+        logger.warn(`[SupabaseDataStore] Planner cleanup (${table}) after game delete failed (non-fatal)`, cleanupError);
+      }
+    }
+
     // Clear version cache for deleted game (Issue #330)
     this.gameVersionCache.delete(id);
 

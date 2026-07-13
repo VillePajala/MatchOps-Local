@@ -93,6 +93,27 @@ describe('usePlannedSubPrompts', () => {
     await waitFor(() => expect(result.current.prompt).toBeNull());
   });
 
+  it('a dismissal survives a remount (PWA reload mid-game) via sessionStorage', async () => {
+    // The hook persists dismissals per game precisely so a mobile reload does
+    // not resurrect an already-acknowledged nudge.
+    sessionStorage.clear();
+    mockGetGameSubs.mockResolvedValue([sub({ id: 'a', timeSeconds: 600 })]);
+    const first = renderHook(() => usePlannedSubPrompts('g1', 1000, players));
+    await waitFor(() => expect(first.result.current.prompt?.subId).toBe('a'));
+    act(() => first.result.current.dismiss('a'));
+    await waitFor(() => expect(first.result.current.prompt).toBeNull());
+    first.unmount();
+
+    // Fresh hook instance = reloaded app. Same game, same due sub.
+    const second = renderHook(() => usePlannedSubPrompts('g1', 1000, players));
+    await act(async () => {});
+    expect(second.result.current.prompt).toBeNull();
+
+    // A DIFFERENT game's dismissals don't leak over.
+    const other = renderHook(() => usePlannedSubPrompts('g2', 1000, players));
+    await waitFor(() => expect(other.result.current.prompt?.subId).toBe('a'));
+  });
+
   it('reports a null outName when the planned slot had no starter', async () => {
     mockGetGameSubs.mockResolvedValue([sub({ outPlayerId: null })]);
     const { result } = renderHook(() => usePlannedSubPrompts('g1', 720, players));

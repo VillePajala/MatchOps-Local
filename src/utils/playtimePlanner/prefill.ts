@@ -9,6 +9,7 @@
  */
 
 import { getGameSlots, ensureStartingSlots } from './lineup';
+import { normalizePlanAbsences } from './roster';
 import { generateSubSlots, isFieldPosition } from '@/utils/formations';
 import { getPositionLabelForFormationPosition } from '@/utils/positionLabels';
 import type { PlaytimePlan, PlanGame } from './types';
@@ -57,6 +58,16 @@ export function buildPrefillFromPlan(
   planGame: PlanGame,
   roster: Player[],
 ): PrefillResult {
+  // Self-heal stale absences the same way the planner modal does on load
+  // ("placement wins"): a legacy/imported plan listing a player as both
+  // starting and absent must not prefill contradictory state. This engine is
+  // also called from NewGameSetupModal and reapply, which have no other
+  // normalization step. No-op (same refs) when the plan is already clean.
+  const normalized = normalizePlanAbsences(plan);
+  const normalizedGame = normalized.games.find((g) => g.id === planGame.id) ?? planGame;
+  plan = normalized;
+  planGame = normalizedGame;
+
   const byId = new Map(roster.map((p) => [p.id, p]));
   const slotById = new Map(getGameSlots(planGame.formationId).map((s) => [s.slotId, s]));
   const starting = ensureStartingSlots(planGame);

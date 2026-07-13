@@ -269,4 +269,33 @@ describe('prefill with per-game absences', () => {
     expect(result.selectedPlayerIds).toContain('p1');
     expect(result.selectedPlayerIds).not.toContain('p2');
   });
+
+  it('self-heals a player listed as both starting and absent - placement wins', async () => {
+    // Legacy/imported plans can carry the contradiction; the modal normalizes
+    // on load, but NewGameSetup and reapply call this engine directly.
+    const { buildPrefillFromPlan } = await import('./prefill');
+    const plan = {
+      id: 'p', name: 'Plan', version: 1, createdAt: 'x', updatedAt: 'x',
+      players: [
+        { id: 'p1', name: 'Alex' },
+        { id: 'p2', name: 'Sam' },
+      ],
+      games: [{
+        id: 'g1', label: 'Game 1', formationId: '5v5-2-2',
+        numberOfPeriods: 2, periodMinutes: 12, included: true,
+        startingSlots: [{ slotId: 'gk', playerId: 'p1' }], subs: [],
+        absentIds: ['p1', 'p2'], // p1 both starts AND is marked absent
+      }],
+    };
+    const roster = [
+      { id: 'p1', name: 'Alex' },
+      { id: 'p2', name: 'Sam' },
+    ];
+    const result = buildPrefillFromPlan(plan as never, plan.games[0] as never, roster as never);
+    // p1's placement wins: on the field and selected, not treated as absent.
+    expect(result.playersOnField.map((p) => p.id)).toContain('p1');
+    expect(result.selectedPlayerIds).toContain('p1');
+    // p2 stays genuinely absent.
+    expect(result.selectedPlayerIds).not.toContain('p2');
+  });
 });
