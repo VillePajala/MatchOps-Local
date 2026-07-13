@@ -41,6 +41,8 @@ export interface PlannedSub {
 
 /** One game in the plan. */
 export interface PlannedGame {
+  /** Players not attending this game - they earn no share from it. */
+  absentIds?: string[];
   id: string;
   /** Full playing time in seconds (sum of all periods). */
   totalSeconds: number;
@@ -199,14 +201,34 @@ export function computePlanMinutes(plan: PlannedPlan): PlanMinutes {
   const fairShareSeconds =
     totalAvailableSeconds > 0 && rosterSize > 0 ? totalAvailableSeconds / rosterSize : null;
 
+  // Per-player fair share honours ABSENCES: each included game's capacity is
+  // split among the players actually attending it, and a player's share is the
+  // sum over the games they attend. With no absences this reduces exactly to
+  // the plan-wide share above (capacity_g / rosterSize summed).
+  const attendingShare = new Map<string, number>();
+  plan.games.forEach((g) => {
+    if (!g.included) return;
+    const absent = new Set(g.absentIds ?? []);
+    const attending = plan.playerIds.filter((id) => !absent.has(id));
+    if (attending.length === 0) return;
+    const capacity = Math.max(0, g.totalSeconds) * uniqueSlotIds(g).size;
+    const slice = capacity / attending.length;
+    attending.forEach((id) => attendingShare.set(id, (attendingShare.get(id) ?? 0) + slice));
+  });
+  const hasAbsences = plan.games.some((g) => g.included && (g.absentIds?.length ?? 0) > 0);
+
   const players: PlayerMinutes[] = plan.playerIds.map((playerId) => {
     const perGameSeconds = perGameTotals.map((totals) => totals.get(playerId) ?? 0);
     const totalSeconds = plan.games.reduce(
       (sum, g, i) => sum + (g.included ? perGameSeconds[i] : 0),
       0,
     );
-    const ratio = fairShareSeconds !== null ? totalSeconds / fairShareSeconds : null;
-    const deviationSeconds = fairShareSeconds !== null ? totalSeconds - fairShareSeconds : 0;
+    // Without absences keep the exact legacy math (identical result, zero
+    // float drift for the tests); with absences use the per-player share.
+    // A player absent from EVERY game has no share -> null ratio (neutral).
+    const share = hasAbsences ? attendingShare.get(playerId) ?? 0 : fairShareSeconds ?? 0;
+    const ratio = share > 0 ? totalSeconds / share : null;
+    const deviationSeconds = share > 0 ? totalSeconds - share : 0;
     return { playerId, totalSeconds, perGameSeconds, ratio, deviationSeconds, band: fairnessBand(ratio) };
   });
 

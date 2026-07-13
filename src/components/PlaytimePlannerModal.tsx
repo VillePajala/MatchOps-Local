@@ -1083,6 +1083,36 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       };
     });
   }, [updateActivePlan, t]);
+  // Toggle a player's absence for one game. Marking absent also clears their
+  // lineup spots and incoming subs in THAT game (an absent starter would be a
+  // lie on the field); marking available just returns them to the bench.
+  // One updateActivePlan call = one undo step.
+  const handleToggleAbsent = useCallback(
+    (gameId: string, playerId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => {
+          if (g.id !== gameId) return g;
+          const absent = new Set(g.absentIds ?? []);
+          if (absent.has(playerId)) {
+            absent.delete(playerId);
+            return { ...g, absentIds: [...absent] };
+          }
+          absent.add(playerId);
+          return {
+            ...g,
+            absentIds: [...absent],
+            startingSlots: g.startingSlots.map((slot) =>
+              slot.playerId === playerId ? { ...slot, playerId: null } : slot,
+            ),
+            subs: g.subs.filter((sub) => sub.inPlayerId !== playerId),
+          };
+        }),
+      }));
+    },
+    [updateActivePlan],
+  );
+
   const performRemoveGame = useCallback(
     (gameId: string) => {
       updateActivePlan((plan) =>
@@ -2045,6 +2075,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               minutesByPlayer={fairness.byPlayer}
               highlightPlayerIds={highlightPlayerIds}
               onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
+              onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
             />
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor
@@ -2126,6 +2157,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         minutesByPlayer={fairness.byPlayer}
                         highlightPlayerIds={highlightPlayerIds}
                         onRequestSub={(slotId) => setSubSheetTarget({ gameId: g.id, slotId })}
+                        onToggleAbsent={(playerId) => handleToggleAbsent(g.id, playerId)}
                       />
                     </div>
                   ))}

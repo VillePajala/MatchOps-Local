@@ -101,3 +101,24 @@ describe('suggestFairShareLineup', () => {
     expect(g.subs).toHaveLength(0);
   });
 });
+
+describe('suggestFairShareLineup with absences', () => {
+  it('never places or subs an absent player in that game', () => {
+    const input = plan([
+      game('g1', { absentIds: ['p0', 'p1'] }),
+      game('g2'),
+    ]);
+    const result = suggestFairShareLineup(input);
+    const g1 = result.games[0];
+    const used = new Set([
+      ...g1.startingSlots.map((a) => a.playerId),
+      ...g1.subs.map((s) => s.inPlayerId),
+    ]);
+    expect(used.has('p0')).toBe(false);
+    expect(used.has('p1')).toBe(false);
+    // In game 2 they are back in the pool - and being least-played, they start.
+    const g2 = result.games[1];
+    const g2Starters = new Set(g2.startingSlots.map((a) => a.playerId));
+    expect(g2Starters.has('p0') || g2.subs.some((s) => s.inPlayerId === 'p0')).toBe(true);
+  });
+});

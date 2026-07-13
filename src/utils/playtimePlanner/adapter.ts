@@ -21,6 +21,7 @@ export function toEnginePlan(plan: PlaytimePlan): PlannedPlan {
     slots: ensureStartingSlots(g).map((s) => ({ slotId: s.slotId, startPlayerId: s.playerId })),
     subs: g.subs.map((s) => ({ slotId: s.slotId, timeSeconds: s.timeSeconds, inPlayerId: s.inPlayerId })),
     included: g.included,
+    absentIds: g.absentIds,
   }));
   return { games, playerIds: plan.players.map((p) => p.id) };
 }

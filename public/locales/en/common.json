@@ -3223,7 +3223,8 @@
       "excludedToggle": "Excluded from totals - tap to include",
       "viewSingle": "Single game",
       "viewGrid": "Side by side",
-      "noPlayers": "No players in this plan - add them on the Plan tab."
+      "noPlayers": "No players in this plan - add them on the Plan tab.",
+      "absentHeading": "Absent from this game"
     },
     "subs": {
       "heading": "Substitutions",

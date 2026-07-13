@@ -59,10 +59,12 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
     [game.subs, slotId],
   );
 
-  const benchIds = useMemo(
-    () => availableSubInIds(players.map((p) => p.id), starting, game.subs),
-    [players, starting, game.subs],
-  );
+  const benchIds = useMemo(() => {
+    const absent = new Set(game.absentIds ?? []);
+    return availableSubInIds(players.map((p) => p.id), starting, game.subs).filter(
+      (id) => !absent.has(id),
+    );
+  }, [players, starting, game.subs, game.absentIds]);
 
   const defaultMinute = Math.round(defaultSubTimeSeconds(game) / 60);
   // Cap strictly BELOW the final whistle: a sub at full time grants zero seconds
