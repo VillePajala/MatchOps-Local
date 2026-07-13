@@ -359,3 +359,49 @@ change at all.
 - The planner's key-locked local writes and the sync queue already coexist for
   games; same pattern, no new locking.
 - Import/export JSON stays the universal escape hatch either way.
+
+## 12. Actual playing time — segments on the game record (planned 2026-07-13)
+
+Vision (owner): use the planner to get ACTUAL played minutes through seasons
+and competitions, down to minutes-by-position per player. Decision: actuals do
+NOT live in plans ("fixing plans after games" was considered and rejected).
+
+**Principle: plan = intent, game = record.** Facts about a played match belong
+on that game's record. Plans are editable/duplicatable/deletable/local-only;
+games are per-match, synced, backed up, and already feed every stats view.
+Storing actuals on games means: deleting a plan never deletes history, games
+without a plan (most league games) still get stats, and cloud sync is free.
+
+**Data: playing-time segments on the game**
+`playedSegments: { playerId, position, fromSec, toSec }[]` (names TBD).
+- Relationship to the EXISTING `playerPositions: Record<playerId, string[]>`
+  (Game Settings > player positions, no time dimension): segments are its
+  time-aware generalization. Keep the field; derive it automatically from
+  segments when they exist (a segment set implies the position tags), and keep
+  the Game Settings editor as the quick manual path for games nobody will
+  enter times for. Position-diversity stats keep working from either source;
+  minutes-by-position exists only where segments do (stay honest, no fake
+  even-splits).
+- Planner slot → position tag mapping comes from the formation preset (slots
+  already carry positions).
+
+**Capture flow (cheap first, live later)**
+1. Post-game confirm: a game created from a plan shows "Toteutuiko
+   suunnitelma?" - planned lineup + subs pre-filled as proposed segments;
+   coach confirms or nudges (sub minute, no-shows). ~30 s because the plan did
+   the typing. Corrections land on the GAME; the plan stays untouched.
+2. Later: live capture - the match timer's sub confirmations write segments in
+   real time, making the post-game sheet a no-op. Shares its data shape with
+   the parked timer-hardening refactor (wall-clock period segments): one
+   investment, two payoffs.
+3. Stats last: minutes per player per season/tournament, minutes vs fair share
+   over time, minutes by position, position diversity. Drops into the existing
+   Stats aggregation (it already reads saved games).
+
+**Why this matters beyond the planner:** this is the "richer data collection"
+prerequisite the roadmap's AI-assistant bet names. "How much has Aarne played
+in defense this season?" becomes answerable.
+
+**Sequencing:** after planner finalization + cloud sync. Own initiative:
+PR 1 game-schema field + derivation of playerPositions, PR 2 confirm sheet,
+PR 3 stats views, PR 4 (later) live capture with the timer refactor.
