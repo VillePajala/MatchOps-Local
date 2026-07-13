@@ -13,6 +13,28 @@ import {
 } from './planLinks';
 import { PLAYTIME_PLAN_LINKS_KEY } from '@/config/storageKeys';
 
+// Cloud sync PR 3: the public module is a shim over getDataStore(). Back it
+// with the LOCAL raw store so these tests keep exercising the full round trip
+// against the in-memory storage mock above.
+jest.mock('@/datastore/factory', () => ({
+  getDataStore: async () => {
+    const local = jest.requireActual('./localPlanStore');
+    return {
+      getPlaytimePlans: local.getPlans,
+      savePlaytimePlan: local.savePlan,
+      deletePlaytimePlan: local.deletePlan,
+      getPlaytimePlanLinks: local.getAllPlanLinks,
+      setPlaytimePlanLink: local.setPlanLink,
+      deletePlaytimePlanLink: local.deletePlanLink,
+      deletePlaytimePlanLinksForPlan: local.deletePlanLinksForPlan,
+      getPlaytimeGameSubs: local.getGameSubs,
+      setPlaytimeGameSubs: local.setGameSubs,
+      deletePlaytimeGameSubs: local.deleteGameSubs,
+    };
+  },
+}));
+
+
 // In-memory mirror of getStorageJSON/setStorageJSON (JSON round-trip).
 let store: Record<string, string> = {};
 

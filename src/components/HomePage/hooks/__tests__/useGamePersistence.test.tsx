@@ -16,6 +16,15 @@ import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import React from 'react';
 
 // Mock savedGames utilities
+// The planner cleanup shims route through getDataStore() since cloud sync
+// PR 3 - stub them so game deletion doesn't boot the real factory here.
+jest.mock('@/utils/playtimePlanner/gameSubs', () => ({
+  deleteGameSubs: jest.fn(async () => true),
+}));
+jest.mock('@/utils/playtimePlanner/planLinks', () => ({
+  deletePlanLink: jest.fn(async () => true),
+}));
+
 jest.mock('@/utils/savedGames', () => ({
   saveGame: jest.fn().mockResolvedValue(true),
   deleteGame: jest.fn().mockResolvedValue(true),
