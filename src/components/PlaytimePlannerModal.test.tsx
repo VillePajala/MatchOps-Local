@@ -1060,40 +1060,44 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();
   });
 
-  it('collapses the tab strip on scroll DOWN and reveals it on scroll UP', async () => {
+  it('tab strip tracks scroll pixel-for-pixel: partial hide, full hide, reveal', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
     await screen.findByLabelText('Game name');
 
     const scroller = screen.getByTestId('planner-scroll');
-    const strip = screen.getByRole('tablist').parentElement!;
-    expect(strip.className).toContain('max-h-20');
+    const inner = screen.getByRole('tablist').parentElement!;
+    const outer = inner.parentElement!;
+    // jsdom has no layout - give the strip a real height.
+    Object.defineProperty(inner, 'offsetHeight', { value: 52, configurable: true });
 
-    // Scroll down past the threshold: strip collapses (content maximized).
-    Object.defineProperty(scroller, 'scrollTop', { value: 200, configurable: true });
-    await act(async () => {
-      fireEvent.scroll(scroller);
-    });
-    expect(strip.className).toContain('max-h-0');
-    expect(strip).toHaveAttribute('aria-hidden', 'true');
-
-    // The FIRST upward scroll brings it back (intent to navigate).
-    Object.defineProperty(scroller, 'scrollTop', { value: 150, configurable: true });
-    await act(async () => {
-      fireEvent.scroll(scroller);
-    });
-    expect(strip.className).toContain('max-h-20');
-
-    // SLOW scrolling (many tiny events) must hide too - the accumulator makes
-    // speed irrelevant (a per-event delta gate never fired on slow scrolls).
-    for (const y of [154, 158, 162, 166]) {
+    const scrollTo = async (y: number) => {
       Object.defineProperty(scroller, 'scrollTop', { value: y, configurable: true });
       await act(async () => {
         fireEvent.scroll(scroller);
       });
-    }
-    expect(strip.className).toContain('max-h-0');
+    };
+
+    // 20px down -> exactly 20px of the strip hidden (follows the finger).
+    await scrollTo(20);
+    expect(outer.style.height).toBe('32px');
+    expect(inner.style.transform).toBe('translateY(-20px)');
+    expect(inner).toHaveAttribute('aria-hidden', 'false');
+
+    // Far enough down -> fully hidden (clamped at its own height).
+    await scrollTo(200);
+    expect(outer.style.height).toBe('0px');
+    expect(inner).toHaveAttribute('aria-hidden', 'true');
+
+    // 30px back up -> 30px revealed, same pace.
+    await scrollTo(170);
+    expect(outer.style.height).toBe('30px');
+    expect(inner).toHaveAttribute('aria-hidden', 'false');
+
+    // Back at the top -> always fully shown.
+    await scrollTo(0);
+    expect(outer.style.height).toBe('52px');
   });
 
   it('switches to the Minutes tab and back to Games', async () => {
