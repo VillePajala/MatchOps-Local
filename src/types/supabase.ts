@@ -387,7 +387,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "playtime_plan_links_plan_fk"
+            columns: ["user_id", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "playtime_plans"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
       }
       playtime_plans: {
         Row: {

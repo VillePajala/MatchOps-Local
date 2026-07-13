@@ -467,4 +467,14 @@ CLAUDE.md diff check) BEFORE merging to master.**
    links-cleanup failures.
 
 **PROD MERGE CHECKLIST (updated): apply migrations 036 + 037 + 038 to prod
-(with the CLAUDE.md diff check) BEFORE merging to master.**
+BEFORE merging to master.** Exact steps:
+1. Diff prod's live function against 037's base:
+   `SELECT pg_get_functiondef('clear_all_user_data'::regproc)` on PROD vs
+   migration 020 - compare the DELETE table list/order, SECURITY DEFINER,
+   search_path, and grants (prod has drifted from files before - see 029).
+   Apply 037 only if the sole differences are comments/whitespace.
+2. Apply 036, then 037, then 038 (all re-runnable: policy drops, constraint
+   drop-first, orphan cleanup are built in).
+3. Run supabase/migrations/__tests__/036_038_playtime.verification.sql
+   (RLS form, LWW true/false, FK block + cascade, clear-all coverage).
+4. Only then merge/deploy the app.
