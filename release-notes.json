@@ -2,16 +2,18 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
-      "date": "2026-07-12",
+      "date": "2026-07-13",
       "en": [
-        "Lineup planner got a major upgrade: player discs are coloured by fairness (red = needs minutes, green = fair share), substitutions show as split discs with both names, and a totals strip keeps every player's minutes visible while you edit.",
-        "New one-tap tools: \"Suggest fair lineups\" builds even rotations for the whole tournament, undo/redo, swipe between games, and an all-games side-by-side view.",
-        "Playing-time balance view redesigned: colour chips per player, warnings (0-minute players, big gaps, lone goalkeeper) and per-game detail cards."
+        "Match planner (renamed from Lineup planner) was rebuilt around three tabs: Games (the field, with swipe and a side-by-side view), Minutes (playing-time balance) and Settings (roster, format and the games as editable rows).",
+        "Fairness at a glance: player discs and bench discs are coloured red-to-green by playing time, substitutions show as split discs with both names, and a totals strip stays visible while you edit.",
+        "One-tap tools: \"Suggest fair lineups\" builds even rotations for the whole set of games, undo/redo, per-game include toggles, and plans can be archived, duplicated and exported.",
+        "Plans now survive backgrounding: reopening the app returns you to the plan and game you had open."
       ],
       "fi": [
-        "Kokoonpanosuunnittelija sai ison päivityksen: pelaajakiekot värjäytyvät reiluuden mukaan (punainen = tarvitsee peliaikaa, vihreä = oma osuus täynnä), vaihdot näkyvät jaettuina kiekkoina molemmilla nimillä, ja peliaikakertymä pysyy näkyvissä muokatessa.",
-        "Uudet yhden napautuksen työkalut: \"Ehdota reilut kokoonpanot\" rakentaa tasaisen rotaation koko turnaukseen, kumoa/tee uudelleen, pyyhkäisy pelien välillä ja kaikki pelit rinnakkain -näkymä.",
-        "Peliaikanäkymä uudistettiin: värichipit pelaajittain, varoitukset (0 minuutin pelaajat, suuret erot, yksinäinen maalivahti) ja pelikohtaiset kortit."
+        "Ottelusuunnittelu (ent. kokoonpanosuunnittelu) rakennettiin uusiksi kolmen välilehden ympärille: Pelit (kenttä, pyyhkäisy ja rinnakkaisnäkymä), Minuutit (peliaikatasapaino) ja Asetukset (kokoonpano, formaatti ja pelit muokattavina riveinä).",
+        "Reiluus yhdellä silmäyksellä: pelaajakiekot ja penkkikiekot värjäytyvät peliajan mukaan punaisesta vihreään, vaihdot näkyvät jaettuina kiekkoina molemmilla nimillä, ja peliaikakertymä pysyy näkyvissä muokatessa.",
+        "Yhden napautuksen työkalut: \"Ehdota reilut kokoonpanot\" rakentaa tasaiset rotaatiot koko pelisarjalle, kumoa/tee uudelleen, pelikohtaiset mukana-valinnat, ja suunnitelmat voi arkistoida, monistaa ja viedä.",
+        "Suunnitelmat säilyvät taustalla: sovellukseen palatessa avautuu sama suunnitelma ja peli kuin lähtiessä."
       ]
     },
     {

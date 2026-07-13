@@ -37,9 +37,10 @@ jest.mock('@/contexts/ToastProvider', () => ({
 
 // The planner reads saved games to count/bulk-update plan-linked games (Phase 3.4).
 const mockGetSavedGames = jest.fn((..._args: unknown[]) => Promise.resolve<Record<string, unknown>>({}));
+const mockSaveGameUtil = jest.fn(async (_id: string, g: unknown) => g);
 jest.mock('@/utils/savedGames', () => ({
   getSavedGames: (...args: unknown[]) => mockGetSavedGames(...args),
-  saveGame: jest.fn(async (_id: string, g: unknown) => g),
+  saveGame: (...args: unknown[]) => mockSaveGameUtil(...(args as [string, unknown])),
 }));
 
 // The planner invalidates the saved-games query cache after a bulk re-apply.
@@ -130,6 +131,7 @@ jest.mock('@/utils/logger', () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSaveGameUtil.mockImplementation(async (_id: string, g: unknown) => g);
   // The planner persists the open plan id per session (resume-from-background);
   // stale keys must not leak a previous test's plan into the next render.
   sessionStorage.clear();
@@ -318,6 +320,116 @@ describe('PlaytimePlannerModal', () => {
     );
     // The host is told which games changed so it can refresh live state.
     expect(onLinkedGamesUpdated).toHaveBeenCalledWith(['game_1']);
+  });
+
+  it('bulk re-apply reports PARTIAL success when some writes fail', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    mockGetAllPlanLinks.mockResolvedValue({
+      game_1: { planId: 'existing', planGameId: 'g1' },
+      game_2: { planId: 'existing', planGameId: 'g1' },
+    });
+    const unplayed = {
+      gameStatus: 'notStarted',
+      gameEvents: [],
+      availablePlayers: [{ id: 'p1', name: 'Alex' }],
+      selectedPlayerIds: [],
+      playersOnField: [],
+    };
+    mockGetSavedGames.mockResolvedValue({ game_1: unplayed, game_2: unplayed } as never);
+    // The second game's storage write fails (the seam contract: failures throw).
+    mockSaveGameUtil.mockImplementation(async (id: string, g: unknown) => {
+      if (id === 'game_2') throw new Error('write failed');
+      return g;
+    });
+
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await openPlanTab();
+    await act(async () => {
+      fireEvent.click(await screen.findByText('Update 2 games created from this'));
+    });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Update' }));
+    });
+
+    // Partial outcome is an ERROR toast naming both counts - never a clean success.
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('Updated 1 games; 1 could not be updated.', 'error'),
+    );
+  });
+
+  it('bulk re-apply names plan players missing from a game roster', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    mockGetAllPlanLinks.mockResolvedValue({
+      game_1: { planId: 'existing', planGameId: 'g1' },
+    });
+    // The game's roster does NOT contain plan player Alex (p1) - roster drift.
+    mockGetSavedGames.mockResolvedValue({
+      game_1: {
+        gameStatus: 'notStarted',
+        gameEvents: [],
+        availablePlayers: [{ id: 'p9', name: 'Visitor' }],
+        selectedPlayerIds: [],
+        playersOnField: [],
+      },
+    } as never);
+    // Give the plan a lineup so Alex is actually expected somewhere.
+    const planWithLineup = {
+      ...existingPlan,
+      games: [{ ...existingPlan.games[0], startingSlots: [{ slotId: 'gk', playerId: 'p1' }] }],
+    };
+    mockGetPlans.mockResolvedValue({ existing: planWithLineup });
+
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await openPlanTab();
+    await act(async () => {
+      fireEvent.click(await screen.findByText('Update 1 games created from this'));
+    });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Update' }));
+    });
+
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Updated 1 games. Not in a game roster, skipped: Alex.',
+        'success',
+      ),
+    );
+  });
+
+  it('bulk re-apply surfaces a hard failure as the re-apply error toast', async () => {
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    mockGetAllPlanLinks.mockResolvedValue({
+      game_1: { planId: 'existing', planGameId: 'g1' },
+    });
+    mockGetSavedGames.mockResolvedValue({
+      game_1: {
+        gameStatus: 'notStarted',
+        gameEvents: [],
+        availablePlayers: [{ id: 'p1', name: 'Alex' }],
+        selectedPlayerIds: [],
+        playersOnField: [],
+      },
+    } as never);
+
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await openPlanTab();
+    const button = await screen.findByText('Update 1 games created from this');
+    // The linked-count refresh also reads saved games - storage goes down only
+    // now, so the re-apply itself is what hits the failure.
+    mockGetSavedGames.mockRejectedValue(new Error('storage down'));
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Update' }));
+    });
+
+    await waitFor(() =>
+      expect(mockShowToast).toHaveBeenCalledWith('Could not update the linked games.', 'error'),
+    );
   });
 
   it('autosaves a plan-tab edit (debounced) to the plan name', async () => {
