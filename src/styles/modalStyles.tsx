@@ -139,8 +139,18 @@ export const footerStyle =
 // Helper Components
 // ============================================================================
 
-export const ModalContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+export const ModalContainer: React.FC<{
+  children: React.ReactNode;
+  /** Ref to the modal root, so consumers can wire useFocusTrap (house modal behaviour). */
+  containerRef?: React.Ref<HTMLDivElement>;
+  /** Accessible dialog name; providing it also stamps role="dialog" + aria-modal. */
+  'aria-label'?: string;
+}> = ({ children, containerRef, 'aria-label': ariaLabel }) => (
+  <div
+    ref={containerRef}
+    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+    {...(ariaLabel ? { role: 'dialog', 'aria-modal': true, 'aria-label': ariaLabel } : {})}
+  >
     <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
       <ModalBackgroundEffects />
       <div className="relative z-10 flex flex-col min-h-0 h-full">

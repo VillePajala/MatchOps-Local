@@ -25,6 +25,7 @@ import {
   HiOutlineUsers,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -352,6 +353,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       // Session storage unavailable (private mode edge) - resume just degrades.
     }
   }, [activePlan, view]);
+
+  // House modal behaviour: Tab cycles inside the planner and the app behind
+  // goes inert. The nested PlanSubSheet runs its own trap; useFocusTrap's
+  // nested-modal safety keeps the two from fighting over focus.
+  const modalRootRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(modalRootRef, isOpen);
 
   // Deliberate close abandons the resume intent: the key exists so a
   // background/resume remount restores the workspace, not so an explicit
@@ -1364,7 +1371,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <ModalContainer>
+    <ModalContainer containerRef={modalRootRef} aria-label={t('playtimePlanner.title', 'Match planner')}>
       {/* Header names what's on screen: tool name outside a plan; the ACTIVE
           GAME (tap-editable) on the single-game surface; the plan name
           (tap-editable on the plan tab) everywhere else in an open plan. */}
