@@ -472,6 +472,72 @@ describe('createSyncExecutor', () => {
     });
   });
 
+  describe('Playtime planner operations', () => {
+    it('saves a plan blob on update and deletes by id on delete', async () => {
+      const plan = { id: 'ptp_1', name: 'Cup', games: [] };
+      await executor(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: plan,
+      }));
+      expect(mockStore.savePlaytimePlan).toHaveBeenCalledWith(plan);
+
+      await executor(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'delete',
+      }));
+      expect(mockStore.deletePlaytimePlan).toHaveBeenCalledWith('ptp_1');
+    });
+
+    it('routes a plan-link delete WITH data.planId to delete-for-plan', async () => {
+      await executor(createOperation({
+        entityType: 'playtimePlanLink',
+        entityId: 'plan:ptp_1',
+        operation: 'delete',
+        data: { planId: 'ptp_1' },
+      }));
+      expect(mockStore.deletePlaytimePlanLinksForPlan).toHaveBeenCalledWith('ptp_1');
+      expect(mockStore.deletePlaytimePlanLink).not.toHaveBeenCalled();
+
+      await executor(createOperation({
+        entityType: 'playtimePlanLink',
+        entityId: 'game_1',
+        operation: 'delete',
+        data: null,
+      }));
+      expect(mockStore.deletePlaytimePlanLink).toHaveBeenCalledWith('game_1');
+    });
+
+    it('upserts a plan link and planned game subs per real game', async () => {
+      const link = { planId: 'ptp_1', planGameId: 'ptg_1' };
+      await executor(createOperation({
+        entityType: 'playtimePlanLink',
+        entityId: 'game_1',
+        operation: 'update',
+        data: link,
+      }));
+      expect(mockStore.setPlaytimePlanLink).toHaveBeenCalledWith('game_1', link);
+
+      const subs = [{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', outPlayerId: null, timeSeconds: 720 }];
+      await executor(createOperation({
+        entityType: 'playtimeGameSubs',
+        entityId: 'game_1',
+        operation: 'update',
+        data: subs,
+      }));
+      expect(mockStore.setPlaytimeGameSubs).toHaveBeenCalledWith('game_1', subs);
+
+      await executor(createOperation({
+        entityType: 'playtimeGameSubs',
+        entityId: 'game_1',
+        operation: 'delete',
+      }));
+      expect(mockStore.deletePlaytimeGameSubs).toHaveBeenCalledWith('game_1');
+    });
+  });
+
   describe('Error handling', () => {
     it('should propagate errors from store methods', async () => {
       mockStore.upsertPlayer.mockRejectedValue(new Error('Database error'));

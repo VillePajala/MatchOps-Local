@@ -262,3 +262,75 @@ export const deleteGameSubs = async (gameId: string): Promise<boolean> => {
     return false;
   }
 };
+
+// ── Hydration (cloud -> local seed) ─────────────────────────────────────────
+// Restore helpers used ONLY by the background cloud hydration: they merge
+// cloud entries into the local store WITHOUT re-stamping updatedAt (savePlan
+// stamps "now", which would make every hydrated copy look like the newest
+// edit and defeat per-plan last-write-wins on the next device).
+
+/** Merge cloud plans in; a local plan wins when its updatedAt is newer. */
+export const restorePlans = async (incoming: PlaytimePlanCollection): Promise<number> => {
+  try {
+    return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
+      const current = await getPlans();
+      let written = 0;
+      for (const [id, plan] of Object.entries(incoming)) {
+        const local = current[id];
+        if (!local || plan.updatedAt > local.updatedAt) {
+          current[id] = plan;
+          written += 1;
+        }
+      }
+      if (written > 0) await setStorageJSON(PLAYTIME_PLANS_KEY, current);
+      return written;
+    });
+  } catch (error) {
+    logger.error('[playtimePlanner] Failed to restore plans:', error);
+    return 0;
+  }
+};
+
+/** Fill in cloud links for games with no local link (local edits win). */
+export const restorePlanLinks = async (incoming: PlanLinksCollection): Promise<number> => {
+  try {
+    return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
+      const current = await getAllPlanLinks();
+      let written = 0;
+      for (const [gameId, link] of Object.entries(incoming)) {
+        if (!(gameId in current)) {
+          current[gameId] = link;
+          written += 1;
+        }
+      }
+      if (written > 0) await setStorageJSON(PLAYTIME_PLAN_LINKS_KEY, current);
+      return written;
+    });
+  } catch (error) {
+    logger.error('[playtimePlanner] Failed to restore plan links:', error);
+    return 0;
+  }
+};
+
+/** Fill in cloud planned subs for games with no local entry (local edits win). */
+export const restoreGameSubs = async (incoming: GameSubsCollection): Promise<number> => {
+  try {
+    return await withKeyLock(PLAYTIME_GAME_SUBS_KEY, async () => {
+      const current = await getStorageJSON<GameSubsCollection>(PLAYTIME_GAME_SUBS_KEY, {
+        defaultValue: {},
+      }).then((raw) => (raw && typeof raw === 'object' ? raw : {}));
+      let written = 0;
+      for (const [gameId, subs] of Object.entries(incoming)) {
+        if (!(gameId in current) && Array.isArray(subs) && subs.length > 0) {
+          current[gameId] = subs;
+          written += 1;
+        }
+      }
+      if (written > 0) await setStorageJSON(PLAYTIME_GAME_SUBS_KEY, current);
+      return written;
+    });
+  } catch (error) {
+    logger.error('[playtimePlanner] Failed to restore planned game subs:', error);
+    return 0;
+  }
+};

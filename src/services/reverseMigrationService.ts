@@ -17,6 +17,8 @@
  */
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
+import { restorePlans, restorePlanLinks, restoreGameSubs } from '@/utils/playtimePlanner/localPlanStore';
+import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
 import { getAuthService } from '@/datastore/factory';
 import { NetworkError, AuthError } from '@/interfaces/DataStoreErrors';
@@ -176,6 +178,10 @@ export interface ReverseMigrationProgress {
  * Counts of migrated entities.
  */
 export interface ReverseMigrationCounts {
+  /** Playtime planner entries hydrated (optional: hydration path only). */
+  playtimePlans?: number;
+  playtimePlanLinks?: number;
+  playtimeGameSubs?: number;
   players: number;
   teams: number;
   /** Count of player-team assignments (roster entries), not number of teams with rosters */
@@ -1874,6 +1880,29 @@ export async function hydrateLocalFromCloud(
         logger.error('[ReverseMigrationService] ' + msg);
         errors.push(msg);
       }
+    }
+
+    // Playing-time planner stores. Restore helpers preserve cloud timestamps
+    // (a normal save would re-stamp updatedAt and defeat per-plan LWW) and let
+    // newer local edits win. Planned subs exist only for plan-created games,
+    // so the link keys are the complete sub universe.
+    try {
+      const [cloudPlans, cloudLinks] = await Promise.all([
+        cloudStore.getPlaytimePlans(),
+        cloudStore.getPlaytimePlanLinks(),
+      ]);
+      counts.playtimePlans = await restorePlans(cloudPlans);
+      counts.playtimePlanLinks = await restorePlanLinks(cloudLinks);
+      const subEntries: GameSubsCollection = {};
+      for (const gameId of Object.keys(cloudLinks)) {
+        const subs = await cloudStore.getPlaytimeGameSubs(gameId);
+        if (subs.length > 0) subEntries[gameId] = subs;
+      }
+      counts.playtimeGameSubs = await restoreGameSubs(subEntries);
+    } catch (err) {
+      const msg = `Failed to hydrate playtime plans: ${err instanceof Error ? err.message : 'Unknown error'}`;
+      logger.error('[ReverseMigrationService] ' + msg);
+      errors.push(msg);
     }
     safeProgress('Finalizing...', 98);
 
