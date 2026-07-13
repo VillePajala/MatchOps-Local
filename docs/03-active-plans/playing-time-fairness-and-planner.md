@@ -167,17 +167,24 @@ local-only (like `playerPositions`); cloud is deferred (2.4).
 - **Not the ledger.** A season-long "who's owed minutes" ledger is a *different*
   feature; the tournament planner is self-contained and does not need it.
 
-## 7. Open questions (before Phase 1.5 / the optimizer)
+## 7. Open questions — status 2026-07-13
 
-- **How much is auto-solved vs coach-adjusted?** Likely: coach places lineups,
-  the app *shows* imbalance and lets them fix it (no black-box solver at first).
-  A real optimizer (minimise share variance under constraints) is a later option.
-- **Availability entry** - how the coach marks who's coming to which game.
-- **Minutes granularity** - the standalone uses full-game vs half-rotation slots;
-  is one half-time window enough, or arbitrary sub times?
-- **Positions in fairness** - pure minutes, or minutes-by-line too (ties into the
-  position-diversity feature we just shipped)?
-- **Formation source** - reuse the app's formation presets for the slot layout.
+- **How much is auto-solved vs coach-adjusted?** ANSWERED: coach places lineups
+  with live fairness feedback (ramp discs, totals strip, Minutes tab); "Suggest
+  fair lineups" (greedy fair-share generator) is the one-tap starting point.
+  A variance-minimising optimizer stays a later option; no current need.
+- **Availability entry** — OPEN, the last real feature gap. Planned design:
+  per-game "absent" toggle on bench discs (`absentIds` on PlanGame); absent
+  players are skipped by Suggest and drop out of that game's fair-share math.
+- **Minutes granularity** — ANSWERED: arbitrary sub minutes (stepper ±1/±5),
+  multiple sub windows per slot (stacked pills).
+- **Positions in fairness** — DEFERRED: v1 is pure minutes; minutes-by-line
+  revisit only if coaches ask.
+- **Formation source** — DONE: app formation presets drive slot geometry.
+
+Remaining before "finalized": per-game availability (above), cloud sync for
+plans (deliberately after the feature is perfected; design doc first), the
+user's preview test round, then the merge chain (#650 → p2 → master).
 
 ## 8. Relationship to the rest
 
@@ -314,3 +321,41 @@ migration). (Status: **shipped**, reworked on `feat/playtime-3.5-link-store`.)
 4. **DONE (2026-07-12) - moved to footer (left) in field views. Undo/redo placement.** The undo/redo row as the first element of the game
    view breaks up the composition. Candidates: field-view toolbar row (with
    Sub/Clear/Auto-fill), floating corner buttons, or the footer.
+
+## 11. Cloud sync for plans — design (drafted 2026-07-13, build after feature is perfected)
+
+Goal: a Play-Store (cloud-mode) user gets their plans on every device; local
+mode stays exactly as-is. Three local stores must sync: `soccerPlaytimePlans`,
+`soccerPlaytimePlanLinks`, `soccerPlaytimeGameSubs`.
+
+**Options considered**
+- A. One row PER PLAN (`playtime_plans`: id, user_id, name, archived,
+  updated_at, `data` jsonb) + tiny `playtime_plan_links` and
+  `playtime_game_subs` tables. Per-plan last-write-wins matches the per-plan
+  debounced autosave; no field-by-field transforms (the blob stays the app's
+  own schema, versioned by `plan.version`).
+- B. One blob row per user holding all three collections. Simplest possible,
+  but whole-collection LWW: editing plan A on the phone and plan B on the
+  laptop loses one of them.
+
+**Recommendation: A.** Small schema, honest conflict unit, and it rides the
+existing machinery: extend `DataStore` with plan methods, implement in
+LocalDataStore (delegating to today's storage.ts logic) and SupabaseDataStore
+(jsonb upsert), let SyncedDataStore queue writes like every other entity.
+`storage.ts` becomes a thin shim over `getDataStore()` so the modal does not
+change at all.
+
+**PR split (~1-2 weeks total)**
+1. Schema + RLS migration (3 tables), staging-first per CLAUDE.md rules.
+2. DataStore interface + Local/Supabase implementations + transforms tests
+   (blob passthrough; only casing/updated_at mapping).
+3. storage.ts shim swap + SyncedDataStore wiring (offline queue).
+4. First-sync migration (push existing local plans up on cloud sign-in) +
+   E2E against staging.
+
+**Risks / notes**
+- Conflict semantics: per-plan LWW is acceptable at this scale (single coach);
+  document it. Links/gameSubs rows are keyed per game — natural LWW units.
+- The planner's key-locked local writes and the sync queue already coexist for
+  games; same pattern, no new locking.
+- Import/export JSON stays the universal escape hatch either way.
