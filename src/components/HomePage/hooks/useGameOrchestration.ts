@@ -2018,6 +2018,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     };
   }, [currentGameId]);
 
+  // Live mirror of currentGameId for the async re-apply guards below: a re-apply
+  // captured against game A must never push its lineup into a game B the coach
+  // loaded while the chain was in flight.
+  const reapplyGameIdRef = useRef(currentGameId);
+  useEffect(() => {
+    reapplyGameIdRef.current = currentGameId;
+  }, [currentGameId]);
+
   // Shared by the per-game and bulk re-apply paths: push a rebuilt lineup into live
   // state so the coach sees it without reloading - and, critically, so the next
   // autosave snapshot persists the NEW lineup instead of writing the stale one back
@@ -2105,8 +2113,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       return;
     }
 
-    // Push the rebuilt lineup into live state (persisted copy already saved).
-    applyReappliedLineup(result.patch);
+    // Push the rebuilt lineup into live state (persisted copy already saved) -
+    // unless the coach loaded a DIFFERENT game while the async chain ran, in
+    // which case the live field belongs to that game and must not be overwritten.
+    // The storage/cache updates below are keyed to the original game and stay valid.
+    if (reapplyGameIdRef.current === currentGameId) {
+      applyReappliedLineup(result.patch);
+    }
     // Keep the in-memory savedGames copy AND the query cache in step with storage
     // (mirrors the bulk path - readers of savedGames state would otherwise show
     // the pre-reapply lineup until the refetch lands).
@@ -2161,11 +2174,15 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       try {
         const stored = await utilGetGame(currentGameId, userId);
         if (!stored) return;
-        applyReappliedLineup({
-          playersOnField: stored.playersOnField ?? [],
-          selectedPlayerIds: stored.selectedPlayerIds ?? [],
-          formationSnapPoints: stored.formationSnapPoints ?? [],
-        });
+        // Same async guard as the per-game path: only push into live state if
+        // the game this refresh was captured for is still the loaded one.
+        if (reapplyGameIdRef.current === currentGameId) {
+          applyReappliedLineup({
+            playersOnField: stored.playersOnField ?? [],
+            selectedPlayerIds: stored.selectedPlayerIds ?? [],
+            formationSnapPoints: stored.formationSnapPoints ?? [],
+          });
+        }
         // Keep the in-memory savedGames copy in step with storage too.
         setSavedGames(prev => ({ ...prev, [currentGameId]: stored }));
       } catch (err) {

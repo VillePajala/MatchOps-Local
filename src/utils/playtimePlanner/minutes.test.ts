@@ -226,6 +226,29 @@ describe('computePlanMinutes', () => {
     expect(a.band).toBe('over');
   });
 
+  it('keeps rosterSize and absences on the same denominator', () => {
+    // Squad of 4 (two not yet listed); 'b' misses g2. The per-game split must
+    // use the SAME rosterSize base as the plan-wide share: an absentee vacates
+    // one seat of the notional roster, they don't shrink it to the listed two.
+    const g2 = { ...makeGame('g2', 20 * MIN, ['a', null]), absentIds: ['b'] };
+    const plan: PlannedPlan = {
+      playerIds: ['a', 'b'],
+      rosterSize: 4,
+      games: [makeGame('g1', 20 * MIN, ['a', 'b']), g2],
+    };
+    const res = computePlanMinutes(plan);
+    // Each game offers 20 * 2 = 40 player-min; plan-wide share = 80 / 4 = 20.
+    expect(res.fairShareSeconds).toBe(20 * MIN);
+    const a = res.players.find((p) => p.playerId === 'a')!;
+    const b = res.players.find((p) => p.playerId === 'b')!;
+    // b attends only g1: share = 40 / 4 = 10 min (NOT 40 / 2 = 20).
+    expect(b.totalSeconds).toBe(20 * MIN);
+    expect(b.deviationSeconds).toBeCloseTo(10 * MIN);
+    // a attends both: 40/4 + 40/(4-1) = 10 + 13.33 min.
+    expect(a.totalSeconds).toBe(40 * MIN);
+    expect(a.deviationSeconds).toBeCloseTo(40 * MIN - (10 * MIN + (40 * MIN) / 3));
+  });
+
   it('preserves playerIds order in the output', () => {
     const plan: PlannedPlan = {
       playerIds: ['z', 'm', 'a'],

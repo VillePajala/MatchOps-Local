@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { render, screen, within, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import GameSettingsModal from './GameSettingsModal';
@@ -261,6 +261,31 @@ describe('<GameSettingsModal />', () => {
       });
       await user.click(confirm);
       expect(onReapplyPlan).toHaveBeenCalledTimes(1);
+    });
+
+    test('locks Done while a re-apply is in flight', async () => {
+      const user = userEvent.setup();
+      let resolveReapply!: () => void;
+      const onReapplyPlan = jest.fn(
+        () => new Promise<void>((resolve) => { resolveReapply = resolve; }),
+      );
+      renderModal({ ...defaultProps, canReapplyPlan: true, onReapplyPlan });
+
+      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.reapplyPlan.button') }));
+      await user.click(
+        await screen.findByRole('button', { name: t('gameSettingsModal.reapplyPlan.confirmLabel') }),
+      );
+
+      // In flight: closing the modal and loading another game now could let the
+      // async chain overwrite the newly-loaded game's lineup - Done stays locked
+      // exactly as long as the re-apply button itself.
+      const done = screen.getByRole('button', { name: t('common.doneButton') });
+      expect(done).toBeDisabled();
+
+      await act(async () => {
+        resolveReapply();
+      });
+      await waitFor(() => expect(done).toBeEnabled());
     });
   });
 

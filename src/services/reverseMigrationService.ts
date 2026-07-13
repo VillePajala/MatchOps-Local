@@ -237,7 +237,7 @@ export interface CloudDataCheckResult {
  */
 export interface EntitySaveFailure {
   /** Type of entity that failed */
-  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings';
+  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings' | 'playtimePlan';
   /** ID of the entity (if available) */
   entityId?: string;
   /** Display name for the entity (for user-friendly error messages) */
@@ -1020,7 +1020,7 @@ async function saveToLocal(
     counts.playtimeGameSubs = await localStore.restorePlaytimeGameSubs(data.playtimeGameSubs);
   } catch (err) {
     failures.push({
-      entityType: 'warmupPlan',
+      entityType: 'playtimePlan',
       entityName: 'Playtime plans',
       error: err instanceof Error ? err.message : 'Unknown error',
     });

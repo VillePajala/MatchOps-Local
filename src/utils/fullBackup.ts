@@ -1193,6 +1193,9 @@ export const importFullBackup = async (
             if (f.adjustments.length > 0) failureDetails.push(`${f.adjustments.length} adjustments`);
             if (f.settings) failureDetails.push('settings');
             if (f.warmupPlan) failureDetails.push('warmup plan');
+            if ((f.playtimePlans?.length ?? 0) > 0) failureDetails.push(`${f.playtimePlans!.length} playtime plans`);
+            if ((f.playtimePlanLinks?.length ?? 0) > 0) failureDetails.push(`${f.playtimePlanLinks!.length} plan links`);
+            if ((f.playtimeGameSubs?.length ?? 0) > 0) failureDetails.push(`${f.playtimeGameSubs!.length} planned subs`);
 
             const detailStr = failureDetails.length > 0
               ? ` (${failureDetails.join(', ')})`

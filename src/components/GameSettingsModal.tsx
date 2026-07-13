@@ -2638,7 +2638,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
               </button>
             )}
-            <button onClick={onClose} className={primaryButtonStyle}>
+            <button onClick={onClose} className={primaryButtonStyle} disabled={isReapplying}>
               {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>

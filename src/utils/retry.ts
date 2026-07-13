@@ -171,6 +171,10 @@ export interface PushFailures {
   warmupPlan: boolean;
   /** Playtime plans that failed to push (optional: producers added in PR 4). */
   playtimePlans?: string[];
+  /** Game IDs whose plan link failed to push. */
+  playtimePlanLinks?: string[];
+  /** Game IDs whose planned subs failed to push. */
+  playtimeGameSubs?: string[];
 }
 
 /**
@@ -203,6 +207,8 @@ export function countPushFailures(failures: PushFailures): number {
     failures.rosters,
     failures.adjustments,
     failures.playtimePlans,
+    failures.playtimePlanLinks,
+    failures.playtimeGameSubs,
   ].reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
   const booleanFailures =
