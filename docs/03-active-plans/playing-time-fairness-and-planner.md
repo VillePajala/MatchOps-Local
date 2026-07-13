@@ -479,6 +479,22 @@ CLAUDE.md diff check) BEFORE merging to master.**
    deleter mirrors the delete-for-plan routing; the modal logs (not swallows)
    links-cleanup failures.
 
+**Scope decisions (final review round, 2026-07-14):**
+- **No `game_id` FK on `playtime_plan_links`/`playtime_game_subs`** -
+  deliberate: a link/subs row can reach the cloud before its game row (sync
+  queue ordering is not guaranteed across entity types), so a DB cascade
+  would reject legitimate writes. Instead, cloud `deleteGame` cascades both
+  tables app-side, atomically with the game delete - the queued companion
+  cleanup ops remain as a second net. A DB-level FK stays a possible
+  follow-up if sync ordering is ever made strict.
+- **`deletePlaytimePlan` has no LWW guard** (a queued offline save can
+  re-insert a plan deleted on another device). This matches every other
+  entity app-wide (games included) - not planner-specific; accepted at
+  current scale, revisit with any future app-wide delete-tombstone work.
+- **Plan links/subs are unconditional upserts** (no conditional-LWW RPC like
+  the plan blob) - deliberate: they are per-game rows whose loss/staleness
+  is self-healing from the plan itself, not worth an RPC each.
+
 **PROD MERGE CHECKLIST (updated): apply migrations 036 + 037 + 038 to prod
 BEFORE merging to master.** Exact steps:
 1. Diff prod's live function against 037's base:

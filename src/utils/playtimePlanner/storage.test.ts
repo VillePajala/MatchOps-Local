@@ -411,4 +411,15 @@ describe('write paths abort on read failure (sibling-wipe protection)', () => {
     };
     expect(parsePlanExport(JSON.stringify(legal))).not.toBeNull();
   });
+
+  it('parsePlanExport rejects a malformed absentIds shape but tolerates null/valid arrays', () => {
+    // Every consumer does `new Set(g.absentIds ?? [])` - a non-array truthy
+    // value would crash the Minutes view/prefill/Suggest on first touch.
+    const base = createPlan({ name: 'A', players: [{ id: 'p1', name: 'Alex' }], gameCount: 1, formationId: '5v5-2-2', numberOfPeriods: 2, periodMinutes: 12 });
+    const game = base.games[0];
+    expect(parsePlanExport(JSON.stringify({ ...base, games: [{ ...game, absentIds: 5 }] }))).toBeNull();
+    expect(parsePlanExport(JSON.stringify({ ...base, games: [{ ...game, absentIds: [1, 2] }] }))).toBeNull();
+    expect(parsePlanExport(JSON.stringify({ ...base, games: [{ ...game, absentIds: null }] }))).not.toBeNull();
+    expect(parsePlanExport(JSON.stringify({ ...base, games: [{ ...game, absentIds: ['p1'] }] }))).not.toBeNull();
+  });
 });

@@ -149,7 +149,7 @@ export const ModalContainer: React.FC<{
   <div
     ref={containerRef}
     className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
-    {...(ariaLabel ? { role: 'dialog', 'aria-modal': true, 'aria-label': ariaLabel } : {})}
+    {...(ariaLabel ? { role: 'dialog', 'aria-modal': true, 'aria-label': ariaLabel, tabIndex: -1 } : {})}
   >
     <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
       <ModalBackgroundEffects />

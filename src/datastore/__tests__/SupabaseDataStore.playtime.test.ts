@@ -221,6 +221,25 @@ describe('SupabaseDataStore — playtime planner', () => {
     ]);
   });
 
+  it('deleteGame also cascades the planner tables (plan link + game subs) app-side', async () => {
+    // No game_id FK exists (deliberate - sync ordering), so cloud deleteGame
+    // must clean these rows itself or a lost companion op orphans them forever.
+    // eq sequence: games (id -> user_id resolves w/ count), then per table
+    // (user_id -> game_id resolves).
+    mockQueryBuilder.eq
+      .mockReturnValueOnce(mockQueryBuilder)
+      .mockResolvedValueOnce({ error: null, count: 1 })
+      .mockReturnValueOnce(mockQueryBuilder)
+      .mockResolvedValueOnce({ error: null })
+      .mockReturnValueOnce(mockQueryBuilder)
+      .mockResolvedValueOnce({ error: null });
+
+    await expect(dataStore.deleteGame('game_1')).resolves.toBe(true);
+
+    const tables = (mockSupabaseClient.from as jest.Mock).mock.calls.map((c) => c[0]);
+    expect(tables).toEqual(expect.arrayContaining(['games', 'playtime_plan_links', 'playtime_game_subs']));
+  });
+
   it('deletePlaytimePlanLinksForPlan deletes by user AND plan id', async () => {
     mockQueryBuilder.eq
       .mockReturnValueOnce(mockQueryBuilder)
