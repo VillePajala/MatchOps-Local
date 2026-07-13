@@ -29,7 +29,7 @@ import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
-import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
@@ -488,6 +488,15 @@ export class SyncedDataStore implements DataStore {
         entityType,
         entityId,
         operation,
+      });
+      // The LOCAL write already succeeded but will never sync - that must not
+      // be silent (review finding: a flush racing close() dropped ops with no
+      // user-visible signal). Same listener path as an enqueue failure.
+      this.notifyQueueError({
+        entityType,
+        entityId,
+        operation,
+        error: 'Sync queue unavailable (store closing)',
       });
       return;
     }
@@ -1483,16 +1492,24 @@ export class SyncedDataStore implements DataStore {
             { operationName: `setPlaytimePlanLink(${gameId})` }
           );
           summary.playtimePlanLinks++;
-          const gameSubs = await this.localStore.getPlaytimeGameSubs(gameId);
-          if (gameSubs.length > 0) {
-            await retryWithBackoff(
-              () => remoteStore.setPlaytimeGameSubs(gameId, gameSubs),
-              { operationName: `setPlaytimeGameSubs(${gameId})` }
-            );
-            summary.playtimeGameSubs++;
-          }
         } catch (error) {
-          logger.error(`[SyncedDataStore] Failed playtime link/subs for game ${gameId} after retries:`,
+          logger.error(`[SyncedDataStore] Failed playtime link for game ${gameId} after retries:`,
+            getSafeErrorMessage(error));
+        }
+      }
+      // Whole subs collection - NOT link-keyed: subs can outlive their link
+      // (plan deleted, game kept) and must still reach the cloud.
+      const allGameSubs = await this.localStore.getAllPlaytimeGameSubs();
+      for (const [gameId, gameSubs] of Object.entries(allGameSubs)) {
+        if (gameSubs.length === 0) continue;
+        try {
+          await retryWithBackoff(
+            () => remoteStore.setPlaytimeGameSubs(gameId, gameSubs),
+            { operationName: `setPlaytimeGameSubs(${gameId})` }
+          );
+          summary.playtimeGameSubs++;
+        } catch (error) {
+          logger.error(`[SyncedDataStore] Failed playtime subs for game ${gameId} after retries:`,
             getSafeErrorMessage(error));
         }
       }
@@ -1667,6 +1684,10 @@ export class SyncedDataStore implements DataStore {
 
   async getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]> {
     return this.localStore.getPlaytimeGameSubs(gameId);
+  }
+
+  async getAllPlaytimeGameSubs(): Promise<GameSubsCollection> {
+    return this.localStore.getAllPlaytimeGameSubs();
   }
 
   async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {

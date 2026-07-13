@@ -910,9 +910,18 @@ function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
         await cloudStore.deletePlaytimePlan(entityId);
         break;
 
-      case 'playtimePlanLink':
-        await cloudStore.deletePlaytimePlanLink(entityId);
+      case 'playtimePlanLink': {
+        // Parity with syncPlaytimePlanLink: a delete-for-plan op carries the
+        // plan id in context/data and uses a namespaced entityId that is NOT
+        // a real game key.
+        const planId = (context as { planId?: string } | undefined)?.planId;
+        if (planId) {
+          await cloudStore.deletePlaytimePlanLinksForPlan(planId);
+        } else {
+          await cloudStore.deletePlaytimePlanLink(entityId);
+        }
         break;
+      }
 
       case 'playtimeGameSubs':
         await cloudStore.deletePlaytimeGameSubs(entityId);

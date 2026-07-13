@@ -21,7 +21,7 @@
 import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment } from '@/types';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
-import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -628,6 +628,9 @@ export interface DataStore {
 
   /** Planned subs for one REAL game ([] when none). */
   getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]>;
+
+  /** The whole planned-subs collection (bulk sync/backup paths). */
+  getAllPlaytimeGameSubs(): Promise<GameSubsCollection>;
 
   /** Replace the planned subs for one real game. */
   setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean>;

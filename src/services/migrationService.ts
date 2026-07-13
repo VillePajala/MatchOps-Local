@@ -803,11 +803,8 @@ async function exportAllLocalData(
   exportProgress(11, 'playtime plans');
   const playtimePlans = await localStore.getPlaytimePlans();
   const playtimePlanLinks = await localStore.getPlaytimePlanLinks();
-  const playtimeGameSubs: GameSubsCollection = {};
-  for (const gameId of Object.keys(playtimePlanLinks)) {
-    const subs = await localStore.getPlaytimeGameSubs(gameId);
-    if (subs.length > 0) playtimeGameSubs[gameId] = subs;
-  }
+  // Whole collection - subs can outlive their link (plan deleted, game kept).
+  const playtimeGameSubs = await localStore.getAllPlaytimeGameSubs();
 
   return {
     players,
@@ -1506,12 +1503,15 @@ async function uploadToCloud(
   for (const [gameId, link] of Object.entries(data.playtimePlanLinks)) {
     try {
       await cloudStore.setPlaytimePlanLink(gameId, link);
-      const subs = data.playtimeGameSubs[gameId];
-      if (subs && subs.length > 0) {
-        await cloudStore.setPlaytimeGameSubs(gameId, subs);
-      }
     } catch (err) {
-      logger.error(`[MigrationService] Failed to upload playtime link/subs for ${gameId}:`, err);
+      logger.error(`[MigrationService] Failed to upload playtime link for ${gameId}:`, err);
+    }
+  }
+  for (const [gameId, subs] of Object.entries(data.playtimeGameSubs)) {
+    try {
+      if (subs.length > 0) await cloudStore.setPlaytimeGameSubs(gameId, subs);
+    } catch (err) {
+      logger.error(`[MigrationService] Failed to upload playtime subs for ${gameId}:`, err);
     }
   }
 

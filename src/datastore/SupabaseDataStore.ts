@@ -41,7 +41,7 @@ import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
 import { isPlaytimePlan, PLAYTIME_PLAN_SCHEMA_VERSION } from '@/utils/playtimePlanner/types';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
-import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { Database, Json } from '@/types/supabase';
 import {
   AlreadyExistsError,
@@ -4648,7 +4648,6 @@ export class SupabaseDataStore implements DataStore {
   async savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null> {
     this.ensureInitialized();
     checkOnline();
-    const userId = await this.getUserId();
     // PRESERVE the plan's own updatedAt: it was stamped by the local store at
     // EDIT time, and per-plan last-write-wins compares that stamp. Re-stamping
     // at push time would let a late offline push masquerade as the newest edit
@@ -4659,20 +4658,18 @@ export class SupabaseDataStore implements DataStore {
       version: plan.version || PLAYTIME_PLAN_SCHEMA_VERSION,
       updatedAt: plan.updatedAt || new Date().toISOString(),
     };
+    // Conditional upsert via RPC (migration 038): the write applies only when
+    // this edit-time stamp is >= the stored row's. A device pushing an old
+    // queued edit can no longer regress a genuinely newer cloud row - the push
+    // simply no-ops and hydration later brings the newer copy down.
     const { error } = await this.withRetry(async () => {
-      const result = await this.getClient()
-        .from('playtime_plans')
-        .upsert(
-          {
-            user_id: userId,
-            id: stamped.id,
-            name: stamped.name,
-            archived: stamped.archived ?? false,
-            data: stamped as unknown as Json,
-            updated_at: stamped.updatedAt,
-          },
-          { onConflict: 'user_id,id' },
-        );
+      const result = await this.getClient().rpc('save_playtime_plan', {
+        p_id: stamped.id,
+        p_name: stamped.name,
+        p_archived: stamped.archived ?? false,
+        p_data: stamped as unknown as Json,
+        p_updated_at: stamped.updatedAt,
+      });
       throwIfTransient(result);
       return result;
     }, 'savePlaytimePlan');
@@ -4793,10 +4790,38 @@ export class SupabaseDataStore implements DataStore {
     return Array.isArray(data?.subs) ? (data.subs as unknown as PlannedGameSub[]) : [];
   }
 
+  async getAllPlaytimeGameSubs(): Promise<GameSubsCollection> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_game_subs')
+        .select('game_id, subs')
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'getAllPlaytimeGameSubs');
+    if (error) this.classifyAndThrowError(error, 'getAllPlaytimeGameSubs');
+    const collection: GameSubsCollection = {};
+    for (const row of data ?? []) {
+      if (Array.isArray(row.subs) && row.subs.length > 0) {
+        collection[row.game_id] = row.subs as unknown as PlannedGameSub[];
+      }
+    }
+    return collection;
+  }
+
   async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {
     this.ensureInitialized();
     checkOnline();
     const userId = await this.getUserId();
+    // Mirror the local store: an empty array CLEARS the entry. Upserting []
+    // left a row behind and "subs cleared" never propagated to other devices
+    // (hydration only fills missing keys).
+    if (subs.length === 0) {
+      return this.deletePlaytimeGameSubs(gameId);
+    }
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()
         .from('playtime_game_subs')

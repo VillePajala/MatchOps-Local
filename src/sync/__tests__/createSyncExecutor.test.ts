@@ -125,6 +125,7 @@ describe('createSyncExecutor', () => {
     deletePlaytimePlanLink: jest.fn().mockResolvedValue(true),
     deletePlaytimePlanLinksForPlan: jest.fn().mockResolvedValue(true),
     getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+    getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
     setPlaytimeGameSubs: jest.fn().mockResolvedValue(true),
     deletePlaytimeGameSubs: jest.fn().mockResolvedValue(true),
     } as jest.Mocked<DataStore>;

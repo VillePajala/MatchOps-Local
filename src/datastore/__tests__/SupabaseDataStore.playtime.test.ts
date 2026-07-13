@@ -41,8 +41,11 @@ let mockQueryBuilder = createMockQueryBuilder();
 
 const mockUser = { id: 'user_123_abc', email: 'test@example.com' };
 
+const mockRpc = jest.fn().mockResolvedValue({ data: true, error: null });
+
 const mockSupabaseClient = {
   from: jest.fn(() => mockQueryBuilder),
+  rpc: (...args: unknown[]) => mockRpc(...args),
   auth: {
     getUser: jest.fn().mockResolvedValue({ data: { user: mockUser }, error: null }),
     getSession: jest.fn().mockResolvedValue({
@@ -129,21 +132,23 @@ describe('SupabaseDataStore — playtime planner', () => {
     });
   });
 
-  it('savePlaytimePlan upserts one row per plan, PRESERVING the edit-time stamp', async () => {
+  it('savePlaytimePlan uses the conditional-LWW RPC, PRESERVING the edit-time stamp', async () => {
     const saved = await dataStore.savePlaytimePlan(validPlan);
 
-    expect(mockSupabaseClient.from).toHaveBeenCalledWith('playtime_plans');
-    const [row, opts] = mockQueryBuilder.upsert.mock.calls[0];
-    expect(opts).toEqual({ onConflict: 'user_id,id' });
-    expect(row.user_id).toBe(mockUser.id);
-    expect(row.id).toBe('ptp_1');
-    expect(row.name).toBe('Saved Cup');
-    expect(row.archived).toBe(false);
-    // The blob PRESERVES the edit-time stamp from the local store - per-plan
-    // LWW compares it, so a late offline push must NOT get a fresh timestamp.
-    expect(row.data.version).toBe(PLAYTIME_PLAN_SCHEMA_VERSION);
-    expect(row.data.updatedAt).toBe(validPlan.updatedAt);
-    expect(row.updated_at).toBe(validPlan.updatedAt);
+    // Migration 038: the write is a CONDITIONAL upsert (applies only when the
+    // incoming stamp >= the stored row's) - a late offline push cannot regress
+    // a newer cloud row. The blob preserves the edit-time stamp.
+    expect(mockRpc).toHaveBeenCalledWith('save_playtime_plan', {
+      p_id: 'ptp_1',
+      p_name: 'Saved Cup',
+      p_archived: false,
+      p_data: expect.objectContaining({
+        id: 'ptp_1',
+        version: PLAYTIME_PLAN_SCHEMA_VERSION,
+        updatedAt: validPlan.updatedAt,
+      }),
+      p_updated_at: validPlan.updatedAt,
+    });
     expect(saved?.updatedAt).toBe(validPlan.updatedAt);
   });
 

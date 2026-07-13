@@ -17,7 +17,6 @@
  */
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
-import { restorePlans, restorePlanLinks, restoreGameSubs } from '@/utils/playtimePlanner/localPlanStore';
 import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
@@ -792,11 +791,8 @@ async function downloadFromCloud(
   // Playtime planner stores (plans + links + planned subs per linked game)
   const playtimePlans = await cloudStore.getPlaytimePlans();
   const playtimePlanLinks = await cloudStore.getPlaytimePlanLinks();
-  const playtimeGameSubs: GameSubsCollection = {};
-  for (const gameId of Object.keys(playtimePlanLinks)) {
-    const subs = await cloudStore.getPlaytimeGameSubs(gameId);
-    if (subs.length > 0) playtimeGameSubs[gameId] = subs;
-  }
+  // Whole collection - subs can outlive their link (plan deleted, game kept).
+  const playtimeGameSubs = await cloudStore.getAllPlaytimeGameSubs();
   completeStep(REVERSE_MIGRATION_ENTITY_NAMES.SETTINGS);
 
   return {
@@ -1019,9 +1015,9 @@ async function saveToLocal(
   // (a normal save would re-stamp updatedAt and defeat per-plan LWW) and let
   // a newer local copy win, mirroring the per-entity skip logic above.
   try {
-    counts.playtimePlans = await restorePlans(data.playtimePlans);
-    counts.playtimePlanLinks = await restorePlanLinks(data.playtimePlanLinks);
-    counts.playtimeGameSubs = await restoreGameSubs(data.playtimeGameSubs);
+    counts.playtimePlans = await localStore.restorePlaytimePlans(data.playtimePlans);
+    counts.playtimePlanLinks = await localStore.restorePlaytimePlanLinks(data.playtimePlanLinks);
+    counts.playtimeGameSubs = await localStore.restorePlaytimeGameSubs(data.playtimeGameSubs);
   } catch (err) {
     failures.push({
       entityType: 'warmupPlan',
@@ -1924,14 +1920,11 @@ export async function hydrateLocalFromCloud(
         cloudStore.getPlaytimePlans(),
         cloudStore.getPlaytimePlanLinks(),
       ]);
-      counts.playtimePlans = await restorePlans(cloudPlans);
-      counts.playtimePlanLinks = await restorePlanLinks(cloudLinks);
-      const subEntries: GameSubsCollection = {};
-      for (const gameId of Object.keys(cloudLinks)) {
-        const subs = await cloudStore.getPlaytimeGameSubs(gameId);
-        if (subs.length > 0) subEntries[gameId] = subs;
-      }
-      counts.playtimeGameSubs = await restoreGameSubs(subEntries);
+      counts.playtimePlans = await localStore.restorePlaytimePlans(cloudPlans);
+      counts.playtimePlanLinks = await localStore.restorePlaytimePlanLinks(cloudLinks);
+      counts.playtimeGameSubs = await localStore.restorePlaytimeGameSubs(
+        await cloudStore.getAllPlaytimeGameSubs(),
+      );
     } catch (err) {
       const msg = `Failed to hydrate playtime plans: ${err instanceof Error ? err.message : 'Unknown error'}`;
       logger.error('[ReverseMigrationService] ' + msg);

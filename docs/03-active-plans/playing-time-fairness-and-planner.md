@@ -434,3 +434,37 @@ background hydration until the queue drains.
 
 **PROD MERGE CHECKLIST: apply migrations 036 AND 037 to prod (with the
 CLAUDE.md diff check) BEFORE merging to master.**
+
+### §11 addendum #2 — resumed agents' findings (2026-07-13, all fixed)
+
+1. **HIGH: planner keys lived in the SHARED legacy DB** (localPlanStore used
+   the global storage adapter while every other entity uses the per-user
+   database). On a shared device user B inherited user A's plans, and the
+   sign-in wizard would upload them into B's cloud; clearAllUserData's
+   per-user wipe missed them. FIX: localPlanStore is now a factory over
+   injected JSON IO, bound by LocalDataStore to ITS adapter; fullBackup and
+   the migrations route through the DataStore. (Feature unreleased, so no
+   production data migration needed; preview-device plans can be moved via
+   Vie/Tuo JSON if they "disappear" after this lands.)
+2. **Blind-upsert push could regress the cloud row** (last-pusher-wins even
+   with honest stamps; hydration is pull-only so divergence persisted). FIX:
+   migration 038's `save_playtime_plan` RPC makes the write conditional
+   (applies only when the incoming edit stamp >= stored) - true per-plan LWW.
+3. **playtime_plan_links got an FK** (user_id, plan_id) -> playtime_plans ON
+   DELETE CASCADE (038): a lost delete-links op can no longer leave immortal
+   orphan links, and a backoff-retried link upsert after plan deletion now
+   fails instead of resurrecting.
+4. Version gates: hydration SKIPS newer-schema blobs; local save never
+   down-stamps a higher plan.version.
+5. queueSync's store-closing guard now surfaces via the queue-error listener
+   (was a silent local-only write).
+6. `setPlaytimeGameSubs([])` clears the cloud row (cleared-subs state now
+   propagates); bulk paths read the WHOLE subs collection
+   (getAllPlaytimeGameSubs on the DataStore) instead of link keys, so subs
+   outliving their link still sync/backup.
+7. Restore-report counts include plan push failures; the executor's conflict
+   deleter mirrors the delete-for-plan routing; the modal logs (not swallows)
+   links-cleanup failures.
+
+**PROD MERGE CHECKLIST (updated): apply migrations 036 + 037 + 038 to prod
+(with the CLAUDE.md diff check) BEFORE merging to master.**
