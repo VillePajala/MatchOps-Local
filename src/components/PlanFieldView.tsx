@@ -56,6 +56,10 @@ interface PlanFieldViewProps {
   onRequestSub?: (slotId: string) => void;
   /** Toggle a player's absence for THIS game. Omit to hide the section. */
   onToggleAbsent?: (playerId: string) => void;
+  /** Controlled fold-out state for the absence section (lifted in the
+   *  single-game layout so it survives per-game remounts). */
+  absenceOpen?: boolean;
+  onToggleAbsenceOpen?: () => void;
 }
 
 /** Short display token for a disc: nickname, else first name, else initials. */
@@ -74,10 +78,14 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   highlightPlayerIds = [],
   onRequestSub,
   onToggleAbsent,
+  absenceOpen,
+  onToggleAbsenceOpen,
 }) => {
   const { t } = useTranslation();
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
-  const [showAbsence, setShowAbsence] = useState(false);
+  const [showAbsenceLocal, setShowAbsenceLocal] = useState(false);
+  const showAbsence = absenceOpen ?? showAbsenceLocal;
+  const toggleAbsenceOpen = onToggleAbsenceOpen ?? (() => setShowAbsenceLocal((v) => !v));
   const absentSet = useMemo(() => new Set(game.absentIds ?? []), [game.absentIds]);
 
   const slots = useMemo(() => getGameSlots(game.formationId), [game.formationId]);
@@ -397,7 +405,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           </p>
         ) : bench.length === 0 ? (
           <p className={subtextStyle}>
-            {t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
+            {absentSet.size > 0
+              ? t('playtimePlanner.lineup.benchEmptyAbsent', 'Everyone is placed or absent.')
+              : t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
           </p>
         ) : (
           <div className="flex flex-wrap gap-x-3 gap-y-2">
@@ -461,7 +471,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
           <div>
             <button
               type="button"
-              onClick={() => setShowAbsence((v) => !v)}
+              onClick={toggleAbsenceOpen}
               aria-expanded={showAbsence}
               className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-200 py-1.5 -my-1"
             >

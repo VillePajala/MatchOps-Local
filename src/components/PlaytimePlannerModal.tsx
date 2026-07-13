@@ -165,6 +165,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Fairness strip fold state lives HERE so it survives tab/layout switches
   // (local state reset on every unmount re-expanded it constantly).
   const [stripCollapsed, setStripCollapsed] = useState(false);
+  // Availability fold-out open/closed - lifted so "mark the same kids absent
+  // across the morning games" survives ribbon taps (the field remounts per
+  // game via key={editingGame.id}).
+  const [absenceOpen, setAbsenceOpen] = useState(false);
   const ribbonRef = useRef<HTMLElement | null>(null);
   // Plan tab: collapsed replace-a-player section (the one roster edit that
   // checkboxes can't express - it hands spots and subs over).
@@ -758,21 +762,30 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // user stays in the manager) instead of opening. When the source is the
   // still-loaded plan, its pending edits are flushed and used so the copy
   // matches what the user last saw.
+  const [isDuplicating, setIsDuplicating] = useState(false);
   const handleDuplicate = useCallback(
     async (target: PlaytimePlan) => {
-      const isActive = activePlan?.id === target.id;
-      if (isActive) await flushSave();
-      const source = isActive && activePlan ? activePlan : target;
-      const suffix = ` ${t('playtimePlanner.versions.copySuffix', '(copy)')}`;
-      // A copy always starts active, even when duplicated off an archived plan.
-      const saved = await savePlan({ ...duplicatePlan(source, suffix), archived: false });
-      if (!saved) {
-        showToast(t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'), 'error');
-        return;
+      // Re-entry guard: a double-tap on the menu item before it unmounts used
+      // to create two "(copy)" plans (same class of bug as isCreating).
+      if (isDuplicating) return;
+      setIsDuplicating(true);
+      try {
+        const isActive = activePlan?.id === target.id;
+        if (isActive) await flushSave();
+        const source = isActive && activePlan ? activePlan : target;
+        const suffix = ` ${t('playtimePlanner.versions.copySuffix', '(copy)')}`;
+        // A copy always starts active, even when duplicated off an archived plan.
+        const saved = await savePlan({ ...duplicatePlan(source, suffix), archived: false });
+        if (!saved) {
+          showToast(t('playtimePlanner.saveError', 'Could not save the plan. Your latest changes may not persist.'), 'error');
+          return;
+        }
+        await refreshPlanList();
+      } finally {
+        setIsDuplicating(false);
       }
-      await refreshPlanList();
     },
-    [activePlan, flushSave, refreshPlanList, showToast, t],
+    [activePlan, isDuplicating, flushSave, refreshPlanList, showToast, t],
   );
 
   // Archive/unarchive from the manager. If the target is the still-loaded plan,
@@ -2076,6 +2089,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               highlightPlayerIds={highlightPlayerIds}
               onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
               onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
+              absenceOpen={absenceOpen}
+              onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
             />
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor

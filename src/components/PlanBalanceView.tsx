@@ -116,7 +116,10 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
     const zeroByPlayer = new Map<string, number[]>();
     plan.games.forEach((g, i) => {
       if (!g.included) return;
+      // A marked absence is a decision, not a mistake - no alarm for it.
+      const absent = new Set(g.absentIds ?? []);
       for (const p of minutes.players) {
+        if (absent.has(p.playerId)) continue;
         if ((p.perGameSeconds[i] ?? 0) === 0) {
           const arr = zeroByPlayer.get(p.playerId) ?? [];
           arr.push(i);
@@ -275,8 +278,10 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
           const c = fairnessChipColors(p.ratio);
           const pct = p.ratio !== null ? Math.round(p.ratio * 100) : null;
           const barW = p.ratio !== null ? Math.min(100, Math.round(p.ratio * FAIR_SHARE_BAR_PCT)) : 0;
-          const deltaMin =
-            minutes.fairShareSeconds !== null ? toMin(p.totalSeconds - minutes.fairShareSeconds) : null;
+          // Per-player deviation from the ENGINE: with absences each player has
+          // their own attending share, and the plan-wide average would
+          // contradict the % / bar / chip (all ratio-based) on the same card.
+          const deltaMin = p.ratio !== null ? toMin(p.deviationSeconds) : null;
           const deltaStr =
             deltaMin === null
               ? ''

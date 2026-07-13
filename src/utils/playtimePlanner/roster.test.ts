@@ -109,3 +109,27 @@ describe('removePlayerFromPlan', () => {
     expect(removePlayerFromPlan(p, 'nobody')).toBe(p);
   });
 });
+
+describe('absentIds hygiene on roster edits', () => {
+  const base = {
+    id: 'p', name: 'Plan', version: 1, createdAt: 'x', updatedAt: 'x',
+    players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+    games: [{
+      id: 'g1', label: 'G1', formationId: '5v5-2-2', numberOfPeriods: 2,
+      periodMinutes: 12, included: true, startingSlots: [], subs: [],
+      absentIds: ['p1'],
+    }],
+  } as never;
+
+  it('removePlayerFromPlan prunes the id from absentIds (no phantom count, no silent re-absence)', async () => {
+    const { removePlayerFromPlan } = await import('./roster');
+    const out = removePlayerFromPlan(base, 'p1');
+    expect(out.games[0].absentIds).toEqual([]);
+  });
+
+  it('replacePlayerInPlan drops the leaver from absentIds WITHOUT transferring absence', async () => {
+    const { replacePlayerInPlan } = await import('./roster');
+    const out = replacePlayerInPlan(base, 'p1', { id: 'p9', name: 'New' });
+    expect(out.games[0].absentIds).toEqual([]);
+  });
+});

@@ -397,3 +397,18 @@ describe('computePlanMinutes with per-game absences', () => {
     expect(a.ratio).toBeCloseTo((24 * MIN) / (16 * MIN), 10);
   });
 });
+
+describe('all-absent games and the plan-wide share', () => {
+  it('a game nobody attends does not inflate fairShareSeconds', () => {
+    const attended: PlannedGame = {
+      id: 'g1', totalSeconds: 20 * MIN,
+      slots: [{ slotId: 's0', startPlayerId: 'a' }], subs: [], included: true,
+    };
+    const ghost: PlannedGame = { ...attended, id: 'g2', absentIds: ['a', 'b'] };
+    const plan: PlannedPlan = { games: [attended, ghost], playerIds: ['a', 'b'] };
+    const m = computePlanMinutes(plan);
+    // Only the attended game's 20 player-min / 2 players = 10 min share.
+    expect(m.fairShareSeconds).toBe(10 * MIN);
+    expect(m.includedGameCount).toBe(1);
+  });
+});

@@ -62,6 +62,12 @@ export function replacePlayerInPlan(
         s.playerId === oldId ? { ...s, playerId: replacement.id } : s,
       ),
       subs: g.subs.map((s) => (s.inPlayerId === oldId ? { ...s, inPlayerId: replacement.id } : s)),
+      // Absence is about the PERSON, so it does not transfer to the
+      // replacement - but the leaver's id must not linger (a stale id shows a
+      // phantom red count and silently re-absents them if they ever rejoin).
+      ...(g.absentIds?.includes(oldId)
+        ? { absentIds: g.absentIds.filter((id) => id !== oldId) }
+        : {}),
     })),
   };
 }
@@ -82,6 +88,9 @@ export function removePlayerFromPlan(plan: PlaytimePlan, playerId: string): Play
         s.playerId === playerId ? { ...s, playerId: null } : s,
       ),
       subs: g.subs.filter((s) => s.inPlayerId !== playerId),
+      ...(g.absentIds?.includes(playerId)
+        ? { absentIds: g.absentIds.filter((id) => id !== playerId) }
+        : {}),
     })),
   };
 }

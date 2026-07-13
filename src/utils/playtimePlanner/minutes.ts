@@ -189,6 +189,11 @@ export function computePlanMinutes(plan: PlannedPlan): PlanMinutes {
   let includedGameCount = 0;
   plan.games.forEach((g) => {
     if (!g.included) return;
+    // A game NOBODY attends grants no minutes to anyone - counting its
+    // capacity would inflate the plan-wide share (the balance header) with
+    // time that cannot be earned.
+    const absent = new Set(g.absentIds ?? []);
+    if (plan.playerIds.length > 0 && plan.playerIds.every((id) => absent.has(id))) return;
     includedGameCount += 1;
     const slotCount = uniqueSlotIds(g).size;
     totalAvailableSeconds += Math.max(0, g.totalSeconds) * slotCount;

@@ -3172,7 +3172,6 @@
       "gameLabel": "Peli {{n}}",
       "formatSummary": "{{games}} peliä · {{periods}}×{{minutes}} min",
       "gamesHeading": "Pelit",
-      "newPlan": "Uusi",
       "deletePlan": "Poista",
       "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
       "placedCount": "{{placed}}/{{total}} paikoillaan",
@@ -3212,7 +3211,6 @@
       "slotEmpty": "{{position}}: tyhjä",
       "clearSlot": "Tyhjennä",
       "benchEmpty": "Kaikki ovat kentällä.",
-      "benchHeading": "Vaihtopenkki",
       "autoFill": "Täytä automaattisesti",
       "gameTabs": "Vaihda peliä",
       "fairnessStrip": "Peliaikakertymä",
@@ -3224,7 +3222,8 @@
       "viewSingle": "Yksi peli",
       "viewGrid": "Rinnakkain",
       "noPlayers": "Suunnitelmassa ei ole pelaajia - lisää heidät Suunnitelma-välilehdellä.",
-      "absentHeading": "Poissa tästä pelistä"
+      "absentHeading": "Poissa tästä pelistä",
+      "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa."
     },
     "subs": {
       "heading": "Vaihdot",
