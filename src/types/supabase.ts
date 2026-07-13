@@ -344,6 +344,78 @@ export type Database = {
           },
         ]
       }
+      playtime_game_subs: {
+        Row: {
+          game_id: string
+          subs: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          subs?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          subs?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playtime_plan_links: {
+        Row: {
+          game_id: string
+          plan_game_id: string
+          plan_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          plan_game_id: string
+          plan_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          plan_game_id?: string
+          plan_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playtime_plans: {
+        Row: {
+          archived: boolean
+          data: Json
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          data: Json
+          id: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          data?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personnel: {
         Row: {
           certifications: string[] | null

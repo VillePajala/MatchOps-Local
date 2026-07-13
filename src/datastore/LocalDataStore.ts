@@ -21,6 +21,12 @@ import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
+import * as playtimePlanStorage from '@/utils/playtimePlanner/storage';
+import * as playtimePlanLinks from '@/utils/playtimePlanner/planLinks';
+import * as playtimeGameSubs from '@/utils/playtimePlanner/gameSubs';
+import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import {
   AlreadyExistsError,
   NotInitializedError,
@@ -2533,6 +2539,52 @@ export class LocalDataStore implements DataStore {
    * Check if a team can be safely deleted (no game references).
    * Team rosters CASCADE delete and don't block deletion.
    */
+  // ==========================================================================
+  // PLAYING-TIME PLANNER
+  // Delegates to the planner's key-locked IndexedDB modules - the same code
+  // the feature used before it was routed through the DataStore.
+  // ==========================================================================
+
+  async getPlaytimePlans(): Promise<PlaytimePlanCollection> {
+    return playtimePlanStorage.getPlans();
+  }
+
+  async savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null> {
+    return playtimePlanStorage.savePlan(plan);
+  }
+
+  async deletePlaytimePlan(id: string): Promise<boolean> {
+    return playtimePlanStorage.deletePlan(id);
+  }
+
+  async getPlaytimePlanLinks(): Promise<PlanLinksCollection> {
+    return playtimePlanLinks.getAllPlanLinks();
+  }
+
+  async setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean> {
+    return playtimePlanLinks.setPlanLink(gameId, link);
+  }
+
+  async deletePlaytimePlanLink(gameId: string): Promise<boolean> {
+    return playtimePlanLinks.deletePlanLink(gameId);
+  }
+
+  async deletePlaytimePlanLinksForPlan(planId: string): Promise<boolean> {
+    return playtimePlanLinks.deletePlanLinksForPlan(planId);
+  }
+
+  async getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]> {
+    return playtimeGameSubs.getGameSubs(gameId);
+  }
+
+  async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {
+    return playtimeGameSubs.setGameSubs(gameId, subs);
+  }
+
+  async deletePlaytimeGameSubs(gameId: string): Promise<boolean> {
+    return playtimeGameSubs.deleteGameSubs(gameId);
+  }
+
   async getTeamReferences(teamId: string): Promise<EntityReferences> {
     this.ensureInitialized();
 

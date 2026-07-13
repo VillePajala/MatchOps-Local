@@ -221,6 +221,16 @@ function createMockDataStore(): DataStore {
     getSeasonReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
     getTournamentReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
     getTeamReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
+    getPlaytimePlans: jest.fn().mockResolvedValue({}),
+    savePlaytimePlan: jest.fn(async (p: never) => p),
+    deletePlaytimePlan: jest.fn().mockResolvedValue(true),
+    getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
+    setPlaytimePlanLink: jest.fn().mockResolvedValue(true),
+    deletePlaytimePlanLink: jest.fn().mockResolvedValue(true),
+    deletePlaytimePlanLinksForPlan: jest.fn().mockResolvedValue(true),
+    getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+    setPlaytimeGameSubs: jest.fn().mockResolvedValue(true),
+    deletePlaytimeGameSubs: jest.fn().mockResolvedValue(true),
   };
 }
 
