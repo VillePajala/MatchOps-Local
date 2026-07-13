@@ -165,33 +165,48 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Fairness strip fold state lives HERE so it survives tab/layout switches
   // (local state reset on every unmount re-expanded it constantly).
   const [stripCollapsed, setStripCollapsed] = useState(false);
-  // Mobile-toolbar pattern for the tab strip: collapse while scrolling DOWN
-  // (working - content gets the full height), reappear on the first upward
-  // scroll (intent to navigate). Content area is critical in the planner.
-  const [tabsHidden, setTabsHidden] = useState(false);
+  // FINGER-TRACKING tab strip: its visible height follows the scroll delta
+  // pixel-for-pixel (clamped 0..full height), so hiding and revealing happen
+  // exactly at the user's scrolling pace - no threshold, no timed snap that
+  // nudges the content. DOM styles are written directly (no re-render per
+  // scroll event); React only re-renders content, never this chrome.
+  const tabsOuterRef = useRef<HTMLDivElement | null>(null);
+  const tabsInnerRef = useRef<HTMLDivElement | null>(null);
+  const tabsOffsetRef = useRef(0);
   const lastScrollTopRef = useRef(0);
-  // ACCUMULATED distance per direction (browser-toolbar behavior): slow
-  // scrolling emits many tiny events, so a per-event delta gate never fires -
-  // the accumulator makes speed irrelevant. Direction flip resets it.
-  const scrollAccRef = useRef(0);
-  const handleContentScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const y = e.currentTarget.scrollTop;
-    const delta = y - lastScrollTopRef.current;
-    lastScrollTopRef.current = y;
-    if (delta === 0) return;
-    scrollAccRef.current =
-      Math.sign(delta) === Math.sign(scrollAccRef.current) ? scrollAccRef.current + delta : delta;
-    // ~12px of downward travel hides (past the strip's own height so the top
-    // of the content is never covered); any ~8px upward travel - or reaching
-    // the top - reveals.
-    if (scrollAccRef.current > 12 && y > 56) setTabsHidden(true);
-    else if (scrollAccRef.current < -8 || y <= 0) setTabsHidden(false);
+  const applyTabsOffset = useCallback((offset: number) => {
+    const outer = tabsOuterRef.current;
+    const inner = tabsInnerRef.current;
+    if (!outer || !inner) return;
+    const h = inner.offsetHeight;
+    const clamped = Math.max(0, Math.min(h, offset));
+    tabsOffsetRef.current = clamped;
+    outer.style.height = `${h - clamped}px`;
+    inner.style.transform = `translateY(-${clamped}px)`;
+    inner.setAttribute('aria-hidden', clamped >= h && h > 0 ? 'true' : 'false');
   }, []);
+  const handleContentScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const y = e.currentTarget.scrollTop;
+      const delta = y - lastScrollTopRef.current;
+      lastScrollTopRef.current = y;
+      if (delta === 0) return;
+      // At (or rubber-banding past) the top the strip is always fully shown.
+      applyTabsOffset(y <= 0 ? 0 : tabsOffsetRef.current + delta);
+    },
+    [applyTabsOffset],
+  );
   // Switching tabs (or leaving the plan) always reveals the strip again.
   useEffect(() => {
-    setTabsHidden(false);
     lastScrollTopRef.current = 0;
-    scrollAccRef.current = 0;
+    tabsOffsetRef.current = 0;
+    const outer = tabsOuterRef.current;
+    const inner = tabsInnerRef.current;
+    if (outer && inner) {
+      outer.style.height = '';
+      inner.style.transform = '';
+      inner.setAttribute('aria-hidden', 'false');
+    }
   }, [view]);
   // Availability fold-out open/closed - lifted so "mark the same kids absent
   // across the morning games" survives ribbon taps (the field remounts per
@@ -1392,11 +1407,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           styling from GameStats): the working surface, the fairness read, and
           the plan's data. No hub page, no Back-stepping between them. */}
       {activePlan && isPlanTab(view) && (
+        <div ref={tabsOuterRef} className="flex-shrink-0 overflow-hidden">
         <div
-          className={`px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0 overflow-hidden transition-all duration-200 ${
-            tabsHidden ? 'max-h-0 py-0 opacity-0 border-b-0' : 'max-h-20 py-3 border-b border-slate-700/20'
-          }`}
-          aria-hidden={tabsHidden}
+          ref={tabsInnerRef}
+          className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20"
         >
           <div
             className="flex w-full gap-2"
@@ -1436,6 +1450,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </button>
             ))}
           </div>
+        </div>
         </div>
       )}
 
