@@ -28,6 +28,9 @@ import type {
 import type { AppState } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
+import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
+import type { PlanLink } from '@/utils/playtimePlanner/planLinks';
+import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import type { AppSettings } from '@/types/settings';
 import { SyncError, SyncErrorCode } from './types';
 import {
@@ -323,6 +326,18 @@ async function executeSyncOperation(
       await syncWarmupPlan(cloudStore, operation, data);
       break;
 
+    case 'playtimePlan':
+      await syncPlaytimePlan(cloudStore, operation, entityId, data);
+      break;
+
+    case 'playtimePlanLink':
+      await syncPlaytimePlanLink(cloudStore, operation, entityId, data);
+      break;
+
+    case 'playtimeGameSubs':
+      await syncPlaytimeGameSubs(cloudStore, operation, entityId, data);
+      break;
+
     default: {
       // TypeScript exhaustiveness check
       const _exhaustive: never = entityType;
@@ -508,6 +523,55 @@ async function syncWarmupPlan(
   }
 }
 
+async function syncPlaytimePlan(
+  store: DataStore,
+  operation: SyncOperation['operation'],
+  entityId: string,
+  data: unknown
+): Promise<void> {
+  if (operation === 'delete') {
+    await store.deletePlaytimePlan(entityId);
+  } else {
+    validateObjectData(data, 'playtimePlan', operation, entityId);
+    await store.savePlaytimePlan(data as PlaytimePlan);
+  }
+}
+
+async function syncPlaytimePlanLink(
+  store: DataStore,
+  operation: SyncOperation['operation'],
+  entityId: string,
+  data: unknown
+): Promise<void> {
+  if (operation === 'delete') {
+    // Delete-for-plan carries the plan id in the payload (SyncedDataStore
+    // enqueues it with a namespaced entityId); a plain delete targets one game.
+    const planId = (data as { planId?: string } | null)?.planId;
+    if (planId) {
+      await store.deletePlaytimePlanLinksForPlan(planId);
+    } else {
+      await store.deletePlaytimePlanLink(entityId);
+    }
+  } else {
+    validateObjectData(data, 'playtimePlanLink', operation, entityId);
+    await store.setPlaytimePlanLink(entityId, data as PlanLink);
+  }
+}
+
+async function syncPlaytimeGameSubs(
+  store: DataStore,
+  operation: SyncOperation['operation'],
+  entityId: string,
+  data: unknown
+): Promise<void> {
+  if (operation === 'delete') {
+    await store.deletePlaytimeGameSubs(entityId);
+  } else {
+    validateArrayData(data, 'playtimeGameSubs', operation, entityId);
+    await store.setPlaytimeGameSubs(entityId, data as PlannedGameSub[]);
+  }
+}
+
 // =============================================================================
 // Conflict Resolution Helpers
 // =============================================================================
@@ -658,6 +722,28 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
           };
         }
 
+        case 'playtimePlan': {
+          const plans = await cloudStore.getPlaytimePlans();
+          const plan = plans[entityId];
+          if (!plan) return null;
+          return { ...plan, id: plan.id, updatedAt: plan.updatedAt };
+        }
+
+        case 'playtimePlanLink': {
+          // Links carry no client-side timestamp - treat cloud as oldest so a
+          // queued local write always wins (pure upserts can't conflict anyway).
+          const links = await cloudStore.getPlaytimePlanLinks();
+          const link = links[entityId];
+          if (!link) return null;
+          return { ...link, id: entityId, updatedAt: EPOCH_TIMESTAMP };
+        }
+
+        case 'playtimeGameSubs': {
+          const subs = await cloudStore.getPlaytimeGameSubs(entityId);
+          if (subs.length === 0) return null;
+          return { id: entityId, subs, updatedAt: EPOCH_TIMESTAMP };
+        }
+
         default: {
           const _exhaustive: never = entityType;
           throw new Error(`Unknown entity type for cloud fetch: ${_exhaustive}`);
@@ -729,6 +815,21 @@ function createCloudWriter(cloudStore: DataStore): CloudRecordWriter {
       case 'warmupPlan':
         validateObjectData(data, 'warmupPlan', 'upsert');
         await cloudStore.saveWarmupPlan(data as WarmupPlan);
+        break;
+
+      case 'playtimePlan':
+        validateObjectData(data, 'playtimePlan', 'upsert', entityId);
+        await cloudStore.savePlaytimePlan(data as PlaytimePlan);
+        break;
+
+      case 'playtimePlanLink':
+        validateObjectData(data, 'playtimePlanLink', 'upsert', entityId);
+        await cloudStore.setPlaytimePlanLink(entityId, data as PlanLink);
+        break;
+
+      case 'playtimeGameSubs':
+        validateArrayData(data, 'playtimeGameSubs', 'upsert', entityId);
+        await cloudStore.setPlaytimeGameSubs(entityId, data as PlannedGameSub[]);
         break;
 
       default: {
@@ -805,6 +906,18 @@ function createCloudDeleter(cloudStore: DataStore): CloudRecordDeleter {
         await cloudStore.deleteWarmupPlan();
         break;
 
+      case 'playtimePlan':
+        await cloudStore.deletePlaytimePlan(entityId);
+        break;
+
+      case 'playtimePlanLink':
+        await cloudStore.deletePlaytimePlanLink(entityId);
+        break;
+
+      case 'playtimeGameSubs':
+        await cloudStore.deletePlaytimeGameSubs(entityId);
+        break;
+
       default: {
         const _exhaustive: never = entityType;
         throw new Error(`Unknown entity type for cloud delete: ${_exhaustive}`);
@@ -876,6 +989,21 @@ function createLocalWriter(localStore: DataStore): LocalRecordWriter {
       case 'warmupPlan':
         validateObjectData(data, 'warmupPlan', 'upsert');
         await localStore.saveWarmupPlan(data as WarmupPlan);
+        break;
+
+      case 'playtimePlan':
+        validateObjectData(data, 'playtimePlan', 'upsert', entityId);
+        await localStore.savePlaytimePlan(data as PlaytimePlan);
+        break;
+
+      case 'playtimePlanLink':
+        validateObjectData(data, 'playtimePlanLink', 'upsert', entityId);
+        await localStore.setPlaytimePlanLink(entityId, data as PlanLink);
+        break;
+
+      case 'playtimeGameSubs':
+        validateArrayData(data, 'playtimeGameSubs', 'upsert', entityId);
+        await localStore.setPlaytimeGameSubs(entityId, data as PlannedGameSub[]);
         break;
 
       default: {
