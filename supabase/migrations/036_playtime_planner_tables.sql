@@ -60,14 +60,21 @@ ALTER TABLE playtime_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE playtime_plan_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE playtime_game_subs ENABLE ROW LEVEL SECURITY;
 
+-- (select auth.uid()) — the migration-016 initplan form: evaluated once per
+-- statement instead of per row (Supabase advisor: auth_rls_initplan).
+-- DROP-first keeps the migration re-runnable, matching every policy-touching
+-- migration since 009.
+DROP POLICY IF EXISTS "Users can only access their own playtime plans" ON playtime_plans;
 CREATE POLICY "Users can only access their own playtime plans"
   ON playtime_plans FOR ALL
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
+DROP POLICY IF EXISTS "Users can only access their own playtime plan links" ON playtime_plan_links;
 CREATE POLICY "Users can only access their own playtime plan links"
   ON playtime_plan_links FOR ALL
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
+DROP POLICY IF EXISTS "Users can only access their own playtime game subs" ON playtime_game_subs;
 CREATE POLICY "Users can only access their own playtime game subs"
   ON playtime_game_subs FOR ALL
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);

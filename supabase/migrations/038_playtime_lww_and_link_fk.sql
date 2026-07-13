@@ -33,7 +33,7 @@ SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_user_id uuid;
-  v_applied boolean;
+  v_count integer;
 BEGIN
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
@@ -49,8 +49,8 @@ BEGIN
         updated_at = EXCLUDED.updated_at
     WHERE playtime_plans.updated_at <= EXCLUDED.updated_at;
 
-  GET DIAGNOSTICS v_applied = ROW_COUNT;
-  RETURN v_applied;
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count > 0;
 END;
 $$;
 
@@ -59,6 +59,18 @@ GRANT EXECUTE ON FUNCTION save_playtime_plan TO authenticated;
 
 -- Server-side cascade: deleting a plan deletes its link rows even when the
 -- client's companion delete op was lost.
+--
+-- ADD CONSTRAINT validates EXISTING rows, so orphans (the exact failure mode
+-- this FK prevents) would abort the whole apply - clean them up first. The
+-- DROP-first guard keeps the migration re-runnable (house pattern, 017/028).
+DELETE FROM playtime_plan_links l
+WHERE NOT EXISTS (
+  SELECT 1 FROM playtime_plans p
+  WHERE p.user_id = l.user_id AND p.id = l.plan_id
+);
+
+ALTER TABLE playtime_plan_links
+  DROP CONSTRAINT IF EXISTS playtime_plan_links_plan_fk;
 ALTER TABLE playtime_plan_links
   ADD CONSTRAINT playtime_plan_links_plan_fk
   FOREIGN KEY (user_id, plan_id)
