@@ -1,18 +1,13 @@
 /**
- * Playing-Time Planner — local persistence (Phase 1, PR 1.2).
+ * Playing-Time Planner — plan persistence facade (cloud sync PR 3).
  *
- * Plans are stored as a single local blob (a map of id -> plan) under
- * `PLAYTIME_PLANS_KEY`, using the low-level `getStorageJSON`/`setStorageJSON`
- * helpers directly. This is intentional: plans are **local-first** and are not
- * routed through the DataStore/cloud sync layer (that is deferred to Phase 2).
- * IndexedDB is the same storage the rest of the app uses, so plans persist and
- * survive reloads without any cloud dependency.
+ * The CRUD here is a thin shim over the mode-aware DataStore: local mode hits
+ * the key-locked IndexedDB store (localPlanStore.ts via LocalDataStore), cloud
+ * mode hits Supabase (one row per plan). The pure helpers (create/duplicate/
+ * serialize/parse) are mode-agnostic and live here unchanged.
  */
 
-import { getStorageJSON, setStorageJSON } from '@/utils/storage';
-import { withKeyLock } from '@/utils/storageKeyLock';
-import { PLAYTIME_PLANS_KEY } from '@/config/storageKeys';
-import logger from '@/utils/logger';
+import { getDataStore } from '@/datastore/factory';
 import {
   PLAYTIME_PLAN_SCHEMA_VERSION,
   isPlaytimePlan,
@@ -26,28 +21,9 @@ import {
 const generateId = (prefix: string): string =>
   `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-/**
- * Read the full plan collection from storage. Validates **per entry** and keeps
- * the valid plans, dropping only a malformed/incompatible one - so a single bad
- * entry can never wipe out every other plan in the collection.
- */
-export const getPlans = async (): Promise<PlaytimePlanCollection> => {
-  try {
-    const raw = await getStorageJSON<Record<string, unknown>>(PLAYTIME_PLANS_KEY, {
-      defaultValue: {},
-    });
-    if (!raw || typeof raw !== 'object') return {};
-    const valid: PlaytimePlanCollection = {};
-    for (const [id, plan] of Object.entries(raw)) {
-      if (isPlaytimePlan(plan)) valid[id] = plan;
-      else logger.warn(`[playtimePlanner] Dropping invalid stored plan "${id}"`);
-    }
-    return valid;
-  } catch (error) {
-    logger.error('[playtimePlanner] Failed to read plans:', error);
-    return {};
-  }
-};
+/** Full plan collection (id -> plan) from the active backend. */
+export const getPlans = async (): Promise<PlaytimePlanCollection> =>
+  (await getDataStore()).getPlaytimePlans();
 
 /** Read a single plan by id (null if missing). */
 export const getPlan = async (id: string): Promise<PlaytimePlan | null> => {
@@ -56,45 +32,15 @@ export const getPlan = async (id: string): Promise<PlaytimePlan | null> => {
 };
 
 /**
- * Upsert a plan. Stamps `updatedAt` and the current schema version, then writes
- * the whole collection back. Returns the saved plan, or null on failure.
+ * Upsert a plan (the backend stamps `updatedAt` + schema version). Returns the
+ * saved plan, or null on failure.
  */
-export const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null> => {
-  try {
-    // Serialize the read-modify-write so concurrent autosaves (e.g. fast typing)
-    // can't clobber each other or drop a sibling plan from the collection.
-    return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
-      const plans = await getPlans();
-      const stamped: PlaytimePlan = {
-        ...plan,
-        version: PLAYTIME_PLAN_SCHEMA_VERSION,
-        updatedAt: new Date().toISOString(),
-      };
-      plans[plan.id] = stamped;
-      await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
-      return stamped;
-    });
-  } catch (error) {
-    logger.error('[playtimePlanner] Failed to save plan:', error);
-    return null;
-  }
-};
+export const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null> =>
+  (await getDataStore()).savePlaytimePlan(plan);
 
-/** Delete a plan by id. Returns true if the write succeeded. */
-export const deletePlan = async (id: string): Promise<boolean> => {
-  try {
-    return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
-      const plans = await getPlans();
-      if (!(id in plans)) return true;
-      delete plans[id];
-      await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
-      return true;
-    });
-  } catch (error) {
-    logger.error('[playtimePlanner] Failed to delete plan:', error);
-    return false;
-  }
-};
+/** Delete a plan by id. Returns true if the delete succeeded. */
+export const deletePlan = async (id: string): Promise<boolean> =>
+  (await getDataStore()).deletePlaytimePlan(id);
 
 /** Options for building a fresh plan. */
 export interface CreatePlanOptions {

@@ -185,7 +185,7 @@ describe('SupabaseDataStore — playtime planner', () => {
   });
 
   it('setPlaytimeGameSubs upserts per real game with the composite conflict target', async () => {
-    const subs = [{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 720 }];
+    const subs = [{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', outPlayerId: null, timeSeconds: 720 }];
     await expect(dataStore.setPlaytimeGameSubs('game_1', subs)).resolves.toBe(true);
 
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('playtime_game_subs');
@@ -200,11 +200,11 @@ describe('SupabaseDataStore — playtime planner', () => {
     await expect(dataStore.getPlaytimeGameSubs('game_1')).resolves.toEqual([]);
 
     mockQueryBuilder.maybeSingle.mockResolvedValueOnce({
-      data: { subs: [{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 720 }] },
+      data: { subs: [{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', outPlayerId: null, timeSeconds: 720 }] },
       error: null,
     });
     await expect(dataStore.getPlaytimeGameSubs('game_1')).resolves.toEqual([
-      { id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 720 },
+      { id: 'x1', slotId: 'gk', inPlayerId: 'p2', outPlayerId: null, timeSeconds: 720 },
     ]);
   });
 
