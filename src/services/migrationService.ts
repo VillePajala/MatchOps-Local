@@ -16,6 +16,9 @@
 
 import { LocalDataStore } from '@/datastore/LocalDataStore';
 import { SupabaseDataStore } from '@/datastore/SupabaseDataStore';
+import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import { getAuthService } from '@/datastore/factory';
 import { getSupabaseClient } from '@/datastore/supabase/client';
 import type { AuthService } from '@/interfaces/AuthService';
@@ -168,6 +171,9 @@ interface LocalDataSnapshot {
   playerAdjustments: Map<string, PlayerStatAdjustment[]>; // playerId -> adjustments
   warmupPlan: WarmupPlan | null;
   settings: AppSettings | null;
+  playtimePlans: PlaytimePlanCollection;
+  playtimePlanLinks: PlanLinksCollection;
+  playtimeGameSubs: GameSubsCollection;
 }
 
 /**
@@ -190,7 +196,7 @@ interface SkippedGame {
  */
 export interface EntityUploadFailure {
   /** Type of entity that failed */
-  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings';
+  entityType: 'player' | 'team' | 'teamRoster' | 'season' | 'tournament' | 'personnel' | 'game' | 'adjustment' | 'warmupPlan' | 'settings' | 'playtimePlan';
   /** ID of the entity (if available) */
   entityId?: string;
   /** Display name for the entity (for user-friendly error messages) */
@@ -792,6 +798,17 @@ async function exportAllLocalData(
   exportProgress(10, 'settings');
   const settings = await localStore.getSettings();
 
+  // Playtime planner stores (plans + real-game links + planned subs). Subs are
+  // read per link key - planned subs exist only for plan-created games.
+  exportProgress(11, 'playtime plans');
+  const playtimePlans = await localStore.getPlaytimePlans();
+  const playtimePlanLinks = await localStore.getPlaytimePlanLinks();
+  const playtimeGameSubs: GameSubsCollection = {};
+  for (const gameId of Object.keys(playtimePlanLinks)) {
+    const subs = await localStore.getPlaytimeGameSubs(gameId);
+    if (subs.length > 0) playtimeGameSubs[gameId] = subs;
+  }
+
   return {
     players,
     teams,
@@ -803,6 +820,9 @@ async function exportAllLocalData(
     playerAdjustments,
     warmupPlan,
     settings,
+    playtimePlans,
+    playtimePlanLinks,
+    playtimeGameSubs,
   };
 }
 
@@ -1464,6 +1484,34 @@ async function uploadToCloud(
         error: err instanceof Error ? err.message : 'Unknown error',
       });
       logger.error('[MigrationService] Failed to upload warmup plan:', err);
+    }
+  }
+
+  // 9.5 Playtime planner stores. The plan is an opaque blob (savePlaytimePlan
+  // preserves its edit-time updatedAt); links + planned subs ride per game.
+  updateProgress('playtime plans');
+  for (const plan of Object.values(data.playtimePlans)) {
+    try {
+      await cloudStore.savePlaytimePlan(plan);
+    } catch (err) {
+      failures.push({
+        entityType: 'playtimePlan',
+        entityId: plan.id,
+        entityName: `Plan "${plan.name}"`,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      logger.error(`[MigrationService] Failed to upload playtime plan ${plan.id}:`, err);
+    }
+  }
+  for (const [gameId, link] of Object.entries(data.playtimePlanLinks)) {
+    try {
+      await cloudStore.setPlaytimePlanLink(gameId, link);
+      const subs = data.playtimeGameSubs[gameId];
+      if (subs && subs.length > 0) {
+        await cloudStore.setPlaytimeGameSubs(gameId, subs);
+      }
+    } catch (err) {
+      logger.error(`[MigrationService] Failed to upload playtime link/subs for ${gameId}:`, err);
     }
   }
 

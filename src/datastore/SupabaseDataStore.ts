@@ -4649,11 +4649,15 @@ export class SupabaseDataStore implements DataStore {
     this.ensureInitialized();
     checkOnline();
     const userId = await this.getUserId();
-    // Stamp exactly like the local store so both backends agree on the shape.
+    // PRESERVE the plan's own updatedAt: it was stamped by the local store at
+    // EDIT time, and per-plan last-write-wins compares that stamp. Re-stamping
+    // at push time would let a late offline push masquerade as the newest edit
+    // and beat a genuinely newer change from another device. Stamp only when a
+    // caller hands us an unstamped plan (defensive - the type requires one).
     const stamped: PlaytimePlan = {
       ...plan,
-      version: PLAYTIME_PLAN_SCHEMA_VERSION,
-      updatedAt: new Date().toISOString(),
+      version: plan.version || PLAYTIME_PLAN_SCHEMA_VERSION,
+      updatedAt: plan.updatedAt || new Date().toISOString(),
     };
     const { error } = await this.withRetry(async () => {
       const result = await this.getClient()

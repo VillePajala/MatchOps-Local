@@ -228,3 +228,29 @@ describe('buildPrefillFromPlan', () => {
     expect(res.plannedSubs[0].outPlayerId).toBeNull();
   });
 });
+
+describe('prefill with per-game absences', () => {
+  it('excludes absent players from selectedPlayerIds (they are not coming)', async () => {
+    const { buildPrefillFromPlan } = await import('./prefill');
+    const plan = {
+      id: 'p', name: 'Plan', version: 1, createdAt: 'x', updatedAt: 'x',
+      players: [
+        { id: 'p1', name: 'Alex' },
+        { id: 'p2', name: 'Sam' },
+      ],
+      games: [{
+        id: 'g1', label: 'Game 1', formationId: '5v5-2-2',
+        numberOfPeriods: 2, periodMinutes: 12, included: true,
+        startingSlots: [{ slotId: 'gk', playerId: 'p1' }], subs: [],
+        absentIds: ['p2'],
+      }],
+    };
+    const roster = [
+      { id: 'p1', name: 'Alex' },
+      { id: 'p2', name: 'Sam' },
+    ];
+    const result = buildPrefillFromPlan(plan as never, plan.games[0] as never, roster as never);
+    expect(result.selectedPlayerIds).toContain('p1');
+    expect(result.selectedPlayerIds).not.toContain('p2');
+  });
+});
