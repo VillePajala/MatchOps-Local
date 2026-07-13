@@ -1086,6 +1086,16 @@ export type Database = {
     }
     Functions: {
       clear_all_user_data: { Args: never; Returns: undefined }
+      save_playtime_plan: {
+        Args: {
+          p_id: string
+          p_name: string
+          p_archived: boolean
+          p_data: Json
+          p_updated_at: string
+        }
+        Returns: boolean
+      }
       delete_personnel_cascade: {
         Args: { p_personnel_id: string }
         Returns: boolean

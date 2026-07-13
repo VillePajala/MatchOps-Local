@@ -229,6 +229,7 @@ function createMockDataStore(): DataStore {
     deletePlaytimePlanLink: jest.fn().mockResolvedValue(true),
     deletePlaytimePlanLinksForPlan: jest.fn().mockResolvedValue(true),
     getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+    getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
     setPlaytimeGameSubs: jest.fn().mockResolvedValue(true),
     deletePlaytimeGameSubs: jest.fn().mockResolvedValue(true),
   };
@@ -736,9 +737,11 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(JSON.stringify(backupData));
 
       expect(result?.success).toBe(true);
-      expect(mockStore[PLAYTIME_PLANS_KEY]).toEqual(plansData);
-      expect(mockStore[PLAYTIME_GAME_SUBS_KEY]).toEqual(gameSubsData);
-      expect(mockStore[PLAYTIME_PLAN_LINKS_KEY]).toEqual(planLinksData);
+      // Restore now routes through the DataStore so the write lands in the
+      // SAME (per-user) database as everything else being restored.
+      expect(mockDataStore.savePlaytimePlan).toHaveBeenCalledWith(plansData.plan_1);
+      expect(mockDataStore.setPlaytimeGameSubs).toHaveBeenCalledWith('game_1', gameSubsData.game_1);
+      expect(mockDataStore.setPlaytimePlanLink).toHaveBeenCalledWith('game_1', planLinksData.game_1);
     });
 
     it("remaps players for a LEGACY backup that stores games under the old 'savedGames' key (CR-M7)", async () => {
@@ -1508,8 +1511,10 @@ describe("generateFullBackupJson - planner stores", () => {
       plan_1: { id: "plan_1", name: "Cup plan", version: 1, createdAt: "x", updatedAt: "x", players: [], games: [] },
     };
     const planLinksData = { game_1: { planId: "plan_1", planGameId: "g1" } };
-    mockStore[PLAYTIME_PLANS_KEY] = plansData;
-    mockStore[PLAYTIME_PLAN_LINKS_KEY] = planLinksData;
+    // Export now reads through the DataStore (right database per user).
+    (mockDataStore.getPlaytimePlans as jest.Mock).mockResolvedValue(plansData);
+    (mockDataStore.getPlaytimePlanLinks as jest.Mock).mockResolvedValue(planLinksData);
+    (mockDataStore.getAllPlaytimeGameSubs as jest.Mock).mockResolvedValue({});
 
     const json = JSON.parse(await generateFullBackupJson());
 

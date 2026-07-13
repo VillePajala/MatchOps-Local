@@ -2,14 +2,16 @@
  * Playing-Time Planner — the LOCAL (IndexedDB) backend for plans, plan links
  * and planned game subs.
  *
- * This is the raw key-locked storage layer that used to live inside
- * storage.ts / planLinks.ts / gameSubs.ts. Those modules are now thin shims
- * over the mode-aware DataStore (cloud sync PR 3); THIS module is imported by
- * exactly one runtime consumer - LocalDataStore - which is what keeps the
- * import graph acyclic (shims -> factory -> LocalDataStore -> here).
+ * Cloud-sync review fix (plan doc §11 addendum): this store is a FACTORY over
+ * injected JSON IO so it always writes the SAME database as every other
+ * entity - the per-user database (matchops_user_{id}) for a signed-in
+ * session, the legacy MatchOpsLocal DB for anonymous local mode. The earlier
+ * module-global version wrote the legacy DB unconditionally, which leaked
+ * plans across accounts on a shared device and escaped clearAllUserData's
+ * per-user wipe. LocalDataStore is the only runtime consumer; the import
+ * graph stays acyclic (shims -> factory -> LocalDataStore -> here).
  */
 
-import { getStorageJSON, setStorageJSON } from '@/utils/storage';
 import { withKeyLock } from '@/utils/storageKeyLock';
 import {
   PLAYTIME_PLANS_KEY,
@@ -26,6 +28,31 @@ import {
 import type { PlanLink, PlanLinksCollection } from './planLinks';
 import type { PlannedGameSub, GameSubsCollection } from './gameSubs';
 
+/** JSON IO bound to a concrete storage adapter (per-user or legacy). */
+export interface PlanStoreIO {
+  getJSON<T>(key: string, defaultValue: T): Promise<T>;
+  setJSON(key: string, value: unknown): Promise<void>;
+}
+
+export interface LocalPlanStore {
+  getPlans(): Promise<PlaytimePlanCollection>;
+  savePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null>;
+  deletePlan(id: string): Promise<boolean>;
+  getAllPlanLinks(): Promise<PlanLinksCollection>;
+  getPlanLink(gameId: string): Promise<PlanLink | null>;
+  setPlanLink(gameId: string, link: PlanLink): Promise<boolean>;
+  deletePlanLink(gameId: string): Promise<boolean>;
+  deletePlanLinksForPlan(planId: string): Promise<boolean>;
+  getGameSubs(gameId: string): Promise<PlannedGameSub[]>;
+  getAllGameSubs(): Promise<GameSubsCollection>;
+  setGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean>;
+  deleteGameSubs(gameId: string): Promise<boolean>;
+  restorePlans(incoming: PlaytimePlanCollection): Promise<number>;
+  restorePlanLinks(incoming: PlanLinksCollection): Promise<number>;
+  restoreGameSubs(incoming: GameSubsCollection): Promise<number>;
+}
+
+export function createLocalPlanStore(io: PlanStoreIO): LocalPlanStore {
 // ── Plans ───────────────────────────────────────────────────────────────────
 
 /**
@@ -33,11 +60,9 @@ import type { PlannedGameSub, GameSubsCollection } from './gameSubs';
  * the valid plans, dropping only a malformed/incompatible one - so a single bad
  * entry can never wipe out every other plan in the collection.
  */
-export const getPlans = async (): Promise<PlaytimePlanCollection> => {
+const getPlans = async (): Promise<PlaytimePlanCollection> => {
   try {
-    const raw = await getStorageJSON<Record<string, unknown>>(PLAYTIME_PLANS_KEY, {
-      defaultValue: {},
-    });
+    const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_PLANS_KEY, {});
     if (!raw || typeof raw !== 'object') return {};
     const valid: PlaytimePlanCollection = {};
     for (const [id, plan] of Object.entries(raw)) {
@@ -55,7 +80,7 @@ export const getPlans = async (): Promise<PlaytimePlanCollection> => {
  * Upsert a plan. Stamps `updatedAt` and the current schema version, then writes
  * the whole collection back. Returns the saved plan, or null on failure.
  */
-export const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null> => {
+const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null> => {
   try {
     // Serialize the read-modify-write so concurrent autosaves (e.g. fast typing)
     // can't clobber each other or drop a sibling plan from the collection.
@@ -63,11 +88,13 @@ export const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null>
       const plans = await getPlans();
       const stamped: PlaytimePlan = {
         ...plan,
-        version: PLAYTIME_PLAN_SCHEMA_VERSION,
+        // Never DOWN-stamp: a blob written by a newer app keeps its version,
+        // so future migration gates on other devices still fire correctly.
+        version: Math.max(plan.version ?? 0, PLAYTIME_PLAN_SCHEMA_VERSION),
         updatedAt: new Date().toISOString(),
       };
       plans[plan.id] = stamped;
-      await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
+      await io.setJSON(PLAYTIME_PLANS_KEY, plans);
       return stamped;
     });
   } catch (error) {
@@ -77,13 +104,13 @@ export const savePlan = async (plan: PlaytimePlan): Promise<PlaytimePlan | null>
 };
 
 /** Delete a plan by id. Returns true if the write succeeded. */
-export const deletePlan = async (id: string): Promise<boolean> => {
+const deletePlan = async (id: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
       const plans = await getPlans();
       if (!(id in plans)) return true;
       delete plans[id];
-      await setStorageJSON(PLAYTIME_PLANS_KEY, plans);
+      await io.setJSON(PLAYTIME_PLANS_KEY, plans);
       return true;
     });
   } catch (error) {
@@ -106,9 +133,7 @@ const isPlanLink = (v: unknown): v is PlanLink =>
  */
 const readLinksCollection = async (): Promise<PlanLinksCollection> => {
   try {
-    const raw = await getStorageJSON<Record<string, unknown>>(PLAYTIME_PLAN_LINKS_KEY, {
-      defaultValue: {},
-    });
+    const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_PLAN_LINKS_KEY, {});
     if (!raw || typeof raw !== 'object') return {};
     const valid: PlanLinksCollection = {};
     for (const [gameId, link] of Object.entries(raw)) {
@@ -123,21 +148,21 @@ const readLinksCollection = async (): Promise<PlanLinksCollection> => {
 };
 
 /** All plan links (drives the planner's linked-game counts + bulk re-apply). */
-export const getAllPlanLinks = async (): Promise<PlanLinksCollection> => readLinksCollection();
+const getAllPlanLinks = async (): Promise<PlanLinksCollection> => readLinksCollection();
 
 /** The plan link for one game, or null if the game wasn't created from a plan. */
-export const getPlanLink = async (gameId: string): Promise<PlanLink | null> => {
+const getPlanLink = async (gameId: string): Promise<PlanLink | null> => {
   const all = await readLinksCollection();
   return all[gameId] ?? null;
 };
 
 /** Store the plan link for a game (overwrites). Returns true on success. */
-export const setPlanLink = async (gameId: string, link: PlanLink): Promise<boolean> => {
+const setPlanLink = async (gameId: string, link: PlanLink): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
       const all = await readLinksCollection();
       all[gameId] = link;
-      await setStorageJSON(PLAYTIME_PLAN_LINKS_KEY, all);
+      await io.setJSON(PLAYTIME_PLAN_LINKS_KEY, all);
       return true;
     });
   } catch (error) {
@@ -147,13 +172,13 @@ export const setPlanLink = async (gameId: string, link: PlanLink): Promise<boole
 };
 
 /** Remove a game's plan link (e.g. when the game is deleted). Returns true on success. */
-export const deletePlanLink = async (gameId: string): Promise<boolean> => {
+const deletePlanLink = async (gameId: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
       const all = await readLinksCollection();
       if (!(gameId in all)) return true;
       delete all[gameId];
-      await setStorageJSON(PLAYTIME_PLAN_LINKS_KEY, all);
+      await io.setJSON(PLAYTIME_PLAN_LINKS_KEY, all);
       return true;
     });
   } catch (error) {
@@ -167,7 +192,7 @@ export const deletePlanLink = async (gameId: string): Promise<boolean> => {
  * dangling links would keep the "Re-apply plan" affordance alive for games whose
  * source plan no longer exists. Returns true on success.
  */
-export const deletePlanLinksForPlan = async (planId: string): Promise<boolean> => {
+const deletePlanLinksForPlan = async (planId: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
       const all = await readLinksCollection();
@@ -178,7 +203,7 @@ export const deletePlanLinksForPlan = async (planId: string): Promise<boolean> =
         else remaining[gameId] = link;
       }
       if (removed === 0) return true;
-      await setStorageJSON(PLAYTIME_PLAN_LINKS_KEY, remaining);
+      await io.setJSON(PLAYTIME_PLAN_LINKS_KEY, remaining);
       return true;
     });
   } catch (error) {
@@ -206,9 +231,7 @@ const isGameSubsEntry = (v: unknown): v is PlannedGameSub[] =>
  */
 const readSubsCollection = async (): Promise<GameSubsCollection> => {
   try {
-    const raw = await getStorageJSON<Record<string, unknown>>(PLAYTIME_GAME_SUBS_KEY, {
-      defaultValue: {},
-    });
+    const raw = await io.getJSON<Record<string, unknown>>(PLAYTIME_GAME_SUBS_KEY, {});
     if (!raw || typeof raw !== 'object') return {};
     const valid: GameSubsCollection = {};
     for (const [gameId, subs] of Object.entries(raw)) {
@@ -223,7 +246,7 @@ const readSubsCollection = async (): Promise<GameSubsCollection> => {
 };
 
 /** Planned subs for one game ([] if none). */
-export const getGameSubs = async (gameId: string): Promise<PlannedGameSub[]> => {
+const getGameSubs = async (gameId: string): Promise<PlannedGameSub[]> => {
   const all = await readSubsCollection();
   return all[gameId] ?? [];
 };
@@ -232,13 +255,13 @@ export const getGameSubs = async (gameId: string): Promise<PlannedGameSub[]> => 
  * Store the planned subs for a game (overwrites). An empty array clears the entry
  * so the store doesn't accumulate empty keys. Returns true on success.
  */
-export const setGameSubs = async (gameId: string, subs: PlannedGameSub[]): Promise<boolean> => {
+const setGameSubs = async (gameId: string, subs: PlannedGameSub[]): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_GAME_SUBS_KEY, async () => {
       const all = await readSubsCollection();
       if (subs.length === 0) delete all[gameId];
       else all[gameId] = subs;
-      await setStorageJSON(PLAYTIME_GAME_SUBS_KEY, all);
+      await io.setJSON(PLAYTIME_GAME_SUBS_KEY, all);
       return true;
     });
   } catch (error) {
@@ -248,13 +271,13 @@ export const setGameSubs = async (gameId: string, subs: PlannedGameSub[]): Promi
 };
 
 /** Remove a game's planned subs (e.g. when the game is deleted). Returns true on success. */
-export const deleteGameSubs = async (gameId: string): Promise<boolean> => {
+const deleteGameSubs = async (gameId: string): Promise<boolean> => {
   try {
     return await withKeyLock(PLAYTIME_GAME_SUBS_KEY, async () => {
       const all = await readSubsCollection();
       if (!(gameId in all)) return true;
       delete all[gameId];
-      await setStorageJSON(PLAYTIME_GAME_SUBS_KEY, all);
+      await io.setJSON(PLAYTIME_GAME_SUBS_KEY, all);
       return true;
     });
   } catch (error) {
@@ -270,19 +293,26 @@ export const deleteGameSubs = async (gameId: string): Promise<boolean> => {
 // edit and defeat per-plan last-write-wins on the next device).
 
 /** Merge cloud plans in; a local plan wins when its updatedAt is newer. */
-export const restorePlans = async (incoming: PlaytimePlanCollection): Promise<number> => {
+const restorePlans = async (incoming: PlaytimePlanCollection): Promise<number> => {
   try {
     return await withKeyLock(PLAYTIME_PLANS_KEY, async () => {
       const current = await getPlans();
       let written = 0;
       for (const [id, plan] of Object.entries(incoming)) {
+        // A blob from a NEWER app schema is skipped (not dropped): editing it
+        // here would corrupt fields this build doesn't understand, and the
+        // next push would spread the damage back.
+        if (plan.version > PLAYTIME_PLAN_SCHEMA_VERSION) {
+          logger.warn(`[playtimePlanner] Skipping hydration of newer-schema plan "${id}" (v${plan.version})`);
+          continue;
+        }
         const local = current[id];
         if (!local || plan.updatedAt > local.updatedAt) {
           current[id] = plan;
           written += 1;
         }
       }
-      if (written > 0) await setStorageJSON(PLAYTIME_PLANS_KEY, current);
+      if (written > 0) await io.setJSON(PLAYTIME_PLANS_KEY, current);
       return written;
     });
   } catch (error) {
@@ -292,7 +322,7 @@ export const restorePlans = async (incoming: PlaytimePlanCollection): Promise<nu
 };
 
 /** Fill in cloud links for games with no local link (local edits win). */
-export const restorePlanLinks = async (incoming: PlanLinksCollection): Promise<number> => {
+const restorePlanLinks = async (incoming: PlanLinksCollection): Promise<number> => {
   try {
     return await withKeyLock(PLAYTIME_PLAN_LINKS_KEY, async () => {
       const current = await getAllPlanLinks();
@@ -303,7 +333,7 @@ export const restorePlanLinks = async (incoming: PlanLinksCollection): Promise<n
           written += 1;
         }
       }
-      if (written > 0) await setStorageJSON(PLAYTIME_PLAN_LINKS_KEY, current);
+      if (written > 0) await io.setJSON(PLAYTIME_PLAN_LINKS_KEY, current);
       return written;
     });
   } catch (error) {
@@ -313,12 +343,12 @@ export const restorePlanLinks = async (incoming: PlanLinksCollection): Promise<n
 };
 
 /** Fill in cloud planned subs for games with no local entry (local edits win). */
-export const restoreGameSubs = async (incoming: GameSubsCollection): Promise<number> => {
+const restoreGameSubs = async (incoming: GameSubsCollection): Promise<number> => {
   try {
     return await withKeyLock(PLAYTIME_GAME_SUBS_KEY, async () => {
-      const current = await getStorageJSON<GameSubsCollection>(PLAYTIME_GAME_SUBS_KEY, {
-        defaultValue: {},
-      }).then((raw) => (raw && typeof raw === 'object' ? raw : {}));
+      const current = await io
+        .getJSON<GameSubsCollection>(PLAYTIME_GAME_SUBS_KEY, {})
+        .then((raw) => (raw && typeof raw === 'object' ? raw : {}));
       let written = 0;
       for (const [gameId, subs] of Object.entries(incoming)) {
         if (!(gameId in current) && Array.isArray(subs) && subs.length > 0) {
@@ -326,7 +356,7 @@ export const restoreGameSubs = async (incoming: GameSubsCollection): Promise<num
           written += 1;
         }
       }
-      if (written > 0) await setStorageJSON(PLAYTIME_GAME_SUBS_KEY, current);
+      if (written > 0) await io.setJSON(PLAYTIME_GAME_SUBS_KEY, current);
       return written;
     });
   } catch (error) {
@@ -334,3 +364,25 @@ export const restoreGameSubs = async (incoming: GameSubsCollection): Promise<num
     return 0;
   }
 };
+
+  /** Whole planned-subs collection (bulk paths must not miss unlinked games). */
+  const getAllGameSubs = async (): Promise<GameSubsCollection> => readSubsCollection();
+
+  return {
+    getPlans,
+    savePlan,
+    deletePlan,
+    getAllPlanLinks,
+    getPlanLink,
+    setPlanLink,
+    deletePlanLink,
+    deletePlanLinksForPlan,
+    getGameSubs,
+    getAllGameSubs,
+    setGameSubs,
+    deleteGameSubs,
+    restorePlans,
+    restorePlanLinks,
+    restoreGameSubs,
+  };
+}

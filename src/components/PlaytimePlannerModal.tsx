@@ -1178,7 +1178,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     // Purge links pointing at the deleted plan so linked games don't keep offering
     // a "Re-apply plan" that can only fail. Best-effort (links are also validated
     // against the plan on read).
-    await deletePlanLinksForPlan(target.id).catch(() => {});
+    await deletePlanLinksForPlan(target.id).catch((err) => logger.error('[planner] Plan-links cleanup after delete failed:', err));
     const plans = await getPlans();
     const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     setPlanList(list);

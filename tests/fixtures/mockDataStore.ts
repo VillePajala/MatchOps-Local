@@ -240,6 +240,7 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     deletePlaytimePlanLink: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimePlanLink']>,
     deletePlaytimePlanLinksForPlan: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimePlanLinksForPlan']>,
     getPlaytimeGameSubs: jest.fn(async () => []) as unknown as jest.MockedFunction<DataStore['getPlaytimeGameSubs']>,
+    getAllPlaytimeGameSubs: jest.fn(async () => ({})) as unknown as jest.MockedFunction<DataStore['getAllPlaytimeGameSubs']>,
     setPlaytimeGameSubs: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['setPlaytimeGameSubs']>,
     deletePlaytimeGameSubs: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimeGameSubs']>,
   };

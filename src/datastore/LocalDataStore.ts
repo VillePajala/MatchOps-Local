@@ -21,10 +21,10 @@ import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
-import * as localPlanStore from '@/utils/playtimePlanner/localPlanStore';
+import { createLocalPlanStore, type LocalPlanStore } from '@/utils/playtimePlanner/localPlanStore';
 import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
 import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
-import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import {
   AlreadyExistsError,
   NotInitializedError,
@@ -355,6 +355,7 @@ export class LocalDataStore implements DataStore {
    * Storage adapter for this LocalDataStore instance.
    * Set during initialize() based on userId.
    */
+  private planStore: LocalPlanStore | null = null;
   private adapter: StorageAdapter | null = null;
 
   /**
@@ -473,6 +474,25 @@ export class LocalDataStore implements DataStore {
       this.adapter = await getStorageAdapter();
       logger.info('[LocalDataStore] Initialized with legacy global storage');
     }
+
+    // Planner store bound to THIS instance's adapter, so plans live in the
+    // same database as every other entity (per-user when signed in). The
+    // earlier module-global store wrote the legacy shared DB unconditionally -
+    // leaking plans across accounts and escaping clearAllUserData.
+    this.planStore = createLocalPlanStore({
+      getJSON: async <T,>(key: string, defaultValue: T): Promise<T> => {
+        const raw = await this.storageGetItem(key);
+        if (raw === null) return defaultValue;
+        try {
+          return JSON.parse(raw) as T;
+        } catch {
+          return defaultValue;
+        }
+      },
+      setJSON: async (key: string, value: unknown): Promise<void> => {
+        await this.storageSetItem(key, JSON.stringify(value));
+      },
+    });
 
     this.initialized = true;
   }
@@ -2543,44 +2563,72 @@ export class LocalDataStore implements DataStore {
   // the same code the feature used before it was routed through the DataStore.
   // ==========================================================================
 
+  private plans(): LocalPlanStore {
+    if (!this.planStore) {
+      throw new NotInitializedError('LocalDataStore');
+    }
+    return this.planStore;
+  }
+
   async getPlaytimePlans(): Promise<PlaytimePlanCollection> {
-    return localPlanStore.getPlans();
+    return this.plans().getPlans();
   }
 
   async savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null> {
-    return localPlanStore.savePlan(plan);
+    return this.plans().savePlan(plan);
   }
 
   async deletePlaytimePlan(id: string): Promise<boolean> {
-    return localPlanStore.deletePlan(id);
+    return this.plans().deletePlan(id);
   }
 
   async getPlaytimePlanLinks(): Promise<PlanLinksCollection> {
-    return localPlanStore.getAllPlanLinks();
+    return this.plans().getAllPlanLinks();
   }
 
   async setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean> {
-    return localPlanStore.setPlanLink(gameId, link);
+    return this.plans().setPlanLink(gameId, link);
   }
 
   async deletePlaytimePlanLink(gameId: string): Promise<boolean> {
-    return localPlanStore.deletePlanLink(gameId);
+    return this.plans().deletePlanLink(gameId);
   }
 
   async deletePlaytimePlanLinksForPlan(planId: string): Promise<boolean> {
-    return localPlanStore.deletePlanLinksForPlan(planId);
+    return this.plans().deletePlanLinksForPlan(planId);
   }
 
   async getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]> {
-    return localPlanStore.getGameSubs(gameId);
+    return this.plans().getGameSubs(gameId);
   }
 
   async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {
-    return localPlanStore.setGameSubs(gameId, subs);
+    return this.plans().setGameSubs(gameId, subs);
   }
 
   async deletePlaytimeGameSubs(gameId: string): Promise<boolean> {
-    return localPlanStore.deleteGameSubs(gameId);
+    return this.plans().deleteGameSubs(gameId);
+  }
+
+  // Class-level extras (not on the DataStore interface): bulk paths and the
+  // hydration/restore flows need whole-collection access and verbatim writes.
+
+  /** Whole planned-subs collection - bulk sync must not miss unlinked games. */
+  async getAllPlaytimeGameSubs(): Promise<GameSubsCollection> {
+    return this.plans().getAllGameSubs();
+  }
+
+  /** Timestamp-preserving merges (cloud hydration / reverse migration). */
+  async restorePlaytimePlans(incoming: PlaytimePlanCollection): Promise<number> {
+    return this.plans().restorePlans(incoming);
+  }
+
+  async restorePlaytimePlanLinks(incoming: PlanLinksCollection): Promise<number> {
+    return this.plans().restorePlanLinks(incoming);
+  }
+
+  async restorePlaytimeGameSubs(incoming: GameSubsCollection): Promise<number> {
+    return this.plans().restoreGameSubs(incoming);
   }
 
   async getTeamReferences(teamId: string): Promise<EntityReferences> {

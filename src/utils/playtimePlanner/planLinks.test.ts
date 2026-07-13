@@ -18,7 +18,18 @@ import { PLAYTIME_PLAN_LINKS_KEY } from '@/config/storageKeys';
 // against the in-memory storage mock above.
 jest.mock('@/datastore/factory', () => ({
   getDataStore: async () => {
-    const local = jest.requireActual('./localPlanStore');
+    const { createLocalPlanStore } = jest.requireActual('./localPlanStore');
+    // Bind the factory store to THIS suite's in-memory '@/utils/storage' mock,
+    // preserving the full shim -> store -> raw round trip under test.
+    const storage = jest.requireMock('@/utils/storage') as {
+      getStorageJSON: <T>(key: string, opts: { defaultValue?: T }) => Promise<T>;
+      setStorageJSON: (key: string, value: unknown) => Promise<void>;
+    };
+    const local = createLocalPlanStore({
+      getJSON: <T,>(key: string, defaultValue: T) =>
+        storage.getStorageJSON<T>(key, { defaultValue }),
+      setJSON: (key: string, value: unknown) => storage.setStorageJSON(key, value),
+    });
     return {
       getPlaytimePlans: local.getPlans,
       savePlaytimePlan: local.savePlan,
@@ -28,6 +39,7 @@ jest.mock('@/datastore/factory', () => ({
       deletePlaytimePlanLink: local.deletePlanLink,
       deletePlaytimePlanLinksForPlan: local.deletePlanLinksForPlan,
       getPlaytimeGameSubs: local.getGameSubs,
+      getAllPlaytimeGameSubs: local.getAllGameSubs,
       setPlaytimeGameSubs: local.setGameSubs,
       deletePlaytimeGameSubs: local.deleteGameSubs,
     };
