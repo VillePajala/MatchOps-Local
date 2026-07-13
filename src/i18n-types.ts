@@ -1671,6 +1671,8 @@ export type TranslationKey =
   | 'playtimePlanner.balance.gkLabel'
   | 'playtimePlanner.balance.noGames'
   | 'playtimePlanner.balance.ofFairShare'
+  | 'playtimePlanner.balance.sitsOut_one'
+  | 'playtimePlanner.balance.sitsOut_other'
   | 'playtimePlanner.balance.spreadDetail'
   | 'playtimePlanner.balance.spreadLabel'
   | 'playtimePlanner.balance.title'

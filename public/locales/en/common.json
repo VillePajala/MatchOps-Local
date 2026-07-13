@@ -3250,7 +3250,9 @@
       "gkLabel": "Only {{name}} plays goalkeeper",
       "gkDetail": "Consider rotating goalkeepers",
       "focusDelta": "{{delta}} min vs own share",
-      "focusOnShare": "on fair share"
+      "focusOnShare": "on fair share",
+      "sitsOut_one": "{{count}} player sits out a full game",
+      "sitsOut_other": "{{count}} players sit out a full game"
     },
     "versions": {
       "duplicate": "Duplicate",
