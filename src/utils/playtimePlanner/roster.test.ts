@@ -133,3 +133,39 @@ describe('absentIds hygiene on roster edits', () => {
     expect(out.games[0].absentIds).toEqual([]);
   });
 });
+
+describe('normalizePlanAbsences (self-healing for older/merged plans)', () => {
+  it('drops absent ids for removed players AND for players placed in that game', async () => {
+    const { normalizePlanAbsences } = await import('./roster');
+    const plan = {
+      id: 'p', name: 'Plan', version: 1, createdAt: 'x', updatedAt: 'x',
+      players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+      games: [{
+        id: 'g1', label: 'G1', formationId: '5v5-2-2', numberOfPeriods: 2,
+        periodMinutes: 12, included: true,
+        startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+        subs: [],
+        // p1 is PLACED yet marked absent (cross-copy merge damage);
+        // p9 left the roster before pruning existed; p2 is a valid absence.
+        absentIds: ['p1', 'p9', 'p2'],
+      }],
+    } as never;
+    const healed = normalizePlanAbsences(plan);
+    expect(healed).not.toBe(plan);
+    expect(healed.games[0].absentIds).toEqual(['p2']);
+  });
+
+  it('returns the SAME reference when nothing needs fixing (no phantom edit)', async () => {
+    const { normalizePlanAbsences } = await import('./roster');
+    const plan = {
+      id: 'p', name: 'Plan', version: 1, createdAt: 'x', updatedAt: 'x',
+      players: [{ id: 'p1', name: 'Alex' }],
+      games: [{
+        id: 'g1', label: 'G1', formationId: '5v5-2-2', numberOfPeriods: 2,
+        periodMinutes: 12, included: true, startingSlots: [], subs: [],
+        absentIds: ['p1'],
+      }],
+    } as never;
+    expect(normalizePlanAbsences(plan)).toBe(plan);
+  });
+});
