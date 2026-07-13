@@ -410,10 +410,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
           </p>
         ) : (
-          {/* Equal-column grid (same fix as the fairness strip): a wrapping flex
-              row left the row remainder as dead space on the right - columns
-              stretch so the outer discs sit level with the container edges. */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center">
+            {/* Equal-column grid (same fix as the fairness strip): a wrapping
+                flex row left the row remainder as dead space on the right -
+                columns stretch so the outer discs align with the edges. */}
             {bench.map((id) => {
               const fair = minutesByPlayer?.[id];
               const involved = isTracked(id);
