@@ -68,8 +68,8 @@ describe('StartScreen', () => {
     // The Pelit front page (restructure PR 1.3): resume card, one pinned
     // primary, entry rows. The old Load Game / Statistics grid is GONE - the
     // tab bar and rows cover both.
-    expect(screen.getByRole('button', { name: 'Resume match' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ New Game' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Saved games' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Statistics' })).not.toBeInTheDocument();
@@ -84,10 +84,10 @@ describe('StartScreen', () => {
     expect(guideLink).toHaveAttribute('target', '_blank');
     fireEvent.click(screen.getByTestId('gear-sheet-backdrop'));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Resume match' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'New Game' }));
+    fireEvent.click(screen.getByRole('button', { name: '+ New Game' }));
     expect(handlers.onGetStarted).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Saved games' }));
@@ -113,7 +113,7 @@ describe('StartScreen', () => {
       isFirstTimeUser: false,
     };
     const { unmount } = render(<StartScreen {...base} canResume={false} onOpenPlanner={onOpenPlanner} />);
-    expect(screen.queryByRole('button', { name: 'Resume match' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Match planner' }));
     expect(onOpenPlanner).toHaveBeenCalledTimes(1);
     unmount();
@@ -326,7 +326,10 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // Real tab semantics: selection moves, the body becomes the club rows.
     expect(screen.getByRole('tab', { name: 'Team' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'false');
-    expect(screen.queryByRole('button', { name: 'New Game' })).not.toBeInTheDocument();
+    // The pinned '+ New Game' strip stays visible on EVERY tab by design;
+    // the front page's own content (Saved games row) is what swaps out.
+    expect(screen.getByRole('button', { name: '+ New Game' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Saved games' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Players' }));
     expect(props.onManageRoster).toHaveBeenCalledTimes(1);
@@ -339,7 +342,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
 
     // Back to Games restores the front page.
     fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
-    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ New Game' })).toBeInTheDocument();
   });
 
   it('Seasons and Stats tabs stay one-tap openers for their single-purpose scopes', () => {
