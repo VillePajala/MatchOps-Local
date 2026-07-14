@@ -679,14 +679,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   );
 
   // Add / remove a scheduled substitution in a game.
+  // Screen-reader announcement for sub creation/removal: the sheet closes on
+  // add, so the live region lives HERE (persists across the sheet's unmount).
+  const [subAnnouncement, setSubAnnouncement] = useState('');
+
   const handleAddSub = useCallback(
     (gameId: string, sub: PlanSub) => {
       updateActivePlan((plan) => ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: addSub(g.subs, sub) } : g)),
       }));
+      setSubAnnouncement(t('playtimePlanner.subs.added', 'Substitution added'));
     },
-    [updateActivePlan],
+    [updateActivePlan, t],
   );
 
   const handleRemoveSub = useCallback(
@@ -695,8 +700,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: removeSub(g.subs, subId) } : g)),
       }));
+      setSubAnnouncement(t('playtimePlanner.subs.removed', 'Substitution removed'));
     },
-    [updateActivePlan],
+    [updateActivePlan, t],
   );
 
   // Flush a pending debounced save when the modal is hidden (Escape, Close, or
@@ -2299,6 +2305,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
       </ScrollableContent>
+
+      {/* Polite live region: announces sub add/remove to assistive tech. The
+          sheet closes on add, so this must outlive it. Visually hidden. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {subAnnouncement}
+      </div>
 
       {subSheetTarget !== null &&
         activePlan &&
