@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@/i18n', () => ({
@@ -77,10 +77,12 @@ describe('StartScreen', () => {
     expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
 
-    // User Guide link points to the full online guide (Start Screen discovery point)
+    // The guide link moved into the gear sheet (PR 1.4) - open it to check.
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     const guideLink = screen.getByRole('link', { name: 'User Guide' });
     expect(guideLink).toHaveAttribute('href', 'https://www.match-ops.com/guide');
     expect(guideLink).toHaveAttribute('target', '_blank');
+    fireEvent.click(screen.getByTestId('gear-sheet-backdrop'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume match' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
@@ -92,6 +94,8 @@ describe('StartScreen', () => {
     expect(handlers.onLoadGame).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const gearSheet = screen.getByRole('dialog', { name: 'App & account' });
+    fireEvent.click(within(gearSheet).getByRole('button', { name: 'Settings' }));
     expect(handlers.onOpenSettings).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'FI' }));
@@ -157,41 +161,34 @@ describe('StartScreen', () => {
     expect(handlers.onGetStarted).toHaveBeenCalled();
   });
 
-  it('shows Sign Out footer when in cloud mode', () => {
+  it('cloud mode: the gear sheet shows the account entry with the email (footer is gone)', () => {
     const { useAuth } = jest.requireMock('@/contexts/AuthProvider');
     useAuth.mockReturnValue({
       user: { email: 'test@example.com' },
       mode: 'cloud',
       signOut: mockSignOut,
     });
-
-    const handlers = {
-      onLoadGame: jest.fn(),
-      onResumeGame: jest.fn(),
-      onGetStarted: jest.fn(),
-      onViewStats: jest.fn(),
-      onOpenSettings: jest.fn(),
-    };
-
+    const onOpenAccount = jest.fn();
     render(
       <StartScreen
-        onLoadGame={handlers.onLoadGame}
-        onResumeGame={handlers.onResumeGame}
-        onGetStarted={handlers.onGetStarted}
-        onViewStats={handlers.onViewStats}
-        onOpenSettings={handlers.onOpenSettings}
+        onLoadGame={jest.fn()}
+        onResumeGame={jest.fn()}
+        onGetStarted={jest.fn()}
+        onViewStats={jest.fn()}
+        onOpenSettings={jest.fn()}
+        onOpenAccount={onOpenAccount}
         canResume={false}
         hasSavedGames={true}
         isFirstTimeUser={false}
       />
     );
 
-    expect(screen.getByText('Signed in as')).toBeInTheDocument();
+    // No footer any more - sign-out lives in Settings -> Account.
+    expect(screen.queryByText('Signed in as')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sign Out' })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
-    expect(mockSignOut).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /Cloud account/ }));
+    expect(onOpenAccount).toHaveBeenCalledTimes(1);
   });
 
   it('does not show Sign Out footer when in local mode', () => {
@@ -352,12 +349,28 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onViewStats).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the Stats tab without saved games and opens settings from the gear corner', () => {
-    const props = { ...shellProps(), hasSavedGames: false };
+  it('disables the Stats tab without saved games; the gear opens the app sheet', () => {
+    const props = { ...shellProps(), hasSavedGames: false, onOpenBackup: jest.fn(), onOpenRules: jest.fn() };
     render(<StartScreen {...props} />);
     expect(screen.getByRole('tab', { name: 'Stats' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    // The sheet holds the whole device/account bucket.
+    const sheet = screen.getByRole('dialog', { name: 'App & account' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Settings' }));
     expect(props.onOpenSettings).toHaveBeenCalledTimes(1);
+    // The sheet closes after routing.
+    expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
+  });
+
+  it('gear sheet routes backup and rules to their openers', () => {
+    const props = { ...shellProps(), onOpenBackup: jest.fn(), onOpenRules: jest.fn() };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Backup & Restore' }));
+    expect(props.onOpenBackup).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rules' }));
+    expect(props.onOpenRules).toHaveBeenCalledTimes(1);
   });
 
   it('unwired Team-panel rows render DISABLED - never silently dead-clickable', () => {

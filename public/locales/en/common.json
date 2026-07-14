@@ -1125,7 +1125,12 @@
     "savedGames": "Saved games",
     "rowPlayers": "Players",
     "rowTeams": "Teams",
-    "rowPersonnel": "Personnel"
+    "rowPersonnel": "Personnel",
+    "rowTraining": "Warmup Plan",
+    "gearTitle": "App & account",
+    "gearBackup": "Backup & Restore",
+    "gearAccount": "Cloud account",
+    "gearRules": "Rules"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

@@ -25,6 +25,14 @@ interface StartScreenProps {
   onManageTeams?: () => void;
   /** Team panel: personnel manager (opens the existing modal). */
   onManagePersonnel?: () => void;
+  /** Team panel: warmup/training resources (opens the existing modal). */
+  onOpenTraining?: () => void;
+  /** Gear sheet: settings straight onto the Backup & Restore tab. */
+  onOpenBackup?: () => void;
+  /** Gear sheet: settings straight onto the cloud Account tab (cloud mode). */
+  onOpenAccount?: () => void;
+  /** Gear sheet: the rules directory. */
+  onOpenRules?: () => void;
   /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
   onEnableCloudSync?: () => void;
   /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
@@ -50,6 +58,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onOpenPlanner,
   onManageTeams,
   onManagePersonnel,
+  onOpenTraining,
+  onOpenBackup,
+  onOpenAccount,
+  onOpenRules,
   onEnableCloudSync,
   onSignInExistingSubscriber,
   onShowWelcome,
@@ -60,7 +72,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   setupProgress,
 }) => {
   const { t } = useTranslation();
-  const { user, mode, signOut } = useAuth();
+  const { user, mode } = useAuth();
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
   // HTML and the first client render produce identical markup. Reading i18n.language
   // here directly causes a hydration mismatch when localStorage holds a non-default
@@ -71,6 +83,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // tabs - Games (front page) and Team (club entry rows) switch panels here;
   // Seasons/Stats stay one-tap openers for their single-purpose scopes.
   const [activeTab, setActiveTab] = useState<'games' | 'team'>('games');
+  // Gear sheet (restructure PR 1.4): the app/account bucket. Everything
+  // device- or account-scoped lives here, off the front page.
+  const [showGearSheet, setShowGearSheet] = useState(false);
 
   // Recommended-setup card dismissal. Read post-hydration (SSR-safe, like language):
   // both server and first client render show nothing until setupHydrated flips true.
@@ -154,7 +169,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onOpenSettings}
+              onClick={() => setShowGearSheet(true)}
               aria-label={t('startScreen.appSettings', 'Settings')}
               className="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm text-slate-300 hover:text-white hover:bg-slate-700/70 transition-colors"
             >
@@ -330,6 +345,21 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </span>
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={onOpenTraining}
+                  disabled={!onOpenTraining}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onOpenTraining
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.rowTraining', 'Warmup Plan')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
               </>
             ) : (
               /* Returning user: the Pelit front page (two-level restructure
@@ -390,78 +420,72 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <RecommendedSetupCard progress={setupProgress} onDismiss={handleDismissSetup} />
           )}
 
-          {/* Footer links: Settings + User Guide side by side. The Start Screen is where
-              every reload lands, so the full guide stays one tap away here. */}
-          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
-            <a
-              href="https://www.match-ops.com/guide"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-400 hover:text-amber-400 transition-colors"
-            >
-              {t('controlBar.userGuide', 'User Guide')}
-            </a>
-          </div>
+        </div>
+      </div>
 
-          {/* Mode footer */}
-          {isCloudMode ? (
-            <div className="mt-8 text-center text-sm text-slate-500">
-              <span>{t('startScreen.signedInAs', 'Signed in as')} </span>
-              <span className="text-slate-400">{user.email}</span>
-              <span className="mx-2">·</span>
-              <button
-                type="button"
-                onClick={signOut}
-                className="text-amber-400 hover:text-amber-300 transition-colors"
-              >
-                {t('controlBar.signOut', 'Sign Out')}
+      {/* ⚙ sheet (restructure PR 1.4): every device/account-scope item in one
+          bucket - settings, backup, cloud account, guide, rules, external
+          links. Entries open the EXISTING modals/links (strangler). */}
+      {showGearSheet && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60"
+          onClick={() => setShowGearSheet(false)}
+          data-testid="gear-sheet-backdrop"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('startScreen.gearTitle', 'App & account')}
+            className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
+            <h4 className="text-base font-semibold text-slate-100 mb-3">{t('startScreen.gearTitle', 'App & account')}</h4>
+            <div className="space-y-1.5">
+              <button type="button" onClick={() => { setShowGearSheet(false); onOpenSettings(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                {t('startScreen.appSettings', 'Settings')}
               </button>
-            </div>
-          ) : isCloudAvailable && (onEnableCloudSync || onSignInExistingSubscriber) ? (
-            isAndroid() ? (
-              // Android: Show enable cloud sync (triggers upgrade modal → purchase)
-              <div className="mt-8 text-center text-sm text-slate-500">
-                <span>{t('startScreen.usingLocalStorage', 'Using local storage')}</span>
-                <span className="mx-2">·</span>
+              {onOpenBackup && (
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenBackup(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  {t('startScreen.gearBackup', 'Backup & Restore')}
+                </button>
+              )}
+              {isCloudMode ? (
+                onOpenAccount && (
+                  <button type="button" onClick={() => { setShowGearSheet(false); onOpenAccount(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                    {t('startScreen.gearAccount', 'Cloud account')}
+                    <span className="block text-xs text-slate-500">{user.email}</span>
+                  </button>
+                )
+              ) : isCloudAvailable && (onEnableCloudSync || onSignInExistingSubscriber) ? (
                 <button
                   type="button"
-                  onClick={onEnableCloudSync}
-                  className="text-amber-400 hover:text-amber-300 transition-colors"
+                  onClick={() => {
+                    setShowGearSheet(false);
+                    (isAndroid() ? onEnableCloudSync : onSignInExistingSubscriber ?? onEnableCloudSync)?.();
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
                 >
                   {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
                 </button>
+              ) : null}
+              {onOpenRules && (
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenRules(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  {t('startScreen.gearRules', 'Rules')}
+                </button>
+              )}
+              <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="block w-full px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                {t('controlBar.userGuide', 'User Guide')}
+              </a>
+              <div className="pt-2 mt-1 border-t border-slate-700/60 flex flex-wrap gap-x-4 gap-y-1 px-3 text-xs">
+                <a href="https://www.match-ops.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">match-ops.com</a>
+                <a href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">{t('controlBar.coachingMaterials', 'Coaching Materials')}</a>
+                <a href="https://taso.palloliitto.fi" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">{t('controlBar.tasoLink', 'Taso')}</a>
               </div>
-            ) : (
-              // Desktop: Show sign in for existing subscribers + Play Store link for new users
-              <div className="mt-8 text-center text-sm">
-                <div className="text-slate-500 mb-2">
-                  {t('startScreen.usingLocalStorage', 'Using local storage')}
-                </div>
-                {onSignInExistingSubscriber && (
-                  <button
-                    type="button"
-                    onClick={onSignInExistingSubscriber}
-                    className="text-amber-400 hover:text-amber-300 transition-colors"
-                  >
-                    {t('startScreen.existingSubscriber', 'Already a subscriber? Sign in →')}
-                  </button>
-                )}
-                <div className="mt-3 text-slate-500 text-xs">
-                  <span>{t('startScreen.newToCloud', 'New here? Subscribe via the Android app.')}</span>
-                  <a
-                    href="https://play.google.com/store/apps/details?id=com.matchops.local"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-amber-400/80 hover:text-amber-300 ml-1"
-                  >
-                    {t('startScreen.getAndroidApp', 'Get on Google Play')}
-                  </a>
-                </div>
-              </div>
-            )
-          ) : null}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
