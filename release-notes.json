@@ -4,6 +4,15 @@
     {
       "date": "2026-07-14",
       "en": [
+        "Match planner polish: screen readers now announce substitution changes, and keyboard focus stays inside the substitution sheet after removing a planned change."
+      ],
+      "fi": [
+        "Ottelusuunnittelun viimeistelyä: ruudunlukijat kertovat nyt vaihtomuutoksista, ja näppäimistön kohdistus pysyy vaihtoikkunassa suunnitellun vaihdon poiston jälkeen."
+      ]
+    },
+    {
+      "date": "2026-07-14",
+      "en": [
         "Match planner (renamed from Lineup planner) was rebuilt around three tabs: Games (the field, with swipe and a side-by-side view), Minutes (playing-time balance) and Settings (roster, format and the games as editable rows).",
         "Fairness at a glance: player discs and bench discs are coloured red-to-green by playing time, substitutions show as split discs with both names, and a totals strip stays visible while you edit.",
         "One-tap tools: \"Suggest fair lineups\" builds even rotations for the whole set of games, undo/redo, per-game include toggles, and plans can be archived, duplicated and exported.",

@@ -35,7 +35,10 @@ const PlanSubsEditor: React.FC<PlanSubsEditorProps> = ({ game, players, onRemove
     slots.forEach((s, i) => m.set(s.slotId, s.isGoalie ? gkLabel : `#${i}`));
     return m;
   }, [slots, gkLabel]);
-  const sortedSubs = [...game.subs].sort((a, b) => a.timeSeconds - b.timeSeconds);
+  const sortedSubs = useMemo(
+    () => [...game.subs].sort((a, b) => a.timeSeconds - b.timeSeconds),
+    [game.subs],
+  );
 
   // Who comes OFF for each sub: walk the schedule in time order, tracking each
   // slot's occupant (a second sub on the same slot replaces the previous incoming

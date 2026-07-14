@@ -184,7 +184,14 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => onRemove(sub.id)}
+                    onClick={() => {
+                      onRemove(sub.id);
+                      // The clicked button unmounts with its row, dropping focus
+                      // to <body> - outside BOTH traps, so the next Tab could
+                      // land in the parent modal while this sheet is still open.
+                      // Park focus back on the sheet dialog instead.
+                      dialogRef.current?.focus();
+                    }}
                     className="text-sm text-red-400 hover:text-red-300 py-2 px-2"
                   >
                     {t('playtimePlanner.subs.remove', 'Remove')}

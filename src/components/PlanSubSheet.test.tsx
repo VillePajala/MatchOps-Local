@@ -58,6 +58,10 @@ describe('PlanSubSheet', () => {
     expect(screen.queryByText(/6' Jo/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
     expect(onRemove).toHaveBeenCalledWith('x1');
+    // The clicked button unmounts with its row - focus must be parked back on
+    // the sheet dialog, not dropped to <body> (where the next Tab could escape
+    // into the parent modal while the sheet is still open).
+    expect(document.activeElement).toBe(screen.getByRole('dialog'));
   });
 
   it('names the position + outgoing player and pre-fills the minute to half-time', () => {

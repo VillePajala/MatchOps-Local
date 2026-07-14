@@ -260,6 +260,11 @@ export function FieldContainer({
 
   return (
     <div className="flex-grow relative bg-black overflow-hidden">
+      {/* DELIBERATE: the planned-sub nudge (inside TimerOverlay) is only
+          visible while the large timer overlay is open - the same surface the
+          existing interval sub-alerts use. On game day the overlay IS the
+          match screen; a coach who keeps it closed has opted out of clock-side
+          coaching aids. Revisit only if planner users report missed nudges. */}
       {tmShowOverlay && (
         <TimerOverlay
           timeElapsedInSeconds={tmTime}

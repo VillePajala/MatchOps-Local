@@ -4749,6 +4749,11 @@ export class SupabaseDataStore implements DataStore {
     return collection;
   }
 
+  // DELIBERATE LWW exemption (unlike savePlaytimePlan's conditional RPC): a
+  // link is an immutable fact - "game X was created from plan P's game G" -
+  // written once at game creation and only ever deleted, so two devices can't
+  // meaningfully race on its VALUE. Blind upsert is the whole contract; see
+  // "Scope decisions" in docs/03-active-plans/playing-time-fairness-and-planner.md §11.
   async setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean> {
     this.ensureInitialized();
     checkOnline();
