@@ -995,7 +995,9 @@
     "tabGames": "Pelit",
     "tabTeam": "Joukkue",
     "tabSeasons": "Kaudet",
-    "tabStats": "Tilastot"
+    "tabStats": "Tilastot",
+    "resumeCard": "Jatka ottelua",
+    "savedGames": "Tallennetut pelit"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

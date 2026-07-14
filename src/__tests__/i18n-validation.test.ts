@@ -344,7 +344,8 @@ describe('Translation File Validation', () => {
       // +1: controlBar.teamStats (PR 0.2: stats menu entry split match vs team)
       // +5: startScreen.homeTabs/tabGames/tabTeam/tabSeasons/tabStats (PR 1.2:
       //     the Home shell's club-level tab bar)
-      expect(enKeys.length).toBe(2815);
+      // +2: startScreen.resumeCard/savedGames (PR 1.3: the Pelit front page)
+      expect(enKeys.length).toBe(2817);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -410,7 +411,8 @@ describe('Translation File Validation', () => {
       // -3/+2 net -1: menu groups regrouped by scope (see the en note above)
       // +1: controlBar.teamStats (PR 0.2: stats menu entry split match vs team)
       // +5: startScreen home tab bar (see the en note above)
-      expect(fiKeys.length).toBe(2815);
+      // +2: startScreen front page (see the en note above)
+      expect(fiKeys.length).toBe(2817);
     });
   });
 });
