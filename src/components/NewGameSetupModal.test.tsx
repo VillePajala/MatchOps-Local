@@ -1248,6 +1248,46 @@ describe('NewGameSetupModal', () => {
       expect(screen.queryByLabelText('Prefill from plan (optional)')).not.toBeInTheDocument();
     });
 
+    test('selecting a Season after a plan prefill keeps the PLAN\'s match format (sub times depend on it)', async () => {
+      // The plan is 2x12; the season would default the form to 2x15. Planned
+      // sub times are absolute seconds, so the season's format must not
+      // silently overwrite the plan's - the half-time sub would fire mid-half.
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      renderModal();
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      // The season picker sits behind the Season tab.
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Season/i }));
+      });
+      await waitFor(() => expect(document.getElementById('seasonSelect')).toBeInTheDocument());
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      expect(call[6]).toBe('season1');           // the season binding itself is kept
+      expect(call[8]).toBe(2);                   // numPeriods: the plan's...
+      expect(call[9]).toBe(12);                  // ...and the plan's 12-minute periods
+      expect(call[call.length - 1]).toBeDefined(); // prefill still rides along
+    });
+
     test('switching Team after a plan prefill clears the prefill (no cross-team lineup)', async () => {
       // The planned lineup belongs to the previous squad; carrying it into the
       // new team's game would silently field the wrong players.

@@ -258,6 +258,26 @@ describe('PlaytimePlannerModal', () => {
     expect(sessionStorage.getItem('matchops_planner_active_plan')).toBeNull();
   });
 
+  it('a background-resume remount still loads team data for the Settings tab', async () => {
+    // The resume path used to early-return out of the load effect BEFORE the
+    // team/season/tournament block, leaving those selectors empty for the rest
+    // of the modal instance after every background -> foreground remount.
+    sessionStorage.setItem('matchops_planner_active_plan', 'existing');
+    mockGetPlans.mockResolvedValue({ existing: existingPlan });
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10' }]);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await screen.findByLabelText('Game name'); // resumed straight into the plan
+
+    await openPlanTab();
+    // The selector sits inside the collapsed "Games & format" fold-out.
+    await act(async () => {
+      fireEvent.click(screen.getByText('Games & format'));
+    });
+    // The team selector renders only when teams actually loaded.
+    const teamSelect = await screen.findByLabelText('Team (optional)');
+    expect(teamSelect).toContainHTML('U10');
+  });
+
   describe('Escape ladder', () => {
     it('steps back one level: games tab -> manager -> close', async () => {
       const onClose = jest.fn();

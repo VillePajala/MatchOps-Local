@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
@@ -248,11 +248,14 @@ export function FieldContainer({
   const tmInitialLoad = timerVM.initialLoadComplete;
 
   // Playing-Time Planner (Phase 2): surface the due planned sub in the timer overlay.
+  // On-field ids suppress prompts already satisfied by an early manual sub.
+  const onFieldIds = useMemo(() => new Set(fcPlayersOnField.map((p) => p.id)), [fcPlayersOnField]);
   const { prompt: plannedSubPrompt, dismiss: dismissPlannedSub } = usePlannedSubPrompts(
     currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
     tmTime,
     availablePlayers,
     plannedSubsRefreshKey,
+    onFieldIds,
   );
 
   return (

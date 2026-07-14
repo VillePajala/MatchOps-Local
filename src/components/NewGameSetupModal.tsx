@@ -384,8 +384,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (s) {
       setGameLocation(s.location || '');
       setAgeGroup(s.ageGroup || '');
-      setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
-      setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
+      // With a plan prefill active, the match format belongs to the PLAN: the
+      // planned subs carry absolute times (e.g. half-time of 2x12), so letting
+      // the season's default format overwrite it would silently fire those
+      // subs at the wrong minute. Plans are made FOR seasons/tournaments, so
+      // keep the binding and skip only the format overwrite.
+      if (!prefillPayload) {
+        setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
+        setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
+      }
       setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('season');
       // Apply league from season as default (clear custom name if not "muu")
@@ -402,7 +409,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // Prefill gender from season (undefined if not set)
       setGender(s.gender);
     }
-  }, [seasons]);
+  }, [seasons, prefillPayload]);
 
   const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -554,8 +561,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setTournamentLevel(tournament.level || '');
         setSelectedTournamentSeriesId(null);
       }
-      setLocalNumPeriods((tournament.periodCount as 1 | 2) || 2);
-      setLocalPeriodDurationString(tournament.periodDuration ? String(tournament.periodDuration) : '15');
+      // Same prefill guard as applySeasonSettings: the plan's format drives
+      // the planned sub times; the tournament's default must not overwrite it.
+      if (!prefillPayload) {
+        setLocalNumPeriods((tournament.periodCount as 1 | 2) || 2);
+        setLocalPeriodDurationString(tournament.periodDuration ? String(tournament.periodDuration) : '15');
+      }
       setGameDate(tournament.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('tournament');
       // Prefill game type from tournament (defaults to 'soccer' if not set)
@@ -563,7 +574,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // Prefill gender from tournament (undefined if not set)
       setGender(tournament.gender);
     }
-  }, [tournaments]);
+  }, [tournaments, prefillPayload]);
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;

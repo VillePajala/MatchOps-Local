@@ -133,6 +133,26 @@ describe('PlanBalanceView', () => {
     expect(onOpenGame).toHaveBeenCalledWith('g1');
   });
 
+  it('a player absent from every game neither triggers the spread warning nor becomes the default focus', () => {
+    // p2-p4 each play the full 24' (equal), p5 never plays anywhere, p1 keeps
+    // goal. Kai (p5) is marked absent from the only game: his 0 minutes are a
+    // DECISION, so the 24-min spread against him must not raise the warning,
+    // and the default "worst-off" focus must be a participant instead.
+    const g = game({
+      startingSlots: [
+        { slotId: 'gk', playerId: 'p1' },
+        { slotId: 's0', playerId: 'p2' },
+        { slotId: 's1', playerId: 'p3' },
+        { slotId: 's2', playerId: 'p4' },
+      ],
+      absentIds: ['p5'],
+    });
+    render(<PlanBalanceView plan={plan([g])} onToggleHighlight={noop} onReplaceHighlights={noop} />);
+    expect(screen.queryByText(/min spread/)).not.toBeInTheDocument();
+    // Kai appears once (his chip) - NOT twice (chip + default focus card).
+    expect(screen.getAllByText('Kai')).toHaveLength(1);
+  });
+
   it('reports no games counted when none are included', () => {
     render(
       <PlanBalanceView plan={plan([game({ included: false })])} onToggleHighlight={noop} onReplaceHighlights={noop} />,

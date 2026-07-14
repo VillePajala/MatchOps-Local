@@ -394,39 +394,46 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setRoster(players);
         const list = Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setPlanList(list);
-        // Re-run with a plan already open (auth/user refresh when the app
-        // returns from the background): keep the user exactly where they were
-        // instead of dumping them back on the manager.
-        const open = activePlanRef.current;
-        if (open && plans[open.id]) return;
-        // Fresh mount after a background/resume remount: reopen the plan the
-        // session had open.
-        let resumeId: string | null = null;
-        try {
-          resumeId = sessionStorage.getItem(PLANNER_ACTIVE_PLAN_KEY);
-        } catch {
-          resumeId = null;
-        }
-        if (resumeId && plans[resumeId]) {
-          const resumed = normalizePlanAbsences(plans[resumeId]);
-          setActivePlan(resumed);
-          seedHistory(resumed);
-          setEditingGameId(null);
-          setReplacingId(null);
-          setHighlightPlayerIds([]);
-          setView('games');
-          return;
-        }
-        if (list.length > 0) {
-          // Step-by-step flow: pick (or create) a plan first; its workspace
-          // opens only after an explicit choice.
-          setActivePlan(null);
-          seedHistory(null);
-          setView('manager');
-        } else {
-          resetSetupFormRef.current(players);
-          setView('setup');
-        }
+        // Nested so an early "stay where you are" decision can return WITHOUT
+        // skipping the team/season/tournament load below - the resume paths
+        // used to exit the whole effect here, leaving those selectors empty
+        // for the rest of the modal instance after every background remount.
+        const decideView = () => {
+          // Re-run with a plan already open (auth/user refresh when the app
+          // returns from the background): keep the user exactly where they were
+          // instead of dumping them back on the manager.
+          const open = activePlanRef.current;
+          if (open && plans[open.id]) return;
+          // Fresh mount after a background/resume remount: reopen the plan the
+          // session had open.
+          let resumeId: string | null = null;
+          try {
+            resumeId = sessionStorage.getItem(PLANNER_ACTIVE_PLAN_KEY);
+          } catch {
+            resumeId = null;
+          }
+          if (resumeId && plans[resumeId]) {
+            const resumed = normalizePlanAbsences(plans[resumeId]);
+            setActivePlan(resumed);
+            seedHistory(resumed);
+            setEditingGameId(null);
+            setReplacingId(null);
+            setHighlightPlayerIds([]);
+            setView('games');
+            return;
+          }
+          if (list.length > 0) {
+            // Step-by-step flow: pick (or create) a plan first; its workspace
+            // opens only after an explicit choice.
+            setActivePlan(null);
+            seedHistory(null);
+            setView('manager');
+          } else {
+            resetSetupFormRef.current(players);
+            setView('setup');
+          }
+        };
+        decideView();
       } catch (error) {
         logger.error('[PlaytimePlannerModal] Failed to load:', error);
         if (!cancelled) {
@@ -811,6 +818,17 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               { count: summary.updated, failed: summary.failed },
             ),
             'error',
+          );
+        } else if (summary.skippedNoRoster > 0) {
+          // Honest count: a linked game whose roster was since emptied is left
+          // untouched - say so instead of letting "Updated N" imply everything.
+          showToast(
+            t(
+              'playtimePlanner.overview.reapplyDoneNoRoster',
+              'Updated {{updated}} games; {{skipped}} had no players in their roster and were left unchanged.',
+              { updated: summary.updated, skipped: summary.skippedNoRoster },
+            ),
+            'info',
           );
         } else {
           showToast(
