@@ -342,7 +342,9 @@ describe('Translation File Validation', () => {
       // -3/+2 net -1: menu groups regrouped by scope (two-level restructure
       //     PR 0.1): gameManagement/setupConfig/analysisTools -> thisMatch/teamAndApp
       // +1: controlBar.teamStats (PR 0.2: stats menu entry split match vs team)
-      expect(enKeys.length).toBe(2810);
+      // +5: startScreen.homeTabs/tabGames/tabTeam/tabSeasons/tabStats (PR 1.2:
+      //     the Home shell's club-level tab bar)
+      expect(enKeys.length).toBe(2815);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -407,7 +409,8 @@ describe('Translation File Validation', () => {
       //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
       // -3/+2 net -1: menu groups regrouped by scope (see the en note above)
       // +1: controlBar.teamStats (PR 0.2: stats menu entry split match vs team)
-      expect(fiKeys.length).toBe(2810);
+      // +5: startScreen home tab bar (see the en note above)
+      expect(fiKeys.length).toBe(2815);
     });
   });
 });

@@ -1118,7 +1118,12 @@
     "existingSubscriber": "Already a subscriber? Sign in →",
     "newToCloud": "New here? Subscribe via the Android app.",
     "getAndroidApp": "Get on Google Play",
-    "welcomeScreen": "Welcome"
+    "welcomeScreen": "Welcome",
+    "homeTabs": "Home sections",
+    "tabGames": "Games",
+    "tabTeam": "Team",
+    "tabSeasons": "Seasons",
+    "tabStats": "Stats"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

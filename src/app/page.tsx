@@ -1304,6 +1304,8 @@ export default function Home() {
             <StartScreen
               onLoadGame={() => handleAction('loadGame')}
               onResumeGame={() => handleAction('resumeGame')}
+              onManageRoster={() => handleAction('roster')}
+              onManageSeasons={() => handleAction('season')}
               onGetStarted={() => handleAction('getStarted')}
               onViewStats={() => handleAction('stats')}
               onOpenSettings={() => handleAction('settings')}
