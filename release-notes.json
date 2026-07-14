@@ -4,6 +4,15 @@
     {
       "date": "2026-07-14",
       "en": [
+        "Behind-the-scenes improvements to our automated code-review pipeline (no user-facing changes)."
+      ],
+      "fi": [
+        "Taustaparannuksia automaattiseen koodikatselmointiin (ei käyttäjälle näkyviä muutoksia)."
+      ]
+    },
+    {
+      "date": "2026-07-14",
+      "en": [
         "Development infrastructure: automated code reviews can now read the repository source, making review posting reliable and findings verifiable (no user-facing changes)."
       ],
       "fi": [
