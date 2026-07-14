@@ -154,7 +154,11 @@ eslint → build), user tests on the Vercel preview at each checkpoint.
 | **1.2 Home shell (strangler)** | StartScreen becomes Home: hero header kept (logo/tagline/glows, slightly shorter), house tab bar (Pelit · Joukkue · Kaudet · Tilastot) + ⚙ corner. Tabs only OPEN THE EXISTING MODALS. `page.tsx`'s `'start'` branch renders it; field boot path untouched. | All four tabs + gear open their modals; StartScreen tests reworked to Home. |
 | **1.3 Pelit front page** | Tab content v1: "Jatka ottelua" card (when live), pinned "Uusi peli", saved-games entry (opens LoadGameModal), Ottelusuunnittelu entry. Cloud/subscribe/Play-store rows move under ⚙ / welcome flow. | Front page shows ONLY hero + those items (anti-clutter rule holds). **User preview checkpoint.** |
 | **1.4 Gear bucket** | ⚙ sheet: app settings, Backup & Restore, cloud account, language, user guide, external resources, rules directory. Entries open existing modals. | Every Device/Account-scope item reachable ONLY via ⚙. |
-| **2-lite: Home-origin modals close back to Home** | OWNER DECISION 2026-07-15, replacing ALL of the planned 2.1-2.4 dissolves: modals stay; the orchestration tracks "opened from Home" and closing such a modal swaps back to the Home screen instead of revealing the pitch. Optional later: a recent-games TEASER on the front page (3-5 rows + "see all" opening the modal) captures the dissolve's only real payoff cheaply. | Open any club modal from a Home tab, close it -> Home, never the game view. |
+| **L.0 ClubModalsHost scaffold + easy lifts** | Page-level host component rendered on BOTH screens; TrainingResources, Rules, Instructions and Settings render there (they are self-contained). Opening them from Home no longer mounts the match at all; closing lands on whatever screen you were on - the 2-lite goal falls out for free, wave by wave. Dual-render guard: a modal must never render in both the host and ModalManager. | Gear-sheet items open with the game view UNMOUNTED (assert no game-view testid); close returns to Home. |
+| **L.1 Lift SeasonTournament + Personnel** | Query-backed CRUD with mutation hooks - least coupled. Hook instances move to the host; ModalManager rows deleted; suites follow. | Kilpailut tab + Taustahenkilöt row work with no game mounted. |
+| **L.2 Lift Roster + TeamManager** | useRoster ownership moves to the host; the game view consumes roster data via the query cache as it already does. Watch: single ownership of any LOCAL state (selectedTeamForRoster moves into the host). | Pelaajat/Joukkueet rows work with no game mounted; in-match roster editing unregressed. |
+| **L.3 Lift LoadGame + NewGameSetup (level crossing)** | The two modals that END in the match. Page exposes one small `enterMatch(gameId?)` contract: save current-game id, switch screen, let the game view's existing load path take over. Replaces today's mount-the-game-first flow AND the planner's session-key hack (planner joins the host here too - it is already self-contained). | Pick a saved game from Home -> match opens loaded; create game -> match opens set up; cancel either -> still on Home. |
+| **L.4 Lift GameStats (aggregate)** | The Tilastot tab renders host-level GameStats opening on the aggregate side (PR 0.2's initialTab). The current-game tab STAYS with the match modal - matching the final match-menu design. | Team stats from Home with no game mounted; match stats in-game unregressed. |
 | **3.1 Match menu shrink** | Match menu to ~7 items (Ottelun tiedot, Arvioi pelaajat, Otteluraportti, Ottelun tilastot + "Joukkueen tilastot →" link, **Taso link** - owner decision 2026-07-14: Taso is a game-day workflow tool (lineups before, results after), it stays in-game, Tallenna/Tallenna nimellä, ← Koti). Hardware back mirrors ← Koti. | Reachability table (§2) holds exactly; menu tests updated. |
 | **3.2 Roster bridge** | Game player picker gets inline "lisää seuran listaan" (writes club roster + selects). The ONLY club-write from match scope. | Test: added player lands in club roster AND the game selection. |
 | **F Final** | Docs (§7 status here, UNIFIED-ROADMAP), release-notes entry (the guard needs it), full-suite run, then the ONE PR `feature/two-level-structure` → master. | The 9 scenario walkthroughs in §2 all pass on the preview; review verdict posted; user merges. |
@@ -169,11 +173,15 @@ interaction - wasted work + a standing source of on-mount side effects;
 (2) back-button/transition fragility (pitch can flash on slow devices);
 (3) conceptual debt - future features keep landing in the game tree because
 that is where modals live, which makes phase 4 harder every month.
-**The true structural fix is NOT dissolving modals** - it is lifting modal
-ownership (ModalManager + its state) out of the game tree to page level so
-Home can open modals without mounting the match. Middle-sized, deliberately
-DEFERRED until the facade actually bites (bug/perf complaint) rather than
-paid speculatively. Phase 4 remains the deep fix, parked.
+**OWNER DECISION 2026-07-15: the lift IS the final architecture.** Modals
+are kept (no dissolving, ever); their RENDERING moves out of the game tree
+into a page-level ClubModalsHost, wave by wave (L.0-L.4 above). Key enabling
+fact: ModalProvider (open/close state) already lives at page level - only
+rendering + data wiring move. After L.4 the facade is gone: Home opens
+modals without mounting the match, closes land back where you were, and the
+game tree contains only match-scope surfaces (GameSettings, assessment,
+goal log, current-game stats). Phase 4 remains parked and becomes EASIER
+after the lift (fewer things depend on mounting the game).
 
 ## 7. Process rules for this branch (planner lessons, binding)
 
