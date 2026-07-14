@@ -42,6 +42,10 @@ const nameFor = (players: Player[], id: string | null): string | null => {
  *                             same game (e.g. after re-applying an edited plan). The
  *                             store isn't reactive, so without this the loaded subs
  *                             stay stale until the game id changes.
+ * @param onFieldIds           ids currently ON the field. A due prompt whose incoming
+ *                             player is already playing is suppressed (not dismissed):
+ *                             the coach made that sub early, nagging them to do it
+ *                             again helps nobody. Optional - omitted means no check.
  */
 const EMPTY_IDS: ReadonlySet<string> = new Set();
 
@@ -50,6 +54,7 @@ export function usePlannedSubPrompts(
   timeElapsedInSeconds: number,
   players: Player[],
   refreshKey = 0,
+  onFieldIds?: ReadonlySet<string>,
 ): UsePlannedSubPromptsResult {
   // Loaded subs and dismissals are stamped with the game they belong to. The memo
   // treats a mismatch as empty, so a game change takes effect immediately (no stale
@@ -120,8 +125,11 @@ export function usePlannedSubPrompts(
       .sort((a, b) => a.timeSeconds - b.timeSeconds);
     // Skip subs whose incoming player no longer resolves (deleted from the
     // roster after the game was created) - a prompt reading "player_171..._abc
-    // on" helps nobody.
-    const next = due.find((s) => nameFor(players, s.inPlayerId) !== null);
+    // on" helps nobody. Also skip subs whose incoming player is ALREADY on the
+    // field: the coach made that change early, the plan is satisfied.
+    const next = due.find(
+      (s) => nameFor(players, s.inPlayerId) !== null && !(onFieldIds?.has(s.inPlayerId) ?? false),
+    );
     if (!next) return null;
     return {
       subId: next.id,
@@ -129,7 +137,7 @@ export function usePlannedSubPrompts(
       inName: nameFor(players, next.inPlayerId) ?? next.inPlayerId,
       outName: nameFor(players, next.outPlayerId),
     };
-  }, [loaded, gameId, dismissed, persistedDismissed, timeElapsedInSeconds, players]);
+  }, [loaded, gameId, dismissed, persistedDismissed, timeElapsedInSeconds, players, onFieldIds]);
 
   return { prompt, dismiss };
 }

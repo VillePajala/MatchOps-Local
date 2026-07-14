@@ -3191,6 +3191,7 @@
       "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
       "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
       "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui.",
+      "reapplyDoneNoRoster": "Päivitettiin {{updated}} peliä; {{skipped}} pelissä ei ollut pelaajia listalla, joten ne jätettiin ennalleen.",
       "suggestButton": "Ehdota reilut kokoonpanot",
       "suggestConfirmTitle": "Ehdotetaanko reilut kokoonpanot?",
       "suggestConfirmMessage": "Rakentaa avauskokoonpanot ja puoliaikavaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan. Maalivahtia ei koskaan vaihdeta kesken pelin.",

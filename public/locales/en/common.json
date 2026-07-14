@@ -3191,6 +3191,7 @@
       "reapplyDoneMissing_other": "Updated {{count}} games. Not in a game roster, skipped: {{names}}.",
       "reapplyDonePartial_one": "Updated {{count}} game; {{failed}} could not be updated.",
       "reapplyDonePartial_other": "Updated {{count}} games; {{failed}} could not be updated.",
+      "reapplyDoneNoRoster": "Updated {{updated}} games; {{skipped}} had no players in their roster and were left unchanged.",
       "suggestButton": "Suggest fair lineups",
       "suggestConfirmTitle": "Suggest fair lineups?",
       "suggestConfirmMessage": "Builds lineups and half-time substitutions for every included game so playing time comes out as even as possible. The goalkeeper is never subbed mid-game.",

@@ -93,6 +93,25 @@ describe('usePlannedSubPrompts', () => {
     await waitFor(() => expect(result.current.prompt).toBeNull());
   });
 
+  it('suppresses a due prompt whose incoming player is already on the field (early manual sub)', async () => {
+    mockGetGameSubs.mockResolvedValue([
+      sub({ id: 'a', timeSeconds: 600, inPlayerId: 'in1' }),
+      sub({ id: 'b', timeSeconds: 700, inPlayerId: 'in2' }),
+    ]);
+    // Coach already brought in1 on before its planned time - no nagging;
+    // the NEXT due sub (in2, still on the bench) surfaces instead.
+    const { result, rerender } = renderHook(
+      ({ onField }) => usePlannedSubPrompts('g1', 1000, players, 0, onField),
+      { initialProps: { onField: new Set(['in1']) } },
+    );
+    await waitFor(() => expect(result.current.prompt?.subId).toBe('b'));
+
+    // If in1 leaves the field again (was subbed back off), the plan's reminder
+    // for them becomes relevant again.
+    rerender({ onField: new Set<string>() });
+    await waitFor(() => expect(result.current.prompt?.subId).toBe('a'));
+  });
+
   it('a dismissal survives a remount (PWA reload mid-game) via sessionStorage', async () => {
     // The hook persists dismissals per game precisely so a mobile reload does
     // not resurrect an already-acknowledged nudge.

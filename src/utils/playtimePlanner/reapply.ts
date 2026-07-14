@@ -145,6 +145,8 @@ export interface BulkReapplyResult {
   updatedIds: string[];
   /** Linked games skipped because they had already been played. */
   skippedPlayed: number;
+  /** Linked games skipped because their roster is empty (nothing to apply). */
+  skippedNoRoster: number;
   /** Linked games whose write failed (storage error) - surfaced, never silent. */
   failed: number;
   /** Total planned player slots skipped across all updated games (roster drift). */
@@ -178,6 +180,7 @@ export async function reapplyPlanToLinkedGames(
     updated: 0,
     updatedIds: [],
     skippedPlayed: 0,
+    skippedNoRoster: 0,
     failed: 0,
     missingTotal: 0,
     missingNames: [],
@@ -194,7 +197,11 @@ export async function reapplyPlanToLinkedGames(
 
     const result = buildReapplyPatch(game, plan, planGame);
     if (!result.ok || !result.patch) {
+      // Every matched-but-not-updated game lands in SOME counter, so
+      // matched === updated + skippedPlayed + skippedNoRoster + failed holds
+      // and the caller's toast never silently under-reports.
       if (result.reason === 'played') summary.skippedPlayed += 1;
+      else summary.skippedNoRoster += 1;
       continue;
     }
     // Each game's write is isolated: one bad blob must not abort the batch (the

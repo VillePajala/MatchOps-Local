@@ -1724,6 +1724,7 @@ export type TranslationKey =
   | 'playtimePlanner.overview.placedCount'
   | 'playtimePlanner.overview.reapplyDoneMissing_one'
   | 'playtimePlanner.overview.reapplyDoneMissing_other'
+  | 'playtimePlanner.overview.reapplyDoneNoRoster'
   | 'playtimePlanner.overview.reapplyDonePartial_one'
   | 'playtimePlanner.overview.reapplyDonePartial_other'
   | 'playtimePlanner.overview.reapplyDone_one'

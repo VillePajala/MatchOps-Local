@@ -81,6 +81,19 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   );
   const rowById = useMemo(() => new Map(rows.map((r) => [r.playerId, r])), [rows]);
 
+  // Players marked absent from EVERY included game earn no minutes by decision,
+  // not by unfairness - they must not drive the spread warning or the default
+  // "worst-off" focus (they'd always sort first with 0 seconds).
+  const fullyAbsentIds = useMemo(() => {
+    const included = plan.games.filter((g) => g.included);
+    if (included.length === 0) return new Set<string>();
+    return new Set(
+      plan.players
+        .map((p) => p.id)
+        .filter((id) => included.every((g) => (g.absentIds ?? []).includes(id))),
+    );
+  }, [plan]);
+
   const gameShort = (i: number) => t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 });
 
   // Positions a player holds in one game: starting slot, plus any slot they enter
@@ -168,10 +181,12 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
       });
     }
 
-    // 2. Spread between least- and most-played beyond 15 minutes.
-    if (rows.length > 1 && minutes.includedGameCount > 0) {
-      const least = rows[0];
-      const most = rows[rows.length - 1];
+    // 2. Spread between least- and most-played beyond 15 minutes - among
+    // players actually participating (fully-absent players are excluded).
+    const participating = rows.filter((r) => !fullyAbsentIds.has(r.playerId));
+    if (participating.length > 1 && minutes.includedGameCount > 0) {
+      const least = participating[0];
+      const most = participating[participating.length - 1];
       const spread = toMin(most.totalSeconds - least.totalSeconds);
       if (spread > 15) {
         out.push({
@@ -214,15 +229,19 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
     return out;
     // gameShort/positionsFor are stable per render; the memo keys on the data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan, minutes, rows, nameById, t]);
+  }, [plan, minutes, rows, fullyAbsentIds, nameById, t]);
 
   const anyHighlight = highlightPlayerIds.length > 0;
   // Focus stack: the highlighted players (least-played first), or the worst-off
   // player as the always-on default - the pane is never empty.
   const focusIds = useMemo(() => {
     const tracked = rows.filter((r) => highlightPlayerIds.includes(r.playerId)).map((r) => r.playerId);
-    return tracked.length > 0 ? tracked : rows.length > 0 ? [rows[0].playerId] : [];
-  }, [rows, highlightPlayerIds]);
+    if (tracked.length > 0) return tracked;
+    // Default focus = the worst-off PARTICIPANT; a player absent from every
+    // game has zero minutes by decision and is not "worst-off".
+    const worstOff = rows.find((r) => !fullyAbsentIds.has(r.playerId)) ?? rows[0];
+    return worstOff ? [worstOff.playerId] : [];
+  }, [rows, highlightPlayerIds, fullyAbsentIds]);
 
   const fairMin = minutes.fairShareSeconds !== null ? toMin(minutes.fairShareSeconds) : null;
 

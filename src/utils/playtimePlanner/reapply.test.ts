@@ -283,12 +283,35 @@ describe('reapplyPlanToLinkedGames', () => {
       updated: 2,
       updatedIds: ['a', 'b'],
       skippedPlayed: 1,
+      skippedNoRoster: 0,
       failed: 0,
       missingTotal: 0,
       missingNames: [],
     });
     expect(saveGame).toHaveBeenCalledTimes(2); // a + b, not the played one, not g2
     expect(setGameSubs).toHaveBeenCalledTimes(2);
+  });
+
+  it('counts an empty-roster linked game as skipped - every matched game lands in a counter', async () => {
+    const games: Record<string, AppState> = {
+      a: makeGame(),
+      empty: makeGame({ availablePlayers: [] }),
+    };
+    const links = {
+      a: { planId: 'plan-1', planGameId: 'g1' },
+      empty: { planId: 'plan-1', planGameId: 'g1' },
+    };
+    const { deps, saveGame } = makeBulkDeps(games, links);
+    const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
+
+    expect(summary.matched).toBe(2);
+    expect(summary.updated).toBe(1);
+    expect(summary.skippedNoRoster).toBe(1);
+    // The accounting invariant the toast relies on.
+    expect(summary.matched).toBe(
+      summary.updated + summary.skippedPlayed + summary.skippedNoRoster + summary.failed,
+    );
+    expect(saveGame).toHaveBeenCalledTimes(1); // the empty-roster game is untouched
   });
 
   it('isolates a failing write: the rest of the batch still updates and failures are counted', async () => {
@@ -356,6 +379,7 @@ describe('reapplyPlanToLinkedGames', () => {
       updated: 0,
       updatedIds: [],
       skippedPlayed: 0,
+      skippedNoRoster: 0,
       failed: 0,
       missingTotal: 0,
       missingNames: [],
