@@ -101,28 +101,36 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
 
   if (!visible) return null;
 
+  // Floating overlay card (fixed) rather than an inline banner, so it never steals
+  // layout height from the field/app. App-style: slate card, indigo primary action.
+  // z-[25]: BELOW the full-screen TimerOverlay (z-30), the sidebar backdrop (z-40),
+  // the sidebar (z-50) and modals - an overdue-backup reminder must never sit on
+  // top of live-game controls or navigation chrome. It floats clear of the bottom
+  // ControlBar spatially (bottom offset), so its buttons stay tappable in normal use.
   return (
-    <div
-      role="status"
-      className="flex flex-wrap items-center justify-center gap-3 bg-indigo-700/95 text-white px-4 py-2 text-sm"
-    >
-      <span className="text-center">
-        {t("backupReminder.message", "It's been a while since your last backup. Keep your data safe with an off-device copy.")}
-      </span>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={handleBackupNow}
-          disabled={busy}
-          className="px-3 py-1 bg-white text-indigo-800 rounded font-medium hover:bg-indigo-50 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {t("backupReminder.backupNow", "Back up now")}
-        </button>
-        <button
-          onClick={handleDismiss}
-          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium transition-colors"
-        >
-          {t("backupReminder.dismiss", "Dismiss")}
-        </button>
+    <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] z-[25] flex justify-center px-4 pointer-events-none">
+      <div
+        role="status"
+        className="pointer-events-auto w-full max-w-md rounded-xl border border-slate-700 bg-slate-800/95 backdrop-blur-sm shadow-xl p-3 flex flex-col gap-2"
+      >
+        <span className="text-sm text-slate-100">
+          {t("backupReminder.message", "It's been a while since your last backup. Keep your data safe with an off-device copy.")}
+        </span>
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={handleDismiss}
+            className="px-3 py-1.5 text-sm rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+          >
+            {t("backupReminder.dismiss", "Dismiss")}
+          </button>
+          <button
+            onClick={handleBackupNow}
+            disabled={busy}
+            className="px-3 py-1.5 text-sm rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-medium disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            {t("backupReminder.backupNow", "Back up now")}
+          </button>
+        </div>
       </div>
     </div>
   );

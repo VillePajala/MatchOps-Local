@@ -344,6 +344,86 @@ export type Database = {
           },
         ]
       }
+      playtime_game_subs: {
+        Row: {
+          game_id: string
+          subs: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          subs?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          subs?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playtime_plan_links: {
+        Row: {
+          game_id: string
+          plan_game_id: string
+          plan_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          game_id: string
+          plan_game_id: string
+          plan_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          game_id?: string
+          plan_game_id?: string
+          plan_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playtime_plan_links_plan_fk"
+            columns: ["user_id", "plan_id"]
+            isOneToOne: false
+            referencedRelation: "playtime_plans"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
+      playtime_plans: {
+        Row: {
+          archived: boolean
+          data: Json
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          data: Json
+          id: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          data?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personnel: {
         Row: {
           certifications: string[] | null
@@ -1014,6 +1094,16 @@ export type Database = {
     }
     Functions: {
       clear_all_user_data: { Args: never; Returns: undefined }
+      save_playtime_plan: {
+        Args: {
+          p_id: string
+          p_name: string
+          p_archived: boolean
+          p_data: Json
+          p_updated_at: string
+        }
+        Returns: boolean
+      }
       delete_personnel_cascade: {
         Args: { p_personnel_id: string }
         Returns: boolean

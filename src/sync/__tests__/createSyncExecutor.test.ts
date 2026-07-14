@@ -117,6 +117,17 @@ describe('createSyncExecutor', () => {
       getSeasonReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
       getTournamentReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
       getTeamReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
+    getPlaytimePlans: jest.fn().mockResolvedValue({}),
+    savePlaytimePlan: jest.fn(async (p: never) => p),
+    deletePlaytimePlan: jest.fn().mockResolvedValue(true),
+    getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
+    setPlaytimePlanLink: jest.fn().mockResolvedValue(true),
+    deletePlaytimePlanLink: jest.fn().mockResolvedValue(true),
+    deletePlaytimePlanLinksForPlan: jest.fn().mockResolvedValue(true),
+    getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+    getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
+    setPlaytimeGameSubs: jest.fn().mockResolvedValue(true),
+    deletePlaytimeGameSubs: jest.fn().mockResolvedValue(true),
     } as jest.Mocked<DataStore>;
 
     executor = createSyncExecutor(mockStore);
@@ -459,6 +470,107 @@ describe('createSyncExecutor', () => {
       await executor(op);
 
       expect(mockStore.deleteWarmupPlan).toHaveBeenCalled();
+    });
+  });
+
+  describe('Playtime planner operations', () => {
+    it('saves a plan blob on update and deletes by id on delete', async () => {
+      const plan = { id: 'ptp_1', name: 'Cup', games: [] };
+      await executor(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: plan,
+      }));
+      expect(mockStore.savePlaytimePlan).toHaveBeenCalledWith(plan);
+
+      await executor(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'delete',
+      }));
+      expect(mockStore.deletePlaytimePlan).toHaveBeenCalledWith('ptp_1');
+    });
+
+    it('pulls the newer cloud copy down when the LWW RPC refuses the write', async () => {
+      // savePlaytimePlan returning null = migration 038's conditional upsert
+      // refused a stale push. The op must still succeed (conflict resolved,
+      // cloud won) AND the local store must converge to the winning copy via
+      // the stamp-preserving restore helper.
+      const stalePlan = { id: 'ptp_1', name: 'Stale', games: [] };
+      const cloudPlan = { id: 'ptp_1', name: 'Newer', games: [] };
+      mockStore.savePlaytimePlan.mockResolvedValueOnce(null);
+      mockStore.getPlaytimePlans.mockResolvedValueOnce(
+        { ptp_1: cloudPlan } as unknown as Awaited<ReturnType<DataStore['getPlaytimePlans']>>,
+      );
+      const restorePlaytimePlans = jest.fn().mockResolvedValue(1);
+      const localStore = { restorePlaytimePlans } as unknown as DataStore;
+
+      const executorWithLocal = createSyncExecutor(mockStore, localStore);
+      await executorWithLocal(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: stalePlan,
+      }));
+
+      expect(restorePlaytimePlans).toHaveBeenCalledWith({ ptp_1: cloudPlan });
+    });
+
+    it('treats an LWW refusal as success even without a local store wired', async () => {
+      mockStore.savePlaytimePlan.mockResolvedValueOnce(null);
+      await expect(executor(createOperation({
+        entityType: 'playtimePlan',
+        entityId: 'ptp_1',
+        operation: 'update',
+        data: { id: 'ptp_1', name: 'Stale', games: [] },
+      }))).resolves.toBeUndefined();
+    });
+
+    it('routes a plan-link delete WITH data.planId to delete-for-plan', async () => {
+      await executor(createOperation({
+        entityType: 'playtimePlanLink',
+        entityId: 'plan:ptp_1',
+        operation: 'delete',
+        data: { planId: 'ptp_1' },
+      }));
+      expect(mockStore.deletePlaytimePlanLinksForPlan).toHaveBeenCalledWith('ptp_1');
+      expect(mockStore.deletePlaytimePlanLink).not.toHaveBeenCalled();
+
+      await executor(createOperation({
+        entityType: 'playtimePlanLink',
+        entityId: 'game_1',
+        operation: 'delete',
+        data: null,
+      }));
+      expect(mockStore.deletePlaytimePlanLink).toHaveBeenCalledWith('game_1');
+    });
+
+    it('upserts a plan link and planned game subs per real game', async () => {
+      const link = { planId: 'ptp_1', planGameId: 'ptg_1' };
+      await executor(createOperation({
+        entityType: 'playtimePlanLink',
+        entityId: 'game_1',
+        operation: 'update',
+        data: link,
+      }));
+      expect(mockStore.setPlaytimePlanLink).toHaveBeenCalledWith('game_1', link);
+
+      const subs = [{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', outPlayerId: null, timeSeconds: 720 }];
+      await executor(createOperation({
+        entityType: 'playtimeGameSubs',
+        entityId: 'game_1',
+        operation: 'update',
+        data: subs,
+      }));
+      expect(mockStore.setPlaytimeGameSubs).toHaveBeenCalledWith('game_1', subs);
+
+      await executor(createOperation({
+        entityType: 'playtimeGameSubs',
+        entityId: 'game_1',
+        operation: 'delete',
+      }));
+      expect(mockStore.deletePlaytimeGameSubs).toHaveBeenCalledWith('game_1');
     });
   });
 

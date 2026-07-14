@@ -90,6 +90,7 @@ interface ModalManagerData {
   playersForCurrentGame: Player[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
+  canReapplyPlan: boolean;
   teams: Team[];
   seasons: Season[];
   tournaments: Tournament[];
@@ -199,6 +200,7 @@ interface ModalManagerHandlers {
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
+  reapplyPlan: () => void | Promise<void>;
   setGamePersonnel?: (personnelIds: string[]) => void;
   closeSettingsModal: () => void;
   setAppLanguage: (lang: string) => void;
@@ -433,6 +435,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
           selectedPersonnelIds={data.gameSessionState.gamePersonnel || []}
           onSelectedPlayersChange={handlers.updateSelectedPlayers}
+          canReapplyPlan={data.canReapplyPlan}
+          onReapplyPlan={handlers.reapplyPlan}
           onSelectedPersonnelChange={handlers.setGamePersonnel || (() => {})}
           numPeriods={data.gameSessionState.numberOfPeriods}
           periodDurationMinutes={data.gameSessionState.periodDurationMinutes}

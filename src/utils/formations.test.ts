@@ -10,9 +10,34 @@ import {
   applyFormationPreset,
   generateSidelinePositions,
   generateSubSlots,
+  isFieldPosition,
   type FieldPosition,
   type FormationResult,
 } from './formations';
+
+describe('isFieldPosition', () => {
+  // The single source of truth for "which persisted snap points count as
+  // FIELD positions" when regenerating sub slots (game load, plan prefill,
+  // plan re-apply). A boundary regression silently misclassifies slots.
+  it('accepts typical outfield positions', () => {
+    expect(isFieldPosition({ relX: 0.5, relY: 0.5 })).toBe(true);
+    expect(isFieldPosition({ relX: 0.2, relY: 0.85 })).toBe(true);
+  });
+
+  it('excludes the goalkeeper row: relY 0.9 is still FIELD, anything below is not', () => {
+    expect(isFieldPosition({ relX: 0.5, relY: 0.9 })).toBe(true); // inclusive boundary
+    expect(isFieldPosition({ relX: 0.5, relY: 0.900001 })).toBe(false);
+    expect(isFieldPosition({ relX: 0.5, relY: 0.92 })).toBe(false); // GK_SLOT band
+  });
+
+  it('excludes sideline parking columns: relX 0.05 / 0.95 are OUT (exclusive)', () => {
+    expect(isFieldPosition({ relX: 0.05, relY: 0.5 })).toBe(false);
+    expect(isFieldPosition({ relX: 0.95, relY: 0.5 })).toBe(false);
+    expect(isFieldPosition({ relX: 0.050001, relY: 0.5 })).toBe(true);
+    expect(isFieldPosition({ relX: 0.949999, relY: 0.5 })).toBe(true);
+    expect(isFieldPosition({ relX: 0.96, relY: 0.5 })).toBe(false); // SIDELINE_X band
+  });
+});
 
 describe('calculateFormationPositions', () => {
   describe('edge cases', () => {

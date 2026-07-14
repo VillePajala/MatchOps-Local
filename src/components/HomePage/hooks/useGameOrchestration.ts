@@ -52,7 +52,11 @@ import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
-import { generateSubSlots } from '@/utils/formations';
+import { generateSubSlots, isFieldPosition } from '@/utils/formations';
+import { reapplyPlanToGame, type ReapplyResult } from '@/utils/playtimePlanner/reapply';
+import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
+import { getPlan } from '@/utils/playtimePlanner/storage';
+import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
@@ -333,6 +337,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // --- Persistence State ---
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  // Bumped after a plan is re-applied so the live planned-sub prompts re-read the
+  // (non-reactive) local schedule store for the same game.
+  const [plannedSubsRefreshKey, setPlannedSubsRefreshKey] = useState(0);
+  // The current game's plan link from the local-only link store (null when the game
+  // wasn't created from a plan). Drives the "Re-apply plan" affordance.
+  const [currentGamePlanLink, setCurrentGamePlanLink] = useState<PlanLink | null>(null);
 
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
@@ -1171,10 +1181,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // Works for both soccer and futsal - generateSubSlots is sport-agnostic
     const snapPoints = gameData?.formationSnapPoints || [];
     if (snapPoints.length > 0) {
-      // Extract field positions only (exclude GK at relY > 0.9 and sideline at relX > 0.95)
-      const fieldPositions = snapPoints.filter(p =>
-        p.relY <= 0.9 && p.relX > 0.05 && p.relX < 0.95
-      );
+      // Extract field positions only (shared predicate: excludes GK + sideline)
+      const fieldPositions = snapPoints.filter(isFieldPosition);
       if (fieldPositions.length > 0) {
         const newSubSlots = generateSubSlots(fieldPositions);
         setSubSlots(newSubSlots);
@@ -1980,6 +1988,217 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     });
   }, [dispatchGameSession, setPlayersOnField]);
 
+  // Load the current game's plan link from the local-only store whenever the game
+  // changes. On creation-from-plan the link is persisted before setCurrentGameId
+  // fires (newGameHandlers awaits setPlanLink first), so this read never races it.
+  // The link only counts if the plan AND its planned game still exist - otherwise
+  // the "Re-apply plan" button would be a dead affordance that errors after the
+  // confirm dialog. (Plan deletion also purges its links, so a dangling link is
+  // already rare; this is the belt-and-braces check.)
+  useEffect(() => {
+    const gameId = currentGameId;
+    let cancelled = false;
+    void (async () => {
+      if (!gameId || gameId === DEFAULT_GAME_ID) {
+        if (!cancelled) setCurrentGamePlanLink(null);
+        return;
+      }
+      try {
+        const link = await getPlanLink(gameId);
+        const plan = link ? await getPlan(link.planId) : null;
+        const planGameExists = !!plan?.games.some(g => g.id === link?.planGameId);
+        if (!cancelled) setCurrentGamePlanLink(planGameExists ? link : null);
+      } catch (err) {
+        logger.error('[reapplyPlan] Failed to load plan link (non-fatal)', err);
+        if (!cancelled) setCurrentGamePlanLink(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentGameId]);
+
+  // Live mirror of currentGameId for the async re-apply guards below: a re-apply
+  // captured against game A must never push its lineup into a game B the coach
+  // loaded while the chain was in flight.
+  const reapplyGameIdRef = useRef(currentGameId);
+  useEffect(() => {
+    reapplyGameIdRef.current = currentGameId;
+  }, [currentGameId]);
+
+  // Shared by the per-game and bulk re-apply paths: push a rebuilt lineup into live
+  // state so the coach sees it without reloading - and, critically, so the next
+  // autosave snapshot persists the NEW lineup instead of writing the stale one back
+  // over the storage update.
+  const applyReappliedLineup = useCallback(
+    (patch: Pick<AppState, 'playersOnField' | 'selectedPlayerIds' | 'formationSnapPoints'>) => {
+      const snapPoints = patch.formationSnapPoints ?? [];
+      setPlayersOnField(patch.playersOnField);
+      setFormationSnapPoints(snapPoints);
+      dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: patch.selectedPlayerIds });
+      // Rebuild sideline sub-slot visuals from the new snap points (mirrors the load path).
+      const fieldPositions = snapPoints.filter(isFieldPosition);
+      setSubSlots(fieldPositions.length > 0 ? generateSubSlots(fieldPositions) : []);
+      // Force the live sub-prompt hook to re-read the new planned schedule.
+      setPlannedSubsRefreshKey(k => k + 1);
+      // Record the re-applied lineup as an undo step. Without this, one Undo tap
+      // would jump straight past the confirmed re-apply to a pre-reapply snapshot
+      // (and the next autosave would persist that revert); with it, undo/redo
+      // treat the re-apply as a normal, reversible action.
+      saveStateToHistory({
+        playersOnField: patch.playersOnField,
+        selectedPlayerIds: patch.selectedPlayerIds,
+        formationSnapPoints: snapPoints,
+      });
+    },
+    [setPlayersOnField, setFormationSnapPoints, dispatchGameSession, setSubSlots, saveStateToHistory],
+  );
+
+  // Playing-Time Planner (Phase 3.3): re-apply the source plan to the CURRENT game.
+  // Overwrites the live lineup (field + selection + snap points) and the planned sub
+  // schedule from the (possibly edited) plan, preserving everything that is "what
+  // happened". The persisted copy is re-saved by the core handler; here we also push
+  // the new lineup into live state so the coach sees it without reloading.
+  const handleReapplyPlan = useCallback(async () => {
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+
+    // Flush live state to storage first (PR #650 review issue 2): fields like game
+    // notes sit in a debounced autosave tier, and the re-apply below reads + fully
+    // rewrites the PERSISTED blob - without the flush an edit made in the last
+    // ~500ms would be missing from the rewrite (self-healing on the next autosave,
+    // but a crash inside that window would drop it). Silent + no error toast: a
+    // failed flush just means we proceed from the last persisted copy, no worse
+    // than before this guard.
+    try {
+      await persistence.handleQuickSaveGame(true, true);
+    } catch (err) {
+      logger.warn('[reapplyPlan] Pre-reapply flush failed (non-fatal)', err);
+    }
+
+    let game: AppState | null = null;
+    try {
+      game = await utilGetGame(currentGameId, userId);
+    } catch (err) {
+      logger.error('[reapplyPlan] Failed to load current game', err);
+    }
+    if (!game) {
+      showToast(t('gameSettingsModal.reapplyPlan.errorGeneric', 'Could not re-apply the plan.'), 'error');
+      return;
+    }
+
+    // saveGame/setGameSubs can reject (IndexedDB write failure, quota); without
+    // this catch the rejection would be a silent no-op while every other failure
+    // path here toasts (PR #650 review bug 1).
+    let result: ReapplyResult;
+    try {
+      result = await reapplyPlanToGame(
+        { getPlan, getPlanLink, saveGame: (id, g) => utilSaveGame(id, g, userId), setGameSubs },
+        currentGameId,
+        game,
+      );
+    } catch (err) {
+      logger.error('[reapplyPlan] Re-apply failed', err);
+      showToast(t('gameSettingsModal.reapplyPlan.errorGeneric', 'Could not re-apply the plan.'), 'error');
+      return;
+    }
+
+    if (!result.ok || !result.patch) {
+      const msg =
+        result.reason === 'played'
+          ? t('gameSettingsModal.reapplyPlan.errorPlayed', "This game has already started, so its lineup can't be re-applied.")
+          : result.reason === 'plan-missing'
+            ? t('gameSettingsModal.reapplyPlan.errorPlanMissing', 'The source plan was deleted, so it can no longer be re-applied.')
+            : t('gameSettingsModal.reapplyPlan.errorGeneric', 'Could not re-apply the plan.');
+      showToast(msg, 'error');
+      return;
+    }
+
+    // Push the rebuilt lineup into live state (persisted copy already saved) -
+    // unless the coach loaded a DIFFERENT game while the async chain ran, in
+    // which case the live field belongs to that game and must not be overwritten.
+    // The storage/cache updates below are keyed to the original game and stay valid.
+    if (reapplyGameIdRef.current === currentGameId) {
+      applyReappliedLineup(result.patch);
+    }
+    // Keep the in-memory savedGames copy AND the query cache in step with storage
+    // (mirrors the bulk path - readers of savedGames state would otherwise show
+    // the pre-reapply lineup until the refetch lands).
+    setSavedGames(prev => ({ ...prev, [currentGameId]: { ...game!, ...result.patch } }));
+    queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+
+    const missing = result.missingPlayerIds?.length ?? 0;
+    showToast(
+      missing > 0
+        ? t(
+            'gameSettingsModal.reapplyPlan.successMissing',
+            "Lineup updated from the plan. Not in this game's roster, skipped: {{names}}.",
+            { count: missing, names: (result.missingNames ?? result.missingPlayerIds ?? []).join(', ') },
+          )
+        : t('gameSettingsModal.reapplyPlan.success', 'Lineup updated from the plan.'),
+      'success',
+    );
+  }, [
+    currentGameId,
+    userId,
+    persistence,
+    showToast,
+    t,
+    applyReappliedLineup,
+    setSavedGames,
+    queryClient,
+  ]);
+
+  // Bulk re-apply is about to read + rewrite persisted game blobs in the planner.
+  // Flush the currently-loaded game's debounced autosave first so an edit made in
+  // the last ~500ms (notes, personnel, ...) is IN the blob the bulk path reads -
+  // the same guard the per-game path applies before its own read (PR #650 r4 bug 1).
+  const handleFlushLiveGame = useCallback(async () => {
+    // Same guard as the per-game path: with no real game loaded (DEFAULT_GAME_ID),
+    // handleQuickSaveGame's no-id branch would CREATE a phantom saved game from
+    // the default workspace ("My Team vs Opponent") - there is nothing to flush.
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+    try {
+      await persistence.handleQuickSaveGame(true, true);
+    } catch (err) {
+      logger.warn('[reapplyPlan] Pre-bulk flush failed (non-fatal)', err);
+    }
+  }, [currentGameId, persistence]);
+
+  // Bulk re-apply ran in the planner (Phase 3.4). If the CURRENTLY LOADED game was
+  // among the updated ones, its live state is now stale - without this refresh the
+  // next autosave would silently write the old lineup back over the bulk update.
+  const handleLinkedGamesUpdated = useCallback(
+    async (updatedIds: string[]) => {
+      if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+      if (!updatedIds.includes(currentGameId)) return;
+      try {
+        const stored = await utilGetGame(currentGameId, userId);
+        if (!stored) return;
+        // Same async guard as the per-game path: only push into live state if
+        // the game this refresh was captured for is still the loaded one.
+        if (reapplyGameIdRef.current === currentGameId) {
+          applyReappliedLineup({
+            playersOnField: stored.playersOnField ?? [],
+            selectedPlayerIds: stored.selectedPlayerIds ?? [],
+            formationSnapPoints: stored.formationSnapPoints ?? [],
+          });
+        }
+        // Keep the in-memory savedGames copy in step with storage too.
+        setSavedGames(prev => ({ ...prev, [currentGameId]: stored }));
+      } catch (err) {
+        logger.error('[reapplyPlan] Failed to refresh live state after bulk re-apply', err);
+      }
+    },
+    [currentGameId, userId, applyReappliedLineup, setSavedGames],
+  );
+
+  // The re-apply action is offered only for a saved game that was created from a plan
+  // and hasn't been played yet (never clobber a game that has events/score).
+  const canReapplyPlan =
+    !!currentGamePlanLink &&
+    gameSessionState.gameStatus === 'notStarted' &&
+    (gameSessionState.gameEvents?.length ?? 0) === 0;
+
   // Deterministic init fallback: auto-select latest real game if default or stale
   useEffect(() => {
     if (!initialLoadComplete) return;
@@ -2097,7 +2316,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     leagueId: string,
     customLeagueName: string,
     gameType: import('@/types').GameType,
-    gender: import('@/types').Gender | undefined
+    gender: import('@/types').Gender | undefined,
+    // Optional Playing-Time Planner prefill (Phase 2): planned XI + sub schedule + snap points.
+    // Phase 3: sourcePlanId/sourcePlanGameId link the game back to its plan.
+    prefill?: { playersOnField: Player[]; plannedSubs: import('@/utils/playtimePlanner/gameSubs').PlannedGameSub[]; formationSnapPoints: import('@/types').Point[]; sourcePlanId?: string; sourcePlanGameId?: string }
   ) => {
     // Clear field state before creating new game to prevent stale data
     logger.info('[NEW GAME] Clearing field state BEFORE game creation', {
@@ -2163,6 +2385,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         customLeagueName,
         gameType,
         gender,
+        prefill,
       },
     );
   }, [
@@ -2403,6 +2626,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldVM,
     timerVM,
     currentGameId,
+    plannedSubsRefreshKey,
     availablePlayers,
     teams: gameDataManagement.teams,
     seasons: gameDataManagement.seasons,
@@ -2482,6 +2706,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
     fieldProps: fieldContainerProps,
     controlBarProps,
+    // Planner bulk re-apply may rewrite the currently loaded game in storage;
+    // the flush runs before its read (pending edits land first), the refresh runs
+    // after its write (so autosave doesn't revert the update).
+    onFlushLiveGame: handleFlushLiveGame,
+    onLinkedGamesUpdated: handleLinkedGamesUpdated,
   };
 
   // --- Modal Orchestration Hook (Step 2.6.6 - FINAL, Step 2.8 - Grouped interface) ---
@@ -2502,6 +2731,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       playersForCurrentGame,
       savedGames,
       currentGameId,
+      canReapplyPlan,
       playerAssessments,
       selectedPlayerForStats,
       setSelectedPlayerForStats,
@@ -2575,6 +2805,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetShootoutKicks,
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
+      handleReapplyPlan,
       handleSetGamePersonnel,
       handleShowAppGuide,
       handleHardResetApp,

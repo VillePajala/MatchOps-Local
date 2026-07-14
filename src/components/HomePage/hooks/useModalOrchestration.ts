@@ -58,6 +58,7 @@ export interface ModalUIState {
   playersForCurrentGame: Player[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
+  canReapplyPlan: boolean;
   playerAssessments: Record<string, PlayerAssessment>;
   selectedPlayerForStats: Player | null;
   setSelectedPlayerForStats: (player: Player | null) => void;
@@ -159,6 +160,7 @@ export interface ModalHandlers {
   handleSetShootoutKicks: (kicks: ShootoutKick[]) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
+  handleReapplyPlan: () => void | Promise<void>;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
   handleShowAppGuide: () => void;
   handleHardResetApp: () => void;
@@ -236,6 +238,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     playersForCurrentGame,
     savedGames,
     currentGameId,
+    canReapplyPlan,
     playerAssessments,
     selectedPlayerForStats,
     // setSelectedPlayerForStats not used locally - passed through to modalManagerProps
@@ -311,6 +314,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetShootoutKicks,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
+    handleReapplyPlan,
     handleSetGamePersonnel,
     handleShowAppGuide,
     handleHardResetApp,
@@ -524,6 +528,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       playersForCurrentGame,
       savedGames,
       currentGameId,
+      canReapplyPlan,
       teams: gameDataManagement.teams,
       seasons: gameDataManagement.seasons,
       tournaments: gameDataManagement.tournaments,
@@ -628,6 +633,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
+      reapplyPlan: handleReapplyPlan,
       setGamePersonnel: handleSetGamePersonnel,
       closeSettingsModal: handleCloseSettingsModal,
       setAppLanguage,

@@ -27,6 +27,9 @@ import type { WarmupPlan } from '@/types/warmupPlan';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
+import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import { LocalDataStore } from './LocalDataStore';
 import { normalizeWarmupPlanForSave } from './normalizers';
 import { SyncQueue, SyncEngine, getSyncEngine, resetSyncEngine, type SyncOperationExecutor } from '@/sync';
@@ -79,6 +82,12 @@ export interface PushAllToCloudResult {
   settings: boolean;
   /** Whether warmup plan was successfully pushed */
   warmupPlan: boolean;
+  /** Number of successfully pushed playtime plans */
+  playtimePlans: number;
+  /** Number of successfully pushed playtime plan links */
+  playtimePlanLinks: number;
+  /** Number of successfully pushed playtime game-sub entries */
+  playtimeGameSubs: number;
   /** Tracking of failed entities */
   failures: {
     /** IDs of players that failed to push */
@@ -101,6 +110,12 @@ export interface PushAllToCloudResult {
     settings: boolean;
     /** Whether warmup plan failed to push */
     warmupPlan: boolean;
+    /** IDs of playtime plans that failed to push */
+    playtimePlans: string[];
+    /** Game IDs whose plan link failed to push */
+    playtimePlanLinks: string[];
+    /** Game IDs whose planned subs failed to push */
+    playtimeGameSubs: string[];
   };
   /**
    * Warnings about orphaned references that were fixed during push.
@@ -477,6 +492,15 @@ export class SyncedDataStore implements DataStore {
         entityType,
         entityId,
         operation,
+      });
+      // The LOCAL write already succeeded but will never sync - that must not
+      // be silent (review finding: a flush racing close() dropped ops with no
+      // user-visible signal). Same listener path as an enqueue failure.
+      this.notifyQueueError({
+        entityType,
+        entityId,
+        operation,
+        error: 'Sync queue unavailable (store closing)',
       });
       return;
     }
@@ -1057,6 +1081,9 @@ export class SyncedDataStore implements DataStore {
       games: 0,
       settings: false,
       warmupPlan: false,
+      playtimePlans: 0,
+      playtimePlanLinks: 0,
+      playtimeGameSubs: 0,
       failures: {
         players: [] as string[],
         teams: [] as string[],
@@ -1068,6 +1095,9 @@ export class SyncedDataStore implements DataStore {
         adjustments: [] as string[],
         settings: false,
         warmupPlan: false,
+        playtimePlans: [] as string[],
+        playtimePlanLinks: [] as string[],
+        playtimeGameSubs: [] as string[],
       },
     };
 
@@ -1431,7 +1461,68 @@ export class SyncedDataStore implements DataStore {
         }
       }
 
-      // 10. Player adjustments
+      // 10. Playing-time planner stores. Plans are self-contained blobs;
+      // links + planned subs are keyed per real game (subs exist only for
+      // plan-created games, i.e. the link keys).
+      const [plans, planLinks] = await Promise.all([
+        this.localStore.getPlaytimePlans(),
+        this.localStore.getPlaytimePlanLinks(),
+      ]);
+      const planList = Object.values(plans);
+      logger.info(`[SyncedDataStore] Pushing ${planList.length} playtime plans to cloud...`);
+      for (const chunk of chunkArray(planList, BULK_PUSH_CHUNK_SIZE)) {
+        const results = await Promise.allSettled(
+          chunk.map(plan =>
+            retryWithBackoff(
+              () => remoteStore.savePlaytimePlan(plan),
+              { operationName: `savePlaytimePlan(${plan.id})` }
+            )
+          )
+        );
+        for (let i = 0; i < results.length; i++) {
+          if (results[i].status === 'fulfilled') {
+            summary.playtimePlans++;
+          } else {
+            summary.failures.playtimePlans.push(chunk[i].id);
+            logger.error(`[SyncedDataStore] Failed playtime plan ${chunk[i].id} after retries:`,
+              getSafeErrorMessage((results[i] as PromiseRejectedResult).reason));
+          }
+        }
+      }
+      const linkEntries = Object.entries(planLinks);
+      logger.info(`[SyncedDataStore] Pushing ${linkEntries.length} playtime plan links to cloud...`);
+      for (const [gameId, link] of linkEntries) {
+        try {
+          await retryWithBackoff(
+            () => remoteStore.setPlaytimePlanLink(gameId, link),
+            { operationName: `setPlaytimePlanLink(${gameId})` }
+          );
+          summary.playtimePlanLinks++;
+        } catch (error) {
+          summary.failures.playtimePlanLinks.push(gameId);
+          logger.error(`[SyncedDataStore] Failed playtime link for game ${gameId} after retries:`,
+            getSafeErrorMessage(error));
+        }
+      }
+      // Whole subs collection - NOT link-keyed: subs can outlive their link
+      // (plan deleted, game kept) and must still reach the cloud.
+      const allGameSubs = await this.localStore.getAllPlaytimeGameSubs();
+      for (const [gameId, gameSubs] of Object.entries(allGameSubs)) {
+        if (gameSubs.length === 0) continue;
+        try {
+          await retryWithBackoff(
+            () => remoteStore.setPlaytimeGameSubs(gameId, gameSubs),
+            { operationName: `setPlaytimeGameSubs(${gameId})` }
+          );
+          summary.playtimeGameSubs++;
+        } catch (error) {
+          summary.failures.playtimeGameSubs.push(gameId);
+          logger.error(`[SyncedDataStore] Failed playtime subs for game ${gameId} after retries:`,
+            getSafeErrorMessage(error));
+        }
+      }
+
+      // 11. Player adjustments
       // Assumption: Typically 0-20 adjustments per import (0-2 per player, ~10 players).
       // Sequential processing is acceptable at this scale. If imports regularly
       // include 100+ adjustments, consider adding chunked parallel processing.
@@ -1539,6 +1630,88 @@ export class SyncedDataStore implements DataStore {
 
   async getTournamentReferences(tournamentId: string): Promise<EntityReferences> {
     return this.localStore.getTournamentReferences(tournamentId);
+  }
+
+  // ==========================================================================
+  // PLAYING-TIME PLANNER
+  // Local-first like everything else: reads are local, writes land locally
+  // and queue a background push. The local store stamps updatedAt, so the
+  // queued payload carries the timestamp per-plan LWW relies on.
+  // ==========================================================================
+
+  async getPlaytimePlans(): Promise<PlaytimePlanCollection> {
+    return this.localStore.getPlaytimePlans();
+  }
+
+  async savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null> {
+    const saved = await this.localStore.savePlaytimePlan(plan);
+    if (saved) {
+      await this.queueSync('playtimePlan', saved.id, 'update', saved);
+    }
+    return saved;
+  }
+
+  async deletePlaytimePlan(id: string): Promise<boolean> {
+    const deleted = await this.localStore.deletePlaytimePlan(id);
+    if (deleted) {
+      await this.queueSync('playtimePlan', id, 'delete', null);
+    }
+    return deleted;
+  }
+
+  async getPlaytimePlanLinks(): Promise<PlanLinksCollection> {
+    return this.localStore.getPlaytimePlanLinks();
+  }
+
+  async setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean> {
+    const ok = await this.localStore.setPlaytimePlanLink(gameId, link);
+    if (ok) {
+      await this.queueSync('playtimePlanLink', gameId, 'update', link);
+    }
+    return ok;
+  }
+
+  async deletePlaytimePlanLink(gameId: string): Promise<boolean> {
+    const ok = await this.localStore.deletePlaytimePlanLink(gameId);
+    if (ok) {
+      await this.queueSync('playtimePlanLink', gameId, 'delete', null);
+    }
+    return ok;
+  }
+
+  async deletePlaytimePlanLinksForPlan(planId: string): Promise<boolean> {
+    const ok = await this.localStore.deletePlaytimePlanLinksForPlan(planId);
+    if (ok) {
+      // Delete-for-plan rides the link entity with the plan id in the payload
+      // (the executor routes on data.planId); entityId is namespaced so it can
+      // never coalesce with a single game's link op.
+      await this.queueSync('playtimePlanLink', `plan:${planId}`, 'delete', { planId });
+    }
+    return ok;
+  }
+
+  async getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]> {
+    return this.localStore.getPlaytimeGameSubs(gameId);
+  }
+
+  async getAllPlaytimeGameSubs(): Promise<GameSubsCollection> {
+    return this.localStore.getAllPlaytimeGameSubs();
+  }
+
+  async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {
+    const ok = await this.localStore.setPlaytimeGameSubs(gameId, subs);
+    if (ok) {
+      await this.queueSync('playtimeGameSubs', gameId, 'update', subs);
+    }
+    return ok;
+  }
+
+  async deletePlaytimeGameSubs(gameId: string): Promise<boolean> {
+    const ok = await this.localStore.deletePlaytimeGameSubs(gameId);
+    if (ok) {
+      await this.queueSync('playtimeGameSubs', gameId, 'delete', null);
+    }
+    return ok;
   }
 
   async getTeamReferences(teamId: string): Promise<EntityReferences> {

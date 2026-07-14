@@ -258,6 +258,12 @@ const FORMATIONS_11V11: FormationPreset[] = [
 
 /**
  * All formation presets
+ *
+ * ⚠️ Append-only within each preset's `positions` array. The Playing-Time
+ * Planner derives stable slot ids (`s0..sN-1`) from this ordering and persists
+ * lineups against them (see `src/utils/playtimePlanner/lineup.ts`). Reordering
+ * `positions` in place would silently reinterpret previously-saved lineups
+ * against different physical positions. If a slot must move, add a new preset id.
  */
 export const FORMATION_PRESETS: FormationPreset[] = [
   ...FORMATIONS_3V3,

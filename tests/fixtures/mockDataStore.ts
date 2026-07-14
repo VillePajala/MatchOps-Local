@@ -230,6 +230,19 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
       counts: { games: 0 },
       summary: 'Not used by any other data',
     })) as unknown as jest.MockedFunction<DataStore['getTeamReferences']>,
+
+    // Playing-Time Planner (PR 2: DataStore surface)
+    getPlaytimePlans: jest.fn(async () => ({})) as unknown as jest.MockedFunction<DataStore['getPlaytimePlans']>,
+    savePlaytimePlan: jest.fn(async (plan) => plan) as unknown as jest.MockedFunction<DataStore['savePlaytimePlan']>,
+    deletePlaytimePlan: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimePlan']>,
+    getPlaytimePlanLinks: jest.fn(async () => ({})) as unknown as jest.MockedFunction<DataStore['getPlaytimePlanLinks']>,
+    setPlaytimePlanLink: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['setPlaytimePlanLink']>,
+    deletePlaytimePlanLink: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimePlanLink']>,
+    deletePlaytimePlanLinksForPlan: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimePlanLinksForPlan']>,
+    getPlaytimeGameSubs: jest.fn(async () => []) as unknown as jest.MockedFunction<DataStore['getPlaytimeGameSubs']>,
+    getAllPlaytimeGameSubs: jest.fn(async () => ({})) as unknown as jest.MockedFunction<DataStore['getAllPlaytimeGameSubs']>,
+    setPlaytimeGameSubs: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['setPlaytimeGameSubs']>,
+    deletePlaytimeGameSubs: jest.fn(async () => true) as unknown as jest.MockedFunction<DataStore['deletePlaytimeGameSubs']>,
   };
 
   // Apply overrides

@@ -19,6 +19,9 @@
  */
 
 import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment } from '@/types';
+import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
@@ -593,6 +596,47 @@ export interface DataStore {
    * @throws {Error} If deletion fails
    */
   clearAllUserData(): Promise<void>;
+
+  // ==========================================================================
+  // PLAYING-TIME PLANNER
+  // Plans, plan->game links, and planned subs attached to REAL games. The plan
+  // payload is an opaque app-schema blob (versioned by plan.version) - no
+  // field-by-field transforms. Local mode: IndexedDB collections; cloud: one
+  // row per plan (per-plan last-write-wins, matching the per-plan autosave).
+  // ==========================================================================
+
+  /** Full plan collection (id -> plan), invalid stored entries dropped. */
+  getPlaytimePlans(): Promise<PlaytimePlanCollection>;
+
+  /** Upsert a plan (stamps schema version + updatedAt). Null on failure. */
+  savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null>;
+
+  /** Delete a plan by id. True if the delete (or no-op) succeeded. */
+  deletePlaytimePlan(id: string): Promise<boolean>;
+
+  /** All real-game -> plan links (gameId -> link). */
+  getPlaytimePlanLinks(): Promise<PlanLinksCollection>;
+
+  /** Upsert the link for one real game. */
+  setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean>;
+
+  /** Remove the link for one real game. */
+  deletePlaytimePlanLink(gameId: string): Promise<boolean>;
+
+  /** Remove every link pointing at a plan (plan deletion cleanup). */
+  deletePlaytimePlanLinksForPlan(planId: string): Promise<boolean>;
+
+  /** Planned subs for one REAL game ([] when none). */
+  getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]>;
+
+  /** The whole planned-subs collection (bulk sync/backup paths). */
+  getAllPlaytimeGameSubs(): Promise<GameSubsCollection>;
+
+  /** Replace the planned subs for one real game. */
+  setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean>;
+
+  /** Remove the planned subs for one real game. */
+  deletePlaytimeGameSubs(gameId: string): Promise<boolean>;
 
   // ==========================================================================
   // ENTITY REFERENCE CHECKS

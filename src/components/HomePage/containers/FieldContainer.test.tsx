@@ -249,9 +249,10 @@ describe('FieldContainer', () => {
     // Click dismiss button
     fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
 
-    // Overlay should be gone, Create Game button should appear
+    // Overlay should be gone. The on-field "Create Game" pill was removed - a new
+    // game is started from the hamburger menu instead.
     expect(screen.queryByText(/Ready to track your first game/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Create Game/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Create Game/i)).not.toBeInTheDocument();
   });
 
   describe('Export Button', () => {

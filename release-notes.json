@@ -4,6 +4,21 @@
     {
       "date": "2026-07-14",
       "en": [
+        "Match planner (renamed from Lineup planner) was rebuilt around three tabs: Games (the field, with swipe and a side-by-side view), Minutes (playing-time balance) and Settings (roster, format and the games as editable rows).",
+        "Fairness at a glance: player discs and bench discs are coloured red-to-green by playing time, substitutions show as split discs with both names, and a totals strip stays visible while you edit.",
+        "One-tap tools: \"Suggest fair lineups\" builds even rotations for the whole set of games, undo/redo, per-game include toggles, and plans can be archived, duplicated and exported.",
+        "Plans now survive backgrounding: reopening the app returns you to the plan and game you had open."
+      ],
+      "fi": [
+        "Ottelusuunnittelu (ent. kokoonpanosuunnittelu) rakennettiin uusiksi kolmen välilehden ympärille: Pelit (kenttä, pyyhkäisy ja rinnakkaisnäkymä), Minuutit (peliaikatasapaino) ja Asetukset (kokoonpano, formaatti ja pelit muokattavina riveinä).",
+        "Reiluus yhdellä silmäyksellä: pelaajakiekot ja penkkikiekot värjäytyvät peliajan mukaan punaisesta vihreään, vaihdot näkyvät jaettuina kiekkoina molemmilla nimillä, ja peliaikakertymä pysyy näkyvissä muokatessa.",
+        "Yhden napautuksen työkalut: \"Ehdota reilut kokoonpanot\" rakentaa tasaiset rotaatiot koko pelisarjalle, kumoa/tee uudelleen, pelikohtaiset mukana-valinnat, ja suunnitelmat voi arkistoida, monistaa ja viedä.",
+        "Suunnitelmat säilyvät taustalla: sovellukseen palatessa avautuu sama suunnitelma ja peli kuin lähtiessä."
+      ]
+    },
+    {
+      "date": "2026-07-14",
+      "en": [
         "Behind-the-scenes improvements to our automated code-review pipeline (no user-facing changes)."
       ],
       "fi": [
@@ -26,6 +41,15 @@
       ],
       "fi": [
         "Kehitysinfrastruktuuri: automaattisten koodikatselmointikommenttien julkaisu pull requesteihin toimii nyt luotettavasti (ei käyttäjälle näkyviä muutoksia)."
+      ]
+    },
+    {
+      "date": "2026-07-03",
+      "en": [
+        "New: Playing-Time Planner - plan fair minutes across a whole tournament before match day. From the start screen tap \"Plan playing time\": pick your squad, set each game's formation and length, tap players onto the pitch and schedule a half-time sub. A balance view then shows every kid's total minutes across all games, least-played first and coloured red to green - swap a green kid for a red one and the numbers update instantly. Save several plans, switch between them, and export or import a plan as a file. Fully offline; nothing is tied to your saved games yet (that comes next)."
+      ],
+      "fi": [
+        "Uutta: Peliajan suunnittelija - suunnittele reilut peliminuutit koko turnaukseen ennen pelipäivää. Aloitusnäytöstä \"Suunnittele peliaika\": valitse kokoonpano, aseta kunkin pelin muodostelma ja kesto, napauta pelaajat kentälle ja ajasta vaihto puoliajalle. Tasapainonäkymä näyttää jokaisen pelaajan kokonaisminuutit kaikissa peleissä - vähiten pelanneet ensin, punaisesta vihreään väritettynä - vaihda vihreä pelaaja punaiseen ja luvut päivittyvät heti. Tallenna useita suunnitelmia, vaihda niiden välillä ja vie tai tuo suunnitelma tiedostona. Toimii täysin offline; mitään ei ole vielä sidottu tallennettuihin peleihin (se tulee seuraavaksi)."
       ]
     },
     {

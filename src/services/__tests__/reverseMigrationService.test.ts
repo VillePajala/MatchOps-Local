@@ -178,6 +178,13 @@ describe('reverseMigrationService', () => {
       getPlayerAdjustments: jest.fn().mockResolvedValue([]),
       getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
       getWarmupPlan: jest.fn().mockResolvedValue(null),
+    getPlaytimePlans: jest.fn().mockResolvedValue({}),
+    getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
+    getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+    getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
+    restorePlaytimePlans: jest.fn().mockResolvedValue(0),
+    restorePlaytimePlanLinks: jest.fn().mockResolvedValue(0),
+    restorePlaytimeGameSubs: jest.fn().mockResolvedValue(0),
       getSettings: jest.fn().mockResolvedValue(null),
       clearAllUserData: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<SupabaseDataStore>;

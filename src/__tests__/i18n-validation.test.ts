@@ -293,7 +293,53 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
-      expect(enKeys.length).toBe(2659);
+      // +2: planner UI rounds - playtimePlanner.lineup.autoFill, playtimePlanner.balance.gameShort
+      //     (part of the count baseline above; listed for completeness - PR #650 review nit)
+      // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
+      // +5: playtimePlanner.overview.* bulk re-apply (Planner Phase 3.4 update-linked-games)
+      // +1: playtimePlanner.overview.reapplyDonePartial (bulk partial-failure toast, PR #650 review)
+      // +13: Batch C - _one/_other plural pairs for 7 planner/reapply count strings (+7),
+      //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
+      //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
+      // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
+      // +10: plan roster editing (overview.editPlayers + playtimePlanner.players.* - Phase 4)
+      // +1: playtimePlanner.lineup.fairnessStrip (worst-first totals strip in the lineup view)
+      // +1 net: sub bottom sheet (+5: lineup.subAction, lineup.notInGame, subs.addHint,
+      //         subSheet.title, subSheet.halftime; -4: the old dropdown form's
+      //         subs.slotLabel/choose/add/noSlots)
+      // +7 net: minutes-view redesign (+8: balance zeroMinutes pair, spreadLabel/Detail,
+      //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
+      //         the zero-minutes warning)
+      // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
+      // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
+      // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
+      //         -1: versions.switchLabel, dropdown replaced by the manager)
+      // -1: playtimePlanner.setup.teamHint (explanatory text under team select removed)
+      // +1 net: overview composition rework (+3: overview.notCounted,
+      //         lineup.includedToggle/excludedToggle - include dot on game tabs;
+      //         -2: overview.included checkbox, overview.rosterSummary - replaced
+      //         by roster checkboxes and tab dots)
+      // +5: manager 3-dot menu + archive (manager.actions/archive/unarchive/
+      //     archivedBadge/showArchived)
+      // +4: overview format editor (overview.addGame/removeGame/
+      //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
+      // +1 then -1: lineup.renameGame (pencil rename, superseded same day by
+      //     the tap-editable game name in the header)
+      // +2 net: tabs restructure (+7: tabs.games/minutes/plan,
+      //     lineup.viewToggle/viewSingle/viewGrid, players.replaceTitle;
+      //     -5: balance.view, overview.gridButton/editPlayers,
+      //     players.title/addHeading - hub buttons replaced by peer tabs)
+      // -3 net: field polish (+1 subSheet.existing - in-sheet sub removal;
+      //     -4: lineup.hint/pickForSlot/viewToggle, subs.addHint -
+      //     instruction copy removed, toggle became one icon button)
+      // +2: lineup.noPlayers (zero-player empty state) + loadError (initial
+      //     load-failure toast) - review batch B
+      // +1: lineup.absentHeading (per-game availability chips)
+      // -1 net: review round (+1 lineup.benchEmptyAbsent; -2 dead keys
+      //     lineup.benchHeading, overview.newPlan)
+      // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
+      //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      expect(enKeys.length).toBe(2808);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -310,7 +356,53 @@ describe('Translation File Validation', () => {
       // +6: settingsModal assessment rating-style toggle (label, hint, 3 options, save error)
       // +8: development view - recency toggle (2), focus/strengths (2), assessmentTrend.* (4)
       // +2: development radar legend (radarNow, radarBaseline)
-      expect(fiKeys.length).toBe(2659);
+      // +2: planner UI rounds - playtimePlanner.lineup.autoFill, playtimePlanner.balance.gameShort
+      //     (part of the count baseline above; listed for completeness - PR #650 review nit)
+      // +10: gameSettingsModal.reapplyPlan.* (Planner Phase 3.3 re-apply-plan button/confirm/toasts)
+      // +5: playtimePlanner.overview.* bulk re-apply (Planner Phase 3.4 update-linked-games)
+      // +1: playtimePlanner.overview.reapplyDonePartial (bulk partial-failure toast, PR #650 review)
+      // +13: Batch C - _one/_other plural pairs for 7 planner/reapply count strings (+7),
+      //      ConfirmationModal titles/labels/warning for plan delete + bulk re-apply (+4),
+      //      playtimePlanner.gkShort (+1), playtimePlanner.subs.rowInOut (+1)
+      // +1: playtimePlanner.lineup.gameTabs (game tab strip aria-label - 1-tap game switching)
+      // +10: plan roster editing (overview.editPlayers + playtimePlanner.players.* - Phase 4)
+      // +1: playtimePlanner.lineup.fairnessStrip (worst-first totals strip in the lineup view)
+      // +1 net: sub bottom sheet (+5: lineup.subAction, lineup.notInGame, subs.addHint,
+      //         subSheet.title, subSheet.halftime; -4: the old dropdown form's
+      //         subs.slotLabel/choose/add/noSlots)
+      // +7 net: minutes-view redesign (+8: balance zeroMinutes pair, spreadLabel/Detail,
+      //         gkLabel/Detail, focusDelta, focusOnShare; -1: notPlaying, absorbed by
+      //         the zero-minutes warning)
+      // +6: playtimePlanner.overview.suggest* (fair-lineup generator button/confirm/toast)
+      // +1: playtimePlanner.overview.gridButton (all-games-side-by-side view)
+      // +3 net: plan-manager flow (+4: manager.title/new/meta, lineup.gameName;
+      //         -1: versions.switchLabel, dropdown replaced by the manager)
+      // -1: playtimePlanner.setup.teamHint (explanatory text under team select removed)
+      // +1 net: overview composition rework (+3: overview.notCounted,
+      //         lineup.includedToggle/excludedToggle - include dot on game tabs;
+      //         -2: overview.included checkbox, overview.rosterSummary - replaced
+      //         by roster checkboxes and tab dots)
+      // +5: manager 3-dot menu + archive (manager.actions/archive/unarchive/
+      //     archivedBadge/showArchived)
+      // +4: overview format editor (overview.addGame/removeGame/
+      //     trimConfirmTitle/trimConfirmMessage - post-creation plan editing)
+      // +1 then -1: lineup.renameGame (pencil rename, superseded same day by
+      //     the tap-editable game name in the header)
+      // +2 net: tabs restructure (+7: tabs.games/minutes/plan,
+      //     lineup.viewToggle/viewSingle/viewGrid, players.replaceTitle;
+      //     -5: balance.view, overview.gridButton/editPlayers,
+      //     players.title/addHeading - hub buttons replaced by peer tabs)
+      // -3 net: field polish (+1 subSheet.existing - in-sheet sub removal;
+      //     -4: lineup.hint/pickForSlot/viewToggle, subs.addHint -
+      //     instruction copy removed, toggle became one icon button)
+      // +2: lineup.noPlayers (zero-player empty state) + loadError (initial
+      //     load-failure toast) - review batch B
+      // +1: lineup.absentHeading (per-game availability chips)
+      // -1 net: review round (+1 lineup.benchEmptyAbsent; -2 dead keys
+      //     lineup.benchHeading, overview.newPlan)
+      // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
+      //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      expect(fiKeys.length).toBe(2808);
     });
   });
 });

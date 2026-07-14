@@ -323,6 +323,56 @@ describe('SyncedDataStore', () => {
     });
   });
 
+  describe('Playtime planner ops are local-first and queued', () => {
+    it('savePlaytimePlan writes locally and queues the STAMPED plan (carries updatedAt for LWW)', async () => {
+      const plan = {
+        id: 'ptp_1',
+        name: 'Cup',
+        version: 1,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        players: [],
+        games: [],
+      } as unknown as Parameters<typeof store.savePlaytimePlan>[0];
+      const saved = await store.savePlaytimePlan(plan);
+
+      // The LOCAL store stamped a fresh updatedAt before the payload queued.
+      expect(saved?.updatedAt).not.toBe('2026-01-01T00:00:00.000Z');
+      expect(queueEnqueueSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: 'playtimePlan',
+          entityId: 'ptp_1',
+          operation: 'update',
+          data: expect.objectContaining({ id: 'ptp_1', updatedAt: saved?.updatedAt }),
+        })
+      );
+    });
+
+    it('deletePlaytimePlanLinksForPlan queues the namespaced delete with the plan id payload', async () => {
+      await store.deletePlaytimePlanLinksForPlan('ptp_1');
+      expect(queueEnqueueSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: 'playtimePlanLink',
+          entityId: 'plan:ptp_1',
+          operation: 'delete',
+          data: { planId: 'ptp_1' },
+        })
+      );
+    });
+
+    it('setPlaytimeGameSubs queues the subs array per real game', async () => {
+      const subs = [{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', outPlayerId: null, timeSeconds: 720 }];
+      await store.setPlaytimeGameSubs('game_1', subs);
+      expect(queueEnqueueSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: 'playtimeGameSubs',
+          entityId: 'game_1',
+          operation: 'update',
+        })
+      );
+    });
+  });
+
   describe('Upsert ops queue as update (so a later delete coalesces to DELETE, not nothing)', () => {
     it('upsertTeam/Season/Tournament/PersonnelMember/PlayerAdjustment all enqueue operation: update', async () => {
       localStoreSpy.upsertTeam.mockResolvedValue({ id: 'team_1' } as unknown as Team);

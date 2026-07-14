@@ -12,7 +12,13 @@ import {
   TEAM_ROSTERS_KEY,
   PERSONNEL_KEY,
   WARMUP_PLAN_KEY,
+  PLAYTIME_PLANS_KEY,
+  PLAYTIME_GAME_SUBS_KEY,
+  PLAYTIME_PLAN_LINKS_KEY,
 } from "@/config/storageKeys";
+import type { PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
+import type { PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
 import logger from "@/utils/logger";
 import i18n from "i18next";
 import { getDataStore } from '@/datastore/factory';
@@ -47,6 +53,12 @@ interface FullBackupData {
     [TEAM_ROSTERS_KEY]?: TeamRostersIndex | null;
     [PERSONNEL_KEY]?: PersonnelCollection | null;
     [WARMUP_PLAN_KEY]?: WarmupPlan | null;
+    // Playing-Time Planner local-only stores (plans, per-game planned subs, plan
+    // links). Not in the DataStore; without these a restore on a new device would
+    // silently lose every plan and the ability to re-apply to linked games.
+    [PLAYTIME_PLANS_KEY]?: PlaytimePlanCollection | null;
+    [PLAYTIME_GAME_SUBS_KEY]?: GameSubsCollection | null;
+    [PLAYTIME_PLAN_LINKS_KEY]?: PlanLinksCollection | null;
   };
 }
 
@@ -322,6 +334,24 @@ export const generateFullBackupJson = async (userId?: string, dataStoreOverride?
     backupData.localStorage[WARMUP_PLAN_KEY] = warmupPlan;
     if (warmupPlan) {
       logger.log('Backed up warmup plan');
+    }
+
+    // Playing-Time Planner stores ride the DataStore since cloud-sync PR 2 -
+    // reading through it hits the RIGHT database (per-user when signed in;
+    // the old raw read always hit the legacy shared DB) and makes the
+    // cloud-download export include them too (they sync now).
+    {
+      const plans = await dataStore.getPlaytimePlans();
+      const planLinks = await dataStore.getPlaytimePlanLinks();
+      const gameSubs = await dataStore.getAllPlaytimeGameSubs();
+      backupData.localStorage[PLAYTIME_PLANS_KEY] = plans && Object.keys(plans).length > 0 ? plans : null;
+      backupData.localStorage[PLAYTIME_GAME_SUBS_KEY] =
+        gameSubs && Object.keys(gameSubs).length > 0 ? gameSubs : null;
+      backupData.localStorage[PLAYTIME_PLAN_LINKS_KEY] =
+        planLinks && Object.keys(planLinks).length > 0 ? planLinks : null;
+      if (plans && Object.keys(plans).length > 0) {
+        logger.log(`Backed up ${Object.keys(plans).length} playtime plans`);
+      }
     }
 
   } catch (error) {
@@ -727,6 +757,43 @@ async function restoreSnapshotEntities(
 
   const warmupPlan = ls[WARMUP_PLAN_KEY];
   if (warmupPlan) await dataStore.saveWarmupPlan(warmupPlan);
+
+  await restorePlannerStores(ls, dataStore);
+}
+
+/**
+ * Restore the Playing-Time Planner stores through the DataStore, so the write
+ * lands in the SAME database as everything else being restored (per-user when
+ * signed in - the old raw storage write always hit the legacy shared DB).
+ * The backends validate entries on read, so a malformed entry in an old
+ * backup degrades to that entry being dropped.
+ */
+async function restorePlannerStores(
+  ls: FullBackupData['localStorage'],
+  dataStore: DataStore
+): Promise<void> {
+  const plans = ls[PLAYTIME_PLANS_KEY];
+  if (plans && typeof plans === 'object') {
+    // savePlaytimePlan in the LOCAL backend re-stamps updatedAt - correct here:
+    // a restore IS this device's newest statement of the plan's content.
+    let restored = 0;
+    for (const plan of Object.values(plans)) {
+      if (await dataStore.savePlaytimePlan(plan)) restored++;
+    }
+    logger.log(`Restored ${restored}/${Object.keys(plans).length} playtime plans`);
+  }
+  const gameSubs = ls[PLAYTIME_GAME_SUBS_KEY];
+  if (gameSubs && typeof gameSubs === 'object') {
+    for (const [gameId, subs] of Object.entries(gameSubs)) {
+      if (Array.isArray(subs) && subs.length > 0) await dataStore.setPlaytimeGameSubs(gameId, subs);
+    }
+  }
+  const planLinks = ls[PLAYTIME_PLAN_LINKS_KEY];
+  if (planLinks && typeof planLinks === 'object') {
+    for (const [gameId, link] of Object.entries(planLinks)) {
+      await dataStore.setPlaytimePlanLink(gameId, link);
+    }
+  }
 }
 
 export const importFullBackup = async (
@@ -1020,6 +1087,9 @@ export const importFullBackup = async (
         logger.log('Restored warmup plan');
       }
 
+      // Restore Playing-Time Planner stores (plans, subs, links).
+      await restorePlannerStores(backupData.localStorage, dataStore);
+
     } catch (innerError) {
       logger.error('Error restoring data:', innerError);
 
@@ -1123,6 +1193,9 @@ export const importFullBackup = async (
             if (f.adjustments.length > 0) failureDetails.push(`${f.adjustments.length} adjustments`);
             if (f.settings) failureDetails.push('settings');
             if (f.warmupPlan) failureDetails.push('warmup plan');
+            if ((f.playtimePlans?.length ?? 0) > 0) failureDetails.push(`${f.playtimePlans!.length} playtime plans`);
+            if ((f.playtimePlanLinks?.length ?? 0) > 0) failureDetails.push(`${f.playtimePlanLinks!.length} plan links`);
+            if ((f.playtimeGameSubs?.length ?? 0) > 0) failureDetails.push(`${f.playtimeGameSubs!.length} planned subs`);
 
             const detailStr = failureDetails.length > 0
               ? ` (${failureDetails.join(', ')})`
