@@ -25,7 +25,11 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            Review this pull request. Read the full diff with `gh pr diff`. Then compose a SINGLE comprehensive review comment covering:
+            Review this pull request. Read the full diff with `gh pr diff`. The repository is
+            checked out in the working directory - use the Read/Grep/Glob tools to inspect
+            surrounding source when you need to verify a finding (do NOT try shell commands
+            like cat/git for this; they are not on the allowlist). Then compose a SINGLE
+            comprehensive review comment covering:
             - Bugs and correctness issues (with file:line references)
             - Security concerns
             - Performance considerations
@@ -48,5 +52,8 @@ jobs:
 
             Use the repository's CLAUDE.md for guidance on project conventions and quality bar.
 
-          claude_args: '--allowed-tools "Write,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          # Read/Grep/Glob: the repo IS checked out, but without read tools the agent
+          # thrashes on denied file-inspection commands and (about half the time) gives
+          # up without posting the review at all - a "success" run with no comment.
+          claude_args: '--allowed-tools "Read,Grep,Glob,Write,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
 
