@@ -378,6 +378,21 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onOpenRules).toHaveBeenCalledTimes(1);
   });
 
+  it('the Taso link sits on the games front page (game-day workflow tool)', () => {
+    render(<StartScreen {...shellProps()} />);
+    const taso = screen.getByRole('link', { name: /Taso - lineups & results/ });
+    expect(taso).toHaveAttribute('href', 'https://taso.palloliitto.fi');
+    expect(taso).toHaveAttribute('target', '_blank');
+  });
+
+  it('the Coaching Materials link sits on the Team panel (training scope)', () => {
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    const coaching = screen.getByRole('link', { name: /Coaching Materials/ });
+    expect(coaching).toHaveAttribute('href', 'https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo');
+    expect(coaching).toHaveAttribute('target', '_blank');
+  });
+
   it('unwired Team-panel rows render DISABLED - never silently dead-clickable', () => {
     const props = { ...shellProps(), onManageRoster: undefined };
     render(<StartScreen {...props} />);

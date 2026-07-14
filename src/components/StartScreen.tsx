@@ -437,7 +437,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   rel="noopener noreferrer"
                   className="block text-center text-sm text-slate-400 hover:text-amber-400 transition-colors pt-1"
                 >
-                  {t('startScreen.tasoLink', 'Taso - lineups & results →')}
+                  {t('startScreen.tasoLink', 'Taso - lineups & results')} →
                 </a>
               </>
             )}
