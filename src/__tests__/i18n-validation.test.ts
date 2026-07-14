@@ -339,6 +339,8 @@ describe('Translation File Validation', () => {
       //     lineup.benchHeading, overview.newPlan)
       // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
       //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      // -3/+2 net -1: menu groups regrouped by scope (two-level restructure
+      //     PR 0.1): gameManagement/setupConfig/analysisTools -> thisMatch/teamAndApp
       expect(enKeys.length).toBe(2809);
     });
 
@@ -402,6 +404,7 @@ describe('Translation File Validation', () => {
       //     lineup.benchHeading, overview.newPlan)
       // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
       //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      // -3/+2 net -1: menu groups regrouped by scope (see the en note above)
       expect(fiKeys.length).toBe(2809);
     });
   });

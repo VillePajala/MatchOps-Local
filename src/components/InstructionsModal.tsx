@@ -129,7 +129,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.gameManagement', 'The menu')}</h3>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.gameManagement', 'Using the menu')}</h3>
             <p className="text-sm text-slate-300">
               {t('firstGameGuide.menuActionsNote', 'Click the Menu button to access:')}
               <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
