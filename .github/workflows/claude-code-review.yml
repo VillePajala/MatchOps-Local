@@ -50,6 +50,14 @@ jobs:
             do NOT pipe into it - only commands starting with `gh pr comment` pass the allowlist.
             If a command is denied, do not retry variations; re-read these instructions.
 
+            YOU MUST ALWAYS POST THE COMMENT. Earlier review comments on this PR do NOT make
+            posting unnecessary: each push needs its own posted verdict on the CURRENT head,
+            because a run that ends silently is indistinguishable from a run that failed.
+            If prior reviews exist, review the changes since the newest one (are its findings
+            resolved? anything new?) and post that as the updated verdict - even when the
+            entire verdict is "all previous findings addressed, no new findings, approve".
+            Ending this session without having successfully run `gh pr comment` is a failure.
+
             Use the repository's CLAUDE.md for guidance on project conventions and quality bar.
 
           # Read/Grep/Glob: the repo IS checked out, but without read tools the agent
