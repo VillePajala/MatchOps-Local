@@ -284,11 +284,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </div>
           )}
 
-          {/* Pinned Uusi peli (owner decision 2026-07-14): reachable at ALL
-              times, on every tab - the planner-manager pinned-strip pattern.
-              Jatka keeps the amber hero slot below. */}
+          {/* Pinned pair, owner order 2026-07-15: Jatka on top (the original
+              amber primary, opens the active game), + Uusi peli strip under
+              it - BOTH visible on every tab. */}
           {!isFirstTimeUser && (
-            <div className="max-w-sm mx-auto w-full mb-3">
+            <div className="max-w-sm mx-auto w-full mb-3 space-y-2">
+              {canResume && (
+                <button
+                  type="button"
+                  onClick={onResumeGame}
+                  className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                >
+                  {t('startScreen.resumeCard', 'Continue')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onGetStarted}
@@ -392,19 +401,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  entry rows. The Stats/Load grid buttons are gone: the tab bar
                  and the rows below cover both. */
               <>
-                {/* Jatka: the original amber primary, functioning exactly as
-                    before the rework - opens the active (usually latest) game.
-                    Uusi peli lives in the pinned strip above, on every tab. */}
-                {canResume && (
-                  <button
-                    type="button"
-                    onClick={onResumeGame}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-                  >
-                    {t('startScreen.resumeCard', 'Continue')}
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={onLoadGame}
