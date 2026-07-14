@@ -126,7 +126,9 @@ describe('StartScreen', () => {
     expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Statistics' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument();
+    // The hero's gear corner is visible for EVERYONE since the Home shell
+    // (PR 1.2) - a first-timer restoring a backup needs Settings -> Data.
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
     expect(handlers.onGetStarted).toHaveBeenCalled();
@@ -273,5 +275,52 @@ describe('StartScreen', () => {
       // (Hidden in every state here — pre-hydration and post-effect — so no wait needed.)
       expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
     });
+  });
+});
+
+describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
+  const shellProps = () => ({
+    onLoadGame: jest.fn(),
+    onResumeGame: jest.fn(),
+    onGetStarted: jest.fn(),
+    onViewStats: jest.fn(),
+    onOpenSettings: jest.fn(),
+    onManageRoster: jest.fn(),
+    onManageSeasons: jest.fn(),
+    canResume: true,
+    hasSavedGames: true,
+    isFirstTimeUser: false,
+  });
+
+  it('renders the four club-level tabs with Games active', () => {
+    render(<StartScreen {...shellProps()} />);
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent)).toEqual(['Games', 'Team', 'Seasons', 'Stats']);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('routes each tab to its existing modal opener (strangler stage)', () => {
+    const props = shellProps();
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    expect(props.onManageRoster).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('tab', { name: 'Seasons' }));
+    expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(props.onViewStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the Stats tab without saved games and opens settings from the gear corner', () => {
+    const props = { ...shellProps(), hasSavedGames: false };
+    render(<StartScreen {...props} />);
+    expect(screen.getByRole('tab', { name: 'Stats' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    expect(props.onOpenSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the tab bar for first-time users (single Get Started flow untouched)', () => {
+    render(<StartScreen {...shellProps()} isFirstTimeUser={true} />);
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
   });
 });
