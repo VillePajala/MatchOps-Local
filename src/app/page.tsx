@@ -24,6 +24,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -204,10 +205,11 @@ export default function Home() {
         // (avoids defaulting to soccer green when last game was futsal blue)
         setLastGameType(games[lastId].gameType);
         // On the first check after launch (boot / OS WebView recreation mid-game),
-        // restore straight into an in-progress match instead of dropping the user
-        // on the start screen with a "Continue" button.
-        if (isFirstCheck && games[lastId].gameStatus === 'inProgress') {
-          logger.info('[page.tsx] In-progress game detected on launch — restoring into the game view');
+        // restore straight into a LIVE match (in progress OR at a period break -
+        // half-time backgrounding is the common case) instead of dropping the
+        // user on the start screen with a "Continue" button.
+        if (shouldAutoResumeOnLaunch(isFirstCheck, games[lastId])) {
+          logger.info('[page.tsx] Live game detected on launch — restoring into the game view');
           setAction('resumeGame');
           setScreen('home');
         }
