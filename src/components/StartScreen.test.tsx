@@ -320,7 +320,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   });
 
   it('Team tab switches to the club panel; its rows open the existing modals', () => {
-    const props = { ...shellProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn() };
+    const props = { ...shellProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
     // Real tab semantics: selection moves, the body becomes the club rows.
@@ -334,6 +334,8 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onManageTeams).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Personnel' }));
     expect(props.onManagePersonnel).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Warmup Plan' }));
+    expect(props.onOpenTraining).toHaveBeenCalledTimes(1);
 
     // Back to Games restores the front page.
     fireEvent.click(screen.getByRole('tab', { name: 'Games' }));

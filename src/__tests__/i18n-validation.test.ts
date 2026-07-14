@@ -350,7 +350,9 @@ describe('Translation File Validation', () => {
       // +3: startScreen.rowPlayers/rowTeams/rowPersonnel (1.3b: Team tab panel)
       // +5: startScreen.rowTraining + gearTitle/gearBackup/gearAccount/gearRules
       //     (PR 1.4: the gear bucket)
-      expect(enKeys.length).toBe(2822);
+      // -5: startScreen footer keys orphaned by the gear bucket (usingLocal
+      //     Storage/signedInAs/existingSubscriber/newToCloud/getAndroidApp)
+      expect(enKeys.length).toBe(2817);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -420,7 +422,8 @@ describe('Translation File Validation', () => {
       // -3: orphaned start-screen button keys pruned (see the en note above)
       // +3: Team tab panel rows (see the en note above)
       // +5: gear bucket keys (see the en note above)
-      expect(fiKeys.length).toBe(2822);
+      // -5: orphaned footer keys pruned (see the en note above)
+      expect(fiKeys.length).toBe(2817);
     });
   });
 });
