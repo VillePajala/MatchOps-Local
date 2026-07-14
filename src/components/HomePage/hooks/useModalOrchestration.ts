@@ -357,6 +357,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     isSettingsModalOpen,
     setIsSettingsModalOpen,
     settingsInitialTab,
+    gameStatsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
@@ -514,6 +515,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       isGameSettingsModalOpen,
       isSettingsModalOpen,
       settingsInitialTab,
+      gameStatsInitialTab,
       isPlayerAssessmentModalOpen,
       isTeamReassignModalOpen,
       showNoPlayersConfirm,

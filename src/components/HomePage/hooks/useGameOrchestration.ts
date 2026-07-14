@@ -456,6 +456,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used here
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
+    openGameStatsToTab,
     isNewGameSetupModalOpen,
     setIsNewGameSetupModalOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
@@ -2674,6 +2675,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onToggleTrainingResources: handleToggleTrainingResources,
     onToggleRulesDirectory: handleToggleRulesDirectory,
     onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev),
+    // Two-level restructure PR 0.2: "Team stats" lands on the aggregate side
+    // (season tab) instead of the current game.
+    onOpenTeamStats: () => openGameStatsToTab('season'),
     onOpenLoadGameModal: openLoadGameViaReducer,
     onStartNewGame: handleStartNewGame,
     onOpenRosterModal: openRosterModal,

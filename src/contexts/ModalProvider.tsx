@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useRef, useReducer
 import { initialModalState, modalReducer } from './modalReducer';
 
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
+type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalContextValue {
   isGameSettingsModalOpen: boolean;
@@ -28,6 +29,10 @@ interface ModalContextValue {
   openSettingsToTab: (tab: SettingsTab) => void;
   /** The tab to open settings modal to (undefined = default) */
   settingsInitialTab: SettingsTab | undefined;
+  /** Open Game Stats to a specific tab (match vs team stats menu entries) */
+  openGameStatsToTab: (tab: StatsTab) => void;
+  /** The tab to open Game Stats to (undefined = default) */
+  gameStatsInitialTab: StatsTab | undefined;
   isPlayerAssessmentModalOpen: boolean;
   setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -131,6 +136,10 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     dispatchModal({ type: 'OPEN_MODAL', id: 'settings', at: Date.now() });
   }, []);
 
+  // Game Stats initial tab (same contract as settingsInitialTab): set only by
+  // openGameStatsToTab, cleared on close so a plain open lands on the default.
+  const [gameStatsInitialTab, setGameStatsInitialTab] = useState<StatsTab | undefined>(undefined);
+
   // Reducer-backed setter for Game Stats modal (no anti-flash needed)
   const setIsGameStatsModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
     const prev = gameStatsOpenRef.current;
@@ -144,8 +153,17 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
     if (!next && prev) {
       gameStatsOpenRef.current = false;
+      setGameStatsInitialTab(undefined); // Reset initial tab when closing
       dispatchModal({ type: 'CLOSE_MODAL', id: 'gameStats' });
     }
+  }, []);
+
+  // Open Game Stats to a specific tab (two-level restructure PR 0.2: the menu
+  // offers "Match stats" (currentGame) and "Team stats" (aggregate) entries).
+  const openGameStatsToTab = useCallback((tab: StatsTab) => {
+    setGameStatsInitialTab(tab);
+    gameStatsOpenRef.current = true;
+    dispatchModal({ type: 'OPEN_MODAL', id: 'gameStats', at: Date.now() });
   }, []);
 
   // Roster modal setter (no anti-flash guard needed)
@@ -205,6 +223,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsSettingsModalOpen,
     openSettingsToTab,
     settingsInitialTab,
+    openGameStatsToTab,
+    gameStatsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   }), [
@@ -218,7 +238,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     modalState.gameStats, setIsGameStatsModalOpen,
     modalState.newGameSetup, setIsNewGameSetupModalOpen,
     modalState.settings, setIsSettingsModalOpen,
-    openSettingsToTab, settingsInitialTab,
+    openSettingsToTab, settingsInitialTab, openGameStatsToTab, gameStatsInitialTab,
     isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen,
   ]);
 
