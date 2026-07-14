@@ -1318,6 +1318,8 @@ export default function Home() {
               onLoadGame={() => handleAction('loadGame')}
               onResumeGame={() => handleAction('resumeGame')}
               onManageRoster={() => handleAction('roster')}
+              onManageTeams={() => handleAction('teams')}
+              onManagePersonnel={() => handleAction('personnel')}
               onManageSeasons={() => handleAction('season')}
               onOpenPlanner={handleOpenPlannerFromHome}
               onGetStarted={() => handleAction('getStarted')}
