@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-14",
+      "en": [
+        "Development infrastructure: automated code reviews can now read the repository source, making review posting reliable and findings verifiable (no user-facing changes)."
+      ],
+      "fi": [
+        "Kehitysinfrastruktuuri: automaattiset koodikatselmoinnit voivat nyt lukea projektin lähdekoodia, mikä tekee katselmointien julkaisusta luotettavaa ja löydöksistä todennettavia (ei käyttäjälle näkyviä muutoksia)."
+      ]
+    },
+    {
       "date": "2026-07-12",
       "en": [
         "Development infrastructure: made automated code-review comments post reliably on pull requests (no user-facing changes)."
