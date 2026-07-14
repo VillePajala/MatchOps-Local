@@ -154,7 +154,8 @@ eslint → build), user tests on the Vercel preview at each checkpoint.
 | **1.2 Home shell (strangler)** | StartScreen becomes Home: hero header kept (logo/tagline/glows, slightly shorter), house tab bar (Pelit · Joukkue · Kaudet · Tilastot) + ⚙ corner. Tabs only OPEN THE EXISTING MODALS. `page.tsx`'s `'start'` branch renders it; field boot path untouched. | All four tabs + gear open their modals; StartScreen tests reworked to Home. |
 | **1.3 Pelit front page** | Tab content v1: "Jatka ottelua" card (when live), pinned "Uusi peli", saved-games entry (opens LoadGameModal), Ottelusuunnittelu entry. Cloud/subscribe/Play-store rows move under ⚙ / welcome flow. | Front page shows ONLY hero + those items (anti-clutter rule holds). **User preview checkpoint.** |
 | **1.4 Gear bucket** | ⚙ sheet: app settings, Backup & Restore, cloud account, language, user guide, external resources, rules directory. Entries open existing modals. | Every Device/Account-scope item reachable ONLY via ⚙. |
-| **L.0 ClubModalsHost scaffold + easy lifts** | Page-level host component rendered on BOTH screens; TrainingResources, Rules, Instructions and Settings render there (they are self-contained). Opening them from Home no longer mounts the match at all; closing lands on whatever screen you were on - the 2-lite goal falls out for free, wave by wave. Dual-render guard: a modal must never render in both the host and ModalManager. | Gear-sheet items open with the game view UNMOUNTED (assert no game-view testid); close returns to Home. |
+| **L.0a ClubModalsHost scaffold + Training/Rules** | Page-level host rendered on BOTH screens; the two truly trivial modals (isOpen/onClose only, state already in ModalProvider) prove the pattern - including the hardware-back contract below. | Both open from Home with the game view UNMOUNTED; hardware back closes the modal. |
+| **L.0b Lift Settings + Instructions** | Settings' ~12 handlers (language, backup, hard reset, cloud ops) extract into a page-usable hook; Instructions' open-state moves into ModalProvider (Settings' "show app guide" chain must keep working from Home). Opening them from Home no longer mounts the match at all; closing lands on whatever screen you were on - the 2-lite goal falls out for free, wave by wave. Dual-render guard: a modal must never render in both the host and ModalManager. | Gear-sheet items open with the game view UNMOUNTED (assert no game-view testid); close returns to Home. |
 | **L.1 Lift SeasonTournament + Personnel** | Query-backed CRUD with mutation hooks - least coupled. Hook instances move to the host; ModalManager rows deleted; suites follow. | Kilpailut tab + Taustahenkilöt row work with no game mounted. |
 | **L.2 Lift Roster + TeamManager** | useRoster ownership moves to the host; the game view consumes roster data via the query cache as it already does. Watch: single ownership of any LOCAL state (selectedTeamForRoster moves into the host). | Pelaajat/Joukkueet rows work with no game mounted; in-match roster editing unregressed. |
 | **L.3 Lift LoadGame + NewGameSetup (level crossing)** | The two modals that END in the match. Page exposes one small `enterMatch(gameId?)` contract: save current-game id, switch screen, let the game view's existing load path take over. Replaces today's mount-the-game-first flow AND the planner's session-key hack (planner joins the host here too - it is already self-contained). | Pick a saved game from Home -> match opens loaded; create game -> match opens set up; cancel either -> still on Home. |
@@ -182,6 +183,20 @@ modals without mounting the match, closes land back where you were, and the
 game tree contains only match-scope surfaces (GameSettings, assessment,
 goal log, current-game stats). Phase 4 remains parked and becomes EASIER
 after the lift (fewer things depend on mounting the game).
+
+### Modal governance (owner + review discussion, 2026-07-15, binding)
+
+- **Tasks live in modals; glanceable content lives on pages.** Modals are the
+  app's navigation for bounded tasks (manage roster, competitions, settings);
+  pages/tabs carry only content you glance at (resume card, entry rows, and -
+  later, optionally - a recent-games teaser).
+- **Hardware back must close the topmost lifted modal** - never exit the app,
+  never reveal the pitch. This is an ACCEPTANCE CRITERION of every L-wave,
+  proven first in L.0a and audited per lifted modal.
+- **Modal scope rule** (the anti-clutter rule's sibling): a new feature earns
+  a place inside an existing scope-true modal or justifies a NEW modal - it
+  never widens one into a junk drawer. (GameStats' five tabs are the cautionary
+  precedent.)
 
 ## 7. Process rules for this branch (planner lessons, binding)
 
