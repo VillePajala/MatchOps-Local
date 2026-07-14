@@ -959,13 +959,17 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByDisplayValue('Final')).not.toBeInTheDocument();
   });
 
-  it('adds and removes a substitution from the lineup view', async () => {
+  it('adds and removes a substitution from the lineup view, announcing EVERY change (repeats included)', async () => {
     mockGetPlans.mockResolvedValue({
-      existing: { ...existingPlan, players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }] },
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }, { id: 'p3', name: 'Jo' }],
+      },
     });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
     await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
 
     // Place Alex as goalkeeper so there is a starter to sub off.
     await act(async () => {
@@ -981,25 +985,47 @@ describe('PlaytimePlannerModal', () => {
       );
     });
 
-    // New flow: select the GK slot again, open the sub sheet, tap Sam.
+    // Select the GK slot, open the sub sheet, tap Sam -> first sub.
     await act(async () => {
       fireEvent.click(screen.getByLabelText('GK: Alex'));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
     });
-    // The sheet names the position + outgoing player; one tap creates the sub.
     expect(screen.getByRole('dialog', { name: 'Substitution · GK (Alex)' })).toBeInTheDocument();
     await act(async () => {
       fireEvent.click(within(screen.getByRole('dialog', { name: 'Substitution · GK (Alex)' })).getByRole('button', { name: /Sam/ }));
     });
     await waitFor(() => expect(screen.getByText(/Sam in for Alex \(GK\)/)).toBeInTheDocument());
+    expect(announcement()).toHaveTextContent('Substitution added');
+    expect(announcement()).toHaveAttribute('data-announcement-nonce', '1');
 
-    // Remove it again.
+    // Second sub onto the same slot (Jo) - the stacked-pill flow.
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
     });
-    await waitFor(() => expect(screen.queryByText(/Sam in for Alex \(GK\)/)).not.toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog', { name: /Substitution · GK/ })).getByRole('button', { name: /Jo/ }));
+    });
+    expect(announcement()).toHaveAttribute('data-announcement-nonce', '2');
+
+    // Remove BOTH from the sheet in sequence: the second announcement carries
+    // the SAME text as the first - the nonce must still force a fresh DOM node
+    // or assistive tech announces only the first removal.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
+    });
+    const sheet = () => screen.getByRole('dialog', { name: /Substitution · GK/ });
+    await act(async () => {
+      fireEvent.click(within(sheet()).getAllByRole('button', { name: 'Remove' })[0]);
+    });
+    expect(announcement()).toHaveTextContent('Substitution removed');
+    expect(announcement()).toHaveAttribute('data-announcement-nonce', '3');
+    await act(async () => {
+      fireEvent.click(within(sheet()).getAllByRole('button', { name: 'Remove' })[0]);
+    });
+    expect(announcement()).toHaveTextContent('Substitution removed');
+    expect(announcement()).toHaveAttribute('data-announcement-nonce', '4');
   });
 
   it('team options carry their binding context, matching New Game creation', async () => {

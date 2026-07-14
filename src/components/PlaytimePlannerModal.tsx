@@ -681,7 +681,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Add / remove a scheduled substitution in a game.
   // Screen-reader announcement for sub creation/removal: the sheet closes on
   // add, so the live region lives HERE (persists across the sheet's unmount).
-  const [subAnnouncement, setSubAnnouncement] = useState('');
+  // The nonce forces a DOM mutation even when the SAME message repeats
+  // (remove two subs in a row) - live regions only announce on mutation, so
+  // identical consecutive text would announce once and go silent.
+  const [subAnnouncement, setSubAnnouncement] = useState<{ text: string; nonce: number }>({
+    text: '',
+    nonce: 0,
+  });
 
   const handleAddSub = useCallback(
     (gameId: string, sub: PlanSub) => {
@@ -689,7 +695,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: addSub(g.subs, sub) } : g)),
       }));
-      setSubAnnouncement(t('playtimePlanner.subs.added', 'Substitution added'));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.subs.added', 'Substitution added'),
+        nonce: prev.nonce + 1,
+      }));
     },
     [updateActivePlan, t],
   );
@@ -700,7 +709,10 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: removeSub(g.subs, subId) } : g)),
       }));
-      setSubAnnouncement(t('playtimePlanner.subs.removed', 'Substitution removed'));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.subs.removed', 'Substitution removed'),
+        nonce: prev.nonce + 1,
+      }));
     },
     [updateActivePlan, t],
   );
@@ -2309,7 +2321,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       {/* Polite live region: announces sub add/remove to assistive tech. The
           sheet closes on add, so this must outlive it. Visually hidden. */}
       <div role="status" aria-live="polite" className="sr-only">
-        {subAnnouncement}
+        {/* key remounts the text node per announcement - the mutation is what
+            makes assistive tech re-announce a repeated message. */}
+        {subAnnouncement.text && (
+          <span key={subAnnouncement.nonce} data-announcement-nonce={subAnnouncement.nonce}>
+            {subAnnouncement.text}
+          </span>
+        )}
       </div>
 
       {subSheetTarget !== null &&
