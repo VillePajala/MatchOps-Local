@@ -19,6 +19,8 @@ interface StartScreenProps {
   onManageRoster?: () => void;
   /** Home tab: seasons & tournaments (opens the existing modal). */
   onManageSeasons?: () => void;
+  /** Front-page entry: open the Playing-Time Planner. */
+  onOpenPlanner?: () => void;
   /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
   onEnableCloudSync?: () => void;
   /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
@@ -41,6 +43,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onOpenSettings,
   onManageRoster,
   onManageSeasons,
+  onOpenPlanner,
   onEnableCloudSync,
   onSignInExistingSubscriber,
   onShowWelcome,
@@ -264,55 +267,55 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {t('startScreen.getStarted', 'Get Started')}
               </button>
             ) : (
-              /* Returning user: menu */
+              /* Returning user: the Pelit front page (two-level restructure
+                 PR 1.3) - resume card, one pinned primary, and full-width
+                 entry rows. The Stats/Load grid buttons are gone: the tab bar
+                 and the rows below cover both. */
               <>
-                {/* Primary action: Continue or New Game */}
-                {canResume ? (
+                {canResume && (
                   <button
                     type="button"
                     onClick={onResumeGame}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                    className="w-full text-left p-4 rounded-xl bg-gradient-to-r from-indigo-800 to-indigo-600 border border-indigo-400/40 shadow-lg shadow-indigo-900/40 hover:from-indigo-700 hover:to-indigo-500 transition-all"
                   >
-                    {t('startScreen.continue', 'Continue')}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={onGetStarted}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-                  >
-                    {t('startScreen.newGame', 'New Game')}
+                    <span className="flex items-center gap-2 text-white font-bold">
+                      <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_2px_rgba(74,222,128,0.6)]" aria-hidden="true" />
+                      {t('startScreen.resumeCard', 'Resume match')}
+                    </span>
                   </button>
                 )}
 
-                {/* Secondary actions: 2-column grid */}
-                <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={onGetStarted}
+                  className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                >
+                  {t('startScreen.newGame', 'New Game')}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onLoadGame}
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.savedGames', 'Saved games')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+
+                {onOpenPlanner && (
                   <button
                     type="button"
-                    onClick={onLoadGame}
-                    className="p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all"
+                    onClick={onOpenPlanner}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                   >
                     <span className="text-sm font-semibold text-white">
-                      {t('startScreen.loadGame', 'Load Game')}
+                      {t('controlBar.planner', 'Match planner')}
                     </span>
+                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={hasSavedGames ? onViewStats : undefined}
-                    disabled={!hasSavedGames}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      hasSavedGames
-                        ? 'bg-slate-800/90 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50'
-                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <span className={`text-sm font-semibold ${hasSavedGames ? 'text-white' : 'text-slate-500'}`}>
-                      {t('startScreen.viewStats', 'Statistics')}
-                    </span>
-                  </button>
-                </div>
-
+                )}
               </>
             )}
           </div>

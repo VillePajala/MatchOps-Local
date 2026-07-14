@@ -1094,16 +1094,13 @@
     "description": "Soccer Tactics and Timer App for Coaches",
     "createNewGame": "Create New Game",
     "createFirstGame": "Create First Game",
-    "loadGame": "Load Game",
     "resumeGame": "Resume Last Game",
-    "continue": "Continue",
     "exploreApp": "Explore App",
     "languageLabel": "Language",
     "languageEnglish": "English",
     "languageFinnish": "Finnish",
     "createSeasonTournament": "Seasons & Tournaments",
     "createFirstSeasonTournament": "Create Season/Tournament",
-    "viewStats": "View Stats",
     "backupNow": "Backup Now",
     "setupRoster": "Setup Team Roster",
     "howItWorks": "How It Works",
@@ -1123,7 +1120,9 @@
     "tabGames": "Games",
     "tabTeam": "Team",
     "tabSeasons": "Seasons",
-    "tabStats": "Stats"
+    "tabStats": "Stats",
+    "resumeCard": "Resume match",
+    "savedGames": "Saved games"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

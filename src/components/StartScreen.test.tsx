@@ -65,34 +65,57 @@ describe('StartScreen', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Load Game' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Statistics' })).toBeInTheDocument();
+    // The Pelit front page (restructure PR 1.3): resume card, one pinned
+    // primary, entry rows. The old Load Game / Statistics grid is GONE - the
+    // tab bar and rows cover both.
+    expect(screen.getByRole('button', { name: 'Resume match' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Saved games' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Statistics' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
-    // Planner moved to the in-game hamburger menu - no Start Screen button.
-    expect(screen.queryByRole('button', { name: 'Plan playing time' })).not.toBeInTheDocument();
 
     // User Guide link points to the full online guide (Start Screen discovery point)
     const guideLink = screen.getByRole('link', { name: 'User Guide' });
     expect(guideLink).toHaveAttribute('href', 'https://www.match-ops.com/guide');
     expect(guideLink).toHaveAttribute('target', '_blank');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Resume match' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Game' }));
-    expect(handlers.onLoadGame).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'New Game' }));
+    expect(handlers.onGetStarted).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Statistics' }));
-    expect(handlers.onViewStats).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Saved games' }));
+    expect(handlers.onLoadGame).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(handlers.onOpenSettings).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'FI' }));
     expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
+  });
+
+  it('front page: no resume card without a resumable game; planner row only when wired', () => {
+    const onOpenPlanner = jest.fn();
+    const base = {
+      onLoadGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+      hasSavedGames: true,
+      isFirstTimeUser: false,
+    };
+    const { unmount } = render(<StartScreen {...base} canResume={false} onOpenPlanner={onOpenPlanner} />);
+    expect(screen.queryByRole('button', { name: 'Resume match' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Match planner' }));
+    expect(onOpenPlanner).toHaveBeenCalledTimes(1);
+    unmount();
+
+    render(<StartScreen {...base} canResume={false} />);
+    expect(screen.queryByRole('button', { name: 'Match planner' })).not.toBeInTheDocument();
   });
 
   it('renders first-time user interface with simplified buttons', () => {
