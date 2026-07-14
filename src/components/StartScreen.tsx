@@ -377,26 +377,39 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  entry rows. The Stats/Load grid buttons are gone: the tab bar
                  and the rows below cover both. */
               <>
-                {canResume && (
+                {/* Original hierarchy, owner decision 2026-07-14: ONE amber
+                    primary on top - Jatka when a game is resumable (the
+                    original orange button), Uusi peli otherwise. The other
+                    action drops to a row. */}
+                {canResume ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onResumeGame}
+                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                    >
+                      {t('startScreen.resumeCard', 'Resume match')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onGetStarted}
+                      className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                    >
+                      <span className="text-sm font-semibold text-white">
+                        {t('startScreen.newGame', 'New Game')}
+                      </span>
+                      <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                    </button>
+                  </>
+                ) : (
                   <button
                     type="button"
-                    onClick={onResumeGame}
-                    className="w-full text-left p-4 rounded-xl bg-gradient-to-r from-indigo-800 to-indigo-600 border border-indigo-400/40 shadow-lg shadow-indigo-900/40 hover:from-indigo-700 hover:to-indigo-500 transition-all"
+                    onClick={onGetStarted}
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
                   >
-                    <span className="flex items-center gap-2 text-white font-bold">
-                      <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_2px_rgba(74,222,128,0.6)]" aria-hidden="true" />
-                      {t('startScreen.resumeCard', 'Resume match')}
-                    </span>
+                    {t('startScreen.newGame', 'New Game')}
                   </button>
                 )}
-
-                <button
-                  type="button"
-                  onClick={onGetStarted}
-                  className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-                >
-                  {t('startScreen.newGame', 'New Game')}
-                </button>
 
                 <button
                   type="button"
