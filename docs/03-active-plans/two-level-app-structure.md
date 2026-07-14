@@ -164,6 +164,10 @@ eslint → build), user tests on the Vercel preview at each checkpoint.
 
 ## 7. Process rules for this branch (planner lessons, binding)
 
+- **Merge gate (binding, 2026-07-14): a sub-PR merges ONLY when the Claude
+  review has posted an Approve for the exact current head.** CI green alone
+  never merges. Review requests changes -> fix -> push -> wait for the fresh
+  review of the NEW head -> loop until it approves.
 - **Verify before push, per batch**: `npx tsc --noEmit` → targeted jest
   (`--no-coverage`) → eslint on touched files → `npm run build` → restore
   `public/changelog.json` + `public/sw.js` before committing.
