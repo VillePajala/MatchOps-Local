@@ -1122,7 +1122,10 @@
     "tabSeasons": "Seasons",
     "tabStats": "Stats",
     "resumeCard": "Resume match",
-    "savedGames": "Saved games"
+    "savedGames": "Saved games",
+    "rowPlayers": "Players",
+    "rowTeams": "Teams",
+    "rowPersonnel": "Personnel"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

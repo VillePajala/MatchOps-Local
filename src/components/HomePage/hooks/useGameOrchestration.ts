@@ -104,7 +104,7 @@ const initialState: AppState = {
 };
 
 export interface UseGameOrchestrationProps {
-  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'settings';
+  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'personnel' | 'settings';
   skipInitialSetup?: boolean;
   onDataImportSuccess?: () => void;
   isFirstTimeUser?: boolean;
@@ -666,6 +666,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         break;
       case 'teams':
         setIsTeamManagerOpenRef.current(true);
+        break;
+      case 'personnel':
+        setIsPersonnelManagerOpen(true);
         break;
       case 'settings':
         setIsSettingsModalOpen(true);

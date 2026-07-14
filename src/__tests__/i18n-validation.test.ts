@@ -347,7 +347,8 @@ describe('Translation File Validation', () => {
       // +2: startScreen.resumeCard/savedGames (PR 1.3: the Pelit front page)
       // -3: startScreen.continue/loadGame/viewStats orphaned by the front-page
       //     rebuild (old Continue / Load Game / Statistics buttons removed)
-      expect(enKeys.length).toBe(2814);
+      // +3: startScreen.rowPlayers/rowTeams/rowPersonnel (1.3b: Team tab panel)
+      expect(enKeys.length).toBe(2817);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -415,7 +416,8 @@ describe('Translation File Validation', () => {
       // +5: startScreen home tab bar (see the en note above)
       // +2: startScreen front page (see the en note above)
       // -3: orphaned start-screen button keys pruned (see the en note above)
-      expect(fiKeys.length).toBe(2814);
+      // +3: Team tab panel rows (see the en note above)
+      expect(fiKeys.length).toBe(2817);
     });
   });
 });
