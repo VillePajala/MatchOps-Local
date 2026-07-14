@@ -76,6 +76,8 @@ const mockGetTournaments = jest.fn();
 jest.mock('@/utils/teams', () => ({
   getTeams: (...a: unknown[]) => mockGetTeams(...a),
   getTeamRoster: (...a: unknown[]) => mockGetTeamRoster(...a),
+  // Pure formatter - use the real one so option labels are tested for real.
+  getTeamDisplayName: jest.requireActual('@/utils/teams').getTeamDisplayName,
 }));
 jest.mock('@/utils/seasons', () => ({ getSeasons: (...a: unknown[]) => mockGetSeasons(...a) }));
 jest.mock('@/utils/tournaments', () => ({ getTournaments: (...a: unknown[]) => mockGetTournaments(...a) }));
@@ -1000,6 +1002,17 @@ describe('PlaytimePlannerModal', () => {
     await waitFor(() => expect(screen.queryByText(/Sam in for Alex \(GK\)/)).not.toBeInTheDocument());
   });
 
+  it('team options carry their binding context, matching New Game creation', async () => {
+    // A bare "U10" is ambiguous when a club runs several U10 squads across
+    // competitions - the option label must say which context the team lives
+    // in, exactly like the New Game team dropdown does.
+    mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10', boundSeasonId: 's1' }]);
+    mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await waitFor(() => expect(screen.getByText('Team (optional)')).toBeInTheDocument());
+    expect(screen.getByRole('option', { name: 'U10 (Spring)' })).toBeInTheDocument();
+  });
+
   it('prefills roster selection and durations from a chosen team, and stamps teamId', async () => {
     mockGetTeams.mockResolvedValue([{ id: 't1', name: 'U10', boundSeasonId: 's1' }]);
     mockGetSeasons.mockResolvedValue([{ id: 's1', name: 'Spring', periodCount: 1, periodDuration: 20 }]);
@@ -1106,7 +1119,7 @@ describe('PlaytimePlannerModal', () => {
 
     // Deselect: full roster back AND durations revert to the default 12.
     await act(async () => {
-      fireEvent.change(screen.getByDisplayValue('U10'), { target: { value: '' } });
+      fireEvent.change(screen.getByDisplayValue(/U10/), { target: { value: '' } });
     });
     await waitFor(() => expect(screen.getByText('selected', { exact: false }).parentElement?.textContent).toContain('2 / 2'));
     expect(screen.getByDisplayValue('12')).toBeInTheDocument();
@@ -1131,7 +1144,7 @@ describe('PlaytimePlannerModal', () => {
 
     // Switch to unbound team B -> durations revert to the default 12, not stale 20.
     await act(async () => {
-      fireEvent.change(screen.getByDisplayValue('Alpha'), { target: { value: 't2' } });
+      fireEvent.change(screen.getByDisplayValue(/Alpha/), { target: { value: 't2' } });
     });
     await waitFor(() => expect(screen.getByDisplayValue('12')).toBeInTheDocument());
     expect(screen.queryByDisplayValue('20')).not.toBeInTheDocument();

@@ -29,7 +29,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { getMasterRoster } from '@/utils/masterRosterManager';
-import { getTeams, getTeamRoster } from '@/utils/teams';
+import { getTeams, getTeamRoster, getTeamDisplayName } from '@/utils/teams';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import type { Team, Season, Tournament } from '@/types';
@@ -1561,7 +1561,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
                       {teams.map((tm) => (
                         <option key={tm.id} value={tm.id}>
-                          {tm.name}
+                          {getTeamDisplayName(tm, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                         </option>
                       ))}
                     </select>
@@ -1920,7 +1920,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
                         {teams.map((tm) => (
                           <option key={tm.id} value={tm.id}>
-                            {tm.name}
+                            {getTeamDisplayName(tm, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                           </option>
                         ))}
                       </select>
