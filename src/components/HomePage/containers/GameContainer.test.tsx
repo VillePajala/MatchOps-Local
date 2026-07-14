@@ -5,7 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { GameContainer } from './GameContainer';
+import { GameContainer, PLANNER_OPEN_KEY } from './GameContainer';
 import { TestFixtures } from '../../../../tests/fixtures';
 
 const PlayerBarMock = jest.fn();
@@ -67,12 +67,12 @@ describe('GameContainer', () => {
   it('opens the planner on mount when the session-restore key is armed', () => {
     // Both the background-remount restore AND the Home front page's planner
     // entry (PR 1.3: arm key -> navigate) ride this initializer.
-    sessionStorage.setItem('matchops_planner_open', '1');
+    sessionStorage.setItem(PLANNER_OPEN_KEY, '1');
     try {
       render(<GameContainer {...createGameContainerProps()} />);
       expect(screen.getByTestId('playtime-planner-modal')).toBeInTheDocument();
     } finally {
-      sessionStorage.removeItem('matchops_planner_open');
+      sessionStorage.removeItem(PLANNER_OPEN_KEY);
     }
   });
 
