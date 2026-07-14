@@ -990,7 +990,12 @@
     "existingSubscriber": "Oletko jo tilaaja? Kirjaudu sisään →",
     "newToCloud": "Uusi käyttäjä? Tilaa Android-sovelluksen kautta.",
     "getAndroidApp": "Lataa Google Playsta",
-    "welcomeScreen": "Tervetuloa"
+    "welcomeScreen": "Tervetuloa",
+    "homeTabs": "Kotinäkymän osiot",
+    "tabGames": "Pelit",
+    "tabTeam": "Joukkue",
+    "tabSeasons": "Kaudet",
+    "tabStats": "Tilastot"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

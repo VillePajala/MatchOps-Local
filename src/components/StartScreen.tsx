@@ -15,6 +15,10 @@ interface StartScreenProps {
   onGetStarted: () => void;
   onViewStats: () => void;
   onOpenSettings: () => void;
+  /** Home tab: master roster / teams / personnel (opens the existing modal). */
+  onManageRoster?: () => void;
+  /** Home tab: seasons & tournaments (opens the existing modal). */
+  onManageSeasons?: () => void;
   /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
   onEnableCloudSync?: () => void;
   /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
@@ -35,6 +39,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onGetStarted,
   onViewStats,
   onOpenSettings,
+  onManageRoster,
+  onManageSeasons,
   onEnableCloudSync,
   onSignInExistingSubscriber,
   onShowWelcome,
@@ -132,6 +138,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <div />
           )}
 
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              aria-label={t('startScreen.appSettings', 'Settings')}
+              className="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm text-slate-300 hover:text-white hover:bg-slate-700/70 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setLanguage('en')}
@@ -154,10 +172,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
               FI
             </button>
           </div>
+          </div>
         </div>
 
-        {/* === HERO: App Name === */}
-        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : 'justify-center'}`}>
+        {/* === HERO: App Name (top-anchored - the Home shell of the two-level
+            restructure; the tab bar below is the club-level navigation) === */}
+        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : 'justify-start pt-[6vh]'}`}>
           <div className="text-center mb-6">
             {/* App Name as Logo */}
             <div className="relative inline-block mb-3">
@@ -171,6 +191,66 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {t('startScreen.tagline', 'Plan · Track · Discover')}
             </p>
           </div>
+
+          {/* === HOME TABS (two-level restructure PR 1.2, strangler stage):
+              Pelit is this page; the other tabs OPEN THE EXISTING MODALS
+              unchanged. Phase 2 dissolves the modals into real tab content. === */}
+          {!isFirstTimeUser && (
+            <div className="max-w-sm mx-auto w-full mb-5" role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
+              <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="true"
+                  className="flex-1 px-2 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white shadow-inner"
+                >
+                  {t('startScreen.tabGames', 'Games')}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  onClick={onManageRoster}
+                  disabled={!onManageRoster}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    onManageRoster
+                      ? 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      : 'text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  {t('startScreen.tabTeam', 'Team')}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  onClick={onManageSeasons}
+                  disabled={!onManageSeasons}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    onManageSeasons
+                      ? 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      : 'text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  {t('startScreen.tabSeasons', 'Seasons')}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected="false"
+                  onClick={hasSavedGames ? onViewStats : undefined}
+                  disabled={!hasSavedGames}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    hasSavedGames
+                      ? 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                      : 'text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  {t('startScreen.tabStats', 'Stats')}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* === ACTION BUTTONS === */}
           <div className="max-w-sm mx-auto w-full space-y-3">
@@ -245,18 +325,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
           {/* Footer links: Settings + User Guide side by side. The Start Screen is where
               every reload lands, so the full guide stays one tap away here. */}
           <div className="mt-6 flex items-center justify-center gap-3 text-sm">
-            {!isFirstTimeUser && (
-              <>
-                <button
-                  type="button"
-                  onClick={onOpenSettings}
-                  className="text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  {t('startScreen.appSettings', 'Settings')}
-                </button>
-                <span className="text-slate-600" aria-hidden="true">·</span>
-              </>
-            )}
             <a
               href="https://www.match-ops.com/guide"
               target="_blank"
