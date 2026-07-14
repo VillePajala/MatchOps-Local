@@ -182,6 +182,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   const handleRepeatLastGame = useCallback(() => {
     if (!lastGame) return;
+    // "Repeat last game" states an intent: build THIS game from the previous
+    // one. An active plan prefill would otherwise silently ride along (old
+    // plan's lineup, snap points, sub schedule AND a plan link) - clear it,
+    // same rule as switching teams.
+    setPrefillPlanId('');
+    setPrefillGameId('');
+    setPrefillPayload(undefined);
+    setPrefillMissingCount(0);
     setOpponentName(lastGame.opponentName ?? '');
     setGameLocation(lastGame.gameLocation ?? '');
     setLocalPeriodDurationString(lastGame.periodDurationMinutes ? String(lastGame.periodDurationMinutes) : '15');

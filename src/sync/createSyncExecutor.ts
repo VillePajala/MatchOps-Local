@@ -765,6 +765,13 @@ function createCloudFetcher(cloudStore: DataStore): CloudRecordFetcher {
         }
 
         case 'playtimeGameSubs': {
+          // DELIBERATE LWW exemption (unlike playtime_plans / migration 038):
+          // a game's planned-sub schedule carries no per-collection timestamp,
+          // so cloud is treated as oldest and processing order wins. Accepted
+          // scope decision - the schedule is regenerable from the plan itself
+          // (re-apply), so a rare cross-device race self-heals; see
+          // "Scope decisions" in docs/03-active-plans/
+          // playing-time-fairness-and-planner.md §11.
           const subs = await cloudStore.getPlaytimeGameSubs(entityId);
           if (subs.length === 0) return null;
           return { id: entityId, subs, updatedAt: EPOCH_TIMESTAMP };

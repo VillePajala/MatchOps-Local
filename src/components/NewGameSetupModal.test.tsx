@@ -1242,6 +1242,46 @@ describe('NewGameSetupModal', () => {
       expect(gk.isGoalie).toBe(true);
     });
 
+    test('"Repeat last game" clears an active plan prefill (no stale plan attaches)', async () => {
+      // Both affordances are clickable at once; repeating the last game states
+      // a new intent, so the plan's lineup/subs/link must not ride along.
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      const savedGames = {
+        g1: {
+          opponentName: 'Recent Rival', gameLocation: 'Recent Park', periodDurationMinutes: 30,
+          numberOfPeriods: 2, homeOrAway: 'home', gameType: 'soccer', demandFactor: 3,
+          selectedPlayerIds: ['player1'], createdAt: '2024-06-01T10:00:00.000Z',
+        },
+      } as never;
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} savedGames={savedGames} />
+        </ToastProvider>
+      );
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Repeat last game/i }));
+      });
+      // The prefill picker resets to "no plan".
+      expect((screen.getByLabelText('Prefill from plan (optional)') as HTMLSelectElement).value).toBe('');
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload
+    });
+
     test('picker stays hidden when there are no plans', async () => {
       renderModal();
       await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
