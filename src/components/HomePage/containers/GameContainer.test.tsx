@@ -5,7 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { GameContainer } from './GameContainer';
+import { GameContainer, PLANNER_OPEN_KEY } from './GameContainer';
 import { TestFixtures } from '../../../../tests/fixtures';
 
 const PlayerBarMock = jest.fn();
@@ -37,6 +37,11 @@ jest.mock('@/components/ControlBar', () => ({
   }),
 }));
 
+jest.mock('@/components/PlaytimePlannerModal', () => ({
+  __esModule: true,
+  default: () => <div data-testid="playtime-planner-modal" />,
+}));
+
 jest.mock('./FieldContainer', () => ({
   __esModule: true,
   FieldContainer: jest.fn((props) => {
@@ -57,6 +62,23 @@ describe('GameContainer', () => {
       PlayerBarMock(props);
       return <div data-testid="player-bar" />;
     });
+  });
+
+  it('opens the planner on mount when the session-restore key is armed', () => {
+    // Both the background-remount restore AND the Home front page's planner
+    // entry (PR 1.3: arm key -> navigate) ride this initializer.
+    sessionStorage.setItem(PLANNER_OPEN_KEY, '1');
+    try {
+      render(<GameContainer {...createGameContainerProps()} />);
+      expect(screen.getByTestId('playtime-planner-modal')).toBeInTheDocument();
+    } finally {
+      sessionStorage.removeItem(PLANNER_OPEN_KEY);
+    }
+  });
+
+  it('does not open the planner without the key', () => {
+    render(<GameContainer {...createGameContainerProps()} />);
+    expect(screen.queryByTestId('playtime-planner-modal')).not.toBeInTheDocument();
   });
 
   it('renders even when no game session state (renders shell)', () => {

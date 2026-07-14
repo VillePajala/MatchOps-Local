@@ -8,7 +8,6 @@ import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import BackupReminderBanner from '@/components/BackupReminderBanner';
-import { PLANNER_OPEN_KEY } from '@/components/HomePage/containers/GameContainer';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -24,6 +23,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import { PLANNER_OPEN_KEY } from '@/components/HomePage/containers/GameContainer';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
@@ -1178,6 +1178,19 @@ export default function Home() {
     setScreen('home');
   }, [setAction, setScreen]);
 
+  // Front-page planner entry (restructure PR 1.3): arm the planner's own
+  // session-restore key BEFORE entering the game view - GameContainer's mount
+  // initializer reads it and opens the planner, so no new orchestration
+  // plumbing is needed. 'explore' navigates without opening any other modal.
+  const handleOpenPlannerFromHome = useCallback(() => {
+    try {
+      sessionStorage.setItem(PLANNER_OPEN_KEY, '1');
+    } catch {
+      // sessionStorage unavailable - the planner just won't auto-open.
+    }
+    handleAction('explore');
+  }, [handleAction]);
+
   // Show login screen in cloud mode when not authenticated
   const needsAuth = mode === 'cloud' && !isAuthenticated;
 
@@ -1306,6 +1319,7 @@ export default function Home() {
               onResumeGame={() => handleAction('resumeGame')}
               onManageRoster={() => handleAction('roster')}
               onManageSeasons={() => handleAction('season')}
+              onOpenPlanner={handleOpenPlannerFromHome}
               onGetStarted={() => handleAction('getStarted')}
               onViewStats={() => handleAction('stats')}
               onOpenSettings={() => handleAction('settings')}

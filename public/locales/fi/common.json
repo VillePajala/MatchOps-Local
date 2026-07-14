@@ -966,16 +966,13 @@
     "description": "Jalkapallovalmentajan taktiikka- ja ajastinsovellus",
     "createNewGame": "Luo uusi ottelu",
     "createFirstGame": "Luo ensimmäinen ottelu",
-    "loadGame": "Lataa ottelu",
     "resumeGame": "Jatka edellistä ottelua",
-    "continue": "Jatka",
     "exploreApp": "Tutustu sovellukseen",
     "languageLabel": "Kieli",
     "languageEnglish": "Englanti",
     "languageFinnish": "Suomi",
     "createSeasonTournament": "Kaudet & Turnaukset",
     "createFirstSeasonTournament": "Luo kausi/turnaus",
-    "viewStats": "Tilastot",
     "backupNow": "Varmuuskopioi nyt",
     "setupRoster": "Luo kokoonpano",
     "howItWorks": "Näin äppi toimii",
@@ -995,7 +992,9 @@
     "tabGames": "Pelit",
     "tabTeam": "Joukkue",
     "tabSeasons": "Kaudet",
-    "tabStats": "Tilastot"
+    "tabStats": "Tilastot",
+    "resumeCard": "Jatka ottelua",
+    "savedGames": "Tallennetut pelit"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
