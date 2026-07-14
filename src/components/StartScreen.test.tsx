@@ -318,6 +318,18 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
+  it('renders unwired Team/Seasons tabs DISABLED - never silently dead-clickable', () => {
+    const props = { ...shellProps(), onManageRoster: undefined, onManageSeasons: undefined };
+    render(<StartScreen {...props} />);
+    expect(screen.getByRole('tab', { name: 'Team' })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: 'Seasons' })).toBeDisabled();
+  });
+
+  it('exactly one Settings control exists after the footer link folded into the gear', () => {
+    render(<StartScreen {...shellProps()} />);
+    expect(screen.getAllByRole('button', { name: 'Settings' })).toHaveLength(1);
+  });
+
   it('hides the tab bar for first-time users (single Get Started flow untouched)', () => {
     render(<StartScreen {...shellProps()} isFirstTimeUser={true} />);
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
