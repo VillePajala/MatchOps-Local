@@ -348,7 +348,12 @@ describe('Translation File Validation', () => {
       // -3: startScreen.continue/loadGame/viewStats orphaned by the front-page
       //     rebuild (old Continue / Load Game / Statistics buttons removed)
       // +3: startScreen.rowPlayers/rowTeams/rowPersonnel (1.3b: Team tab panel)
-      expect(enKeys.length).toBe(2817);
+      // +5: startScreen.rowTraining + gearTitle/gearBackup/gearAccount/gearRules
+      //     (PR 1.4: the gear bucket)
+      // -5: startScreen footer keys orphaned by the gear bucket (usingLocal
+      //     Storage/signedInAs/existingSubscriber/newToCloud/getAndroidApp)
+      // +1: startScreen.tasoLink (Taso promoted to the games tab - game-day tool)
+      expect(enKeys.length).toBe(2818);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -417,7 +422,10 @@ describe('Translation File Validation', () => {
       // +2: startScreen front page (see the en note above)
       // -3: orphaned start-screen button keys pruned (see the en note above)
       // +3: Team tab panel rows (see the en note above)
-      expect(fiKeys.length).toBe(2817);
+      // +5: gear bucket keys (see the en note above)
+      // -5: orphaned footer keys pruned (see the en note above)
+      // +1: startScreen.tasoLink (see the en note above)
+      expect(fiKeys.length).toBe(2818);
     });
   });
 });

@@ -1321,6 +1321,10 @@ export default function Home() {
               onManageTeams={() => handleAction('teams')}
               onManagePersonnel={() => handleAction('personnel')}
               onManageSeasons={() => handleAction('season')}
+              onOpenTraining={() => handleAction('training')}
+              onOpenBackup={() => handleAction('backup')}
+              onOpenAccount={() => handleAction('account')}
+              onOpenRules={() => handleAction('rules')}
               onOpenPlanner={handleOpenPlannerFromHome}
               onGetStarted={() => handleAction('getStarted')}
               onViewStats={() => handleAction('stats')}

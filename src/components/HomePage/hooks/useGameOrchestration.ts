@@ -104,7 +104,7 @@ const initialState: AppState = {
 };
 
 export interface UseGameOrchestrationProps {
-  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'personnel' | 'settings';
+  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'personnel' | 'settings' | 'backup' | 'account' | 'training' | 'rules';
   skipInitialSetup?: boolean;
   onDataImportSuccess?: () => void;
   isFirstTimeUser?: boolean;
@@ -462,6 +462,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isSettingsModalOpen,
     setIsSettingsModalOpen,
+    openSettingsToTab,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
@@ -672,6 +673,20 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         break;
       case 'settings':
         setIsSettingsModalOpen(true);
+        break;
+      // Gear-bucket entries (restructure PR 1.4): deep-tab settings opens +
+      // the two standalone directories, all through existing modal state.
+      case 'backup':
+        openSettingsToTab('data');
+        break;
+      case 'account':
+        openSettingsToTab('account');
+        break;
+      case 'training':
+        setIsTrainingResourcesOpen(true);
+        break;
+      case 'rules':
+        setIsRulesDirectoryOpen(true);
         break;
       case 'explore':
         // Explore mode - just let user access the temporary workspace

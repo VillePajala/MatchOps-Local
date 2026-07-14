@@ -11,7 +11,8 @@ import { useState, useCallback } from 'react';
 
 export type AppAction =
   | 'newGame' | 'loadGame' | 'resumeGame' | 'explore'
-  | 'season' | 'stats' | 'roster' | 'teams' | 'personnel' | 'settings';
+  | 'season' | 'stats' | 'roster' | 'teams' | 'personnel' | 'settings'
+  | 'backup' | 'account' | 'training' | 'rules';
 
 const VALID_ACTIONS: Record<string, AppAction> = {
   newGame: 'newGame',

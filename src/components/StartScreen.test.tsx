@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@/i18n', () => ({
@@ -68,8 +68,8 @@ describe('StartScreen', () => {
     // The Pelit front page (restructure PR 1.3): resume card, one pinned
     // primary, entry rows. The old Load Game / Statistics grid is GONE - the
     // tab bar and rows cover both.
-    expect(screen.getByRole('button', { name: 'Resume match' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ New Game' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Saved games' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Statistics' })).not.toBeInTheDocument();
@@ -77,21 +77,25 @@ describe('StartScreen', () => {
     expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
 
-    // User Guide link points to the full online guide (Start Screen discovery point)
+    // The guide link moved into the gear sheet (PR 1.4) - open it to check.
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     const guideLink = screen.getByRole('link', { name: 'User Guide' });
     expect(guideLink).toHaveAttribute('href', 'https://www.match-ops.com/guide');
     expect(guideLink).toHaveAttribute('target', '_blank');
+    fireEvent.click(screen.getByTestId('gear-sheet-backdrop'));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Resume match' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'New Game' }));
+    fireEvent.click(screen.getByRole('button', { name: '+ New Game' }));
     expect(handlers.onGetStarted).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Saved games' }));
     expect(handlers.onLoadGame).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const gearSheet = screen.getByRole('dialog', { name: 'App & account' });
+    fireEvent.click(within(gearSheet).getByRole('button', { name: 'Settings' }));
     expect(handlers.onOpenSettings).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'FI' }));
@@ -109,7 +113,7 @@ describe('StartScreen', () => {
       isFirstTimeUser: false,
     };
     const { unmount } = render(<StartScreen {...base} canResume={false} onOpenPlanner={onOpenPlanner} />);
-    expect(screen.queryByRole('button', { name: 'Resume match' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Match planner' }));
     expect(onOpenPlanner).toHaveBeenCalledTimes(1);
     unmount();
@@ -157,41 +161,34 @@ describe('StartScreen', () => {
     expect(handlers.onGetStarted).toHaveBeenCalled();
   });
 
-  it('shows Sign Out footer when in cloud mode', () => {
+  it('cloud mode: the gear sheet shows the account entry with the email (footer is gone)', () => {
     const { useAuth } = jest.requireMock('@/contexts/AuthProvider');
     useAuth.mockReturnValue({
       user: { email: 'test@example.com' },
       mode: 'cloud',
       signOut: mockSignOut,
     });
-
-    const handlers = {
-      onLoadGame: jest.fn(),
-      onResumeGame: jest.fn(),
-      onGetStarted: jest.fn(),
-      onViewStats: jest.fn(),
-      onOpenSettings: jest.fn(),
-    };
-
+    const onOpenAccount = jest.fn();
     render(
       <StartScreen
-        onLoadGame={handlers.onLoadGame}
-        onResumeGame={handlers.onResumeGame}
-        onGetStarted={handlers.onGetStarted}
-        onViewStats={handlers.onViewStats}
-        onOpenSettings={handlers.onOpenSettings}
+        onLoadGame={jest.fn()}
+        onResumeGame={jest.fn()}
+        onGetStarted={jest.fn()}
+        onViewStats={jest.fn()}
+        onOpenSettings={jest.fn()}
+        onOpenAccount={onOpenAccount}
         canResume={false}
         hasSavedGames={true}
         isFirstTimeUser={false}
       />
     );
 
-    expect(screen.getByText('Signed in as')).toBeInTheDocument();
+    // No footer any more - sign-out lives in Settings -> Account.
+    expect(screen.queryByText('Signed in as')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sign Out' })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Sign Out' }));
-    expect(mockSignOut).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /Cloud account/ }));
+    expect(onOpenAccount).toHaveBeenCalledTimes(1);
   });
 
   it('does not show Sign Out footer when in local mode', () => {
@@ -318,18 +315,21 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   it('renders the four club-level tabs with Games active', () => {
     render(<StartScreen {...shellProps()} />);
     const tabs = screen.getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Games', 'Team', 'Seasons', 'Stats']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Games', 'Team', 'Competitions', 'Stats']);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
   });
 
   it('Team tab switches to the club panel; its rows open the existing modals', () => {
-    const props = { ...shellProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn() };
+    const props = { ...shellProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
     // Real tab semantics: selection moves, the body becomes the club rows.
     expect(screen.getByRole('tab', { name: 'Team' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'false');
-    expect(screen.queryByRole('button', { name: 'New Game' })).not.toBeInTheDocument();
+    // The pinned '+ New Game' strip stays visible on EVERY tab by design;
+    // the front page's own content (Saved games row) is what swaps out.
+    expect(screen.getByRole('button', { name: '+ New Game' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Saved games' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Players' }));
     expect(props.onManageRoster).toHaveBeenCalledTimes(1);
@@ -337,27 +337,60 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onManageTeams).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Personnel' }));
     expect(props.onManagePersonnel).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Warmup Plan' }));
+    expect(props.onOpenTraining).toHaveBeenCalledTimes(1);
 
     // Back to Games restores the front page.
     fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
-    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ New Game' })).toBeInTheDocument();
   });
 
   it('Seasons and Stats tabs stay one-tap openers for their single-purpose scopes', () => {
     const props = shellProps();
     render(<StartScreen {...props} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Seasons' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(props.onViewStats).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the Stats tab without saved games and opens settings from the gear corner', () => {
-    const props = { ...shellProps(), hasSavedGames: false };
+  it('disables the Stats tab without saved games; the gear opens the app sheet', () => {
+    const props = { ...shellProps(), hasSavedGames: false, onOpenBackup: jest.fn(), onOpenRules: jest.fn() };
     render(<StartScreen {...props} />);
     expect(screen.getByRole('tab', { name: 'Stats' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    // The sheet holds the whole device/account bucket.
+    const sheet = screen.getByRole('dialog', { name: 'App & account' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Settings' }));
     expect(props.onOpenSettings).toHaveBeenCalledTimes(1);
+    // The sheet closes after routing.
+    expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
+  });
+
+  it('gear sheet routes backup and rules to their openers', () => {
+    const props = { ...shellProps(), onOpenBackup: jest.fn(), onOpenRules: jest.fn() };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Backup & Restore' }));
+    expect(props.onOpenBackup).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rules' }));
+    expect(props.onOpenRules).toHaveBeenCalledTimes(1);
+  });
+
+  it('the Taso link sits on the games front page (game-day workflow tool)', () => {
+    render(<StartScreen {...shellProps()} />);
+    const taso = screen.getByRole('link', { name: /Taso - lineups & results/ });
+    expect(taso).toHaveAttribute('href', 'https://taso.palloliitto.fi');
+    expect(taso).toHaveAttribute('target', '_blank');
+  });
+
+  it('the Coaching Materials link sits on the Team panel (training scope)', () => {
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    const coaching = screen.getByRole('link', { name: /Coaching Materials/ });
+    expect(coaching).toHaveAttribute('href', 'https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo');
+    expect(coaching).toHaveAttribute('target', '_blank');
   });
 
   it('unwired Team-panel rows render DISABLED - never silently dead-clickable', () => {
@@ -372,7 +405,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // (The Team tab now switches a local panel, so it needs no handler.)
     const props = { ...shellProps(), onManageSeasons: undefined };
     render(<StartScreen {...props} />);
-    expect(screen.getByRole('tab', { name: 'Seasons' })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: 'Competitions' })).toBeDisabled();
   });
 
   it('exactly one Settings control exists after the footer link folded into the gear', () => {
