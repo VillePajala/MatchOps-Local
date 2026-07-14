@@ -295,7 +295,7 @@ export const exportCurrentGameExcel = (
     { [fieldLabel]: translate('export.gameStatus', 'Game Status'), [valueLabel]: game.gameStatus },
     { [fieldLabel]: translate('export.isPlayed', 'Is Played'), [valueLabel]: game.isPlayed ? yes : no },
     { [fieldLabel]: '', [valueLabel]: '' },
-    { [fieldLabel]: translate('export.gameSettings', 'Game Settings'), [valueLabel]: '' },
+    { [fieldLabel]: translate('export.gameSettings', 'Match details'), [valueLabel]: '' },
     { [fieldLabel]: translate('export.numberOfPeriods', 'Number of Periods'), [valueLabel]: game.numberOfPeriods },
     { [fieldLabel]: translate('export.periodDuration', 'Period Duration (min)'), [valueLabel]: game.periodDurationMinutes },
     { [fieldLabel]: translate('export.substitutionInterval', 'Substitution Interval (min)'), [valueLabel]: game.subIntervalMinutes ?? '' },

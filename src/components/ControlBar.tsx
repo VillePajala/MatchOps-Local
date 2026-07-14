@@ -563,14 +563,48 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </button>
           )}
 
-          {/* Section: Game Management */}
+          {/* Section: THIS MATCH - everything here touches only the game on
+              screen. The club/app items live in the next group; the two-scope
+              split is the two-level restructure's phase 0 (see
+              docs/03-active-plans/two-level-app-structure.md). */}
           <div className="mb-4">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {t('controlBar.menu.gameManagement', 'Game Management')}
+              {t('controlBar.menu.thisMatch', 'This match')}
             </h4>
             <button onClick={wrapImmediate(onQuickSave)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineArchiveBoxArrowDown className="w-5 h-5 mr-2" /> {t('controlBar.saveGame', 'Save')}
             </button>
+            <button
+              onClick={wrapModal(onOpenGameSettingsModal)}
+              className={`w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors ${
+                !isGameLoaded ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              disabled={!isGameLoaded}
+            >
+              <HiOutlineAdjustmentsHorizontal className="w-5 h-5 mr-2" /> {t('controlBar.gameSettingsButton', 'Match details')}
+            </button>
+            <button
+              onClick={wrapModal(onOpenPlayerAssessmentModal)}
+              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+              title={t('instructionsModal.controlBar.assessPlayers')}
+            >
+              <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
+            </button>
+            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />{t('controlBar.gameReport', 'Game report')}
+            </button>
+            {/* Stats still opens the mixed-scope GameStats modal; PR 0.2 splits
+                the entry into match vs team stats. */}
+            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+              <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.stats', 'Stats')}
+            </button>
+          </div>
+
+          {/* Section: TEAM & APP - the club/season library and app-level tools. */}
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              {t('controlBar.menu.teamAndApp', 'Team & app')}
+            </h4>
             <button onClick={wrapModal(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineFolderOpen className="w-5 h-5 mr-2" /> {t('controlBar.loadGame', 'Load Game...')}
             </button>
@@ -582,32 +616,6 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 <HiOutlineTableCells className="w-5 h-5 mr-2" /> {t('controlBar.planner', 'Match planner')}
               </button>
             )}
-            <button
-              onClick={wrapModal(onOpenPlayerAssessmentModal)}
-              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              title={t('instructionsModal.controlBar.assessPlayers')}
-            >
-              <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
-            </button>
-            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />{t('controlBar.gameReport', 'Game report')}
-            </button>
-          </div>
-
-          {/* Section: Setup & Configuration */}
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {t('controlBar.menu.setupConfig', 'Setup & Configuration')}
-            </h4>
-            <button
-              onClick={wrapModal(onOpenGameSettingsModal)}
-              className={`w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors ${
-                !isGameLoaded ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              disabled={!isGameLoaded}
-            >
-              <HiOutlineAdjustmentsHorizontal className="w-5 h-5 mr-2" /> {t('controlBar.gameSettingsButton', 'Game Settings')}
-            </button>
             <button onClick={wrapModal(onOpenRosterModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineUsers className="w-5 h-5 mr-2" /> {t('controlBar.manageRoster', 'Manage Roster')}
             </button>
@@ -619,16 +627,6 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </button>
             <button onClick={wrapModal(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineTrophy className="w-5 h-5 mr-2" /> {t('controlBar.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')}
-            </button>
-          </div>
-
-          {/* Section: Analysis & Tools */}
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {t('controlBar.menu.analysisTools', 'Analysis & Tools')}
-            </h4>
-            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.stats', 'Stats')}
             </button>
             <button onClick={wrapModal(onToggleTrainingResources)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineBookOpen className="w-5 h-5 mr-2" />{t('controlBar.training', 'Training')}

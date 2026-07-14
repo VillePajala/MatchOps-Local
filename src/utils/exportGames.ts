@@ -67,7 +67,7 @@ export const exportCsv = (
   rows.push(`${escapeCsvField('Tournament:')}${DELIMITER}${escapeCsvField(tournamentName || (game.tournamentId || 'None'))}`);
   rows.push('');
 
-  rows.push('Game Settings');
+  rows.push('Match details');
   rows.push(`${escapeCsvField('Number of Periods:')}${DELIMITER}${escapeCsvField(game.numberOfPeriods)}`);
   rows.push(`${escapeCsvField('Period Duration (min):')}${DELIMITER}${escapeCsvField(game.periodDurationMinutes)}`);
   rows.push(`${escapeCsvField('Substitution Interval (min):')}${DELIMITER}${escapeCsvField(game.subIntervalMinutes ?? '?')}`);
