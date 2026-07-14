@@ -2390,6 +2390,7 @@ export type TranslationKey =
   | 'startScreen.taglineAssess'
   | 'startScreen.taglinePlan'
   | 'startScreen.taglineTrack'
+  | 'startScreen.tasoLink'
   | 'startScreen.welcomeScreen'
   | 'status.loadingGameData'
   | 'subscription.expiredWarning'

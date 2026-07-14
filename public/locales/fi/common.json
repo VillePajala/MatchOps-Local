@@ -986,7 +986,7 @@
     "homeTabs": "Kotinäkymän osiot",
     "tabGames": "Pelit",
     "tabTeam": "Joukkue",
-    "tabSeasons": "Kaudet",
+    "tabSeasons": "Kilpailut",
     "tabStats": "Tilastot",
     "resumeCard": "Jatka ottelua",
     "savedGames": "Tallennetut pelit",
@@ -997,7 +997,8 @@
     "gearTitle": "Sovellus ja tili",
     "gearBackup": "Varmuuskopiointi ja palautus",
     "gearAccount": "Pilvitili",
-    "gearRules": "Säännöt"
+    "gearRules": "Säännöt",
+    "tasoLink": "Taso - kokoonpanot ja tulokset →"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

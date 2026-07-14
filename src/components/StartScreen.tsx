@@ -264,7 +264,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       : 'text-slate-600 cursor-not-allowed'
                   }`}
                 >
-                  {t('startScreen.tabSeasons', 'Seasons')}
+                  {t('startScreen.tabSeasons', 'Competitions')}
                 </button>
                 <button
                   type="button"
@@ -360,6 +360,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </span>
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
+                {/* Training CONTENT scope: the coaching materials link lives
+                    with the team, not under the gear. */}
+                <a
+                  href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center text-sm text-slate-400 hover:text-amber-400 transition-colors pt-1"
+                >
+                  {t('controlBar.coachingMaterials', 'Coaching Materials')} →
+                </a>
               </>
             ) : (
               /* Returning user: the Pelit front page (two-level restructure
@@ -411,6 +421,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                   </button>
                 )}
+                {/* Taso is a game-day workflow tool (submit the lineup before,
+                    report the result after) - it earns a games-tab link, not a
+                    burial under the gear. */}
+                <a
+                  href="https://taso.palloliitto.fi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center text-sm text-slate-400 hover:text-amber-400 transition-colors pt-1"
+                >
+                  {t('startScreen.tasoLink', 'Taso - lineups & results →')}
+                </a>
               </>
             )}
           </div>
@@ -477,10 +498,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
               <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="block w-full px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
                 {t('controlBar.userGuide', 'User Guide')}
               </a>
-              <div className="pt-2 mt-1 border-t border-slate-700/60 flex flex-wrap gap-x-4 gap-y-1 px-3 text-xs">
+              <div className="pt-2 mt-1 border-t border-slate-700/60 px-3 text-xs">
                 <a href="https://www.match-ops.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">match-ops.com</a>
-                <a href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">{t('controlBar.coachingMaterials', 'Coaching Materials')}</a>
-                <a href="https://taso.palloliitto.fi" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">{t('controlBar.tasoLink', 'Taso')}</a>
               </div>
             </div>
           </div>

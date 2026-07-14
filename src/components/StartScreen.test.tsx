@@ -315,7 +315,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   it('renders the four club-level tabs with Games active', () => {
     render(<StartScreen {...shellProps()} />);
     const tabs = screen.getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Games', 'Team', 'Seasons', 'Stats']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Games', 'Team', 'Competitions', 'Stats']);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
   });
 
@@ -345,7 +345,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   it('Seasons and Stats tabs stay one-tap openers for their single-purpose scopes', () => {
     const props = shellProps();
     render(<StartScreen {...props} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Seasons' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(props.onViewStats).toHaveBeenCalledTimes(1);
@@ -387,7 +387,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // (The Team tab now switches a local panel, so it needs no handler.)
     const props = { ...shellProps(), onManageSeasons: undefined };
     render(<StartScreen {...props} />);
-    expect(screen.getByRole('tab', { name: 'Seasons' })).toBeDisabled();
+    expect(screen.getByRole('tab', { name: 'Competitions' })).toBeDisabled();
   });
 
   it('exactly one Settings control exists after the footer link folded into the gear', () => {
