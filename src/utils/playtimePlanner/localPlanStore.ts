@@ -227,7 +227,12 @@ const deletePlanLinksForPlan = async (planId: string): Promise<boolean> => {
 const isPlannedGameSub = (v: unknown): v is PlannedGameSub =>
   isRecord(v) &&
   typeof v.id === 'string' &&
+  // Finite + non-negative, matching types.ts's isSub: timeSeconds drives the
+  // live "sub now" reminder, and a crafted NaN would make it never fire while
+  // a negative value would make it fire immediately and forever.
   typeof v.timeSeconds === 'number' &&
+  Number.isFinite(v.timeSeconds) &&
+  v.timeSeconds >= 0 &&
   typeof v.slotId === 'string' &&
   typeof v.inPlayerId === 'string' &&
   (v.outPlayerId === null || typeof v.outPlayerId === 'string');
