@@ -6,7 +6,9 @@ import { queryKeys } from '@/config/queryKeys';
 import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
 import * as Sentry from '@sentry/nextjs';
-import type { AppState, Player, SavedGamesCollection, GameType, Gender } from '@/types';
+import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } from '@/types';
+import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
+import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { ResourceType } from '@/config/premiumLimits';
 
@@ -63,6 +65,14 @@ export interface StartNewGameRequest {
   customLeagueName: string;
   gameType: GameType;
   gender: Gender | undefined;
+  /**
+   * Optional Playing-Time Planner prefill (Phase 2). When present, the planned XI
+   * is placed on the field at creation and the planned subs are stored locally,
+   * keyed by the new game id. Absent for a normal game (playersOnField stays []).
+   * Phase 3: sourcePlanId/sourcePlanGameId link the game back to its plan so an
+   * edited plan can be re-applied to games already created from it.
+   */
+  prefill?: { playersOnField: Player[]; plannedSubs: PlannedGameSub[]; formationSnapPoints: Point[]; sourcePlanId?: string; sourcePlanGameId?: string };
 }
 
 export async function startNewGameWithSetup(
@@ -93,6 +103,7 @@ export async function startNewGameWithSetup(
     customLeagueName,
     gameType,
     gender,
+    prefill,
   } = request;
   const {
     availablePlayers,
@@ -143,6 +154,19 @@ export async function startNewGameWithSetup(
       ? initialSelectedPlayerIds
       : availablePlayers.map((player) => player.id);
 
+  // Playing-Time Planner prefill: the planned XI + parked subs are built when the
+  // plan is picked, but the coach can then change the selection or switch teams.
+  // Reconcile so the app-wide invariant playersOnField ⊆ selectedPlayerIds ⊆
+  // availablePlayers always holds: drop prefilled players no longer in the roster,
+  // and make sure everyone left on the field stays selected.
+  const availableIdSet = new Set(availablePlayersForGame.map((p) => p.id));
+  const reconciledOnField = (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id));
+  const reconciledSelectedPlayerIds = prefill
+    ? [...new Set([...finalSelectedPlayerIds, ...reconciledOnField.map((p) => p.id)])].filter((id) =>
+        availableIdSet.has(id),
+      )
+    : finalSelectedPlayerIds;
+
   // Sentry breadcrumb: Game creation started
   const newGameId = `game_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   Sentry.addBreadcrumb({
@@ -165,7 +189,7 @@ export async function startNewGameWithSetup(
     teamId: teamId || '(none)',
     selectedPlayersCount: finalSelectedPlayerIds.length,
     availablePlayersCount: availablePlayersForGame.length,
-    playersOnFieldCount: 0, // Always 0 for new games
+    playersOnFieldCount: prefill?.playersOnField.length ?? 0, // >0 only when prefilled from a plan
   });
 
   const newGameState: AppState = {
@@ -196,8 +220,12 @@ export async function startNewGameWithSetup(
     // gender flows from modal → handler → AppState storage (optional)
     gender,
     availablePlayers: availablePlayersForGame,
-    selectedPlayerIds: finalSelectedPlayerIds,
-    playersOnField: [],
+    selectedPlayerIds: reconciledSelectedPlayerIds,
+    // Planner prefill places the planned XI on the field at creation; otherwise empty.
+    playersOnField: reconciledOnField,
+    // Snap points let the game rebuild the dotted sub-slot circles + position labels
+    // (a manually-placed game persists these too). Empty for a normal new game.
+    formationSnapPoints: prefill?.formationSnapPoints ?? [],
     opponents: [],
     showPlayerNames: true,
     drawings: [],
@@ -230,6 +258,30 @@ export async function startNewGameWithSetup(
 
     logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
     saveSucceeded = true;
+
+    // Store the planner's sub schedule for this game (local-only, keyed by game id).
+    // Best-effort: a failure here must never fail an already-saved game.
+    if (prefill?.plannedSubs?.length) {
+      try {
+        await setGameSubs(newGameId, prefill.plannedSubs);
+      } catch (subsError) {
+        logger.error('[NEW GAME] Failed to store planned subs (non-fatal):', subsError);
+      }
+    }
+
+    // Remember which plan/planned game this game came from (local-only store, NOT
+    // the game blob - autosave/cloud rebuilds of the blob would drop it). Enables
+    // re-applying an edited plan later. Best-effort like the subs above.
+    if (prefill?.sourcePlanId && prefill.sourcePlanGameId) {
+      try {
+        await setPlanLink(newGameId, {
+          planId: prefill.sourcePlanId,
+          planGameId: prefill.sourcePlanGameId,
+        });
+      } catch (linkError) {
+        logger.error('[NEW GAME] Failed to store plan link (non-fatal):', linkError);
+      }
+    }
   } catch (error) {
     logger.error('Error explicitly saving new game state:', error);
     showToast(
@@ -271,7 +323,7 @@ export async function startNewGameWithSetup(
       periodDurationMinutes: periodDuration,
       currentPeriod: 1,
       gameStatus: 'notStarted',
-      selectedPlayerIds: finalSelectedPlayerIds,
+      selectedPlayerIds: reconciledSelectedPlayerIds,
       gamePersonnel: selectedPersonnelIds,
       seasonId: seasonId || '',
       tournamentId: tournamentId || '',

@@ -1,16 +1,21 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PlayerBar from '@/components/PlayerBar';
 import GameInfoBar from '@/components/GameInfoBar';
 import ControlBar from '@/components/ControlBar';
+import PlaytimePlannerModal from '@/components/PlaytimePlannerModal';
 import type { Player } from '@/types';
 import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from './FieldContainer';
 import type { FieldContainerProps } from './FieldContainer';
 
 const barStyle = 'flex-shrink-0 bg-slate-800 border-b border-slate-700';
+// Survives a remount of the game view (e.g. resume-from-background loading flash).
+// Exported so sign-out / screen resets can clear it (otherwise the planner would
+// auto-reopen the next time a game view mounts).
+export const PLANNER_OPEN_KEY = 'matchops_planner_open';
 type ControlBarProps = React.ComponentProps<typeof ControlBar>;
 
 export interface GameContainerProps {
@@ -26,6 +31,10 @@ export interface GameContainerProps {
   onOpenTeamReassignModal: () => void;
   fieldProps: FieldContainerProps;
   controlBarProps: ControlBarProps;
+  /** Flush the loaded game's debounced autosave (run before bulk re-apply reads storage). */
+  onFlushLiveGame?: () => Promise<void>;
+  /** Planner bulk re-apply rewrote these games in storage; refresh live state if one is loaded. */
+  onLinkedGamesUpdated?: (gameIds: string[]) => void;
 }
 
 export function GameContainer({
@@ -41,8 +50,29 @@ export function GameContainer({
   onOpenTeamReassignModal: _onOpenTeamReassignModal,
   fieldProps,
   controlBarProps,
+  onFlushLiveGame,
+  onLinkedGamesUpdated,
 }: GameContainerProps) {
   const { t } = useTranslation();
+  // Playing-Time Planner is launched from the ControlBar hamburger menu; the modal
+  // is owned here (the ControlBar's parent) so no handler threading is needed.
+  //
+  // Open-state is mirrored to sessionStorage so it survives a remount of the game
+  // view. On resume from background (cloud mode) the app can briefly flash a
+  // loading/auth-check screen, which unmounts this container and would otherwise
+  // drop the planner. Restoring from sessionStorage reopens it automatically so
+  // the coach never has to reopen it by hand.
+  const [showPlanner, setShowPlanner] = useState(
+    () => typeof window !== 'undefined' && window.sessionStorage.getItem(PLANNER_OPEN_KEY) === '1',
+  );
+  const openPlanner = useCallback(() => {
+    if (typeof window !== 'undefined') window.sessionStorage.setItem(PLANNER_OPEN_KEY, '1');
+    setShowPlanner(true);
+  }, []);
+  const closePlanner = useCallback(() => {
+    if (typeof window !== 'undefined') window.sessionStorage.removeItem(PLANNER_OPEN_KEY);
+    setShowPlanner(false);
+  }, []);
 
   return (
     <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
@@ -81,8 +111,17 @@ export function GameContainer({
       <FieldContainer {...fieldProps} />
 
       <div className={barStyle}>
-        <ControlBar {...controlBarProps} />
+        <ControlBar {...controlBarProps} onOpenPlanner={openPlanner} />
       </div>
+
+      {showPlanner && (
+        <PlaytimePlannerModal
+          isOpen
+          onClose={closePlanner}
+          onFlushLiveGame={onFlushLiveGame}
+          onLinkedGamesUpdated={onLinkedGamesUpdated}
+        />
+      )}
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.
           Covers the gap between ControlBar and screen bottom in PWA standalone mode.

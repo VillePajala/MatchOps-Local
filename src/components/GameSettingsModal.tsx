@@ -31,7 +31,7 @@ import {
 } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -82,6 +82,10 @@ export interface GameSettingsModalProps {
   selectedPlayerIds: string[];
   selectedPersonnelIds: string[];
   onSelectedPlayersChange: (playerIds: string[]) => void;
+  /** Whether this game was created from a plan and can still be re-applied (unplayed). */
+  canReapplyPlan?: boolean;
+  /** Re-apply the source plan to this game (overwrites the lineup + planned subs). */
+  onReapplyPlan?: () => void | Promise<void>;
   onSelectedPersonnelChange: (personnelIds: string[]) => void;
   // --- Handlers for updating game data ---
   onTeamNameChange: (name: string) => void;
@@ -224,6 +228,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   selectedPlayerIds,
   selectedPersonnelIds,
   onSelectedPlayersChange,
+  canReapplyPlan = false,
+  onReapplyPlan,
   onSelectedPersonnelChange,
   seasonId = '',
   tournamentId = '',
@@ -518,6 +524,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Confirmation modal state
   const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  // Re-apply-plan confirmation (overwrites the current lineup from the source plan)
+  const [showReapplyConfirm, setShowReapplyConfirm] = useState(false);
+  const [isReapplying, setIsReapplying] = useState(false);
   const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
   const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
@@ -2620,7 +2629,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {error && (
               <div className="text-red-400 text-sm mr-auto">{error}</div>
             )}
-            <button onClick={onClose} className={primaryButtonStyle}>
+            {canReapplyPlan && onReapplyPlan && (
+              <button
+                onClick={() => setShowReapplyConfirm(true)}
+                className={secondaryButtonStyle}
+                disabled={isReapplying}
+              >
+                {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
+              </button>
+            )}
+            <button onClick={onClose} className={primaryButtonStyle} disabled={isReapplying}>
               {t('common.doneButton', 'Done')}
             </button>
           </ModalFooter>
@@ -2641,6 +2659,31 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         confirmLabel={t('common.delete', 'Delete')}
         variant="danger"
         isConfirming={isProcessing}
+      />
+      <ConfirmationModal
+        isOpen={showReapplyConfirm}
+        title={t('gameSettingsModal.reapplyPlan.confirmTitle', 'Re-apply plan?')}
+        message={t(
+          'gameSettingsModal.reapplyPlan.confirmMessage',
+          "This replaces the game's lineup, player selection and planned substitutions with the current plan. The score, events and other details are kept.",
+        )}
+        warningMessage={t(
+          'gameSettingsModal.reapplyPlan.confirmWarning',
+          'Any manual changes to this lineup will be overwritten.',
+        )}
+        onConfirm={async () => {
+          setShowReapplyConfirm(false);
+          setIsReapplying(true);
+          try {
+            await onReapplyPlan?.();
+          } finally {
+            setIsReapplying(false);
+          }
+        }}
+        onCancel={() => setShowReapplyConfirm(false)}
+        confirmLabel={t('gameSettingsModal.reapplyPlan.confirmLabel', 'Re-apply')}
+        variant="primary"
+        isConfirming={isReapplying}
       />
       <ShootoutModal
         isOpen={isShootoutModalOpen}

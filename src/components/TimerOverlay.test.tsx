@@ -102,4 +102,39 @@ describe('TimerOverlay', () => {
 
     await waitFor(() => expect(baseProps.onRecordOpponentGoal).toHaveBeenCalledTimes(1));
   });
+
+  describe('planned sub nudge (Playing-Time Planner)', () => {
+    const prompt = { subId: 's1', timeSeconds: 720, inName: 'Niko', outName: 'Sam' };
+
+    it('shows the due planned sub during play and dismisses it', () => {
+      const onDismiss = jest.fn();
+      render(
+        <TimerOverlay
+          {...baseProps}
+          gameStatus="inProgress"
+          plannedSubPrompt={prompt}
+          onDismissPlannedSub={onDismiss}
+        />,
+      );
+      expect(screen.getByText(/Niko/)).toBeInTheDocument();
+      expect(screen.getByText(/Sam/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /Got it/i }));
+      expect(onDismiss).toHaveBeenCalledWith('s1');
+    });
+
+    it('does not show the nudge before the game starts', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="notStarted" plannedSubPrompt={prompt} />);
+      expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
+    });
+
+    it('keeps the nudge through a period break (half-time is when subs happen)', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="periodEnd" plannedSubPrompt={prompt} />);
+      expect(screen.getByRole('button', { name: /Got it/i })).toBeInTheDocument();
+    });
+
+    it('does not show the nudge after full time - nobody left to substitute', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" plannedSubPrompt={prompt} />);
+      expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
+    });
+  });
 });

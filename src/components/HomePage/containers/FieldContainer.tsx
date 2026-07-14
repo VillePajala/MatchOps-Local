@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
@@ -9,6 +9,7 @@ import ShootoutModal from '@/components/ShootoutModal';
 import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
+import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
 import { useToast } from '@/contexts/ToastProvider';
 import type {
   Player,
@@ -124,6 +125,8 @@ export interface FieldContainerProps {
   };
   gameSessionState: GameSessionState;
   currentGameId: string | null;
+  /** Bumped after a plan is re-applied so the planned-sub prompts re-read the store. */
+  plannedSubsRefreshKey?: number;
   availablePlayers: Player[];
   teams: Team[];
   seasons: Season[];
@@ -150,6 +153,7 @@ export function FieldContainer({
   timerVM,
   gameSessionState,
   currentGameId,
+  plannedSubsRefreshKey,
   availablePlayers,
   teams: _teams,
   seasons,
@@ -243,6 +247,17 @@ export function FieldContainer({
   const tmShowOverlay = timerVM.showLargeTimerOverlay;
   const tmInitialLoad = timerVM.initialLoadComplete;
 
+  // Playing-Time Planner (Phase 2): surface the due planned sub in the timer overlay.
+  // On-field ids suppress prompts already satisfied by an early manual sub.
+  const onFieldIds = useMemo(() => new Set(fcPlayersOnField.map((p) => p.id)), [fcPlayersOnField]);
+  const { prompt: plannedSubPrompt, dismiss: dismissPlannedSub } = usePlannedSubPrompts(
+    currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
+    tmTime,
+    availablePlayers,
+    plannedSubsRefreshKey,
+    onFieldIds,
+  );
+
   return (
     <div className="flex-grow relative bg-black overflow-hidden">
       {tmShowOverlay && (
@@ -256,6 +271,8 @@ export function FieldContainer({
           isTimerRunning={tmIsRunning}
           onStartPauseTimer={startPauseTimer}
           onResetTimer={resetTimer}
+          plannedSubPrompt={plannedSubPrompt}
+          onDismissPlannedSub={dismissPlannedSub}
           onToggleGoalLogModal={toggleGoalLogModal}
           onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}
@@ -456,20 +473,6 @@ export function FieldContainer({
           <span className="text-white/[0.07] text-[min(25vw,10rem)] font-black tracking-[0.3em] -rotate-[30deg] uppercase">
             DEMO
           </span>
-        </div>
-      )}
-
-      {/* Persistent bottom pill when on default game — Create Game CTA */}
-      {tmInitialLoad && currentGameId === DEFAULT_GAME_ID && (isSetupOverlayDismissed || fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-40">
-          <button
-            onClick={() => onOpenNewGameSetup?.()}
-            className="bg-indigo-600/90 hover:bg-indigo-500 border border-indigo-400/30 rounded-full px-5 py-2.5 shadow-lg backdrop-blur-sm transition-colors"
-          >
-            <span className="text-white font-semibold text-sm">
-              + {t('firstGame.createRealGame', 'Create Game')}
-            </span>
-          </button>
         </div>
       )}
 

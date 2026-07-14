@@ -142,6 +142,10 @@ export interface AppState {
   tacticalBallPosition: Point | null;
   /** Formation snap points for player positioning assistance */
   formationSnapPoints?: Point[];
+  // NOTE: the Playing-Time Planner's plan link (which plan/planned game a game
+  // was created from) deliberately does NOT live on this model - autosave
+  // snapshots and cloud pulls rebuild this blob and would drop it. It lives in
+  // the local-only store at src/utils/playtimePlanner/planLinks.ts instead.
   teamId?: string;              // NEW: the team this game belongs to
   /**
    * League ID for this game - can override the season's league setting.

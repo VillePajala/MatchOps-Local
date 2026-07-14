@@ -21,6 +21,10 @@ import { DEFAULT_APP_SETTINGS } from '@/types/settings';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
+import { createLocalPlanStore, type LocalPlanStore } from '@/utils/playtimePlanner/localPlanStore';
+import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import {
   AlreadyExistsError,
   NotInitializedError,
@@ -351,6 +355,7 @@ export class LocalDataStore implements DataStore {
    * Storage adapter for this LocalDataStore instance.
    * Set during initialize() based on userId.
    */
+  private planStore: LocalPlanStore | null = null;
   private adapter: StorageAdapter | null = null;
 
   /**
@@ -469,6 +474,44 @@ export class LocalDataStore implements DataStore {
       this.adapter = await getStorageAdapter();
       logger.info('[LocalDataStore] Initialized with legacy global storage');
     }
+
+    // Planner store bound to THIS instance's adapter, so plans live in the
+    // same database as every other entity (per-user when signed in). The
+    // earlier module-global store wrote the legacy shared DB unconditionally -
+    // leaking plans across accounts and escaping clearAllUserData.
+    // Retry parity with utils/storage's getStorageItem (retryCount=2 +
+    // backoff): mobile IndexedDB has transient failures (CLAUDE.md #262), and
+    // planner writes are read-modify-write - a flaky read must not surface as
+    // a throw the write path aborts on when one retry would have succeeded.
+    const withIoRetry = async <T,>(op: () => Promise<T>): Promise<T> => {
+      let lastError: unknown;
+      for (let attempt = 0; attempt <= 2; attempt++) {
+        try {
+          return await op();
+        } catch (error) {
+          lastError = error;
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 100 * Math.pow(2, attempt)));
+          }
+        }
+      }
+      throw lastError;
+    };
+    this.planStore = createLocalPlanStore({
+      getJSON: async <T,>(key: string, defaultValue: T): Promise<T> => {
+        const raw = await withIoRetry(() => this.storageGetItem(key));
+        if (raw === null) return defaultValue;
+        try {
+          return JSON.parse(raw) as T;
+        } catch (error) {
+          logger.warn(`[LocalDataStore] Corrupt JSON for planner key "${key}", using default`, { error });
+          return defaultValue;
+        }
+      },
+      setJSON: async (key: string, value: unknown): Promise<void> => {
+        await withIoRetry(() => this.storageSetItem(key, JSON.stringify(value)));
+      },
+    });
 
     this.initialized = true;
   }
@@ -2533,6 +2576,80 @@ export class LocalDataStore implements DataStore {
    * Check if a team can be safely deleted (no game references).
    * Team rosters CASCADE delete and don't block deletion.
    */
+  // ==========================================================================
+  // PLAYING-TIME PLANNER
+  // Delegates to the planner's key-locked IndexedDB backend (localPlanStore) -
+  // the same code the feature used before it was routed through the DataStore.
+  // ==========================================================================
+
+  private plans(): LocalPlanStore {
+    if (!this.planStore) {
+      throw new NotInitializedError('LocalDataStore');
+    }
+    return this.planStore;
+  }
+
+  async getPlaytimePlans(): Promise<PlaytimePlanCollection> {
+    return this.plans().getPlans();
+  }
+
+  async savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null> {
+    return this.plans().savePlan(plan);
+  }
+
+  async deletePlaytimePlan(id: string): Promise<boolean> {
+    return this.plans().deletePlan(id);
+  }
+
+  async getPlaytimePlanLinks(): Promise<PlanLinksCollection> {
+    return this.plans().getAllPlanLinks();
+  }
+
+  async setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean> {
+    return this.plans().setPlanLink(gameId, link);
+  }
+
+  async deletePlaytimePlanLink(gameId: string): Promise<boolean> {
+    return this.plans().deletePlanLink(gameId);
+  }
+
+  async deletePlaytimePlanLinksForPlan(planId: string): Promise<boolean> {
+    return this.plans().deletePlanLinksForPlan(planId);
+  }
+
+  async getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]> {
+    return this.plans().getGameSubs(gameId);
+  }
+
+  async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {
+    return this.plans().setGameSubs(gameId, subs);
+  }
+
+  async deletePlaytimeGameSubs(gameId: string): Promise<boolean> {
+    return this.plans().deleteGameSubs(gameId);
+  }
+
+  // Class-level extras (not on the DataStore interface): bulk paths and the
+  // hydration/restore flows need whole-collection access and verbatim writes.
+
+  /** Whole planned-subs collection - bulk sync must not miss unlinked games. */
+  async getAllPlaytimeGameSubs(): Promise<GameSubsCollection> {
+    return this.plans().getAllGameSubs();
+  }
+
+  /** Timestamp-preserving merges (cloud hydration / reverse migration). */
+  async restorePlaytimePlans(incoming: PlaytimePlanCollection): Promise<number> {
+    return this.plans().restorePlans(incoming);
+  }
+
+  async restorePlaytimePlanLinks(incoming: PlanLinksCollection): Promise<number> {
+    return this.plans().restorePlanLinks(incoming);
+  }
+
+  async restorePlaytimeGameSubs(incoming: GameSubsCollection): Promise<number> {
+    return this.plans().restoreGameSubs(incoming);
+  }
+
   async getTeamReferences(teamId: string): Promise<EntityReferences> {
     this.ensureInitialized();
 

@@ -169,7 +169,8 @@
     "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?",
     "signOut": "Kirjaudu ulos",
     "startScreen": "Aloitusnäyttö",
-    "userGuide": "Käyttöohje"
+    "userGuide": "Käyttöohje",
+    "planner": "Ottelusuunnittelu"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -404,7 +405,11 @@
     "increaseInterval": "Pidennä aikaväliä",
     "wentToOvertime": "Jatkoaika",
     "recordShootout": "Rangaistuslaukaukset",
-    "assessPlayersButton": "Arvioi pelaajat"
+    "assessPlayersButton": "Arvioi pelaajat",
+    "plannedSubTitle": "Suunniteltu vaihto",
+    "plannedSubInOut": "{{in}} kentälle, {{out}} pois",
+    "plannedSubIn": "{{in}} kentälle",
+    "plannedSubDismiss": "Selvä"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
@@ -830,7 +835,7 @@
     "assessmentsIncomplete": "Arviointeja puuttuu",
     "assessmentsComplete": "Kaikki arvioinnit tehty",
     "assessmentsProgress": "{{done}}/{{total}} arvioitu",
-    "unplayedBadge": "EI PELATTU",
+    "unplayedBadge": "Ei pelattu",
     "readyTitle": "Tiedot valmiit",
     "needsFinishingTitle": "Kaipaa viimeistelyä",
     "showUnplayedOnly": "Näytä vain pelaamattomat pelit",
@@ -944,7 +949,13 @@
     "selectLeague": "-- Valitse sarja --",
     "customLeaguePlaceholder": "Kirjoita sarjan nimi",
     "createGame": "Luo ottelu",
-    "selectTeamTip": "Vinkki: valitse joukkue, niin sen kokoonpano ja liitetty kilpailu täyttyvät automaattisesti."
+    "selectTeamTip": "Vinkki: valitse joukkue, niin sen kokoonpano ja liitetty kilpailu täyttyvät automaattisesti.",
+    "prefillFromPlanLabel": "Esitäytä suunnitelmasta (valinnainen)",
+    "prefillNoPlan": "Ei suunnitelmaa",
+    "prefillGameLabel": "Suunnitelman peli",
+    "prefillChooseGame": "Valitse peli…",
+    "prefillMissingPlayers_one": "{{count}} suunniteltu pelaaja ei ole tässä pelaajalistassa ja jätettiin pois.",
+    "prefillMissingPlayers_other": "{{count}} suunniteltua pelaajaa ei ole tässä pelaajalistassa ja jätettiin pois."
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Oivalla",
@@ -1411,6 +1422,19 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "reapplyPlan": {
+      "button": "Päivitä suunnitelmasta",
+      "confirmTitle": "Otetaanko suunnitelma uudelleen käyttöön?",
+      "confirmMessage": "Tämä korvaa pelin avauskokoonpanon, pelaajavalinnan ja suunnitellut vaihdot nykyisellä suunnitelmalla. Tulos, tapahtumat ja muut tiedot säilyvät.",
+      "confirmWarning": "Kaikki tähän kokoonpanoon käsin tehdyt muutokset korvataan.",
+      "confirmLabel": "Ota käyttöön",
+      "success": "Kokoonpano päivitettiin suunnitelmasta.",
+      "errorPlayed": "Tämä peli on jo alkanut, joten sen kokoonpanoa ei voi päivittää suunnitelmasta.",
+      "errorPlanMissing": "Lähdesuunnitelma on poistettu, joten sitä ei voi enää ottaa käyttöön.",
+      "errorGeneric": "Suunnitelman uudelleenkäyttö ei onnistunut.",
+      "successMissing_one": "Kokoonpano päivitettiin suunnitelmasta. Ei tämän pelin pelaajalistassa, ohitettiin: {{names}}.",
+      "successMissing_other": "Kokoonpano päivitettiin suunnitelmasta. Ei tämän pelin pelaajalistassa, ohitettiin: {{names}}."
+    },
     "eventActions": "Tapahtuman toiminnot",
     "gameTypeLabel": "Linkitä kilpailuun",
     "unknownPlayer": "Tuntematon pelaaja",
@@ -3123,5 +3147,154 @@
     "instructions": "Kirjaa jokainen laukaus sitä mukaa kun se tapahtuu.",
     "firstKick": "Ensimmäinen laukaus",
     "upNext": "Vuorossa"
+  },
+  "playtimePlanner": {
+    "title": "Ottelusuunnittelu",
+    "setup": {
+      "defaultName": "Turnaussuunnitelma",
+      "nameLabel": "Suunnitelman nimi",
+      "namePlaceholder": "esim. Sunnuntain turnaus",
+      "rosterLabel": "Pelaajat",
+      "rosterEmpty": "Lisää ensin pelaajia kokoonpanoosi.",
+      "gamesLabel": "Pelien määrä",
+      "formationLabel": "Muodostelma",
+      "periodsLabel": "Jaksot",
+      "periodMinutesLabel": "Minuuttia per jakso",
+      "create": "Luo suunnitelma",
+      "teamLabel": "Joukkue (valinnainen)",
+      "teamNone": "Ei joukkuetta - kaikki pelaajat",
+      "teamLoadError": "Joukkueen kokoonpanoa ei voitu ladata.",
+      "detailsHeading": "Suunnitelman tiedot",
+      "formatHeading": "Pelit ja muoto",
+      "rosterEmptyHint": "Avaa Kaikki pelaajat päävalikosta ja lisää pelaajat."
+    },
+    "overview": {
+      "gameLabel": "Peli {{n}}",
+      "formatSummary": "{{games}} peliä · {{periods}}×{{minutes}} min",
+      "gamesHeading": "Pelit",
+      "deletePlan": "Poista",
+      "confirmDelete": "Poistetaanko tämä suunnitelma? Tätä ei voi kumota.",
+      "placedCount": "{{placed}}/{{total}} paikoillaan",
+      "editLineup": "Muokkaa kokoonpanoa",
+      "reapplyError": "Linkitettyjen pelien päivitys ei onnistunut.",
+      "confirmDeleteTitle": "Poistetaanko suunnitelma?",
+      "confirmReapplyTitle": "Päivitetäänkö luodut pelit?",
+      "confirmReapplyLabel": "Päivitä",
+      "confirmReapplyWarning": "Niiden avauskokoonpanot, pelaajavalinnat ja suunnitellut vaihdot korvataan.",
+      "confirmReapply_one": "Päivitetäänkö {{count}} pelaamaton peli, joka on luotu suunnitelmasta \"{{label}}\", nykyisellä suunnitelmalla?",
+      "confirmReapply_other": "Päivitetäänkö {{count}} pelaamatonta peliä, jotka on luotu suunnitelmasta \"{{label}}\", nykyisellä suunnitelmalla?",
+      "updateLinked_one": "Päivitä {{count}} tästä luotu peli",
+      "updateLinked_other": "Päivitä {{count}} tästä luotua peliä",
+      "reapplyDone_one": "Päivitettiin {{count}} peli suunnitelmasta.",
+      "reapplyDone_other": "Päivitettiin {{count}} peliä suunnitelmasta.",
+      "reapplyDoneMissing_one": "Päivitettiin {{count}} peli. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
+      "reapplyDoneMissing_other": "Päivitettiin {{count}} peliä. Ei pelin pelaajalistassa, ohitettiin: {{names}}.",
+      "reapplyDonePartial_one": "Päivitettiin {{count}} peli; {{failed}} pelin päivitys epäonnistui.",
+      "reapplyDonePartial_other": "Päivitettiin {{count}} peliä; {{failed}} pelin päivitys epäonnistui.",
+      "reapplyDoneNoRoster": "Päivitettiin {{updated}} peliä; {{skipped}} pelissä ei ollut pelaajia listalla, joten ne jätettiin ennalleen.",
+      "suggestButton": "Ehdota reilut kokoonpanot",
+      "suggestConfirmTitle": "Ehdotetaanko reilut kokoonpanot?",
+      "suggestConfirmMessage": "Rakentaa avauskokoonpanot ja puoliaikavaihdot jokaiseen mukana olevaan peliin niin, että peliaika jakautuu mahdollisimman tasan. Maalivahtia ei koskaan vaihdeta kesken pelin.",
+      "suggestConfirmWarning": "Mukana olevien pelien nykyiset kokoonpanot ja vaihdot korvataan. Kumoa (Pelit-välilehdellä) palauttaa ne.",
+      "suggestConfirmLabel": "Ehdota",
+      "suggestDone": "Reilut kokoonpanot ehdotettu - katso peliaikanäkymä.",
+      "notCounted": "Ei mukana laskuissa",
+      "addGame": "Lisää peli",
+      "removeGame": "Poista peli",
+      "trimConfirmTitle": "Poistetaanko {{name}}?",
+      "trimConfirmMessage": "Pelin kokoonpano ja vaihdot poistetaan. Kumoa (Pelit-välilehdellä) palauttaa ne."
+    },
+    "saveError": "Suunnitelman tallennus epäonnistui. Viimeisimmät muutokset eivät ehkä säily.",
+    "deleteError": "Suunnitelman poistaminen epäonnistui.",
+    "lineup": {
+      "back": "Takaisin",
+      "slotFilled": "{{position}}: {{player}}",
+      "slotEmpty": "{{position}}: tyhjä",
+      "clearSlot": "Tyhjennä",
+      "benchEmpty": "Kaikki ovat kentällä.",
+      "autoFill": "Täytä automaattisesti",
+      "gameTabs": "Vaihda peliä",
+      "fairnessStrip": "Peliaikakertymä",
+      "subAction": "Vaihto…",
+      "notInGame": "Ei pelaa tässä pelissä",
+      "gameName": "Pelin nimi",
+      "includedToggle": "Mukana laskuissa - napauta jättääksesi pois",
+      "excludedToggle": "Pois laskuista - napauta ottaaksesi mukaan",
+      "viewSingle": "Yksi peli",
+      "viewGrid": "Rinnakkain",
+      "noPlayers": "Suunnitelmassa ei ole pelaajia - lisää heidät Suunnitelma-välilehdellä.",
+      "absentHeading": "Poissa tästä pelistä",
+      "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa."
+    },
+    "subs": {
+      "heading": "Vaihdot",
+      "none": "Ei vaihtoja vielä.",
+      "row": "{{minute}}' {{player}} kentälle ({{position}})",
+      "remove": "Poista",
+      "noBench": "Ei vaihtopelaajia käytettävissä.",
+      "inLabel": "Kentälle",
+      "timeLabel": "Minuutti",
+      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})"
+    },
+    "balance": {
+      "title": "Peliaikatasapaino",
+      "fairShare": "Osuus {{minutes}}' / pelaaja",
+      "gamesCounted_one": "{{count}} peli laskettu",
+      "gamesCounted_other": "{{count}} peliä laskettu",
+      "noGames": "Ei laskettuja pelejä. Merkitse pelit mukaan.",
+      "ofFairShare": "{{pct}}% osuudesta",
+      "gameShort": "P{{n}}",
+      "zeroMinutes_one": "{{count}} pelaaja ilman peliaikaa",
+      "zeroMinutes_other": "{{count}} pelaajaa ilman peliaikaa",
+      "spreadLabel": "{{spread}} min ero ({{min}}' - {{max}}')",
+      "spreadDetail": "Vähiten: {{least}} · Eniten: {{most}}",
+      "gkLabel": "Vain {{name}} pelaa maalivahtina",
+      "gkDetail": "Harkitse maalivahtien kierrätystä",
+      "focusDelta": "{{delta}} min vs omaa osuutta",
+      "focusOnShare": "tasan oma osuus",
+      "sitsOut_one": "{{count}} pelaaja istuu kokonaisen pelin",
+      "sitsOut_other": "{{count}} pelaajaa istuu kokonaisen pelin"
+    },
+    "versions": {
+      "duplicate": "Monista",
+      "export": "Vie JSON",
+      "import": "Tuo JSON",
+      "importError": "Tiedostoa ei voitu lukea suunnitelmaksi.",
+      "exportError": "Suunnitelmaa ei voitu viedä.",
+      "copySuffix": "(kopio)",
+      "switchError": "Suunnitelmaa ei voitu avata."
+    },
+    "gkShort": "MV",
+    "players": {
+      "hint": "Muutokset koskevat vain tätä suunnitelmaa. Luodut pelit päivittyvät, kun otat suunnitelman uudelleen käyttöön; pelattuja pelejä ei koskaan muuteta.",
+      "replaceAction": "Korvaa",
+      "removeAction": "Poista",
+      "replacingHint": "Valitse, kuka ottaa pelaajan {{name}} avauspaikat ja vaihdot:",
+      "noCandidates": "Kaikki pelaajalistasi pelaajat ovat jo tässä suunnitelmassa.",
+      "removeConfirmTitle": "Poistetaanko pelaaja?",
+      "removeConfirmMessage": "{{name}} - avauspaikkoja: {{starting}}, suunniteltuja vaihtoja: {{subs}}. Paikat tyhjenevät ja vaihdot poistetaan.",
+      "replaceTitle": "Korvaa pelaaja"
+    },
+    "subSheet": {
+      "title": "Vaihto · {{position}} ({{player}})",
+      "halftime": "puoliaika",
+      "existing": "Tähän paikkaan suunnitellut"
+    },
+    "manager": {
+      "title": "Suunnitelmat",
+      "new": "Uusi suunnitelma",
+      "meta": "{{games}} peliä · {{players}} pelaajaa",
+      "actions": "Suunnitelman toiminnot",
+      "archive": "Arkistoi",
+      "unarchive": "Palauta arkistosta",
+      "archivedBadge": "Arkistoitu",
+      "showArchived": "Näytä arkistoidut"
+    },
+    "tabs": {
+      "games": "Pelit",
+      "minutes": "Minuutit",
+      "plan": "Asetukset"
+    },
+    "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen."
   }
 }

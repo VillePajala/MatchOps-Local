@@ -38,6 +38,10 @@ import { adjustScoreForRemovedEvent } from '@/datastore/gameEventScore';
 import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore, EntityReferences } from '@/interfaces/DataStore';
+import { isPlaytimePlan, PLAYTIME_PLAN_SCHEMA_VERSION } from '@/utils/playtimePlanner/types';
+import type { PlaytimePlan, PlaytimePlanCollection } from '@/utils/playtimePlanner/types';
+import type { PlanLink, PlanLinksCollection } from '@/utils/playtimePlanner/planLinks';
+import type { PlannedGameSub, GameSubsCollection } from '@/utils/playtimePlanner/gameSubs';
 import type { Database, Json } from '@/types/supabase';
 import {
   AlreadyExistsError,
@@ -3838,6 +3842,31 @@ export class SupabaseDataStore implements DataStore {
       this.classifyAndThrowError(error, 'Failed to delete game');
     }
 
+    // Planner bookkeeping rides on separate tables keyed by game id with NO
+    // game_id FK (deliberate: a link/subs row may sync before its game row,
+    // so a DB cascade would reject legitimate writes). Cascade here instead,
+    // atomically with the game delete from the caller's viewpoint - the
+    // client's companion cleanup ops live in the sync queue and can be lost
+    // if the app closes before they flush, which would orphan these rows
+    // forever (hydration would resurrect them on every sign-in).
+    // Best-effort: the game itself is already gone, so a failure here only
+    // leaves cleanup for the queued companion ops.
+    for (const table of ['playtime_plan_links', 'playtime_game_subs'] as const) {
+      try {
+        await this.withRetry(async () => {
+          const result = await this.getClient()
+            .from(table)
+            .delete()
+            .eq('user_id', userId)
+            .eq('game_id', id);
+          throwIfTransient(result);
+          return result;
+        }, `deleteGame:${table}`);
+      } catch (cleanupError) {
+        logger.warn(`[SupabaseDataStore] Planner cleanup (${table}) after game delete failed (non-fatal)`, cleanupError);
+      }
+    }
+
     // Clear version cache for deleted game (Issue #330)
     this.gameVersionCache.delete(id);
 
@@ -4609,6 +4638,261 @@ export class SupabaseDataStore implements DataStore {
    * Check if a team can be safely deleted (no game references).
    * Team rosters CASCADE delete and don't block deletion.
    */
+  // ==========================================================================
+  // PLAYING-TIME PLANNER
+  // One row PER PLAN (playtime_plans) - the conflict unit matches the app's
+  // per-plan debounced autosave, so cross-device edits to different plans never
+  // collide. The plan travels as an opaque app-schema jsonb blob (versioned by
+  // plan.version); only name/archived are surfaced as columns for list queries.
+  // Links and planned subs are keyed per REAL game. See plan doc §11.
+  // ==========================================================================
+
+  async getPlaytimePlans(): Promise<PlaytimePlanCollection> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_plans')
+        .select('id, data')
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'getPlaytimePlans');
+    if (error) this.classifyAndThrowError(error, 'getPlaytimePlans');
+    const collection: PlaytimePlanCollection = {};
+    for (const row of data ?? []) {
+      // Same per-entry validation as the local store: one malformed blob can
+      // never hide every other plan.
+      if (isPlaytimePlan(row.data)) collection[row.id] = row.data;
+      else logger.warn(`[SupabaseDataStore] Dropping invalid stored plan "${row.id}"`);
+    }
+    return collection;
+  }
+
+  async savePlaytimePlan(plan: PlaytimePlan): Promise<PlaytimePlan | null> {
+    this.ensureInitialized();
+    checkOnline();
+    // PRESERVE the plan's own updatedAt: it was stamped by the local store at
+    // EDIT time, and per-plan last-write-wins compares that stamp. Re-stamping
+    // at push time would let a late offline push masquerade as the newest edit
+    // and beat a genuinely newer change from another device. Stamp only when a
+    // caller hands us an unstamped plan (defensive - the type requires one).
+    const stamped: PlaytimePlan = {
+      ...plan,
+      version: plan.version || PLAYTIME_PLAN_SCHEMA_VERSION,
+      updatedAt: plan.updatedAt || new Date().toISOString(),
+    };
+    // Conditional upsert via RPC (migration 038): the write applies only when
+    // this edit-time stamp is >= the stored row's. A device pushing an old
+    // queued edit can no longer regress a genuinely newer cloud row - the push
+    // simply no-ops and hydration later brings the newer copy down.
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient().rpc('save_playtime_plan', {
+        p_id: stamped.id,
+        p_name: stamped.name,
+        p_archived: stamped.archived ?? false,
+        p_data: stamped as unknown as Json,
+        p_updated_at: stamped.updatedAt,
+      });
+      throwIfTransient(result);
+      return result;
+    }, 'savePlaytimePlan');
+    if (error) this.classifyAndThrowError(error, 'savePlaytimePlan');
+    // The RPC returns false when it REFUSED the write (a newer cloud row
+    // exists). Surface that per the interface contract - null means "not
+    // applied" - so the sync layer can pull the winning copy down instead of
+    // dequeuing the op as a success while this device silently diverges.
+    if (data === false) {
+      logger.info(
+        `[SupabaseDataStore] savePlaytimePlan(${stamped.id}): cloud row is newer, write skipped (LWW)`,
+      );
+      return null;
+    }
+    return stamped;
+  }
+
+  async deletePlaytimePlan(id: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_plans')
+        .delete()
+        .eq('user_id', userId)
+        .eq('id', id);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlaytimePlan');
+    if (error) this.classifyAndThrowError(error, 'deletePlaytimePlan');
+    return true;
+  }
+
+  async getPlaytimePlanLinks(): Promise<PlanLinksCollection> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_plan_links')
+        .select('game_id, plan_id, plan_game_id')
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'getPlaytimePlanLinks');
+    if (error) this.classifyAndThrowError(error, 'getPlaytimePlanLinks');
+    const collection: PlanLinksCollection = {};
+    for (const row of data ?? []) {
+      collection[row.game_id] = { planId: row.plan_id, planGameId: row.plan_game_id };
+    }
+    return collection;
+  }
+
+  async setPlaytimePlanLink(gameId: string, link: PlanLink): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_plan_links')
+        .upsert(
+          {
+            user_id: userId,
+            game_id: gameId,
+            plan_id: link.planId,
+            plan_game_id: link.planGameId,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,game_id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'setPlaytimePlanLink');
+    if (error) this.classifyAndThrowError(error, 'setPlaytimePlanLink');
+    return true;
+  }
+
+  async deletePlaytimePlanLink(gameId: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_plan_links')
+        .delete()
+        .eq('user_id', userId)
+        .eq('game_id', gameId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlaytimePlanLink');
+    if (error) this.classifyAndThrowError(error, 'deletePlaytimePlanLink');
+    return true;
+  }
+
+  async deletePlaytimePlanLinksForPlan(planId: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_plan_links')
+        .delete()
+        .eq('user_id', userId)
+        .eq('plan_id', planId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlaytimePlanLinksForPlan');
+    if (error) this.classifyAndThrowError(error, 'deletePlaytimePlanLinksForPlan');
+    return true;
+  }
+
+  async getPlaytimeGameSubs(gameId: string): Promise<PlannedGameSub[]> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_game_subs')
+        .select('subs')
+        .eq('user_id', userId)
+        .eq('game_id', gameId)
+        .maybeSingle();
+      throwIfTransient(result);
+      return result;
+    }, 'getPlaytimeGameSubs');
+    if (error) this.classifyAndThrowError(error, 'getPlaytimeGameSubs');
+    return Array.isArray(data?.subs) ? (data.subs as unknown as PlannedGameSub[]) : [];
+  }
+
+  async getAllPlaytimeGameSubs(): Promise<GameSubsCollection> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { data, error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_game_subs')
+        .select('game_id, subs')
+        .eq('user_id', userId);
+      throwIfTransient(result);
+      return result;
+    }, 'getAllPlaytimeGameSubs');
+    if (error) this.classifyAndThrowError(error, 'getAllPlaytimeGameSubs');
+    const collection: GameSubsCollection = {};
+    for (const row of data ?? []) {
+      if (Array.isArray(row.subs) && row.subs.length > 0) {
+        collection[row.game_id] = row.subs as unknown as PlannedGameSub[];
+      }
+    }
+    return collection;
+  }
+
+  async setPlaytimeGameSubs(gameId: string, subs: PlannedGameSub[]): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    // Mirror the local store: an empty array CLEARS the entry. Upserting []
+    // left a row behind and "subs cleared" never propagated to other devices
+    // (hydration only fills missing keys).
+    if (subs.length === 0) {
+      return this.deletePlaytimeGameSubs(gameId);
+    }
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_game_subs')
+        .upsert(
+          {
+            user_id: userId,
+            game_id: gameId,
+            subs: subs as unknown as Json,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,game_id' },
+        );
+      throwIfTransient(result);
+      return result;
+    }, 'setPlaytimeGameSubs');
+    if (error) this.classifyAndThrowError(error, 'setPlaytimeGameSubs');
+    return true;
+  }
+
+  async deletePlaytimeGameSubs(gameId: string): Promise<boolean> {
+    this.ensureInitialized();
+    checkOnline();
+    const userId = await this.getUserId();
+    const { error } = await this.withRetry(async () => {
+      const result = await this.getClient()
+        .from('playtime_game_subs')
+        .delete()
+        .eq('user_id', userId)
+        .eq('game_id', gameId);
+      throwIfTransient(result);
+      return result;
+    }, 'deletePlaytimeGameSubs');
+    if (error) this.classifyAndThrowError(error, 'deletePlaytimeGameSubs');
+    return true;
+  }
+
   async getTeamReferences(teamId: string): Promise<EntityReferences> {
     this.ensureInitialized();
     checkOnline();

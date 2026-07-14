@@ -29,10 +29,11 @@ export const modalContainerStyle =
  */
 export const ModalBackgroundEffects: React.FC = () => (
   <>
+    {/* Exactly the GameSettings layer set - an extra bottom glow here made
+        these modals read subtly hazier than the rest of the app. */}
     <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
     <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
     <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50 pointer-events-none" />
-    <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
   </>
 );
 
@@ -138,8 +139,18 @@ export const footerStyle =
 // Helper Components
 // ============================================================================
 
-export const ModalContainer: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+export const ModalContainer: React.FC<{
+  children: React.ReactNode;
+  /** Ref to the modal root, so consumers can wire useFocusTrap (house modal behaviour). */
+  containerRef?: React.Ref<HTMLDivElement>;
+  /** Accessible dialog name; providing it also stamps role="dialog" + aria-modal. */
+  'aria-label'?: string;
+}> = ({ children, containerRef, 'aria-label': ariaLabel }) => (
+  <div
+    ref={containerRef}
+    className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+    {...(ariaLabel ? { role: 'dialog', 'aria-modal': true, 'aria-label': ariaLabel, tabIndex: -1 } : {})}
+  >
     <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
       <ModalBackgroundEffects />
       <div className="relative z-10 flex flex-col min-h-0 h-full">
@@ -161,8 +172,14 @@ export const ModalFooter: React.FC<{ children: React.ReactNode }> = ({ children 
   </div>
 );
 
-export const ScrollableContent: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`flex-1 overflow-y-auto min-h-0 ${className}`}>
+export const ScrollableContent: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  /** Optional scroll listener (e.g. collapse-on-scroll chrome). */
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  'data-testid'?: string;
+}> = ({ children, className = '', onScroll, 'data-testid': testId }) => (
+  <div className={`flex-1 overflow-y-auto min-h-0 ${className}`} onScroll={onScroll} data-testid={testId}>
     {children}
   </div>
 );

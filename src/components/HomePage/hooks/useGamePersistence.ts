@@ -68,6 +68,8 @@ import {
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { clearTimerState } from '@/utils/timerStateManager';
 import { clearTimerAnchor } from '@/utils/timerAnchor';
+import { deleteGameSubs } from '@/utils/playtimePlanner/gameSubs';
+import { deletePlanLink } from '@/utils/playtimePlanner/planLinks';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -643,6 +645,15 @@ export function useGamePersistence({
       const deletedGameId = await utilDeleteGame(gameId, userId);
 
       if (deletedGameId) {
+        // Planner bookkeeping: drop the game's planned-sub schedule and plan link
+        // (local-only stores keyed by game id) so they don't accumulate as orphans.
+        // Best-effort - a failure here must never fail an already-deleted game.
+        try {
+          await Promise.all([deleteGameSubs(gameId), deletePlanLink(gameId)]);
+        } catch (cleanupError) {
+          logger.warn('[useGamePersistence] Planner cleanup after game delete failed (non-fatal):', cleanupError);
+        }
+
         const updatedSavedGames = { ...savedGames };
         delete updatedSavedGames[gameId];
 

@@ -4,12 +4,27 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
+import { getPlans } from '@/utils/playtimePlanner/storage';
 import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock the utility functions
 jest.mock('@/utils/appSettings', () => ({
   getLastHomeTeamName: jest.fn(),
   saveLastHomeTeamName: jest.fn(),
+}));
+
+// No plans by default; the prefill-from-plan picker stays hidden (its own tests
+// provide plans). Keeps the modal off the real IndexedDB storage layer.
+jest.mock('@/utils/playtimePlanner/storage', () => ({
+  getPlans: jest.fn(async () => ({})),
+}));
+
+// Team selection loads the team roster through the storage layer - stub it so
+// switching teams in tests never boots the real DataStore factory.
+jest.mock('@/utils/teams', () => ({
+  getTeamRoster: jest.fn(async () => [{ id: 'tp1', name: 'John Doe' }]),
+  getTeamDisplayName: jest.fn((team: { name: string }) => team.name),
+  getTeamBoundSeries: jest.fn(async () => []),
 }));
 
 
@@ -189,7 +204,8 @@ describe('NewGameSetupModal', () => {
       '', // leagueId
       '', // customLeagueName
       'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
     );
   });
 
@@ -226,7 +242,8 @@ describe('NewGameSetupModal', () => {
         '', // leagueId
         '', // customLeagueName
         'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
       );
     });
   });
@@ -382,7 +399,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // leagueId
           expect.any(String), // customLeagueName
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -499,7 +517,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // leagueId
           expect.any(String), // customLeagueName
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -753,7 +772,8 @@ describe('NewGameSetupModal', () => {
           'sm-sarja', // leagueId - THE KEY ASSERTION
           '', // customLeagueName
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -832,7 +852,8 @@ describe('NewGameSetupModal', () => {
           'muu', // leagueId
           'My Custom League', // customLeagueName - THE KEY ASSERTION
           'soccer', // gameType
-      undefined // gender
+      undefined, // gender
+      undefined // prefill (Phase 2 planner)
         );
       });
     });
@@ -1082,11 +1103,11 @@ describe('NewGameSetupModal', () => {
       });
 
       // Verify onStart was called with gameType: 'futsal'
-      // onStart is called with positional args - gameType is second to last argument (index 22, gender is last at 23)
+      // Positional args: gameType is 3rd from the end (gender then optional prefill follow it).
       await waitFor(() => {
         expect(mockOnStart).toHaveBeenCalled();
         const args = mockOnStart.mock.calls[0];
-        const gameTypeArg = args[args.length - 2];
+        const gameTypeArg = args[args.length - 3];
         expect(gameTypeArg).toBe('futsal');
       });
     });
@@ -1162,6 +1183,184 @@ describe('NewGameSetupModal', () => {
       renderModal();
       await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
       expect(screen.queryByRole('button', { name: /Repeat last game/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('prefill from plan (Phase 2)', () => {
+    const planFixture = {
+      id: 'plan1',
+      name: 'My Plan',
+      version: 1,
+      createdAt: 'x',
+      updatedAt: 'x',
+      players: [
+        { id: 'player1', name: 'John Doe' },
+        { id: 'player2', name: 'Jane Smith' },
+      ],
+      games: [
+        {
+          id: 'pg1',
+          label: 'Game 1',
+          formationId: '5v5-2-2',
+          numberOfPeriods: 2 as const,
+          periodMinutes: 12,
+          included: true,
+          startingSlots: [
+            { slotId: 'gk', playerId: 'player1' },
+            { slotId: 's0', playerId: 'player2' },
+          ],
+          subs: [],
+        },
+      ],
+    };
+
+    test('threads the planned lineup to onStart when a plan game is chosen', async () => {
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      renderModal();
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      const prefillArg = call[call.length - 1];
+      expect(prefillArg).toBeDefined();
+      expect(prefillArg.playersOnField).toHaveLength(2); // GK + one field player placed
+      const gk = prefillArg.playersOnField.find((p: { id: string }) => p.id === 'player1');
+      expect(gk.isGoalie).toBe(true);
+    });
+
+    test('"Repeat last game" clears an active plan prefill (no stale plan attaches)', async () => {
+      // Both affordances are clickable at once; repeating the last game states
+      // a new intent, so the plan's lineup/subs/link must not ride along.
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      const savedGames = {
+        g1: {
+          opponentName: 'Recent Rival', gameLocation: 'Recent Park', periodDurationMinutes: 30,
+          numberOfPeriods: 2, homeOrAway: 'home', gameType: 'soccer', demandFactor: 3,
+          selectedPlayerIds: ['player1'], createdAt: '2024-06-01T10:00:00.000Z',
+        },
+      } as never;
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} savedGames={savedGames} />
+        </ToastProvider>
+      );
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Repeat last game/i }));
+      });
+      // The prefill picker resets to "no plan".
+      expect((screen.getByLabelText('Prefill from plan (optional)') as HTMLSelectElement).value).toBe('');
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload
+    });
+
+    test('picker stays hidden when there are no plans', async () => {
+      renderModal();
+      await waitFor(() => expect(getLastHomeTeamName).toHaveBeenCalled());
+      expect(screen.queryByLabelText('Prefill from plan (optional)')).not.toBeInTheDocument();
+    });
+
+    test('selecting a Season after a plan prefill keeps the PLAN\'s match format (sub times depend on it)', async () => {
+      // The plan is 2x12; the season would default the form to 2x15. Planned
+      // sub times are absolute seconds, so the season's format must not
+      // silently overwrite the plan's - the half-time sub would fire mid-half.
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      renderModal();
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      // The season picker sits behind the Season tab.
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Season/i }));
+      });
+      await waitFor(() => expect(document.getElementById('seasonSelect')).toBeInTheDocument());
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      expect(call[6]).toBe('season1');           // the season binding itself is kept
+      expect(call[8]).toBe(2);                   // numPeriods: the plan's...
+      expect(call[9]).toBe(12);                  // ...and the plan's 12-minute periods
+      expect(call[call.length - 1]).toBeDefined(); // prefill still rides along
+    });
+
+    test('switching Team after a plan prefill clears the prefill (no cross-team lineup)', async () => {
+      // The planned lineup belongs to the previous squad; carrying it into the
+      // new team's game would silently field the wrong players.
+      (getPlans as jest.Mock).mockResolvedValueOnce({ plan1: planFixture });
+      renderModal();
+
+      const planSelect = await screen.findByLabelText('Prefill from plan (optional)');
+      await act(async () => {
+        fireEvent.change(planSelect, { target: { value: 'plan1' } });
+      });
+      const gameSelect = await screen.findByLabelText('Plan game');
+      await act(async () => {
+        fireEvent.change(gameSelect, { target: { value: 'pg1' } });
+      });
+
+      // Now switch the team - the prefill picker resets to "no plan".
+      const teamSelect = document.getElementById('teamSelectTop') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(teamSelect, { target: { value: 'team2' } });
+      });
+      await waitFor(() => {
+        expect((screen.getByLabelText('Prefill from plan (optional)') as HTMLSelectElement).value).toBe('');
+      });
+
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Opp' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+
+      await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
+      const call = mockOnStart.mock.calls[0];
+      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload rode along
     });
   });
 });

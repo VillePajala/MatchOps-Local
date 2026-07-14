@@ -3,12 +3,16 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { Player, Season, Tournament, Team, Personnel, GameType, Gender } from '@/types';
+import { Player, Season, Tournament, Team, Personnel, GameType, Gender, Point } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
 import logger from '@/utils/logger';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
+import { getPlans } from '@/utils/playtimePlanner/storage';
+import { buildPrefillFromPlan } from '@/utils/playtimePlanner/prefill';
+import type { PlaytimePlan } from '@/utils/playtimePlanner/types';
+import type { PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
@@ -48,7 +52,19 @@ interface NewGameSetupModalProps {
     leagueId: string, // League ID for the game
     customLeagueName: string, // Custom league name when leagueId === CUSTOM_LEAGUE_ID
     gameType: GameType, // Sport type: 'soccer' or 'futsal'
-    gender: Gender | undefined // Gender: 'boys' or 'girls' (optional)
+    gender: Gender | undefined, // Gender: 'boys' or 'girls' (optional)
+    // Optional Playing-Time Planner prefill (Phase 2): planned XI placed on the
+    // field at creation + the planned sub schedule stored by game id, plus the
+    // formation snap points so the game rebuilds sub-slot circles + position labels.
+    // Phase 3: sourcePlanId/sourcePlanGameId link the game back to its plan so an
+    // edited plan can be re-applied to games already created from it.
+    prefill?: {
+      playersOnField: Player[];
+      plannedSubs: PlannedGameSub[];
+      formationSnapPoints: Point[];
+      sourcePlanId: string;
+      sourcePlanGameId: string;
+    }
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -122,6 +138,23 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
+  // Playing-Time Planner prefill (Phase 2): pick a saved plan + one of its games to
+  // pre-load the planned lineup. Payload rides onStart; missing-count drives a hint.
+  const [playtimePlans, setPlaytimePlans] = useState<PlaytimePlan[]>([]);
+  const [prefillPlanId, setPrefillPlanId] = useState('');
+  const [prefillGameId, setPrefillGameId] = useState('');
+  const [prefillPayload, setPrefillPayload] = useState<
+    | {
+        playersOnField: Player[];
+        plannedSubs: PlannedGameSub[];
+        formationSnapPoints: Point[];
+        sourcePlanId: string;
+        sourcePlanGameId: string;
+      }
+    | undefined
+  >(undefined);
+  const [prefillMissingCount, setPrefillMissingCount] = useState(0);
+
   // Personnel selection state
   const [selectedPersonnelIds, setSelectedPersonnelIds] = useState<string[]>([]);
 
@@ -149,6 +182,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   const handleRepeatLastGame = useCallback(() => {
     if (!lastGame) return;
+    // "Repeat last game" states an intent: build THIS game from the previous
+    // one. An active plan prefill would otherwise silently ride along (old
+    // plan's lineup, snap points, sub schedule AND a plan link) - clear it,
+    // same rule as switching teams.
+    setPrefillPlanId('');
+    setPrefillGameId('');
+    setPrefillPayload(undefined);
+    setPrefillMissingCount(0);
     setOpponentName(lastGame.opponentName ?? '');
     setGameLocation(lastGame.gameLocation ?? '');
     setLocalPeriodDurationString(lastGame.periodDurationMinutes ? String(lastGame.periodDurationMinutes) : '15');
@@ -198,6 +239,24 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       initializingRef.current = true;
       resetForm();
 
+      // Reset + load Playing-Time Planner plans for the optional "Prefill from plan".
+      setPrefillPlanId('');
+      setPrefillGameId('');
+      setPrefillPayload(undefined);
+      setPrefillMissingCount(0);
+      const loadPlans = async () => {
+        try {
+          const plans = await getPlans();
+          setPlaytimePlans(
+            Object.values(plans).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+          );
+        } catch (err) {
+          logger.error('[NewGameSetupModal] Failed to load playtime plans (non-fatal):', err);
+          setPlaytimePlans([]);
+        }
+      };
+      loadPlans();
+
       // Load last home team name
       const loadLastTeamName = async () => {
         try {
@@ -218,6 +277,48 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
     wasOpenRef.current = isOpen;
   }, [isOpen, resetForm, t]);
+
+  // Prefill-from-plan: choosing a plan clears the game pick; choosing a game builds
+  // the lineup + sub schedule and pre-selects the plan squad.
+  const handlePrefillPlanChange = useCallback((planId: string) => {
+    setPrefillPlanId(planId);
+    setPrefillGameId('');
+    setPrefillPayload(undefined);
+    setPrefillMissingCount(0);
+  }, []);
+
+  const handlePrefillGameChange = useCallback(
+    (gameId: string) => {
+      setPrefillGameId(gameId);
+      const plan = playtimePlans.find((p) => p.id === prefillPlanId);
+      const game = plan?.games.find((g) => g.id === gameId);
+      if (!plan || !game) {
+        setPrefillPayload(undefined);
+        setPrefillMissingCount(0);
+        return;
+      }
+      const result = buildPrefillFromPlan(plan, game, availablePlayersForSetup);
+      setSelectedPlayerIds(result.selectedPlayerIds);
+      // Seed the game's period config from the PLANNED game (still editable):
+      // without this a 2x12 plan lands in a 2x10 default game and the planned
+      // half-time sub prompt fires two minutes into the second half.
+      setLocalNumPeriods(game.numberOfPeriods === 1 ? 1 : 2);
+      setLocalPeriodDurationString(String(game.periodMinutes));
+      setPrefillPayload({
+        // Starters on the field + planned subs parked on the sideline in one array;
+        // the sideline players render as waiting subs (desaturated, position-labelled).
+        playersOnField: [...result.playersOnField, ...result.sidelinePlayers],
+        plannedSubs: result.plannedSubs,
+        // Snap points let the created game rebuild the dotted sub slots + labels.
+        formationSnapPoints: result.formationSnapPoints,
+        // Link back to the plan so an edited plan can be re-applied later.
+        sourcePlanId: prefillPlanId,
+        sourcePlanGameId: gameId,
+      });
+      setPrefillMissingCount(result.missingPlayerIds.length);
+    },
+    [playtimePlans, prefillPlanId, availablePlayersForSetup],
+  );
 
   // Memoize selected tournament lookup to avoid duplicate find() calls in render
   const selectedTournament = useMemo(() => {
@@ -291,8 +392,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (s) {
       setGameLocation(s.location || '');
       setAgeGroup(s.ageGroup || '');
-      setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
-      setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
+      // With a plan prefill active, the match format belongs to the PLAN: the
+      // planned subs carry absolute times (e.g. half-time of 2x12), so letting
+      // the season's default format overwrite it would silently fire those
+      // subs at the wrong minute. Plans are made FOR seasons/tournaments, so
+      // keep the binding and skip only the format overwrite.
+      if (!prefillPayload) {
+        setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
+        setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
+      }
       setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('season');
       // Apply league from season as default (clear custom name if not "muu")
@@ -309,7 +417,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // Prefill gender from season (undefined if not set)
       setGender(s.gender);
     }
-  }, [seasons]);
+  }, [seasons, prefillPayload]);
 
   const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -327,7 +435,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const handleTeamSelection = async (teamId: string | null) => {
     // Increment request counter to track this request
     const requestId = ++teamSelectionRequestRef.current;
-    
+
+    // Switching teams invalidates a plan prefill: the planned lineup/subs
+    // belong to the previous team's squad and would otherwise ride silently
+    // into the new team's game (the master-roster reconciliation can't catch
+    // it - the old team's players are still valid master-roster members).
+    // Mirrors handlePrefillPlanChange's clearing.
+    if (teamId !== selectedTeamId) {
+      setPrefillPlanId('');
+      setPrefillGameId('');
+      setPrefillPayload(undefined);
+      setPrefillMissingCount(0);
+    }
+
     setSelectedTeamId(teamId);
     
     if (teamId) {
@@ -449,8 +569,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setTournamentLevel(tournament.level || '');
         setSelectedTournamentSeriesId(null);
       }
-      setLocalNumPeriods((tournament.periodCount as 1 | 2) || 2);
-      setLocalPeriodDurationString(tournament.periodDuration ? String(tournament.periodDuration) : '15');
+      // Same prefill guard as applySeasonSettings: the plan's format drives
+      // the planned sub times; the tournament's default must not overwrite it.
+      if (!prefillPayload) {
+        setLocalNumPeriods((tournament.periodCount as 1 | 2) || 2);
+        setLocalPeriodDurationString(tournament.periodDuration ? String(tournament.periodDuration) : '15');
+      }
       setGameDate(tournament.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('tournament');
       // Prefill game type from tournament (defaults to 'soccer' if not set)
@@ -458,7 +582,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // Prefill gender from tournament (undefined if not set)
       setGender(tournament.gender);
     }
-  }, [tournaments]);
+  }, [tournaments, prefillPayload]);
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -559,7 +683,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       leagueId, // League ID for the game
       leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '', // Custom league name when leagueId === CUSTOM_LEAGUE_ID
       gameType, // Sport type: 'soccer' or 'futsal'
-      gender // Gender: 'boys' or 'girls' (optional)
+      gender, // Gender: 'boys' or 'girls' (optional)
+      prefillPayload // Planner prefill (Phase 2): planned XI + subs, or undefined
     );
 
     // Modal will be closed by parent component after onStart
@@ -699,6 +824,50 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   opponentError={opponentError}
                 />
               </div>
+
+              {/* Prefill from a Playing-Time Planner plan (optional) */}
+              {playtimePlans.length > 0 && (
+                <div className="mb-4">
+                  <label htmlFor="prefillPlanSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('newGameSetupModal.prefillFromPlanLabel', 'Prefill from plan (optional)')}
+                  </label>
+                  <select
+                    id="prefillPlanSelect"
+                    value={prefillPlanId}
+                    onChange={(e) => handlePrefillPlanChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  >
+                    <option value="">{t('newGameSetupModal.prefillNoPlan', 'No plan')}</option>
+                    {playtimePlans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </option>
+                    ))}
+                  </select>
+                  {prefillPlanId && (
+                    <select
+                      aria-label={t('newGameSetupModal.prefillGameLabel', 'Plan game')}
+                      value={prefillGameId}
+                      onChange={(e) => handlePrefillGameChange(e.target.value)}
+                      className="mt-2 w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    >
+                      <option value="">{t('newGameSetupModal.prefillChooseGame', 'Choose a game…')}</option>
+                      {(playtimePlans.find((p) => p.id === prefillPlanId)?.games ?? []).map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {prefillMissingCount > 0 && (
+                    <p className="mt-1 text-xs text-amber-400">
+                      {t('newGameSetupModal.prefillMissingPlayers', '{{count}} planned players are not in this roster and were skipped.', {
+                        count: prefillMissingCount,
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Player Selection */}
               <PlayerSelectionSection

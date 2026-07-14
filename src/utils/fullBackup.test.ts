@@ -1,6 +1,6 @@
 // src/utils/fullBackup.test.ts
 import "@/i18n";
-import { importFullBackup, exportFullBackup, prewarmBackup, trySharePrewarmedBackup } from "./fullBackup";
+import { importFullBackup, exportFullBackup, prewarmBackup, trySharePrewarmedBackup, generateFullBackupJson } from "./fullBackup";
 import {
   SAVED_GAMES_KEY,
   APP_SETTINGS_KEY,
@@ -11,6 +11,9 @@ import {
   TEAM_ROSTERS_KEY,
   WARMUP_PLAN_KEY,
   LAST_OFF_DEVICE_BACKUP_KEY,
+  PLAYTIME_PLANS_KEY,
+  PLAYTIME_GAME_SUBS_KEY,
+  PLAYTIME_PLAN_LINKS_KEY,
 } from "@/config/storageKeys";
 import { DEFAULT_GAME_ID } from "@/config/constants";
 import type { SavedGamesCollection, AppState } from "@/types/game";
@@ -218,6 +221,17 @@ function createMockDataStore(): DataStore {
     getSeasonReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
     getTournamentReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
     getTeamReferences: jest.fn().mockResolvedValue({ canDelete: true, counts: {}, summary: 'Not used' }),
+    getPlaytimePlans: jest.fn().mockResolvedValue({}),
+    savePlaytimePlan: jest.fn(async (p: never) => p),
+    deletePlaytimePlan: jest.fn().mockResolvedValue(true),
+    getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
+    setPlaytimePlanLink: jest.fn().mockResolvedValue(true),
+    deletePlaytimePlanLink: jest.fn().mockResolvedValue(true),
+    deletePlaytimePlanLinksForPlan: jest.fn().mockResolvedValue(true),
+    getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+    getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
+    setPlaytimeGameSubs: jest.fn().mockResolvedValue(true),
+    deletePlaytimeGameSubs: jest.fn().mockResolvedValue(true),
   };
 }
 
@@ -696,6 +710,38 @@ describe("importFullBackup", () => {
 
       // Verify restore success message
       // Note: Alert no longer shown on success - result object indicates success
+    });
+
+    it("backs up and restores the Playing-Time Planner local-only stores (plans, subs, links)", async () => {
+      // The planner stores live outside the DataStore; without explicit handling a
+      // restore on a new device silently lost every plan + linked-game bookkeeping.
+      const plansData = {
+        plan_1: { id: "plan_1", name: "Cup plan", version: 1, createdAt: "x", updatedAt: "x", players: [], games: [] },
+      };
+      const gameSubsData = {
+        game_1: [{ id: "s1", timeSeconds: 720, slotId: "s0", inPlayerId: "p2", outPlayerId: "p1" }],
+      };
+      const planLinksData = { game_1: { planId: "plan_1", planGameId: "g1" } };
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {},
+          [PLAYTIME_PLANS_KEY]: plansData,
+          [PLAYTIME_GAME_SUBS_KEY]: gameSubsData,
+          [PLAYTIME_PLAN_LINKS_KEY]: planLinksData,
+        },
+      };
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const result = await importFullBackup(JSON.stringify(backupData));
+
+      expect(result?.success).toBe(true);
+      // Restore now routes through the DataStore so the write lands in the
+      // SAME (per-user) database as everything else being restored.
+      expect(mockDataStore.savePlaytimePlan).toHaveBeenCalledWith(plansData.plan_1);
+      expect(mockDataStore.setPlaytimeGameSubs).toHaveBeenCalledWith('game_1', gameSubsData.game_1);
+      expect(mockDataStore.setPlaytimePlanLink).toHaveBeenCalledWith('game_1', planLinksData.game_1);
     });
 
     it("remaps players for a LEGACY backup that stores games under the old 'savedGames' key (CR-M7)", async () => {
@@ -1449,6 +1495,33 @@ describe("importFullBackup", () => {
         alertMock.mockRestore();
       }
     });
+  });
+});
+
+describe("generateFullBackupJson - planner stores", () => {
+  beforeEach(() => {
+    Object.keys(mockStore).forEach(key => delete mockStore[key]);
+    jest.clearAllMocks();
+    mockDataStore = createMockDataStore();
+    (getDataStore as jest.Mock).mockImplementation(async () => mockDataStore);
+  });
+
+  it("includes the planner's local-only stores in the export", async () => {
+    const plansData = {
+      plan_1: { id: "plan_1", name: "Cup plan", version: 1, createdAt: "x", updatedAt: "x", players: [], games: [] },
+    };
+    const planLinksData = { game_1: { planId: "plan_1", planGameId: "g1" } };
+    // Export now reads through the DataStore (right database per user).
+    (mockDataStore.getPlaytimePlans as jest.Mock).mockResolvedValue(plansData);
+    (mockDataStore.getPlaytimePlanLinks as jest.Mock).mockResolvedValue(planLinksData);
+    (mockDataStore.getAllPlaytimeGameSubs as jest.Mock).mockResolvedValue({});
+
+    const json = JSON.parse(await generateFullBackupJson());
+
+    expect(json.localStorage[PLAYTIME_PLANS_KEY]).toEqual(plansData);
+    expect(json.localStorage[PLAYTIME_PLAN_LINKS_KEY]).toEqual(planLinksData);
+    // Empty store exports as null (same convention as the other entities).
+    expect(json.localStorage[PLAYTIME_GAME_SUBS_KEY]).toBeNull();
   });
 });
 

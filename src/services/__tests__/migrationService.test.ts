@@ -165,6 +165,10 @@ function createMockLocalStore() {
     getPlayerAdjustments: jest.fn().mockResolvedValue([]),
     getAllPlayerAdjustments: jest.fn().mockResolvedValue(new Map()),
     getWarmupPlan: jest.fn().mockResolvedValue(null),
+    getPlaytimePlans: jest.fn().mockResolvedValue({}),
+    getPlaytimePlanLinks: jest.fn().mockResolvedValue({}),
+    getPlaytimeGameSubs: jest.fn().mockResolvedValue([]),
+    getAllPlaytimeGameSubs: jest.fn().mockResolvedValue({}),
     getSettings: jest.fn().mockResolvedValue({ language: 'en' }),
     close: jest.fn().mockResolvedValue(undefined),
   };

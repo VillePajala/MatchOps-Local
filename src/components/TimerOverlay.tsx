@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaPlay, FaPause, FaUndo } from 'react-icons/fa'; // Import icons
 import { useTranslation } from 'react-i18next'; // Import translation hook
 import { IntervalLog, SubAlertLevel } from '@/types'; // Import types
+import type { PlannedSubPrompt } from '@/hooks/usePlannedSubPrompts';
 import { formatTime } from '@/utils/time';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
@@ -41,6 +42,10 @@ interface TimerOverlayProps {
   onRecordShootout?: () => void;
   onClose?: () => void;
   isLoaded: boolean;
+  /** Playing-Time Planner (Phase 2): the due planned sub to nudge, or null. */
+  plannedSubPrompt?: PlannedSubPrompt | null;
+  /** Acknowledge a planned-sub nudge so it stops showing. */
+  onDismissPlannedSub?: (subId: string) => void;
 }
 
 const TimerOverlay: React.FC<TimerOverlayProps> = ({
@@ -74,6 +79,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onRecordShootout = () => {},
   onClose,
   isLoaded,
+  plannedSubPrompt = null,
+  onDismissPlannedSub,
 }) => {
   const { t } = useTranslation(); // Initialize translation hook
 
@@ -311,7 +318,39 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             <FaUndo size={14}/>
           </button>
         </div>
-        
+
+        {/* Planned sub nudge (Playing-Time Planner) - persists until dismissed.
+            Shown while the match is live INCLUDING period breaks (half-time is
+            exactly when planned subs happen), but never before kick-off or
+            after full time - there is nobody left to substitute. */}
+        {plannedSubPrompt && gameStatus !== 'notStarted' && gameStatus !== 'gameEnd' && (
+          <div
+            role="status"
+            className="w-full mb-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-2 flex items-center justify-between gap-3 pointer-events-auto"
+          >
+            <div className="text-left">
+              <div className="text-xs font-semibold uppercase tracking-wide text-amber-300">
+                {t('timerOverlay.plannedSubTitle', 'Planned sub')} · {formatTime(plannedSubPrompt.timeSeconds)}
+              </div>
+              <div className="text-sm text-slate-100">
+                {plannedSubPrompt.outName
+                  ? t('timerOverlay.plannedSubInOut', '{{in}} on for {{out}}', {
+                      in: plannedSubPrompt.inName,
+                      out: plannedSubPrompt.outName,
+                    })
+                  : t('timerOverlay.plannedSubIn', '{{in}} on', { in: plannedSubPrompt.inName })}
+              </div>
+            </div>
+            <button
+              onClick={() => onDismissPlannedSub?.(plannedSubPrompt.subId)}
+              className="text-white font-semibold py-1.5 px-3 rounded-sm bg-amber-600 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm whitespace-nowrap"
+              aria-label={t('timerOverlay.plannedSubDismiss', 'Got it')}
+            >
+              {t('timerOverlay.plannedSubDismiss', 'Got it')}
+            </button>
+          </div>
+        )}
+
         {/* Game Setup & Interval Controls Section */}
         <div className="bg-slate-800/80 backdrop-blur-sm p-2 rounded-lg w-full mb-3 space-y-2">
           {/* Substitution Interval Control (only when game not started) */}

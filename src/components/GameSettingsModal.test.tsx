@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { render, screen, within, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import GameSettingsModal from './GameSettingsModal';
@@ -236,6 +236,57 @@ describe('<GameSettingsModal />', () => {
     const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Re-apply plan', () => {
+    test('does not show the re-apply button for a non-plan game', () => {
+      renderModal();
+      expect(
+        screen.queryByRole('button', { name: t('gameSettingsModal.reapplyPlan.button') }),
+      ).not.toBeInTheDocument();
+    });
+
+    test('shows the button and re-applies only after confirming', async () => {
+      const user = userEvent.setup();
+      const onReapplyPlan = jest.fn().mockResolvedValue(undefined);
+      renderModal({ ...defaultProps, canReapplyPlan: true, onReapplyPlan });
+
+      const button = screen.getByRole('button', { name: t('gameSettingsModal.reapplyPlan.button') });
+      await user.click(button);
+      // Guarded behind a confirm - nothing happens until the coach confirms.
+      expect(onReapplyPlan).not.toHaveBeenCalled();
+
+      const confirm = await screen.findByRole('button', {
+        name: t('gameSettingsModal.reapplyPlan.confirmLabel'),
+      });
+      await user.click(confirm);
+      expect(onReapplyPlan).toHaveBeenCalledTimes(1);
+    });
+
+    test('locks Done while a re-apply is in flight', async () => {
+      const user = userEvent.setup();
+      let resolveReapply!: () => void;
+      const onReapplyPlan = jest.fn(
+        () => new Promise<void>((resolve) => { resolveReapply = resolve; }),
+      );
+      renderModal({ ...defaultProps, canReapplyPlan: true, onReapplyPlan });
+
+      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.reapplyPlan.button') }));
+      await user.click(
+        await screen.findByRole('button', { name: t('gameSettingsModal.reapplyPlan.confirmLabel') }),
+      );
+
+      // In flight: closing the modal and loading another game now could let the
+      // async chain overwrite the newly-loaded game's lineup - Done stays locked
+      // exactly as long as the re-apply button itself.
+      const done = screen.getByRole('button', { name: t('common.doneButton') });
+      expect(done).toBeDisabled();
+
+      await act(async () => {
+        resolveReapply();
+      });
+      await waitFor(() => expect(done).toBeEnabled());
+    });
   });
 
   describe('Season Prefill Regression', () => {
