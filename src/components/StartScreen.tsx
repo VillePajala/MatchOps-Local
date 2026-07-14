@@ -288,7 +288,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <button
                   type="button"
                   onClick={onManageRoster}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                  disabled={!onManageRoster}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageRoster
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
                 >
                   <span className="text-sm font-semibold text-white">
                     {t('startScreen.rowPlayers', 'Players')}
@@ -298,7 +303,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <button
                   type="button"
                   onClick={onManageTeams}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                  disabled={!onManageTeams}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageTeams
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
                 >
                   <span className="text-sm font-semibold text-white">
                     {t('startScreen.rowTeams', 'Teams')}
@@ -308,7 +318,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <button
                   type="button"
                   onClick={onManagePersonnel}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                  disabled={!onManagePersonnel}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManagePersonnel
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
                 >
                   <span className="text-sm font-semibold text-white">
                     {t('startScreen.rowPersonnel', 'Personnel')}

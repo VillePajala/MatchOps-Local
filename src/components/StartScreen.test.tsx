@@ -360,6 +360,14 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
+  it('unwired Team-panel rows render DISABLED - never silently dead-clickable', () => {
+    const props = { ...shellProps(), onManageRoster: undefined };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    expect(screen.getByRole('button', { name: 'Players' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Teams' })).toBeDisabled(); // onManageTeams not passed
+  });
+
   it('an unwired Seasons tab renders DISABLED - never silently dead-clickable', () => {
     // (The Team tab now switches a local panel, so it needs no handler.)
     const props = { ...shellProps(), onManageSeasons: undefined };
