@@ -447,6 +447,7 @@ export type TranslationKey =
   | 'controlBar.startScreen'
   | 'controlBar.stats'
   | 'controlBar.tasoLink'
+  | 'controlBar.teamStats'
   | 'controlBar.timerControls'
   | 'controlBar.timerPause'
   | 'controlBar.timerReset'

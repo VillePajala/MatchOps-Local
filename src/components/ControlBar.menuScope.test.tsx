@@ -20,12 +20,13 @@ jest.mock('@/utils/storage', () => {
 });
 
 import React from 'react';
-import { render, fireEvent, screen, within } from '@testing-library/react';
+import { render, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ControlBar from './ControlBar';
 import ModalProvider from '@/contexts/ModalProvider';
 
 const noop = () => {};
+const onOpenTeamStats = jest.fn();
 
 const renderBar = () =>
   render(
@@ -69,6 +70,7 @@ const renderBar = () =>
       onOpenTeamManagerModal={noop}
       onOpenPersonnelManager={noop}
       onOpenPlanner={noop}
+      onOpenTeamStats={onOpenTeamStats}
     />
     </ModalProvider>,
   );
@@ -87,7 +89,7 @@ describe('ControlBar menu - scope grouping (restructure PR 0.1)', () => {
 
   it('groups by scope: match items under "This match", club/app items under "Team & app"', () => {
     const match = within(section('This match'));
-    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', 'Stats']) {
+    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', 'Match stats']) {
       expect(match.getByRole('button', { name: item })).toBeInTheDocument();
     }
 
@@ -96,6 +98,7 @@ describe('ControlBar menu - scope grouping (restructure PR 0.1)', () => {
       'Load Game...',
       'Start New Game',
       'Match planner',
+      'Team stats',
       'All Players',
       'Teams',
       'Personnel Manager',
@@ -106,6 +109,13 @@ describe('ControlBar menu - scope grouping (restructure PR 0.1)', () => {
     ]) {
       expect(club.getByRole('button', { name: item })).toBeInTheDocument();
     }
+  });
+
+  it('the two stats entries route to their own scopes (PR 0.2)', async () => {
+    // "Team stats" must call the aggregate-tab opener, not the plain toggle.
+    // The menu defers handlers until its close animation settles.
+    fireEvent.click(within(section('Team & app')).getByRole('button', { name: 'Team stats' }));
+    await waitFor(() => expect(onOpenTeamStats).toHaveBeenCalledTimes(1));
   });
 
   it('the old scope-mixed group headers are gone', () => {

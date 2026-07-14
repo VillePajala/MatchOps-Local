@@ -101,6 +101,8 @@ interface GameStatsModalProps {
   onExportAggregateExcel?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
   initialSelectedPlayerId?: string | null;
+  /** Tab to land on when opening (menu match-vs-team stats entries). */
+  initialTab?: StatsTab;
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
   onOpenSettings?: () => void;
@@ -138,6 +140,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportAggregateExcel,
   onExportPlayerExcel,
   initialSelectedPlayerId = null,
+  initialTab,
   onGameClick = NOOP,
   masterRoster = [],
   onOpenSettings,
@@ -217,7 +220,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [activeTab, setActiveTab] = useState<StatsTab>(initialSelectedPlayerId ? 'player' : 'currentGame');
+  // Landing tab: an explicit initialTab (the menu's "Team stats" entry) beats
+  // the player deep-link, which beats the current-game default. The modal is
+  // conditionally mounted, so the initializer runs fresh on every open.
+  const [activeTab, setActiveTab] = useState<StatsTab>(
+    initialTab ?? (initialSelectedPlayerId ? 'player' : 'currentGame'),
+  );
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
