@@ -1570,7 +1570,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }
 
   return (
-    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
+    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettingsModal.title', 'Match details')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -1583,7 +1583,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           {/* Fixed Header */}
           <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
             <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {t('gameSettingsModal.title', 'Game Settings')}
+              {t('gameSettingsModal.title', 'Match details')}
             </h2>
           </div>
 

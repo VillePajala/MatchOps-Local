@@ -129,7 +129,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.gameManagement', 'Game Management')}</h3>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.gameManagement', 'The menu')}</h3>
             <p className="text-sm text-slate-300">
               {t('firstGameGuide.menuActionsNote', 'Click the Menu button to access:')}
               <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
@@ -138,7 +138,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
               <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
                 <li>{t('firstGameGuide.startNewGameTip', 'Start a new game')}</li>
                 <li>{t('firstGameGuide.loadGameTip', 'Load a saved game')}</li>
-                <li>{t('firstGameGuide.gameSettingsTip', 'Edit game settings')}</li>
+                <li>{t('firstGameGuide.gameSettingsTip', 'Edit match details')}</li>
               </ul>
             </div>
           </section>
