@@ -2,7 +2,7 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
-      "date": "2026-07-13",
+      "date": "2026-07-14",
       "en": [
         "Match planner (renamed from Lineup planner) was rebuilt around three tabs: Games (the field, with swipe and a side-by-side view), Minutes (playing-time balance) and Settings (roster, format and the games as editable rows).",
         "Fairness at a glance: player discs and bench discs are coloured red-to-green by playing time, substitutions show as split discs with both names, and a totals strip stays visible while you edit.",
@@ -14,6 +14,15 @@
         "Reiluus yhdellä silmäyksellä: pelaajakiekot ja penkkikiekot värjäytyvät peliajan mukaan punaisesta vihreään, vaihdot näkyvät jaettuina kiekkoina molemmilla nimillä, ja peliaikakertymä pysyy näkyvissä muokatessa.",
         "Yhden napautuksen työkalut: \"Ehdota reilut kokoonpanot\" rakentaa tasaiset rotaatiot koko pelisarjalle, kumoa/tee uudelleen, pelikohtaiset mukana-valinnat, ja suunnitelmat voi arkistoida, monistaa ja viedä.",
         "Suunnitelmat säilyvät taustalla: sovellukseen palatessa avautuu sama suunnitelma ja peli kuin lähtiessä."
+      ]
+    },
+    {
+      "date": "2026-07-14",
+      "en": [
+        "Development infrastructure: automated code reviews can now read the repository source, making review posting reliable and findings verifiable (no user-facing changes)."
+      ],
+      "fi": [
+        "Kehitysinfrastruktuuri: automaattiset koodikatselmoinnit voivat nyt lukea projektin lähdekoodia, mikä tekee katselmointien julkaisusta luotettavaa ja löydöksistä todennettavia (ei käyttäjälle näkyviä muutoksia)."
       ]
     },
     {
