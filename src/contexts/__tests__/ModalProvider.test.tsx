@@ -83,3 +83,31 @@ test('supports function updater form for roster modal', () => {
   });
   expect(result.current.isRosterModalOpen).toBe(false);
 });
+
+test('gameStatsInitialTab is set by openGameStatsToTab and CLEARED on close (no stale tab on reopen)', () => {
+  // "Team stats" -> close -> "Match stats" must land on the default tab, not
+  // leak the previous aggregate tab through the shared reducer-backed setter.
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ModalProvider>{children}</ModalProvider>
+  );
+  const { result } = renderHook(() => useModalContext(), { wrapper });
+
+  act(() => {
+    result.current.openGameStatsToTab('season');
+  });
+  expect(result.current.isGameStatsModalOpen).toBe(true);
+  expect(result.current.gameStatsInitialTab).toBe('season');
+
+  act(() => {
+    result.current.setIsGameStatsModalOpen(false);
+  });
+  expect(result.current.isGameStatsModalOpen).toBe(false);
+  expect(result.current.gameStatsInitialTab).toBeUndefined();
+
+  // Plain reopen (the "Match stats" path) keeps the default landing.
+  act(() => {
+    result.current.setIsGameStatsModalOpen(true);
+  });
+  expect(result.current.isGameStatsModalOpen).toBe(true);
+  expect(result.current.gameStatsInitialTab).toBeUndefined();
+});
