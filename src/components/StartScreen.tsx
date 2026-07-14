@@ -284,30 +284,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </div>
           )}
 
-          {/* Pinned pair, owner order 2026-07-15: Jatka on top (the original
-              amber primary, opens the active game), + Uusi peli strip under
-              it - BOTH visible on every tab. */}
-          {!isFirstTimeUser && (
-            <div className="max-w-sm mx-auto w-full mb-3 space-y-2">
-              {canResume && (
-                <button
-                  type="button"
-                  onClick={onResumeGame}
-                  className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-                >
-                  {t('startScreen.resumeCard', 'Continue')}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={onGetStarted}
-                className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors shadow-inner"
-              >
-                + {t('startScreen.newGame', 'New Game')}
-              </button>
-            </div>
-          )}
-
           {/* === ACTION BUTTONS === */}
           <div className="max-w-sm mx-auto w-full space-y-3">
             {isFirstTimeUser ? (
@@ -401,6 +377,25 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  entry rows. The Stats/Load grid buttons are gone: the tab bar
                  and the rows below cover both. */
               <>
+                {canResume && (
+                  <button
+                    type="button"
+                    onClick={onResumeGame}
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                  >
+                    {t('startScreen.resumeCard', 'Continue')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onGetStarted}
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.newGame', 'New Game')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
                 <button
                   type="button"
                   onClick={onLoadGame}
