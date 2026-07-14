@@ -230,6 +230,17 @@ describe('GameStatsModal', () => {
     jest.clearAllMocks();
   });
 
+  test('initialTab lands the modal on the requested aggregate tab (menu Team stats entry)', async () => {
+    const props = { ...getDefaultProps(), initialTab: 'season' as const };
+    await act(async () => {
+      renderComponent(props);
+    });
+    const seasonTab = screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') });
+    expect(seasonTab).toHaveAttribute('aria-selected', 'true');
+    const currentTab = screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') });
+    expect(currentTab).toHaveAttribute('aria-selected', 'false');
+  });
+
   test('renders modal title and basic game info when open', async () => {
     const props = getDefaultProps();
     await act(async () => {

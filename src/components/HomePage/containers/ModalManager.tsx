@@ -59,6 +59,7 @@ interface SeasonTournamentMutations {
 }
 
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
+type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalManagerState {
   isTrainingResourcesOpen: boolean;
@@ -75,6 +76,7 @@ interface ModalManagerState {
   isGameSettingsModalOpen: boolean;
   isSettingsModalOpen: boolean;
   settingsInitialTab?: SettingsTab;
+  gameStatsInitialTab?: StatsTab;
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
@@ -326,6 +328,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             onExportAggregateExcel={handlers.exportAggregateExcel}
             onExportPlayerExcel={handlers.exportPlayerExcel}
             initialSelectedPlayerId={data.selectedPlayerForStats?.id}
+            initialTab={state.gameStatsInitialTab}
             onGameClick={handlers.gameLogClick}
             masterRoster={data.masterRoster}
             onGameNotesChange={handlers.gameNotesChange}
