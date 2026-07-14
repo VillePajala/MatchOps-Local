@@ -154,13 +154,26 @@ eslint → build), user tests on the Vercel preview at each checkpoint.
 | **1.2 Home shell (strangler)** | StartScreen becomes Home: hero header kept (logo/tagline/glows, slightly shorter), house tab bar (Pelit · Joukkue · Kaudet · Tilastot) + ⚙ corner. Tabs only OPEN THE EXISTING MODALS. `page.tsx`'s `'start'` branch renders it; field boot path untouched. | All four tabs + gear open their modals; StartScreen tests reworked to Home. |
 | **1.3 Pelit front page** | Tab content v1: "Jatka ottelua" card (when live), pinned "Uusi peli", saved-games entry (opens LoadGameModal), Ottelusuunnittelu entry. Cloud/subscribe/Play-store rows move under ⚙ / welcome flow. | Front page shows ONLY hero + those items (anti-clutter rule holds). **User preview checkpoint.** |
 | **1.4 Gear bucket** | ⚙ sheet: app settings, Backup & Restore, cloud account, language, user guide, external resources, rules directory. Entries open existing modals. | Every Device/Account-scope item reachable ONLY via ⚙. |
-| **2.1 Dissolve LoadGame → Pelit** | LoadGameModal internals become the Pelit tab content (search/filter, per-row 3-dot: open/delete/duplicate/export). Modal deleted. | LoadGameModal.test.tsx reworked to the tab in the same PR; no orphan i18n keys. **User preview checkpoint.** |
-| **2.2 Dissolve Roster/Teams/Personnel → Joukkue** | Three modals become Joukkue sections (master roster, teams, personnel + training materials). | Same-PR test rework; modals deleted. **Checkpoint.** |
-| **2.3 Dissolve SeasonTournament → Kaudet** | Seasons + tournaments management as tab content. | Same-PR test rework; modal deleted. **Checkpoint.** |
-| **2.4 GameStats split → Tilastot** | Aggregate tabs (season/tournament/overall/player) become the Tilastot tab; the current-game tab STAYS in the match-side modal. | Both surfaces work; cross-links correct; test suites split accordingly. **Checkpoint.** |
+| **2-lite: Home-origin modals close back to Home** | OWNER DECISION 2026-07-15, replacing ALL of the planned 2.1-2.4 dissolves: modals stay; the orchestration tracks "opened from Home" and closing such a modal swaps back to the Home screen instead of revealing the pitch. Optional later: a recent-games TEASER on the front page (3-5 rows + "see all" opening the modal) captures the dissolve's only real payoff cheaply. | Open any club modal from a Home tab, close it -> Home, never the game view. |
 | **3.1 Match menu shrink** | Match menu to ~7 items (Ottelun tiedot, Arvioi pelaajat, Otteluraportti, Ottelun tilastot + "Joukkueen tilastot →" link, **Taso link** - owner decision 2026-07-14: Taso is a game-day workflow tool (lineups before, results after), it stays in-game, Tallenna/Tallenna nimellä, ← Koti). Hardware back mirrors ← Koti. | Reachability table (§2) holds exactly; menu tests updated. |
 | **3.2 Roster bridge** | Game player picker gets inline "lisää seuran listaan" (writes club roster + selects). The ONLY club-write from match scope. | Test: added player lands in club roster AND the game selection. |
 | **F Final** | Docs (§7 status here, UNIFIED-ROADMAP), release-notes entry (the guard needs it), full-suite run, then the ONE PR `feature/two-level-structure` → master. | The 9 scenario walkthroughs in §2 all pass on the preview; review verdict posted; user merges. |
+
+### The facade, named (owner discussion 2026-07-15)
+
+After 2-lite, Home is structurally a FACADE: every tab tap mounts the full
+match view underneath and floats the existing modal over it; "close -> Home"
+is a screen swap. Known risks of living with this: (1) match machinery
+(orchestration, autosave wiring, timers, queries) boots on every Home
+interaction - wasted work + a standing source of on-mount side effects;
+(2) back-button/transition fragility (pitch can flash on slow devices);
+(3) conceptual debt - future features keep landing in the game tree because
+that is where modals live, which makes phase 4 harder every month.
+**The true structural fix is NOT dissolving modals** - it is lifting modal
+ownership (ModalManager + its state) out of the game tree to page level so
+Home can open modals without mounting the match. Middle-sized, deliberately
+DEFERRED until the facade actually bites (bug/perf complaint) rather than
+paid speculatively. Phase 4 remains the deep fix, parked.
 
 ## 7. Process rules for this branch (planner lessons, binding)
 
