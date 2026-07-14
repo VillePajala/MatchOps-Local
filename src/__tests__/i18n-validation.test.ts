@@ -339,7 +339,7 @@ describe('Translation File Validation', () => {
       //     lineup.benchHeading, overview.newPlan)
       // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
       //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
-      expect(enKeys.length).toBe(2808);
+      expect(enKeys.length).toBe(2810);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -402,7 +402,7 @@ describe('Translation File Validation', () => {
       //     lineup.benchHeading, overview.newPlan)
       // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
       //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
-      expect(fiKeys.length).toBe(2808);
+      expect(fiKeys.length).toBe(2810);
     });
   });
 });

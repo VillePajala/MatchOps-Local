@@ -3233,6 +3233,8 @@
       "remove": "Remove",
       "noBench": "No bench players available.",
       "inLabel": "Player on",
+      "added": "Substitution added",
+      "removed": "Substitution removed",
       "timeLabel": "Minute",
       "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})"
     },

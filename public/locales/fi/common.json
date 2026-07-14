@@ -3233,6 +3233,8 @@
       "remove": "Poista",
       "noBench": "Ei vaihtopelaajia käytettävissä.",
       "inLabel": "Kentälle",
+      "added": "Vaihto lisätty",
+      "removed": "Vaihto poistettu",
       "timeLabel": "Minuutti",
       "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})"
     },

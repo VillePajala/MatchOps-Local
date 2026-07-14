@@ -29,7 +29,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { getMasterRoster } from '@/utils/masterRosterManager';
-import { getTeams, getTeamRoster } from '@/utils/teams';
+import { getTeams, getTeamRoster, getTeamDisplayName } from '@/utils/teams';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import type { Team, Season, Tournament } from '@/types';
@@ -679,14 +679,28 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   );
 
   // Add / remove a scheduled substitution in a game.
+  // Screen-reader announcement for sub creation/removal: the sheet closes on
+  // add, so the live region lives HERE (persists across the sheet's unmount).
+  // The nonce forces a DOM mutation even when the SAME message repeats
+  // (remove two subs in a row) - live regions only announce on mutation, so
+  // identical consecutive text would announce once and go silent.
+  const [subAnnouncement, setSubAnnouncement] = useState<{ text: string; nonce: number }>({
+    text: '',
+    nonce: 0,
+  });
+
   const handleAddSub = useCallback(
     (gameId: string, sub: PlanSub) => {
       updateActivePlan((plan) => ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: addSub(g.subs, sub) } : g)),
       }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.subs.added', 'Substitution added'),
+        nonce: prev.nonce + 1,
+      }));
     },
-    [updateActivePlan],
+    [updateActivePlan, t],
   );
 
   const handleRemoveSub = useCallback(
@@ -695,8 +709,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: removeSub(g.subs, subId) } : g)),
       }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.subs.removed', 'Substitution removed'),
+        nonce: prev.nonce + 1,
+      }));
     },
-    [updateActivePlan],
+    [updateActivePlan, t],
   );
 
   // Flush a pending debounced save when the modal is hidden (Escape, Close, or
@@ -1555,7 +1573,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
                       {teams.map((tm) => (
                         <option key={tm.id} value={tm.id}>
-                          {tm.name}
+                          {getTeamDisplayName(tm, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                         </option>
                       ))}
                     </select>
@@ -1914,7 +1932,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         <option value="">{t('playtimePlanner.setup.teamNone', 'No team - all players')}</option>
                         {teams.map((tm) => (
                           <option key={tm.id} value={tm.id}>
-                            {tm.name}
+                            {getTeamDisplayName(tm, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                           </option>
                         ))}
                       </select>
@@ -2299,6 +2317,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           </div>
         )}
       </ScrollableContent>
+
+      {/* Polite live region: announces sub add/remove to assistive tech. The
+          sheet closes on add, so this must outlive it. Visually hidden. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {/* key remounts the text node per announcement - the mutation is what
+            makes assistive tech re-announce a repeated message. */}
+        {subAnnouncement.text && (
+          <span key={subAnnouncement.nonce} data-announcement-nonce={subAnnouncement.nonce}>
+            {subAnnouncement.text}
+          </span>
+        )}
+      </div>
 
       {subSheetTarget !== null &&
         activePlan &&
