@@ -21,6 +21,10 @@ interface StartScreenProps {
   onManageSeasons?: () => void;
   /** Front-page entry: open the Playing-Time Planner. */
   onOpenPlanner?: () => void;
+  /** Team panel: teams manager (opens the existing modal). */
+  onManageTeams?: () => void;
+  /** Team panel: personnel manager (opens the existing modal). */
+  onManagePersonnel?: () => void;
   /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
   onEnableCloudSync?: () => void;
   /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
@@ -44,6 +48,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onManageRoster,
   onManageSeasons,
   onOpenPlanner,
+  onManageTeams,
+  onManagePersonnel,
   onEnableCloudSync,
   onSignInExistingSubscriber,
   onShowWelcome,
@@ -61,6 +67,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // language (MATCHOPS-LOCAL-8K / MATCHOPS-LOCAL-3). The real value is adopted
   // post-hydration via useEffect below.
   const [language, setLanguage] = useState<string>('fi');
+  // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
+  // tabs - Games (front page) and Team (club entry rows) switch panels here;
+  // Seasons/Stats stay one-tap openers for their single-purpose scopes.
+  const [activeTab, setActiveTab] = useState<'games' | 'team'>('games');
 
   // Recommended-setup card dismissal. Read post-hydration (SSR-safe, like language):
   // both server and first client render show nothing until setupHydrated flips true.
@@ -204,21 +214,25 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <button
                   type="button"
                   role="tab"
-                  aria-selected="true"
-                  className="flex-1 px-2 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white shadow-inner"
+                  aria-selected={activeTab === 'games'}
+                  onClick={() => setActiveTab('games')}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === 'games'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                  }`}
                 >
                   {t('startScreen.tabGames', 'Games')}
                 </button>
                 <button
                   type="button"
                   role="tab"
-                  aria-selected="false"
-                  onClick={onManageRoster}
-                  disabled={!onManageRoster}
+                  aria-selected={activeTab === 'team'}
+                  onClick={() => setActiveTab('team')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    onManageRoster
-                      ? 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
-                      : 'text-slate-600 cursor-not-allowed'
+                    activeTab === 'team'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabTeam', 'Team')}
@@ -266,6 +280,57 @@ const StartScreen: React.FC<StartScreenProps> = ({
               >
                 {t('startScreen.getStarted', 'Get Started')}
               </button>
+            ) : activeTab === 'team' ? (
+              /* Team panel (restructure 1.3b): every club-people item gets a
+                 Home entry - the rows open the EXISTING modals (strangler);
+                 phase 2 turns them into page sections. */
+              <>
+                <button
+                  type="button"
+                  onClick={onManageRoster}
+                  disabled={!onManageRoster}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageRoster
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.rowPlayers', 'Players')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onManageTeams}
+                  disabled={!onManageTeams}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageTeams
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.rowTeams', 'Teams')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onManagePersonnel}
+                  disabled={!onManagePersonnel}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManagePersonnel
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.rowPersonnel', 'Personnel')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+              </>
             ) : (
               /* Returning user: the Pelit front page (two-level restructure
                  PR 1.3) - resume card, one pinned primary, and full-width

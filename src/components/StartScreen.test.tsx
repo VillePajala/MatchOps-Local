@@ -322,11 +322,30 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('routes each tab to its existing modal opener (strangler stage)', () => {
-    const props = shellProps();
+  it('Team tab switches to the club panel; its rows open the existing modals', () => {
+    const props = { ...shellProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    // Real tab semantics: selection moves, the body becomes the club rows.
+    expect(screen.getByRole('tab', { name: 'Team' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.queryByRole('button', { name: 'New Game' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Players' }));
     expect(props.onManageRoster).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Teams' }));
+    expect(props.onManageTeams).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Personnel' }));
+    expect(props.onManagePersonnel).toHaveBeenCalledTimes(1);
+
+    // Back to Games restores the front page.
+    fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
+    expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
+  });
+
+  it('Seasons and Stats tabs stay one-tap openers for their single-purpose scopes', () => {
+    const props = shellProps();
+    render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Seasons' }));
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
@@ -341,10 +360,18 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
-  it('renders unwired Team/Seasons tabs DISABLED - never silently dead-clickable', () => {
-    const props = { ...shellProps(), onManageRoster: undefined, onManageSeasons: undefined };
+  it('unwired Team-panel rows render DISABLED - never silently dead-clickable', () => {
+    const props = { ...shellProps(), onManageRoster: undefined };
     render(<StartScreen {...props} />);
-    expect(screen.getByRole('tab', { name: 'Team' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    expect(screen.getByRole('button', { name: 'Players' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Teams' })).toBeDisabled(); // onManageTeams not passed
+  });
+
+  it('an unwired Seasons tab renders DISABLED - never silently dead-clickable', () => {
+    // (The Team tab now switches a local panel, so it needs no handler.)
+    const props = { ...shellProps(), onManageSeasons: undefined };
+    render(<StartScreen {...props} />);
     expect(screen.getByRole('tab', { name: 'Seasons' })).toBeDisabled();
   });
 
