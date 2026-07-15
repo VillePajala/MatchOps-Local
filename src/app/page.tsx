@@ -24,7 +24,6 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
-import { PLANNER_OPEN_KEY } from '@/components/HomePage/containers/GameContainer';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
@@ -535,10 +534,8 @@ export default function Home() {
       setPostLoginCheckComplete(false);
       checkAppStateTriggeredRef.current = false;
       setScreen('start');
-      // Sign-out unmounts the game view without the planner's own close handler
-      // running; clear its persisted open-flag so it doesn't auto-reopen over the
-      // next game the user enters.
-      if (typeof window !== 'undefined') window.sessionStorage.removeItem(PLANNER_OPEN_KEY);
+      // Planner open-state lives in ModalProvider now (L.3c); the provider's
+      // own sign-out effect (keyed on currentUserId) closes it.
     }
   }, [userId]);
 
@@ -1194,18 +1191,8 @@ export default function Home() {
     if (screen === 'home') enterMatch();
   }, [screen, enterMatch]);
 
-  // Front-page planner entry (restructure PR 1.3): arm the planner's own
-  // session-restore key BEFORE entering the game view - GameContainer's mount
-  // initializer reads it and opens the planner, so no new orchestration
-  // plumbing is needed. 'explore' navigates without opening any other modal.
-  const handleOpenPlannerFromHome = useCallback(() => {
-    try {
-      sessionStorage.setItem(PLANNER_OPEN_KEY, '1');
-    } catch {
-      // sessionStorage unavailable - the planner just won't auto-open.
-    }
-    handleAction('explore');
-  }, [handleAction]);
+  // Front-page planner entry LIFTED (L.3c): the bridge opens the host-level
+  // planner in place - no game mount, no session-key arming.
 
   // Show login screen in cloud mode when not authenticated
   const needsAuth = mode === 'cloud' && !isAuthenticated;
@@ -1224,7 +1211,7 @@ export default function Home() {
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
-      <ModalProvider>
+      <ModalProvider currentUserId={userId}>
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
             Gated behind the SAME readiness checks as the app screens below:
@@ -1346,7 +1333,6 @@ export default function Home() {
                 route through handleAction. */}
             <StartScreenLiftedBridge
               onResumeGame={() => handleAction('resumeGame')}
-              onOpenPlanner={handleOpenPlannerFromHome}
               onGetStarted={() => handleAction('getStarted')}
               onViewStats={() => handleAction('stats')}
               canResume={canResume}

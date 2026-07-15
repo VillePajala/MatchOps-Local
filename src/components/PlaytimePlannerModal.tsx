@@ -119,8 +119,9 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-/** Which plan was open - survives a resume-from-background remount (pairs with
- *  GameContainer's PLANNER_OPEN_KEY, which already restores the modal itself). */
+/** Which plan was open - survives a resume-from-background remount (the
+ *  modal's OPEN state itself lives in ModalProvider since L.3c and survives
+ *  in React state; this key restores the workspace inside it). */
 const PLANNER_ACTIVE_PLAN_KEY = 'matchops_planner_active_plan';
 
 type View = 'loading' | 'manager' | 'setup' | 'games' | 'minutes' | 'plan';

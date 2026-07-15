@@ -462,6 +462,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // L.3b: NewGameSetup renders in ClubModalsHost; the prefill selection is
     // shared provider state so match-side openers can carry it across levels.
     setPlayerIdsForNewGame,
+    // L.3c: planner renders in ClubModalsHost; the match registers its
+    // live-game hooks (flush + post-bulk-re-apply refresh) while mounted.
+    setPlannerLiveGameHooks,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isSettingsModalOpen,
     setIsSettingsModalOpen,
@@ -1943,6 +1946,28 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     [currentGameId, userId, applyReappliedLineup, setSavedGames],
   );
 
+  // L.3c: the planner modal renders at page level (ClubModalsHost), so it
+  // reaches the live match through these provider-registered hooks. Cleared
+  // on unmount - from Home the planner operates on storage alone.
+  //
+  // Latest-handler refs + a register-once effect: registering the handlers
+  // DIRECTLY would loop - their useCallback identities churn with game
+  // state, and each re-registration is itself a provider state change that
+  // re-renders this hook.
+  const plannerFlushRef = useRef(handleFlushLiveGame);
+  const plannerLinkedRef = useRef(handleLinkedGamesUpdated);
+  useEffect(() => {
+    plannerFlushRef.current = handleFlushLiveGame;
+    plannerLinkedRef.current = handleLinkedGamesUpdated;
+  });
+  useEffect(() => {
+    setPlannerLiveGameHooks({
+      onFlushLiveGame: () => plannerFlushRef.current(),
+      onLinkedGamesUpdated: (gameIds) => plannerLinkedRef.current(gameIds),
+    });
+    return () => setPlannerLiveGameHooks(null);
+  }, [setPlannerLiveGameHooks]);
+
   // The re-apply action is offered only for a saved game that was created from a plan
   // and hasn't been played yet (never clobber a game that has events/score).
   const canReapplyPlan =
@@ -2329,11 +2354,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
     fieldProps: fieldContainerProps,
     controlBarProps,
-    // Planner bulk re-apply may rewrite the currently loaded game in storage;
-    // the flush runs before its read (pending edits land first), the refresh runs
-    // after its write (so autosave doesn't revert the update).
-    onFlushLiveGame: handleFlushLiveGame,
-    onLinkedGamesUpdated: handleLinkedGamesUpdated,
+    // Planner live-game hooks (flush/refresh) now reach the host-level
+    // planner via ModalProvider registration (L.3c), not through props.
   };
 
   // --- Modal Orchestration Hook (Step 2.6.6 - FINAL, Step 2.8 - Grouped interface) ---
