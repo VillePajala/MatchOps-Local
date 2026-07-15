@@ -1689,6 +1689,7 @@ export type TranslationKey =
   | 'playtimePlanner.lineup.clearAll'
   | 'playtimePlanner.lineup.clearSlot'
   | 'playtimePlanner.lineup.clearedAll'
+  | 'playtimePlanner.lineup.clearedSlot'
   | 'playtimePlanner.lineup.excludedToggle'
   | 'playtimePlanner.lineup.fairnessStrip'
   | 'playtimePlanner.lineup.gameName'

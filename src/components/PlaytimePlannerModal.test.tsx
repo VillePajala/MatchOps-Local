@@ -1134,6 +1134,36 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
   });
 
+  it('clearing ONE position announces it and removes its subs', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    });
+    expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
+    expect(announcement()).toHaveTextContent('Position cleared');
+  });
+
   it('team options carry their binding context, matching New Game creation', async () => {
     // A bare "U10" is ambiguous when a club runs several U10 squads across
     // competitions - the option label must say which context the team lives

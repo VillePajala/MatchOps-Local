@@ -135,13 +135,15 @@ describe('PlanFieldView', () => {
     expect(alexSlot.parentElement?.className).toContain('opacity-40');
   });
 
-  it('clears an occupied slot', () => {
+  it('clears an occupied slot completely via onClearSlot (no partial fallback)', () => {
     const onAssign = jest.fn();
+    const onClearSlot = jest.fn();
     render(
       <PlanFieldView
         game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
         players={players}
         onAssign={onAssign}
+        onClearSlot={onClearSlot}
       />,
     );
 
@@ -149,7 +151,10 @@ describe('PlanFieldView', () => {
     fireEvent.click(screen.getByLabelText('GK: Alex'));
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
 
-    expect(onAssign).toHaveBeenCalledWith('gk', null);
+    expect(onClearSlot).toHaveBeenCalledWith('gk');
+    // Without onClearSlot wired the button doesn't render at all - "Clear"
+    // can never silently mean starter-only.
+    expect(onAssign).not.toHaveBeenCalledWith('gk', null);
   });
 
   it('shows cumulative plan minutes on bench chips and filled discs when provided', () => {
@@ -249,6 +254,28 @@ describe('PlanFieldView direct manipulation (tap-tap swap / move / clear)', () =
     fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
     fireEvent.click(screen.getByRole('button', { name: '#1: empty' }));
     expect(onMoveSub).toHaveBeenCalledWith('x1', 's0');
+  });
+
+  it('tap a stint, tap its own empty kickoff spot: the incomer is PROMOTED to starter', () => {
+    const onPromoteSub = jest.fn();
+    const onMoveSub = jest.fn();
+    const game = {
+      ...makeGame([]), // GK slot starterless
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView
+        game={game}
+        players={players}
+        onAssign={jest.fn()}
+        onMoveSub={onMoveSub}
+        onPromoteSub={onPromoteSub}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: 'GK: empty' }));
+    expect(onPromoteSub).toHaveBeenCalledWith('x1', 'gk', 'p2');
+    expect(onMoveSub).not.toHaveBeenCalled();
   });
 
   it('tap a pill stint, tap a bench disc: that player takes over the stint', () => {

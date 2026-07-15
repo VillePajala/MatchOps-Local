@@ -732,6 +732,33 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, ...clearSlotSchedule(g, slotId) } : g)),
       }));
+      // Announce like every sibling action - this one can silently delete
+      // several scheduled subs along with the starter.
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.clearedSlot', 'Position cleared'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  // Promote a scheduled incomer to the kickoff starter of their own slot
+  // (tap a stint, then the slot's empty "+" spot). ONE plan update so it is
+  // one undo step: the player starts from 0' and their sub row disappears.
+  const handlePromoteSubToStarter = useCallback(
+    (gameId: string, subId: string, slotId: string, playerId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) =>
+          g.id === gameId
+            ? {
+                ...g,
+                startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId),
+                subs: removeSub(g.subs, subId),
+              }
+            : g,
+        ),
+      }));
     },
     [updateActivePlan],
   );
@@ -2280,6 +2307,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               onClearAll={() => handleClearAllPlacements(editingGame.id)}
               onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
               onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
+              onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
               onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(editingGame.id, subId, playerId)}
               onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
               absenceOpen={absenceOpen}
@@ -2370,6 +2398,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         onClearAll={() => handleClearAllPlacements(g.id)}
                         onRemoveSub={(subId) => handleRemoveSub(g.id, subId)}
                         onMoveSub={(subId, slotId) => handleMoveSub(g.id, subId, slotId)}
+                        onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(g.id, subId, slotId, playerId)}
                         onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(g.id, subId, playerId)}
                         onToggleAbsent={(playerId) => handleToggleAbsent(g.id, playerId)}
                       />

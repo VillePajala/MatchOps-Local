@@ -6,9 +6,14 @@
  * A lightweight, native pitch for placing a game's starting XI. It reuses the
  * app's formation presets for slot geometry (via `getGameSlots`) but renders as
  * plain positioned DOM - deliberately NOT the canvas `SoccerField`, which is
- * built for free drag on the live game. Interaction is tap-to-assign: tap a
- * position to select it, then tap a bench player to place them (a player can
- * only hold one slot). Mobile-first and keyboard-accessible.
+ * built for free drag on the live game. Interaction is DIRECT MANIPULATION:
+ * every placement (a disc, or each stint segment of a rotation pill) is its
+ * own tap target. Tap one placement then another and the two players trade
+ * their whole-game timelines; tap a player then an empty spot to move them;
+ * tap a stint then a bench disc to hand the stint over (or its own empty
+ * kickoff spot to promote the incomer to starter); Clear empties a position
+ * including its subs, Clear field empties everything. Bench tap still fills
+ * the selected (or first empty) spot. Mobile-first and keyboard-accessible.
  *
  * When `minutesByPlayer` is provided, the field doubles as the balance view:
  * every disc is FILLED with the player's fairness colour (one red→green ramp,
@@ -69,6 +74,9 @@ interface PlanFieldViewProps {
   onRemoveSub?: (subId: string) => void;
   /** Move one scheduled sub to another (starter-empty) position. */
   onMoveSub?: (subId: string, slotId: string) => void;
+  /** Promote a scheduled incomer to kickoff starter of their own slot (one
+   *  atomic plan update: assign starter + remove the sub row). */
+  onPromoteSub?: (subId: string, slotId: string, playerId: string) => void;
   /** Change WHO one scheduled sub brings on (bench tap with a stint selected). */
   onSetSubPlayer?: (subId: string, playerId: string) => void;
   /** Toggle a player's absence for THIS game. Omit to hide the section. */
@@ -99,6 +107,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   onClearAll,
   onRemoveSub,
   onMoveSub,
+  onPromoteSub,
   onSetSubPlayer,
   onToggleAbsent,
   absenceOpen,
@@ -221,9 +230,15 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       return;
     }
     if (selection && selectedPlayerId && !targetPlayer) {
-      // Selected player onto an empty spot = move there.
-      if (selection.type === 'sub') onMoveSub?.(selection.subId, slotId);
-      else onAssign(slotId, selectedPlayerId); // assignPlayerToSlot vacates the old slot
+      // Selected player onto an empty spot = move there. A stint tapped onto
+      // ITS OWN slot's empty kickoff spot promotes the incomer to starter.
+      if (selection.type === 'sub' && selection.slotId === slotId) {
+        onPromoteSub?.(selection.subId, slotId, selectedPlayerId);
+      } else if (selection.type === 'sub') {
+        onMoveSub?.(selection.subId, slotId);
+      } else {
+        onAssign(slotId, selectedPlayerId); // assignPlayerToSlot vacates the old slot
+      }
       setSelection(null);
       return;
     }
@@ -270,10 +285,11 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   };
 
   // Empty the selected position completely: starter AND its scheduled subs.
+  // No partial fallback: the button only renders when onClearSlot is wired,
+  // so "Clear" can never mean two different things.
   const handleClearSlot = () => {
-    if (!selectedSlotId) return;
-    if (onClearSlot) onClearSlot(selectedSlotId);
-    else onAssign(selectedSlotId, null); // read-only-ish embeds: starter only
+    if (!selectedSlotId || !onClearSlot) return;
+    onClearSlot(selectedSlotId);
     setSelection(null);
   };
 
@@ -555,7 +571,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 {t('playtimePlanner.lineup.removeSubAction', 'Remove sub')}
               </button>
             )}
-            {selection?.type === 'slot' && (activeOccupant || selectedSlotSubs.length > 0) && (
+            {selection?.type === 'slot' && onClearSlot && (activeOccupant || selectedSlotSubs.length > 0) && (
               <button type="button" onClick={handleClearSlot} className={`${dangerButtonStyle} flex-1`}>
                 {t('playtimePlanner.lineup.clearSlot', 'Clear')}
               </button>

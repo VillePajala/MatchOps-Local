@@ -3228,7 +3228,8 @@
       "subStint": "{{minute}}' {{player}} ({{position}})",
       "removeSubAction": "Poista vaihto",
       "clearAll": "Tyhjennä kenttä",
-      "clearedAll": "Kenttä tyhjennetty"
+      "clearedAll": "Kenttä tyhjennetty",
+      "clearedSlot": "Paikka tyhjennetty"
     },
     "subs": {
       "heading": "Vaihdot",

@@ -3228,7 +3228,8 @@
       "subStint": "{{minute}}' {{player}} ({{position}})",
       "removeSubAction": "Remove sub",
       "clearAll": "Clear field",
-      "clearedAll": "Field cleared"
+      "clearedAll": "Field cleared",
+      "clearedSlot": "Position cleared"
     },
     "subs": {
       "heading": "Substitutions",
