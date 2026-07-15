@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots } from '@/utils/playtimePlanner/lineup';
-import { availableSubInIds, defaultSubTimeSeconds, makeSub } from '@/utils/playtimePlanner/subs';
+import { defaultSubTimeSeconds, makeSub } from '@/utils/playtimePlanner/subs';
 import { fairnessText } from '@/utils/playtimePlanner/colors';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { labelStyle } from '@/styles/modalStyles';
@@ -60,11 +60,25 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
     [game.subs, slotId],
   );
 
-  const benchIds = useMemo(() => {
+  // ANY player may come on (rotations: two players trading a slot, a starter
+  // re-entering after coming off). True bench players (appearing nowhere in
+  // this game yet) list first; players already in the game follow under their
+  // own label. Absentees are excluded; impossible same-minutes overlaps are
+  // flagged by the lineup's conflict banner after the pick, not blocked here.
+  const { benchIds, inGameIds } = useMemo(() => {
     const absent = new Set(game.absentIds ?? []);
-    return availableSubInIds(players.map((p) => p.id), starting, game.subs).filter(
-      (id) => !absent.has(id),
-    );
+    const appearing = new Set<string>();
+    starting.forEach((a) => {
+      if (a.playerId) appearing.add(a.playerId);
+    });
+    game.subs.forEach((sub) => {
+      if (sub.inPlayerId) appearing.add(sub.inPlayerId);
+    });
+    const ids = players.map((p) => p.id).filter((id) => !absent.has(id));
+    return {
+      benchIds: ids.filter((id) => !appearing.has(id)),
+      inGameIds: ids.filter((id) => appearing.has(id)),
+    };
   }, [players, starting, game.subs, game.absentIds]);
 
   const defaultMinute = Math.round(defaultSubTimeSeconds(game) / 60);
@@ -202,36 +216,72 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
           </div>
         )}
 
-        {/* Live bench grid: tap = create the sub. Tinted minutes make the fair pick obvious. */}
+        {/* Live player grid: tap = create the sub. Tinted minutes make the fair
+            pick obvious. Bench first; players already in this game follow under
+            their own label (picking one plans a rotation / re-entry). */}
         <p className={`${labelStyle} mb-1.5`}>{t('playtimePlanner.subs.inLabel', 'Player on')}</p>
-        {benchIds.length === 0 ? (
+        {benchIds.length === 0 && inGameIds.length === 0 ? (
           <p className="text-sm text-slate-400">
             {t('playtimePlanner.subs.noBench', 'No bench players available.')}
           </p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {benchIds.map((id) => {
-              const fair = minutesByPlayer?.[id];
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => pick(id)}
-                  className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-indigo-600 border border-slate-500/40 text-sm font-medium text-slate-100"
-                >
-                  {nameById.get(id) ?? id}
-                  {fair && (
-                    <span
-                      className="ml-1.5 text-xs font-semibold tabular-nums"
-                      style={{ color: fairnessText(fair.ratio) }}
+          <>
+            {benchIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {benchIds.map((id) => {
+                  const fair = minutesByPlayer?.[id];
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => pick(id)}
+                      className="px-3 py-1.5 rounded-full bg-slate-700 hover:bg-indigo-600 border border-slate-500/40 text-sm font-medium text-slate-100"
                     >
-                      {fair.minutes}&#39;
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                      {nameById.get(id) ?? id}
+                      {fair && (
+                        <span
+                          className="ml-1.5 text-xs font-semibold tabular-nums"
+                          style={{ color: fairnessText(fair.ratio) }}
+                        >
+                          {fair.minutes}&#39;
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {inGameIds.length > 0 && (
+              <div className="mt-3">
+                <p className={`${labelStyle} mb-1.5`}>
+                  {t('playtimePlanner.subs.inGameGroup', 'Already in this game')}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {inGameIds.map((id) => {
+                    const fair = minutesByPlayer?.[id];
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => pick(id)}
+                        className="px-3 py-1.5 rounded-full bg-slate-800 hover:bg-indigo-600 border border-dashed border-slate-500/60 text-sm font-medium text-slate-200"
+                      >
+                        {nameById.get(id) ?? id}
+                        {fair && (
+                          <span
+                            className="ml-1.5 text-xs font-semibold tabular-nums"
+                            style={{ color: fairnessText(fair.ratio) }}
+                          >
+                            {fair.minutes}&#39;
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

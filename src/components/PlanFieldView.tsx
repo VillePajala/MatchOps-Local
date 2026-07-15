@@ -23,6 +23,7 @@ import { HiChevronDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
+import { findSimultaneityConflicts, conflictedSlotIds } from '@/utils/playtimePlanner/conflicts';
 import { subtextStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import { gameTotalSeconds, type PlanGame, type PlanPlayer, type PlanSub } from '@/utils/playtimePlanner/types';
 
@@ -54,6 +55,12 @@ interface PlanFieldViewProps {
    * filled slot is selected). Omit to hide the action (read-only embeds).
    */
   onRequestSub?: (slotId: string) => void;
+  /**
+   * Open the player-swap sheet for a slot (a whole-game identity swap - see
+   * swap.ts). Shown when the selected slot has any timeline (starter or
+   * scheduled subs). Omit to hide the action (read-only embeds).
+   */
+  onRequestSwap?: (slotId: string) => void;
   /** Toggle a player's absence for THIS game. Omit to hide the section. */
   onToggleAbsent?: (playerId: string) => void;
   /** Controlled fold-out state for the absence section (lifted in the
@@ -77,6 +84,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   minutesByPlayer,
   highlightPlayerIds = [],
   onRequestSub,
+  onRequestSwap,
   onToggleAbsent,
   absenceOpen,
   onToggleAbsenceOpen,
@@ -130,6 +138,14 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   }, [game.subs]);
 
   const activeOccupant = activeSlotId ? playerBySlot.get(activeSlotId) ?? null : null;
+  const activeSlotHasTimeline =
+    activeSlotId !== null && (!!activeOccupant || (subsBySlot.get(activeSlotId)?.length ?? 0) > 0);
+
+  // Impossible same-minutes overlaps (a player in two slots at once). The
+  // planner allows any schedule - rotations, re-entries - and FLAGS the ones
+  // that cannot happen on a real pitch instead of blocking edits up front.
+  const conflicts = useMemo(() => findSimultaneityConflicts(game), [game]);
+  const conflictSlots = useMemo(() => conflictedSlotIds(conflicts), [conflicts]);
 
   // Bench players scheduled to come on in THIS game; the rest sit out the whole
   // game - flagged with a red border so a full-game benching is never an accident.
@@ -300,7 +316,11 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     'flex overflow-hidden border-2 transition-colors',
                     slotSubs.length > 1 ? 'flex-col rounded-2xl' : 'rounded-full h-10',
                     rampMode ? 'border-white/90' : 'border-indigo-300',
-                    isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : hlRing(involved),
+                    isActive
+                      ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800'
+                      : conflictSlots.has(slot.slotId)
+                        ? 'ring-2 ring-red-500 ring-offset-1 ring-offset-green-800'
+                        : hlRing(involved),
                   ].join(' ')}
                 >
                   <span
@@ -341,7 +361,11 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   className={[
                     'w-11 h-11 rounded-full flex flex-col items-center justify-center text-[10px] font-bold border-2 transition-colors',
                     filled ? discClasses : 'bg-slate-900/70 text-white border-dashed border-white/80',
-                    isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : hlRing(involved),
+                    isActive
+                      ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800'
+                      : conflictSlots.has(slot.slotId)
+                        ? 'ring-2 ring-red-500 ring-offset-1 ring-offset-green-800'
+                        : hlRing(involved),
                   ].join(' ')}
                   style={
                     filled && rampMode
@@ -376,6 +400,35 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       {/* Assignment panel - no instruction copy: the actions row and the bench
           discs ARE the affordances. Solid full-width house buttons. */}
       <div className="max-w-sm mx-auto space-y-3">
+        {conflicts.length > 0 && (
+          <div
+            role="alert"
+            data-testid="plan-conflict-banner"
+            className="rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 space-y-0.5"
+          >
+            {conflicts.map((c, i) => {
+              const posA = slots.findIndex((sl) => sl.slotId === c.slotIdA);
+              const posB = slots.findIndex((sl) => sl.slotId === c.slotIdB);
+              const label = (idx: number) =>
+                idx >= 0 && slots[idx].isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${idx}`;
+              return (
+                <p key={`${c.playerId}-${i}`} className="text-xs text-red-200">
+                  {t(
+                    'playtimePlanner.conflicts.row',
+                    "{{player}} is in {{a}} and {{b}} at the same time ({{from}}'-{{to}}')",
+                    {
+                      player: nameById.get(c.playerId) ?? c.playerId,
+                      a: label(posA),
+                      b: label(posB),
+                      from: Math.floor(c.overlapStartSeconds / 60),
+                      to: Math.ceil(c.overlapEndSeconds / 60),
+                    },
+                  )}
+                </p>
+              );
+            })}
+          </div>
+        )}
         {((activeSlotId && activeOccupant) || (emptySlots.length > 0 && bench.length > 0)) && (
           <div className="flex gap-2">
             {activeSlotId && activeOccupant && onRequestSub && (
@@ -385,6 +438,15 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 className={`${primaryButtonStyle} flex-1`}
               >
                 {t('playtimePlanner.lineup.subAction', 'Sub…')}
+              </button>
+            )}
+            {activeSlotId && activeSlotHasTimeline && onRequestSwap && (
+              <button
+                type="button"
+                onClick={() => onRequestSwap(activeSlotId)}
+                className={`${secondaryButtonStyle} flex-1`}
+              >
+                {t('playtimePlanner.lineup.swapAction', 'Swap…')}
               </button>
             )}
             {activeSlotId && activeOccupant && (

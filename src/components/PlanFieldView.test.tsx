@@ -183,3 +183,77 @@ describe('PlanFieldView', () => {
     expect(screen.getByRole('button', { name: /^Sam/ })).toBeInTheDocument();
   });
 });
+
+describe('PlanFieldView swap action (L: whole-game player swap)', () => {
+  it('shows Swap… for a selected filled slot and requests the swap sheet', () => {
+    const onRequestSwap = jest.fn();
+    render(
+      <PlanFieldView
+        game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
+        players={players}
+        onAssign={jest.fn()}
+        onRequestSwap={onRequestSwap}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /GK: Alex/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
+    expect(onRequestSwap).toHaveBeenCalledWith('gk');
+  });
+
+  it('offers Swap… on a starterless slot that has scheduled subs (rotation slot)', () => {
+    const onRequestSwap = jest.fn();
+    const game = {
+      ...makeGame([]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRequestSwap={onRequestSwap} />,
+    );
+    // The pill carries the incoming player; selecting it must offer the swap.
+    fireEvent.click(screen.getByRole('button', { name: /GK: empty; 12' Sam/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
+    expect(onRequestSwap).toHaveBeenCalledWith('gk');
+  });
+
+  it('hides Swap… without the callback (read-only embeds)', () => {
+    render(
+      <PlanFieldView
+        game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
+        players={players}
+        onAssign={jest.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /GK: Alex/ }));
+    expect(screen.queryByRole('button', { name: 'Swap…' })).not.toBeInTheDocument();
+  });
+});
+
+describe('PlanFieldView conflict banner (simultaneity flags)', () => {
+  it('flags a player scheduled in two slots at the same minutes', () => {
+    const game = {
+      ...makeGame([
+        { slotId: 's0', playerId: 'p1' },
+        { slotId: 's1', playerId: 'p2' },
+      ]),
+      // Alex holds s0 all game AND comes into s1 at 12' - impossible overlap.
+      subs: [{ id: 'x1', slotId: 's1', timeSeconds: 720, inPlayerId: 'p1' }],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    const banner = screen.getByTestId('plan-conflict-banner');
+    expect(banner).toHaveTextContent('Alex');
+    expect(banner).toHaveTextContent('at the same time');
+  });
+
+  it('stays silent for a legal rotation (two players trading one slot)', () => {
+    const game = {
+      ...makeGame([{ slotId: 's0', playerId: 'p1' }]),
+      subs: [
+        { id: 'x1', slotId: 's0', timeSeconds: 480, inPlayerId: 'p2' },
+        { id: 'x2', slotId: 's0', timeSeconds: 960, inPlayerId: 'p1' },
+      ],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    expect(screen.queryByTestId('plan-conflict-banner')).not.toBeInTheDocument();
+  });
+});
+

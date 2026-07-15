@@ -100,7 +100,8 @@ describe('PlanSubSheet', () => {
     expect(screen.getByText("23'")).toBeInTheDocument();
   });
 
-  it('excludes players already coming on, and shows tinted cumulative minutes', () => {
+  it('offers players already in the game under their own group (rotations legal)', () => {
+    const onAdd = jest.fn();
     const game = makeGame([{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 720 }]);
     render(
       <PlanSubSheet
@@ -108,13 +109,20 @@ describe('PlanSubSheet', () => {
         slotId="gk"
         players={players}
         minutesByPlayer={{ p3: { minutes: 6, ratio: 0.3 } }}
-        onAdd={jest.fn()}
+        onAdd={onAdd}
         onClose={jest.fn()}
       />,
     );
-    // Sam is already scheduled in -> only Jo remains, carrying his total.
-    expect(screen.queryByRole('button', { name: /Sam/ })).not.toBeInTheDocument();
+    // Jo has no appearances -> bench group, carrying his tinted total.
     expect(screen.getByRole('button', { name: /Jo 6'/ })).toBeInTheDocument();
+    // Sam (already coming on) and Alex (starter) stay PICKABLE - a rotation
+    // or a re-entry is a legal schedule now - grouped separately.
+    expect(screen.getByText('Already in this game')).toBeInTheDocument();
+    const sam = screen.getByRole('button', { name: /Sam/ });
+    fireEvent.click(sam);
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ slotId: 'gk', inPlayerId: 'p2' }),
+    );
   });
 
   it('closes on backdrop tap without creating anything', () => {
