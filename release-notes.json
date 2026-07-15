@@ -4,6 +4,15 @@
     {
       "date": "2026-07-15",
       "en": [
+        "Match planner: the substitution editor is reachable from any part of a rotation pill again - tap any segment and choose Sub to add more changes to that position."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: vaihtojen muokkaus onnistuu taas kiertopillerin mistä tahansa osasta - napauta mitä tahansa palaa ja valitse Vaihto lisätäksesi paikkaan lisää vaihtoja."
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "en": [
         "Match planner: swap players by tapping - tap any player on the field (or any part of a rotation pill), then tap another, and they trade places for the whole game.",
         "Match planner: tap a player and then an empty spot to move them there; tap a rotation segment and a bench player to hand that stint over.",
         "Match planner: clear one position completely (including its planned substitutions) or clear the whole field with one tap."

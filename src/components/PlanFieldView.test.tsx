@@ -292,6 +292,34 @@ describe('PlanFieldView direct manipulation (tap-tap swap / move / clear)', () =
     expect(onSetSubPlayer).toHaveBeenCalledWith('x1', 'p3');
   });
 
+  it('Sub… is reachable from a selected STINT segment (grow an already-subbed pill)', () => {
+    const onRequestSub = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRequestSub={onRequestSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
+    expect(onRequestSub).toHaveBeenCalledWith('gk');
+  });
+
+  it('Sub… is reachable on a STARTERLESS rotation pill', () => {
+    const onRequestSub = jest.fn();
+    const game = {
+      ...makeGame([]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRequestSub={onRequestSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'GK: empty' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
+    expect(onRequestSub).toHaveBeenCalledWith('gk');
+  });
+
   it('Remove sub action deletes the selected stint', () => {
     const onRemoveSub = jest.fn();
     const game = {
