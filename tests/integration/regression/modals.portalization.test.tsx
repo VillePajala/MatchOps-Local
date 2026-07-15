@@ -94,7 +94,6 @@ const createProps = (): ModalManagerProps => ({
     tournaments: [] as Tournament[],
     masterRoster: [],
     personnel: [],
-    selectedPlayerForStats: null,
     playerAssessments: {} as Record<string, PlayerAssessment>,
     availableTeams: [],
     orphanedGameInfo: null,

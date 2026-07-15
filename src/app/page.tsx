@@ -1334,7 +1334,6 @@ export default function Home() {
             <StartScreenLiftedBridge
               onResumeGame={() => handleAction('resumeGame')}
               onGetStarted={() => handleAction('getStarted')}
-              onViewStats={() => handleAction('stats')}
               canResume={canResume}
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}

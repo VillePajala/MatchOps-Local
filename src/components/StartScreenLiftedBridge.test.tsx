@@ -25,6 +25,7 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onLoadGame}>tap-load</button>
       <button onClick={props.onNewGame}>tap-new</button>
       <button onClick={props.onOpenPlanner}>tap-planner</button>
+      <button onClick={props.onViewStats}>tap-stats</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
     </div>
   ),
@@ -36,6 +37,7 @@ function Probe() {
     ctx.isLoadGameModalOpen && 'loadGame',
     ctx.isNewGameSetupModalOpen && 'newGame',
     ctx.isPlaytimePlannerOpen && 'planner',
+    ctx.isClubStatsOpen && `clubStats(${ctx.clubStatsInitialTab ?? 'default'})`,
     ctx.isRosterModalOpen && 'roster',
     ctx.isTeamManagerOpen && 'teams',
     ctx.isPersonnelManagerOpen && 'personnel',
@@ -54,7 +56,6 @@ describe('StartScreenLiftedBridge (L.2)', () => {
         <Probe />
         <StartScreenLiftedBridge
           onGetStarted={onGetStarted}
-          onViewStats={jest.fn()}
         />
       </ModalProvider>,
     );
@@ -65,6 +66,7 @@ describe('StartScreenLiftedBridge (L.2)', () => {
     ['tap-load', 'loadGame'],
     ['tap-new', 'newGame'],
     ['tap-planner', 'planner'],
+    ['tap-stats', 'clubStats(season)'],
     ['tap-roster', 'roster'],
     ['tap-teams', 'teams'],
     ['tap-personnel', 'personnel'],
