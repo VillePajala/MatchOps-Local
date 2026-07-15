@@ -138,8 +138,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   }, [game.subs]);
 
   const activeOccupant = activeSlotId ? playerBySlot.get(activeSlotId) ?? null : null;
+  // Matches slotTimelinePlayers' definition (null-inPlayerId subs empty the
+  // slot and offer no swap source), so Swap… never opens an empty picker.
   const activeSlotHasTimeline =
-    activeSlotId !== null && (!!activeOccupant || (subsBySlot.get(activeSlotId)?.length ?? 0) > 0);
+    activeSlotId !== null &&
+    (!!activeOccupant ||
+      (subsBySlot.get(activeSlotId) ?? []).some((sub) => sub.inPlayerId !== null));
 
   // Impossible same-minutes overlaps (a player in two slots at once). The
   // planner allows any schedule - rotations, re-entries - and FLAGS the ones
@@ -406,13 +410,16 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             data-testid="plan-conflict-banner"
             className="rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 space-y-0.5"
           >
-            {conflicts.map((c, i) => {
+            {conflicts.map((c) => {
               const posA = slots.findIndex((sl) => sl.slotId === c.slotIdA);
               const posB = slots.findIndex((sl) => sl.slotId === c.slotIdB);
               const label = (idx: number) =>
                 idx >= 0 && slots[idx].isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${idx}`;
               return (
-                <p key={`${c.playerId}-${i}`} className="text-xs text-red-200">
+                <p
+                  key={`${c.playerId}-${c.slotIdA}-${c.slotIdB}-${c.overlapStartSeconds}`}
+                  className="text-xs text-red-200"
+                >
                   {t(
                     'playtimePlanner.conflicts.row',
                     "{{player}} is in {{a}} and {{b}} at the same time ({{from}}'-{{to}}')",
