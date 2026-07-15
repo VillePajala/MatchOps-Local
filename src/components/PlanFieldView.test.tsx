@@ -130,8 +130,9 @@ describe('PlanFieldView', () => {
     // Sam (bench) is tracked: their DISC (inner span) is ringed, not dimmed.
     const sam = screen.getByRole('button', { name: /^Sam/ });
     expect(sam.querySelector('span')?.className).toContain('ring-amber-300');
+    // Dimming lives on the positioning wrapper (the disc button's parent).
     const alexSlot = screen.getByLabelText('GK: Alex');
-    expect(alexSlot.className).toContain('opacity-40');
+    expect(alexSlot.parentElement?.className).toContain('opacity-40');
   });
 
   it('clears an occupied slot', () => {
@@ -184,71 +185,129 @@ describe('PlanFieldView', () => {
   });
 });
 
-describe('PlanFieldView swap action (L: whole-game player swap)', () => {
-  it('shows Swap… for a selected filled slot and requests the swap sheet', () => {
-    const onRequestSwap = jest.fn();
+describe('PlanFieldView direct manipulation (tap-tap swap / move / clear)', () => {
+  it('tap one filled disc, tap another: the two players swap whole-game', () => {
+    const onSwapPlayers = jest.fn();
     render(
       <PlanFieldView
-        game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
+        game={makeGame([
+          { slotId: 'gk', playerId: 'p1' },
+          { slotId: 's0', playerId: 'p2' },
+        ])}
         players={players}
         onAssign={jest.fn()}
-        onRequestSwap={onRequestSwap}
+        onSwapPlayers={onSwapPlayers}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /GK: Alex/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
-    expect(onRequestSwap).toHaveBeenCalledWith('gk');
+    fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: '#1: Sam' }));
+    expect(onSwapPlayers).toHaveBeenCalledWith('p1', 'p2');
   });
 
-  it('offers Swap… on a starterless slot that has scheduled subs (rotation slot)', () => {
-    const onRequestSwap = jest.fn();
-    const game = {
-      ...makeGame([]),
-      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
-    };
-    render(
-      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRequestSwap={onRequestSwap} />,
-    );
-    // The pill carries the incoming player; selecting it must offer the swap.
-    fireEvent.click(screen.getByRole('button', { name: /GK: empty; 12' Sam/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
-    expect(onRequestSwap).toHaveBeenCalledWith('gk');
-  });
-
-  it('offers Swap… with an EMPTY bench on a starterless rotation slot (short-staffed roster)', () => {
-    // Understaffed squad: 4 players for a 5-slot 5v5 game, all placed on the
-    // field slots (bench = 0). The GK slot starts empty but has a scheduled
-    // sub bringing one of them on - the swap action must still be reachable
-    // (the actions row used to vanish whenever the bench was empty).
-    const onRequestSwap = jest.fn();
-    const fourPlayers = players.slice(0, 4);
+  it('tap a pill STINT, tap a disc: the stint player swaps whole-game', () => {
+    const onSwapPlayers = jest.fn();
     const game = {
       ...makeGame([
-        { slotId: 's0', playerId: 'p1' },
-        { slotId: 's1', playerId: 'p2' },
-        { slotId: 's2', playerId: 'p3' },
-        { slotId: 's3', playerId: 'p4' },
+        { slotId: 'gk', playerId: 'p1' },
+        { slotId: 's0', playerId: 'p3' },
       ]),
       subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
     };
     render(
-      <PlanFieldView game={game} players={fourPlayers} onAssign={jest.fn()} onRequestSwap={onRequestSwap} />,
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onSwapPlayers={onSwapPlayers} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /GK: empty; 12' Sam/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
-    expect(onRequestSwap).toHaveBeenCalledWith('gk');
+    // The 12' Sam segment is its own tap target inside the GK pill.
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: '#1: Jo' }));
+    expect(onSwapPlayers).toHaveBeenCalledWith('p2', 'p3');
   });
 
-  it('hides Swap… without the callback (read-only embeds)', () => {
+  it('tap a filled disc, tap an empty spot: the player moves there', () => {
+    const onAssign = jest.fn();
+    render(
+      <PlanFieldView
+        game={makeGame([{ slotId: 's0', playerId: 'p1' }])}
+        players={players}
+        onAssign={onAssign}
+        onSwapPlayers={jest.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '#1: Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'GK: empty' }));
+    expect(onAssign).toHaveBeenCalledWith('gk', 'p1');
+  });
+
+  it('tap a pill stint, tap an empty spot: the STINT moves to that position', () => {
+    const onMoveSub = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onMoveSub={onMoveSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: '#1: empty' }));
+    expect(onMoveSub).toHaveBeenCalledWith('x1', 's0');
+  });
+
+  it('tap a pill stint, tap a bench disc: that player takes over the stint', () => {
+    const onSetSubPlayer = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onSetSubPlayer={onSetSubPlayer} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: /^Jo/ }));
+    expect(onSetSubPlayer).toHaveBeenCalledWith('x1', 'p3');
+  });
+
+  it('Remove sub action deletes the selected stint', () => {
+    const onRemoveSub = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRemoveSub={onRemoveSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove sub' }));
+    expect(onRemoveSub).toHaveBeenCalledWith('x1');
+  });
+
+  it('Clear empties the selected position INCLUDING its scheduled subs', () => {
+    const onClearSlot = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onClearSlot={onClearSlot} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(onClearSlot).toHaveBeenCalledWith('gk');
+  });
+
+  it('Clear field empties every position (shown only with no selection)', () => {
+    const onClearAll = jest.fn();
     render(
       <PlanFieldView
         game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
         players={players}
         onAssign={jest.fn()}
+        onClearAll={onClearAll}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /GK: Alex/ }));
-    expect(screen.queryByRole('button', { name: 'Swap…' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear field' }));
+    expect(onClearAll).toHaveBeenCalledTimes(1);
+    // With a selection active the whole-field clear hides (mis-tap guard).
+    fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    expect(screen.queryByRole('button', { name: 'Clear field' })).not.toBeInTheDocument();
   });
 });
 

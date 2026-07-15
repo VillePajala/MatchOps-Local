@@ -4,6 +4,19 @@
     {
       "date": "2026-07-15",
       "en": [
+        "Match planner: swap players by tapping - tap any player on the field (or any part of a rotation pill), then tap another, and they trade places for the whole game.",
+        "Match planner: tap a player and then an empty spot to move them there; tap a rotation segment and a bench player to hand that stint over.",
+        "Match planner: clear one position completely (including its planned substitutions) or clear the whole field with one tap."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: vaihda pelaajat napauttamalla - napauta pelaajaa kentällä (tai kiertopillerin osaa) ja sitten toista, niin he vaihtavat paikkoja koko pelin osalta.",
+        "Ottelusuunnittelu: napauta pelaajaa ja sitten tyhjää paikkaa siirtääksesi hänet sinne; napauta vaihtopalaa ja penkkipelaajaa antaaksesi vuoron hänelle.",
+        "Ottelusuunnittelu: tyhjennä yksi pelipaikka kokonaan (myös suunnitellut vaihdot) tai koko kenttä yhdellä napautuksella."
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "en": [
         "Match planner: swap two players' roles for a whole game in one tap (lineup and substitutions trade together).",
         "Match planner: any player can now be picked for a substitution - rotate two players in one position as often as you like.",
         "Match planner: if a plan puts a player in two positions at the same time, the lineup now shows a clear warning."

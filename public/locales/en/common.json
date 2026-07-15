@@ -3225,7 +3225,10 @@
       "noPlayers": "No players in this plan - add them on the Plan tab.",
       "absentHeading": "Absent from this game",
       "benchEmptyAbsent": "Everyone is placed or absent.",
-      "swapAction": "Swap…"
+      "subStint": "{{minute}}' {{player}} ({{position}})",
+      "removeSubAction": "Remove sub",
+      "clearAll": "Clear field",
+      "clearedAll": "Field cleared"
     },
     "subs": {
       "heading": "Substitutions",
@@ -3300,13 +3303,6 @@
       "plan": "Settings"
     },
     "loadError": "Could not load your plans. Close the planner and try again.",
-    "swapSheet": {
-      "title": "Swap players · {{position}}",
-      "hint": "Trades every appearance of the two players in this game (lineup and substitutions).",
-      "who": "Swap who?",
-      "withLabel": "Swap with",
-      "noTargets": "No other players in this plan."
-    },
     "swap": {
       "done": "Swapped {{a}} and {{b}}"
     },
