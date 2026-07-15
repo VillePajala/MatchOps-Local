@@ -204,6 +204,18 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     expect(screen.getByTestId('reset-overlay')).toBeInTheDocument();
   });
 
+  it('unmounts all lifted modals during a reset wipe - overlay only (L.0b)', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-settings'));
+    await waitFor(() => expect(screen.getByTestId('settings-modal')).toBeInTheDocument());
+    // The wipe starts (re-render via a context change so the host re-reads
+    // the controller flag): everything under the overlay must unmount.
+    mockController.isResetting = true;
+    fireEvent.click(screen.getByText('open-settings-data'));
+    await waitFor(() => expect(screen.getByTestId('reset-overlay')).toBeInTheDocument());
+    expect(screen.queryByTestId('settings-modal')).not.toBeInTheDocument();
+  });
+
   it('hard-reset confirm dialog confirms through the controller (L.0b)', () => {
     mockController.showHardResetConfirm = true;
     renderHost();

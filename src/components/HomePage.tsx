@@ -15,18 +15,32 @@ import { useAssessmentTemplate } from '@/hooks/useAssessmentTemplate';
 
 type HomePageProps = UseGameOrchestrationProps;
 
+/**
+ * Reset gate (L.0b): while useAppSettingsController wipes data (hard reset /
+ * re-sync / factory reset), the ENTIRE game hook chain must stop - not just
+ * the rendered tree. Returning null from inside HomePageInner would keep its
+ * hooks alive (useGameOrchestration -> useTimerManagement -> useGameTimer ->
+ * usePrecisionTimer keeps ticking and autosaving into the storage being
+ * wiped). So the gate lives in a PARENT component: unmounting HomePageInner
+ * runs the timer hooks' cleanups (interval cleared, pending debounced save
+ * cleared - not flushed) and cancels query subscriptions wholesale.
+ * The blocking overlay renders in ClubModalsHost (page level).
+ */
 function HomePage(props: HomePageProps) {
+  const { isAppResetting } = useModalContext();
+  if (isAppResetting) {
+    return null;
+  }
+  return <HomePageInner {...props} />;
+}
+
+function HomePageInner(props: HomePageProps) {
   const { t } = useTranslation();
   const {
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
   } = useGameOrchestration(props);
-  // Shared reset flag (L.0b): set by useAppSettingsController while a hard
-  // reset / re-sync / factory reset wipes data. ClubModalsHost shows the
-  // blocking overlay; HomePage must UNMOUNT the game tree so no in-flight
-  // timer/query/autosave touches storage mid-wipe.
-  const { isAppResetting } = useModalContext();
   const assessmentRatingStyle = useAssessmentRatingStyle();
   const assessmentTemplate = useAssessmentTemplate();
 
@@ -36,7 +50,7 @@ function HomePage(props: HomePageProps) {
   const [layoutReady, setLayoutReady] = useState(false);
 
   useEffect(() => {
-    if (isBootstrapping || isAppResetting) return;
+    if (isBootstrapping) return;
 
     // Double rAF: first frame renders GameContainer at opacity-0,
     // second frame it has laid out → safe to reveal
@@ -49,20 +63,14 @@ function HomePage(props: HomePageProps) {
     return () => {
       cancelAnimationFrame(outerFrameId);
       cancelAnimationFrame(innerFrameId);
-      // Reset layout flag when re-entering bootstrap/reset state
+      // Reset layout flag when re-entering bootstrap state
       // (cleanup runs before next effect when dependencies change)
       setLayoutReady(false);
     };
-  }, [isBootstrapping, isAppResetting]);
+  }, [isBootstrapping]);
 
   if (isBootstrapping) {
     return <LoadingScreen message={t('status.loadingGameData', 'Loading Game Data...')} />;
-  }
-
-  if (isAppResetting) {
-    // The blocking overlay renders in ClubModalsHost (page level); here we
-    // only unmount GameContainer/ModalManager for the duration of the wipe.
-    return null;
   }
 
   return (
