@@ -4,23 +4,14 @@ import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
-import { exportFullBackup, trySharePrewarmedBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/i18n';
 import { useFieldCoordination } from './useFieldCoordination';
 import { useTimerManagement } from './useTimerManagement';
 import { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { saveGame as utilSaveGame, getGame as utilGetGame, getLatestGameId } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
-  resetAppSettings as utilResetAppSettings,
-  resetUserAppSettings as utilResetUserAppSettings,
-  saveHasSeenAppGuide,
-  getLastHomeTeamName as utilGetLastHomeTeamName,
-  updateAppSettings as utilUpdateAppSettings,
 } from '@/utils/appSettings';
-import { getDataStore } from '@/datastore';
-import { setMigrationCompleted } from '@/config/backendConfig';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
 import type { GameType } from '@/types/game';
@@ -106,7 +97,6 @@ const initialState: AppState = {
 export interface UseGameOrchestrationProps {
   initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'personnel' | 'settings' | 'backup' | 'account' | 'training' | 'rules';
   skipInitialSetup?: boolean;
-  onDataImportSuccess?: () => void;
   isFirstTimeUser?: boolean;
   onGoToStartScreen?: () => void;
   /** Pre-fetched game type from the last loaded game. Used to set correct field color on first render,
@@ -118,7 +108,6 @@ export interface UseGameOrchestrationReturn {
   gameContainerProps: GameContainerProps;
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
-  isResetting: boolean;
 }
 
 /**
@@ -144,7 +133,7 @@ export function normalizeSingleGoalie(players: Player[]): Player[] {
   return changed ? normalized : players;
 }
 
-export function useGameOrchestration({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen, initialGameType }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
+export function useGameOrchestration({ initialAction, skipInitialSetup = false, isFirstTimeUser: _isFirstTimeUser = false, onGoToStartScreen, initialGameType }: UseGameOrchestrationProps): UseGameOrchestrationReturn {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
@@ -389,23 +378,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
 
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
-  const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
-  // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
-  // HTML and the first client render produce identical markup (MATCHOPS-LOCAL-8K /
-  // MATCHOPS-LOCAL-3). The real value is adopted post-hydration via useEffect below.
-  const [appLanguage, setAppLanguage] = useState<string>('fi');
-
-  // Adopt the real i18n language once on the client, after hydration has completed.
-  useEffect(() => {
-    if (i18n.language !== appLanguage) {
-      setAppLanguage(i18n.language);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    utilGetLastHomeTeamName(userId).then((name) => setDefaultTeamNameSetting(name));
-  }, [userId]);
+  // appLanguage + defaultTeamNameSetting LIFTED to useAppSettingsController
+  // (L.0b) - SettingsModal renders in ClubModalsHost with no game mounted.
 
   // Data Safety - Layer 1: once data has loaded, request persistent storage (so the
   // browser is less likely to evict IndexedDB) and take an automatic restore-point
@@ -428,13 +402,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       }
     })();
   }, [initialLoadComplete, userId]);
-
-  useEffect(() => {
-    i18n.changeLanguage(appLanguage);
-    utilUpdateAppSettings({ language: appLanguage }).catch((error) => {
-      logger.warn('[useGameOrchestration] Failed to save language preference (non-critical)', { language: appLanguage, error });
-    });
-  }, [appLanguage]);
 
   // Modal state from context (needed for modal control within useGameOrchestration and reducerDrivenModals)
   const {
@@ -463,6 +430,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isSettingsModalOpen,
     setIsSettingsModalOpen,
     openSettingsToTab,
+    // L.0b: Instructions open-state lives in ModalProvider (modal renders in ClubModalsHost)
+    setIsInstructionsModalOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
@@ -471,7 +440,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Refs for setters declared later (from useModalOrchestration, called after all handlers).
   // Using refs avoids temporal dead zone while keeping useCallback deps complete.
   const setIsTeamManagerOpenRef = useRef<(v: boolean) => void>(() => {});
-  const setIsInstructionsModalOpenRef = useRef<(v: boolean | ((prev: boolean) => boolean)) => void>(() => {});
 
   const openLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(true), [setIsLoadGameModalOpen]);
   const closeLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(false), [setIsLoadGameModalOpen]);
@@ -524,19 +492,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
    
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
-  const handleCreateBackup = useCallback(() => {
-    // Try a SYNCHRONOUS share first (keeps the tap's user activation, which
-    // navigator.share() requires). Falls back to the async export/download path
-    // when no prewarmed backup is ready or the platform can't share files.
-    if (!trySharePrewarmedBackup(showToast, userId)) {
-      exportFullBackup(showToast, userId);
-    }
-  }, [showToast, userId]);
-
-  const handleCloudDataDownload = useCallback(async () => {
-    const { exportCloudDataDownload } = await import('@/utils/fullBackup');
-    await exportCloudDataDownload(showToast);
-  }, [showToast]);
+  // handleCreateBackup + handleCloudDataDownload LIFTED to useAppSettingsController (L.0b).
 
   const handleManageTeamRosterFromNewGame = useCallback((teamId?: string) => {
     closeNewGameViaReducer();
@@ -709,8 +665,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
   // Confirmation modal states - Passed to useModalOrchestration via ui object
+  // (showHardResetConfirm LIFTED to useAppSettingsController, L.0b)
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
-  const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
   // Re-entry guard for the async "Save & Continue" handler. The dialog stays open
   // during the save (it only closes on success - see the save-loss fix), so without
@@ -722,7 +678,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
   const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
-  const [isResetting, setIsResetting] = useState(false);
+  // isResetting LIFTED to useAppSettingsController (L.0b) - the overlay
+  // renders in ClubModalsHost so reset works with no game mounted.
 
   // Load teams when orphaned game is detected
   // Uses mounted flag to prevent setState on unmounted component
@@ -1463,132 +1420,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsRulesDirectoryOpen(prev => !prev);
   }, [setIsRulesDirectoryOpen]);
 
-  const handleShowAppGuide = useCallback(() => {
-    saveHasSeenAppGuide(false);
-    setIsSettingsModalOpen(false);
-    setIsInstructionsModalOpenRef.current(true);
-  }, [setIsSettingsModalOpen]);
-
-  // NEW: Handler for Hard Reset
-  const handleHardResetApp = useCallback(async () => {
-    setShowHardResetConfirm(true);
-  }, []);
-
-  const handleHardResetConfirmed = useCallback(async () => {
-    try {
-      logger.log("Performing hard reset using utility...");
-
-      // Show full-screen overlay to unmount all components
-      setIsResetting(true);
-
-      // Clear storage completely (hard reset clears all user data)
-      await utilResetAppSettings();
-
-      logger.log("Hard reset complete, reloading app...");
-
-      // Note: In development mode, Next.js HMR may show harmless module errors
-      // after reload. These are cosmetic and don't affect functionality.
-      // Production builds don't have this issue.
-      window.location.reload();
-    } catch (error) {
-      logger.error("Error during hard reset:", error);
-      setIsResetting(false); // Re-enable UI on error
-      showToast(t('page.failedResetAppData', 'Failed to reset application data.'), 'error');
-    } finally {
-      setShowHardResetConfirm(false);
-    }
-  }, [showToast, t]);
-
-  // Handler for Re-sync from Cloud (cloud mode)
-  // Clears local data and migration flag - on reload, migration wizard will reimport from cloud
-  const handleResyncFromCloud = useCallback(async () => {
-    if (!userId) {
-      showToast(t('page.noUserForResync', 'No user logged in'), 'error');
-      return;
-    }
-
-    try {
-      logger.log('[handleResyncFromCloud] Starting re-sync...');
-      setIsResetting(true);
-
-      // Clear user's local IndexedDB data and migration flag
-      await utilResetUserAppSettings(userId, { clearMigrationFlag: true });
-
-      logger.log('[handleResyncFromCloud] Local data cleared, reloading...');
-      window.location.reload();
-    } catch (error) {
-      logger.error('[handleResyncFromCloud] Failed:', error);
-      setIsResetting(false);
-      showToast(t('page.resyncFailed', 'Failed to re-sync. Please try again.'), 'error');
-    }
-  }, [userId, showToast, t]);
-
-  // Handler for Factory Reset (cloud mode - clears local + cloud)
-  // Clears both local and cloud data, sets migration flag as complete (both are empty)
-  const handleFactoryReset = useCallback(async () => {
-    if (!userId) {
-      showToast(t('page.noUserForFactoryReset', 'No user logged in'), 'error');
-      return;
-    }
-
-    try {
-      logger.log('[handleFactoryReset] Starting factory reset...');
-      setIsResetting(true);
-
-      // Data Safety - Layer 1: capture a restore point BEFORE wiping. Factory reset
-      // has no rollback of its own, so this is the user's recovery path if they
-      // reset by mistake. Kept in the separate backups DB (survives the clear).
-      try {
-        const { createSnapshot } = await import('@/utils/backupSnapshots');
-        await createSnapshot(userId, 'pre-clear');
-      } catch (snapshotError) {
-        logger.warn('[handleFactoryReset] Pre-clear snapshot failed (non-fatal):', snapshotError);
-      }
-
-      // 1. Clear all data (cloud + local) via SyncedDataStore
-      // SyncedDataStore.clearAllUserData() always clears local, even if cloud
-      // clear fails (e.g., AbortError on Chrome Mobile). If cloud fails, it
-      // re-throws after local is cleared, which we catch here.
-      let cloudClearFailed = false;
-      try {
-        const dataStore = await getDataStore(userId);
-        await dataStore.clearAllUserData();
-        logger.log('[handleFactoryReset] Cloud and local data cleared');
-      } catch (clearError) {
-        // Local data is always cleared by SyncedDataStore, but cloud may have failed.
-        // Log and continue — the user's primary intent is to reset local state.
-        // Cloud data can be cleaned up on next attempt or via account deletion.
-        logger.warn('[handleFactoryReset] Data clear partial failure (local cleared, cloud may have failed):', clearError);
-        cloudClearFailed = true;
-      }
-
-      // 2. Close the storage adapter to ensure clean state
-      await utilResetUserAppSettings(userId, { clearMigrationFlag: false });
-
-      // 3. Set migration flag to skip cloud check (both local and cloud are empty now)
-      setMigrationCompleted(userId);
-
-      logger.log('[handleFactoryReset] Factory reset complete, reloading...');
-
-      if (cloudClearFailed) {
-        // Brief toast before reload so user knows cloud data may remain
-        showToast(
-          t('page.factoryResetPartial', 'Local data cleared. Cloud data may not have been fully removed — try again if needed.'),
-          'error'
-        );
-        // Small delay so toast is visible before reload
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
-
-      window.location.reload();
-    } catch (error) {
-      // Only reaches here if getDataStore, utilResetUserAppSettings, or setMigrationCompleted fails
-      logger.error('[handleFactoryReset] Failed:', error);
-      setIsResetting(false);
-      showToast(t('page.factoryResetFailed', 'Failed to reset. Please try again.'), 'error');
-    }
-  }, [userId, showToast, t]);
-
+  // handleShowAppGuide, hard reset flow, resync-from-cloud and factory reset
+  // LIFTED to useAppSettingsController (L.0b) - they render/act from ClubModalsHost.
 
 
   // Placeholder handlers for Save/Load Modals
@@ -2762,10 +2595,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setNewGameDemandFactor,
       availableTeams,
       orphanedGameInfo,
-      appLanguage,
-      setAppLanguage,
-      defaultTeamNameSetting,
-      setDefaultTeamNameSetting,
       gameIdentifierForSave,
       isPlayed,
       setIsPlayed,
@@ -2778,8 +2607,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setIsTeamReassignModalOpen,
       setSelectedTeamForRoster,
       showSaveBeforeNewConfirm,
-      showHardResetConfirm,
-      setShowHardResetConfirm,
       showNoPlayersConfirm,
       setShowNoPlayersConfirm,
       showStartNewConfirm,
@@ -2829,19 +2656,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleUpdateSelectedPlayers,
       handleReapplyPlan,
       handleSetGamePersonnel,
-      handleShowAppGuide,
-      handleHardResetApp,
-      handleResyncFromCloud,
-      handleFactoryReset,
       handleSavePlayerAssessment,
       handleDeletePlayerAssessment,
       handleTeamReassignment,
-      handleCreateBackup,
-      handleCloudDataDownload,
-      onDataImportSuccess,
       handleManageTeamRosterFromNewGame,
       handleNoPlayersConfirmed,
-      handleHardResetConfirmed,
       handleSaveBeforeNewConfirmed,
       handleSaveBeforeNewCancelled,
       handleStartNewConfirmed,
@@ -2851,9 +2670,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Get modalManagerProps, modal state, setters, and handlers from useModalOrchestration hook
   const {
     modalManagerProps,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in useEffect below
-    isInstructionsModalOpen,
-    setIsInstructionsModalOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
     isPersonnelManagerOpen,
     setIsPersonnelManagerOpen,
@@ -2868,13 +2684,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // useState setters are stable so the effect only runs once on mount.
   useEffect(() => {
     setIsTeamManagerOpenRef.current = setIsTeamManagerOpen;
-    setIsInstructionsModalOpenRef.current = setIsInstructionsModalOpen;
-  }, [setIsTeamManagerOpen, setIsInstructionsModalOpen]);
+  }, [setIsTeamManagerOpen]);
 
   return {
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
-    isResetting,
   };
 }
