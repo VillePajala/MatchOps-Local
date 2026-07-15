@@ -345,8 +345,9 @@ describe('Translation File Validation', () => {
       // -2 net: direct-manipulation swap replaced the swap sheet (-6:
       //     swapSheet.* + lineup.swapAction; +4: lineup.subStint/
       //     removeSubAction/clearAll/clearedAll)
-      // +1: lineup.clearedSlot (a11y announcement for the per-position Clear)
-      expect(enKeys.length).toBe(2818);
+      // +4: a11y announcements for direct-manipulation edits
+      //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
+      expect(enKeys.length).toBe(2821);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -415,8 +416,9 @@ describe('Translation File Validation', () => {
       // -2 net: direct-manipulation swap replaced the swap sheet (-6:
       //     swapSheet.* + lineup.swapAction; +4: lineup.subStint/
       //     removeSubAction/clearAll/clearedAll)
-      // +1: lineup.clearedSlot (a11y announcement for the per-position Clear)
-      expect(fiKeys.length).toBe(2818);
+      // +4: a11y announcements for direct-manipulation edits
+      //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
+      expect(fiKeys.length).toBe(2821);
     });
   });
 });

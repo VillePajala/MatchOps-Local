@@ -3229,7 +3229,10 @@
       "removeSubAction": "Remove sub",
       "clearAll": "Clear field",
       "clearedAll": "Field cleared",
-      "clearedSlot": "Position cleared"
+      "clearedSlot": "Position cleared",
+      "movedSub": "Substitution moved",
+      "subPlayerChanged": "Substitution updated",
+      "promotedStarter": "{{player}} promoted to starter"
     },
     "subs": {
       "heading": "Substitutions",

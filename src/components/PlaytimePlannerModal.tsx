@@ -759,8 +759,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             : g,
         ),
       }));
+      const name = activePlan?.players.find((p) => p.id === playerId)?.name ?? playerId;
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.promotedStarter', '{{player}} promoted to starter', { player: name }),
+        nonce: prev.nonce + 1,
+      }));
     },
-    [updateActivePlan],
+    [updateActivePlan, t, activePlan],
   );
 
   const handleClearAllPlacements = useCallback(
@@ -785,8 +790,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: moveSubToSlot(g.subs, subId, slotId) } : g)),
       }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.movedSub', 'Substitution moved'),
+        nonce: prev.nonce + 1,
+      }));
     },
-    [updateActivePlan],
+    [updateActivePlan, t],
   );
 
   const handleSetSubPlayer = useCallback(
@@ -795,8 +804,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         ...plan,
         games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: setSubPlayer(g.subs, subId, playerId) } : g)),
       }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.subPlayerChanged', 'Substitution updated'),
+        nonce: prev.nonce + 1,
+      }));
     },
-    [updateActivePlan],
+    [updateActivePlan, t],
   );
 
   const handleRemoveSub = useCallback(

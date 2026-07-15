@@ -3229,7 +3229,10 @@
       "removeSubAction": "Poista vaihto",
       "clearAll": "Tyhjennä kenttä",
       "clearedAll": "Kenttä tyhjennetty",
-      "clearedSlot": "Paikka tyhjennetty"
+      "clearedSlot": "Paikka tyhjennetty",
+      "movedSub": "Vaihto siirretty",
+      "subPlayerChanged": "Vaihto päivitetty",
+      "promotedStarter": "{{player}} nostettu avaukseen"
     },
     "subs": {
       "heading": "Vaihdot",
