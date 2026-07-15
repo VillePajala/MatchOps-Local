@@ -348,21 +348,37 @@ describe('PlanFieldView direct manipulation (tap-tap swap / move / clear)', () =
     expect(onClearSlot).toHaveBeenCalledWith('gk');
   });
 
-  it('Clear field empties every position (shown only with no selection)', () => {
+  it('field-reset tools live under the bench: Clear field + Clear all games', () => {
     const onClearAll = jest.fn();
+    const onClearAllGames = jest.fn();
     render(
       <PlanFieldView
         game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
         players={players}
         onAssign={jest.fn()}
         onClearAll={onClearAll}
+        onClearAllGames={onClearAllGames}
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Clear field' }));
     expect(onClearAll).toHaveBeenCalledTimes(1);
-    // With a selection active the whole-field clear hides (mis-tap guard).
-    fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
+    expect(onClearAllGames).toHaveBeenCalledTimes(1);
+  });
+
+  it('Clear field hides on an empty game; Clear all games stays reachable', () => {
+    const onClearAllGames = jest.fn();
+    render(
+      <PlanFieldView
+        game={makeGame([])}
+        players={players}
+        onAssign={jest.fn()}
+        onClearAll={jest.fn()}
+        onClearAllGames={onClearAllGames}
+      />,
+    );
     expect(screen.queryByRole('button', { name: 'Clear field' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear all games' })).toBeInTheDocument();
   });
 });
 
