@@ -23,6 +23,12 @@
  * Wave L.3a: LoadGame - the first LEVEL CROSSING. Picking a saved game
  * persists it as current, then onEnterMatch mounts a FRESH match whose
  * existing boot path loads it (useLoadGameController). Cancel stays put.
+ * Wave L.3b: NewGameSetup - the create-side crossing. Confirming persists
+ * the new game as current (useNewGameSetupController) and enters the match
+ * fresh; the old match-side session apply is gone. Match-side flows (control
+ * bar, save-before-new) open this same instance via the shared provider flag
+ * + playerIdsForNewGame prefill. An empty club roster swaps the modal for
+ * the add-players confirm (same guard the match applies before opening).
  * Later waves move the remaining club modals here - see
  * two-level-app-structure.md §6. A modal must NEVER render both here and in
  * ModalManager (dual-render guard: the ModalManager block is deleted in the
@@ -42,6 +48,7 @@ import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManage
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
 import { useLoadGameController } from '@/hooks/useLoadGameController';
+import { useNewGameSetupController } from '@/hooks/useNewGameSetupController';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
@@ -54,6 +61,7 @@ const PersonnelManagerModal = dynamic(() => import('@/components/PersonnelManage
 const RosterSettingsModal = dynamic(() => import('@/components/RosterSettingsModal'));
 const TeamManagerModal = dynamic(() => import('@/components/TeamManagerModal'));
 const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
+const NewGameSetupModal = dynamic(() => import('@/components/NewGameSetupModal'));
 
 export interface ClubModalsHostProps {
   /** The page's level crossing: freshly mount the match view (its boot path
@@ -88,6 +96,10 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     setIsTeamManagerOpen,
     isLoadGameModalOpen,
     setIsLoadGameModalOpen,
+    isNewGameSetupModalOpen,
+    setIsNewGameSetupModalOpen,
+    playerIdsForNewGame,
+    setPlayerIdsForNewGame,
     setSelectedPlayerForStats,
     setIsGameStatsModalOpen,
   } = useModalContext();
@@ -104,6 +116,29 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     },
     onActiveGameDeleted,
   });
+  const newGameSetup = useNewGameSetupController({
+    onGameCreated: () => {
+      setIsNewGameSetupModalOpen(false);
+      setPlayerIdsForNewGame(null);
+      onEnterMatch?.();
+    },
+  });
+
+  // Cancel/close for NewGameSetup: reset the controller's slider state and
+  // clear the shared prefill so the next open starts from modal defaults.
+  const handleCloseNewGameSetup = () => {
+    newGameSetup.handleCancelNewGameSetup();
+    setIsNewGameSetupModalOpen(false);
+    setPlayerIdsForNewGame(null);
+  };
+
+  // Empty club roster: creating a game is meaningless - swap the setup modal
+  // for the add-players confirm (mirrors the match-side pre-open guard, and
+  // covers the Home entry which opens the flag directly via the bridge).
+  // Gated on the roster query having LOADED so the confirm can't flash while
+  // an actually-populated roster is still fetching.
+  const showNoPlayersInsteadOfNewGame =
+    isNewGameSetupModalOpen && !newGameSetup.isRosterLoading && newGameSetup.masterRoster.length === 0;
 
   // Roster modal's per-player stats shortcut: set the shared deep-link, open
   // GameStats (renders match-side until L.4) and make sure the match view is
@@ -127,6 +162,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useModalHardwareBack(isRosterModalOpen, () => setIsRosterModalOpen(false));
   useModalHardwareBack(isTeamManagerOpen, () => setIsTeamManagerOpen(false));
   useModalHardwareBack(isLoadGameModalOpen, () => setIsLoadGameModalOpen(false));
+  useModalHardwareBack(isNewGameSetupModalOpen, handleCloseNewGameSetup);
   // The hard-reset confirm stacks ON TOP of Settings - it must register too,
   // or back would close Settings underneath and orphan a destructive dialog.
   // (Registered after Settings so a same-render mount keeps it topmost.)
@@ -207,6 +243,38 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           processingGameId={loadGame.processingGameId}
         />
       )}
+      {isNewGameSetupModalOpen && !showNoPlayersInsteadOfNewGame && (
+        <NewGameSetupModal
+          isOpen
+          initialPlayerSelection={playerIdsForNewGame}
+          demandFactor={newGameSetup.newGameDemandFactor}
+          onDemandFactorChange={newGameSetup.setNewGameDemandFactor}
+          onManageTeamRoster={() => {
+            handleCloseNewGameSetup();
+            setIsTeamManagerOpen(true);
+          }}
+          onStart={newGameSetup.handleStartNewGameWithSetup}
+          onCancel={handleCloseNewGameSetup}
+          masterRoster={newGameSetup.masterRoster}
+          seasons={seasonTournament.seasons}
+          tournaments={seasonTournament.tournaments}
+          teams={teams}
+          personnel={personnelManager.personnel}
+          savedGames={newGameSetup.savedGames}
+        />
+      )}
+      <ConfirmationModal
+        isOpen={showNoPlayersInsteadOfNewGame}
+        title={t('controlBar.noPlayersTitle', 'No Players in Roster')}
+        message={t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')}
+        onConfirm={() => {
+          handleCloseNewGameSetup();
+          setIsRosterModalOpen(true);
+        }}
+        onCancel={handleCloseNewGameSetup}
+        confirmLabel={t('common.addPlayers', 'Add Players')}
+        variant="primary"
+      />
       {isRosterModalOpen && (
         <RosterSettingsModal
           isOpen

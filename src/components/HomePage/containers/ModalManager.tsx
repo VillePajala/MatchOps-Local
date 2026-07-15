@@ -3,7 +3,6 @@ import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
 import GoalLogModal from '@/components/GoalLogModal';
-import NewGameSetupModal from '@/components/NewGameSetupModal';
 const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -35,7 +34,6 @@ type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 interface ModalManagerState {
   isGoalLogModalOpen: boolean;
   isGameStatsModalOpen: boolean;
-  isNewGameSetupModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   gameStatsInitialTab?: StatsTab;
   isPlayerAssessmentModalOpen: boolean;
@@ -60,8 +58,6 @@ interface ModalManagerData {
   personnel: Personnel[];
   playerAssessments: Record<string, PlayerAssessment>;
   selectedPlayerForStats: Player | null;
-  playerIdsForNewGame: string[] | null;
-  newGameDemandFactor: number;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   gameIdentifierForSave: string;
@@ -82,33 +78,6 @@ interface ModalManagerHandlers {
   exportPlayerExcel: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
   gameLogClick: (gameId: string) => void;
   exportOneJson: (gameId: string) => void;
-  setNewGameDemandFactor: (factor: number) => void;
-  startNewGameWithSetup: (
-    initialSelectedPlayerIds: string[],
-    homeTeamName: string,
-    opponentName: string,
-    gameDate: string,
-    gameLocation: string,
-    gameTime: string,
-    seasonId: string | null,
-    tournamentId: string | null,
-    numPeriods: 1 | 2,
-    periodDuration: number,
-    homeOrAway: 'home' | 'away',
-    demandFactor: number,
-    ageGroup: string,
-    tournamentLevel: string,
-    tournamentSeriesId: string | null,
-    isPlayedParam: boolean,
-    teamId: string | null,
-    availablePlayersForGame: Player[],
-    selectedPersonnelIds: string[],
-    leagueId: string,
-    customLeagueName: string,
-    gameType: import('@/types').GameType,
-    gender: import('@/types').Gender | undefined
-  ) => void;
-  cancelNewGameSetup: () => void;
   closeGameSettingsModal: () => void;
   teamNameChange: (name: string) => void;
   opponentNameChange: (name: string) => void;
@@ -153,7 +122,6 @@ interface ModalManagerHandlers {
   setShowResetFieldConfirm: (open: boolean) => void;
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
-  manageTeamRosterFromNewGame: (teamId?: string) => void;
 }
 
 export interface ModalManagerProps {
@@ -236,25 +204,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
 
         {/* LoadGameModal LIFTED to ClubModalsHost (L.3a) - dual-render guard. */}
 
-        {state.isNewGameSetupModalOpen && (
-          <NewGameSetupModal
-            isOpen={state.isNewGameSetupModalOpen}
-            initialPlayerSelection={data.playerIdsForNewGame}
-            demandFactor={data.newGameDemandFactor}
-            onDemandFactorChange={handlers.setNewGameDemandFactor}
-          onManageTeamRoster={(teamId) => {
-            handlers.manageTeamRosterFromNewGame(teamId);
-          }}
-            onStart={handlers.startNewGameWithSetup}
-            onCancel={handlers.cancelNewGameSetup}
-            masterRoster={data.masterRoster}
-            seasons={data.seasons}
-            tournaments={data.tournaments}
-            teams={data.teams}
-            personnel={data.personnel}
-            savedGames={data.savedGames}
-          />
-        )}
+        {/* NewGameSetupModal LIFTED to ClubModalsHost (L.3b) - dual-render guard. */}
 
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
