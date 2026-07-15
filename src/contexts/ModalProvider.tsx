@@ -19,6 +19,11 @@ interface ModalContextValue {
   setIsRulesDirectoryOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isInstructionsModalOpen: boolean;
   setIsInstructionsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** True while a hard reset / re-sync / factory reset wipes data (L.0b).
+   *  Shared so ClubModalsHost shows the overlay AND HomePage unmounts the
+   *  game tree - in-flight timers/autosaves must not touch storage mid-wipe. */
+  isAppResetting: boolean;
+  setIsAppResetting: React.Dispatch<React.SetStateAction<boolean>>;
   isGoalLogModalOpen: boolean;
   setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isGameStatsModalOpen: boolean;
@@ -50,6 +55,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   // L.0b: Instructions open-state lifted here from useModalOrchestration so the
   // page-level ClubModalsHost (and Settings' "show app guide" chain) can drive it.
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
+  const [isAppResetting, setIsAppResetting] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
@@ -220,6 +226,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsRulesDirectoryOpen,
     isInstructionsModalOpen,
     setIsInstructionsModalOpen,
+    isAppResetting,
+    setIsAppResetting,
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
     isGameStatsModalOpen: modalState.gameStats,
@@ -242,6 +250,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     isTrainingResourcesOpen, setIsTrainingResourcesOpen,
     isRulesDirectoryOpen, setIsRulesDirectoryOpen,
     isInstructionsModalOpen, setIsInstructionsModalOpen,
+    isAppResetting, setIsAppResetting,
     isGoalLogModalOpen, setIsGoalLogModalOpen,
     modalState.gameStats, setIsGameStatsModalOpen,
     modalState.newGameSetup, setIsNewGameSetupModalOpen,

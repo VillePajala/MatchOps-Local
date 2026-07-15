@@ -54,6 +54,10 @@ export default function ClubModalsHost() {
   useModalHardwareBack(isRulesDirectoryOpen, () => setIsRulesDirectoryOpen(false));
   useModalHardwareBack(isInstructionsModalOpen, () => setIsInstructionsModalOpen(false));
   useModalHardwareBack(isSettingsModalOpen, () => setIsSettingsModalOpen(false));
+  // The hard-reset confirm stacks ON TOP of Settings - it must register too,
+  // or back would close Settings underneath and orphan a destructive dialog.
+  // (Registered after Settings so a same-render mount keeps it topmost.)
+  useModalHardwareBack(settings.showHardResetConfirm, () => settings.setShowHardResetConfirm(false));
 
   return (
     <>

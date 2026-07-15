@@ -210,4 +210,23 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
     expect(mockController.handleHardResetConfirmed).toHaveBeenCalledTimes(1);
   });
+
+  it('hardware back closes the hard-reset confirm, NOT the Settings underneath (L.0b)', async () => {
+    renderHost();
+    // 1. Settings opens first and registers on the back stack.
+    fireEvent.click(screen.getByText('open-settings'));
+    await waitFor(() => expect(screen.getByTestId('settings-modal')).toBeInTheDocument());
+    // 2. The confirm dialog opens ON TOP (re-render via a context change so
+    //    its hardware-back effect re-runs and pushes it above Settings).
+    mockController.showHardResetConfirm = true;
+    fireEvent.click(screen.getByText('open-settings-data'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument());
+    // 3. Hardware back must target the TOPMOST entry: the confirm dialog.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(mockController.setShowHardResetConfirm).toHaveBeenCalledWith(false);
+    // Settings must stay open - no orphaned destructive dialog scenario.
+    expect(screen.getByTestId('settings-modal')).toBeInTheDocument();
+  });
 });

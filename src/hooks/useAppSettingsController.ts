@@ -25,13 +25,15 @@ import {
 import { getDataStore } from '@/datastore';
 import { setMigrationCompleted } from '@/config/backendConfig';
 import logger from '@/utils/logger';
+import { reloadApp } from '@/utils/reloadApp';
 
 export interface UseAppSettingsControllerReturn {
   appLanguage: string;
   setAppLanguage: (language: string) => void;
   defaultTeamNameSetting: string;
   setDefaultTeamNameSetting: (name: string) => void;
-  /** True while a reset/re-sync is wiping data; render a blocking overlay. */
+  /** True while a reset/re-sync is wiping data (shared via ModalProvider:
+   *  ClubModalsHost renders the overlay, HomePage unmounts the game tree). */
   isResetting: boolean;
   showHardResetConfirm: boolean;
   setShowHardResetConfirm: (open: boolean) => void;
@@ -48,7 +50,12 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
-  const { setIsSettingsModalOpen, setIsInstructionsModalOpen } = useModalContext();
+  const {
+    setIsSettingsModalOpen,
+    setIsInstructionsModalOpen,
+    isAppResetting: isResetting,
+    setIsAppResetting: setIsResetting,
+  } = useModalContext();
 
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
@@ -56,7 +63,6 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
   // MATCHOPS-LOCAL-3). The real value is adopted post-hydration via useEffect below.
   const [appLanguage, setAppLanguage] = useState<string>('fi');
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
   // Adopt the real i18n language once on the client, after hydration has completed.
   useEffect(() => {
@@ -105,7 +111,8 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
     try {
       logger.log('Performing hard reset using utility...');
 
-      // Show full-screen overlay to block the UI while data is wiped
+      // Show full-screen overlay AND unmount the game tree (HomePage reads the
+      // shared flag) so no in-flight timer/autosave touches storage mid-wipe
       setIsResetting(true);
 
       // Clear storage completely (hard reset clears all user data)
@@ -116,7 +123,7 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
       // Note: In development mode, Next.js HMR may show harmless module errors
       // after reload. These are cosmetic and don't affect functionality.
       // Production builds don't have this issue.
-      window.location.reload();
+      reloadApp();
     } catch (error) {
       logger.error('Error during hard reset:', error);
       setIsResetting(false); // Re-enable UI on error
@@ -124,7 +131,7 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
     } finally {
       setShowHardResetConfirm(false);
     }
-  }, [showToast, t]);
+  }, [showToast, t, setIsResetting]);
 
   // Handler for Re-sync from Cloud (cloud mode)
   // Clears local data and migration flag - on reload, migration wizard will reimport from cloud
@@ -142,13 +149,13 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
       await utilResetUserAppSettings(userId, { clearMigrationFlag: true });
 
       logger.log('[handleResyncFromCloud] Local data cleared, reloading...');
-      window.location.reload();
+      reloadApp();
     } catch (error) {
       logger.error('[handleResyncFromCloud] Failed:', error);
       setIsResetting(false);
       showToast(t('page.resyncFailed', 'Failed to re-sync. Please try again.'), 'error');
     }
-  }, [userId, showToast, t]);
+  }, [userId, showToast, t, setIsResetting]);
 
   // Handler for Factory Reset (cloud mode - clears local + cloud)
   // Clears both local and cloud data, sets migration flag as complete (both are empty)
@@ -207,14 +214,14 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
-      window.location.reload();
+      reloadApp();
     } catch (error) {
       // Only reaches here if getDataStore, utilResetUserAppSettings, or setMigrationCompleted fails
       logger.error('[handleFactoryReset] Failed:', error);
       setIsResetting(false);
       showToast(t('page.factoryResetFailed', 'Failed to reset. Please try again.'), 'error');
     }
-  }, [userId, showToast, t]);
+  }, [userId, showToast, t, setIsResetting]);
 
   return {
     appLanguage,

@@ -9,6 +9,7 @@ import {
   useGameOrchestration,
   type UseGameOrchestrationProps,
 } from '@/components/HomePage/hooks/useGameOrchestration';
+import { useModalContext } from '@/contexts/ModalProvider';
 import { useAssessmentRatingStyle } from '@/hooks/useAssessmentRatingStyle';
 import { useAssessmentTemplate } from '@/hooks/useAssessmentTemplate';
 
@@ -21,6 +22,11 @@ function HomePage(props: HomePageProps) {
     modalManagerProps,
     isBootstrapping,
   } = useGameOrchestration(props);
+  // Shared reset flag (L.0b): set by useAppSettingsController while a hard
+  // reset / re-sync / factory reset wipes data. ClubModalsHost shows the
+  // blocking overlay; HomePage must UNMOUNT the game tree so no in-flight
+  // timer/query/autosave touches storage mid-wipe.
+  const { isAppResetting } = useModalContext();
   const assessmentRatingStyle = useAssessmentRatingStyle();
   const assessmentTemplate = useAssessmentTemplate();
 
@@ -30,7 +36,7 @@ function HomePage(props: HomePageProps) {
   const [layoutReady, setLayoutReady] = useState(false);
 
   useEffect(() => {
-    if (isBootstrapping) return;
+    if (isBootstrapping || isAppResetting) return;
 
     // Double rAF: first frame renders GameContainer at opacity-0,
     // second frame it has laid out → safe to reveal
@@ -43,18 +49,21 @@ function HomePage(props: HomePageProps) {
     return () => {
       cancelAnimationFrame(outerFrameId);
       cancelAnimationFrame(innerFrameId);
-      // Reset layout flag when re-entering bootstrap state
+      // Reset layout flag when re-entering bootstrap/reset state
       // (cleanup runs before next effect when dependencies change)
       setLayoutReady(false);
     };
-  }, [isBootstrapping]);
+  }, [isBootstrapping, isAppResetting]);
 
   if (isBootstrapping) {
     return <LoadingScreen message={t('status.loadingGameData', 'Loading Game Data...')} />;
   }
 
-  // L.0b: the resetting overlay moved to ClubModalsHost - the reset flow is
-  // owned by useAppSettingsController and must work with no game mounted.
+  if (isAppResetting) {
+    // The blocking overlay renders in ClubModalsHost (page level); here we
+    // only unmount GameContainer/ModalManager for the duration of the wipe.
+    return null;
+  }
 
   return (
     <>
