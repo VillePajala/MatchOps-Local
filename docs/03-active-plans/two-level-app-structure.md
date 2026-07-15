@@ -19,10 +19,14 @@ Home "New Game" opens in place; roster highlight retired deliberately) and
 L.3c (PR #675: planner joins the host; PLANNER_OPEN_KEY retired - provider
 state survives the background-resume flash; sign-out closes the planner via
 ModalProvider currentUserId; match registers plannerLiveGameHooks) are
-MERGED to the feature branch. The L.3 level crossing is COMPLETE. Next:
-L.4 (GameStats aggregate lift).
-Tracked for L.4: Home player-stats shortcut mounts the match with no
-initialAction (accepted interim, review 2026-07-15).
+and L.4 (PR #676: GameStats aggregate side
+lifted - aggregateOnly host surface via isClubStatsOpen; game-row tap =
+LoadGame level crossing, success-threaded close; roster player-stats
+shortcut lands on the host player tab - the L.2 interim is retired; match
+modal is current-game-first; PWA stats shortcut routes to club player
+stats) are MERGED to the feature branch. ALL L-WAVES COMPLETE - the facade
+is gone. Next: 3.1 (match-menu shrink + top-bar home exit), 3.2 (roster
+bridge), then F (final PR to master).
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
