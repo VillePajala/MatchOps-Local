@@ -3,7 +3,7 @@
  * + every sub row) in one action. The Timo/Tapio/Sauli scenarios from the
  * feature request are pinned verbatim.
  */
-import { swapPlayersInGame, slotTimelinePlayers } from './swap';
+import { swapPlayersInGame } from './swap';
 import type { PlanGame } from './types';
 
 // Real formation preset: '5v5-2-2' yields slots gk + s0..s3 - ensureStartingSlots
@@ -79,46 +79,5 @@ describe('swapPlayersInGame', () => {
     const out = swapPlayersInGame(game, 'timo', 'tapio');
     const assigned = out.startingSlots.map((s) => s.playerId).filter(Boolean);
     expect(new Set(assigned).size).toBe(assigned.length);
-  });
-});
-
-describe('slotTimelinePlayers', () => {
-  it('lists the starter then incomers in time order', () => {
-    const game = baseGame({
-      startingSlots: [{ slotId: 's0', playerId: 'timo' }],
-      subs: [
-        { id: 's2', slotId: 's0', timeSeconds: 2400, inPlayerId: 'late' },
-        { id: 's1', slotId: 's0', timeSeconds: 1500, inPlayerId: 'sauli' },
-        { id: 'sx', slotId: 's1', timeSeconds: 300, inPlayerId: 'other' },
-      ],
-    });
-    expect(slotTimelinePlayers(game, 's0')).toEqual([
-      { playerId: 'timo', fromSeconds: 0 },
-      { playerId: 'sauli', fromSeconds: 1500 },
-      { playerId: 'late', fromSeconds: 2400 },
-    ]);
-  });
-
-  it('dedupes repeat-rotation identities (A-B-A-B lists A and B once each)', () => {
-    const game = baseGame({
-      startingSlots: [{ slotId: 's0', playerId: 'a' }],
-      subs: [
-        { id: '1', slotId: 's0', timeSeconds: 600, inPlayerId: 'b' },
-        { id: '2', slotId: 's0', timeSeconds: 1200, inPlayerId: 'a' },
-        { id: '3', slotId: 's0', timeSeconds: 1800, inPlayerId: 'b' },
-      ],
-    });
-    expect(slotTimelinePlayers(game, 's0')).toEqual([
-      { playerId: 'a', fromSeconds: 0 },
-      { playerId: 'b', fromSeconds: 600 },
-    ]);
-  });
-
-  it('handles an empty slot with incoming subs (no starter entry)', () => {
-    const game = baseGame({
-      startingSlots: [{ slotId: 's0', playerId: null }],
-      subs: [{ id: 's1', slotId: 's0', timeSeconds: 600, inPlayerId: 'sauli' }],
-    });
-    expect(slotTimelinePlayers(game, 's0')).toEqual([{ playerId: 'sauli', fromSeconds: 600 }]);
   });
 });

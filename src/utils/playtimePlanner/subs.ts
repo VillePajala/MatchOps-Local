@@ -42,6 +42,16 @@ export function removeSub(subs: PlanSub[], id: string): PlanSub[] {
   return subs.filter((s) => s.id !== id);
 }
 
+/** Move a scheduled sub to another slot (direct-manipulation stint move). */
+export function moveSubToSlot(subs: PlanSub[], id: string, slotId: string): PlanSub[] {
+  return subs.map((s) => (s.id === id ? { ...s, slotId } : s));
+}
+
+/** Change WHO a scheduled sub brings on (direct-manipulation stint edit). */
+export function setSubPlayer(subs: PlanSub[], id: string, inPlayerId: string): PlanSub[] {
+  return subs.map((s) => (s.id === id ? { ...s, inPlayerId } : s));
+}
+
 /*
  * The Phase-1 eligibility guards (availableSubInIds, removeSubsBringingOn)
  * are GONE by design: any player may now be scheduled into any sub, so

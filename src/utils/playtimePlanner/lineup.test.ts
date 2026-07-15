@@ -4,6 +4,8 @@ import {
   assignPlayerToSlot,
   benchPlayerIds,
   GK_SLOT,
+  clearSlotSchedule,
+  clearAllPlacements,
 } from './lineup';
 import type { PlanGame, PlanSlotAssignment } from './types';
 
@@ -114,5 +116,38 @@ describe('benchPlayerIds', () => {
   it('returns the whole roster when nothing is assigned', () => {
     const slots: PlanSlotAssignment[] = [{ slotId: 'gk', playerId: null }];
     expect(benchPlayerIds(['a', 'b'], slots)).toEqual(['a', 'b']);
+  });
+});
+
+describe('clearSlotSchedule / clearAllPlacements (empty a position / the field)', () => {
+  const game = {
+    id: 'g1',
+    label: 'Game 1',
+    formationId: '5v5-2-2',
+    numberOfPeriods: 2,
+    periodMinutes: 12,
+    included: true,
+    startingSlots: [
+      { slotId: 'gk', playerId: 'a' },
+      { slotId: 's0', playerId: 'b' },
+    ],
+    subs: [
+      { id: 'x1', slotId: 'gk', timeSeconds: 300, inPlayerId: 'c' },
+      { id: 'x2', slotId: 's0', timeSeconds: 600, inPlayerId: 'd' },
+    ],
+  };
+
+  it('empties ONE position: its starter and its scheduled subs only', () => {
+    const { startingSlots, subs } = clearSlotSchedule(game, 'gk');
+    expect(startingSlots.find((s) => s.slotId === 'gk')?.playerId).toBeNull();
+    expect(startingSlots.find((s) => s.slotId === 's0')?.playerId).toBe('b');
+    expect(subs).toEqual([{ id: 'x2', slotId: 's0', timeSeconds: 600, inPlayerId: 'd' }]);
+  });
+
+  it('empties EVERY position and the whole sub schedule', () => {
+    const { startingSlots, subs } = clearAllPlacements(game);
+    expect(startingSlots.every((s) => s.playerId === null)).toBe(true);
+    expect(startingSlots.length).toBeGreaterThan(0); // slots themselves remain
+    expect(subs).toEqual([]);
   });
 });
