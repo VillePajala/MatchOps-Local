@@ -347,7 +347,10 @@ describe('Translation File Validation', () => {
       //     removeSubAction/clearAll/clearedAll)
       // +4: a11y announcements for direct-manipulation edits
       //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
-      expect(enKeys.length).toBe(2821);
+      // +1: lineup.benchLabel (sideline strip heading on the planner field)
+      // +6: plan-wide field reset (lineup.clearAllGames + confirm
+      //     title/message/warning/label + clearedAllGames announcement)
+      expect(enKeys.length).toBe(2828);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -418,7 +421,10 @@ describe('Translation File Validation', () => {
       //     removeSubAction/clearAll/clearedAll)
       // +4: a11y announcements for direct-manipulation edits
       //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
-      expect(fiKeys.length).toBe(2821);
+      // +1: lineup.benchLabel (sideline strip heading on the planner field)
+      // +6: plan-wide field reset (lineup.clearAllGames + confirm
+      //     title/message/warning/label + clearedAllGames announcement)
+      expect(fiKeys.length).toBe(2828);
     });
   });
 });

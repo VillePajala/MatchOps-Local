@@ -1134,6 +1134,54 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
   });
 
+  it('clears EVERY game behind a confirm (Clear all games)', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+          {
+            ...existingPlan.games[0],
+            id: 'g2',
+            label: 'Game 2',
+            startingSlots: [{ slotId: 'gk', playerId: 'p2' }],
+            subs: [],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
+    });
+    // Confirmed flow - cancel leaves everything untouched first.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+    expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    });
+    // Current game emptied (starter + sub) and announced; the OTHER game's
+    // field emptied too (visible via its game tab).
+    expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
+    expect(announcement()).toHaveTextContent('All games cleared');
+  });
+
   it('clearing ONE position announces it and removes its subs', async () => {
     mockGetPlans.mockResolvedValue({
       existing: {

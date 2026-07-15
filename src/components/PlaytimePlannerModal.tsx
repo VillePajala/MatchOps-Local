@@ -230,6 +230,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const removeTarget = removeQueue[0] ?? null;
   // "Suggest fair lineup" pending confirm (it overwrites included games).
   const [showSuggestConfirm, setShowSuggestConfirm] = useState(false);
+  const [showClearAllGamesConfirm, setShowClearAllGamesConfirm] = useState(false);
   // Open substitution sheet target: which game + slot (null = closed). Game id
   // is part of the target because the grid view edits ALL games at once.
   const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
@@ -781,6 +782,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     },
     [updateActivePlan, t],
   );
+
+  // Empty EVERY game's field in the plan (behind a confirm - it nukes the
+  // whole schedule; the planner's undo restores it in one tap).
+  const handleClearAllGames = useCallback(() => {
+    updateActivePlan((plan) => ({
+      ...plan,
+      games: plan.games.map((g) => ({ ...g, ...clearAllPlacements(g) })),
+    }));
+    setSubAnnouncement((prev) => ({
+      text: t('playtimePlanner.lineup.clearedAllGames', 'All games cleared'),
+      nonce: prev.nonce + 1,
+    }));
+  }, [updateActivePlan, t]);
 
   // Direct-manipulation stint edits: move a scheduled sub to another position /
   // hand it to another player (bench tap with a stint selected).
@@ -1460,7 +1474,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (e.key !== 'Escape') return;
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
-      if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || trimConfirm !== null || showSuggestConfirm) return;
+      if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || trimConfirm !== null || showSuggestConfirm || showClearAllGamesConfirm) return;
       // Typing in a field: Escape dismisses the field (the desktop reflex),
       // never yanks the user off the screen mid-edit.
       const focused = document.activeElement;
@@ -1489,7 +1503,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
+  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -2318,6 +2332,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
               onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
               onClearAll={() => handleClearAllPlacements(editingGame.id)}
+              onClearAllGames={() => setShowClearAllGamesConfirm(true)}
               onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
               onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
               onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
@@ -2409,6 +2424,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         onSwapPlayers={(a, b) => handleSwapPlayers(g.id, a, b)}
                         onClearSlot={(slotId) => handleClearSlot(g.id, slotId)}
                         onClearAll={() => handleClearAllPlacements(g.id)}
+                        onClearAllGames={() => setShowClearAllGamesConfirm(true)}
                         onRemoveSub={(subId) => handleRemoveSub(g.id, subId)}
                         onMoveSub={(subId, slotId) => handleMoveSub(g.id, subId, slotId)}
                         onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(g.id, subId, slotId, playerId)}
@@ -2577,6 +2593,25 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         onCancel={() => setShowSuggestConfirm(false)}
         confirmLabel={t('playtimePlanner.overview.suggestConfirmLabel', 'Suggest')}
         variant="primary"
+      />
+      <ConfirmationModal
+        isOpen={showClearAllGamesConfirm}
+        title={t('playtimePlanner.lineup.clearAllGamesConfirmTitle', 'Clear all games?')}
+        message={t(
+          'playtimePlanner.lineup.clearAllGamesConfirmMessage',
+          "Empties every game's lineup and substitution schedule in this plan.",
+        )}
+        warningMessage={t(
+          'playtimePlanner.lineup.clearAllGamesConfirmWarning',
+          'Undo (on the Games tab) restores them.',
+        )}
+        onConfirm={() => {
+          setShowClearAllGamesConfirm(false);
+          handleClearAllGames();
+        }}
+        onCancel={() => setShowClearAllGamesConfirm(false)}
+        confirmLabel={t('playtimePlanner.lineup.clearAllGamesConfirmLabel', 'Clear')}
+        variant="danger"
       />
       <ConfirmationModal
         isOpen={removeTarget !== null}
