@@ -2,6 +2,8 @@ import { suggestFairShareLineup } from './suggest';
 import { computePlanMinutes } from './minutes';
 import { toEnginePlan } from './adapter';
 import type { PlaytimePlan, PlanGame } from './types';
+import { getGameSlots } from './lineup';
+import { getPositionLabelForFormationPosition, getRunningIntensity } from '@/utils/positionLabels';
 
 // 5v5-2-2: GK + 4 outfield = 5 slots.
 const game = (id: string, over: Partial<PlanGame> = {}): PlanGame => ({
@@ -38,6 +40,47 @@ describe('suggestFairShareLineup', () => {
     // No duplicate players anywhere in the game.
     const ids = [...g.startingSlots.map((a) => a.playerId), ...g.subs.map((s) => s.inPlayerId)];
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('targets the HIGHEST-running positions for subs (wingers/striker first)', () => {
+    // 8v8-3-3-1 (GK + 3 def + 3 mid + 1 att) with 2 bench players: the two
+    // half-time changes must land on the two highest-running outfield slots -
+    // never on the defence while attack/midfield roles exist.
+    const result = suggestFairShareLineup(plan([game('g1', { formationId: '8v8-3-3-1' })], 10));
+    const g = result.games[0];
+    const intensityBySlot = new Map(
+      getGameSlots('8v8-3-3-1').map((s) => [
+        s.slotId,
+        s.isGoalie ? -1 : getRunningIntensity(getPositionLabelForFormationPosition(s.relX, s.relY).label),
+      ]),
+    );
+    expect(g.subs).toHaveLength(2);
+    const subbed = g.subs.map((s) => intensityBySlot.get(s.slotId) ?? -99).sort((a, b) => b - a);
+    const notSubbed = getGameSlots('8v8-3-3-1')
+      .filter((s) => !s.isGoalie && !g.subs.some((sub) => sub.slotId === s.slotId))
+      .map((s) => intensityBySlot.get(s.slotId) ?? -99);
+    // Every subbed slot runs at least as much as every non-subbed one.
+    expect(Math.min(...subbed)).toBeGreaterThanOrEqual(Math.max(...notSubbed));
+    // And the single attack-zone slot (the striker) is always among them.
+    expect(Math.max(...subbed)).toBe(5);
+  });
+
+  it('gives the least-played starters the LOW-running slots (they stay the full game)', () => {
+    // First game from a cold accumulator: roster order breaks ties, so p1
+    // (least-played after GK p0) must land in the lowest-running slot.
+    const result = suggestFairShareLineup(plan([game('g1', { formationId: '8v8-3-3-1' })], 10));
+    const g = result.games[0];
+    const intensityBySlot = new Map(
+      getGameSlots('8v8-3-3-1').map((s) => [
+        s.slotId,
+        s.isGoalie ? -1 : getRunningIntensity(getPositionLabelForFormationPosition(s.relX, s.relY).label),
+      ]),
+    );
+    const outfield = g.startingSlots.filter((a) => !getGameSlots('8v8-3-3-1').find((s) => s.slotId === a.slotId)?.isGoalie);
+    const lowest = outfield.reduce((min, a) =>
+      (intensityBySlot.get(a.slotId) ?? 99) < (intensityBySlot.get(min.slotId) ?? 99) ? a : min,
+    );
+    expect(lowest.playerId).toBe('p1');
   });
 
   it('never subs the goalkeeper', () => {

@@ -4,6 +4,15 @@
     {
       "date": "2026-07-15",
       "en": [
+        "Match planner: suggested lineups now aim substitutions at the highest-running positions first - wingers and the striker rotate before midfield, defence stays settled."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: ehdotetut kokoonpanot kohdistavat vaihdot nyt ensin eniten juokseviin pelipaikkoihin - laiturit ja kärki kiertävät ennen keskikenttää, puolustus pysyy vakaana."
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "en": [
         "Match planner: the substitution editor is reachable from any part of a rotation pill again - tap any segment and choose Sub to add more changes to that position."
       ],
       "fi": [
