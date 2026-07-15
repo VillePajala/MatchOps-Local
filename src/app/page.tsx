@@ -1176,6 +1176,24 @@ export default function Home() {
     setScreen('home');
   }, [setAction, setScreen]);
 
+  // The two-level LEVEL CROSSING (restructure L.3): freshly mount the match
+  // view and let its existing boot path load the PERSISTED current game (the
+  // caller persists the id first - see useLoadGameController). The key bump
+  // guarantees a clean remount even when a match is already on screen, so
+  // switching games never mutates a live session in place.
+  const [matchInstance, setMatchInstance] = useState(0);
+  const enterMatch = useCallback(() => {
+    setAction('resumeGame');
+    setMatchInstance((n) => n + 1);
+    setScreen('home');
+  }, [setAction, setScreen]);
+  // A live match whose game was just deleted must remount (its boot falls
+  // back to the persisted next-latest game); on the start screen this is a
+  // no-op - deleting from Home must not navigate.
+  const handleActiveGameDeleted = useCallback(() => {
+    if (screen === 'home') enterMatch();
+  }, [screen, enterMatch]);
+
   // Front-page planner entry (restructure PR 1.3): arm the planner's own
   // session-restore key BEFORE entering the game view - GameContainer's mount
   // initializer reads it and opens the planner, so no new orchestration
@@ -1216,7 +1234,7 @@ export default function Home() {
             lived (post-gates) before the L.0b lift. */}
         {!isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
           !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard && (
-          <ClubModalsHost onEnterMatchForPlayerStats={() => setScreen('home')} />
+          <ClubModalsHost onEnterMatch={enterMatch} onActiveGameDeleted={handleActiveGameDeleted} />
         )}
         {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
             pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.
@@ -1327,7 +1345,6 @@ export default function Home() {
                 screen switch, no game mount); only match-bound actions still
                 route through handleAction. */}
             <StartScreenLiftedBridge
-              onLoadGame={() => handleAction('loadGame')}
               onResumeGame={() => handleAction('resumeGame')}
               onOpenPlanner={handleOpenPlannerFromHome}
               onGetStarted={() => handleAction('getStarted')}
@@ -1352,6 +1369,7 @@ export default function Home() {
             <BackupReminderBanner hasSavedGames={hasSavedGames} />
             <ErrorBoundary>
               <HomePage
+                key={matchInstance}
                 initialAction={initialAction ?? undefined}
                 skipInitialSetup
                 isFirstTimeUser={isFirstTimeUser}

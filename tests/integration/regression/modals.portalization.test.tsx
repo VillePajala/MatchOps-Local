@@ -40,7 +40,6 @@ jest.mock('@/contexts/ModalProvider', () => {
     useModalContext: () => ({
       isGoalLogModalOpen: false,
       isGameStatsModalOpen: false,
-      isLoadGameModalOpen: false,
       isNewGameSetupModalOpen: false,
       isSeasonTournamentModalOpen: true, // OPEN THIS MODAL
       isGameSettingsModalOpen: false,
@@ -75,7 +74,6 @@ const createProps = (): ModalManagerProps => ({
   state: {
     isGoalLogModalOpen: false,
     isGameStatsModalOpen: false,
-    isLoadGameModalOpen: false,
     isNewGameSetupModalOpen: false,
     isGameSettingsModalOpen: false,
     isPlayerAssessmentModalOpen: false,
@@ -105,15 +103,6 @@ const createProps = (): ModalManagerProps => ({
     orphanedGameInfo: null,
     gameIdentifierForSave: '',
     isPlayed: false,
-    loadGameState: {
-      isLoadingGamesList: false,
-      loadGamesListError: null,
-      isGameLoading: false,
-      gameLoadError: null,
-      isGameDeleting: false,
-      gameDeleteError: null,
-      processingGameId: null,
-    },
     updateGameDetailsMutation: createMutation(),
   },
   handlers: {
@@ -128,9 +117,6 @@ const createProps = (): ModalManagerProps => ({
     exportAggregateExcel: noop,
     exportPlayerExcel: noop,
     gameLogClick: noop,
-    closeLoadGameModal: noop,
-    loadGame: noop,
-    deleteGame: noop,
     exportOneJson: noop,
     setNewGameDemandFactor: noop,
     startNewGameWithSetup: noop,

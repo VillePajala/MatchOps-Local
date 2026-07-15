@@ -68,8 +68,6 @@ export interface ModalUIState {
   gameIdentifierForSave: string;
   isPlayed: boolean;
   setIsPlayed: (played: boolean) => void;
-  isLoadingGamesList: boolean;
-  loadGamesListError: string | null;
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
   isTeamReassignModalOpen: boolean;
   setIsTeamReassignModalOpen: (open: boolean) => void;
@@ -217,8 +215,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     gameIdentifierForSave,
     isPlayed,
     setIsPlayed,
-    isLoadingGamesList,
-    loadGamesListError,
     updateGameDetailsMutation,
     isTeamReassignModalOpen,
     setIsTeamReassignModalOpen,
@@ -281,8 +277,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   const {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
-    isLoadGameModalOpen,
-    setIsLoadGameModalOpen,
+    // isLoadGameModalOpen lifted to ClubModalsHost (L.3a)
     // isRosterModalOpen lifted to ClubModalsHost (L.2)
     // isSeasonTournamentModalOpen lifted to ClubModalsHost (L.1)
     isGoalLogModalOpen,
@@ -315,10 +310,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   const handleToggleGameStatsModal = useCallback(() => {
     setIsGameStatsModalOpen((prev) => !prev);
   }, [setIsGameStatsModalOpen]);
-
-  const handleCloseLoadGameModal = useCallback(() => {
-    setIsLoadGameModalOpen(false);
-  }, [setIsLoadGameModalOpen]);
 
   const handleCloseGameSettingsModal = useCallback(() => {
     setIsGameSettingsModalOpen(false);
@@ -415,7 +406,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     state: {
       isGoalLogModalOpen,
       isGameStatsModalOpen,
-      isLoadGameModalOpen,
       isNewGameSetupModalOpen,
       isGameSettingsModalOpen,
       gameStatsInitialTab,
@@ -446,15 +436,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       orphanedGameInfo,
       gameIdentifierForSave,
       isPlayed,
-      loadGameState: {
-        isLoadingGamesList,
-        loadGamesListError,
-        isGameLoading: persistence.isGameLoading,
-        gameLoadError: persistence.gameLoadError,
-        isGameDeleting: persistence.isGameDeleting,
-        gameDeleteError: persistence.gameDeleteError,
-        processingGameId: persistence.processingGameId,
-      },
       updateGameDetailsMutation,
     },
     handlers: {
@@ -469,9 +450,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       exportAggregateExcel: handleExportAggregateExcel,
       exportPlayerExcel: handleExportPlayerExcel,
       gameLogClick: handleGameLogClick,
-      closeLoadGameModal: handleCloseLoadGameModal,
-      loadGame: persistence.handleLoadGame,
-      deleteGame: persistence.handleDeleteGame,
       exportOneJson: handleExportOneJson,
       setNewGameDemandFactor,
       startNewGameWithSetup: handleStartNewGameWithSetup,
