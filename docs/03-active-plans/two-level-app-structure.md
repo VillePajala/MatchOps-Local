@@ -6,9 +6,13 @@ Progress (2026-07-15): 0.1, 0.2, 1.1, 1.2, 1.3 (+1.3b, button polish), 1.4,
 L.0a (PR #663: ClubModalsHost + Training/Rules + topmost-only hardware back)
 L.0b (PR #665: Settings + Instructions lifted; useAppSettingsController;
 shared isAppResetting unmounts the game hook chain during wipes; host gated
-behind app readiness checks) and L.1 (PR #666: SeasonTournament + Personnel
-lifted; useSeasonTournamentManagement owns the CRUD mutations) are MERGED
-to the feature branch. Next: L.2.
+behind app readiness checks) L.1 (PR #666: SeasonTournament + Personnel lifted; useSeasonTournamentManagement
+owns the CRUD mutations) and L.2 (PR #667: Roster + TeamManager lifted;
+StartScreenLiftedBridge opens ALL lifted modals in place from Home - no game
+mount; roster-removal pruning via query diff; player-stats shortcut interim
+until L.4) are MERGED to the feature branch. Next: L.3.
+Tracked for L.4: Home player-stats shortcut mounts the match with no
+initialAction (accepted interim, review 2026-07-15).
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
