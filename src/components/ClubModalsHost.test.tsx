@@ -166,6 +166,19 @@ jest.mock('@/hooks/useNewGameSetupController', () => ({
   useNewGameSetupController: () => mockNewGameSetupController,
 }));
 
+jest.mock('@/components/PlaytimePlannerModal', () => ({
+  __esModule: true,
+  default: ({ onFlushLiveGame }: { onFlushLiveGame?: () => Promise<void> }) => (
+    <div data-testid="playtime-planner-modal">
+      <button onClick={() => onFlushLiveGame?.()} disabled={!onFlushLiveGame}>
+        planner-flush
+      </button>
+    </div>
+  ),
+}));
+
+const mockFlushLiveGame = jest.fn().mockResolvedValue(undefined);
+
 function Opener() {
   const {
     setIsTrainingResourcesOpen,
@@ -179,6 +192,8 @@ function Opener() {
     setIsTeamManagerOpen,
     setIsLoadGameModalOpen,
     setIsNewGameSetupModalOpen,
+    setIsPlaytimePlannerOpen,
+    setPlannerLiveGameHooks,
   } = useModalContext();
   return (
     <>
@@ -193,6 +208,17 @@ function Opener() {
       <button onClick={() => setIsTeamManagerOpen(true)}>open-teams</button>
       <button onClick={() => setIsLoadGameModalOpen(true)}>open-load</button>
       <button onClick={() => setIsNewGameSetupModalOpen(true)}>open-new-game</button>
+      <button onClick={() => setIsPlaytimePlannerOpen(true)}>open-planner</button>
+      <button
+        onClick={() =>
+          setPlannerLiveGameHooks({
+            onFlushLiveGame: mockFlushLiveGame,
+            onLinkedGamesUpdated: jest.fn(),
+          })
+        }
+      >
+        register-live-hooks
+      </button>
     </>
   );
 }
@@ -356,6 +382,21 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
       mockNewGameSetupController.isRosterLoading = false;
       mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
     }
+  });
+
+  it('renders the planner at host level; live-game hooks flow only when the match registered them (L.3c)', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-planner'));
+    await waitFor(() => expect(screen.getByTestId('playtime-planner-modal')).toBeInTheDocument());
+    // No match mounted - no live hooks registered - the flush hook is absent
+    // (the planner then operates on storage alone).
+    expect(screen.getByText('planner-flush')).toBeDisabled();
+
+    // The match registers its hooks -> the planner reaches the live game.
+    fireEvent.click(screen.getByText('register-live-hooks'));
+    await waitFor(() => expect(screen.getByText('planner-flush')).toBeEnabled());
+    fireEvent.click(screen.getByText('planner-flush'));
+    expect(mockFlushLiveGame).toHaveBeenCalledTimes(1);
   });
 
   it('renders Settings and Instructions at host level (L.0b)', async () => {

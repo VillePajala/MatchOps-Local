@@ -111,6 +111,8 @@ jest.mock('@/contexts/ModalProvider', () => ({
     openGameSettings: jest.fn(),
     closeGameSettings: jest.fn(),
     isGameSettingsOpen: false,
+    // L.3c: the match registers its planner live-game hooks on mount.
+    setPlannerLiveGameHooks: jest.fn(),
   }),
 }));
 

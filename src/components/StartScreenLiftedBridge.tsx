@@ -5,10 +5,11 @@
  * (two-level restructure, L.2). Before this, every StartScreen entry routed
  * through page.tsx's handleAction -> setScreen('home'), which mounted the
  * whole match view just to float a modal over it - the facade the L-waves
- * exist to remove. Match-bound actions (resume, planner, stats, the
- * first-time Get Started) still come in via props from page.tsx and switch
- * screens; New Game (L.3b) and Load Game (L.3a) open in place and only
- * enter the match once a game is actually picked/created.
+ * exist to remove. Match-bound actions (resume, stats, the first-time Get
+ * Started) still come in via props from page.tsx and switch screens; New
+ * Game (L.3b) and Load Game (L.3a) open in place and only enter the match
+ * once a game is actually picked/created, and the planner (L.3c) opens in
+ * place with no game mount at all.
  *
  * Lives as its own component because the page component renders OUTSIDE
  * ModalProvider and cannot call useModalContext itself.
@@ -23,6 +24,7 @@ type StartScreenProps = React.ComponentProps<typeof StartScreen>;
 type LiftedHandlerProps =
   | 'onLoadGame'
   | 'onNewGame'
+  | 'onOpenPlanner'
   | 'onManageRoster'
   | 'onManageTeams'
   | 'onManagePersonnel'
@@ -40,6 +42,7 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
     setIsLoadGameModalOpen,
     setIsNewGameSetupModalOpen,
     setPlayerIdsForNewGame,
+    setIsPlaytimePlannerOpen,
     setIsRosterModalOpen,
     setIsTeamManagerOpen,
     setIsPersonnelManagerOpen,
@@ -61,6 +64,7 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
         setPlayerIdsForNewGame(null);
         setIsNewGameSetupModalOpen(true);
       }}
+      onOpenPlanner={() => setIsPlaytimePlannerOpen(true)}
       onManageRoster={() => setIsRosterModalOpen(true)}
       onManageTeams={() => setIsTeamManagerOpen(true)}
       onManagePersonnel={() => setIsPersonnelManagerOpen(true)}

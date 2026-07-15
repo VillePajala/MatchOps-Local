@@ -24,6 +24,7 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onOpenSettings}>tap-settings</button>
       <button onClick={props.onLoadGame}>tap-load</button>
       <button onClick={props.onNewGame}>tap-new</button>
+      <button onClick={props.onOpenPlanner}>tap-planner</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
     </div>
   ),
@@ -34,6 +35,7 @@ function Probe() {
   const open = [
     ctx.isLoadGameModalOpen && 'loadGame',
     ctx.isNewGameSetupModalOpen && 'newGame',
+    ctx.isPlaytimePlannerOpen && 'planner',
     ctx.isRosterModalOpen && 'roster',
     ctx.isTeamManagerOpen && 'teams',
     ctx.isPersonnelManagerOpen && 'personnel',
@@ -62,6 +64,7 @@ describe('StartScreenLiftedBridge (L.2)', () => {
   it.each([
     ['tap-load', 'loadGame'],
     ['tap-new', 'newGame'],
+    ['tap-planner', 'planner'],
     ['tap-roster', 'roster'],
     ['tap-teams', 'teams'],
     ['tap-personnel', 'personnel'],

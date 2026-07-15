@@ -5,7 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { GameContainer, PLANNER_OPEN_KEY } from './GameContainer';
+import { GameContainer } from './GameContainer';
 import { TestFixtures } from '../../../../tests/fixtures';
 
 const PlayerBarMock = jest.fn();
@@ -37,9 +37,11 @@ jest.mock('@/components/ControlBar', () => ({
   }),
 }));
 
-jest.mock('@/components/PlaytimePlannerModal', () => ({
-  __esModule: true,
-  default: () => <div data-testid="playtime-planner-modal" />,
+// Planner LIFTED to ClubModalsHost (L.3c): GameContainer only flips the
+// shared provider flag from the ControlBar entry.
+const setIsPlaytimePlannerOpen = jest.fn();
+jest.mock('@/contexts/ModalProvider', () => ({
+  useModalContext: () => ({ setIsPlaytimePlannerOpen }),
 }));
 
 jest.mock('./FieldContainer', () => ({
@@ -64,21 +66,11 @@ describe('GameContainer', () => {
     });
   });
 
-  it('opens the planner on mount when the session-restore key is armed', () => {
-    // Both the background-remount restore AND the Home front page's planner
-    // entry (PR 1.3: arm key -> navigate) ride this initializer.
-    sessionStorage.setItem(PLANNER_OPEN_KEY, '1');
-    try {
-      render(<GameContainer {...createGameContainerProps()} />);
-      expect(screen.getByTestId('playtime-planner-modal')).toBeInTheDocument();
-    } finally {
-      sessionStorage.removeItem(PLANNER_OPEN_KEY);
-    }
-  });
-
-  it('does not open the planner without the key', () => {
+  it("ControlBar's planner entry opens the HOST-level planner via the shared flag (L.3c)", () => {
     render(<GameContainer {...createGameContainerProps()} />);
-    expect(screen.queryByTestId('playtime-planner-modal')).not.toBeInTheDocument();
+    const controlBarProps = ControlBarMock.mock.calls[0][0];
+    controlBarProps.onOpenPlanner();
+    expect(setIsPlaytimePlannerOpen).toHaveBeenCalledWith(true);
   });
 
   it('renders even when no game session state (renders shell)', () => {

@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, render, screen, fireEvent } from '@testing-library/react';
 import { ModalProvider, useModalContext } from '../ModalProvider';
 import React from 'react';
 
@@ -110,4 +110,26 @@ test('gameStatsInitialTab is set by openGameStatsToTab and CLEARED on close (no 
   });
   expect(result.current.isGameStatsModalOpen).toBe(true);
   expect(result.current.gameStatsInitialTab).toBeUndefined();
+});
+
+test('sign-out closes the planner (L.3c - replaces the PLANNER_OPEN_KEY cleanup)', () => {
+  function PlannerProbe() {
+    const { isPlaytimePlannerOpen, setIsPlaytimePlannerOpen } = useModalContext();
+    return (
+      <>
+        <div data-testid="planner-state">{isPlaytimePlannerOpen ? 'open' : 'closed'}</div>
+        <button onClick={() => setIsPlaytimePlannerOpen(true)}>open-planner</button>
+      </>
+    );
+  }
+  const { rerender } = render(
+    <ModalProvider currentUserId="user-1"><PlannerProbe /></ModalProvider>,
+  );
+  fireEvent.click(screen.getByText('open-planner'));
+  expect(screen.getByTestId('planner-state')).toHaveTextContent('open');
+
+  // The user signs out (userId gone): the provider closes the planner so it
+  // cannot auto-reopen over Home after the next sign-in.
+  rerender(<ModalProvider currentUserId={undefined}><PlannerProbe /></ModalProvider>);
+  expect(screen.getByTestId('planner-state')).toHaveTextContent('closed');
 });

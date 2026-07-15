@@ -29,6 +29,13 @@
  * bar, save-before-new) open this same instance via the shared provider flag
  * + playerIdsForNewGame prefill. An empty club roster swaps the modal for
  * the add-players confirm (same guard the match applies before opening).
+ * Wave L.3c: PlaytimePlanner - already fully self-contained (own storage,
+ * own data loading); only the open-state moved to ModalProvider, retiring
+ * GameContainer's PLANNER_OPEN_KEY sessionStorage hack (provider state
+ * survives the resume-from-background flash that hack existed for). The
+ * match view registers plannerLiveGameHooks while mounted so bulk re-apply
+ * can still flush/refresh a live game; from Home they are null and the
+ * planner works on storage alone.
  * Later waves move the remaining club modals here - see
  * two-level-app-structure.md §6. A modal must NEVER render both here and in
  * ModalManager (dual-render guard: the ModalManager block is deleted in the
@@ -62,6 +69,7 @@ const RosterSettingsModal = dynamic(() => import('@/components/RosterSettingsMod
 const TeamManagerModal = dynamic(() => import('@/components/TeamManagerModal'));
 const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
 const NewGameSetupModal = dynamic(() => import('@/components/NewGameSetupModal'));
+const PlaytimePlannerModal = dynamic(() => import('@/components/PlaytimePlannerModal'));
 
 export interface ClubModalsHostProps {
   /** The page's level crossing: freshly mount the match view (its boot path
@@ -100,6 +108,9 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     setIsNewGameSetupModalOpen,
     playerIdsForNewGame,
     setPlayerIdsForNewGame,
+    isPlaytimePlannerOpen,
+    setIsPlaytimePlannerOpen,
+    plannerLiveGameHooks,
     setSelectedPlayerForStats,
     setIsGameStatsModalOpen,
   } = useModalContext();
@@ -166,6 +177,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useModalHardwareBack(isTeamManagerOpen, () => setIsTeamManagerOpen(false));
   useModalHardwareBack(isLoadGameModalOpen, () => setIsLoadGameModalOpen(false));
   useModalHardwareBack(isNewGameSetupModalOpen, handleCloseNewGameSetup);
+  useModalHardwareBack(isPlaytimePlannerOpen, () => setIsPlaytimePlannerOpen(false));
   // The hard-reset confirm stacks ON TOP of Settings - it must register too,
   // or back would close Settings underneath and orphan a destructive dialog.
   // (Registered after Settings so a same-render mount keeps it topmost.)
@@ -278,6 +290,14 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
         confirmLabel={t('common.addPlayers', 'Add Players')}
         variant="primary"
       />
+      {isPlaytimePlannerOpen && (
+        <PlaytimePlannerModal
+          isOpen
+          onClose={() => setIsPlaytimePlannerOpen(false)}
+          onFlushLiveGame={plannerLiveGameHooks?.onFlushLiveGame}
+          onLinkedGamesUpdated={plannerLiveGameHooks?.onLinkedGamesUpdated}
+        />
+      )}
       {isRosterModalOpen && (
         <RosterSettingsModal
           isOpen
