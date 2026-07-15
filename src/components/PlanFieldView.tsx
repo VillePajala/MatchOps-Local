@@ -477,7 +477,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   aria-pressed={slotSelected}
                   className={[
                     'w-11 h-11 rounded-full flex flex-col items-center justify-center text-[10px] font-bold border-2',
-                    'transition-transform duration-150 motion-reduce:transition-none motion-reduce:transform-none',
+                    'transition-[transform,background-color,border-color] duration-150 motion-reduce:transition-none motion-reduce:transform-none',
                     filled ? discClasses : 'bg-slate-900/50 text-white border-dashed border-white/60',
                     // Token treatment: a picked-up disc lifts; placed discs cast
                     // a small shadow so they sit ON the grass, not in it.
