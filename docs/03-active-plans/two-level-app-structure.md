@@ -2,6 +2,9 @@
 
 Status: delivery plan locked (2026-07-14) - see §6/§7. Planner shipped; this
 is next. All work on `feature/two-level-structure`; ONE final PR to master.
+Progress (2026-07-15): 0.1, 0.2, 1.1, 1.2, 1.3 (+1.3b, button polish), 1.4
+and L.0a (PR #663: ClubModalsHost + Training/Rules + topmost-only hardware
+back) are MERGED to the feature branch. Next: L.0b.
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
