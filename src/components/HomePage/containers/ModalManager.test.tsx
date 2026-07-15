@@ -3,18 +3,19 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from './ModalManager';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
-import { TestFixtures } from '../../../../tests/fixtures';
 import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
 import type { ModalManagerProps } from './ModalManager';
-import type { UseMutationResult } from '@tanstack/react-query';
 
-function SeasonModalMock() {
-  return <div data-testid="season-modal" />;
+// L.1: this suite previously targeted SeasonTournamentManagementModal, which
+// lifted to ClubModalsHost - GameStats is a dynamic ModalManager modal that
+// exercises the same open/closed render gating.
+function StatsModalMock() {
+  return <div data-testid="stats-modal" />;
 }
 
-jest.mock('@/components/SeasonTournamentManagementModal', () => ({
+jest.mock('@/components/GameStatsModal', () => ({
   __esModule: true,
-  default: SeasonModalMock,
+  default: StatsModalMock,
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({
@@ -34,7 +35,6 @@ jest.mock('@/contexts/ModalProvider', () => ({
     isLoadGameModalOpen: false,
     isNewGameSetupModalOpen: false,
     isRosterModalOpen: false,
-    isSeasonTournamentModalOpen: false,
     isGameSettingsModalOpen: false,
     isSettingsModalOpen: false,
     isPlayerAssessmentModalOpen: false,
@@ -68,24 +68,15 @@ const noop = () => {};
 const noopAsync = async () => {};
 
 
-const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
-  ({
-    mutate: jest.fn(),
-    mutateAsync: jest.fn(),
-    reset: jest.fn(),
-    status: 'idle',
-  } as unknown as UseMutationResult<T, Error, V, unknown>);
 
 const createProps = (): ModalManagerProps => ({
   state: {
-    isPersonnelManagerOpen: false,
     isTeamManagerOpen: false,
     isGoalLogModalOpen: false,
     isGameStatsModalOpen: false,
     isLoadGameModalOpen: false,
     isNewGameSetupModalOpen: false,
     isRosterModalOpen: false,
-    isSeasonTournamentModalOpen: false,
     isGameSettingsModalOpen: false,
     isPlayerAssessmentModalOpen: false,
     isTeamReassignModalOpen: false,
@@ -115,12 +106,6 @@ const createProps = (): ModalManagerProps => ({
     tournaments: [] as Tournament[],
     masterRoster: [],
     personnel: [],
-    personnelManager: {
-      addPersonnel: async () => TestFixtures.personnel.headCoach({ name: 'Test' }),
-      updatePersonnel: async () => null,
-      removePersonnel: async () => {},
-      isLoading: false,
-    },
     playerAssessments: {} as Record<string, PlayerAssessment>,
     selectedPlayerForStats: null,
     playerIdsForNewGame: null,
@@ -131,10 +116,8 @@ const createProps = (): ModalManagerProps => ({
     rosterError: null,
     gameIdentifierForSave: '',
     isPlayed: false,
-    seasonTournamentMutations: {},
   },
   handlers: {
-    closePersonnelManager: noop,
     closeTeamManagerModal: noop,
     toggleGoalLogModal: noop,
     addGoalEvent: noop,
@@ -163,7 +146,6 @@ const createProps = (): ModalManagerProps => ({
     removePlayerForModal: noop,
     addPlayerForModal: noop,
     openPlayerStats: noop,
-    closeSeasonTournamentModal: noop,
     closeGameSettingsModal: noop,
     teamNameChange: noop,
     opponentNameChange: noop,
@@ -234,25 +216,17 @@ describe('ModalManager', () => {
     );
   };
 
-  it('does not render season modal when mutations are missing', () => {
+  it('does not render stats modal when closed', () => {
     renderWithProvider(<ModalManager {...createProps()} />);
-    expect(screen.queryByTestId('season-modal')).toBeNull();
+    expect(screen.queryByTestId('stats-modal')).toBeNull();
   });
 
-  it('renders season modal when all mutations provided', async () => {
+  it('renders stats modal when open', async () => {
     const props = createProps();
-    props.data.seasonTournamentMutations = {
-      addSeason: createMutation<Season | null, Partial<Season> & { name: string }>(),
-      addTournament: createMutation<Tournament | null, Partial<Tournament> & { name: string }>(),
-      updateSeason: createMutation<Season | null, Season>(),
-      deleteSeason: createMutation<boolean, string>(),
-      updateTournament: createMutation<Tournament | null, Tournament>(),
-      deleteTournament: createMutation<boolean, string>(),
-    };
-    props.state.isSeasonTournamentModalOpen = true;
+    props.state.isGameStatsModalOpen = true;
 
     renderWithProvider(<ModalManager {...props} />);
 
-    expect(await screen.findByTestId('season-modal')).toBeInTheDocument();
+    expect(await screen.findByTestId('stats-modal')).toBeInTheDocument();
   });
 });

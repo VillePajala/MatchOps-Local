@@ -93,14 +93,6 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       personnel: [],
       error: null,
     },
-    mutationResults: {
-      addSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>,
-      addTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>,
-      updateSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
-      deleteSeason: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
-      updateTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Tournament, unknown>,
-      deleteTournament: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
-    },
   };
 
   const mockFieldCoordination = {
@@ -309,9 +301,8 @@ describe('useModalOrchestration', () => {
       });
 
       expect(result.current).toHaveProperty('modalManagerProps');
-      // isInstructionsModalOpen lifted to ModalProvider (L.0b)
-      expect(result.current).toHaveProperty('isPersonnelManagerOpen');
-      expect(result.current).toHaveProperty('setIsPersonnelManagerOpen');
+      // isInstructionsModalOpen lifted to ModalProvider (L.0b);
+      // isPersonnelManagerOpen lifted there too (L.1)
       expect(result.current).toHaveProperty('isTeamManagerOpen');
       expect(result.current).toHaveProperty('setIsTeamManagerOpen');
     });
@@ -346,15 +337,14 @@ describe('useModalOrchestration', () => {
       const { state } = result.current.modalManagerProps;
 
       // isTrainingResourcesOpen/isRulesDirectoryOpen LIFTED to ClubModalsHost (L.0a);
-      // isInstructionsModalOpen/isSettingsModalOpen LIFTED there too (L.0b)
-      expect(state).toHaveProperty('isPersonnelManagerOpen');
+      // isInstructionsModalOpen/isSettingsModalOpen LIFTED too (L.0b);
+      // isPersonnelManagerOpen/isSeasonTournamentModalOpen LIFTED too (L.1)
       expect(state).toHaveProperty('isTeamManagerOpen');
       expect(state).toHaveProperty('isGoalLogModalOpen');
       expect(state).toHaveProperty('isGameStatsModalOpen');
       expect(state).toHaveProperty('isLoadGameModalOpen');
       expect(state).toHaveProperty('isNewGameSetupModalOpen');
       expect(state).toHaveProperty('isRosterModalOpen');
-      expect(state).toHaveProperty('isSeasonTournamentModalOpen');
       expect(state).toHaveProperty('isGameSettingsModalOpen');
       expect(state).toHaveProperty('isPlayerAssessmentModalOpen');
       expect(state).toHaveProperty('isTeamReassignModalOpen');
@@ -378,8 +368,8 @@ describe('useModalOrchestration', () => {
         wrapper: createWrapper(),
       });
 
-      // isInstructionsModalOpen lifted to ModalProvider (L.0b)
-      expect(result.current.isPersonnelManagerOpen).toBe(false);
+      // isInstructionsModalOpen lifted to ModalProvider (L.0b);
+      // isPersonnelManagerOpen lifted there too (L.1)
       expect(result.current.isTeamManagerOpen).toBe(false);
     });
 
@@ -399,7 +389,7 @@ describe('useModalOrchestration', () => {
       expect(state.isGameSettingsModalOpen).toBe(false);
       expect(state.isLoadGameModalOpen).toBe(false);
       expect(state.isRosterModalOpen).toBe(false);
-      expect(state.isSeasonTournamentModalOpen).toBe(false);
+      // isSeasonTournamentModalOpen lifted to ClubModalsHost (L.1)
       expect(state.isGoalLogModalOpen).toBe(false);
       expect(state.isGameStatsModalOpen).toBe(false);
       expect(state.isNewGameSetupModalOpen).toBe(false);
@@ -435,26 +425,8 @@ describe('useModalOrchestration', () => {
      * Test personnel manager modal toggle
      * @critical
      */
-    it('should toggle personnel manager open/closed', () => {
-      const props = createMockProps();
-      const { result } = renderHook(() => useModalOrchestration(props), {
-        wrapper: createWrapper(),
-      });
-
-      expect(result.current.isPersonnelManagerOpen).toBe(false);
-
-      act(() => {
-        result.current.setIsPersonnelManagerOpen(true);
-      });
-
-      expect(result.current.isPersonnelManagerOpen).toBe(true);
-
-      act(() => {
-        result.current.setIsPersonnelManagerOpen(false);
-      });
-
-      expect(result.current.isPersonnelManagerOpen).toBe(false);
-    });
+    // 'toggle personnel manager' test removed (L.1): open-state lives in
+    // ModalProvider and the modal renders in ClubModalsHost (see its tests).
 
     /**
      * Test team manager modal toggle
@@ -694,14 +666,6 @@ describe('useModalOrchestration', () => {
           isLoading: false,
           personnel: [],
           error: null,
-        },
-        mutationResults: {
-          addSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>,
-          addTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>,
-          updateSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
-          deleteSeason: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
-          updateTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Tournament, unknown>,
-          deleteTournament: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
         },
       };
 

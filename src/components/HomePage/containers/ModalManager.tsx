@@ -2,7 +2,6 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
-import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import GoalLogModal from '@/components/GoalLogModal';
 import NewGameSetupModal from '@/components/NewGameSetupModal';
@@ -15,7 +14,6 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 // and are not visible on initial render
 const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
 const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
-const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
 import type {
   Player,
   GameEvent,
@@ -32,7 +30,6 @@ import type {
 } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
-import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 interface LoadGameState {
@@ -45,26 +42,15 @@ interface LoadGameState {
   processingGameId: string | null;
 }
 
-interface SeasonTournamentMutations {
-  addSeason?: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
-  addTournament?: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
-  updateSeason?: UseMutationResult<Season | null, Error, Season, unknown>;
-  deleteSeason?: UseMutationResult<boolean, Error, string, unknown>;
-  updateTournament?: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
-  deleteTournament?: UseMutationResult<boolean, Error, string, unknown>;
-}
-
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalManagerState {
-  isPersonnelManagerOpen: boolean;
   isTeamManagerOpen: boolean;
   isGoalLogModalOpen: boolean;
   isGameStatsModalOpen: boolean;
   isLoadGameModalOpen: boolean;
   isNewGameSetupModalOpen: boolean;
   isRosterModalOpen: boolean;
-  isSeasonTournamentModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   gameStatsInitialTab?: StatsTab;
   isPlayerAssessmentModalOpen: boolean;
@@ -87,7 +73,6 @@ interface ModalManagerData {
   tournaments: Tournament[];
   masterRoster: Player[];
   personnel: Personnel[];
-  personnelManager: Pick<PersonnelManagerReturn, 'addPersonnel' | 'updatePersonnel' | 'removePersonnel' | 'isLoading'>;
   playerAssessments: Record<string, PlayerAssessment>;
   selectedPlayerForStats: Player | null;
   playerIdsForNewGame: string[] | null;
@@ -99,12 +84,10 @@ interface ModalManagerData {
   isRosterUpdating: boolean;
   rosterError: string | null;
   loadGameState: LoadGameState;
-  seasonTournamentMutations: SeasonTournamentMutations;
   updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
 }
 
 interface ModalManagerHandlers {
-  closePersonnelManager: () => void;
   closeTeamManagerModal: () => void;
   toggleGoalLogModal: () => void;
   addGoalEvent: (playerId: string | undefined, assistId?: string) => void;
@@ -157,7 +140,6 @@ interface ModalManagerHandlers {
   removePlayerForModal: (playerId: string) => void;
   addPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
   openPlayerStats: (playerId: string) => void;
-  closeSeasonTournamentModal: () => void;
   closeGameSettingsModal: () => void;
   teamNameChange: (name: string) => void;
   opponentNameChange: (name: string) => void;
@@ -223,16 +205,9 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
         {/* TrainingResources + RulesDirectory LIFTED to ClubModalsHost (L.0a),
             Settings + Instructions + hard-reset confirm LIFTED there too (L.0b)
             - never render them here again (dual-render guard). */}
-        <PersonnelManagerModal
-          isOpen={state.isPersonnelManagerOpen}
-          onClose={handlers.closePersonnelManager}
-          personnel={data.personnel}
-          onAddPersonnel={data.personnelManager.addPersonnel}
-          onUpdatePersonnel={data.personnelManager.updatePersonnel}
-          onRemovePersonnel={data.personnelManager.removePersonnel}
-          isUpdating={data.personnelManager.isLoading}
-        />
-
+        {/* PersonnelManagerModal + SeasonTournamentManagementModal LIFTED to
+            ClubModalsHost (L.1) - never render them here again (dual-render
+            guard). */}
         <TeamManagerModal
           isOpen={state.isTeamManagerOpen}
           onClose={handlers.closeTeamManagerModal}
@@ -354,29 +329,6 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           rosterError={data.rosterError}
           onOpenPlayerStats={handlers.openPlayerStats}
         />
-
-        {state.isSeasonTournamentModalOpen &&
-          data.seasonTournamentMutations.addSeason &&
-          data.seasonTournamentMutations.addTournament &&
-          data.seasonTournamentMutations.updateSeason &&
-          data.seasonTournamentMutations.deleteSeason &&
-          data.seasonTournamentMutations.updateTournament &&
-          data.seasonTournamentMutations.deleteTournament && (
-          <SeasonTournamentManagementModal
-            isOpen={state.isSeasonTournamentModalOpen}
-            onClose={handlers.closeSeasonTournamentModal}
-            seasons={data.seasons}
-            tournaments={data.tournaments}
-            masterRoster={data.masterRoster}
-            addSeasonMutation={data.seasonTournamentMutations.addSeason}
-            addTournamentMutation={data.seasonTournamentMutations.addTournament}
-            updateSeasonMutation={data.seasonTournamentMutations.updateSeason}
-            deleteSeasonMutation={data.seasonTournamentMutations.deleteSeason}
-            updateTournamentMutation={data.seasonTournamentMutations.updateTournament}
-            deleteTournamentMutation={data.seasonTournamentMutations.deleteTournament}
-            onOpenSettings={handlers.openSettingsModal}
-          />
-        )}
 
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
