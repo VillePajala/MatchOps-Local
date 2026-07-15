@@ -29,6 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
 import { findSimultaneityConflicts, conflictedSlotIds } from '@/utils/playtimePlanner/conflicts';
+import PlanFieldBackdrop from '@/components/PlanFieldBackdrop';
 import { subtextStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import { gameTotalSeconds, type PlanGame, type PlanPlayer, type PlanSub } from '@/utils/playtimePlanner/types';
 
@@ -309,25 +310,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Pitch */}
+      {/* Pitch - the REAL field: the live game's grass + markings painted by
+          the shared canvas painters (PlanFieldBackdrop), discs as DOM on top. */}
       <div
         className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border border-green-900/60 shadow-inner"
-        style={{ aspectRatio: '3 / 4', background: 'linear-gradient(180deg,#15803d 0%,#166534 100%)' }}
+        style={{ aspectRatio: '3 / 4', background: '#427B44' }}
       >
-        {/* Field markings */}
-        <div className="absolute inset-3 border-2 border-white/25 rounded" />
-        <div className="absolute left-3 right-3 top-1/2 h-0.5 bg-white/25 -translate-y-1/2" />
-        <div className="absolute left-1/2 top-1/2 w-16 h-16 border-2 border-white/25 rounded-full -translate-x-1/2 -translate-y-1/2" />
-        {/* Goal mouths, drawn beyond each goal line (own goal at the bottom,
-            where the GK stands). */}
-        <div
-          aria-hidden="true"
-          className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[9px] w-14 border-2 border-b-0 border-white/40 rounded-t-sm"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute left-1/2 -translate-x-1/2 bottom-[3px] h-[9px] w-14 border-2 border-t-0 border-white/40 rounded-b-sm"
-        />
+        <PlanFieldBackdrop />
 
         {slots.map((slot, i) => {
           const playerId = playerBySlot.get(slot.slotId) ?? null;
@@ -415,7 +404,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                    its player's ramp colour; sub segments carry the minute tag. */
                 <span
                   className={[
-                    'flex overflow-hidden border-2 transition-colors',
+                    'flex overflow-hidden border-2 transition-colors shadow-md shadow-black/40',
                     slotSubs.length > 1 ? 'flex-col rounded-2xl' : 'rounded-full h-10',
                     rampMode ? 'border-white/90' : 'border-indigo-300',
                     conflictRing,
@@ -434,6 +423,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     ].join(' ')}
                     style={{
                       backgroundColor: filled ? fillFor(playerId) ?? '#4f46e5' : 'rgba(15,23,42,0.7)',
+                      backgroundImage: filled
+                        ? 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%)'
+                        : undefined,
                       textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                     }}
                   >
@@ -454,17 +446,19 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                         })}
                         aria-pressed={subSelected}
                         className={[
-                          'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-dashed border-white/70 gap-1',
-                          slotSubs.length > 1 ? 'flex-row py-1 border-t-2' : 'flex-col border-l-2',
+                          'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-white/35 gap-1',
+                          slotSubs.length > 1 ? 'flex-row py-1 border-t' : 'flex-col border-l',
                           segmentFocus,
                           subSelected ? `${selectionRing} z-10` : '',
                         ].join(' ')}
                         style={{
                           backgroundColor: fillFor(sub.inPlayerId) ?? '#4f46e5',
+                          backgroundImage:
+                            'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%)',
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                         }}
                       >
-                        <span className="text-[8px] font-extrabold text-amber-200 leading-none tabular-nums">
+                        <span className="text-[8px] font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-0.5 py-px">
                           {Math.round(sub.timeSeconds / 60)}&#39;
                         </span>
                         {shortName(inName)}
@@ -479,14 +473,23 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   aria-label={starterLabel}
                   aria-pressed={slotSelected}
                   className={[
-                    'w-11 h-11 rounded-full flex flex-col items-center justify-center text-[10px] font-bold border-2 transition-colors',
-                    filled ? discClasses : 'bg-slate-900/70 text-white border-dashed border-white/80',
+                    'w-11 h-11 rounded-full flex flex-col items-center justify-center text-[10px] font-bold border-2',
+                    'transition-transform duration-150 motion-reduce:transition-none motion-reduce:transform-none',
+                    filled ? discClasses : 'bg-slate-900/50 text-white border-dashed border-white/60',
+                    // Token treatment: a picked-up disc lifts; placed discs cast
+                    // a small shadow so they sit ON the grass, not in it.
+                    slotSelected ? 'scale-110 shadow-lg shadow-black/50' : filled ? 'shadow-md shadow-black/40' : '',
                     segmentFocus,
                     slotSelected ? selectionRing : conflictRing,
                   ].join(' ')}
                   style={
                     filled && rampMode
-                      ? { backgroundColor: fillFor(playerId), textShadow: '0 1px 2px rgba(0,0,0,0.5)' }
+                      ? {
+                          backgroundColor: fillFor(playerId),
+                          backgroundImage:
+                            'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.30), rgba(255,255,255,0) 60%)',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                        }
                       : undefined
                   }
                 >
@@ -602,7 +605,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
           </p>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center">
+          <div className="rounded-lg bg-slate-900/40 border border-slate-700/50 border-t-2 border-t-slate-600/70 px-2 pt-1.5 pb-2">
+            {/* Sideline strip: the bench gets a visual home next to the pitch. */}
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+              {t('playtimePlanner.lineup.benchLabel', 'Bench')}
+            </p>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center">
             {/* Equal-column grid (same fix as the fairness strip): a wrapping
                 flex row left the row remainder as dead space on the right -
                 columns stretch so the outer discs align with the edges. */}
@@ -626,14 +634,19 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 >
                   <span
                     className={[
-                      'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors',
+                      'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors shadow-md shadow-black/40',
                       sitsOut ? 'border-red-500/80' : 'border-white/60',
                       fair ? '' : 'bg-slate-700 hover:bg-slate-600',
                       anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
                     ].join(' ')}
                     style={
                       fair
-                        ? { backgroundColor: fairnessFill(fair.ratio), textShadow: '0 1px 2px rgba(0,0,0,0.5)' }
+                        ? {
+                            backgroundColor: fairnessFill(fair.ratio),
+                            backgroundImage:
+                              'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.30), rgba(255,255,255,0) 60%)',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                          }
                         : undefined
                     }
                   >
@@ -656,6 +669,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 </button>
               );
             })}
+            </div>
           </div>
         )}
 

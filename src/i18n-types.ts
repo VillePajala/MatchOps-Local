@@ -1686,6 +1686,7 @@ export type TranslationKey =
   | 'playtimePlanner.lineup.back'
   | 'playtimePlanner.lineup.benchEmpty'
   | 'playtimePlanner.lineup.benchEmptyAbsent'
+  | 'playtimePlanner.lineup.benchLabel'
   | 'playtimePlanner.lineup.clearAll'
   | 'playtimePlanner.lineup.clearSlot'
   | 'playtimePlanner.lineup.clearedAll'

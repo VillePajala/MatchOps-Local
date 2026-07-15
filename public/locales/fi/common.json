@@ -3232,7 +3232,8 @@
       "clearedSlot": "Paikka tyhjennetty",
       "movedSub": "Vaihto siirretty",
       "subPlayerChanged": "Vaihto päivitetty",
-      "promotedStarter": "{{player}} nostettu avaukseen"
+      "promotedStarter": "{{player}} nostettu avaukseen",
+      "benchLabel": "Penkki"
     },
     "subs": {
       "heading": "Vaihdot",

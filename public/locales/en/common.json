@@ -3232,7 +3232,8 @@
       "clearedSlot": "Position cleared",
       "movedSub": "Substitution moved",
       "subPlayerChanged": "Substitution updated",
-      "promotedStarter": "{{player}} promoted to starter"
+      "promotedStarter": "{{player}} promoted to starter",
+      "benchLabel": "Bench"
     },
     "subs": {
       "heading": "Substitutions",
