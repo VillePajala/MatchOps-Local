@@ -553,7 +553,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             moving are DIRECT (tap a placement, tap another) - no action needed. */}
         {(selection !== null || (emptySlots.length > 0 && bench.length > 0) || anyPlacement) && (
           <div className="flex gap-2">
-            {selection?.type === 'slot' && activeOccupant && onRequestSub && (
+            {/* Sub… is available from ANY selected placement - the starter
+                segment, a stint segment, or a starterless rotation pill - so
+                a position's schedule can always grow more changes. */}
+            {selection && onRequestSub && (
               <button
                 type="button"
                 onClick={() => onRequestSub(selection.slotId)}
