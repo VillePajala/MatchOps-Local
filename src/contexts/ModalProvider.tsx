@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useRef, useReducer, useCallback } from 'react';
 import { initialModalState, modalReducer } from './modalReducer';
+import type { Player } from '@/types';
 
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
@@ -21,6 +22,12 @@ interface ModalContextValue {
   setIsInstructionsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isPersonnelManagerOpen: boolean;
   setIsPersonnelManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isTeamManagerOpen: boolean;
+  setIsTeamManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Player deep-link for GameStats (set by the roster modal's stats shortcut,
+   *  read by GameStatsModal as its initial selection). Lifted in L.2. */
+  selectedPlayerForStats: Player | null;
+  setSelectedPlayerForStats: React.Dispatch<React.SetStateAction<Player | null>>;
   /** True while a hard reset / re-sync / factory reset wipes data (L.0b).
    *  Shared so ClubModalsHost shows the overlay AND HomePage unmounts the
    *  game tree - in-flight timers/autosaves must not touch storage mid-wipe. */
@@ -60,6 +67,10 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   // L.1: Personnel open-state lifted here from useModalOrchestration so the
   // page-level ClubModalsHost can render the manager with no game mounted.
   const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState(false);
+  // L.2: TeamManager open-state + the GameStats player deep-link lifted here
+  // (roster modal renders in ClubModalsHost; GameStats still match-side).
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+  const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
   const [isAppResetting, setIsAppResetting] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
@@ -233,6 +244,10 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsInstructionsModalOpen,
     isPersonnelManagerOpen,
     setIsPersonnelManagerOpen,
+    isTeamManagerOpen,
+    setIsTeamManagerOpen,
+    selectedPlayerForStats,
+    setSelectedPlayerForStats,
     isAppResetting,
     setIsAppResetting,
     isGoalLogModalOpen,
@@ -258,6 +273,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     isRulesDirectoryOpen, setIsRulesDirectoryOpen,
     isInstructionsModalOpen, setIsInstructionsModalOpen,
     isPersonnelManagerOpen, setIsPersonnelManagerOpen,
+    isTeamManagerOpen, setIsTeamManagerOpen,
+    selectedPlayerForStats, setSelectedPlayerForStats,
     isAppResetting, setIsAppResetting,
     isGoalLogModalOpen, setIsGoalLogModalOpen,
     modalState.gameStats, setIsGameStatsModalOpen,

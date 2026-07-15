@@ -2,7 +2,7 @@
 
 import ModalProvider from '@/contexts/ModalProvider';
 import HomePage from '@/components/HomePage';
-import StartScreen from '@/components/StartScreen';
+import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
 import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
@@ -1216,7 +1216,7 @@ export default function Home() {
             lived (post-gates) before the L.0b lift. */}
         {!isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
           !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard && (
-          <ClubModalsHost />
+          <ClubModalsHost onEnterMatchForPlayerStats={() => setScreen('home')} />
         )}
         {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
             pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.
@@ -1323,21 +1323,15 @@ export default function Home() {
           </ErrorBoundary>
         ) : screen === 'start' ? (
           <ErrorBoundary>
-            <StartScreen
+            {/* L.2: lifted-modal entries open IN PLACE via the bridge (no
+                screen switch, no game mount); only match-bound actions still
+                route through handleAction. */}
+            <StartScreenLiftedBridge
               onLoadGame={() => handleAction('loadGame')}
               onResumeGame={() => handleAction('resumeGame')}
-              onManageRoster={() => handleAction('roster')}
-              onManageTeams={() => handleAction('teams')}
-              onManagePersonnel={() => handleAction('personnel')}
-              onManageSeasons={() => handleAction('season')}
-              onOpenTraining={() => handleAction('training')}
-              onOpenBackup={() => handleAction('backup')}
-              onOpenAccount={() => handleAction('account')}
-              onOpenRules={() => handleAction('rules')}
               onOpenPlanner={handleOpenPlannerFromHome}
               onGetStarted={() => handleAction('getStarted')}
               onViewStats={() => handleAction('stats')}
-              onOpenSettings={() => handleAction('settings')}
               canResume={canResume}
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}
