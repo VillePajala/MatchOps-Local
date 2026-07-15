@@ -13,6 +13,7 @@ import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
+import { diffRemovedRosterIds } from '@/utils/rosterRemovalDiff';
 import { Player, Team } from '@/types';
 import type { GameType } from '@/types/game';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
@@ -186,10 +187,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setAvailablePlayers,
     highlightRosterButton,
     setHighlightRosterButton,
-    setRosterError,
     playersForCurrentGame,
-    // handleAdd/Update/RemovePlayer + isRosterUpdating/rosterError now used
-    // only by the lifted roster modal (useRosterSettingsController, L.2).
+    // handleAdd/Update/RemovePlayer + isRosterUpdating/rosterError/setRosterError
+    // now used only by the lifted roster modal (useRosterSettingsController, L.2);
+    // game-side goalie errors surface via showToast instead.
     // handleSetGoalieStatus: no longer used - using per-game implementation
   } = useRoster({
     initialPlayers: initialState.availablePlayers,
@@ -385,23 +386,19 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [gameSessionState.selectedPlayerIds]);
   const masterRosterForPrune = gameDataManagement.masterRoster;
   useEffect(() => {
-    const currentIds = new Set((masterRosterForPrune || []).map(p => p.id));
-    const prevIds = prevRosterIdsRef.current;
-    prevRosterIdsRef.current = currentIds;
-    if (!prevIds) return;
-    const removedIds = [...prevIds].filter(id => !currentIds.has(id));
-    if (removedIds.length === 0) return;
-    const removedSet = new Set(removedIds);
+    const { removedIds, nextSnapshot } = diffRemovedRosterIds(prevRosterIdsRef.current, masterRosterForPrune);
+    prevRosterIdsRef.current = nextSnapshot;
+    if (removedIds.size === 0) return;
     setPlayersOnField(current =>
-      current.some(p => removedSet.has(p.id))
-        ? current.filter(p => !removedSet.has(p.id))
+      current.some(p => removedIds.has(p.id))
+        ? current.filter(p => !removedIds.has(p.id))
         : current
     );
     const selected = selectedPlayerIdsForPruneRef.current;
-    if (selected.some(id => removedSet.has(id))) {
+    if (selected.some(id => removedIds.has(id))) {
       dispatchGameSession({
         type: 'SET_SELECTED_PLAYER_IDS',
-        payload: selected.filter(id => !removedSet.has(id)),
+        payload: selected.filter(id => !removedIds.has(id)),
       });
     }
   // setPlayersOnField/dispatchGameSession are stable; selection read via ref
@@ -1549,7 +1546,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     const player = availablePlayers.find(p => p.id === playerId);
     if (!player) {
         logger.error(`[Page.tsx] Player ${playerId} not found in availablePlayers for goalie change.`);
-        setRosterError(t('rosterSettingsModal.errors.playerNotFound', 'Player not found. Cannot toggle goalie status.'));
+        // The roster modal's error banner lifted with it (L.2) - surface via toast.
+        showToast(t('rosterSettingsModal.errors.playerNotFound', 'Player not found. Cannot toggle goalie status.'), 'error');
         return;
     }
     // Already in the desired state (e.g. position promote for the current goalie) — nothing to do.
@@ -1562,8 +1560,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
     goalieUpdateInProgressRef.current = true;
     logger.log(`[Page.tsx] applyGoalieStatus per-game change for ID: ${playerId}, target status: ${targetGoalieStatus}`);
-
-    setRosterError(null); // Clear previous specific errors
 
     try {
       // Update goalie status per-game instead of globally
@@ -1667,9 +1663,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, currentGameId, gameSessionState, t, userId,
+    availablePlayers, currentGameId, gameSessionState, t, userId, showToast,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
-    setAvailablePlayers, setRosterError, queryClient, setPlayersOnField,
+    setAvailablePlayers, queryClient, setPlayersOnField,
     // fieldStateRef provides playersOnField/opponents/etc. at call time (no dep needed for ref)
   ]);
 
@@ -1678,11 +1674,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     const player = availablePlayers.find(p => p.id === playerId);
     if (!player) {
       logger.error(`[Page.tsx] Player ${playerId} not found in availablePlayers for goalie toggle.`);
-      setRosterError(t('rosterSettingsModal.errors.playerNotFound', 'Player not found. Cannot toggle goalie status.'));
+      showToast(t('rosterSettingsModal.errors.playerNotFound', 'Player not found. Cannot toggle goalie status.'), 'error');
       return;
     }
     await applyGoalieStatus(playerId, !player.isGoalie);
-  }, [availablePlayers, applyGoalieStatus, setRosterError, t]);
+  }, [availablePlayers, applyGoalieStatus, showToast, t]);
 
   // Wire the position-promotion bridge to the authoritative setter. Position
   // changes only ever PROMOTE (target = true); they never clear a goalie.
