@@ -204,9 +204,6 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       savedGames: (overrides?.ui?.savedGames ?? {}) as import('@/types').SavedGamesCollection,
       currentGameId: overrides?.ui?.currentGameId ?? null,
       playerAssessments: (overrides?.ui?.playerAssessments ?? {}) as Record<string, import('@/types').PlayerAssessment>,
-      playerIdsForNewGame: overrides?.ui?.playerIdsForNewGame ?? null,
-      newGameDemandFactor: overrides?.ui?.newGameDemandFactor ?? 5,
-      setNewGameDemandFactor: (overrides?.ui?.setNewGameDemandFactor ?? jest.fn()) as (factor: number) => void,
       availableTeams: (overrides?.ui?.availableTeams ?? [createMockTeam()]) as Team[],
       orphanedGameInfo: overrides?.ui?.orphanedGameInfo ?? null,
       gameIdentifierForSave: overrides?.ui?.gameIdentifierForSave ?? 'game-123',
@@ -228,8 +225,6 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       handleExportPlayerExcel: overrides?.handlers?.handleExportPlayerExcel ?? jest.fn(),
       handleGameLogClick: overrides?.handlers?.handleGameLogClick ?? jest.fn(),
       handleExportOneJson: overrides?.handlers?.handleExportOneJson ?? jest.fn(),
-      handleStartNewGameWithSetup: overrides?.handlers?.handleStartNewGameWithSetup ?? jest.fn(),
-      handleCancelNewGameSetup: overrides?.handlers?.handleCancelNewGameSetup ?? jest.fn(),
       handleTeamNameChange: overrides?.handlers?.handleTeamNameChange ?? jest.fn(),
       handleOpponentNameChange: overrides?.handlers?.handleOpponentNameChange ?? jest.fn(),
       handleGameDateChange: overrides?.handlers?.handleGameDateChange ?? jest.fn(),
@@ -250,7 +245,6 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       handleSavePlayerAssessment: overrides?.handlers?.handleSavePlayerAssessment ?? jest.fn(),
       handleDeletePlayerAssessment: overrides?.handlers?.handleDeletePlayerAssessment ?? jest.fn(),
       handleTeamReassignment: overrides?.handlers?.handleTeamReassignment ?? jest.fn(),
-      handleManageTeamRosterFromNewGame: overrides?.handlers?.handleManageTeamRosterFromNewGame ?? jest.fn(),
       handleNoPlayersConfirmed: overrides?.handlers?.handleNoPlayersConfirmed ?? jest.fn(),
       handleSaveBeforeNewConfirmed: overrides?.handlers?.handleSaveBeforeNewConfirmed ?? jest.fn(),
       handleSaveBeforeNewCancelled: overrides?.handlers?.handleSaveBeforeNewCancelled ?? jest.fn(),
@@ -320,8 +314,8 @@ describe('useModalOrchestration', () => {
       // isTeamManagerOpen/isRosterModalOpen LIFTED too (L.2)
       expect(state).toHaveProperty('isGoalLogModalOpen');
       expect(state).toHaveProperty('isGameStatsModalOpen');
-      // isLoadGameModalOpen lifted to ClubModalsHost (L.3a)
-      expect(state).toHaveProperty('isNewGameSetupModalOpen');
+      // isLoadGameModalOpen lifted to ClubModalsHost (L.3a);
+      // isNewGameSetupModalOpen lifted to ClubModalsHost (L.3b)
       expect(state).toHaveProperty('isGameSettingsModalOpen');
       expect(state).toHaveProperty('isPlayerAssessmentModalOpen');
       expect(state).toHaveProperty('isTeamReassignModalOpen');
@@ -370,7 +364,7 @@ describe('useModalOrchestration', () => {
       // isSeasonTournamentModalOpen lifted to ClubModalsHost (L.1)
       expect(state.isGoalLogModalOpen).toBe(false);
       expect(state.isGameStatsModalOpen).toBe(false);
-      expect(state.isNewGameSetupModalOpen).toBe(false);
+      // isNewGameSetupModalOpen lifted to ClubModalsHost (L.3b)
       // isSettingsModalOpen lifted to ClubModalsHost (L.0b) - not in ModalManager state
       expect(state.isPlayerAssessmentModalOpen).toBe(false);
     });
@@ -526,8 +520,9 @@ describe('useModalOrchestration', () => {
       // Verify key handlers are present (spot check, not exhaustive)
       expect(handlers.updateGameEvent).toBe(props.handlers.handleUpdateGameEvent);
       expect(handlers.exportOneExcel).toBe(props.handlers.handleExportOneExcel);
-      // loadGame/deleteGame lifted to useLoadGameController (L.3a)
-      expect(handlers.startNewGameWithSetup).toBe(props.handlers.handleStartNewGameWithSetup);
+      // loadGame/deleteGame lifted to useLoadGameController (L.3a);
+      // startNewGameWithSetup lifted to useNewGameSetupController (L.3b)
+      expect(handlers.gameLogClick).toBe(props.handlers.handleGameLogClick);
     });
   });
 
@@ -578,7 +573,6 @@ describe('useModalOrchestration', () => {
       const props = createMockProps({
         ui: {
           currentGameId: null,
-          playerIdsForNewGame: null,
           orphanedGameInfo: null,
         },
       });
@@ -591,7 +585,7 @@ describe('useModalOrchestration', () => {
 
       expect(data.currentGameId).toBeNull();
       expect(data.selectedPlayerForStats).toBeNull();
-      expect(data.playerIdsForNewGame).toBeNull();
+      // playerIdsForNewGame lifted to ModalProvider (L.3b)
       expect(data.orphanedGameInfo).toBeNull();
     });
 

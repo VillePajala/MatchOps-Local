@@ -119,6 +119,9 @@ jest.mock('@/contexts/ModalProvider', () => ({
     setIsGameStatsModalOpen: jest.fn(),
     isNewGameSetupModalOpen: false,
     setIsNewGameSetupModalOpen: jest.fn(),
+    // L.3b: the prefill selection lives in ModalProvider now.
+    playerIdsForNewGame: null,
+    setPlayerIdsForNewGame: jest.fn(),
     isSettingsModalOpen: false,
     setIsSettingsModalOpen: jest.fn(),
     openSettingsToTab: jest.fn(),

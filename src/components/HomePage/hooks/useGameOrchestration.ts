@@ -37,8 +37,6 @@ import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
-import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
-import { usePremium } from '@/hooks/usePremium';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
@@ -170,7 +168,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const saveTacticalStateToHistory = useCallback(saveTacticalStateToHistoryFromSession, [saveTacticalStateToHistoryFromSession]);
 
   // --- Premium limits ---
-  const { canCreate, showUpgradePrompt } = usePremium();
+  // usePremium (game-limit gating) moved with creation to useNewGameSetupController (L.3b).
 
   // --- Get showToast early (needed by Field Coordination) ---
   const { showToast } = useToast();
@@ -461,6 +459,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     openGameStatsToTab,
     isNewGameSetupModalOpen,
     setIsNewGameSetupModalOpen,
+    // L.3b: NewGameSetup renders in ClubModalsHost; the prefill selection is
+    // shared provider state so match-side openers can carry it across levels.
+    setPlayerIdsForNewGame,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isSettingsModalOpen,
     setIsSettingsModalOpen,
@@ -529,11 +530,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // handleCreateBackup + handleCloudDataDownload LIFTED to useAppSettingsController (L.0b).
 
-  const handleManageTeamRosterFromNewGame = useCallback((_teamId?: string) => {
-    closeNewGameViaReducer();
-    setPlayerIdsForNewGame(null);
-    setIsTeamManagerOpen(true);
-  }, [closeNewGameViaReducer, setIsTeamManagerOpen]);
+  // handleManageTeamRosterFromNewGame LIFTED to ClubModalsHost (L.3b).
 
   // --- Timer Management Hook (Step 2.6.5) ---
   const timerManagement = useTimerManagement({
@@ -692,8 +689,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [initialAction, availablePlayers.length, gameSessionState.selectedPlayerIds,
       openLoadGameViaReducer, openNewGameViaReducer, openSeasonTournamentViaReducer, openRosterViaReducer]);
   
-  const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
-  const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
+  // playerIdsForNewGame LIFTED to ModalProvider (L.3b, destructured above);
+  // the demand-factor slider state lives in useNewGameSetupController now.
 
   // Confirmation modal states - Passed to useModalOrchestration via ui object
   // (showHardResetConfirm LIFTED to useAppSettingsController, L.0b)
@@ -2046,136 +2043,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
-  // --- Handler that is called when setup modal is confirmed ---
-  const handleStartNewGameWithSetup = useCallback(async (
-    initialSelectedPlayerIds: string[],
-    homeTeamName: string,
-    opponentName: string,
-    gameDate: string,
-    gameLocation: string,
-    gameTime: string,
-    seasonId: string | null,
-    tournamentId: string | null,
-    numPeriods: 1 | 2,
-    periodDuration: number,
-    homeOrAway: 'home' | 'away',
-    demandFactor: number,
-    ageGroup: string,
-    tournamentLevel: string,
-    tournamentSeriesId: string | null,
-    isPlayedParam: boolean,
-    teamId: string | null,
-    availablePlayersForGame: Player[],
-    selectedPersonnelIds: string[],
-    leagueId: string,
-    customLeagueName: string,
-    gameType: import('@/types').GameType,
-    gender: import('@/types').Gender | undefined,
-    // Optional Playing-Time Planner prefill (Phase 2): planned XI + sub schedule + snap points.
-    // Phase 3: sourcePlanId/sourcePlanGameId link the game back to its plan.
-    prefill?: { playersOnField: Player[]; plannedSubs: import('@/utils/playtimePlanner/gameSubs').PlannedGameSub[]; formationSnapPoints: import('@/types').Point[]; sourcePlanId?: string; sourcePlanGameId?: string }
-  ) => {
-    // Clear field state before creating new game to prevent stale data
-    logger.info('[NEW GAME] Clearing field state BEFORE game creation', {
-      newGameTeamId: teamId,
-      newGameSelectedPlayersCount: initialSelectedPlayerIds.length,
-    });
-    setPlayersOnField([]);
-    setOpponents([]);
-    setDrawings([]);
-    setTacticalDiscs([]);
-    setTacticalDrawings([]);
-    // DO NOT reset loadedGameIdRef.current = null here!
-    // When savedGames changes (new game added), the effect fires while currentGameId
-    // is still the OLD game. If loadedGameIdRef.current is null, the effect will
-    // load the old game's players onto the field.
-    // By keeping loadedGameIdRef.current as the old game ID, the effect will skip
-    // loading (oldId === oldId), and only load when currentGameId changes to newGameId.
-
-    await startNewGameWithSetup(
-      {
-        availablePlayers,
-        savedGames,
-        setSavedGames,
-        resetHistory,
-        dispatchGameSession,
-        setCurrentGameId,
-        closeNewGameSetupModal: closeNewGameViaReducer,
-        setNewGameDemandFactor,
-        setPlayerIdsForNewGame,
-        setHighlightRosterButton,
-        setIsPlayed,
-        queryClient,
-        showToast,
-        t,
-        utilSaveGame,
-        utilSaveCurrentGameIdSetting,
-        defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
-        canCreate,
-        showUpgradePrompt,
-        userId,
-      },
-      {
-        initialSelectedPlayerIds,
-        homeTeamName,
-        opponentName,
-        gameDate,
-        gameLocation,
-        gameTime,
-        seasonId,
-        tournamentId,
-        numPeriods,
-        periodDuration,
-        homeOrAway,
-        demandFactor,
-        ageGroup,
-        tournamentLevel,
-        tournamentSeriesId,
-        isPlayed: isPlayedParam,
-        teamId,
-        availablePlayersForGame,
-        selectedPersonnelIds,
-        leagueId,
-        customLeagueName,
-        gameType,
-        gender,
-        prefill,
-      },
-    );
-  }, [
-    availablePlayers,
-    savedGames,
-    setSavedGames,
-    resetHistory,
-    dispatchGameSession,
-    setCurrentGameId,
-    closeNewGameViaReducer,
-    setNewGameDemandFactor,
-    setPlayerIdsForNewGame,
-    setHighlightRosterButton,
-    setIsPlayed,
-    queryClient,
-    showToast,
-    t,
-    setPlayersOnField,
-    setOpponents,
-    setDrawings,
-    setTacticalDiscs,
-    setTacticalDrawings,
-    canCreate,
-    showUpgradePrompt,
-    userId,
-  ]);
-
-  // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
-  const handleCancelNewGameSetup = useCallback(() => {
-    cancelNewGameSetup({
-      setHasSkippedInitialSetup,
-      closeNewGameSetupModal: closeNewGameViaReducer,
-      setNewGameDemandFactor,
-      setPlayerIdsForNewGame,
-    });
-  }, [setHasSkippedInitialSetup, closeNewGameViaReducer, setNewGameDemandFactor, setPlayerIdsForNewGame]);
+  // handleStartNewGameWithSetup + handleCancelNewGameSetup LIFTED to
+  // useNewGameSetupController (L.3b). Confirming the setup persists the game
+  // as current and the page freshly mounts the match view (enterMatch), so
+  // the old in-place session apply (field clearing, LOAD_GAME_SESSION_STATE,
+  // setCurrentGameId race dance, post-create roster-button highlight) is
+  // retired with the render.
 
   // --- Start New Game Handler (Uses Quick Save) ---
   const handleStartNewGame = useCallback(() => {
@@ -2195,7 +2068,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Prefill with last game's selection
       openNewGameViaReducer();
     }
-  }, [currentGameId, availablePlayers, t, openNewGameViaReducer, gameSessionState.selectedPlayerIds]);
+  }, [currentGameId, availablePlayers, t, openNewGameViaReducer, gameSessionState.selectedPlayerIds, setPlayerIdsForNewGame]);
 
   // Handler for "No Players" confirmation
   const handleNoPlayersConfirmed = useCallback(() => {
@@ -2225,7 +2098,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // Release the guard either way so a failed save can be retried.
       saveBeforeNewInFlightRef.current = false;
     }
-  }, [persistence, gameSessionState.selectedPlayerIds, openNewGameViaReducer]);
+  }, [persistence, gameSessionState.selectedPlayerIds, openNewGameViaReducer, setPlayerIdsForNewGame]);
 
   // Handler for "Save Before New" cancellation - user chooses to discard
   const handleSaveBeforeNewCancelled = useCallback(() => {
@@ -2239,7 +2112,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);
     setShowStartNewConfirm(false);
     openNewGameViaReducer(); // Open the setup modal
-  }, [openNewGameViaReducer, gameSessionState.selectedPlayerIds]);
+  }, [openNewGameViaReducer, gameSessionState.selectedPlayerIds, setPlayerIdsForNewGame]);
 
   if (debug.enabled('home')) {
     logger.log('[Home Render] highlightRosterButton:', highlightRosterButton);
@@ -2483,9 +2356,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       currentGameId,
       canReapplyPlan,
       playerAssessments,
-      playerIdsForNewGame,
-      newGameDemandFactor,
-      setNewGameDemandFactor,
       availableTeams,
       orphanedGameInfo,
       gameIdentifierForSave,
@@ -2507,8 +2377,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleExportPlayerExcel,
       handleGameLogClick,
       handleExportOneJson,
-      handleStartNewGameWithSetup,
-      handleCancelNewGameSetup,
       handleTeamNameChange,
       handleOpponentNameChange,
       handleGameDateChange,
@@ -2540,7 +2408,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSavePlayerAssessment,
       handleDeletePlayerAssessment,
       handleTeamReassignment,
-      handleManageTeamRosterFromNewGame,
       handleNoPlayersConfirmed,
       handleSaveBeforeNewConfirmed,
       handleSaveBeforeNewCancelled,
