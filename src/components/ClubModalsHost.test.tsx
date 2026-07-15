@@ -138,9 +138,13 @@ const mockLoadGameController = {
   handleExportOneJson: jest.fn(),
   handleExportOneExcel: jest.fn(),
 };
+let capturedLoadGameArgs: { onEnterMatch: () => void } | undefined;
 jest.mock('@/hooks/useLoadGameController', () => ({
   __esModule: true,
-  useLoadGameController: () => mockLoadGameController,
+  useLoadGameController: (args: { onEnterMatch: () => void }) => {
+    capturedLoadGameArgs = args;
+    return mockLoadGameController;
+  },
 }));
 
 jest.mock('@/components/NewGameSetupModal', () => ({
@@ -164,6 +168,33 @@ const mockNewGameSetupController = {
 jest.mock('@/hooks/useNewGameSetupController', () => ({
   __esModule: true,
   useNewGameSetupController: () => mockNewGameSetupController,
+}));
+
+jest.mock('@/components/GameStatsModal', () => ({
+  __esModule: true,
+  default: ({ aggregateOnly, initialTab, initialSelectedPlayerId, onGameClick }: {
+    aggregateOnly?: boolean;
+    initialTab?: string;
+    initialSelectedPlayerId?: string | null;
+    onGameClick?: (id: string) => void;
+  }) => (
+    <div data-testid="club-stats-modal">
+      <span data-testid="club-stats-shape">
+        {aggregateOnly ? 'aggregate' : 'full'}:{initialTab ?? 'default'}:{initialSelectedPlayerId ?? 'none'}
+      </span>
+      <button onClick={() => onGameClick?.('g1')}>stats-open-g1</button>
+    </div>
+  ),
+}));
+const mockClubStatsController = {
+  savedGames: {},
+  masterRoster: [],
+  handleExportAggregateExcel: jest.fn(),
+  handleExportPlayerExcel: jest.fn(),
+};
+jest.mock('@/hooks/useClubStatsController', () => ({
+  __esModule: true,
+  useClubStatsController: () => mockClubStatsController,
 }));
 
 jest.mock('@/components/PlaytimePlannerModal', () => ({
@@ -194,6 +225,7 @@ function Opener() {
     setIsNewGameSetupModalOpen,
     setIsPlaytimePlannerOpen,
     setPlannerLiveGameHooks,
+    openClubStatsToTab,
   } = useModalContext();
   return (
     <>
@@ -209,6 +241,7 @@ function Opener() {
       <button onClick={() => setIsLoadGameModalOpen(true)}>open-load</button>
       <button onClick={() => setIsNewGameSetupModalOpen(true)}>open-new-game</button>
       <button onClick={() => setIsPlaytimePlannerOpen(true)}>open-planner</button>
+      <button onClick={() => openClubStatsToTab('season')}>open-club-stats</button>
       <button
         onClick={() =>
           setPlannerLiveGameHooks({
@@ -298,7 +331,7 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     expect(screen.getByTestId('roster-modal')).toBeInTheDocument();
   });
 
-  it('roster player-stats shortcut sets deep-link, opens GameStats, enters match (L.2)', async () => {
+  it('roster player-stats shortcut opens HOST club stats on the player deep-link - no match mount (L.4)', async () => {
     const onEnterMatch = jest.fn();
     render(
       <ModalProvider>
@@ -310,10 +343,28 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     fireEvent.click(screen.getByText('open-roster'));
     await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
     fireEvent.click(screen.getByText('player-stats-p1'));
-    // Roster closes, shared deep-link + GameStats open-state set, match entered.
+    // Roster closes; the club-stats surface opens with the player deep-link.
+    // The L.2 interim (enter the match to show stats) is retired.
     await waitFor(() => expect(screen.queryByTestId('roster-modal')).not.toBeInTheDocument());
-    expect(screen.getByTestId('stats-probe')).toHaveTextContent('Testaaja:open');
-    expect(onEnterMatch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument());
+    expect(screen.getByTestId('club-stats-shape')).toHaveTextContent('aggregate:player:p1');
+    expect(onEnterMatch).not.toHaveBeenCalled();
+  });
+
+  it('club stats renders at host level; a game-row tap is the LoadGame level crossing (L.4)', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-club-stats'));
+    await waitFor(() => expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument());
+    expect(screen.getByTestId('club-stats-shape')).toHaveTextContent('aggregate:season:none');
+    // Tapping a game row hands the pick to the load controller. The surface
+    // must NOT close yet - a stale row (game deleted elsewhere) errors and
+    // keeps it open, so only the controller's success callback closes it.
+    fireEvent.click(screen.getByText('stats-open-g1'));
+    expect(mockLoadGameController.handleLoadGame).toHaveBeenCalledWith('g1');
+    expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument();
+    // Simulate the successful load: the controller fires onEnterMatch.
+    act(() => capturedLoadGameArgs!.onEnterMatch());
+    await waitFor(() => expect(screen.queryByTestId('club-stats-modal')).not.toBeInTheDocument());
   });
 
   it('renders LoadGame at host level and delegates the pick to the controller (L.3a)', async () => {

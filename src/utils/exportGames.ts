@@ -1,4 +1,5 @@
 import { AppState, Player, Season, Tournament, SavedGamesCollection, PlayerStatRow } from '@/types';
+import type { TFunction } from 'i18next';
 import { formatTime } from './time';
 
 /** Utility to create and trigger a download from a data string */
@@ -228,3 +229,76 @@ export const exportAggregateCsv = (
   triggerDownload(csvString, `SoccerApp_AggregateStats_${timestamp}.csv`, 'text/csv;charset=utf-8;');
 };
 
+
+// ============================================================================
+// Aggregate-stats Excel wrappers (L.4)
+// ============================================================================
+// Shared by the match-side GameStats render (useGameOrchestration) and the
+// host-level club-stats surface (useClubStatsController): collect the games,
+// lazy-load the heavy xlsx module, surface failures as a toast. Kept here -
+// NOT in exportExcel.ts - so importing them never defeats that module's
+// dynamic loading.
+
+type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
+
+export interface AggregateExcelDeps {
+  savedGames: SavedGamesCollection;
+  seasons: Season[];
+  tournaments: Tournament[];
+  showToast: ToastFn;
+  t: TFunction;
+  /** User-scoped storage (player adjustments are per user). */
+  userId?: string;
+}
+
+const collectGames = (savedGames: SavedGamesCollection, gameIds: string[]): SavedGamesCollection =>
+  gameIds.reduce((acc, id) => {
+    const gameData = savedGames[id];
+    if (gameData) acc[id] = gameData;
+    return acc;
+  }, {} as SavedGamesCollection);
+
+export const exportAggregateStatsExcel = async (
+  deps: AggregateExcelDeps,
+  gameIds: string[],
+  aggregateStats: PlayerStatRow[],
+): Promise<void> => {
+  const { savedGames, seasons, tournaments, showToast, t } = deps;
+  if (gameIds.length === 0) {
+    showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
+    return;
+  }
+  const gamesData = collectGames(savedGames, gameIds);
+  try {
+    const { exportAggregateExcel } = await import('@/utils/exportExcel');
+    const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
+    exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, [], undefined, undefined, translate);
+  } catch (error) {
+    const { default: logger } = await import('@/utils/logger');
+    logger.error('[exportAggregateStatsExcel] Export failed:', error);
+    showToast(t('export.exportStatsFailed'), 'error');
+  }
+};
+
+export const exportPlayerStatsExcel = async (
+  deps: AggregateExcelDeps,
+  playerId: string,
+  playerData: PlayerStatRow,
+  gameIds: string[],
+): Promise<void> => {
+  const { savedGames, seasons, tournaments, showToast, t, userId } = deps;
+  const gamesData = collectGames(savedGames, gameIds);
+  try {
+    const [{ exportPlayerExcel }, { getAdjustmentsForPlayer }] = await Promise.all([
+      import('@/utils/exportExcel'),
+      import('@/utils/playerAdjustments'),
+    ]);
+    const adjustments = await getAdjustmentsForPlayer(playerId, userId);
+    const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
+    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments, translate);
+  } catch (error) {
+    const { default: logger } = await import('@/utils/logger');
+    logger.error('[exportPlayerStatsExcel] Export failed:', error);
+    showToast(t('export.exportPlayerFailed', 'Failed to export player stats.'), 'error');
+  }
+};

@@ -252,9 +252,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     // isSettingsModalOpen/settingsInitialTab not needed - SettingsModal renders
     // in ClubModalsHost (L.0b); the setter stays for openSettingsModal below.
     setIsSettingsModalOpen,
-    gameStatsInitialTab,
     // L.2: set by the lifted roster modal's stats shortcut; read by GameStats.
-    selectedPlayerForStats,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
@@ -370,7 +368,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       isGoalLogModalOpen,
       isGameStatsModalOpen,
       isGameSettingsModalOpen,
-      gameStatsInitialTab,
       isPlayerAssessmentModalOpen,
       isTeamReassignModalOpen,
       showNoPlayersConfirm,
@@ -391,7 +388,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       masterRoster: gameDataManagement.masterRoster,
       personnel: gameDataManagement.personnel,
       playerAssessments,
-      selectedPlayerForStats,
       availableTeams,
       orphanedGameInfo,
       gameIdentifierForSave,

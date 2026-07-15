@@ -241,6 +241,44 @@ describe('GameStatsModal', () => {
     expect(currentTab).toHaveAttribute('aria-selected', 'false');
   });
 
+  test('aggregateOnly hides the current-game tab and lands on the aggregate side (L.4)', async () => {
+    const props = { ...getDefaultProps(), aggregateOnly: true };
+    await act(async () => {
+      renderComponent(props);
+    });
+    // No current-game tab at all on the club-level surface.
+    expect(
+      screen.queryByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') }),
+    ).not.toBeInTheDocument();
+    const seasonTab = screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') });
+    expect(seasonTab).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('aggregateOnly still honors an explicit initialTab (L.4)', async () => {
+    const props = { ...getDefaultProps(), aggregateOnly: true, initialTab: 'overall' as const };
+    await act(async () => {
+      renderComponent(props);
+    });
+    expect(
+      screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.overall') }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('aggregateOnly + player deep-link (no explicit tab) lands on the player tab (L.4)', async () => {
+    // Pins the precedence order: initialTab ?? deep-link ?? aggregate default.
+    const props = {
+      ...getDefaultProps(),
+      aggregateOnly: true,
+      initialSelectedPlayerId: 'p1',
+    };
+    await act(async () => {
+      renderComponent(props);
+    });
+    expect(
+      screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
   test('renders modal title and basic game info when open', async () => {
     const props = getDefaultProps();
     await act(async () => {

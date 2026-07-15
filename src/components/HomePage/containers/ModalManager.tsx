@@ -29,13 +29,11 @@ import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings
 import type { UseMutationResult } from '@tanstack/react-query';
 
 
-type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalManagerState {
   isGoalLogModalOpen: boolean;
   isGameStatsModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
-  gameStatsInitialTab?: StatsTab;
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
@@ -57,7 +55,6 @@ interface ModalManagerData {
   masterRoster: Player[];
   personnel: Personnel[];
   playerAssessments: Record<string, PlayerAssessment>;
-  selectedPlayerForStats: Player | null;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   gameIdentifierForSave: string;
@@ -193,8 +190,6 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             onExportOneExcel={handlers.exportOneExcel}
             onExportAggregateExcel={handlers.exportAggregateExcel}
             onExportPlayerExcel={handlers.exportPlayerExcel}
-            initialSelectedPlayerId={data.selectedPlayerForStats?.id}
-            initialTab={state.gameStatsInitialTab}
             onGameClick={handlers.gameLogClick}
             masterRoster={data.masterRoster}
             onGameNotesChange={handlers.gameNotesChange}

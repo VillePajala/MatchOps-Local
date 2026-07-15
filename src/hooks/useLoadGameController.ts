@@ -91,7 +91,11 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted }: Use
       // another tab / cloud sync) must error here, not send the match view
       // booting after a ghost.
       if (!savedGames[gameId]) {
-        setGameLoadError(t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', { gameId }));
+        const notFound = t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', { gameId });
+        setGameLoadError(notFound);
+        // Toast too: callers outside the LoadGame modal (the club-stats game
+        // log, L.4) have no inline banner to surface gameLoadError in.
+        showToast(notFound, 'error');
         return;
       }
       setProcessingGameId(gameId);

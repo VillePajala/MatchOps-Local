@@ -169,6 +169,9 @@ describe('useLoadGameController (L.3a level crossing)', () => {
     expect(saveCurrentGameIdSetting).not.toHaveBeenCalled();
     expect(onEnterMatch).not.toHaveBeenCalled();
     expect(result.current.gameLoadError).toBeTruthy();
+    // Also toasted: callers without the LoadGame modal's inline banner
+    // (the club-stats game log, L.4) must still surface the failure.
+    expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error');
   });
 
   it('load failure surfaces a toast and does not enter the match', async () => {

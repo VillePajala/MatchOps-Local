@@ -64,16 +64,21 @@ interface ModalContextValue {
   /** See PlannerLiveGameHooks - registered by the match view while mounted. */
   plannerLiveGameHooks: PlannerLiveGameHooks | null;
   setPlannerLiveGameHooks: React.Dispatch<React.SetStateAction<PlannerLiveGameHooks | null>>;
+  /** Club-level (aggregate) stats surface - GameStatsModal in aggregateOnly
+   *  mode, rendered by ClubModalsHost (L.4). Separate from the match's
+   *  isGameStatsModalOpen: the match modal keeps the current-game side. */
+  isClubStatsOpen: boolean;
+  setIsClubStatsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Open club stats on a specific aggregate tab (menu "Team stats" links). */
+  openClubStatsToTab: (tab: StatsTab) => void;
+  /** The tab club stats opens on (undefined = the surface's own default). */
+  clubStatsInitialTab: StatsTab | undefined;
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Open settings modal to a specific tab */
   openSettingsToTab: (tab: SettingsTab) => void;
   /** The tab to open settings modal to (undefined = default) */
   settingsInitialTab: SettingsTab | undefined;
-  /** Open Game Stats to a specific tab (match vs team stats menu entries) */
-  openGameStatsToTab: (tab: StatsTab) => void;
-  /** The tab to open Game Stats to (undefined = default) */
-  gameStatsInitialTab: StatsTab | undefined;
   isPlayerAssessmentModalOpen: boolean;
   setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -108,6 +113,10 @@ export const ModalProvider = ({ children, currentUserId }: {
   // L.3c: planner open-state + the match view's live-game hooks lifted here.
   const [isPlaytimePlannerOpen, setIsPlaytimePlannerOpen] = useState(false);
   const [plannerLiveGameHooks, setPlannerLiveGameHooks] = useState<PlannerLiveGameHooks | null>(null);
+  // L.4: club-level aggregate stats surface (setters defined below, after
+  // the match stats setter they mutually exclude against).
+  const [clubStatsOpen, setClubStatsOpen] = useState(false);
+  const [clubStatsInitialTab, setClubStatsInitialTab] = useState<StatsTab | undefined>(undefined);
 
   // Sign-out closes the planner (mirrors the retired PLANNER_OPEN_KEY cleanup
   // in page.tsx): without this, an open planner would auto-reopen over Home
@@ -215,11 +224,10 @@ export const ModalProvider = ({ children, currentUserId }: {
     dispatchModal({ type: 'OPEN_MODAL', id: 'settings', at: Date.now() });
   }, []);
 
-  // Game Stats initial tab (same contract as settingsInitialTab): set only by
-  // openGameStatsToTab, cleared on close so a plain open lands on the default.
-  const [gameStatsInitialTab, setGameStatsInitialTab] = useState<StatsTab | undefined>(undefined);
-
-  // Reducer-backed setter for Game Stats modal (no anti-flash needed)
+  // Reducer-backed setter for Game Stats modal (no anti-flash needed).
+  // L.4: the tab-targeted variant (openGameStatsToTab/gameStatsInitialTab)
+  // retired with the aggregate side's move to the club-stats surface - this
+  // match modal is current-game-first.
   const setIsGameStatsModalOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
     const prev = gameStatsOpenRef.current;
     const next = typeof valueOrUpdater === 'function'
@@ -227,23 +235,37 @@ export const ModalProvider = ({ children, currentUserId }: {
       : valueOrUpdater;
     if (next && !prev) {
       gameStatsOpenRef.current = true;
+      // Mutual exclusion with the club-stats surface: both are mounts of
+      // GameStatsModal at the same z-index, so opening one closes the other
+      // (UI flows can't stack them today; this pins the invariant).
+      setClubStatsOpen(false);
+      setClubStatsInitialTab(undefined);
       dispatchModal({ type: 'OPEN_MODAL', id: 'gameStats', at: Date.now() });
       return;
     }
     if (!next && prev) {
       gameStatsOpenRef.current = false;
-      setGameStatsInitialTab(undefined); // Reset initial tab when closing
       dispatchModal({ type: 'CLOSE_MODAL', id: 'gameStats' });
     }
   }, []);
 
-  // Open Game Stats to a specific tab (two-level restructure PR 0.2: the menu
-  // offers "Match stats" (currentGame) and "Team stats" (aggregate) entries).
-  const openGameStatsToTab = useCallback((tab: StatsTab) => {
-    setGameStatsInitialTab(tab);
-    gameStatsOpenRef.current = true;
-    dispatchModal({ type: 'OPEN_MODAL', id: 'gameStats', at: Date.now() });
+  // L.4: club-stats surface setters. Opening goes through
+  // setIsGameStatsModalOpen(false) for the mutual exclusion (both surfaces
+  // are GameStatsModal mounts at the same z-index).
+  const setIsClubStatsOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
+    setClubStatsOpen((prev) => {
+      const next = typeof valueOrUpdater === 'function'
+        ? (valueOrUpdater as (p: boolean) => boolean)(prev)
+        : valueOrUpdater;
+      if (!next && prev) setClubStatsInitialTab(undefined); // reset tab on close
+      return next;
+    });
   }, []);
+  const openClubStatsToTab = useCallback((tab: StatsTab) => {
+    setIsGameStatsModalOpen(false);
+    setClubStatsInitialTab(tab);
+    setClubStatsOpen(true);
+  }, [setIsGameStatsModalOpen]);
 
   // Roster modal setter (no anti-flash guard needed)
   // Rationale: Triggered from static buttons (ControlBar CTAs),
@@ -314,12 +336,14 @@ export const ModalProvider = ({ children, currentUserId }: {
     setIsPlaytimePlannerOpen,
     plannerLiveGameHooks,
     setPlannerLiveGameHooks,
+    isClubStatsOpen: clubStatsOpen,
+    setIsClubStatsOpen,
+    openClubStatsToTab,
+    clubStatsInitialTab,
     isSettingsModalOpen: modalState.settings,
     setIsSettingsModalOpen,
     openSettingsToTab,
     settingsInitialTab,
-    openGameStatsToTab,
-    gameStatsInitialTab,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   }), [
@@ -340,8 +364,9 @@ export const ModalProvider = ({ children, currentUserId }: {
     playerIdsForNewGame, setPlayerIdsForNewGame,
     isPlaytimePlannerOpen, setIsPlaytimePlannerOpen,
     plannerLiveGameHooks, setPlannerLiveGameHooks,
+    clubStatsOpen, setIsClubStatsOpen, openClubStatsToTab, clubStatsInitialTab,
     modalState.settings, setIsSettingsModalOpen,
-    openSettingsToTab, settingsInitialTab, openGameStatsToTab, gameStatsInitialTab,
+    openSettingsToTab, settingsInitialTab,
     isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen,
   ]);
 
