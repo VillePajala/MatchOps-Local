@@ -7,7 +7,7 @@
  * UI and tests agree on the default swap time and on who is eligible to come on.
  */
 
-import type { PlanGame, PlanSub, PlanSlotAssignment } from './types';
+import type { PlanGame, PlanSub } from './types';
 
 /**
  * Default time for a swap: the start of the second half for a two-period game,
@@ -42,45 +42,21 @@ export function removeSub(subs: PlanSub[], id: string): PlanSub[] {
   return subs.filter((s) => s.id !== id);
 }
 
-/**
- * Roster players eligible to come on: those not in the starting XI and not
- * already scheduled to come on in another sub (so nobody is subbed on twice).
- * Pass `excludeSubId` to ignore the sub currently being edited.
- *
- * Phase-1 limitation (intentional): this models a single swap window per player,
- * so a starter who is subbed off cannot be brought back on, and a bench player
- * can only come on once. Multi-rotation patterns (e.g. rolling 5-a-side subs) are
- * out of scope for Phase 1; the minutes engine itself supports arbitrary subs, so
- * this is purely a UI eligibility simplification, not an engine constraint.
- */
-export function availableSubInIds(
-  rosterIds: string[],
-  startingSlots: PlanSlotAssignment[],
-  subs: PlanSub[],
-  excludeSubId?: string,
-): string[] {
-  const starters = new Set(
-    startingSlots.map((s) => s.playerId).filter((id): id is string => id !== null),
-  );
-  const incoming = new Set(
-    subs
-      .filter((s) => s.id !== excludeSubId)
-      .map((s) => s.inPlayerId)
-      .filter((id): id is string => id !== null),
-  );
-  return rosterIds.filter((id) => !starters.has(id) && !incoming.has(id));
+/** Move a scheduled sub to another slot (direct-manipulation stint move). */
+export function moveSubToSlot(subs: PlanSub[], id: string, slotId: string): PlanSub[] {
+  return subs.map((s) => (s.id === id ? { ...s, slotId } : s));
 }
 
-/**
- * Drop any scheduled subs that bring on `playerId`. Used when that player is
- * placed into the starting lineup: `availableSubInIds` blocks scheduling a
- * starter as an incoming sub, but the reverse order (schedule first, then place
- * as starter) used to slip through - leaving the player both starting and
- * "coming on", which double-counted their minutes and skewed the fairness view.
- * Placing them as a starter supersedes the planned entry.
- */
-export function removeSubsBringingOn(subs: PlanSub[], playerId: string | null): PlanSub[] {
-  if (!playerId) return subs;
-  const filtered = subs.filter((s) => s.inPlayerId !== playerId);
-  return filtered.length === subs.length ? subs : filtered;
+/** Change WHO a scheduled sub brings on (direct-manipulation stint edit). */
+export function setSubPlayer(subs: PlanSub[], id: string, inPlayerId: string): PlanSub[] {
+  return subs.map((s) => (s.id === id ? { ...s, inPlayerId } : s));
 }
+
+/*
+ * The Phase-1 eligibility guards (availableSubInIds, removeSubsBringingOn)
+ * are GONE by design: any player may now be scheduled into any sub, so
+ * rotation patterns (two players trading a slot every 10 minutes, a starter
+ * re-entering after coming off) are expressible. The one real-world rule -
+ * a player cannot hold two slots during the same minutes - is validated
+ * after the fact by `conflicts.ts` and FLAGGED in the UI, not blocked.
+ */

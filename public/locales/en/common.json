@@ -3232,7 +3232,22 @@
       "viewGrid": "Side by side",
       "noPlayers": "No players in this plan - add them on the Plan tab.",
       "absentHeading": "Absent from this game",
-      "benchEmptyAbsent": "Everyone is placed or absent."
+      "benchEmptyAbsent": "Everyone is placed or absent.",
+      "subStint": "{{minute}}' {{player}} ({{position}})",
+      "removeSubAction": "Remove sub",
+      "clearAll": "Clear field",
+      "clearedAll": "Field cleared",
+      "clearedSlot": "Position cleared",
+      "movedSub": "Substitution moved",
+      "subPlayerChanged": "Substitution updated",
+      "promotedStarter": "{{player}} promoted to starter",
+      "benchLabel": "Bench",
+      "clearAllGames": "Clear all games",
+      "clearAllGamesConfirmTitle": "Clear all games?",
+      "clearAllGamesConfirmMessage": "Empties every game's lineup and substitution schedule in this plan.",
+      "clearAllGamesConfirmWarning": "Undo (on the Games tab) restores them.",
+      "clearAllGamesConfirmLabel": "Clear",
+      "clearedAllGames": "All games cleared"
     },
     "subs": {
       "heading": "Substitutions",
@@ -3244,7 +3259,8 @@
       "added": "Substitution added",
       "removed": "Substitution removed",
       "timeLabel": "Minute",
-      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})"
+      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})",
+      "inGameGroup": "Already in this game"
     },
     "balance": {
       "title": "Playing-time balance",
@@ -3305,6 +3321,12 @@
       "minutes": "Minutes",
       "plan": "Settings"
     },
-    "loadError": "Could not load your plans. Close the planner and try again."
+    "loadError": "Could not load your plans. Close the planner and try again.",
+    "swap": {
+      "done": "Swapped {{a}} and {{b}}"
+    },
+    "conflicts": {
+      "row": "{{player}} is in {{a}} and {{b}} at the same time ({{from}}'-{{to}}')"
+    }
   }
 }

@@ -146,6 +146,29 @@ export function getPositionLabelForFormationPosition(
 }
 
 /**
+ * Relative running load of a position, for rotation planning (higher = more
+ * running). Wingers and the striker cover the most ground, wide midfielders
+ * next, then central/attacking mids, defensive mids, fullbacks, and centre
+ * backs; the goalkeeper is effectively stationary. Used by the planner's
+ * Suggest engine to aim substitutions at the legs that tire first.
+ */
+const RUNNING_INTENSITY: Record<string, number> = {
+  LW: 5, ST: 5, RW: 5,
+  LM: 4, RM: 4, LAM: 4, RAM: 4,
+  CAM: 3, CM: 3,
+  LDM: 2, CDM: 2, RDM: 2,
+  LB: 1, RB: 1,
+  CB: 0,
+  GK: -1,
+  SUB: -1,
+};
+
+/** Running load for a position label (unknown labels rank lowest). */
+export function getRunningIntensity(label: string): number {
+  return RUNNING_INTENSITY[label] ?? 0;
+}
+
+/**
  * Export thresholds for use in other modules
  */
 export const POSITION_THRESHOLDS = {

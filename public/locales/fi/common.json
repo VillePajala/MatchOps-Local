@@ -3232,7 +3232,22 @@
       "viewGrid": "Rinnakkain",
       "noPlayers": "Suunnitelmassa ei ole pelaajia - lisää heidät Suunnitelma-välilehdellä.",
       "absentHeading": "Poissa tästä pelistä",
-      "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa."
+      "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa.",
+      "subStint": "{{minute}}' {{player}} ({{position}})",
+      "removeSubAction": "Poista vaihto",
+      "clearAll": "Tyhjennä kenttä",
+      "clearedAll": "Kenttä tyhjennetty",
+      "clearedSlot": "Paikka tyhjennetty",
+      "movedSub": "Vaihto siirretty",
+      "subPlayerChanged": "Vaihto päivitetty",
+      "promotedStarter": "{{player}} nostettu avaukseen",
+      "benchLabel": "Penkki",
+      "clearAllGames": "Tyhjennä kaikki pelit",
+      "clearAllGamesConfirmTitle": "Tyhjennetäänkö kaikki pelit?",
+      "clearAllGamesConfirmMessage": "Tyhjentää jokaisen pelin kokoonpanon ja vaihdot tästä suunnitelmasta.",
+      "clearAllGamesConfirmWarning": "Kumoa (Pelit-välilehdellä) palauttaa ne.",
+      "clearAllGamesConfirmLabel": "Tyhjennä",
+      "clearedAllGames": "Kaikki pelit tyhjennetty"
     },
     "subs": {
       "heading": "Vaihdot",
@@ -3244,7 +3259,8 @@
       "added": "Vaihto lisätty",
       "removed": "Vaihto poistettu",
       "timeLabel": "Minuutti",
-      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})"
+      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})",
+      "inGameGroup": "Jo mukana tässä pelissä"
     },
     "balance": {
       "title": "Peliaikatasapaino",
@@ -3305,6 +3321,12 @@
       "minutes": "Minuutit",
       "plan": "Asetukset"
     },
-    "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen."
+    "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen.",
+    "swap": {
+      "done": "Vaihdettu {{a}} ja {{b}}"
+    },
+    "conflicts": {
+      "row": "{{player}} on paikoissa {{a}} ja {{b}} samaan aikaan ({{from}}'-{{to}}')"
+    }
   }
 }

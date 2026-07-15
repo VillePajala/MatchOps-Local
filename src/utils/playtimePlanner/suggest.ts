@@ -19,6 +19,7 @@ import type { PlaytimePlan, PlanGame, PlanSlotAssignment, PlanSub } from './type
 import { getGameSlots } from './lineup';
 import { defaultSubTimeSeconds, makeSub } from './subs';
 import { gameTotalSeconds } from './types';
+import { getPositionLabelForFormationPosition, getRunningIntensity } from '@/utils/positionLabels';
 
 /**
  * Generate fair lineups + half-time subs for all included games.
@@ -61,24 +62,41 @@ export function suggestFairShareLineup(plan: PlaytimePlan): PlaytimePlan {
     // full game (never subbed), so the biggest deficit gets the biggest slice -
     // and next game the accumulator hands the gloves to someone else.
     const gkSlot = slots.find((s) => s.isGoalie);
-    const outfieldSlots = slots.filter((s) => !s.isGoalie);
+    // Outfield slots ordered by RUNNING LOAD, lowest first (CB -> fullbacks ->
+    // defensive mids -> central mids -> wide mids -> wingers/striker). Ties
+    // keep preset order for determinism.
+    const outfieldSlots = slots
+      .filter((s) => !s.isGoalie)
+      .map((slot, presetIndex) => ({
+        slot,
+        presetIndex,
+        intensity: getRunningIntensity(getPositionLabelForFormationPosition(slot.relX, slot.relY).label),
+      }))
+      .sort((a, b) => a.intensity - b.intensity || a.presetIndex - b.presetIndex);
+    // Least-played starters take the LOW-running slots (they stay the whole
+    // game); the best-served of the XI take the high-running roles, which are
+    // exactly the slots the half-time rotation targets below - so the legs
+    // that tire first are also the ones that get relieved.
     const startingSlots: PlanSlotAssignment[] = [];
     let cursor = 0;
     if (gkSlot) startingSlots.push({ slotId: gkSlot.slotId, playerId: xi[cursor++] ?? null });
-    for (const slot of outfieldSlots) {
+    for (const { slot } of outfieldSlots) {
       startingSlots.push({ slotId: slot.slotId, playerId: xi[cursor++] ?? null });
     }
 
-    // Half-time subs: each bench player comes on for one outfield slot. The
-    // LAST-filled outfield slots hand over first (their starters are the
-    // best-served in the accumulator ordering), spreading minutes hardest
-    // against the current imbalance. GK is never a sub target.
+    // Half-time subs: each bench player comes on for one outfield slot,
+    // HIGHEST-running positions first (wingers/striker before midfield before
+    // defence) - fresh legs go where the running is. This also hands over the
+    // best-served starters first (they were placed into those slots above),
+    // spreading minutes hardest against the current imbalance. GK is never a
+    // sub target.
+    const filledBySlotId = new Map(startingSlots.map((a) => [a.slotId, a.playerId]));
     const subs: PlanSub[] = [];
-    const subTargets = startingSlots
-      .filter((a) => a.slotId !== gkSlot?.slotId && a.playerId !== null)
-      .reverse();
+    const subTargets = [...outfieldSlots]
+      .reverse()
+      .filter(({ slot }) => filledBySlotId.get(slot.slotId) !== null && filledBySlotId.get(slot.slotId) !== undefined);
     bench.slice(0, subTargets.length).forEach((playerId, i) => {
-      subs.push(makeSub(subTargets[i].slotId, playerId, half));
+      subs.push(makeSub(subTargets[i].slot.slotId, playerId, half));
     });
 
     // Update the accumulator with this game's outcome.

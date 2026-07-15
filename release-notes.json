@@ -2,6 +2,59 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-15",
+      "en": [
+        "Match planner: the planning field now looks like the real pitch - the same textured grass, mowing stripes and full markings as the live game field, with player discs that sit on the grass and lift when picked, and a proper sideline bench."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: suunnittelukenttä näyttää nyt oikealta kentältä - sama nurmi, leikkuuraidat ja täydet kenttämerkinnät kuin pelinäkymässä, pelaajakiekot istuvat nurmella ja nousevat valittaessa, ja penkki sai oman sivurajakaistansa."
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "en": [
+        "Match planner: suggested lineups now aim substitutions at the highest-running positions first - wingers and the striker rotate before midfield, defence stays settled."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: ehdotetut kokoonpanot kohdistavat vaihdot nyt ensin eniten juokseviin pelipaikkoihin - laiturit ja kärki kiertävät ennen keskikenttää, puolustus pysyy vakaana."
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "en": [
+        "Match planner: the substitution editor is reachable from any part of a rotation pill again - tap any segment and choose Sub to add more changes to that position."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: vaihtojen muokkaus onnistuu taas kiertopillerin mistä tahansa osasta - napauta mitä tahansa palaa ja valitse Vaihto lisätäksesi paikkaan lisää vaihtoja."
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "en": [
+        "Match planner: swap players by tapping - tap any player on the field (or any part of a rotation pill), then tap another, and they trade places for the whole game.",
+        "Match planner: tap a player and then an empty spot to move them there; tap a rotation segment and a bench player to hand that stint over.",
+        "Match planner: clear one position completely (including its planned substitutions) or clear the whole field with one tap."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: vaihda pelaajat napauttamalla - napauta pelaajaa kentällä (tai kiertopillerin osaa) ja sitten toista, niin he vaihtavat paikkoja koko pelin osalta.",
+        "Ottelusuunnittelu: napauta pelaajaa ja sitten tyhjää paikkaa siirtääksesi hänet sinne; napauta vaihtopalaa ja penkkipelaajaa antaaksesi vuoron hänelle.",
+        "Ottelusuunnittelu: tyhjennä yksi pelipaikka kokonaan (myös suunnitellut vaihdot) tai koko kenttä yhdellä napautuksella."
+      ]
+    },
+    {
+      "date": "2026-07-15",
+      "en": [
+        "Match planner: swap two players' roles for a whole game in one tap (lineup and substitutions trade together).",
+        "Match planner: any player can now be picked for a substitution - rotate two players in one position as often as you like.",
+        "Match planner: if a plan puts a player in two positions at the same time, the lineup now shows a clear warning."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: vaihda kahden pelaajan roolit koko pelin osalta yhdellä napautuksella (avauskokoonpano ja vaihdot vaihtuvat yhdessä).",
+        "Ottelusuunnittelu: vaihtoon voi nyt valita kenet tahansa - kierrätä kahta pelaajaa samassa paikassa niin usein kuin haluat.",
+        "Ottelusuunnittelu: jos suunnitelma laittaa pelaajan kahteen paikkaan samaan aikaan, kokoonpanossa näkyy nyt selkeä varoitus."
+      ]
+    },
+    {
       "date": "2026-07-14",
       "en": [
         "Match planner polish: screen readers now announce substitution changes, and keyboard focus stays inside the substitution sheet after removing a planned change."
