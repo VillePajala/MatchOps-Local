@@ -11,6 +11,9 @@
  * Wave L.0b: Settings + Instructions (handlers extracted to
  * useAppSettingsController; Instructions open-state moved to ModalProvider),
  * plus the Settings-owned hard-reset confirm dialog and resetting overlay.
+ * Wave L.1: SeasonTournament + Personnel (query-backed CRUD; hook instances
+ * useSeasonTournamentManagement/usePersonnelManager live here - query keys
+ * are shared with the game side, so React Query dedupes).
  * Later waves move the remaining club modals here - see
  * two-level-app-structure.md §6. A modal must NEVER render both here and in
  * ModalManager (dual-render guard: the ModalManager block is deleted in the
@@ -26,12 +29,16 @@ import { useTranslation } from 'react-i18next';
 import { useModalContext } from '@/contexts/ModalProvider';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
+import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
+import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
 const RulesDirectoryModal = dynamic(() => import('@/components/RulesDirectoryModal'));
 const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
 const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
+const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
+const PersonnelManagerModal = dynamic(() => import('@/components/PersonnelManagerModal'));
 
 export default function ClubModalsHost() {
   const { t } = useTranslation();
@@ -45,15 +52,23 @@ export default function ClubModalsHost() {
     isSettingsModalOpen,
     setIsSettingsModalOpen,
     settingsInitialTab,
+    isSeasonTournamentModalOpen,
+    setIsSeasonTournamentModalOpen,
+    isPersonnelManagerOpen,
+    setIsPersonnelManagerOpen,
   } = useModalContext();
 
   const settings = useAppSettingsController();
+  const seasonTournament = useSeasonTournamentManagement();
+  const personnelManager = usePersonnelManager();
 
   // Hardware-back contract (modal governance): back closes the topmost modal.
   useModalHardwareBack(isTrainingResourcesOpen, () => setIsTrainingResourcesOpen(false));
   useModalHardwareBack(isRulesDirectoryOpen, () => setIsRulesDirectoryOpen(false));
   useModalHardwareBack(isInstructionsModalOpen, () => setIsInstructionsModalOpen(false));
   useModalHardwareBack(isSettingsModalOpen, () => setIsSettingsModalOpen(false));
+  useModalHardwareBack(isSeasonTournamentModalOpen, () => setIsSeasonTournamentModalOpen(false));
+  useModalHardwareBack(isPersonnelManagerOpen, () => setIsPersonnelManagerOpen(false));
   // The hard-reset confirm stacks ON TOP of Settings - it must register too,
   // or back would close Settings underneath and orphan a destructive dialog.
   // (Registered after Settings so a same-render mount keeps it topmost.)
@@ -95,6 +110,33 @@ export default function ClubModalsHost() {
       )}
       {isInstructionsModalOpen && (
         <InstructionsModal isOpen onClose={() => setIsInstructionsModalOpen(false)} />
+      )}
+      {isSeasonTournamentModalOpen && (
+        <SeasonTournamentManagementModal
+          isOpen
+          onClose={() => setIsSeasonTournamentModalOpen(false)}
+          seasons={seasonTournament.seasons}
+          tournaments={seasonTournament.tournaments}
+          masterRoster={seasonTournament.masterRoster}
+          addSeasonMutation={seasonTournament.addSeasonMutation}
+          addTournamentMutation={seasonTournament.addTournamentMutation}
+          updateSeasonMutation={seasonTournament.updateSeasonMutation}
+          deleteSeasonMutation={seasonTournament.deleteSeasonMutation}
+          updateTournamentMutation={seasonTournament.updateTournamentMutation}
+          deleteTournamentMutation={seasonTournament.deleteTournamentMutation}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
+        />
+      )}
+      {isPersonnelManagerOpen && (
+        <PersonnelManagerModal
+          isOpen
+          onClose={() => setIsPersonnelManagerOpen(false)}
+          personnel={personnelManager.personnel}
+          onAddPersonnel={personnelManager.addPersonnel}
+          onUpdatePersonnel={personnelManager.updatePersonnel}
+          onRemovePersonnel={personnelManager.removePersonnel}
+          isUpdating={personnelManager.isLoading}
+        />
       )}
       {isSettingsModalOpen && (
         <SettingsModal
