@@ -17,6 +17,8 @@ interface ModalContextValue {
   setIsTrainingResourcesOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isRulesDirectoryOpen: boolean;
   setIsRulesDirectoryOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isInstructionsModalOpen: boolean;
+  setIsInstructionsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isGoalLogModalOpen: boolean;
   setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isGameStatsModalOpen: boolean;
@@ -45,6 +47,9 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [isTrainingResourcesOpen, setIsTrainingResourcesOpen] = useState(false);
   const [isRulesDirectoryOpen, setIsRulesDirectoryOpen] = useState(false);
+  // L.0b: Instructions open-state lifted here from useModalOrchestration so the
+  // page-level ClubModalsHost (and Settings' "show app guide" chain) can drive it.
+  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
@@ -213,6 +218,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsTrainingResourcesOpen,
     isRulesDirectoryOpen,
     setIsRulesDirectoryOpen,
+    isInstructionsModalOpen,
+    setIsInstructionsModalOpen,
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
     isGameStatsModalOpen: modalState.gameStats,
@@ -234,6 +241,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     modalState.seasonTournament, setIsSeasonTournamentModalOpen,
     isTrainingResourcesOpen, setIsTrainingResourcesOpen,
     isRulesDirectoryOpen, setIsRulesDirectoryOpen,
+    isInstructionsModalOpen, setIsInstructionsModalOpen,
     isGoalLogModalOpen, setIsGoalLogModalOpen,
     modalState.gameStats, setIsGameStatsModalOpen,
     modalState.newGameSetup, setIsNewGameSetupModalOpen,

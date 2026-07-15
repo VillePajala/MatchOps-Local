@@ -269,11 +269,8 @@ export default function Home() {
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
-  const handleDataImportSuccess = useCallback(() => {
-    // Trigger app state refresh after data import
-    setRefreshTrigger(prev => prev + 1);
-    // Stay in current screen - modal will close naturally after user clicks Continue
-  }, []);
+  // handleDataImportSuccess removed (L.0b): the SettingsModal prop it fed was
+  // dead - backup restore uses a full page reload, not a state refresh.
 
   // ============================================================================
   // WELCOME SCREEN HANDLERS (First-Install Onboarding)
@@ -1355,7 +1352,6 @@ export default function Home() {
               <HomePage
                 initialAction={initialAction ?? undefined}
                 skipInitialSetup
-                onDataImportSuccess={handleDataImportSuccess}
                 isFirstTimeUser={isFirstTimeUser}
                 onGoToStartScreen={handleGoToStartScreen}
                 initialGameType={lastGameType}
