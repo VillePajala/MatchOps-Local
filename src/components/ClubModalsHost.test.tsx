@@ -57,6 +57,34 @@ jest.mock('@/hooks/useAppSettingsController', () => ({
   default: () => mockController,
 }));
 
+jest.mock('@/components/SeasonTournamentManagementModal', () => ({
+  __esModule: true,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="season-tournament-modal"><button onClick={onClose}>close-season</button></div>
+  ),
+}));
+jest.mock('@/components/PersonnelManagerModal', () => ({
+  __esModule: true,
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="personnel-modal"><button onClick={onClose}>close-personnel</button></div>
+  ),
+}));
+jest.mock('@/hooks/useSeasonTournamentManagement', () => ({
+  __esModule: true,
+  useSeasonTournamentManagement: () => ({
+    seasons: [], tournaments: [], masterRoster: [],
+    addSeasonMutation: {}, addTournamentMutation: {}, updateSeasonMutation: {},
+    deleteSeasonMutation: {}, updateTournamentMutation: {}, deleteTournamentMutation: {},
+  }),
+}));
+jest.mock('@/hooks/usePersonnelManager', () => ({
+  __esModule: true,
+  usePersonnelManager: () => ({
+    personnel: [], isLoading: false, error: null,
+    addPersonnel: jest.fn(), updatePersonnel: jest.fn(), removePersonnel: jest.fn(),
+  }),
+}));
+
 function Opener() {
   const {
     setIsTrainingResourcesOpen,
@@ -64,6 +92,8 @@ function Opener() {
     setIsInstructionsModalOpen,
     setIsSettingsModalOpen,
     openSettingsToTab,
+    setIsSeasonTournamentModalOpen,
+    setIsPersonnelManagerOpen,
   } = useModalContext();
   return (
     <>
@@ -72,6 +102,8 @@ function Opener() {
       <button onClick={() => setIsInstructionsModalOpen(true)}>open-instructions</button>
       <button onClick={() => setIsSettingsModalOpen(true)}>open-settings</button>
       <button onClick={() => openSettingsToTab('data')}>open-settings-data</button>
+      <button onClick={() => setIsSeasonTournamentModalOpen(true)}>open-season</button>
+      <button onClick={() => setIsPersonnelManagerOpen(true)}>open-personnel</button>
     </>
   );
 }
@@ -108,6 +140,24 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     await waitFor(() => expect(screen.getByTestId('training-modal')).toBeInTheDocument());
     fireEvent.click(screen.getByText('open-rules'));
     await waitFor(() => expect(screen.getByTestId('rules-modal')).toBeInTheDocument());
+  });
+
+  it('renders SeasonTournament and Personnel at host level, back closes them (L.1)', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-season'));
+    await waitFor(() => expect(screen.getByTestId('season-tournament-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('open-personnel'));
+    await waitFor(() => expect(screen.getByTestId('personnel-modal')).toBeInTheDocument());
+    // Hardware back (governance): closes topmost (Personnel) first, then Season.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await waitFor(() => expect(screen.queryByTestId('personnel-modal')).not.toBeInTheDocument());
+    expect(screen.getByTestId('season-tournament-modal')).toBeInTheDocument();
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await waitFor(() => expect(screen.queryByTestId('season-tournament-modal')).not.toBeInTheDocument());
   });
 
   it('renders Settings and Instructions at host level (L.0b)', async () => {

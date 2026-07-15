@@ -432,6 +432,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     openSettingsToTab,
     // L.0b: Instructions open-state lives in ModalProvider (modal renders in ClubModalsHost)
     setIsInstructionsModalOpen,
+    // L.1: Personnel open-state lives in ModalProvider (modal renders in ClubModalsHost)
+    setIsPersonnelManagerOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
@@ -2670,9 +2672,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Get modalManagerProps, modal state, setters, and handlers from useModalOrchestration hook
   const {
     modalManagerProps,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
-    isPersonnelManagerOpen,
-    setIsPersonnelManagerOpen,
+    // isPersonnelManagerOpen lifted to ModalProvider (L.1)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
     isTeamManagerOpen,
     setIsTeamManagerOpen,
