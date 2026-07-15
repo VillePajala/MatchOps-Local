@@ -344,10 +344,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     setIsRosterModalOpen,
     isSeasonTournamentModalOpen,
     setIsSeasonTournamentModalOpen,
-    isTrainingResourcesOpen,
-    setIsTrainingResourcesOpen,
-    isRulesDirectoryOpen,
-    setIsRulesDirectoryOpen,
     isGoalLogModalOpen,
     // setIsGoalLogModalOpen not used - modal controlled by timer management
     isGameStatsModalOpen,
@@ -371,14 +367,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   // showHardResetConfirm, showSaveBeforeNewConfirm: Passed from useGameOrchestration via ui
 
   // --- Modal Handlers ---
-
-  const handleToggleTrainingResources = useCallback(() => {
-    setIsTrainingResourcesOpen((prev) => !prev);
-  }, [setIsTrainingResourcesOpen]);
-
-  const handleToggleRulesDirectory = useCallback(() => {
-    setIsRulesDirectoryOpen((prev) => !prev);
-  }, [setIsRulesDirectoryOpen]);
 
   const handleToggleInstructionsModal = useCallback(() => {
     setIsInstructionsModalOpen((prev) => !prev);
@@ -501,8 +489,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
 
   const modalManagerProps: ModalManagerProps = {
     state: {
-      isTrainingResourcesOpen,
-      isRulesDirectoryOpen,
       isInstructionsModalOpen,
       isPersonnelManagerOpen,
       isTeamManagerOpen,
@@ -574,8 +560,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       updateGameDetailsMutation,
     },
     handlers: {
-      toggleTrainingResources: handleToggleTrainingResources,
-      toggleRulesDirectory: handleToggleRulesDirectory,
       toggleInstructionsModal: handleToggleInstructionsModal,
       closePersonnelManager: () => setIsPersonnelManagerOpen(false),
       closeTeamManagerModal: handleCloseTeamManagerModal,

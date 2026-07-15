@@ -17,8 +17,6 @@ const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
 const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
 const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
 const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
-const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
-const RulesDirectoryModal = dynamic(() => import('@/components/RulesDirectoryModal'));
 const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
 import type {
   Player,
@@ -62,8 +60,6 @@ type SettingsTab = 'general' | 'data' | 'account' | 'about';
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalManagerState {
-  isTrainingResourcesOpen: boolean;
-  isRulesDirectoryOpen: boolean;
   isInstructionsModalOpen: boolean;
   isPersonnelManagerOpen: boolean;
   isTeamManagerOpen: boolean;
@@ -117,8 +113,6 @@ interface ModalManagerData {
 }
 
 interface ModalManagerHandlers {
-  toggleTrainingResources: () => void;
-  toggleRulesDirectory: () => void;
   toggleInstructionsModal: () => void;
   closePersonnelManager: () => void;
   closeTeamManagerModal: () => void;
@@ -248,15 +242,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
   return (
     <ModalPortal>
       <>
-        <TrainingResourcesModal
-          isOpen={state.isTrainingResourcesOpen}
-          onClose={handlers.toggleTrainingResources}
-        />
-        <RulesDirectoryModal
-          isOpen={state.isRulesDirectoryOpen}
-          onClose={handlers.toggleRulesDirectory}
-        />
-
+        {/* TrainingResources + RulesDirectory LIFTED to ClubModalsHost (L.0a)
+            - never render them here again (dual-render guard). */}
         <InstructionsModal
           isOpen={state.isInstructionsModalOpen}
           onClose={handlers.toggleInstructionsModal}

@@ -8,6 +8,7 @@ import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import BackupReminderBanner from '@/components/BackupReminderBanner';
+import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -1209,6 +1210,9 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
+        {/* Club/app-scope modals render at PAGE level (two-level restructure
+            L-waves): opening them from Home never mounts the match view. */}
+        <ClubModalsHost />
         {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
             pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.
             Valid for single-line banner text. If banner wraps on very narrow screens (<320px),

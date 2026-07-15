@@ -361,7 +361,7 @@ describe('useModalOrchestration', () => {
       const { state } = result.current.modalManagerProps;
 
       // 13 modals
-      expect(state).toHaveProperty('isTrainingResourcesOpen');
+      // isTrainingResourcesOpen/isRulesDirectoryOpen LIFTED to ClubModalsHost (L.0a)
       expect(state).toHaveProperty('isInstructionsModalOpen');
       expect(state).toHaveProperty('isPersonnelManagerOpen');
       expect(state).toHaveProperty('isTeamManagerOpen');
@@ -418,7 +418,6 @@ describe('useModalOrchestration', () => {
       expect(state.isLoadGameModalOpen).toBe(false);
       expect(state.isRosterModalOpen).toBe(false);
       expect(state.isSeasonTournamentModalOpen).toBe(false);
-      expect(state.isTrainingResourcesOpen).toBe(false);
       expect(state.isGoalLogModalOpen).toBe(false);
       expect(state.isGameStatsModalOpen).toBe(false);
       expect(state.isNewGameSetupModalOpen).toBe(false);
@@ -542,7 +541,6 @@ describe('useModalOrchestration', () => {
       const secondHandlers = result.current.modalManagerProps.handlers;
 
       // Handler functions should be the same reference (memoized)
-      expect(firstHandlers.toggleTrainingResources).toBe(secondHandlers.toggleTrainingResources);
       expect(firstHandlers.toggleInstructionsModal).toBe(secondHandlers.toggleInstructionsModal);
       expect(firstHandlers.closeTeamManagerModal).toBe(secondHandlers.closeTeamManagerModal);
     });
