@@ -186,14 +186,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setAvailablePlayers,
     highlightRosterButton,
     setHighlightRosterButton,
-    isRosterUpdating,
     setRosterError,
-    rosterError,
     playersForCurrentGame,
-    handleAddPlayer,
-    handleUpdatePlayer,
-    handleRemovePlayer,
-    // handleSetGoalieStatus, // No longer used - using per-game implementation
+    // handleAdd/Update/RemovePlayer + isRosterUpdating/rosterError now used
+    // only by the lifted roster modal (useRosterSettingsController, L.2).
+    // handleSetGoalieStatus: no longer used - using per-game implementation
   } = useRoster({
     initialPlayers: initialState.availablePlayers,
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
@@ -371,6 +368,47 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // setSeasons and setTournaments removed - using gameDataManagement.seasons/tournaments directly
   });
 
+  // L.2: club-roster deletions now happen in the lifted roster modal
+  // (useRosterSettingsController), so the cascade that used to live in the
+  // modal's remove handler runs here instead: when a player disappears from
+  // the shared masterRoster query DURING the session, prune them from the
+  // live field and the game's selection (an orphaned token could carry an
+  // orphaned goalie flag). Only ids seen in a PREVIOUS roster snapshot are
+  // pruned - loading a legacy game whose players were deleted long ago is
+  // untouched, matching the old explicit-cascade semantics.
+  const prevRosterIdsRef = useRef<Set<string> | null>(null);
+  // Selection read via ref so roster changes are the effect's only trigger
+  // (assigned in an effect - refs must not be written during render).
+  const selectedPlayerIdsForPruneRef = useRef<string[]>(gameSessionState.selectedPlayerIds);
+  useEffect(() => {
+    selectedPlayerIdsForPruneRef.current = gameSessionState.selectedPlayerIds;
+  }, [gameSessionState.selectedPlayerIds]);
+  const masterRosterForPrune = gameDataManagement.masterRoster;
+  useEffect(() => {
+    const currentIds = new Set((masterRosterForPrune || []).map(p => p.id));
+    const prevIds = prevRosterIdsRef.current;
+    prevRosterIdsRef.current = currentIds;
+    if (!prevIds) return;
+    const removedIds = [...prevIds].filter(id => !currentIds.has(id));
+    if (removedIds.length === 0) return;
+    const removedSet = new Set(removedIds);
+    setPlayersOnField(current =>
+      current.some(p => removedSet.has(p.id))
+        ? current.filter(p => !removedSet.has(p.id))
+        : current
+    );
+    const selected = selectedPlayerIdsForPruneRef.current;
+    if (selected.some(id => removedSet.has(id))) {
+      dispatchGameSession({
+        type: 'SET_SELECTED_PLAYER_IDS',
+        payload: selected.filter(id => !removedSet.has(id)),
+      });
+    }
+  // setPlayersOnField/dispatchGameSession are stable; selection read via ref
+  // so roster changes are the ONLY trigger.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [masterRosterForPrune]);
+
   // Local state for savedGames - DO NOT replace with React Query cache directly!
   // The useState ensures local state persists across renders and isn't affected by
   // query cache invalidations. Previous attempt to use useMemo + queryClient.setQueryData
@@ -434,14 +472,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsInstructionsModalOpen,
     // L.1: Personnel open-state lives in ModalProvider (modal renders in ClubModalsHost)
     setIsPersonnelManagerOpen,
+    // L.2: TeamManager open-state lives in ModalProvider (modal renders in ClubModalsHost)
+    setIsTeamManagerOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
 
-  // Refs for setters declared later (from useModalOrchestration, called after all handlers).
-  // Using refs avoids temporal dead zone while keeping useCallback deps complete.
-  const setIsTeamManagerOpenRef = useRef<(v: boolean) => void>(() => {});
 
   const openLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(true), [setIsLoadGameModalOpen]);
   const closeLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(false), [setIsLoadGameModalOpen]);
@@ -490,20 +527,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // showToast already defined earlier (needed by useFieldCoordination)
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
-  const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
-   
-  const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
+  // selectedPlayerForStats LIFTED to ModalProvider (L.2); the write-only
+  // selectedTeamForRoster state was dead and is deleted with the lift.
 
   // handleCreateBackup + handleCloudDataDownload LIFTED to useAppSettingsController (L.0b).
 
-  const handleManageTeamRosterFromNewGame = useCallback((teamId?: string) => {
+  const handleManageTeamRosterFromNewGame = useCallback((_teamId?: string) => {
     closeNewGameViaReducer();
     setPlayerIdsForNewGame(null);
-    setIsTeamManagerOpenRef.current(true);
-    if (teamId) {
-      setSelectedTeamForRoster(teamId);
-    }
-  }, [closeNewGameViaReducer]);
+    setIsTeamManagerOpen(true);
+  }, [closeNewGameViaReducer, setIsTeamManagerOpen]);
 
   // --- Timer Management Hook (Step 2.6.5) ---
   const timerManagement = useTimerManagement({
@@ -624,7 +657,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         openRosterViaReducer();
         break;
       case 'teams':
-        setIsTeamManagerOpenRef.current(true);
+        setIsTeamManagerOpen(true);
         break;
       case 'personnel':
         setIsPersonnelManagerOpen(true);
@@ -654,10 +687,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       default:
         break;
     }
-  // Omitting stable React setters from deps: setIsGameStatsModalOpen, setIsSettingsModalOpen
-  // (from useModalContext — stable by React guarantee), setShowNoPlayersConfirm, setPlayerIdsForNewGame
-  // (declared after this effect due to hook call order). processedInitialActionRef guard prevents stale closures.
-  // setIsTeamManagerOpen uses ref pattern to avoid TDZ.
+  // Omitting stable React setters from deps: setIsGameStatsModalOpen, setIsSettingsModalOpen,
+  // setIsTeamManagerOpen (from useModalContext — stable by React guarantee), setShowNoPlayersConfirm,
+  // setPlayerIdsForNewGame (declared after this effect due to hook call order).
+  // processedInitialActionRef guard prevents stale closures.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAction, availablePlayers.length, gameSessionState.selectedPlayerIds,
       openLoadGameViaReducer, openNewGameViaReducer, openSeasonTournamentViaReducer, openRosterViaReducer]);
@@ -1501,124 +1534,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   }, [currentGameId, deleteAssessment]);
 
-  // --- Roster Management Handlers for RosterSettingsModal ---
-  const handleRenamePlayerForModal = useCallback(async (playerId: string, playerData: { name: string; nickname?: string }) => {
-    logger.log(`[Page.tsx] handleRenamePlayerForModal attempting mutation for ID: ${playerId}, new name: ${playerData.name}`);
-    setRosterError(null); // Clear previous specific errors
-    try {
-      await handleUpdatePlayer(playerId, { name: playerData.name, nickname: playerData.nickname });
-      logger.log(`[Page.tsx] rename player success for ${playerId}.`);
-    } catch (error) {
-      logger.error(`[Page.tsx] Exception during rename of ${playerId}:`, error);
-    }
-  }, [handleUpdatePlayer, setRosterError]);
-  
-  const handleSetJerseyNumberForModal = useCallback(async (playerId: string, jerseyNumber: string) => {
-    logger.log(`[Page.tsx] handleSetJerseyNumberForModal attempting mutation for ID: ${playerId}, new number: ${jerseyNumber}`);
-    setRosterError(null);
+  // Roster Management handlers for RosterSettingsModal LIFTED to
+  // useRosterSettingsController (L.2) - the modal renders in ClubModalsHost.
+  // Deleted-player pruning from the live game happens in the effect below
+  // (observes the shared masterRoster query).
 
-    try {
-      await handleUpdatePlayer(playerId, { jerseyNumber });
-      logger.log(`[Page.tsx] jersey number update successful for ${playerId}.`);
-    } catch (error) {
-      logger.error(`[Page.tsx] Exception during jersey number update of ${playerId}:`, error);
-    }
-  }, [handleUpdatePlayer, setRosterError]);
-
-  const handleSetPlayerNotesForModal = useCallback(async (playerId: string, notes: string) => {
-    logger.log(`[Page.tsx] handleSetPlayerNotesForModal attempting mutation for ID: ${playerId}`);
-    setRosterError(null);
-
-    try {
-      await handleUpdatePlayer(playerId, { notes });
-      logger.log(`[Page.tsx] notes update successful for ${playerId}.`);
-    } catch (error) {
-      logger.error(`[Page.tsx] Exception during notes update of ${playerId}:`, error);
-    }
-  }, [handleUpdatePlayer, setRosterError]);
-
-  // Unified update handler for RosterSettingsModal (prevents race conditions)
-  const handleUpdatePlayerForModal = useCallback(async (playerId: string, updates: Partial<Omit<Player, 'id'>>) => {
-    logger.log(`[Page.tsx] handleUpdatePlayerForModal attempting mutation for ID: ${playerId}, updates:`, updates);
-    setRosterError(null);
-
-    try {
-      await handleUpdatePlayer(playerId, updates);
-      logger.log(`[Page.tsx] player update successful for ${playerId}.`);
-    } catch (error) {
-      logger.error(`[Page.tsx] Exception during update of ${playerId}:`, error);
-    }
-  }, [handleUpdatePlayer, setRosterError]);
-
-    const handleRemovePlayerForModal = useCallback(async (playerId: string) => {
-      logger.log(`[Page.tsx] handleRemovePlayerForModal attempting mutation for ID: ${playerId}`);
-      setRosterError(null);
-
-      try {
-        const removed = await handleRemovePlayer(playerId);
-        logger.log(`[Page.tsx] player removed: ${playerId}.`);
-        // Cascade: a deleted roster player must not linger on the field or in the
-        // game's selection (which would leave an orphaned player — and possibly an
-        // orphaned goalie flag — in the active game).
-        if (removed) {
-          setPlayersOnField(current => current.filter(p => p.id !== playerId));
-          dispatchGameSession({
-            type: 'SET_SELECTED_PLAYER_IDS',
-            payload: gameSessionState.selectedPlayerIds.filter(id => id !== playerId),
-          });
-        }
-      } catch (error) {
-        logger.error(`[Page.tsx] Exception during removal of ${playerId}:`, error);
-      }
-    }, [handleRemovePlayer, setRosterError, setPlayersOnField, dispatchGameSession, gameSessionState.selectedPlayerIds]);
-
-    // ... (rest of the code remains unchanged)
-
-    const handleAddPlayerForModal = useCallback(async (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => {
-      logger.log('[Page.tsx] handleAddPlayerForModal attempting to add player:', playerData);
-      setRosterError(null); // Clear previous specific errors first
-
-      const currentRoster = gameDataManagement.masterRoster || [];
-      const newNameTrimmedLower = playerData.name.trim().toLowerCase();
-      const newNumberTrimmed = playerData.jerseyNumber.trim();
-
-      // Check for empty name after trimming
-      if (!newNameTrimmedLower) {
-        setRosterError(t('rosterSettingsModal.errors.nameRequired', 'Player name cannot be empty.'));
-        return;
-      }
-
-      // Check for duplicate name (case-insensitive)
-      const nameExists = currentRoster.some(p => p.name.trim().toLowerCase() === newNameTrimmedLower);
-      if (nameExists) {
-        setRosterError(t('rosterSettingsModal.errors.duplicateName', 'A player with this name already exists. Please use a different name.'));
-        return;
-      }
-
-      // Check for duplicate jersey number (only if a number is provided and not empty)
-      if (newNumberTrimmed) {
-        const numberExists = currentRoster.some(p => p.jerseyNumber && p.jerseyNumber.trim() === newNumberTrimmed);
-        if (numberExists) {
-          setRosterError(t('rosterSettingsModal.errors.duplicateNumber', 'A player with this jersey number already exists. Please use a different number or leave it blank.'));
-          return;
-        }
-      }
-
-      // If all checks pass, proceed with the mutation
-      try {
-        logger.log('[Page.tsx] No duplicates found. Proceeding with addPlayer for:', playerData);
-        await handleAddPlayer(playerData);
-        logger.log(`[Page.tsx] add player success: ${playerData.name}.`);
-      } catch (error) {
-        // This catch block is for unexpected errors directly from mutateAsync call itself (e.g., network issues before mutationFn runs).
-        // Errors from within mutationFn (like from the addPlayer utility) should ideally be handled by the mutation's onError callback.
-        logger.error(`[Page.tsx] Exception during addPlayerMutation.mutateAsync for player ${playerData.name}:`, error);
-        // Set a generic error message if rosterError hasn't been set by the mutation's onError callback.
-        setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
-      }
-    }, [gameDataManagement.masterRoster, handleAddPlayer, t, setRosterError]);
-
-    // ... (rest of the code remains unchanged)
 
   // Authoritative per-game goalie setter, shared by the manual toggle button and
   // position-driven promotion. Enforces a single goalie across BOTH availablePlayers
@@ -2346,16 +2266,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     logger.log('[page.tsx] About to render PlayerBar, gameEvents for PlayerBar:', JSON.stringify(gameSessionState.gameEvents));
   }
 
-  const handleOpenPlayerStats = useCallback((playerId: string) => {
-    const player = availablePlayers.find(p => p.id === playerId);
-    if (player) {
-      setSelectedPlayerForStats(player);
-      setIsGameStatsModalOpen(true);
-      closeRosterViaReducer(); // Close the roster modal
-    }
-  }, [availablePlayers, closeRosterViaReducer, setIsGameStatsModalOpen]);
+  // handleOpenPlayerStats LIFTED to ClubModalsHost (L.2) - it sets the
+  // shared selectedPlayerForStats deep-link in ModalProvider.
 
-  
 
   const handleGameLogClick = useCallback((gameId: string) => {
     setCurrentGameId(gameId);
@@ -2590,8 +2503,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       currentGameId,
       canReapplyPlan,
       playerAssessments,
-      selectedPlayerForStats,
-      setSelectedPlayerForStats,
       playerIdsForNewGame,
       newGameDemandFactor,
       setNewGameDemandFactor,
@@ -2600,14 +2511,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       gameIdentifierForSave,
       isPlayed,
       setIsPlayed,
-      isRosterUpdating,
-      rosterError,
       isLoadingGamesList,
       loadGamesListError,
       updateGameDetailsMutation,
       isTeamReassignModalOpen,
       setIsTeamReassignModalOpen,
-      setSelectedTeamForRoster,
       showSaveBeforeNewConfirm,
       showNoPlayersConfirm,
       setShowNoPlayersConfirm,
@@ -2623,13 +2531,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleExportOneJson,
       handleStartNewGameWithSetup,
       handleCancelNewGameSetup,
-      handleUpdatePlayerForModal,
-      handleRenamePlayerForModal,
-      handleSetJerseyNumberForModal,
-      handleSetPlayerNotesForModal,
-      handleRemovePlayerForModal,
-      handleAddPlayerForModal,
-      handleOpenPlayerStats,
       handleTeamNameChange,
       handleOpponentNameChange,
       handleGameDateChange,
@@ -2669,22 +2570,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     },
   });
 
-  // Get modalManagerProps, modal state, setters, and handlers from useModalOrchestration hook
-  const {
-    modalManagerProps,
-    // isPersonnelManagerOpen lifted to ModalProvider (L.1)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
-    isTeamManagerOpen,
-    setIsTeamManagerOpen,
-    // handleToggleGameStatsModal, handleToggleInstructionsModal, handleOpenSettingsModal
-    // removed - these are no longer returned from useModalOrchestration
-  } = modalOrchestration;
-
-  // Assign refs in effect (not during render) for React 19 concurrent mode compliance.
-  // useState setters are stable so the effect only runs once on mount.
-  useEffect(() => {
-    setIsTeamManagerOpenRef.current = setIsTeamManagerOpen;
-  }, [setIsTeamManagerOpen]);
+  // Get modalManagerProps from useModalOrchestration hook
+  // (isPersonnelManagerOpen lifted to ModalProvider in L.1; isTeamManagerOpen in L.2)
+  const { modalManagerProps } = modalOrchestration;
 
   return {
     gameContainerProps,

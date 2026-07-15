@@ -14,6 +14,12 @@
  * Wave L.1: SeasonTournament + Personnel (query-backed CRUD; hook instances
  * useSeasonTournamentManagement/usePersonnelManager live here - query keys
  * are shared with the game side, so React Query dedupes).
+ * Wave L.2: Roster + TeamManager (useRosterSettingsController owns the club
+ * roster editing; the game side consumes roster changes via the query cache
+ * and prunes deleted players from the live field/selection itself). The
+ * roster modal's player-stats shortcut sets the shared player deep-link and
+ * asks the page (onEnterMatchForPlayerStats) to mount the match view, where
+ * GameStats still renders until L.4.
  * Later waves move the remaining club modals here - see
  * two-level-app-structure.md §6. A modal must NEVER render both here and in
  * ModalManager (dual-render guard: the ModalManager block is deleted in the
@@ -31,6 +37,8 @@ import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
+import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
+import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
@@ -39,8 +47,16 @@ const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
 const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
 const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
 const PersonnelManagerModal = dynamic(() => import('@/components/PersonnelManagerModal'));
+const RosterSettingsModal = dynamic(() => import('@/components/RosterSettingsModal'));
+const TeamManagerModal = dynamic(() => import('@/components/TeamManagerModal'));
 
-export default function ClubModalsHost() {
+export interface ClubModalsHostProps {
+  /** Mounts the match view (page owns the screen state) so GameStats - still
+   *  match-side until L.4 - can open for the roster modal's stats shortcut. */
+  onEnterMatchForPlayerStats?: () => void;
+}
+
+export default function ClubModalsHost({ onEnterMatchForPlayerStats }: ClubModalsHostProps = {}) {
   const { t } = useTranslation();
   const {
     isTrainingResourcesOpen,
@@ -56,11 +72,31 @@ export default function ClubModalsHost() {
     setIsSeasonTournamentModalOpen,
     isPersonnelManagerOpen,
     setIsPersonnelManagerOpen,
+    isRosterModalOpen,
+    setIsRosterModalOpen,
+    isTeamManagerOpen,
+    setIsTeamManagerOpen,
+    setSelectedPlayerForStats,
+    setIsGameStatsModalOpen,
   } = useModalContext();
 
   const settings = useAppSettingsController();
   const seasonTournament = useSeasonTournamentManagement();
   const personnelManager = usePersonnelManager();
+  const rosterSettings = useRosterSettingsController();
+  const { data: teams = [] } = useTeamsQuery();
+
+  // Roster modal's per-player stats shortcut: set the shared deep-link, open
+  // GameStats (renders match-side until L.4) and make sure the match view is
+  // mounted. In-match this opens instantly; from Home it enters the match.
+  const handleOpenPlayerStats = (playerId: string) => {
+    const player = rosterSettings.availablePlayers.find((p) => p.id === playerId);
+    if (!player) return;
+    setSelectedPlayerForStats(player);
+    setIsRosterModalOpen(false);
+    setIsGameStatsModalOpen(true);
+    onEnterMatchForPlayerStats?.();
+  };
 
   // Hardware-back contract (modal governance): back closes the topmost modal.
   useModalHardwareBack(isTrainingResourcesOpen, () => setIsTrainingResourcesOpen(false));
@@ -69,6 +105,8 @@ export default function ClubModalsHost() {
   useModalHardwareBack(isSettingsModalOpen, () => setIsSettingsModalOpen(false));
   useModalHardwareBack(isSeasonTournamentModalOpen, () => setIsSeasonTournamentModalOpen(false));
   useModalHardwareBack(isPersonnelManagerOpen, () => setIsPersonnelManagerOpen(false));
+  useModalHardwareBack(isRosterModalOpen, () => setIsRosterModalOpen(false));
+  useModalHardwareBack(isTeamManagerOpen, () => setIsTeamManagerOpen(false));
   // The hard-reset confirm stacks ON TOP of Settings - it must register too,
   // or back would close Settings underneath and orphan a destructive dialog.
   // (Registered after Settings so a same-render mount keeps it topmost.)
@@ -125,6 +163,30 @@ export default function ClubModalsHost() {
           updateTournamentMutation={seasonTournament.updateTournamentMutation}
           deleteTournamentMutation={seasonTournament.deleteTournamentMutation}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
+        />
+      )}
+      {isRosterModalOpen && (
+        <RosterSettingsModal
+          isOpen
+          onClose={() => setIsRosterModalOpen(false)}
+          availablePlayers={rosterSettings.availablePlayers}
+          onUpdatePlayer={rosterSettings.handleUpdatePlayerForModal}
+          onRenamePlayer={rosterSettings.handleRenamePlayerForModal}
+          onSetJerseyNumber={rosterSettings.handleSetJerseyNumberForModal}
+          onSetPlayerNotes={rosterSettings.handleSetPlayerNotesForModal}
+          onRemovePlayer={rosterSettings.handleRemovePlayerForModal}
+          onAddPlayer={rosterSettings.handleAddPlayerForModal}
+          isRosterUpdating={rosterSettings.isRosterUpdating}
+          rosterError={rosterSettings.rosterError}
+          onOpenPlayerStats={handleOpenPlayerStats}
+        />
+      )}
+      {isTeamManagerOpen && (
+        <TeamManagerModal
+          isOpen
+          onClose={() => setIsTeamManagerOpen(false)}
+          teams={teams}
+          masterRoster={rosterSettings.availablePlayers}
         />
       )}
       {isPersonnelManagerOpen && (

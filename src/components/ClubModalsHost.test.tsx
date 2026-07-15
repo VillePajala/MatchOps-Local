@@ -85,6 +85,37 @@ jest.mock('@/hooks/usePersonnelManager', () => ({
   }),
 }));
 
+jest.mock('@/components/RosterSettingsModal', () => ({
+  __esModule: true,
+  default: ({ onOpenPlayerStats }: { onOpenPlayerStats: (id: string) => void }) => (
+    <div data-testid="roster-modal">
+      <button onClick={() => onOpenPlayerStats('p1')}>player-stats-p1</button>
+    </div>
+  ),
+}));
+jest.mock('@/components/TeamManagerModal', () => ({
+  __esModule: true,
+  default: () => <div data-testid="team-manager-modal" />,
+}));
+const mockRosterController = {
+  availablePlayers: [{ id: 'p1', name: 'Testaaja' }],
+  isRosterUpdating: false,
+  rosterError: null,
+  handleUpdatePlayerForModal: jest.fn(),
+  handleRenamePlayerForModal: jest.fn(),
+  handleSetJerseyNumberForModal: jest.fn(),
+  handleSetPlayerNotesForModal: jest.fn(),
+  handleRemovePlayerForModal: jest.fn(),
+  handleAddPlayerForModal: jest.fn(),
+};
+jest.mock('@/hooks/useRosterSettingsController', () => ({
+  __esModule: true,
+  useRosterSettingsController: () => mockRosterController,
+}));
+jest.mock('@/hooks/useTeamQueries', () => ({
+  useTeamsQuery: () => ({ data: [] }),
+}));
+
 function Opener() {
   const {
     setIsTrainingResourcesOpen,
@@ -94,6 +125,8 @@ function Opener() {
     openSettingsToTab,
     setIsSeasonTournamentModalOpen,
     setIsPersonnelManagerOpen,
+    setIsRosterModalOpen,
+    setIsTeamManagerOpen,
   } = useModalContext();
   return (
     <>
@@ -104,7 +137,18 @@ function Opener() {
       <button onClick={() => openSettingsToTab('data')}>open-settings-data</button>
       <button onClick={() => setIsSeasonTournamentModalOpen(true)}>open-season</button>
       <button onClick={() => setIsPersonnelManagerOpen(true)}>open-personnel</button>
+      <button onClick={() => setIsRosterModalOpen(true)}>open-roster</button>
+      <button onClick={() => setIsTeamManagerOpen(true)}>open-teams</button>
     </>
+  );
+}
+
+function StatsProbe() {
+  const { selectedPlayerForStats, isGameStatsModalOpen } = useModalContext();
+  return (
+    <div data-testid="stats-probe">
+      {selectedPlayerForStats?.name ?? 'none'}:{isGameStatsModalOpen ? 'open' : 'closed'}
+    </div>
   );
 }
 
@@ -158,6 +202,38 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     await waitFor(() => expect(screen.queryByTestId('season-tournament-modal')).not.toBeInTheDocument());
+  });
+
+  it('renders Roster and TeamManager at host level (L.2)', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-roster'));
+    await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('open-teams'));
+    await waitFor(() => expect(screen.getByTestId('team-manager-modal')).toBeInTheDocument());
+    // Hardware back closes topmost (TeamManager) first, Roster stays.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    await waitFor(() => expect(screen.queryByTestId('team-manager-modal')).not.toBeInTheDocument());
+    expect(screen.getByTestId('roster-modal')).toBeInTheDocument();
+  });
+
+  it('roster player-stats shortcut sets deep-link, opens GameStats, enters match (L.2)', async () => {
+    const onEnterMatch = jest.fn();
+    render(
+      <ModalProvider>
+        <Opener />
+        <StatsProbe />
+        <ClubModalsHost onEnterMatchForPlayerStats={onEnterMatch} />
+      </ModalProvider>,
+    );
+    fireEvent.click(screen.getByText('open-roster'));
+    await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('player-stats-p1'));
+    // Roster closes, shared deep-link + GameStats open-state set, match entered.
+    await waitFor(() => expect(screen.queryByTestId('roster-modal')).not.toBeInTheDocument());
+    expect(screen.getByTestId('stats-probe')).toHaveTextContent('Testaaja:open');
+    expect(onEnterMatch).toHaveBeenCalledTimes(1);
   });
 
   it('renders Settings and Instructions at host level (L.0b)', async () => {
