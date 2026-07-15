@@ -6,9 +6,14 @@
  * A lightweight, native pitch for placing a game's starting XI. It reuses the
  * app's formation presets for slot geometry (via `getGameSlots`) but renders as
  * plain positioned DOM - deliberately NOT the canvas `SoccerField`, which is
- * built for free drag on the live game. Interaction is tap-to-assign: tap a
- * position to select it, then tap a bench player to place them (a player can
- * only hold one slot). Mobile-first and keyboard-accessible.
+ * built for free drag on the live game. Interaction is DIRECT MANIPULATION:
+ * every placement (a disc, or each stint segment of a rotation pill) is its
+ * own tap target. Tap one placement then another and the two players trade
+ * their whole-game timelines; tap a player then an empty spot to move them;
+ * tap a stint then a bench disc to hand the stint over (or its own empty
+ * kickoff spot to promote the incomer to starter); Clear empties a position
+ * including its subs, Clear field empties everything. Bench tap still fills
+ * the selected (or first empty) spot. Mobile-first and keyboard-accessible.
  *
  * When `minutesByPlayer` is provided, the field doubles as the balance view:
  * every disc is FILLED with the player's fairness colour (one red→green ramp,
@@ -23,6 +28,8 @@ import { HiChevronDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { getGameSlots, ensureStartingSlots, benchPlayerIds } from '@/utils/playtimePlanner/lineup';
 import { fairnessFill, fairnessText } from '@/utils/playtimePlanner/colors';
+import { findSimultaneityConflicts, conflictedSlotIds } from '@/utils/playtimePlanner/conflicts';
+import PlanFieldBackdrop from '@/components/PlanFieldBackdrop';
 import { subtextStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import { gameTotalSeconds, type PlanGame, type PlanPlayer, type PlanSub } from '@/utils/playtimePlanner/types';
 
@@ -54,6 +61,27 @@ interface PlanFieldViewProps {
    * filled slot is selected). Omit to hide the action (read-only embeds).
    */
   onRequestSub?: (slotId: string) => void;
+  /**
+   * Direct-manipulation swap: tap one placement (disc or pill segment), tap
+   * another, and the two players trade their ENTIRE game timelines (see
+   * swap.ts). Omit to disable tap-to-swap (read-only embeds).
+   */
+  onSwapPlayers?: (playerAId: string, playerBId: string) => void;
+  /** Empty ONE position completely (starter + its scheduled subs). */
+  onClearSlot?: (slotId: string) => void;
+  /** Empty EVERY position (all starters + the whole sub schedule). */
+  onClearAll?: () => void;
+  /** Empty every game's field in the WHOLE PLAN (asks for confirmation). */
+  onClearAllGames?: () => void;
+  /** Remove one scheduled sub (per-stint delete from the field). */
+  onRemoveSub?: (subId: string) => void;
+  /** Move one scheduled sub to another (starter-empty) position. */
+  onMoveSub?: (subId: string, slotId: string) => void;
+  /** Promote a scheduled incomer to kickoff starter of their own slot (one
+   *  atomic plan update: assign starter + remove the sub row). */
+  onPromoteSub?: (subId: string, slotId: string, playerId: string) => void;
+  /** Change WHO one scheduled sub brings on (bench tap with a stint selected). */
+  onSetSubPlayer?: (subId: string, playerId: string) => void;
   /** Toggle a player's absence for THIS game. Omit to hide the section. */
   onToggleAbsent?: (playerId: string) => void;
   /** Controlled fold-out state for the absence section (lifted in the
@@ -77,12 +105,28 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   minutesByPlayer,
   highlightPlayerIds = [],
   onRequestSub,
+  onSwapPlayers,
+  onClearSlot,
+  onClearAll,
+  onClearAllGames,
+  onRemoveSub,
+  onMoveSub,
+  onPromoteSub,
+  onSetSubPlayer,
   onToggleAbsent,
   absenceOpen,
   onToggleAbsenceOpen,
 }) => {
   const { t } = useTranslation();
-  const [activeSlotId, setActiveSlotId] = useState<string | null>(null);
+  // Direct-manipulation selection: a tapped placement - either a position's
+  // kickoff spot ('slot': its starter, or the empty spot itself) or one
+  // scheduled stint of a rotation pill ('sub'). Tapping a second placement
+  // SWAPS the two players' whole-game timelines; tapping an empty spot MOVES
+  // the selected player/stint there; tapping a bench disc fills/replaces.
+  type FieldSelection =
+    | { type: 'slot'; slotId: string }
+    | { type: 'sub'; slotId: string; subId: string; playerId: string | null };
+  const [selection, setSelection] = useState<FieldSelection | null>(null);
   const [showAbsenceLocal, setShowAbsenceLocal] = useState(false);
   const showAbsence = absenceOpen ?? showAbsenceLocal;
   const toggleAbsenceOpen = onToggleAbsenceOpen ?? (() => setShowAbsenceLocal((v) => !v));
@@ -129,7 +173,19 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
     return m;
   }, [game.subs]);
 
-  const activeOccupant = activeSlotId ? playerBySlot.get(activeSlotId) ?? null : null;
+  const selectedSlotId = selection?.slotId ?? null;
+  const activeOccupant =
+    selection?.type === 'slot' ? playerBySlot.get(selection.slotId) ?? null : null;
+  /** The player identity the current selection carries (null for empty spots). */
+  const selectedPlayerId: string | null =
+    selection === null ? null : selection.type === 'sub' ? selection.playerId : activeOccupant;
+  const selectedSlotSubs = selectedSlotId ? subsBySlot.get(selectedSlotId) ?? [] : [];
+
+  // Impossible same-minutes overlaps (a player in two slots at once). The
+  // planner allows any schedule - rotations, re-entries - and FLAGS the ones
+  // that cannot happen on a real pitch instead of blocking edits up front.
+  const conflicts = useMemo(() => findSimultaneityConflicts(game), [game]);
+  const conflictSlots = useMemo(() => conflictedSlotIds(conflicts), [conflicts]);
 
   // Bench players scheduled to come on in THIS game; the rest sit out the whole
   // game - flagged with a red border so a full-game benching is never an accident.
@@ -165,17 +221,60 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   const hlRing = (involved: boolean): string =>
     anyHighlight && involved ? 'ring-2 ring-amber-300 ring-offset-1 ring-offset-green-800' : '';
 
-  const handleSlotClick = (slotId: string) => {
-    setActiveSlotId((prev) => (prev === slotId ? null : slotId));
+  // Tap a position's kickoff spot (a plain disc, or the first pill segment).
+  const handleStarterClick = (slotId: string) => {
+    if (selection?.type === 'slot' && selection.slotId === slotId) {
+      setSelection(null); // tap the selection again = deselect
+      return;
+    }
+    const targetPlayer = playerBySlot.get(slotId) ?? null;
+    if (selection && selectedPlayerId && targetPlayer && selectedPlayerId !== targetPlayer && onSwapPlayers) {
+      onSwapPlayers(selectedPlayerId, targetPlayer); // two players tapped = swap
+      setSelection(null);
+      return;
+    }
+    if (selection && selectedPlayerId && !targetPlayer) {
+      // Selected player onto an empty spot = move there. A stint tapped onto
+      // ITS OWN slot's empty kickoff spot promotes the incomer to starter.
+      if (selection.type === 'sub' && selection.slotId === slotId) {
+        onPromoteSub?.(selection.subId, slotId, selectedPlayerId);
+      } else if (selection.type === 'sub') {
+        onMoveSub?.(selection.subId, slotId);
+      } else {
+        onAssign(slotId, selectedPlayerId); // assignPlayerToSlot vacates the old slot
+      }
+      setSelection(null);
+      return;
+    }
+    setSelection({ type: 'slot', slotId });
   };
 
-  // Tap a bench player: fill the selected slot, or - with none selected - drop
-  // them into the first empty slot so placement is always one tap.
+  // Tap one scheduled stint of a rotation pill.
+  const handleSubSegmentClick = (slotId: string, sub: PlanSub) => {
+    if (selection?.type === 'sub' && selection.subId === sub.id) {
+      setSelection(null);
+      return;
+    }
+    if (selection && selectedPlayerId && sub.inPlayerId && selectedPlayerId !== sub.inPlayerId && onSwapPlayers) {
+      onSwapPlayers(selectedPlayerId, sub.inPlayerId);
+      setSelection(null);
+      return;
+    }
+    setSelection({ type: 'sub', slotId, subId: sub.id, playerId: sub.inPlayerId });
+  };
+
+  // Tap a bench player: with a stint selected, they take over that stint; with
+  // a position selected (or none), fill it (or the first empty spot) at kickoff.
   const handleBenchClick = (playerId: string) => {
-    const target = activeSlotId ?? emptyFillOrder[0]?.slotId ?? null;
+    if (selection?.type === 'sub' && onSetSubPlayer) {
+      onSetSubPlayer(selection.subId, playerId);
+      setSelection(null);
+      return;
+    }
+    const target = (selection?.type === 'slot' ? selection.slotId : null) ?? emptyFillOrder[0]?.slotId ?? null;
     if (!target) return;
     onAssign(target, playerId);
-    setActiveSlotId(null);
+    setSelection(null);
   };
 
   // Fill every empty slot from the bench in order (a snapshot pairing, so it is
@@ -186,41 +285,45 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       const pick = pool.shift();
       if (pick) onAssign(slot.slotId, pick);
     });
-    setActiveSlotId(null);
+    setSelection(null);
   };
 
-  const handleClear = () => {
-    if (!activeSlotId) return;
-    onAssign(activeSlotId, null);
-    setActiveSlotId(null);
+  // Empty the selected position completely: starter AND its scheduled subs.
+  // No partial fallback: the button only renders when onClearSlot is wired,
+  // so "Clear" can never mean two different things.
+  const handleClearSlot = () => {
+    if (!selectedSlotId || !onClearSlot) return;
+    onClearSlot(selectedSlotId);
+    setSelection(null);
   };
+
+  const handleRemoveSelectedSub = () => {
+    if (selection?.type !== 'sub' || !onRemoveSub) return;
+    onRemoveSub(selection.subId);
+    setSelection(null);
+  };
+
+  const handleClearAll = () => {
+    onClearAll?.();
+    setSelection(null);
+  };
+
+  // Anything to clear at all (drives the whole-field Tyhjennä button).
+  const anyPlacement = assignments.some((a) => a.playerId !== null) || game.subs.length > 0;
 
   return (
     <div className="space-y-4">
-      {/* Pitch */}
+      {/* Pitch - the REAL field: the live game's grass + markings painted by
+          the shared canvas painters (PlanFieldBackdrop), discs as DOM on top. */}
       <div
         className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border border-green-900/60 shadow-inner"
-        style={{ aspectRatio: '3 / 4', background: 'linear-gradient(180deg,#15803d 0%,#166534 100%)' }}
+        style={{ aspectRatio: '3 / 4', background: '#427B44' }}
       >
-        {/* Field markings */}
-        <div className="absolute inset-3 border-2 border-white/25 rounded" />
-        <div className="absolute left-3 right-3 top-1/2 h-0.5 bg-white/25 -translate-y-1/2" />
-        <div className="absolute left-1/2 top-1/2 w-16 h-16 border-2 border-white/25 rounded-full -translate-x-1/2 -translate-y-1/2" />
-        {/* Goal mouths, drawn beyond each goal line (own goal at the bottom,
-            where the GK stands). */}
-        <div
-          aria-hidden="true"
-          className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[9px] w-14 border-2 border-b-0 border-white/40 rounded-t-sm"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute left-1/2 -translate-x-1/2 bottom-[3px] h-[9px] w-14 border-2 border-t-0 border-white/40 rounded-b-sm"
-        />
+        <PlanFieldBackdrop />
 
         {slots.map((slot, i) => {
           const playerId = playerBySlot.get(slot.slotId) ?? null;
           const name = playerId ? nameById.get(playerId) : null;
-          const isActive = slot.slotId === activeSlotId;
           const filled = !!playerId;
           // 1-based human label (#1, #2, …); note `i` includes the GK at 0, so
           // field slot `s0` reads as `#1`. Intentional - friendlier than slotId.
@@ -253,23 +356,30 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               ? 'bg-amber-500 text-slate-900 border-amber-300'
               : 'bg-indigo-600 text-white border-indigo-300';
 
+          const slotSelected = selection?.type === 'slot' && selection.slotId === slot.slotId;
+          const starterLabel = filled
+            ? t('playtimePlanner.lineup.slotFilled', '{{position}}: {{player}}', {
+                position: positionLabel,
+                player: name ?? '',
+              })
+            : t('playtimePlanner.lineup.slotEmpty', '{{position}}: empty', {
+                position: positionLabel,
+              });
+          const selectionRing = 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800';
+          const conflictRing = conflictSlots.has(slot.slotId)
+            ? 'ring-2 ring-red-500 ring-offset-1 ring-offset-green-800'
+            : hlRing(involved);
+          const segmentFocus =
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800';
+
           return (
-            <button
+            <div
               key={slot.slotId}
-              type="button"
-              onClick={() => handleSlotClick(slot.slotId)}
-              aria-label={
-                (filled
-                  ? t('playtimePlanner.lineup.slotFilled', '{{position}}: {{player}}', {
-                      position: positionLabel,
-                      player: name ?? '',
-                    })
-                  : t('playtimePlanner.lineup.slotEmpty', '{{position}}: empty', {
-                      position: positionLabel,
-                    })) + (subsLabel ? `; ${subsLabel}` : '')
-              }
-              aria-pressed={isActive}
-              className={`absolute flex flex-col items-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-1 focus-visible:ring-offset-green-800 ${
+              // Only a rotation pill is a multi-target composite worth naming;
+              // a plain disc's wrapper must NOT duplicate its button's label.
+              role={hasSubs ? 'group' : undefined}
+              aria-label={hasSubs ? `${starterLabel}${subsLabel ? `; ${subsLabel}` : ''}` : undefined}
+              className={`absolute flex flex-col items-center rounded-full ${
                 hasSubs ? 'z-10' : ''
               } ${dimClass(involved)}`}
               style={{
@@ -292,60 +402,97 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             >
               {hasSubs ? (
                 /* Divided pill: one segment per time window, left→right = time.
-                   Each segment is tinted by ITS OWN player's ramp colour, the
-                   sub segments carry the minute tag - both names permanently
-                   visible, no tap or tooltip needed on the sideline. */
+                   Every segment is its OWN tap target (direct manipulation: tap
+                   a stint, tap another placement, they trade places). Tinted by
+                   its player's ramp colour; sub segments carry the minute tag. */
                 <span
                   className={[
-                    'flex overflow-hidden border-2 transition-colors',
+                    'flex overflow-hidden border-2 transition-colors shadow-md shadow-black/40',
                     slotSubs.length > 1 ? 'flex-col rounded-2xl' : 'rounded-full h-10',
                     rampMode ? 'border-white/90' : 'border-indigo-300',
-                    isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : hlRing(involved),
+                    conflictRing,
                   ].join(' ')}
                 >
-                  <span
-                    className={`flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap ${
-                      slotSubs.length > 1 ? 'py-1' : ''
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => handleStarterClick(slot.slotId)}
+                    aria-label={starterLabel}
+                    aria-pressed={slotSelected}
+                    className={[
+                      'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap',
+                      slotSubs.length > 1 ? 'py-1' : '',
+                      segmentFocus,
+                      slotSelected ? `${selectionRing} z-10` : '',
+                    ].join(' ')}
                     style={{
                       backgroundColor: filled ? fillFor(playerId) ?? '#4f46e5' : 'rgba(15,23,42,0.7)',
+                      backgroundImage: filled
+                        ? 'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.22), rgba(255,255,255,0) 60%)'
+                        : undefined,
                       textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                     }}
                   >
                     {filled ? shortName(name ?? '') : '+'}
-                  </span>
+                  </button>
                   {slotSubs.map((sub) => {
                     const inName = sub.inPlayerId ? nameById.get(sub.inPlayerId) ?? sub.inPlayerId : '?';
+                    const subSelected = selection?.type === 'sub' && selection.subId === sub.id;
                     return (
-                      <span
+                      <button
                         key={sub.id}
+                        type="button"
+                        onClick={() => handleSubSegmentClick(slot.slotId, sub)}
+                        aria-label={t('playtimePlanner.lineup.subStint', "{{minute}}' {{player}} ({{position}})", {
+                          minute: Math.round(sub.timeSeconds / 60),
+                          player: inName,
+                          position: positionLabel,
+                        })}
+                        aria-pressed={subSelected}
                         className={[
-                          'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-dashed border-white/70 gap-1',
-                          slotSubs.length > 1 ? 'flex-row py-1 border-t-2' : 'flex-col border-l-2',
+                          'flex items-center justify-center px-2 text-[10px] font-bold text-white whitespace-nowrap border-white/35 gap-1',
+                          slotSubs.length > 1 ? 'flex-row py-1 border-t' : 'flex-col border-l',
+                          segmentFocus,
+                          subSelected ? `${selectionRing} z-10` : '',
                         ].join(' ')}
                         style={{
                           backgroundColor: fillFor(sub.inPlayerId) ?? '#4f46e5',
+                          backgroundImage:
+                            'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%)',
                           textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                         }}
                       >
-                        <span className="text-[8px] font-extrabold text-amber-200 leading-none tabular-nums">
+                        <span className="text-[8px] font-extrabold text-amber-200 leading-none tabular-nums bg-black/30 rounded px-0.5 py-px">
                           {Math.round(sub.timeSeconds / 60)}&#39;
                         </span>
                         {shortName(inName)}
-                      </span>
+                      </button>
                     );
                   })}
                 </span>
               ) : (
-                <span
+                <button
+                  type="button"
+                  onClick={() => handleStarterClick(slot.slotId)}
+                  aria-label={starterLabel}
+                  aria-pressed={slotSelected}
                   className={[
-                    'w-11 h-11 rounded-full flex flex-col items-center justify-center text-[10px] font-bold border-2 transition-colors',
-                    filled ? discClasses : 'bg-slate-900/70 text-white border-dashed border-white/80',
-                    isActive ? 'ring-2 ring-yellow-300 ring-offset-1 ring-offset-green-800' : hlRing(involved),
+                    'w-11 h-11 rounded-full flex flex-col items-center justify-center text-[10px] font-bold border-2',
+                    'transition-[transform,background-color,border-color] duration-150 motion-reduce:transition-none motion-reduce:transform-none',
+                    filled ? discClasses : 'bg-slate-900/50 text-white border-dashed border-white/60',
+                    // Token treatment: a picked-up disc lifts; placed discs cast
+                    // a small shadow so they sit ON the grass, not in it.
+                    slotSelected ? 'scale-110 shadow-lg shadow-black/50' : filled ? 'shadow-md shadow-black/40' : '',
+                    segmentFocus,
+                    slotSelected ? selectionRing : conflictRing,
                   ].join(' ')}
                   style={
                     filled && rampMode
-                      ? { backgroundColor: fillFor(playerId), textShadow: '0 1px 2px rgba(0,0,0,0.5)' }
+                      ? {
+                          backgroundColor: fillFor(playerId),
+                          backgroundImage:
+                            'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.30), rgba(255,255,255,0) 60%)',
+                          textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                        }
                       : undefined
                   }
                 >
@@ -355,7 +502,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                     </span>
                   )}
                   {filled ? shortName(name ?? '') : slot.isGoalie ? t('playtimePlanner.gkShort', 'GK') : '+'}
-                </span>
+                </button>
               )}
               {!hasSubs && filled && playerId && minutesByPlayer?.[playerId] && (
                 <span
@@ -368,7 +515,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                   {minutesByPlayer[playerId].minutes}&#39;
                 </span>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -376,19 +523,65 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       {/* Assignment panel - no instruction copy: the actions row and the bench
           discs ARE the affordances. Solid full-width house buttons. */}
       <div className="max-w-sm mx-auto space-y-3">
-        {((activeSlotId && activeOccupant) || (emptySlots.length > 0 && bench.length > 0)) && (
+        {conflicts.length > 0 && (
+          <div
+            role="status"
+            data-testid="plan-conflict-banner"
+            className="rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 space-y-0.5"
+          >
+            {conflicts.map((c) => {
+              const posA = slots.findIndex((sl) => sl.slotId === c.slotIdA);
+              const posB = slots.findIndex((sl) => sl.slotId === c.slotIdB);
+              const label = (idx: number) =>
+                idx >= 0 && slots[idx].isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${idx}`;
+              return (
+                <p
+                  key={`${c.playerId}-${c.slotIdA}-${c.slotIdB}-${c.overlapStartSeconds}`}
+                  className="text-xs text-red-200"
+                >
+                  {t(
+                    'playtimePlanner.conflicts.row',
+                    "{{player}} is in {{a}} and {{b}} at the same time ({{from}}'-{{to}}')",
+                    {
+                      player: nameById.get(c.playerId) ?? c.playerId,
+                      a: label(posA),
+                      b: label(posB),
+                      from: Math.floor(c.overlapStartSeconds / 60),
+                      to: Math.ceil(c.overlapEndSeconds / 60),
+                    },
+                  )}
+                </p>
+              );
+            })}
+          </div>
+        )}
+        {/* Actions for the current selection + whole-field tools. Swapping and
+            moving are DIRECT (tap a placement, tap another) - no action needed. */}
+        {(selection !== null || (emptySlots.length > 0 && bench.length > 0)) && (
           <div className="flex gap-2">
-            {activeSlotId && activeOccupant && onRequestSub && (
+            {/* Sub… is available from ANY selected placement - the starter
+                segment, a stint segment, or a starterless rotation pill - so
+                a position's schedule can always grow more changes. */}
+            {selection && onRequestSub && (
               <button
                 type="button"
-                onClick={() => onRequestSub(activeSlotId)}
+                onClick={() => onRequestSub(selection.slotId)}
                 className={`${primaryButtonStyle} flex-1`}
               >
                 {t('playtimePlanner.lineup.subAction', 'Sub…')}
               </button>
             )}
-            {activeSlotId && activeOccupant && (
-              <button type="button" onClick={handleClear} className={`${dangerButtonStyle} flex-1`}>
+            {selection?.type === 'sub' && onRemoveSub && (
+              <button
+                type="button"
+                onClick={handleRemoveSelectedSub}
+                className={`${dangerButtonStyle} flex-1`}
+              >
+                {t('playtimePlanner.lineup.removeSubAction', 'Remove sub')}
+              </button>
+            )}
+            {selection?.type === 'slot' && onClearSlot && (activeOccupant || selectedSlotSubs.length > 0) && (
+              <button type="button" onClick={handleClearSlot} className={`${dangerButtonStyle} flex-1`}>
                 {t('playtimePlanner.lineup.clearSlot', 'Clear')}
               </button>
             )}
@@ -410,7 +603,12 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               : t('playtimePlanner.lineup.benchEmpty', 'Everyone is on the field.')}
           </p>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center">
+          <div className="rounded-lg bg-slate-900/40 border border-slate-700/50 border-t-2 border-t-slate-600/70 px-2 pt-1.5 pb-2">
+            {/* Sideline strip: the bench gets a visual home next to the pitch. */}
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+              {t('playtimePlanner.lineup.benchLabel', 'Bench')}
+            </p>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(3.5rem,1fr))] gap-y-2 justify-items-center">
             {/* Equal-column grid (same fix as the fairness strip): a wrapping
                 flex row left the row remainder as dead space on the right -
                 columns stretch so the outer discs align with the edges. */}
@@ -418,9 +616,9 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               const fair = minutesByPlayer?.[id];
               const involved = isTracked(id);
               const sitsOut = !enteringIds.has(id);
-              // Field full and no slot selected: a tap has no target, so the
+              // Field full and nothing selected: a tap has no target, so the
               // disc reads inert instead of dying silently.
-              const inert = !activeSlotId && emptyFillOrder.length === 0;
+              const inert = selection === null && emptyFillOrder.length === 0;
               return (
                 /* Bench players render as DISCS - the same visual object as the
                    players on the pitch - so "tap to place/swap" is obvious. */
@@ -434,14 +632,19 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 >
                   <span
                     className={[
-                      'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors',
+                      'w-11 h-11 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 transition-colors shadow-md shadow-black/40',
                       sitsOut ? 'border-red-500/80' : 'border-white/60',
                       fair ? '' : 'bg-slate-700 hover:bg-slate-600',
                       anyHighlight && involved ? 'ring-2 ring-amber-300' : '',
                     ].join(' ')}
                     style={
                       fair
-                        ? { backgroundColor: fairnessFill(fair.ratio), textShadow: '0 1px 2px rgba(0,0,0,0.5)' }
+                        ? {
+                            backgroundColor: fairnessFill(fair.ratio),
+                            backgroundImage:
+                              'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.30), rgba(255,255,255,0) 60%)',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                          }
                         : undefined
                     }
                   >
@@ -464,6 +667,24 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
                 </button>
               );
             })}
+            </div>
+          </div>
+        )}
+
+        {/* Field-reset tools live UNDER the bench (owner placement): empty
+            THIS game's field, or every game in the plan (confirmed upstream). */}
+        {((anyPlacement && onClearAll) || onClearAllGames) && (
+          <div className="flex gap-2">
+            {anyPlacement && onClearAll && (
+              <button type="button" onClick={handleClearAll} className={`${dangerButtonStyle} flex-1`}>
+                {t('playtimePlanner.lineup.clearAll', 'Clear field')}
+              </button>
+            )}
+            {onClearAllGames && (
+              <button type="button" onClick={onClearAllGames} className={`${dangerButtonStyle} flex-1`}>
+                {t('playtimePlanner.lineup.clearAllGames', 'Clear all games')}
+              </button>
+            )}
           </div>
         )}
 

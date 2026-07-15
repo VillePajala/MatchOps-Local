@@ -1,4 +1,4 @@
 {
   "version": "1.0.0",
-  "notes": "fix(stats): restyle the \"Positions played\" card to match the app's stat style (#637)"
+  "notes": "feat(planner): rotations, any-player subs with overlap flags, whole-game player swap"
 }

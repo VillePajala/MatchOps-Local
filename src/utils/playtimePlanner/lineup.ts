@@ -72,6 +72,30 @@ export function assignPlayerToSlot(
   });
 }
 
+/**
+ * Empty ONE position completely: its kickoff starter AND every sub scheduled
+ * into it ("empty a field" - the per-slot Clear).
+ */
+export function clearSlotSchedule(
+  game: PlanGame,
+  slotId: string,
+): Pick<PlanGame, 'startingSlots' | 'subs'> {
+  return {
+    startingSlots: ensureStartingSlots(game).map((s) =>
+      s.slotId === slotId ? { ...s, playerId: null } : s,
+    ),
+    subs: game.subs.filter((s) => s.slotId !== slotId),
+  };
+}
+
+/** Empty EVERY position: all starters and the whole sub schedule. */
+export function clearAllPlacements(game: PlanGame): Pick<PlanGame, 'startingSlots' | 'subs'> {
+  return {
+    startingSlots: ensureStartingSlots(game).map((s) => ({ ...s, playerId: null })),
+    subs: [],
+  };
+}
+
 /** Player ids from the roster not currently holding a slot in this lineup. */
 export function benchPlayerIds(
   rosterIds: string[],

@@ -1028,6 +1028,244 @@ describe('PlaytimePlannerModal', () => {
     expect(announcement()).toHaveAttribute('data-announcement-nonce', '4');
   });
 
+  it('placing a starter KEEPS their scheduled subs (rotations survive lineup edits)', async () => {
+    // Alex is scheduled to come into s0 at 6' but starts nowhere. Placing him
+    // as the GK starter must NOT strip that sub - the old Phase-1 guard did,
+    // which made rotations unbuildable from the lineup side.
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [],
+            subs: [{ id: 'x1', slotId: 's0', timeSeconds: 360, inPlayerId: 'p1' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+
+    // The scheduled entry is visible on the field pill before the edit.
+    expect(screen.getByRole('button', { name: "6' Alex (#1)" })).toBeInTheDocument();
+
+    // Place Alex as the goalkeeper starter.
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('GK: empty'));
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getAllByRole('button', { name: /^Alex/ })
+          .find((b) => b.className.includes('rounded-full'))!,
+      );
+    });
+
+    // The sub survives: the pill still announces Alex coming into s0 at 6'.
+    expect(screen.getByRole('button', { name: "6' Alex (#1)" })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
+  });
+
+  it('swaps two players whole-game by tapping one placement then another', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }, { id: 'p3', name: 'Jo' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            // Alex starts GK and is subbed for Sam at 12'; Jo starts s0.
+            startingSlots: [
+              { slotId: 'gk', playerId: 'p1' },
+              { slotId: 's0', playerId: 'p3' },
+            ],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    // Direct manipulation: tap the GK starter segment, then tap Jo's disc.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '#1: Jo' }));
+    });
+
+    // Whole-game identity swap: Jo now starts GK (Sam still comes in at 12'),
+    // Alex holds s0 for the full game.
+    expect(screen.getByRole('button', { name: 'GK: Jo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "12' Sam (GK)" })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '#1: Alex' })).toBeInTheDocument();
+    expect(announcement()).toHaveTextContent('Swapped Alex and Jo');
+  });
+
+  it('clears the whole field from the lineup actions', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear field' }));
+    });
+    // Starter AND the scheduled sub are gone.
+    expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
+  });
+
+  it('clears EVERY game behind a confirm (Clear all games)', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+          {
+            ...existingPlan.games[0],
+            id: 'g2',
+            label: 'Game 2',
+            startingSlots: [{ slotId: 'gk', playerId: 'p2' }],
+            subs: [],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
+    });
+    // Confirmed flow - cancel leaves everything untouched first.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    });
+    expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    });
+    // Current game emptied (starter + sub) and announced; the OTHER game's
+    // field emptied too (visible via its game tab).
+    expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
+    expect(announcement()).toHaveTextContent('All games cleared');
+  });
+
+  it('clearing ONE position announces it and removes its subs', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    });
+    expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
+    expect(announcement()).toHaveTextContent('Position cleared');
+  });
+
+  it('announces stint move, hand-over and promote (direct-manipulation a11y)', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }, { id: 'p3', name: 'Jo' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    // 1. Move the stint to an empty position -> "Substitution moved".
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '#1: empty' }));
+    });
+    expect(announcement()).toHaveTextContent('Substitution moved');
+    expect(screen.getByRole('button', { name: "12' Sam (#1)" })).toBeInTheDocument();
+
+    // 2. Hand the stint to a bench player -> "Substitution updated".
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: "12' Sam (#1)" }));
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getAllByRole('button', { name: /^Jo/ })
+          .find((b) => b.className.includes('rounded-full'))!,
+      );
+    });
+    expect(announcement()).toHaveTextContent('Substitution updated');
+    expect(screen.getByRole('button', { name: "12' Jo (#1)" })).toBeInTheDocument();
+
+    // 3. Promote the incomer to starter of its own (empty) slot.
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: "12' Jo (#1)" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '#1: empty' }));
+    });
+    expect(announcement()).toHaveTextContent('Jo promoted to starter');
+    expect(screen.getByRole('button', { name: '#1: Jo' })).toBeInTheDocument();
+  });
+
   it('team options carry their binding context, matching New Game creation', async () => {
     // A bare "U10" is ambiguous when a club runs several U10 squads across
     // competitions - the option label must say which context the team lives

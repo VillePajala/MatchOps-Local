@@ -92,18 +92,18 @@ export function buildPrefillFromPlan(
       .filter((a) => a.playerId && byId.has(a.playerId))
       .map((a) => [a.slotId, a.playerId as string]),
   );
-  // A player enters at most once (and never while already starting) - the plan
-  // editor enforces this, so a violation only reaches here via crafted/legacy
-  // data. Without the guard the duplicate would double-drive the live "sub now"
-  // reminders for a player already on the field.
-  const alreadyIn = new Set(occupantBySlot.values());
+  // Rotations are first-class: a player may enter MANY times (A-B-A-B trading
+  // a slot, a starter re-entering after coming off), so every sub row carries
+  // to the real game. The only row dropped is a same-slot self-sub (bringing a
+  // player in for themselves - a no-op the planner UI also prevents). A player
+  // simultaneously in two slots is a planner-flagged conflict; prefill
+  // translates the schedule faithfully rather than silently editing it.
   const plannedSubs: PlannedGameSub[] = [];
   for (const sub of [...planGame.subs].sort((a, b) => a.timeSeconds - b.timeSeconds)) {
     // Skip subs with no incoming player, or an incoming player not in the roster -
     // there is no one to actually bring on. (Reported via missingPlayerIds below.)
     if (sub.inPlayerId === null || !byId.has(sub.inPlayerId)) continue;
-    if (alreadyIn.has(sub.inPlayerId)) continue;
-    alreadyIn.add(sub.inPlayerId);
+    if (occupantBySlot.get(sub.slotId) === sub.inPlayerId) continue;
     const outPlayerId = occupantBySlot.get(sub.slotId) ?? null;
     occupantBySlot.set(sub.slotId, sub.inPlayerId); // incoming player now holds the slot
     plannedSubs.push({

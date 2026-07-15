@@ -66,8 +66,11 @@ import {
   ensureStartingSlots,
   assignPlayerToSlot,
   getGameSlots,
+  clearSlotSchedule,
+  clearAllPlacements,
 } from '@/utils/playtimePlanner/lineup';
-import { addSub, removeSub, removeSubsBringingOn } from '@/utils/playtimePlanner/subs';
+import { addSub, removeSub, moveSubToSlot, setSubPlayer } from '@/utils/playtimePlanner/subs';
+import { swapPlayersInGame } from '@/utils/playtimePlanner/swap';
 import { suggestFairShareLineup } from '@/utils/playtimePlanner/suggest';
 import {
   addPlayerToPlan,
@@ -227,6 +230,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   const removeTarget = removeQueue[0] ?? null;
   // "Suggest fair lineup" pending confirm (it overwrites included games).
   const [showSuggestConfirm, setShowSuggestConfirm] = useState(false);
+  const [showClearAllGamesConfirm, setShowClearAllGamesConfirm] = useState(false);
   // Open substitution sheet target: which game + slot (null = closed). Game id
   // is part of the target because the grid view edits ALL games at once.
   const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
@@ -658,8 +662,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   // Assign (or clear) a player in a game's starting lineup. Normalizes the
   // game's slots to its formation first, so stored data always matches the shape.
-  // Placing a player also drops any scheduled sub bringing them on - otherwise
-  // they'd be starting AND "coming on", double-counting their minutes.
+  // Scheduled subs bringing the placed player on are KEPT (rotations are legal);
+  // any impossible same-minutes overlap is flagged by the conflict banner instead.
   const handleAssign = useCallback(
     (gameId: string, slotId: string, playerId: string | null) => {
       updateActivePlan((plan) => ({
@@ -669,7 +673,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             ? {
                 ...g,
                 startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId),
-                subs: removeSubsBringingOn(g.subs, playerId),
               }
             : g,
         ),
@@ -697,6 +700,126 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       }));
       setSubAnnouncement((prev) => ({
         text: t('playtimePlanner.subs.added', 'Substitution added'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  // Whole-game player swap (swap.ts): trades the two players' entire
+  // timelines in one game - lineup slots AND sub rows. Announced for SRs.
+  const handleSwapPlayers = useCallback(
+    (gameId: string, playerAId: string, playerBId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? swapPlayersInGame(g, playerAId, playerBId) : g)),
+      }));
+      const nameOf = (id: string) => activePlan?.players.find((p) => p.id === id)?.name ?? id;
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.swap.done', 'Swapped {{a}} and {{b}}', {
+          a: nameOf(playerAId),
+          b: nameOf(playerBId),
+        }),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t, activePlan],
+  );
+
+  // Empty ONE position (starter + its scheduled subs) / EVERY position.
+  const handleClearSlot = useCallback(
+    (gameId: string, slotId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, ...clearSlotSchedule(g, slotId) } : g)),
+      }));
+      // Announce like every sibling action - this one can silently delete
+      // several scheduled subs along with the starter.
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.clearedSlot', 'Position cleared'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  // Promote a scheduled incomer to the kickoff starter of their own slot
+  // (tap a stint, then the slot's empty "+" spot). ONE plan update so it is
+  // one undo step: the player starts from 0' and their sub row disappears.
+  const handlePromoteSubToStarter = useCallback(
+    (gameId: string, subId: string, slotId: string, playerId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) =>
+          g.id === gameId
+            ? {
+                ...g,
+                startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId),
+                subs: removeSub(g.subs, subId),
+              }
+            : g,
+        ),
+      }));
+      const name = activePlan?.players.find((p) => p.id === playerId)?.name ?? playerId;
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.promotedStarter', '{{player}} promoted to starter', { player: name }),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t, activePlan],
+  );
+
+  const handleClearAllPlacements = useCallback(
+    (gameId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, ...clearAllPlacements(g) } : g)),
+      }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.clearedAll', 'Field cleared'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  // Empty EVERY game's field in the plan (behind a confirm - it nukes the
+  // whole schedule; the planner's undo restores it in one tap).
+  const handleClearAllGames = useCallback(() => {
+    updateActivePlan((plan) => ({
+      ...plan,
+      games: plan.games.map((g) => ({ ...g, ...clearAllPlacements(g) })),
+    }));
+    setSubAnnouncement((prev) => ({
+      text: t('playtimePlanner.lineup.clearedAllGames', 'All games cleared'),
+      nonce: prev.nonce + 1,
+    }));
+  }, [updateActivePlan, t]);
+
+  // Direct-manipulation stint edits: move a scheduled sub to another position /
+  // hand it to another player (bench tap with a stint selected).
+  const handleMoveSub = useCallback(
+    (gameId: string, subId: string, slotId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: moveSubToSlot(g.subs, subId, slotId) } : g)),
+      }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.movedSub', 'Substitution moved'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  const handleSetSubPlayer = useCallback(
+    (gameId: string, subId: string, playerId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: setSubPlayer(g.subs, subId, playerId) } : g)),
+      }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.subPlayerChanged', 'Substitution updated'),
         nonce: prev.nonce + 1,
       }));
     },
@@ -1351,7 +1474,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (e.key !== 'Escape') return;
       // A ConfirmationModal is open: Escape belongs to it (cancel). This listener
       // registered earlier, so it would fire FIRST and also navigate - skip.
-      if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || trimConfirm !== null || showSuggestConfirm) return;
+      if (deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null || trimConfirm !== null || showSuggestConfirm || showClearAllGamesConfirm) return;
       // Typing in a field: Escape dismisses the field (the desktop reflex),
       // never yanks the user off the screen mid-edit.
       const focused = document.activeElement;
@@ -1380,7 +1503,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
+  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -2206,6 +2329,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               minutesByPlayer={fairness.byPlayer}
               highlightPlayerIds={highlightPlayerIds}
               onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
+              onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
+              onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
+              onClearAll={() => handleClearAllPlacements(editingGame.id)}
+              onClearAllGames={() => setShowClearAllGamesConfirm(true)}
+              onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
+              onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
+              onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
+              onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(editingGame.id, subId, playerId)}
               onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
               absenceOpen={absenceOpen}
               onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
@@ -2290,6 +2421,14 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         minutesByPlayer={fairness.byPlayer}
                         highlightPlayerIds={highlightPlayerIds}
                         onRequestSub={(slotId) => setSubSheetTarget({ gameId: g.id, slotId })}
+                        onSwapPlayers={(a, b) => handleSwapPlayers(g.id, a, b)}
+                        onClearSlot={(slotId) => handleClearSlot(g.id, slotId)}
+                        onClearAll={() => handleClearAllPlacements(g.id)}
+                        onClearAllGames={() => setShowClearAllGamesConfirm(true)}
+                        onRemoveSub={(subId) => handleRemoveSub(g.id, subId)}
+                        onMoveSub={(subId, slotId) => handleMoveSub(g.id, subId, slotId)}
+                        onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(g.id, subId, slotId, playerId)}
+                        onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(g.id, subId, playerId)}
                         onToggleAbsent={(playerId) => handleToggleAbsent(g.id, playerId)}
                       />
                     </div>
@@ -2454,6 +2593,25 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         onCancel={() => setShowSuggestConfirm(false)}
         confirmLabel={t('playtimePlanner.overview.suggestConfirmLabel', 'Suggest')}
         variant="primary"
+      />
+      <ConfirmationModal
+        isOpen={showClearAllGamesConfirm}
+        title={t('playtimePlanner.lineup.clearAllGamesConfirmTitle', 'Clear all games?')}
+        message={t(
+          'playtimePlanner.lineup.clearAllGamesConfirmMessage',
+          "Empties every game's lineup and substitution schedule in this plan.",
+        )}
+        warningMessage={t(
+          'playtimePlanner.lineup.clearAllGamesConfirmWarning',
+          'Undo (on the Games tab) restores them.',
+        )}
+        onConfirm={() => {
+          setShowClearAllGamesConfirm(false);
+          handleClearAllGames();
+        }}
+        onCancel={() => setShowClearAllGamesConfirm(false)}
+        confirmLabel={t('playtimePlanner.lineup.clearAllGamesConfirmLabel', 'Clear')}
+        variant="danger"
       />
       <ConfirmationModal
         isOpen={removeTarget !== null}

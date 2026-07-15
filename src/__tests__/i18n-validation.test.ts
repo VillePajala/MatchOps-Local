@@ -353,7 +353,18 @@ describe('Translation File Validation', () => {
       // -5: startScreen footer keys orphaned by the gear bucket (usingLocal
       //     Storage/signedInAs/existingSubscriber/newToCloud/getAndroidApp)
       // +1: startScreen.tasoLink (Taso promoted to the games tab - game-day tool)
-      expect(enKeys.length).toBe(2818);
+      // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
+      //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
+      //     conflicts.row) - any-player subs + whole-game player swap
+      // -2 net: direct-manipulation swap replaced the swap sheet (-6:
+      //     swapSheet.* + lineup.swapAction; +4: lineup.subStint/
+      //     removeSubAction/clearAll/clearedAll)
+      // +4: a11y announcements for direct-manipulation edits
+      //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
+      // +1: lineup.benchLabel (sideline strip heading on the planner field)
+      // +6: plan-wide field reset (lineup.clearAllGames + confirm
+      //     title/message/warning/label + clearedAllGames announcement)
+      expect(enKeys.length).toBe(2836);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -425,7 +436,18 @@ describe('Translation File Validation', () => {
       // +5: gear bucket keys (see the en note above)
       // -5: orphaned footer keys pruned (see the en note above)
       // +1: startScreen.tasoLink (see the en note above)
-      expect(fiKeys.length).toBe(2818);
+      // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
+      //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
+      //     conflicts.row) - any-player subs + whole-game player swap
+      // -2 net: direct-manipulation swap replaced the swap sheet (-6:
+      //     swapSheet.* + lineup.swapAction; +4: lineup.subStint/
+      //     removeSubAction/clearAll/clearedAll)
+      // +4: a11y announcements for direct-manipulation edits
+      //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
+      // +1: lineup.benchLabel (sideline strip heading on the planner field)
+      // +6: plan-wide field reset (lineup.clearAllGames + confirm
+      //     title/message/warning/label + clearedAllGames announcement)
+      expect(fiKeys.length).toBe(2836);
     });
   });
 });

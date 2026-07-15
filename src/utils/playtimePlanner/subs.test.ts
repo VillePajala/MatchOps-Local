@@ -3,11 +3,11 @@ import {
   makeSub,
   addSub,
   removeSub,
-  availableSubInIds,
-  removeSubsBringingOn,
+  moveSubToSlot,
+  setSubPlayer,
   generateSubId,
 } from './subs';
-import type { PlanGame, PlanSlotAssignment, PlanSub } from './types';
+import type { PlanGame, PlanSub } from './types';
 
 const makeGame = (numberOfPeriods: number, periodMinutes: number): PlanGame => ({
   id: 'g1',
@@ -56,42 +56,24 @@ describe('makeSub / addSub / removeSub', () => {
   });
 });
 
-describe('availableSubInIds', () => {
-  const roster = ['p1', 'p2', 'p3', 'p4', 'p5'];
-  const starting: PlanSlotAssignment[] = [
-    { slotId: 'gk', playerId: 'p1' },
-    { slotId: 's0', playerId: 'p2' },
-  ];
-
-  it('excludes starters', () => {
-    expect(availableSubInIds(roster, starting, [])).toEqual(['p3', 'p4', 'p5']);
+describe('moveSubToSlot / setSubPlayer (direct-manipulation stint edits)', () => {
+  it('moves one sub to another slot, leaving the rest untouched', () => {
+    const a = makeSub('s0', 'p2', 720);
+    const b = makeSub('s1', 'p3', 900);
+    const result = moveSubToSlot([a, b], a.id, 's2');
+    expect(result.find((x) => x.id === a.id)).toMatchObject({ slotId: 's2', inPlayerId: 'p2', timeSeconds: 720 });
+    expect(result.find((x) => x.id === b.id)).toEqual(b);
   });
 
-  it('excludes players already coming on in another sub', () => {
-    const subs = [makeSub('s0', 'p3', 720)];
-    expect(availableSubInIds(roster, starting, subs)).toEqual(['p4', 'p5']);
-  });
-
-  it('does not exclude the incoming player of the sub being edited', () => {
-    const editing = makeSub('s0', 'p3', 720);
-    const subs = [editing, makeSub('gk', 'p4', 720)];
-    // Editing this sub: p3 should be selectable again, p4 (other sub) stays excluded.
-    expect(availableSubInIds(roster, starting, subs, editing.id)).toEqual(['p3', 'p5']);
+  it('hands one sub to another player, leaving the rest untouched', () => {
+    const a = makeSub('s0', 'p2', 720);
+    const b = makeSub('s1', 'p3', 900);
+    const result = setSubPlayer([a, b], a.id, 'p5');
+    expect(result.find((x) => x.id === a.id)).toMatchObject({ slotId: 's0', inPlayerId: 'p5' });
+    expect(result.find((x) => x.id === b.id)).toEqual(b);
   });
 });
 
-describe('removeSubsBringingOn', () => {
-  it('drops the subs scheduled to bring on the newly placed starter', () => {
-    const subs = [makeSub('s0', 'p3', 720), makeSub('gk', 'p4', 720)];
-    const result = removeSubsBringingOn(subs, 'p3');
-    // p3 was just placed in the starting lineup - being scheduled to "come on"
-    // too would double-count their minutes.
-    expect(result.map((s) => s.inPlayerId)).toEqual(['p4']);
-  });
-
-  it('returns the same array when nothing conflicts (no pointless re-renders)', () => {
-    const subs = [makeSub('s0', 'p3', 720)];
-    expect(removeSubsBringingOn(subs, 'p5')).toBe(subs);
-    expect(removeSubsBringingOn(subs, null)).toBe(subs); // clearing a slot
-  });
-});
+// availableSubInIds + removeSubsBringingOn were removed with the Phase-1
+// single-swap-window limitation: any player is now schedulable into any sub;
+// impossible same-minutes overlaps are flagged by conflicts.ts instead.

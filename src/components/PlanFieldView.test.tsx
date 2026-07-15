@@ -130,17 +130,20 @@ describe('PlanFieldView', () => {
     // Sam (bench) is tracked: their DISC (inner span) is ringed, not dimmed.
     const sam = screen.getByRole('button', { name: /^Sam/ });
     expect(sam.querySelector('span')?.className).toContain('ring-amber-300');
+    // Dimming lives on the positioning wrapper (the disc button's parent).
     const alexSlot = screen.getByLabelText('GK: Alex');
-    expect(alexSlot.className).toContain('opacity-40');
+    expect(alexSlot.parentElement?.className).toContain('opacity-40');
   });
 
-  it('clears an occupied slot', () => {
+  it('clears an occupied slot completely via onClearSlot (no partial fallback)', () => {
     const onAssign = jest.fn();
+    const onClearSlot = jest.fn();
     render(
       <PlanFieldView
         game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
         players={players}
         onAssign={onAssign}
+        onClearSlot={onClearSlot}
       />,
     );
 
@@ -148,7 +151,10 @@ describe('PlanFieldView', () => {
     fireEvent.click(screen.getByLabelText('GK: Alex'));
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
 
-    expect(onAssign).toHaveBeenCalledWith('gk', null);
+    expect(onClearSlot).toHaveBeenCalledWith('gk');
+    // Without onClearSlot wired the button doesn't render at all - "Clear"
+    // can never silently mean starter-only.
+    expect(onAssign).not.toHaveBeenCalledWith('gk', null);
   });
 
   it('shows cumulative plan minutes on bench chips and filled discs when provided', () => {
@@ -183,3 +189,225 @@ describe('PlanFieldView', () => {
     expect(screen.getByRole('button', { name: /^Sam/ })).toBeInTheDocument();
   });
 });
+
+describe('PlanFieldView direct manipulation (tap-tap swap / move / clear)', () => {
+  it('tap one filled disc, tap another: the two players swap whole-game', () => {
+    const onSwapPlayers = jest.fn();
+    render(
+      <PlanFieldView
+        game={makeGame([
+          { slotId: 'gk', playerId: 'p1' },
+          { slotId: 's0', playerId: 'p2' },
+        ])}
+        players={players}
+        onAssign={jest.fn()}
+        onSwapPlayers={onSwapPlayers}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: '#1: Sam' }));
+    expect(onSwapPlayers).toHaveBeenCalledWith('p1', 'p2');
+  });
+
+  it('tap a pill STINT, tap a disc: the stint player swaps whole-game', () => {
+    const onSwapPlayers = jest.fn();
+    const game = {
+      ...makeGame([
+        { slotId: 'gk', playerId: 'p1' },
+        { slotId: 's0', playerId: 'p3' },
+      ]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onSwapPlayers={onSwapPlayers} />,
+    );
+    // The 12' Sam segment is its own tap target inside the GK pill.
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: '#1: Jo' }));
+    expect(onSwapPlayers).toHaveBeenCalledWith('p2', 'p3');
+  });
+
+  it('tap a filled disc, tap an empty spot: the player moves there', () => {
+    const onAssign = jest.fn();
+    render(
+      <PlanFieldView
+        game={makeGame([{ slotId: 's0', playerId: 'p1' }])}
+        players={players}
+        onAssign={onAssign}
+        onSwapPlayers={jest.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '#1: Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'GK: empty' }));
+    expect(onAssign).toHaveBeenCalledWith('gk', 'p1');
+  });
+
+  it('tap a pill stint, tap an empty spot: the STINT moves to that position', () => {
+    const onMoveSub = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onMoveSub={onMoveSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: '#1: empty' }));
+    expect(onMoveSub).toHaveBeenCalledWith('x1', 's0');
+  });
+
+  it('tap a stint, tap its own empty kickoff spot: the incomer is PROMOTED to starter', () => {
+    const onPromoteSub = jest.fn();
+    const onMoveSub = jest.fn();
+    const game = {
+      ...makeGame([]), // GK slot starterless
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView
+        game={game}
+        players={players}
+        onAssign={jest.fn()}
+        onMoveSub={onMoveSub}
+        onPromoteSub={onPromoteSub}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: 'GK: empty' }));
+    expect(onPromoteSub).toHaveBeenCalledWith('x1', 'gk', 'p2');
+    expect(onMoveSub).not.toHaveBeenCalled();
+  });
+
+  it('tap a pill stint, tap a bench disc: that player takes over the stint', () => {
+    const onSetSubPlayer = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onSetSubPlayer={onSetSubPlayer} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: /^Jo/ }));
+    expect(onSetSubPlayer).toHaveBeenCalledWith('x1', 'p3');
+  });
+
+  it('Sub… is reachable from a selected STINT segment (grow an already-subbed pill)', () => {
+    const onRequestSub = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRequestSub={onRequestSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
+    expect(onRequestSub).toHaveBeenCalledWith('gk');
+  });
+
+  it('Sub… is reachable on a STARTERLESS rotation pill', () => {
+    const onRequestSub = jest.fn();
+    const game = {
+      ...makeGame([]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRequestSub={onRequestSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'GK: empty' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sub…' }));
+    expect(onRequestSub).toHaveBeenCalledWith('gk');
+  });
+
+  it('Remove sub action deletes the selected stint', () => {
+    const onRemoveSub = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onRemoveSub={onRemoveSub} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: "12' Sam (GK)" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove sub' }));
+    expect(onRemoveSub).toHaveBeenCalledWith('x1');
+  });
+
+  it('Clear empties the selected position INCLUDING its scheduled subs', () => {
+    const onClearSlot = jest.fn();
+    const game = {
+      ...makeGame([{ slotId: 'gk', playerId: 'p1' }]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={players} onAssign={jest.fn()} onClearSlot={onClearSlot} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(onClearSlot).toHaveBeenCalledWith('gk');
+  });
+
+  it('field-reset tools live under the bench: Clear field + Clear all games', () => {
+    const onClearAll = jest.fn();
+    const onClearAllGames = jest.fn();
+    render(
+      <PlanFieldView
+        game={makeGame([{ slotId: 'gk', playerId: 'p1' }])}
+        players={players}
+        onAssign={jest.fn()}
+        onClearAll={onClearAll}
+        onClearAllGames={onClearAllGames}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Clear field' }));
+    expect(onClearAll).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all games' }));
+    expect(onClearAllGames).toHaveBeenCalledTimes(1);
+  });
+
+  it('Clear field hides on an empty game; Clear all games stays reachable', () => {
+    const onClearAllGames = jest.fn();
+    render(
+      <PlanFieldView
+        game={makeGame([])}
+        players={players}
+        onAssign={jest.fn()}
+        onClearAll={jest.fn()}
+        onClearAllGames={onClearAllGames}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Clear field' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clear all games' })).toBeInTheDocument();
+  });
+});
+
+describe('PlanFieldView conflict banner (simultaneity flags)', () => {
+  it('flags a player scheduled in two slots at the same minutes', () => {
+    const game = {
+      ...makeGame([
+        { slotId: 's0', playerId: 'p1' },
+        { slotId: 's1', playerId: 'p2' },
+      ]),
+      // Alex holds s0 all game AND comes into s1 at 12' - impossible overlap.
+      subs: [{ id: 'x1', slotId: 's1', timeSeconds: 720, inPlayerId: 'p1' }],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    const banner = screen.getByTestId('plan-conflict-banner');
+    expect(banner).toHaveTextContent('Alex');
+    expect(banner).toHaveTextContent('at the same time');
+  });
+
+  it('stays silent for a legal rotation (two players trading one slot)', () => {
+    const game = {
+      ...makeGame([{ slotId: 's0', playerId: 'p1' }]),
+      subs: [
+        { id: 'x1', slotId: 's0', timeSeconds: 480, inPlayerId: 'p2' },
+        { id: 'x2', slotId: 's0', timeSeconds: 960, inPlayerId: 'p1' },
+      ],
+    };
+    render(<PlanFieldView game={game} players={players} onAssign={jest.fn()} />);
+    expect(screen.queryByTestId('plan-conflict-banner')).not.toBeInTheDocument();
+  });
+});
+
