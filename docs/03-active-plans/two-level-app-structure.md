@@ -218,6 +218,13 @@ after the lift (fewer things depend on mounting the game).
   a place inside an existing scope-true modal or justifies a NEW modal - it
   never widens one into a junk drawer. (GameStats' five tabs are the cautionary
   precedent.)
+- **Footer retirement candidate (owner idea 2026-07-16, post-lift)**: with
+  hardware back reliably closing the topmost lifted modal, modal FOOTERS
+  (Sulje rows) may become removable, freeing content space on phones.
+  Not part of the L-waves; revisit after L.4. Caveat: iOS PWA and desktop
+  have no hardware back, so footers can only go where another visible close
+  affordance exists (header X or equivalent) - never leave a modal with no
+  on-screen exit.
 
 ## 7. Process rules for this branch (planner lessons, binding)
 
