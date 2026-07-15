@@ -36,6 +36,7 @@ import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManage
 import { exportJson } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import { exportAggregateStatsExcel, exportPlayerStatsExcel } from '@/utils/exportGames';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
@@ -456,7 +457,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used here
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
-    openGameStatsToTab,
+    openClubStatsToTab,
     isNewGameSetupModalOpen,
     setIsNewGameSetupModalOpen,
     // L.3b: NewGameSetup renders in ClubModalsHost; the prefill selection is
@@ -2020,51 +2021,28 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- AGGREGATE EXPORT HANDLERS ---
 
-  const handleExportAggregateExcel = useCallback(async (gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
-    if (gameIds.length === 0) {
-      showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
-      return;
-    }
-    const gamesData = gameIds.reduce((acc, id) => {
-      const gameData = savedGames[id];
-      if (gameData) {
-        acc[id] = gameData;
-      }
-      return acc;
-    }, {} as SavedGamesCollection);
-    try {
-      const { exportAggregateExcel } = await import('@/utils/exportExcel');
-      // Wrap t() to match TranslationFn signature
-      const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
-      exportAggregateExcel(gamesData, aggregateStats, gameDataManagement.seasons, gameDataManagement.tournaments, [], undefined, undefined, translate);
-    } catch (error) {
-      logger.error('[handleExportAggregateExcel] Export failed:', error);
-      showToast(t('export.exportStatsFailed'), 'error');
-    }
-  }, [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, t, showToast]);
+  // Excel export wrappers shared with the host-level club-stats surface
+  // (L.4): one implementation in utils/exportGames, two call sites.
+  const handleExportAggregateExcel = useCallback(
+    (gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) =>
+      exportAggregateStatsExcel(
+        { savedGames, seasons: gameDataManagement.seasons, tournaments: gameDataManagement.tournaments, showToast, t, userId },
+        gameIds,
+        aggregateStats,
+      ),
+    [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, showToast, t, userId],
+  );
 
-  const handleExportPlayerExcel = useCallback(async (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => {
-    const gamesData = gameIds.reduce((acc, id) => {
-      const gameData = savedGames[id];
-      if (gameData) {
-        acc[id] = gameData;
-      }
-      return acc;
-    }, {} as SavedGamesCollection);
-    try {
-      const [{ exportPlayerExcel }, { getAdjustmentsForPlayer }] = await Promise.all([
-        import('@/utils/exportExcel'),
-        import('@/utils/playerAdjustments'),
-      ]);
-      const adjustments = await getAdjustmentsForPlayer(playerId, userId);
-      // Wrap t() to match TranslationFn signature
-      const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
-      exportPlayerExcel(playerId, playerData, gamesData, gameDataManagement.seasons, gameDataManagement.tournaments, adjustments, translate);
-    } catch (error) {
-      logger.error('[handleExportPlayerExcel] Export failed:', error);
-      showToast(t('export.exportPlayerFailed'), 'error');
-    }
-  }, [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, t, showToast, userId]);
+  const handleExportPlayerExcel = useCallback(
+    (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) =>
+      exportPlayerStatsExcel(
+        { savedGames, seasons: gameDataManagement.seasons, tournaments: gameDataManagement.tournaments, showToast, t, userId },
+        playerId,
+        playerData,
+        gameIds,
+      ),
+    [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, showToast, t, userId],
+  );
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
@@ -2321,7 +2299,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev),
     // Two-level restructure PR 0.2: "Team stats" lands on the aggregate side
     // (season tab) instead of the current game.
-    onOpenTeamStats: () => openGameStatsToTab('season'),
+    // L.4: "Team stats" opens the HOST-level aggregate surface (works over
+    // the match too - the match modal keeps only the current-game side).
+    onOpenTeamStats: () => openClubStatsToTab('season'),
     onOpenLoadGameModal: openLoadGameViaReducer,
     onStartNewGame: handleStartNewGame,
     onOpenRosterModal: openRosterModal,

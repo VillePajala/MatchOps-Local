@@ -584,7 +584,7 @@ describe('useModalOrchestration', () => {
       const { data } = result.current.modalManagerProps;
 
       expect(data.currentGameId).toBeNull();
-      expect(data.selectedPlayerForStats).toBeNull();
+      // selectedPlayerForStats binding moved to the host club-stats surface (L.4)
       // playerIdsForNewGame lifted to ModalProvider (L.3b)
       expect(data.orphanedGameInfo).toBeNull();
     });

@@ -84,32 +84,32 @@ test('supports function updater form for roster modal', () => {
   expect(result.current.isRosterModalOpen).toBe(false);
 });
 
-test('gameStatsInitialTab is set by openGameStatsToTab and CLEARED on close (no stale tab on reopen)', () => {
-  // "Team stats" -> close -> "Match stats" must land on the default tab, not
-  // leak the previous aggregate tab through the shared reducer-backed setter.
+test('clubStatsInitialTab is set by openClubStatsToTab and CLEARED on close (no stale tab on reopen)', () => {
+  // L.4: "Team stats" targets the club-stats surface. Close must clear the
+  // tab so a plain reopen lands on the surface's own default.
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <ModalProvider>{children}</ModalProvider>
   );
   const { result } = renderHook(() => useModalContext(), { wrapper });
 
   act(() => {
-    result.current.openGameStatsToTab('season');
+    result.current.openClubStatsToTab('season');
   });
-  expect(result.current.isGameStatsModalOpen).toBe(true);
-  expect(result.current.gameStatsInitialTab).toBe('season');
+  expect(result.current.isClubStatsOpen).toBe(true);
+  expect(result.current.clubStatsInitialTab).toBe('season');
 
   act(() => {
-    result.current.setIsGameStatsModalOpen(false);
+    result.current.setIsClubStatsOpen(false);
   });
-  expect(result.current.isGameStatsModalOpen).toBe(false);
-  expect(result.current.gameStatsInitialTab).toBeUndefined();
+  expect(result.current.isClubStatsOpen).toBe(false);
+  expect(result.current.clubStatsInitialTab).toBeUndefined();
 
-  // Plain reopen (the "Match stats" path) keeps the default landing.
+  // Plain reopen keeps the default landing.
   act(() => {
-    result.current.setIsGameStatsModalOpen(true);
+    result.current.setIsClubStatsOpen(true);
   });
-  expect(result.current.isGameStatsModalOpen).toBe(true);
-  expect(result.current.gameStatsInitialTab).toBeUndefined();
+  expect(result.current.isClubStatsOpen).toBe(true);
+  expect(result.current.clubStatsInitialTab).toBeUndefined();
 });
 
 test('sign-out closes the planner (L.3c - replaces the PLANNER_OPEN_KEY cleanup)', () => {

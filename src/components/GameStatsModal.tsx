@@ -106,6 +106,12 @@ interface GameStatsModalProps {
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
   onOpenSettings?: () => void;
+  /**
+   * Club-level surface (L.4): hide the current-game tab entirely and land on
+   * the aggregate side. The host renders this with NO live match behind it,
+   * so the current-game props are neutral placeholders there.
+   */
+  aggregateOnly?: boolean;
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -142,6 +148,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   initialSelectedPlayerId = null,
   initialTab,
   onGameClick = NOOP,
+  aggregateOnly = false,
   masterRoster = [],
   onOpenSettings,
 }) => {
@@ -224,7 +231,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // the player deep-link, which beats the current-game default. The modal is
   // conditionally mounted, so the initializer runs fresh on every open.
   const [activeTab, setActiveTab] = useState<StatsTab>(
-    initialTab ?? (initialSelectedPlayerId ? 'player' : 'currentGame'),
+    initialTab ?? (initialSelectedPlayerId ? 'player' : aggregateOnly ? 'season' : 'currentGame'),
   );
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
@@ -384,10 +391,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       }
     } else if (!isOpen) {
       // Only reset when modal is closed to avoid flashing
-      setActiveTab('currentGame');
+      setActiveTab(aggregateOnly ? 'season' : 'currentGame');
       setSelectedPlayer(null);
     }
-  }, [initialSelectedPlayerId, playerPool, isOpen]);
+  }, [initialSelectedPlayerId, playerPool, isOpen, aggregateOnly]);
 
   // --- Use extracted hooks ---
   const { stats: playerStats, gameIds: processedGameIds, totals } = useGameStats({
@@ -709,9 +716,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             {/* Tabs */}
             <div className="flex items-center gap-2 flex-wrap flex-1">
               <div className="flex w-full gap-2" role="tablist">
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
-              {t('gameStatsModal.tabs.currentGame')}
-            </button>
+            {!aggregateOnly && (
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
+                {t('gameStatsModal.tabs.currentGame')}
+              </button>
+            )}
             <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
               {t('gameStatsModal.tabs.season')}
             </button>

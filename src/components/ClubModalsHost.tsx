@@ -36,6 +36,12 @@
  * match view registers plannerLiveGameHooks while mounted so bulk re-apply
  * can still flush/refresh a live game; from Home they are null and the
  * planner works on storage alone.
+ * Wave L.4: GameStats AGGREGATE side (aggregateOnly mode + isClubStatsOpen)
+ * - team stats from Home with no game mounted; tapping a game row in the log
+ * is the LoadGame level crossing (persist + fresh mount). The current-game
+ * tab stays with the match modal (isGameStatsModalOpen), and the roster
+ * modal's player-stats shortcut now lands HERE - the L.2 enter-the-match
+ * interim is retired.
  * Later waves move the remaining club modals here - see
  * two-level-app-structure.md §6. A modal must NEVER render both here and in
  * ModalManager (dual-render guard: the ModalManager block is deleted in the
@@ -55,6 +61,7 @@ import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManage
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
 import { useLoadGameController } from '@/hooks/useLoadGameController';
+import { useClubStatsController } from '@/hooks/useClubStatsController';
 import { useNewGameSetupController } from '@/hooks/useNewGameSetupController';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -70,6 +77,7 @@ const TeamManagerModal = dynamic(() => import('@/components/TeamManagerModal'));
 const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
 const NewGameSetupModal = dynamic(() => import('@/components/NewGameSetupModal'));
 const PlaytimePlannerModal = dynamic(() => import('@/components/PlaytimePlannerModal'));
+const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
 
 export interface ClubModalsHostProps {
   /** The page's level crossing: freshly mount the match view (its boot path
@@ -111,8 +119,12 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     isPlaytimePlannerOpen,
     setIsPlaytimePlannerOpen,
     plannerLiveGameHooks,
+    isClubStatsOpen,
+    setIsClubStatsOpen,
+    clubStatsInitialTab,
+    openClubStatsToTab,
+    selectedPlayerForStats,
     setSelectedPlayerForStats,
-    setIsGameStatsModalOpen,
   } = useModalContext();
 
   const settings = useAppSettingsController();
@@ -127,6 +139,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     },
     onActiveGameDeleted,
   });
+  const clubStats = useClubStatsController();
   const newGameSetup = useNewGameSetupController({
     onGameCreated: () => {
       setIsNewGameSetupModalOpen(false);
@@ -154,16 +167,21 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   const showNewGameSetup =
     isNewGameSetupModalOpen && !newGameSetup.isRosterLoading && !showNoPlayersInsteadOfNewGame;
 
-  // Roster modal's per-player stats shortcut: set the shared deep-link, open
-  // GameStats (renders match-side until L.4) and make sure the match view is
-  // mounted. In-match this opens instantly; from Home it enters the match.
+  // Roster modal's per-player stats shortcut: set the shared deep-link and
+  // open the HOST-level club stats on the player tab (L.4) - no match mount.
   const handleOpenPlayerStats = (playerId: string) => {
     const player = rosterSettings.availablePlayers.find((p) => p.id === playerId);
     if (!player) return;
     setSelectedPlayerForStats(player);
     setIsRosterModalOpen(false);
-    setIsGameStatsModalOpen(true);
-    onEnterMatch?.();
+    openClubStatsToTab('player');
+  };
+
+  // Closing club stats clears the player deep-link so the NEXT open (from
+  // any entry) starts fresh instead of landing on a stale player tab.
+  const handleCloseClubStats = () => {
+    setIsClubStatsOpen(false);
+    setSelectedPlayerForStats(null);
   };
 
   // Hardware-back contract (modal governance): back closes the topmost modal.
@@ -178,6 +196,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useModalHardwareBack(isLoadGameModalOpen, () => setIsLoadGameModalOpen(false));
   useModalHardwareBack(isNewGameSetupModalOpen, handleCloseNewGameSetup);
   useModalHardwareBack(isPlaytimePlannerOpen, () => setIsPlaytimePlannerOpen(false));
+  useModalHardwareBack(isClubStatsOpen, handleCloseClubStats);
   // The hard-reset confirm stacks ON TOP of Settings - it must register too,
   // or back would close Settings underneath and orphan a destructive dialog.
   // (Registered after Settings so a same-render mount keeps it topmost.)
@@ -296,6 +315,42 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           onClose={() => setIsPlaytimePlannerOpen(false)}
           onFlushLiveGame={plannerLiveGameHooks?.onFlushLiveGame}
           onLinkedGamesUpdated={plannerLiveGameHooks?.onLinkedGamesUpdated}
+        />
+      )}
+      {isClubStatsOpen && (
+        <GameStatsModal
+          isOpen
+          onClose={handleCloseClubStats}
+          aggregateOnly
+          /* Neutral current-game props: the current-game tab is hidden in
+             aggregateOnly mode and there is no live match behind this
+             surface. */
+          teamName=""
+          opponentName=""
+          gameDate=""
+          homeScore={0}
+          awayScore={0}
+          homeOrAway="home"
+          availablePlayers={[]}
+          gameEvents={[]}
+          selectedPlayerIds={[]}
+          savedGames={clubStats.savedGames}
+          currentGameId={null}
+          masterRoster={clubStats.masterRoster}
+          personnelDirectory={personnelManager.personnel}
+          onExportOneExcel={loadGame.handleExportOneExcel}
+          onExportAggregateExcel={clubStats.handleExportAggregateExcel}
+          onExportPlayerExcel={clubStats.handleExportPlayerExcel}
+          initialSelectedPlayerId={selectedPlayerForStats?.id}
+          initialTab={clubStatsInitialTab}
+          onGameClick={(gameId) => {
+            /* The log's game rows are the LoadGame level crossing: persist
+               the pick, close this surface, fresh-mount the match. */
+            setIsClubStatsOpen(false);
+            setSelectedPlayerForStats(null);
+            void loadGame.handleLoadGame(gameId);
+          }}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
         />
       )}
       {isRosterModalOpen && (
