@@ -4,9 +4,11 @@ Status: delivery plan locked (2026-07-14) - see §6/§7. Planner shipped; this
 is next. All work on `feature/two-level-structure`; ONE final PR to master.
 Progress (2026-07-15): 0.1, 0.2, 1.1, 1.2, 1.3 (+1.3b, button polish), 1.4,
 L.0a (PR #663: ClubModalsHost + Training/Rules + topmost-only hardware back)
-and L.0b (PR #665: Settings + Instructions lifted; useAppSettingsController;
+L.0b (PR #665: Settings + Instructions lifted; useAppSettingsController;
 shared isAppResetting unmounts the game hook chain during wipes; host gated
-behind app readiness checks) are MERGED to the feature branch. Next: L.1.
+behind app readiness checks) and L.1 (PR #666: SeasonTournament + Personnel
+lifted; useSeasonTournamentManagement owns the CRUD mutations) are MERGED
+to the feature branch. Next: L.2.
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
