@@ -2,10 +2,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
-import TeamManagerModal from '@/components/TeamManagerModal';
 import GoalLogModal from '@/components/GoalLogModal';
 import NewGameSetupModal from '@/components/NewGameSetupModal';
-import RosterSettingsModal from '@/components/RosterSettingsModal';
 const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -45,12 +43,10 @@ interface LoadGameState {
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalManagerState {
-  isTeamManagerOpen: boolean;
   isGoalLogModalOpen: boolean;
   isGameStatsModalOpen: boolean;
   isLoadGameModalOpen: boolean;
   isNewGameSetupModalOpen: boolean;
-  isRosterModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   gameStatsInitialTab?: StatsTab;
   isPlayerAssessmentModalOpen: boolean;
@@ -81,14 +77,11 @@ interface ModalManagerData {
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   gameIdentifierForSave: string;
   isPlayed: boolean;
-  isRosterUpdating: boolean;
-  rosterError: string | null;
   loadGameState: LoadGameState;
   updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
 }
 
 interface ModalManagerHandlers {
-  closeTeamManagerModal: () => void;
   toggleGoalLogModal: () => void;
   addGoalEvent: (playerId: string | undefined, assistId?: string) => void;
   logOpponentGoal: (timeSeconds: number) => void;
@@ -104,7 +97,6 @@ interface ModalManagerHandlers {
   loadGame: (gameId: string) => void;
   deleteGame: (gameId: string) => void;
   exportOneJson: (gameId: string) => void;
-  setSelectedTeamForRoster: (teamId: string | null) => void;
   setNewGameDemandFactor: (factor: number) => void;
   startNewGameWithSetup: (
     initialSelectedPlayerIds: string[],
@@ -132,14 +124,6 @@ interface ModalManagerHandlers {
     gender: import('@/types').Gender | undefined
   ) => void;
   cancelNewGameSetup: () => void;
-  closeRosterModal: () => void;
-  updatePlayerForModal: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
-  renamePlayerForModal: (playerId: string, playerData: { name: string; nickname?: string }) => void;
-  setJerseyNumberForModal: (playerId: string, jerseyNumber: string) => void;
-  setPlayerNotesForModal: (playerId: string, notes: string) => void;
-  removePlayerForModal: (playerId: string) => void;
-  addPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
-  openPlayerStats: (playerId: string) => void;
   closeGameSettingsModal: () => void;
   teamNameChange: (name: string) => void;
   opponentNameChange: (name: string) => void;
@@ -206,15 +190,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             Settings + Instructions + hard-reset confirm LIFTED there too (L.0b)
             - never render them here again (dual-render guard). */}
         {/* PersonnelManagerModal + SeasonTournamentManagementModal LIFTED to
-            ClubModalsHost (L.1) - never render them here again (dual-render
-            guard). */}
-        <TeamManagerModal
-          isOpen={state.isTeamManagerOpen}
-          onClose={handlers.closeTeamManagerModal}
-          teams={data.teams}
-          masterRoster={data.masterRoster}
-        />
-
+            ClubModalsHost (L.1); RosterSettingsModal + TeamManagerModal LIFTED
+            there too (L.2) - never render them here again (dual-render guard). */}
         <GoalLogModal
           isOpen={state.isGoalLogModalOpen}
           onClose={handlers.toggleGoalLogModal}
@@ -314,21 +291,6 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             savedGames={data.savedGames}
           />
         )}
-
-        <RosterSettingsModal
-          isOpen={state.isRosterModalOpen}
-          onClose={handlers.closeRosterModal}
-          availablePlayers={data.availablePlayers}
-          onUpdatePlayer={handlers.updatePlayerForModal}
-          onRenamePlayer={handlers.renamePlayerForModal}
-          onSetJerseyNumber={handlers.setJerseyNumberForModal}
-          onSetPlayerNotes={handlers.setPlayerNotesForModal}
-          onRemovePlayer={handlers.removePlayerForModal}
-          onAddPlayer={handlers.addPlayerForModal}
-          isRosterUpdating={data.isRosterUpdating}
-          rosterError={data.rosterError}
-          onOpenPlayerStats={handlers.openPlayerStats}
-        />
 
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
