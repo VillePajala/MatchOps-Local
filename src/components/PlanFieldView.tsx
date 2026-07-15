@@ -71,6 +71,8 @@ interface PlanFieldViewProps {
   onClearSlot?: (slotId: string) => void;
   /** Empty EVERY position (all starters + the whole sub schedule). */
   onClearAll?: () => void;
+  /** Empty every game's field in the WHOLE PLAN (asks for confirmation). */
+  onClearAllGames?: () => void;
   /** Remove one scheduled sub (per-stint delete from the field). */
   onRemoveSub?: (subId: string) => void;
   /** Move one scheduled sub to another (starter-empty) position. */
@@ -106,6 +108,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   onSwapPlayers,
   onClearSlot,
   onClearAll,
+  onClearAllGames,
   onRemoveSub,
   onMoveSub,
   onPromoteSub,
@@ -554,7 +557,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
         )}
         {/* Actions for the current selection + whole-field tools. Swapping and
             moving are DIRECT (tap a placement, tap another) - no action needed. */}
-        {(selection !== null || (emptySlots.length > 0 && bench.length > 0) || anyPlacement) && (
+        {(selection !== null || (emptySlots.length > 0 && bench.length > 0)) && (
           <div className="flex gap-2">
             {/* Sub… is available from ANY selected placement - the starter
                 segment, a stint segment, or a starterless rotation pill - so
@@ -585,11 +588,6 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             {emptySlots.length > 0 && bench.length > 0 && (
               <button type="button" onClick={handleAutoFill} className={`${secondaryButtonStyle} flex-1`}>
                 {t('playtimePlanner.lineup.autoFill', 'Auto-fill')}
-              </button>
-            )}
-            {selection === null && anyPlacement && onClearAll && (
-              <button type="button" onClick={handleClearAll} className={`${dangerButtonStyle} flex-1`}>
-                {t('playtimePlanner.lineup.clearAll', 'Clear field')}
               </button>
             )}
           </div>
@@ -670,6 +668,23 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
               );
             })}
             </div>
+          </div>
+        )}
+
+        {/* Field-reset tools live UNDER the bench (owner placement): empty
+            THIS game's field, or every game in the plan (confirmed upstream). */}
+        {((anyPlacement && onClearAll) || onClearAllGames) && (
+          <div className="flex gap-2">
+            {anyPlacement && onClearAll && (
+              <button type="button" onClick={handleClearAll} className={`${dangerButtonStyle} flex-1`}>
+                {t('playtimePlanner.lineup.clearAll', 'Clear field')}
+              </button>
+            )}
+            {onClearAllGames && (
+              <button type="button" onClick={onClearAllGames} className={`${dangerButtonStyle} flex-1`}>
+                {t('playtimePlanner.lineup.clearAllGames', 'Clear all games')}
+              </button>
+            )}
           </div>
         )}
 

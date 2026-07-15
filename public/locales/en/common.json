@@ -3233,7 +3233,13 @@
       "movedSub": "Substitution moved",
       "subPlayerChanged": "Substitution updated",
       "promotedStarter": "{{player}} promoted to starter",
-      "benchLabel": "Bench"
+      "benchLabel": "Bench",
+      "clearAllGames": "Clear all games",
+      "clearAllGamesConfirmTitle": "Clear all games?",
+      "clearAllGamesConfirmMessage": "Empties every game's lineup and substitution schedule in this plan.",
+      "clearAllGamesConfirmWarning": "Undo (on the Games tab) restores them.",
+      "clearAllGamesConfirmLabel": "Clear",
+      "clearedAllGames": "All games cleared"
     },
     "subs": {
       "heading": "Substitutions",

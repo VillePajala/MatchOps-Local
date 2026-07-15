@@ -3233,7 +3233,13 @@
       "movedSub": "Vaihto siirretty",
       "subPlayerChanged": "Vaihto päivitetty",
       "promotedStarter": "{{player}} nostettu avaukseen",
-      "benchLabel": "Penkki"
+      "benchLabel": "Penkki",
+      "clearAllGames": "Tyhjennä kaikki pelit",
+      "clearAllGamesConfirmTitle": "Tyhjennetäänkö kaikki pelit?",
+      "clearAllGamesConfirmMessage": "Tyhjentää jokaisen pelin kokoonpanon ja vaihdot tästä suunnitelmasta.",
+      "clearAllGamesConfirmWarning": "Kumoa (Pelit-välilehdellä) palauttaa ne.",
+      "clearAllGamesConfirmLabel": "Tyhjennä",
+      "clearedAllGames": "Kaikki pelit tyhjennetty"
     },
     "subs": {
       "heading": "Vaihdot",
