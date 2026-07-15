@@ -10,14 +10,17 @@ behind app readiness checks) L.1 (PR #666: SeasonTournament + Personnel lifted; 
 owns the CRUD mutations) and L.2 (PR #667: Roster + TeamManager lifted;
 StartScreenLiftedBridge opens ALL lifted modals in place from Home - no game
 mount; roster-removal pruning via query diff; player-stats shortcut interim
-until L.4) and L.3a (PR #673: enterMatch contract - every match entry is a
+until L.4), L.3a (PR #673: enterMatch contract - every match entry is a
 FRESH mount booting the persisted current game; LoadGame lifted with
-useLoadGameController; live-score row override retired deliberately) are
-and L.3b (PR #674: NewGameSetup lifted;
-buildAndPersistNewGame persist half + enterMatch fresh mount replaces the
-in-place session apply everywhere; Home "New Game" opens in place; roster
-highlight retired deliberately) are MERGED to the feature branch. Next:
-L.3c (planner joins host, session-key hack retires).
+useLoadGameController; live-score row override retired deliberately),
+L.3b (PR #674: NewGameSetup lifted; buildAndPersistNewGame persist half +
+enterMatch fresh mount replaces the in-place session apply everywhere;
+Home "New Game" opens in place; roster highlight retired deliberately) and
+L.3c (PR #675: planner joins the host; PLANNER_OPEN_KEY retired - provider
+state survives the background-resume flash; sign-out closes the planner via
+ModalProvider currentUserId; match registers plannerLiveGameHooks) are
+MERGED to the feature branch. The L.3 level crossing is COMPLETE. Next:
+L.4 (GameStats aggregate lift).
 Tracked for L.4: Home player-stats shortcut mounts the match with no
 initialAction (accepted interim, review 2026-07-15).
 Owner decision that triggered this: "the app is too complicated... we are
