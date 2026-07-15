@@ -656,6 +656,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (nextGame) {
       setEditingGameId(nextGame.id);
       setSubSheetTarget(null);
+      setSwapSheetTarget(null);
     }
   };
 
@@ -1351,6 +1352,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setEditingGameId(null);
     setReplacingId(null);
     setSubSheetTarget(null);
+    setSwapSheetTarget(null);
     setView('manager');
   }, [flushSave, refreshPlanList]);
 
@@ -1517,6 +1519,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               const idx = PLAN_TABS.indexOf(view as PlanTab);
               const next = PLAN_TABS[(idx + (e.key === 'ArrowRight' ? 1 : PLAN_TABS.length - 1)) % PLAN_TABS.length];
               setSubSheetTarget(null);
+              setSwapSheetTarget(null);
               setView(next);
               (e.currentTarget.querySelector(`#planner-tab-${next}`) as HTMLElement | null)?.focus();
             }}
@@ -1537,6 +1540,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 tabIndex={view === tab ? 0 : -1}
                 onClick={() => {
                   setSubSheetTarget(null);
+                  setSwapSheetTarget(null);
                   setView(tab);
                 }}
                 className={`flex-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
@@ -2158,6 +2162,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       onClick={() => {
                         setEditingGameId(g.id);
                         setSubSheetTarget(null);
+                        setSwapSheetTarget(null);
                       }}
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
@@ -2272,6 +2277,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                             onClick={() => {
                               setEditingGameId(g.id);
                               setSubSheetTarget(null);
+                              setSwapSheetTarget(null);
                               setGamesLayout('single');
                             }}
                             className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
@@ -2339,6 +2345,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             onOpenGame={(gameId) => {
               setEditingGameId(gameId);
               setSubSheetTarget(null);
+              setSwapSheetTarget(null);
               setGamesLayout('single');
               setView('games');
             }}

@@ -14,9 +14,8 @@
  */
 
 import type { PlanGame } from './types';
-import { gameTotalSeconds } from './types';
-import { ensureStartingSlots } from './lineup';
-import { computeSlotSegments, type PlannedGame, type SlotSegment } from './minutes';
+import { toEngineGame } from './adapter';
+import { computeSlotSegments, type SlotSegment } from './minutes';
 
 /** One impossible overlap: `playerId` holds both slots during the window. */
 export interface SimultaneityConflict {
@@ -27,16 +26,6 @@ export interface SimultaneityConflict {
   overlapStartSeconds: number;
   overlapEndSeconds: number;
 }
-
-/** Adapt one UI game to the engine shape (mirrors adapter.toEnginePlan). */
-const toEngineGame = (game: PlanGame): PlannedGame => ({
-  id: game.id,
-  totalSeconds: gameTotalSeconds(game),
-  slots: ensureStartingSlots(game).map((s) => ({ slotId: s.slotId, startPlayerId: s.playerId })),
-  subs: game.subs.map((s) => ({ slotId: s.slotId, timeSeconds: s.timeSeconds, inPlayerId: s.inPlayerId })),
-  included: game.included,
-  absentIds: game.absentIds,
-});
 
 /**
  * Find every window where a player is scheduled in two slots at once.

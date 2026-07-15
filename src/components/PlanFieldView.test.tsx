@@ -215,6 +215,30 @@ describe('PlanFieldView swap action (L: whole-game player swap)', () => {
     expect(onRequestSwap).toHaveBeenCalledWith('gk');
   });
 
+  it('offers Swap… with an EMPTY bench on a starterless rotation slot (short-staffed roster)', () => {
+    // Understaffed squad: 4 players for a 5-slot 5v5 game, all placed on the
+    // field slots (bench = 0). The GK slot starts empty but has a scheduled
+    // sub bringing one of them on - the swap action must still be reachable
+    // (the actions row used to vanish whenever the bench was empty).
+    const onRequestSwap = jest.fn();
+    const fourPlayers = players.slice(0, 4);
+    const game = {
+      ...makeGame([
+        { slotId: 's0', playerId: 'p1' },
+        { slotId: 's1', playerId: 'p2' },
+        { slotId: 's2', playerId: 'p3' },
+        { slotId: 's3', playerId: 'p4' },
+      ]),
+      subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+    };
+    render(
+      <PlanFieldView game={game} players={fourPlayers} onAssign={jest.fn()} onRequestSwap={onRequestSwap} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /GK: empty; 12' Sam/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
+    expect(onRequestSwap).toHaveBeenCalledWith('gk');
+  });
+
   it('hides Swap… without the callback (read-only embeds)', () => {
     render(
       <PlanFieldView

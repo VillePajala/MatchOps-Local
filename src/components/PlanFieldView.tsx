@@ -436,7 +436,10 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
             })}
           </div>
         )}
-        {((activeSlotId && activeOccupant) || (emptySlots.length > 0 && bench.length > 0)) && (
+        {/* The row must also show for a swap-only selection: a starterless
+            rotation slot on a benchless (short-staffed) roster still needs
+            Swap… - activeSlotHasTimeline covers occupant + scheduled subs. */}
+        {((activeSlotId && activeSlotHasTimeline) || (emptySlots.length > 0 && bench.length > 0)) && (
           <div className="flex gap-2">
             {activeSlotId && activeOccupant && onRequestSub && (
               <button
