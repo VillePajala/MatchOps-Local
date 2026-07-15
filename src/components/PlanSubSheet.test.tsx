@@ -115,9 +115,16 @@ describe('PlanSubSheet', () => {
     );
     // Jo has no appearances -> bench group, carrying his tinted total.
     expect(screen.getByRole('button', { name: /Jo 6'/ })).toBeInTheDocument();
-    // Sam (already coming on) and Alex (starter) stay PICKABLE - a rotation
-    // or a re-entry is a legal schedule now - grouped separately.
+    // At the default minute (12') Sam already HOLDS the slot (his sub is at
+    // 12') - picking him would be a self-sub no-op, so he is excluded while
+    // Alex (out at 12') is offered for a re-entry.
     expect(screen.getByText('Already in this game')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Sam/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Alex/ })).toBeInTheDocument();
+
+    // Step to 11': now ALEX holds the slot - the exclusion follows the minute.
+    fireEvent.click(screen.getByRole('button', { name: '-1' }));
+    expect(screen.queryByRole('button', { name: /Alex/ })).not.toBeInTheDocument();
     const sam = screen.getByRole('button', { name: /Sam/ });
     fireEvent.click(sam);
     expect(onAdd).toHaveBeenCalledWith(

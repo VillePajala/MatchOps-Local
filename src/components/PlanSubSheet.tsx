@@ -60,11 +60,19 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
     [game.subs, slotId],
   );
 
+  const defaultMinute = Math.round(defaultSubTimeSeconds(game) / 60);
+  // Cap strictly BELOW the final whistle: a sub at full time grants zero seconds
+  // and would silently defeat the full-game bench alarm.
+  const maxMinute = Math.max(1, game.numberOfPeriods * game.periodMinutes - 1);
+  const [minute, setMinute] = useState(() => Math.min(maxMinute, Math.max(1, defaultMinute)));
+
   // ANY player may come on (rotations: two players trading a slot, a starter
   // re-entering after coming off). True bench players (appearing nowhere in
   // this game yet) list first; players already in the game follow under their
-  // own label. Absentees are excluded; impossible same-minutes overlaps are
-  // flagged by the lineup's conflict banner after the pick, not blocked here.
+  // own label. Excluded: absentees, and whoever holds THIS slot at the chosen
+  // minute - subbing a player in for themselves is the one true no-op (it
+  // would render as "12' Alex in for Alex"). Impossible same-minutes overlaps
+  // elsewhere are flagged by the lineup's conflict banner, not blocked here.
   const { benchIds, inGameIds } = useMemo(() => {
     const absent = new Set(game.absentIds ?? []);
     const appearing = new Set<string>();
@@ -74,18 +82,22 @@ const PlanSubSheet: React.FC<PlanSubSheetProps> = ({
     game.subs.forEach((sub) => {
       if (sub.inPlayerId) appearing.add(sub.inPlayerId);
     });
-    const ids = players.map((p) => p.id).filter((id) => !absent.has(id));
+    // Walk THIS slot's schedule to find its occupant at the chosen minute.
+    let occupantAtMinute = starting.find((a) => a.slotId === slotId)?.playerId ?? null;
+    [...game.subs]
+      .filter((sub) => sub.slotId === slotId && sub.timeSeconds <= minute * 60)
+      .sort((a, b) => a.timeSeconds - b.timeSeconds)
+      .forEach((sub) => {
+        occupantAtMinute = sub.inPlayerId;
+      });
+    const ids = players
+      .map((p) => p.id)
+      .filter((id) => !absent.has(id) && id !== occupantAtMinute);
     return {
       benchIds: ids.filter((id) => !appearing.has(id)),
       inGameIds: ids.filter((id) => appearing.has(id)),
     };
-  }, [players, starting, game.subs, game.absentIds]);
-
-  const defaultMinute = Math.round(defaultSubTimeSeconds(game) / 60);
-  // Cap strictly BELOW the final whistle: a sub at full time grants zero seconds
-  // and would silently defeat the full-game bench alarm.
-  const maxMinute = Math.max(1, game.numberOfPeriods * game.periodMinutes - 1);
-  const [minute, setMinute] = useState(() => Math.min(maxMinute, Math.max(1, defaultMinute)));
+  }, [players, starting, game.subs, game.absentIds, slotId, minute]);
   const atHalftime = minute === defaultMinute && game.numberOfPeriods === 2;
 
   // Focus the dialog ONCE on mount (an inline callback ref re-fired on every

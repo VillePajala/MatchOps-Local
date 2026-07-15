@@ -402,7 +402,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       <div className="max-w-sm mx-auto space-y-3">
         {conflicts.length > 0 && (
           <div
-            role="alert"
+            role="status"
             data-testid="plan-conflict-banner"
             className="rounded-md border border-red-500/60 bg-red-950/40 px-3 py-2 space-y-0.5"
           >

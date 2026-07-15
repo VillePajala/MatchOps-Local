@@ -99,6 +99,21 @@ describe('slotTimelinePlayers', () => {
     ]);
   });
 
+  it('dedupes repeat-rotation identities (A-B-A-B lists A and B once each)', () => {
+    const game = baseGame({
+      startingSlots: [{ slotId: 's0', playerId: 'a' }],
+      subs: [
+        { id: '1', slotId: 's0', timeSeconds: 600, inPlayerId: 'b' },
+        { id: '2', slotId: 's0', timeSeconds: 1200, inPlayerId: 'a' },
+        { id: '3', slotId: 's0', timeSeconds: 1800, inPlayerId: 'b' },
+      ],
+    });
+    expect(slotTimelinePlayers(game, 's0')).toEqual([
+      { playerId: 'a', fromSeconds: 0 },
+      { playerId: 'b', fromSeconds: 600 },
+    ]);
+  });
+
   it('handles an empty slot with incoming subs (no starter entry)', () => {
     const game = baseGame({
       startingSlots: [{ slotId: 's0', playerId: null }],

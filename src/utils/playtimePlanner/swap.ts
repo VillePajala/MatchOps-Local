@@ -47,11 +47,20 @@ export interface SlotTimelineEntry {
  */
 export function slotTimelinePlayers(game: PlanGame, slotId: string): SlotTimelineEntry[] {
   const entries: SlotTimelineEntry[] = [];
+  // One entry per IDENTITY, not per stint: an A-B-A-B rotation holds each
+  // player several times, but the swap picker needs each name once (first
+  // appearance wins for the minute tag).
+  const seen = new Set<string>();
+  const push = (playerId: string, fromSeconds: number) => {
+    if (seen.has(playerId)) return;
+    seen.add(playerId);
+    entries.push({ playerId, fromSeconds });
+  };
   const starter = ensureStartingSlots(game).find((s) => s.slotId === slotId)?.playerId ?? null;
-  if (starter) entries.push({ playerId: starter, fromSeconds: 0 });
+  if (starter) push(starter, 0);
   [...game.subs]
     .filter((s) => s.slotId === slotId && s.inPlayerId !== null)
     .sort((a, b) => a.timeSeconds - b.timeSeconds)
-    .forEach((s) => entries.push({ playerId: s.inPlayerId as string, fromSeconds: s.timeSeconds }));
+    .forEach((s) => push(s.inPlayerId as string, s.timeSeconds));
   return entries;
 }
