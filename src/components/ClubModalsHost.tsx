@@ -135,10 +135,13 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   // Empty club roster: creating a game is meaningless - swap the setup modal
   // for the add-players confirm (mirrors the match-side pre-open guard, and
   // covers the Home entry which opens the flag directly via the bridge).
-  // Gated on the roster query having LOADED so the confirm can't flash while
-  // an actually-populated roster is still fetching.
+  // While the roster query is still LOADING, render NEITHER surface: showing
+  // the confirm could flash over a populated roster, and showing the setup
+  // form could flash an empty roster over a truly empty one.
   const showNoPlayersInsteadOfNewGame =
     isNewGameSetupModalOpen && !newGameSetup.isRosterLoading && newGameSetup.masterRoster.length === 0;
+  const showNewGameSetup =
+    isNewGameSetupModalOpen && !newGameSetup.isRosterLoading && !showNoPlayersInsteadOfNewGame;
 
   // Roster modal's per-player stats shortcut: set the shared deep-link, open
   // GameStats (renders match-side until L.4) and make sure the match view is
@@ -243,7 +246,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           processingGameId={loadGame.processingGameId}
         />
       )}
-      {isNewGameSetupModalOpen && !showNoPlayersInsteadOfNewGame && (
+      {showNewGameSetup && (
         <NewGameSetupModal
           isOpen
           initialPlayerSelection={playerIdsForNewGame}

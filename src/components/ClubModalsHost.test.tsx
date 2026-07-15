@@ -156,7 +156,6 @@ const mockNewGameSetupController = {
   savedGames: {},
   masterRoster: [{ id: 'p1', name: 'Testaaja', isGoalie: false }],
   isRosterLoading: false,
-  isCreatingGame: false,
   newGameDemandFactor: 1,
   setNewGameDemandFactor: jest.fn(),
   handleStartNewGameWithSetup: jest.fn(),
@@ -337,6 +336,24 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
         nowSpy.mockRestore();
       }
     } finally {
+      mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
+    }
+  });
+
+  it('renders NEITHER the setup modal nor the confirm while the roster query is still loading (L.3b)', async () => {
+    mockNewGameSetupController.masterRoster = [];
+    mockNewGameSetupController.isRosterLoading = true;
+    try {
+      renderHost();
+      fireEvent.click(screen.getByText('open-new-game'));
+      // No empty-roster setup-form flash, no premature confirm - the surface
+      // is picked once the roster has actually loaded.
+      await waitFor(() =>
+        expect(screen.queryByTestId('new-game-setup-modal')).not.toBeInTheDocument(),
+      );
+      expect(screen.queryByText('No Players in Roster')).not.toBeInTheDocument();
+    } finally {
+      mockNewGameSetupController.isRosterLoading = false;
       mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
     }
   });

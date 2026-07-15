@@ -147,6 +147,10 @@ describe('useNewGameSetupController (L.3b level crossing)', () => {
     expect(mockShowUpgradePrompt).toHaveBeenCalledWith('game', 1);
     expect(mockedSaveGame).not.toHaveBeenCalled();
     expect(onGameCreated).not.toHaveBeenCalled();
+    // The coach is still on the SAME unchanged game - its timer-recovery
+    // state (background/visibility restore) must survive a routine block.
+    expect(clearTimerState).not.toHaveBeenCalled();
+    expect(clearTimerAnchor).not.toHaveBeenCalled();
   });
 
   it('save failure: toast shown, no match entry', async () => {
@@ -157,6 +161,9 @@ describe('useNewGameSetupController (L.3b level crossing)', () => {
     });
     expect(mockShowToast).toHaveBeenCalledWith(expect.any(String), 'error');
     expect(onGameCreated).not.toHaveBeenCalled();
+    // Failed save keeps the current game active - no timer-state wipe.
+    expect(clearTimerState).not.toHaveBeenCalled();
+    expect(clearTimerAnchor).not.toHaveBeenCalled();
   });
 
   it('cancel resets the demand-factor slider', async () => {
@@ -180,5 +187,25 @@ describe('useNewGameSetupController (L.3b level crossing)', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: [...queryKeys.appSettingsCurrentGameId, 'user-1'],
     });
+  });
+
+  it('ignores a re-entrant start while a creation is already in flight (double-tap)', async () => {
+    // Hold the first save open so the second tap arrives mid-flight.
+    let releaseSave: (() => void) | undefined;
+    mockedSaveGame.mockImplementation(
+      (_id, state) => new Promise((resolve) => { releaseSave = () => resolve(state); }),
+    );
+    const { result } = await renderController();
+    let first: Promise<void>;
+    let second: Promise<void>;
+    await act(async () => {
+      first = result.current.handleStartNewGameWithSetup(...startArgs());
+      second = result.current.handleStartNewGameWithSetup(...startArgs());
+      await second; // the re-entrant call returns immediately
+      releaseSave!();
+      await first;
+    });
+    expect(mockedSaveGame).toHaveBeenCalledTimes(1);
+    expect(onGameCreated).toHaveBeenCalledTimes(1);
   });
 });

@@ -12,7 +12,7 @@
  * mount. (One deliberate retirement: the post-create roster-button highlight,
  * which cannot survive a remount and predates the roster CTA redesign.)
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { queryKeys } from '@/config/queryKeys';
@@ -62,7 +62,10 @@ export function useNewGameSetupController({ onGameCreated }: UseNewGameSetupCont
   const masterRosterData = masterRosterQuery.data;
   const masterRoster = useMemo(() => masterRosterData ?? [], [masterRosterData]);
 
-  const [isCreatingGame, setIsCreatingGame] = useState(false);
+  // Double-submit guard: NewGameSetupModal's Start button does not await
+  // onStart and has no internal guard, so a rapid double-tap would race two
+  // creations. A ref (not state) so the second tap sees it synchronously.
+  const createInFlightRef = useRef(false);
   // The modal's difficulty slider state - lives here since the modal renders
   // only at host level now. Reset to neutral whenever the modal closes.
   const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
@@ -95,14 +98,9 @@ export function useNewGameSetupController({ onGameCreated }: UseNewGameSetupCont
       gender: StartNewGameRequest['gender'],
       prefill?: StartNewGameRequest['prefill'],
     ) => {
-      setIsCreatingGame(true);
+      if (createInFlightRef.current) return;
+      createInFlightRef.current = true;
       try {
-        // Same pre-switch hygiene as picking a saved game (L.3a): stale timer
-        // state or a wall-clock anchor from the previous game must not replay
-        // onto the fresh mount that boots the new one.
-        await clearTimerState(userId);
-        clearTimerAnchor();
-
         const result = await buildAndPersistNewGame(
           {
             availablePlayers: masterRoster,
@@ -146,13 +144,21 @@ export function useNewGameSetupController({ onGameCreated }: UseNewGameSetupCont
         );
 
         // Blocked (premium) or failed (toast shown) - keep the modal open so
-        // nothing the coach typed is lost.
+        // nothing the coach typed is lost. The still-active current game is
+        // untouched, so its timer-recovery state must survive too - the
+        // clears below run ONLY once the persist is known good.
         if (!result) return;
+
+        // Same pre-switch hygiene as picking a saved game (L.3a): stale timer
+        // state or a wall-clock anchor from the previous game must not replay
+        // onto the fresh mount that boots the new one.
+        await clearTimerState(userId);
+        clearTimerAnchor();
 
         setNewGameDemandFactor(1);
         onGameCreated(result.gameId);
       } finally {
-        setIsCreatingGame(false);
+        createInFlightRef.current = false;
       }
     },
     [masterRoster, savedGames, queryClient, showToast, t, canCreate, showUpgradePrompt, userId, onGameCreated],
@@ -169,7 +175,6 @@ export function useNewGameSetupController({ onGameCreated }: UseNewGameSetupCont
     savedGames,
     masterRoster,
     isRosterLoading: masterRosterQuery.isLoading,
-    isCreatingGame,
     newGameDemandFactor,
     setNewGameDemandFactor,
     handleStartNewGameWithSetup,
