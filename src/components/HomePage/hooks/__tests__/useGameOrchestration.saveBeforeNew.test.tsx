@@ -122,6 +122,8 @@ jest.mock('@/contexts/ModalProvider', () => ({
     // L.3b: the prefill selection lives in ModalProvider now.
     playerIdsForNewGame: null,
     setPlayerIdsForNewGame: jest.fn(),
+    // L.3c: the match registers its planner live-game hooks in the provider.
+    setPlannerLiveGameHooks: jest.fn(),
     isSettingsModalOpen: false,
     setIsSettingsModalOpen: jest.fn(),
     openSettingsToTab: jest.fn(),

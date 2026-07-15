@@ -2,6 +2,16 @@ import React, { createContext, useContext, useState, useMemo, useRef, useReducer
 import { initialModalState, modalReducer } from './modalReducer';
 import type { Player } from '@/types';
 
+/** Live-match hooks for the host-level planner (L.3c). Registered by the
+ *  match view while it is mounted; null on Home, where the planner operates
+ *  on storage alone (no live game to flush or refresh). */
+export interface PlannerLiveGameHooks {
+  /** Flush the loaded game's debounced autosave before bulk re-apply reads storage. */
+  onFlushLiveGame: () => Promise<void>;
+  /** Bulk re-apply rewrote these games; refresh live state if one is loaded. */
+  onLinkedGamesUpdated: (gameIds: string[]) => void;
+}
+
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
@@ -45,6 +55,15 @@ interface ModalContextValue {
    *  ClubModalsHost, so openers on BOTH levels prefill through here. */
   playerIdsForNewGame: string[] | null;
   setPlayerIdsForNewGame: React.Dispatch<React.SetStateAction<string[] | null>>;
+  /** Playing-Time Planner open-state (L.3c - the modal renders in
+   *  ClubModalsHost). Replaces GameContainer's PLANNER_OPEN_KEY
+   *  sessionStorage hack: this provider stays mounted across the
+   *  resume-from-background loading flash, so React state alone survives. */
+  isPlaytimePlannerOpen: boolean;
+  setIsPlaytimePlannerOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** See PlannerLiveGameHooks - registered by the match view while mounted. */
+  plannerLiveGameHooks: PlannerLiveGameHooks | null;
+  setPlannerLiveGameHooks: React.Dispatch<React.SetStateAction<PlannerLiveGameHooks | null>>;
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Open settings modal to a specific tab */
@@ -61,7 +80,14 @@ interface ModalContextValue {
 
 const ModalContext = createContext<ModalContextValue | undefined>(undefined);
 
-export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
+export const ModalProvider = ({ children, currentUserId }: {
+  children: React.ReactNode;
+  /** Cloud-mode user id (undefined in local mode / signed out). Sign-out
+   *  closes the planner - see the effect below. Passed as a prop because the
+   *  page renders this provider and already tracks auth; requiring useAuth
+   *  here would force an AuthProvider around every ModalProvider in tests. */
+  currentUserId?: string;
+}) => {
   const [isGameSettingsModalOpen, setIsGameSettingsModalOpen] = useState(false);
   // Layer 2 (2.1): Wire Load Game modal to reducer; keep API stable
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
@@ -79,6 +105,24 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
   // L.3b: NewGameSetup prefill selection lifted here (modal renders in ClubModalsHost).
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
+  // L.3c: planner open-state + the match view's live-game hooks lifted here.
+  const [isPlaytimePlannerOpen, setIsPlaytimePlannerOpen] = useState(false);
+  const [plannerLiveGameHooks, setPlannerLiveGameHooks] = useState<PlannerLiveGameHooks | null>(null);
+
+  // Sign-out closes the planner (mirrors the retired PLANNER_OPEN_KEY cleanup
+  // in page.tsx): without this, an open planner would auto-reopen over Home
+  // the next time someone signs in. Handled here because this provider is
+  // the one component that stays mounted across the auth screens -
+  // ClubModalsHost is gated out while signed out, so it could not do this
+  // itself. Official adjust-state-when-props-change pattern (both the
+  // set-state-in-effect and refs-during-render lint rules bar the
+  // alternatives; setState during the owner's own render is the sanctioned
+  // form - React restarts the render before committing).
+  const [prevUserId, setPrevUserId] = useState(currentUserId);
+  if (prevUserId !== currentUserId) {
+    setPrevUserId(currentUserId);
+    if (!currentUserId && isPlaytimePlannerOpen) setIsPlaytimePlannerOpen(false);
+  }
   const [isAppResetting, setIsAppResetting] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
@@ -266,6 +310,10 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsNewGameSetupModalOpen,
     playerIdsForNewGame,
     setPlayerIdsForNewGame,
+    isPlaytimePlannerOpen,
+    setIsPlaytimePlannerOpen,
+    plannerLiveGameHooks,
+    setPlannerLiveGameHooks,
     isSettingsModalOpen: modalState.settings,
     setIsSettingsModalOpen,
     openSettingsToTab,
@@ -290,6 +338,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     modalState.gameStats, setIsGameStatsModalOpen,
     modalState.newGameSetup, setIsNewGameSetupModalOpen,
     playerIdsForNewGame, setPlayerIdsForNewGame,
+    isPlaytimePlannerOpen, setIsPlaytimePlannerOpen,
+    plannerLiveGameHooks, setPlannerLiveGameHooks,
     modalState.settings, setIsSettingsModalOpen,
     openSettingsToTab, settingsInitialTab, openGameStatsToTab, gameStatsInitialTab,
     isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen,
