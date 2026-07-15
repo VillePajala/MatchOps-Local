@@ -10,6 +10,7 @@ import {
   getPositionLabel,
   getPositionLabelForFormationPosition,
   POSITION_THRESHOLDS,
+  getRunningIntensity,
 } from './positionLabels';
 
 describe('positionLabels', () => {
@@ -366,5 +367,17 @@ describe('positionLabels', () => {
       const result2 = getPositionLabel(0.5, 0.75);
       expect(result1).not.toBe(result2);
     });
+  });
+});
+
+describe('getRunningIntensity (rotation priority)', () => {
+  it('ranks running load: attack > wide mid > central mid > def mid > fullback > CB > GK', () => {
+    const order = ['ST', 'LM', 'CM', 'CDM', 'LB', 'CB', 'GK'].map((l) => getRunningIntensity(l));
+    for (let i = 1; i < order.length; i++) {
+      expect(order[i - 1]).toBeGreaterThan(order[i]);
+    }
+    // Wingers rank with the striker at the top.
+    expect(getRunningIntensity('LW')).toBe(getRunningIntensity('ST'));
+    expect(getRunningIntensity('RW')).toBe(getRunningIntensity('ST'));
   });
 });
