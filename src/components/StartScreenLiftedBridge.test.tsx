@@ -23,6 +23,7 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onOpenAccount}>tap-account</button>
       <button onClick={props.onOpenSettings}>tap-settings</button>
       <button onClick={props.onLoadGame}>tap-load</button>
+      <button onClick={props.onGetStarted}>tap-new</button>
     </div>
   ),
 }));
@@ -30,6 +31,7 @@ jest.mock('@/components/StartScreen', () => ({
 function Probe() {
   const ctx = useModalContext();
   const open = [
+    ctx.isLoadGameModalOpen && 'loadGame',
     ctx.isRosterModalOpen && 'roster',
     ctx.isTeamManagerOpen && 'teams',
     ctx.isPersonnelManagerOpen && 'personnel',
@@ -42,21 +44,21 @@ function Probe() {
 }
 
 describe('StartScreenLiftedBridge (L.2)', () => {
-  const renderBridge = (onLoadGame = jest.fn()) => {
+  const renderBridge = (onGetStarted = jest.fn()) => {
     render(
       <ModalProvider>
         <Probe />
         <StartScreenLiftedBridge
-          onLoadGame={onLoadGame}
-          onGetStarted={jest.fn()}
+          onGetStarted={onGetStarted}
           onViewStats={jest.fn()}
         />
       </ModalProvider>,
     );
-    return { onLoadGame };
+    return { onGetStarted };
   };
 
   it.each([
+    ['tap-load', 'loadGame'],
     ['tap-roster', 'roster'],
     ['tap-teams', 'teams'],
     ['tap-personnel', 'personnel'],
@@ -73,9 +75,9 @@ describe('StartScreenLiftedBridge (L.2)', () => {
   });
 
   it('match-bound actions still pass through untouched', () => {
-    const { onLoadGame } = renderBridge();
-    fireEvent.click(screen.getByText('tap-load'));
-    expect(onLoadGame).toHaveBeenCalledTimes(1);
+    const { onGetStarted } = renderBridge();
+    fireEvent.click(screen.getByText('tap-new'));
+    expect(onGetStarted).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('probe')).toHaveTextContent('none');
   });
 });

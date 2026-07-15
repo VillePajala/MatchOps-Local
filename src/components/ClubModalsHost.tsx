@@ -18,8 +18,11 @@
  * roster editing; the game side consumes roster changes via the query cache
  * and prunes deleted players from the live field/selection itself). The
  * roster modal's player-stats shortcut sets the shared player deep-link and
- * asks the page (onEnterMatchForPlayerStats) to mount the match view, where
- * GameStats still renders until L.4.
+ * asks the page (onEnterMatch) to mount the match view, where GameStats
+ * still renders until L.4.
+ * Wave L.3a: LoadGame - the first LEVEL CROSSING. Picking a saved game
+ * persists it as current, then onEnterMatch mounts a FRESH match whose
+ * existing boot path loads it (useLoadGameController). Cancel stays put.
  * Later waves move the remaining club modals here - see
  * two-level-app-structure.md §6. A modal must NEVER render both here and in
  * ModalManager (dual-render guard: the ModalManager block is deleted in the
@@ -38,6 +41,7 @@ import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
+import { useLoadGameController } from '@/hooks/useLoadGameController';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
@@ -49,14 +53,20 @@ const SeasonTournamentManagementModal = dynamic(() => import('@/components/Seaso
 const PersonnelManagerModal = dynamic(() => import('@/components/PersonnelManagerModal'));
 const RosterSettingsModal = dynamic(() => import('@/components/RosterSettingsModal'));
 const TeamManagerModal = dynamic(() => import('@/components/TeamManagerModal'));
+const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
 
 export interface ClubModalsHostProps {
-  /** Mounts the match view (page owns the screen state) so GameStats - still
-   *  match-side until L.4 - can open for the roster modal's stats shortcut. */
-  onEnterMatchForPlayerStats?: () => void;
+  /** The page's level crossing: freshly mount the match view (its boot path
+   *  loads the persisted current game). Used by the LoadGame pick (L.3a) and
+   *  by the roster modal's player-stats shortcut (GameStats is match-side
+   *  until L.4). */
+  onEnterMatch?: () => void;
+  /** The persisted current game was deleted - the page remounts a live match
+   *  so it cannot keep autosaving a ghost. No-op on the start screen. */
+  onActiveGameDeleted?: () => void;
 }
 
-export default function ClubModalsHost({ onEnterMatchForPlayerStats }: ClubModalsHostProps = {}) {
+export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: ClubModalsHostProps = {}) {
   const { t } = useTranslation();
   const {
     isTrainingResourcesOpen,
@@ -76,6 +86,8 @@ export default function ClubModalsHost({ onEnterMatchForPlayerStats }: ClubModal
     setIsRosterModalOpen,
     isTeamManagerOpen,
     setIsTeamManagerOpen,
+    isLoadGameModalOpen,
+    setIsLoadGameModalOpen,
     setSelectedPlayerForStats,
     setIsGameStatsModalOpen,
   } = useModalContext();
@@ -85,6 +97,13 @@ export default function ClubModalsHost({ onEnterMatchForPlayerStats }: ClubModal
   const personnelManager = usePersonnelManager();
   const rosterSettings = useRosterSettingsController();
   const { data: teams = [] } = useTeamsQuery();
+  const loadGame = useLoadGameController({
+    onEnterMatch: () => {
+      setIsLoadGameModalOpen(false);
+      onEnterMatch?.();
+    },
+    onActiveGameDeleted,
+  });
 
   // Roster modal's per-player stats shortcut: set the shared deep-link, open
   // GameStats (renders match-side until L.4) and make sure the match view is
@@ -95,7 +114,7 @@ export default function ClubModalsHost({ onEnterMatchForPlayerStats }: ClubModal
     setSelectedPlayerForStats(player);
     setIsRosterModalOpen(false);
     setIsGameStatsModalOpen(true);
-    onEnterMatchForPlayerStats?.();
+    onEnterMatch?.();
   };
 
   // Hardware-back contract (modal governance): back closes the topmost modal.
@@ -107,6 +126,7 @@ export default function ClubModalsHost({ onEnterMatchForPlayerStats }: ClubModal
   useModalHardwareBack(isPersonnelManagerOpen, () => setIsPersonnelManagerOpen(false));
   useModalHardwareBack(isRosterModalOpen, () => setIsRosterModalOpen(false));
   useModalHardwareBack(isTeamManagerOpen, () => setIsTeamManagerOpen(false));
+  useModalHardwareBack(isLoadGameModalOpen, () => setIsLoadGameModalOpen(false));
   // The hard-reset confirm stacks ON TOP of Settings - it must register too,
   // or back would close Settings underneath and orphan a destructive dialog.
   // (Registered after Settings so a same-render mount keeps it topmost.)
@@ -163,6 +183,28 @@ export default function ClubModalsHost({ onEnterMatchForPlayerStats }: ClubModal
           updateTournamentMutation={seasonTournament.updateTournamentMutation}
           deleteTournamentMutation={seasonTournament.deleteTournamentMutation}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
+        />
+      )}
+      {isLoadGameModalOpen && (
+        <LoadGameModal
+          isOpen
+          onClose={() => setIsLoadGameModalOpen(false)}
+          savedGames={loadGame.savedGames}
+          onLoad={loadGame.handleLoadGame}
+          onDelete={loadGame.handleDeleteGame}
+          onExportOneJson={loadGame.handleExportOneJson}
+          onExportOneExcel={loadGame.handleExportOneExcel}
+          currentGameId={loadGame.currentGameId}
+          seasons={seasonTournament.seasons}
+          tournaments={seasonTournament.tournaments}
+          teams={teams}
+          isLoadingGamesList={loadGame.isLoadingGamesList}
+          loadGamesListError={loadGame.loadGamesListError}
+          isGameLoading={loadGame.isGameLoading}
+          gameLoadError={loadGame.gameLoadError}
+          isGameDeleting={loadGame.isGameDeleting}
+          gameDeleteError={loadGame.gameDeleteError}
+          processingGameId={loadGame.processingGameId}
         />
       )}
       {isRosterModalOpen && (

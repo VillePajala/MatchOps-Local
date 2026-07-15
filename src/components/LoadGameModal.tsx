@@ -46,13 +46,6 @@ export interface LoadGameModalProps {
   onExportOneJson: (gameId: string) => void;
   onExportOneExcel: (gameId: string) => void;
   currentGameId?: string;
-  /**
-   * Optional live score override for the currently loaded game.
-   * This ensures the current game's card reflects unsaved in-memory score
-   * while autosave is paused for open modals.
-   */
-  currentSessionHomeScore?: number;
-  currentSessionAwayScore?: number;
 
   isLoadingGamesList?: boolean;
   loadGamesListError?: string | null;
@@ -80,8 +73,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   onExportOneJson,
   onExportOneExcel,
   currentGameId,
-  currentSessionHomeScore,
-  currentSessionAwayScore,
   isLoadingGamesList = false,
   loadGamesListError = null,
   isGameLoading = false,
@@ -389,13 +380,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const isLoadActionActive = isGameLoading && isProcessingThisGame;
             const disableActions = isGameLoading || isGameDeleting || isGamesImporting;
 
-            // Score display: use live session score for the current game if provided
-            const displayHomeScore = isCurrent && typeof currentSessionHomeScore === 'number'
-              ? currentSessionHomeScore
-              : (game.homeScore ?? 0);
-            const displayAwayScore = isCurrent && typeof currentSessionAwayScore === 'number'
-              ? currentSessionAwayScore
-              : (game.awayScore ?? 0);
+            // Score display comes from the SAVED game. The old live-session
+            // override was retired with the L.3a lift (the modal renders at
+            // page level with no session in scope): mid-match the current
+            // game's row may trail the live score by one autosave debounce -
+            // an accepted, documented trade-off.
+            const displayHomeScore = game.homeScore ?? 0;
+            const displayAwayScore = game.awayScore ?? 0;
 
             // Calculate score display color using display scores
             // Determine win/loss/draw state via the shared resolver (shootout-aware),
