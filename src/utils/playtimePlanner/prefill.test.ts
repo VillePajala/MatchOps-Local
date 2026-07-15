@@ -91,19 +91,40 @@ describe('buildPrefillFromPlan', () => {
     ]);
   });
 
-  it('drops a duplicate incoming player and a sub bringing on a starter (crafted data)', () => {
-    // The plan editor can't produce either; a crafted/legacy plan must not
-    // double-drive the live sub prompts for one player.
+  it('carries a FULL rotation to the real game (re-entries included) and skips only same-slot self-subs', () => {
+    // Rotations are first-class: f in for b at 5', b back in for f at 10',
+    // f back again at 15'. Every row must reach the real game's sub prompts -
+    // the old single-window guard silently dropped the re-entries.
     const g = planGame({
       subs: [
         { id: 'x1', slotId: 's0', timeSeconds: 300, inPlayerId: 'f' },
-        { id: 'x2', slotId: 's1', timeSeconds: 600, inPlayerId: 'f' }, // duplicate in
-        { id: 'x3', slotId: 's2', timeSeconds: 700, inPlayerId: 'a' }, // already starting (GK)
+        { id: 'x2', slotId: 's0', timeSeconds: 600, inPlayerId: 'b' }, // re-entry
+        { id: 'x3', slotId: 's0', timeSeconds: 900, inPlayerId: 'f' }, // re-entry
+        { id: 'x4', slotId: 's0', timeSeconds: 950, inPlayerId: 'f' }, // self-sub no-op: dropped
       ],
     });
     const res = buildPrefillFromPlan(plan(g), g, roster);
     expect(res.plannedSubs).toEqual([
       { id: 'x1', slotId: 's0', timeSeconds: 300, inPlayerId: 'f', outPlayerId: 'b' },
+      { id: 'x2', slotId: 's0', timeSeconds: 600, inPlayerId: 'b', outPlayerId: 'f' },
+      { id: 'x3', slotId: 's0', timeSeconds: 900, inPlayerId: 'f', outPlayerId: 'b' },
+    ]);
+    // The rotating incomer parks on the sideline ONCE (their first entry).
+    expect(res.sidelinePlayers.filter((p) => p.id === 'f')).toHaveLength(1);
+  });
+
+  it('carries a cross-slot re-entry (starter comes off, later enters another slot)', () => {
+    // a starts GK, comes off at 5' (f in), re-enters s2 at 10' - both rows carry.
+    const g = planGame({
+      subs: [
+        { id: 'x1', slotId: 'gk', timeSeconds: 300, inPlayerId: 'f' },
+        { id: 'x2', slotId: 's2', timeSeconds: 600, inPlayerId: 'a' },
+      ],
+    });
+    const res = buildPrefillFromPlan(plan(g), g, roster);
+    expect(res.plannedSubs).toEqual([
+      { id: 'x1', slotId: 'gk', timeSeconds: 300, inPlayerId: 'f', outPlayerId: 'a' },
+      { id: 'x2', slotId: 's2', timeSeconds: 600, inPlayerId: 'a', outPlayerId: 'd' },
     ]);
   });
 

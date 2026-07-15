@@ -100,7 +100,8 @@ describe('PlanSubSheet', () => {
     expect(screen.getByText("23'")).toBeInTheDocument();
   });
 
-  it('excludes players already coming on, and shows tinted cumulative minutes', () => {
+  it('offers players already in the game under their own group (rotations legal)', () => {
+    const onAdd = jest.fn();
     const game = makeGame([{ id: 'x1', slotId: 'gk', inPlayerId: 'p2', timeSeconds: 720 }]);
     render(
       <PlanSubSheet
@@ -108,13 +109,27 @@ describe('PlanSubSheet', () => {
         slotId="gk"
         players={players}
         minutesByPlayer={{ p3: { minutes: 6, ratio: 0.3 } }}
-        onAdd={jest.fn()}
+        onAdd={onAdd}
         onClose={jest.fn()}
       />,
     );
-    // Sam is already scheduled in -> only Jo remains, carrying his total.
-    expect(screen.queryByRole('button', { name: /Sam/ })).not.toBeInTheDocument();
+    // Jo has no appearances -> bench group, carrying his tinted total.
     expect(screen.getByRole('button', { name: /Jo 6'/ })).toBeInTheDocument();
+    // At the default minute (12') Sam already HOLDS the slot (his sub is at
+    // 12') - picking him would be a self-sub no-op, so he is excluded while
+    // Alex (out at 12') is offered for a re-entry.
+    expect(screen.getByText('Already in this game')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Sam/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Alex/ })).toBeInTheDocument();
+
+    // Step to 11': now ALEX holds the slot - the exclusion follows the minute.
+    fireEvent.click(screen.getByRole('button', { name: '-1' }));
+    expect(screen.queryByRole('button', { name: /Alex/ })).not.toBeInTheDocument();
+    const sam = screen.getByRole('button', { name: /Sam/ });
+    fireEvent.click(sam);
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ slotId: 'gk', inPlayerId: 'p2' }),
+    );
   });
 
   it('closes on backdrop tap without creating anything', () => {

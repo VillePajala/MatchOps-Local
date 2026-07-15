@@ -3224,7 +3224,8 @@
       "viewGrid": "Side by side",
       "noPlayers": "No players in this plan - add them on the Plan tab.",
       "absentHeading": "Absent from this game",
-      "benchEmptyAbsent": "Everyone is placed or absent."
+      "benchEmptyAbsent": "Everyone is placed or absent.",
+      "swapAction": "Swap…"
     },
     "subs": {
       "heading": "Substitutions",
@@ -3236,7 +3237,8 @@
       "added": "Substitution added",
       "removed": "Substitution removed",
       "timeLabel": "Minute",
-      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})"
+      "rowInOut": "{{minute}}' {{player}} in for {{out}} ({{position}})",
+      "inGameGroup": "Already in this game"
     },
     "balance": {
       "title": "Playing-time balance",
@@ -3297,6 +3299,19 @@
       "minutes": "Minutes",
       "plan": "Settings"
     },
-    "loadError": "Could not load your plans. Close the planner and try again."
+    "loadError": "Could not load your plans. Close the planner and try again.",
+    "swapSheet": {
+      "title": "Swap players · {{position}}",
+      "hint": "Trades every appearance of the two players in this game (lineup and substitutions).",
+      "who": "Swap who?",
+      "withLabel": "Swap with",
+      "noTargets": "No other players in this plan."
+    },
+    "swap": {
+      "done": "Swapped {{a}} and {{b}}"
+    },
+    "conflicts": {
+      "row": "{{player}} is in {{a}} and {{b}} at the same time ({{from}}'-{{to}}')"
+    }
   }
 }

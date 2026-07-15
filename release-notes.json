@@ -2,6 +2,19 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-15",
+      "en": [
+        "Match planner: swap two players' roles for a whole game in one tap (lineup and substitutions trade together).",
+        "Match planner: any player can now be picked for a substitution - rotate two players in one position as often as you like.",
+        "Match planner: if a plan puts a player in two positions at the same time, the lineup now shows a clear warning."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: vaihda kahden pelaajan roolit koko pelin osalta yhdellä napautuksella (avauskokoonpano ja vaihdot vaihtuvat yhdessä).",
+        "Ottelusuunnittelu: vaihtoon voi nyt valita kenet tahansa - kierrätä kahta pelaajaa samassa paikassa niin usein kuin haluat.",
+        "Ottelusuunnittelu: jos suunnitelma laittaa pelaajan kahteen paikkaan samaan aikaan, kokoonpanossa näkyy nyt selkeä varoitus."
+      ]
+    },
+    {
       "date": "2026-07-14",
       "en": [
         "Match planner polish: screen readers now announce substitution changes, and keyboard focus stays inside the substitution sheet after removing a planned change."

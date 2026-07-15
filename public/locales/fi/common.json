@@ -3224,7 +3224,8 @@
       "viewGrid": "Rinnakkain",
       "noPlayers": "Suunnitelmassa ei ole pelaajia - lisää heidät Suunnitelma-välilehdellä.",
       "absentHeading": "Poissa tästä pelistä",
-      "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa."
+      "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa.",
+      "swapAction": "Vaihda…"
     },
     "subs": {
       "heading": "Vaihdot",
@@ -3236,7 +3237,8 @@
       "added": "Vaihto lisätty",
       "removed": "Vaihto poistettu",
       "timeLabel": "Minuutti",
-      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})"
+      "rowInOut": "{{minute}}' {{player}} kentälle, {{out}} pois ({{position}})",
+      "inGameGroup": "Jo mukana tässä pelissä"
     },
     "balance": {
       "title": "Peliaikatasapaino",
@@ -3297,6 +3299,19 @@
       "minutes": "Minuutit",
       "plan": "Asetukset"
     },
-    "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen."
+    "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen.",
+    "swapSheet": {
+      "title": "Pelaajien vaihto · {{position}}",
+      "hint": "Vaihtaa pelaajien kaikki esiintymät tässä pelissä (avauskokoonpano ja vaihdot).",
+      "who": "Kumpi vaihdetaan?",
+      "withLabel": "Vaihda pelaajaan",
+      "noTargets": "Ei muita pelaajia suunnitelmassa."
+    },
+    "swap": {
+      "done": "Vaihdettu {{a}} ja {{b}}"
+    },
+    "conflicts": {
+      "row": "{{player}} on paikoissa {{a}} ja {{b}} samaan aikaan ({{from}}'-{{to}}')"
+    }
   }
 }

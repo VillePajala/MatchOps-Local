@@ -1028,6 +1028,90 @@ describe('PlaytimePlannerModal', () => {
     expect(announcement()).toHaveAttribute('data-announcement-nonce', '4');
   });
 
+  it('placing a starter KEEPS their scheduled subs (rotations survive lineup edits)', async () => {
+    // Alex is scheduled to come into s0 at 6' but starts nowhere. Placing him
+    // as the GK starter must NOT strip that sub - the old Phase-1 guard did,
+    // which made rotations unbuildable from the lineup side.
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [],
+            subs: [{ id: 'x1', slotId: 's0', timeSeconds: 360, inPlayerId: 'p1' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+
+    // The scheduled entry is visible on the field pill before the edit.
+    expect(screen.getByLabelText(/6' Alex/)).toBeInTheDocument();
+
+    // Place Alex as the goalkeeper starter.
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('GK: empty'));
+    });
+    await act(async () => {
+      fireEvent.click(
+        screen
+          .getAllByRole('button', { name: /^Alex/ })
+          .find((b) => b.className.includes('rounded-full'))!,
+      );
+    });
+
+    // The sub survives: the pill still announces Alex coming into s0 at 6'.
+    expect(screen.getByLabelText(/6' Alex/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/GK: Alex/)).toBeInTheDocument();
+  });
+
+  it('swaps two players whole-game from the lineup (Swap… sheet)', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }, { id: 'p3', name: 'Jo' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            // Alex starts GK and is subbed for Sam at 12'; Jo starts s0.
+            startingSlots: [
+              { slotId: 'gk', playerId: 'p1' },
+              { slotId: 's0', playerId: 'p3' },
+            ],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    // Select the GK pill and open the swap sheet.
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText(/GK: Alex/));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
+    });
+    const sheet = screen.getByRole('dialog', { name: /Swap players/ });
+    // The GK rotation holds two identities - swap the STARTER (Alex) with Jo.
+    await act(async () => {
+      fireEvent.click(within(sheet).getByRole('button', { name: /^Jo/ }));
+    });
+
+    // Whole-game identity swap: Jo now starts GK (Sam still comes in at 12'),
+    // Alex holds s0 for the full game.
+    expect(screen.getByLabelText(/GK: Jo; 12' Sam/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/#1: Alex/)).toBeInTheDocument();
+    expect(announcement()).toHaveTextContent('Swapped Alex and Jo');
+  });
+
   it('team options carry their binding context, matching New Game creation', async () => {
     // A bare "U10" is ambiguous when a club runs several U10 squads across
     // competitions - the option label must say which context the team lives
