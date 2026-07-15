@@ -63,7 +63,6 @@ jest.mock('@/contexts/AuthProvider', () => ({
 }));
 
 const noop = () => {};
-const noopAsync = async () => {};
 
 
 
@@ -71,7 +70,6 @@ const createProps = (): ModalManagerProps => ({
   state: {
     isGoalLogModalOpen: false,
     isGameStatsModalOpen: false,
-    isNewGameSetupModalOpen: false,
     isGameSettingsModalOpen: false,
     isPlayerAssessmentModalOpen: false,
     isTeamReassignModalOpen: false,
@@ -94,8 +92,6 @@ const createProps = (): ModalManagerProps => ({
     personnel: [],
     selectedPlayerForStats: null,
     playerAssessments: {} as Record<string, PlayerAssessment>,
-    playerIdsForNewGame: null,
-    newGameDemandFactor: 1,
     availableTeams: [],
     orphanedGameInfo: null,
     gameIdentifierForSave: '',
@@ -114,9 +110,6 @@ const createProps = (): ModalManagerProps => ({
     exportPlayerExcel: noop,
     gameLogClick: noop,
     exportOneJson: noop,
-    startNewGameWithSetup: noopAsync,
-    cancelNewGameSetup: noop,
-    setNewGameDemandFactor: noop,
     closeGameSettingsModal: noop,
     teamNameChange: noop,
     opponentNameChange: noop,
@@ -161,7 +154,6 @@ const createProps = (): ModalManagerProps => ({
     setShowResetFieldConfirm: noop,
     resetFieldConfirmed: noop,
     openSettingsModal: noop,
-    manageTeamRosterFromNewGame: noop,
   },
 });
 

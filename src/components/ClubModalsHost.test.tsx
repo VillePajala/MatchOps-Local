@@ -143,6 +143,29 @@ jest.mock('@/hooks/useLoadGameController', () => ({
   useLoadGameController: () => mockLoadGameController,
 }));
 
+jest.mock('@/components/NewGameSetupModal', () => ({
+  __esModule: true,
+  default: ({ onStart, onCancel }: { onStart: (...args: unknown[]) => void; onCancel: () => void }) => (
+    <div data-testid="new-game-setup-modal">
+      <button onClick={() => onStart(['p1'], 'Home', 'Away')}>confirm-new-game</button>
+      <button onClick={onCancel}>cancel-new-game</button>
+    </div>
+  ),
+}));
+const mockNewGameSetupController = {
+  savedGames: {},
+  masterRoster: [{ id: 'p1', name: 'Testaaja', isGoalie: false }],
+  isRosterLoading: false,
+  newGameDemandFactor: 1,
+  setNewGameDemandFactor: jest.fn(),
+  handleStartNewGameWithSetup: jest.fn(),
+  handleCancelNewGameSetup: jest.fn(),
+};
+jest.mock('@/hooks/useNewGameSetupController', () => ({
+  __esModule: true,
+  useNewGameSetupController: () => mockNewGameSetupController,
+}));
+
 function Opener() {
   const {
     setIsTrainingResourcesOpen,
@@ -155,6 +178,7 @@ function Opener() {
     setIsRosterModalOpen,
     setIsTeamManagerOpen,
     setIsLoadGameModalOpen,
+    setIsNewGameSetupModalOpen,
   } = useModalContext();
   return (
     <>
@@ -168,6 +192,7 @@ function Opener() {
       <button onClick={() => setIsRosterModalOpen(true)}>open-roster</button>
       <button onClick={() => setIsTeamManagerOpen(true)}>open-teams</button>
       <button onClick={() => setIsLoadGameModalOpen(true)}>open-load</button>
+      <button onClick={() => setIsNewGameSetupModalOpen(true)}>open-new-game</button>
     </>
   );
 }
@@ -271,6 +296,66 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     await waitFor(() => expect(screen.getByTestId('load-game-modal')).toBeInTheDocument());
     fireEvent.click(screen.getByText('pick-g1'));
     expect(mockLoadGameController.handleLoadGame).toHaveBeenCalledWith('g1');
+  });
+
+  it('renders NewGameSetup at host level and delegates the confirm to the controller (L.3b)', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-new-game'));
+    await waitFor(() => expect(screen.getByTestId('new-game-setup-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('confirm-new-game'));
+    expect(mockNewGameSetupController.handleStartNewGameWithSetup).toHaveBeenCalledWith(['p1'], 'Home', 'Away');
+    // Cancel closes in place and resets the controller's slider state. (The
+    // provider's anti-flash guard ignores a close within 200ms of opening -
+    // step Date.now past it instead of sleeping.)
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 300);
+    try {
+      fireEvent.click(screen.getByText('cancel-new-game'));
+      await waitFor(() => expect(screen.queryByTestId('new-game-setup-modal')).not.toBeInTheDocument());
+    } finally {
+      nowSpy.mockRestore();
+    }
+    expect(mockNewGameSetupController.handleCancelNewGameSetup).toHaveBeenCalled();
+  });
+
+  it('swaps NewGameSetup for the add-players confirm when the club roster is empty (L.3b)', async () => {
+    mockNewGameSetupController.masterRoster = [];
+    try {
+      renderHost();
+      fireEvent.click(screen.getByText('open-new-game'));
+      // The setup modal must NOT render - the confirm takes its place.
+      await waitFor(() => expect(screen.getByText('No Players in Roster')).toBeInTheDocument());
+      expect(screen.queryByTestId('new-game-setup-modal')).not.toBeInTheDocument();
+      // Confirming hands over to the (lifted) roster modal. Step Date.now
+      // past the provider's 200ms anti-flash close guard first.
+      const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 300);
+      try {
+        fireEvent.click(screen.getByText('Add Players'));
+        await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
+        expect(screen.queryByText('No Players in Roster')).not.toBeInTheDocument();
+      } finally {
+        nowSpy.mockRestore();
+      }
+    } finally {
+      mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
+    }
+  });
+
+  it('renders NEITHER the setup modal nor the confirm while the roster query is still loading (L.3b)', async () => {
+    mockNewGameSetupController.masterRoster = [];
+    mockNewGameSetupController.isRosterLoading = true;
+    try {
+      renderHost();
+      fireEvent.click(screen.getByText('open-new-game'));
+      // No empty-roster setup-form flash, no premature confirm - the surface
+      // is picked once the roster has actually loaded.
+      await waitFor(() =>
+        expect(screen.queryByTestId('new-game-setup-modal')).not.toBeInTheDocument(),
+      );
+      expect(screen.queryByText('No Players in Roster')).not.toBeInTheDocument();
+    } finally {
+      mockNewGameSetupController.isRosterLoading = false;
+      mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
+    }
   });
 
   it('renders Settings and Instructions at host level (L.0b)', async () => {

@@ -39,6 +39,12 @@ interface ModalContextValue {
   setIsGameStatsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isNewGameSetupModalOpen: boolean;
   setIsNewGameSetupModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Initial player selection for NewGameSetup (set by match-side flows to
+   *  carry the current game's selection into the next game, null = modal
+   *  defaults to the full roster). Lifted in L.3b - the modal renders in
+   *  ClubModalsHost, so openers on BOTH levels prefill through here. */
+  playerIdsForNewGame: string[] | null;
+  setPlayerIdsForNewGame: React.Dispatch<React.SetStateAction<string[] | null>>;
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Open settings modal to a specific tab */
@@ -71,6 +77,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   // (roster modal renders in ClubModalsHost; GameStats still match-side).
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
+  // L.3b: NewGameSetup prefill selection lifted here (modal renders in ClubModalsHost).
+  const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   const [isAppResetting, setIsAppResetting] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
@@ -256,6 +264,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsGameStatsModalOpen,
     isNewGameSetupModalOpen: modalState.newGameSetup,
     setIsNewGameSetupModalOpen,
+    playerIdsForNewGame,
+    setPlayerIdsForNewGame,
     isSettingsModalOpen: modalState.settings,
     setIsSettingsModalOpen,
     openSettingsToTab,
@@ -279,6 +289,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     isGoalLogModalOpen, setIsGoalLogModalOpen,
     modalState.gameStats, setIsGameStatsModalOpen,
     modalState.newGameSetup, setIsNewGameSetupModalOpen,
+    playerIdsForNewGame, setPlayerIdsForNewGame,
     modalState.settings, setIsSettingsModalOpen,
     openSettingsToTab, settingsInitialTab, openGameStatsToTab, gameStatsInitialTab,
     isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen,

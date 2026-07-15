@@ -13,6 +13,9 @@ interface StartScreenProps {
   onLoadGame: () => void;
   onResumeGame?: () => void;
   onGetStarted: () => void;
+  /** New Game row: opens the lifted NewGameSetup in place (L.3b). Falls back
+   *  to onGetStarted (the old enter-the-workspace behavior) when absent. */
+  onNewGame?: () => void;
   onViewStats: () => void;
   onOpenSettings: () => void;
   /** Home tab: master roster / teams / personnel (opens the existing modal). */
@@ -51,6 +54,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onLoadGame,
   onResumeGame,
   onGetStarted,
+  onNewGame,
   onViewStats,
   onOpenSettings,
   onManageRoster,
@@ -388,7 +392,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 )}
                 <button
                   type="button"
-                  onClick={onGetStarted}
+                  onClick={onNewGame ?? onGetStarted}
                   className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                 >
                   <span className="text-sm font-semibold text-white">

@@ -60,9 +60,6 @@ export interface ModalUIState {
   currentGameId: string | null;
   canReapplyPlan: boolean;
   playerAssessments: Record<string, PlayerAssessment>;
-  playerIdsForNewGame: string[] | null;
-  newGameDemandFactor: number;
-  setNewGameDemandFactor: (factor: number) => void;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   gameIdentifierForSave: string;
@@ -88,32 +85,7 @@ export interface ModalHandlers {
   handleExportPlayerExcel: (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => Promise<void>;
   handleGameLogClick: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
-  handleStartNewGameWithSetup: (
-    initialSelectedPlayerIds: string[],
-    homeTeamName: string,
-    opponentName: string,
-    gameDate: string,
-    gameLocation: string,
-    gameTime: string,
-    seasonId: string | null,
-    tournamentId: string | null,
-    numPeriods: 1 | 2,
-    periodDuration: number,
-    homeOrAway: 'home' | 'away',
-    demandFactor: number,
-    ageGroup: string,
-    tournamentLevel: string,
-    tournamentSeriesId: string | null,
-    isPlayedParam: boolean,
-    teamId: string | null,
-    availablePlayersForGame: Player[],
-    selectedPersonnelIds: string[],
-    leagueId: string,
-    customLeagueName: string,
-    gameType: import('@/types').GameType,
-    gender: import('@/types').Gender | undefined
-  ) => void;
-  handleCancelNewGameSetup: () => void;
+  // New-game handlers LIFTED to useNewGameSetupController (L.3b).
   // Roster modal handlers LIFTED to useRosterSettingsController (L.2).
   handleTeamNameChange: (name: string) => void;
   handleOpponentNameChange: (name: string) => void;
@@ -146,7 +118,6 @@ export interface ModalHandlers {
   handleSavePlayerAssessment: (playerId: string, assessment: Partial<import('@/types').PlayerAssessment>) => void;
   handleDeletePlayerAssessment: (playerId: string) => void;
   handleTeamReassignment: (teamId: string | null) => void;
-  handleManageTeamRosterFromNewGame: (teamId?: string) => void;
   handleNoPlayersConfirmed: () => void;
   handleSaveBeforeNewConfirmed: () => void;
   handleSaveBeforeNewCancelled: () => void;
@@ -207,9 +178,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     currentGameId,
     canReapplyPlan,
     playerAssessments,
-    playerIdsForNewGame,
-    newGameDemandFactor,
-    setNewGameDemandFactor,
     availableTeams,
     orphanedGameInfo,
     gameIdentifierForSave,
@@ -233,8 +201,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleExportPlayerExcel,
     handleGameLogClick,
     handleExportOneJson,
-    handleStartNewGameWithSetup,
-    handleCancelNewGameSetup,
     handleTeamNameChange,
     handleOpponentNameChange,
     handleGameDateChange,
@@ -266,7 +232,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSavePlayerAssessment,
     handleDeletePlayerAssessment,
     handleTeamReassignment,
-    handleManageTeamRosterFromNewGame,
     handleNoPlayersConfirmed,
     handleSaveBeforeNewConfirmed,
     handleSaveBeforeNewCancelled,
@@ -284,8 +249,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     // setIsGoalLogModalOpen not used - modal controlled by timer management
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
-    isNewGameSetupModalOpen,
-    // setIsNewGameSetupModalOpen not used - modal controlled by game orchestration
     // isSettingsModalOpen/settingsInitialTab not needed - SettingsModal renders
     // in ClubModalsHost (L.0b); the setter stays for openSettingsModal below.
     setIsSettingsModalOpen,
@@ -406,7 +369,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     state: {
       isGoalLogModalOpen,
       isGameStatsModalOpen,
-      isNewGameSetupModalOpen,
       isGameSettingsModalOpen,
       gameStatsInitialTab,
       isPlayerAssessmentModalOpen,
@@ -430,8 +392,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       personnel: gameDataManagement.personnel,
       playerAssessments,
       selectedPlayerForStats,
-      playerIdsForNewGame,
-      newGameDemandFactor,
       availableTeams,
       orphanedGameInfo,
       gameIdentifierForSave,
@@ -451,9 +411,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       exportPlayerExcel: handleExportPlayerExcel,
       gameLogClick: handleGameLogClick,
       exportOneJson: handleExportOneJson,
-      setNewGameDemandFactor,
-      startNewGameWithSetup: handleStartNewGameWithSetup,
-      cancelNewGameSetup: handleCancelNewGameSetup,
       closeGameSettingsModal: handleCloseGameSettingsModal,
       teamNameChange: handleTeamNameChange,
       opponentNameChange: handleOpponentNameChange,
@@ -498,7 +455,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
       openSettingsModal: handleOpenSettingsModal,
-      manageTeamRosterFromNewGame: handleManageTeamRosterFromNewGame,
     },
   };
 
