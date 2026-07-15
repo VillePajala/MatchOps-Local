@@ -79,6 +79,7 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted }: Use
   const savedGamesData = savedGamesQuery.data;
   const savedGames = useMemo(() => savedGamesData ?? {}, [savedGamesData]);
   const [isGameLoading, setIsGameLoading] = useState(false);
+  const [gameLoadError, setGameLoadError] = useState<string | null>(null);
   const [isGameDeleting, setIsGameDeleting] = useState(false);
   const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
   const [processingGameId, setProcessingGameId] = useState<string | null>(null);
@@ -86,8 +87,16 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted }: Use
   // The level crossing: persist the pick, then enter the match fresh.
   const handleLoadGame = useCallback(
     async (gameId: string) => {
+      // Never persist an id we can't resolve - a stale row (game deleted in
+      // another tab / cloud sync) must error here, not send the match view
+      // booting after a ghost.
+      if (!savedGames[gameId]) {
+        setGameLoadError(t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', { gameId }));
+        return;
+      }
       setProcessingGameId(gameId);
       setIsGameLoading(true);
+      setGameLoadError(null);
       try {
         // Same pre-switch hygiene as the match-side loader: stale timer state
         // or a wall-clock anchor from the previous game must not replay onto
@@ -101,13 +110,14 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted }: Use
         onEnterMatch();
       } catch (error) {
         logger.error('[useLoadGameController] Failed to open game:', error);
+        setGameLoadError(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'));
         showToast(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'), 'error');
       } finally {
         setIsGameLoading(false);
         setProcessingGameId(null);
       }
     },
-    [userId, queryClient, onEnterMatch, showToast, t],
+    [savedGames, userId, queryClient, onEnterMatch, showToast, t],
   );
 
   const handleDeleteGame = useCallback(
@@ -204,6 +214,7 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted }: Use
     isLoadingGamesList: savedGamesQuery.isLoading,
     loadGamesListError: savedGamesQuery.error ? savedGamesQuery.error.message : null,
     isGameLoading,
+    gameLoadError,
     isGameDeleting,
     gameDeleteError,
     processingGameId,

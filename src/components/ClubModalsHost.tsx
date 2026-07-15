@@ -201,8 +201,10 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           isLoadingGamesList={loadGame.isLoadingGamesList}
           loadGamesListError={loadGame.loadGamesListError}
           isGameLoading={loadGame.isGameLoading}
+          gameLoadError={loadGame.gameLoadError}
           isGameDeleting={loadGame.isGameDeleting}
           gameDeleteError={loadGame.gameDeleteError}
+          processingGameId={loadGame.processingGameId}
         />
       )}
       {isRosterModalOpen && (

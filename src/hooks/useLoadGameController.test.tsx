@@ -161,6 +161,16 @@ describe('useLoadGameController (L.3a level crossing)', () => {
     expect(result.current.gameDeleteError).toBeTruthy();
   });
 
+  it('refuses to persist an unknown game id (stale row) and surfaces the error inline', async () => {
+    const { result } = await renderController();
+    await act(async () => {
+      await result.current.handleLoadGame('ghost');
+    });
+    expect(saveCurrentGameIdSetting).not.toHaveBeenCalled();
+    expect(onEnterMatch).not.toHaveBeenCalled();
+    expect(result.current.gameLoadError).toBeTruthy();
+  });
+
   it('load failure surfaces a toast and does not enter the match', async () => {
     (saveCurrentGameIdSetting as jest.Mock).mockRejectedValueOnce(new Error('io'));
     const { result } = await renderController();
