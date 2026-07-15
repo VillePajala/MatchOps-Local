@@ -342,7 +342,12 @@ describe('Translation File Validation', () => {
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
-      expect(enKeys.length).toBe(2819);
+      // -2 net: direct-manipulation swap replaced the swap sheet (-6:
+      //     swapSheet.* + lineup.swapAction; +4: lineup.subStint/
+      //     removeSubAction/clearAll/clearedAll)
+      // +4: a11y announcements for direct-manipulation edits
+      //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
+      expect(enKeys.length).toBe(2821);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -408,7 +413,12 @@ describe('Translation File Validation', () => {
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
-      expect(fiKeys.length).toBe(2819);
+      // -2 net: direct-manipulation swap replaced the swap sheet (-6:
+      //     swapSheet.* + lineup.swapAction; +4: lineup.subStint/
+      //     removeSubAction/clearAll/clearedAll)
+      // +4: a11y announcements for direct-manipulation edits
+      //     (lineup.clearedSlot/movedSub/subPlayerChanged/promotedStarter)
+      expect(fiKeys.length).toBe(2821);
     });
   });
 });

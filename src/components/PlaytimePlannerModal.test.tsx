@@ -1050,7 +1050,7 @@ describe('PlaytimePlannerModal', () => {
     await screen.findByLabelText('Game name');
 
     // The scheduled entry is visible on the field pill before the edit.
-    expect(screen.getByLabelText(/6' Alex/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "6' Alex (#1)" })).toBeInTheDocument();
 
     // Place Alex as the goalkeeper starter.
     await act(async () => {
@@ -1065,11 +1065,11 @@ describe('PlaytimePlannerModal', () => {
     });
 
     // The sub survives: the pill still announces Alex coming into s0 at 6'.
-    expect(screen.getByLabelText(/6' Alex/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/GK: Alex/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "6' Alex (#1)" })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'GK: Alex' })).toBeInTheDocument();
   });
 
-  it('swaps two players whole-game from the lineup (Swap… sheet)', async () => {
+  it('swaps two players whole-game by tapping one placement then another', async () => {
     mockGetPlans.mockResolvedValue({
       existing: {
         ...existingPlan,
@@ -1092,24 +1092,76 @@ describe('PlaytimePlannerModal', () => {
     await screen.findByLabelText('Game name');
     const announcement = () => document.querySelector('[data-announcement-nonce]');
 
-    // Select the GK pill and open the swap sheet.
+    // Direct manipulation: tap the GK starter segment, then tap Jo's disc.
     await act(async () => {
-      fireEvent.click(screen.getByLabelText(/GK: Alex/));
+      fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Swap…' }));
-    });
-    const sheet = screen.getByRole('dialog', { name: /Swap players/ });
-    // The GK rotation holds two identities - swap the STARTER (Alex) with Jo.
-    await act(async () => {
-      fireEvent.click(within(sheet).getByRole('button', { name: /^Jo/ }));
+      fireEvent.click(screen.getByRole('button', { name: '#1: Jo' }));
     });
 
     // Whole-game identity swap: Jo now starts GK (Sam still comes in at 12'),
     // Alex holds s0 for the full game.
-    expect(screen.getByLabelText(/GK: Jo; 12' Sam/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/#1: Alex/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'GK: Jo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "12' Sam (GK)" })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '#1: Alex' })).toBeInTheDocument();
     expect(announcement()).toHaveTextContent('Swapped Alex and Jo');
+  });
+
+  it('clears the whole field from the lineup actions', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear field' }));
+    });
+    // Starter AND the scheduled sub are gone.
+    expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
+  });
+
+  it('clearing ONE position announces it and removes its subs', async () => {
+    mockGetPlans.mockResolvedValue({
+      existing: {
+        ...existingPlan,
+        players: [{ id: 'p1', name: 'Alex' }, { id: 'p2', name: 'Sam' }],
+        games: [
+          {
+            ...existingPlan.games[0],
+            startingSlots: [{ slotId: 'gk', playerId: 'p1' }],
+            subs: [{ id: 'x1', slotId: 'gk', timeSeconds: 720, inPlayerId: 'p2' }],
+          },
+        ],
+      },
+    });
+    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
+    await enterPlan();
+    await screen.findByLabelText('Game name');
+    const announcement = () => document.querySelector('[data-announcement-nonce]');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'GK: Alex' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    });
+    expect(screen.getByRole('button', { name: 'GK: empty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: "12' Sam (GK)" })).not.toBeInTheDocument();
+    expect(announcement()).toHaveTextContent('Position cleared');
   });
 
   it('team options carry their binding context, matching New Game creation', async () => {

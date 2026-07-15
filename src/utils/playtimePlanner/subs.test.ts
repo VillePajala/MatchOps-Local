@@ -3,6 +3,8 @@ import {
   makeSub,
   addSub,
   removeSub,
+  moveSubToSlot,
+  setSubPlayer,
   generateSubId,
 } from './subs';
 import type { PlanGame, PlanSub } from './types';
@@ -51,6 +53,24 @@ describe('makeSub / addSub / removeSub', () => {
     expect(subs).toHaveLength(2);
     subs = removeSub(subs, a.id);
     expect(subs.map((s) => s.id)).toEqual([b.id]);
+  });
+});
+
+describe('moveSubToSlot / setSubPlayer (direct-manipulation stint edits)', () => {
+  it('moves one sub to another slot, leaving the rest untouched', () => {
+    const a = makeSub('s0', 'p2', 720);
+    const b = makeSub('s1', 'p3', 900);
+    const result = moveSubToSlot([a, b], a.id, 's2');
+    expect(result.find((x) => x.id === a.id)).toMatchObject({ slotId: 's2', inPlayerId: 'p2', timeSeconds: 720 });
+    expect(result.find((x) => x.id === b.id)).toEqual(b);
+  });
+
+  it('hands one sub to another player, leaving the rest untouched', () => {
+    const a = makeSub('s0', 'p2', 720);
+    const b = makeSub('s1', 'p3', 900);
+    const result = setSubPlayer([a, b], a.id, 'p5');
+    expect(result.find((x) => x.id === a.id)).toMatchObject({ slotId: 's0', inPlayerId: 'p5' });
+    expect(result.find((x) => x.id === b.id)).toEqual(b);
   });
 });
 

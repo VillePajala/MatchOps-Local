@@ -66,8 +66,10 @@ import {
   ensureStartingSlots,
   assignPlayerToSlot,
   getGameSlots,
+  clearSlotSchedule,
+  clearAllPlacements,
 } from '@/utils/playtimePlanner/lineup';
-import { addSub, removeSub } from '@/utils/playtimePlanner/subs';
+import { addSub, removeSub, moveSubToSlot, setSubPlayer } from '@/utils/playtimePlanner/subs';
 import { swapPlayersInGame } from '@/utils/playtimePlanner/swap';
 import { suggestFairShareLineup } from '@/utils/playtimePlanner/suggest';
 import {
@@ -93,7 +95,6 @@ import PlanFieldView, { type PlanPlayerMinutes } from '@/components/PlanFieldVie
 import PlanFairnessStrip, { type FairnessStripRow } from '@/components/PlanFairnessStrip';
 import PlanSubsEditor from '@/components/PlanSubsEditor';
 import PlanSubSheet from '@/components/PlanSubSheet';
-import PlanSwapSheet from '@/components/PlanSwapSheet';
 import PlayerSelectionSection from '@/components/PlayerSelectionSection';
 import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
@@ -232,7 +233,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Open substitution sheet target: which game + slot (null = closed). Game id
   // is part of the target because the grid view edits ALL games at once.
   const [subSheetTarget, setSubSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
-  const [swapSheetTarget, setSwapSheetTarget] = useState<{ gameId: string; slotId: string } | null>(null);
   // Undo/redo: full-state snapshots of the ACTIVE plan (standalone-planner
   // style). Refs hold the stack (no re-render per edit); historyTick forces the
   // toolbar's disabled states to refresh. The stack reseeds whenever the plan
@@ -656,7 +656,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     if (nextGame) {
       setEditingGameId(nextGame.id);
       setSubSheetTarget(null);
-      setSwapSheetTarget(null);
     }
   };
 
@@ -724,6 +723,93 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       }));
     },
     [updateActivePlan, t, activePlan],
+  );
+
+  // Empty ONE position (starter + its scheduled subs) / EVERY position.
+  const handleClearSlot = useCallback(
+    (gameId: string, slotId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, ...clearSlotSchedule(g, slotId) } : g)),
+      }));
+      // Announce like every sibling action - this one can silently delete
+      // several scheduled subs along with the starter.
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.clearedSlot', 'Position cleared'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  // Promote a scheduled incomer to the kickoff starter of their own slot
+  // (tap a stint, then the slot's empty "+" spot). ONE plan update so it is
+  // one undo step: the player starts from 0' and their sub row disappears.
+  const handlePromoteSubToStarter = useCallback(
+    (gameId: string, subId: string, slotId: string, playerId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) =>
+          g.id === gameId
+            ? {
+                ...g,
+                startingSlots: assignPlayerToSlot(ensureStartingSlots(g), slotId, playerId),
+                subs: removeSub(g.subs, subId),
+              }
+            : g,
+        ),
+      }));
+      const name = activePlan?.players.find((p) => p.id === playerId)?.name ?? playerId;
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.promotedStarter', '{{player}} promoted to starter', { player: name }),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t, activePlan],
+  );
+
+  const handleClearAllPlacements = useCallback(
+    (gameId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, ...clearAllPlacements(g) } : g)),
+      }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.clearedAll', 'Field cleared'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  // Direct-manipulation stint edits: move a scheduled sub to another position /
+  // hand it to another player (bench tap with a stint selected).
+  const handleMoveSub = useCallback(
+    (gameId: string, subId: string, slotId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: moveSubToSlot(g.subs, subId, slotId) } : g)),
+      }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.movedSub', 'Substitution moved'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
+  );
+
+  const handleSetSubPlayer = useCallback(
+    (gameId: string, subId: string, playerId: string) => {
+      updateActivePlan((plan) => ({
+        ...plan,
+        games: plan.games.map((g) => (g.id === gameId ? { ...g, subs: setSubPlayer(g.subs, subId, playerId) } : g)),
+      }));
+      setSubAnnouncement((prev) => ({
+        text: t('playtimePlanner.lineup.subPlayerChanged', 'Substitution updated'),
+        nonce: prev.nonce + 1,
+      }));
+    },
+    [updateActivePlan, t],
   );
 
   const handleRemoveSub = useCallback(
@@ -1352,7 +1438,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setEditingGameId(null);
     setReplacingId(null);
     setSubSheetTarget(null);
-    setSwapSheetTarget(null);
     setView('manager');
   }, [flushSave, refreshPlanList]);
 
@@ -1396,11 +1481,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         setSubSheetTarget(null);
         return;
       }
-      // The swap sheet is open: Escape closes it, nothing else.
-      if (swapSheetTarget !== null) {
-        setSwapSheetTarget(null);
-        return;
-      }
       if (isPlanTab(view)) {
         void handleBackToManager();
       } else {
@@ -1409,7 +1489,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, subSheetTarget, swapSheetTarget, actionsMenuId, handleBackToManager]);
+  }, [isOpen, view, handleClose, deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, subSheetTarget, actionsMenuId, handleBackToManager]);
 
   const startNewPlan = () => {
     resetSetupForm(roster);
@@ -1519,7 +1599,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               const idx = PLAN_TABS.indexOf(view as PlanTab);
               const next = PLAN_TABS[(idx + (e.key === 'ArrowRight' ? 1 : PLAN_TABS.length - 1)) % PLAN_TABS.length];
               setSubSheetTarget(null);
-              setSwapSheetTarget(null);
               setView(next);
               (e.currentTarget.querySelector(`#planner-tab-${next}`) as HTMLElement | null)?.focus();
             }}
@@ -1540,7 +1619,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 tabIndex={view === tab ? 0 : -1}
                 onClick={() => {
                   setSubSheetTarget(null);
-                  setSwapSheetTarget(null);
                   setView(tab);
                 }}
                 className={`flex-1 px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${
@@ -2162,7 +2240,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                       onClick={() => {
                         setEditingGameId(g.id);
                         setSubSheetTarget(null);
-                        setSwapSheetTarget(null);
                       }}
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
@@ -2238,7 +2315,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               minutesByPlayer={fairness.byPlayer}
               highlightPlayerIds={highlightPlayerIds}
               onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
-              onRequestSwap={(slotId) => setSwapSheetTarget({ gameId: editingGame.id, slotId })}
+              onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
+              onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
+              onClearAll={() => handleClearAllPlacements(editingGame.id)}
+              onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
+              onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
+              onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
+              onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(editingGame.id, subId, playerId)}
               onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
               absenceOpen={absenceOpen}
               onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
@@ -2277,7 +2360,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                             onClick={() => {
                               setEditingGameId(g.id);
                               setSubSheetTarget(null);
-                              setSwapSheetTarget(null);
                               setGamesLayout('single');
                             }}
                             className="text-sm text-indigo-400 hover:text-indigo-300 py-2 px-2 -my-2"
@@ -2324,7 +2406,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                         minutesByPlayer={fairness.byPlayer}
                         highlightPlayerIds={highlightPlayerIds}
                         onRequestSub={(slotId) => setSubSheetTarget({ gameId: g.id, slotId })}
-                        onRequestSwap={(slotId) => setSwapSheetTarget({ gameId: g.id, slotId })}
+                        onSwapPlayers={(a, b) => handleSwapPlayers(g.id, a, b)}
+                        onClearSlot={(slotId) => handleClearSlot(g.id, slotId)}
+                        onClearAll={() => handleClearAllPlacements(g.id)}
+                        onRemoveSub={(subId) => handleRemoveSub(g.id, subId)}
+                        onMoveSub={(subId, slotId) => handleMoveSub(g.id, subId, slotId)}
+                        onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(g.id, subId, slotId, playerId)}
+                        onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(g.id, subId, playerId)}
                         onToggleAbsent={(playerId) => handleToggleAbsent(g.id, playerId)}
                       />
                     </div>
@@ -2345,7 +2433,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             onOpenGame={(gameId) => {
               setEditingGameId(gameId);
               setSubSheetTarget(null);
-              setSwapSheetTarget(null);
               setGamesLayout('single');
               setView('games');
             }}
@@ -2380,23 +2467,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               onAdd={(sub) => handleAddSub(subSheetTarget.gameId, sub)}
               onRemove={(subId) => handleRemoveSub(subSheetTarget.gameId, subId)}
               onClose={() => setSubSheetTarget(null)}
-            />
-          );
-        })()}
-
-      {swapSheetTarget !== null &&
-        activePlan &&
-        (() => {
-          const sheetGame = activePlan.games.find((g) => g.id === swapSheetTarget.gameId);
-          if (!sheetGame) return null;
-          return (
-            <PlanSwapSheet
-              game={sheetGame}
-              slotId={swapSheetTarget.slotId}
-              players={activePlan.players}
-              minutesByPlayer={fairness.byPlayer}
-              onSwap={(a, b) => handleSwapPlayers(swapSheetTarget.gameId, a, b)}
-              onClose={() => setSwapSheetTarget(null)}
             />
           );
         })()}

@@ -31,36 +31,3 @@ export function swapPlayersInGame(game: PlanGame, aId: string, bId: string): Pla
     subs: game.subs.map((s) => ({ ...s, inPlayerId: swap(s.inPlayerId) })),
   };
 }
-
-/** A player's stint in one slot's timeline (kickoff starter has fromSeconds 0). */
-export interface SlotTimelineEntry {
-  playerId: string;
-  fromSeconds: number;
-}
-
-/**
- * The players who hold `slotId` over the game, in time order: the kickoff
- * starter (if any) followed by each sub's incoming player. Drives the swap
- * sheet's "which player of this position?" picker - a slot with a planned
- * rotation contains several identities, and the swap must know WHICH one the
- * coach means (e.g. the starter Timo vs the 25' incomer Sauli).
- */
-export function slotTimelinePlayers(game: PlanGame, slotId: string): SlotTimelineEntry[] {
-  const entries: SlotTimelineEntry[] = [];
-  // One entry per IDENTITY, not per stint: an A-B-A-B rotation holds each
-  // player several times, but the swap picker needs each name once (first
-  // appearance wins for the minute tag).
-  const seen = new Set<string>();
-  const push = (playerId: string, fromSeconds: number) => {
-    if (seen.has(playerId)) return;
-    seen.add(playerId);
-    entries.push({ playerId, fromSeconds });
-  };
-  const starter = ensureStartingSlots(game).find((s) => s.slotId === slotId)?.playerId ?? null;
-  if (starter) push(starter, 0);
-  [...game.subs]
-    .filter((s) => s.slotId === slotId && s.inPlayerId !== null)
-    .sort((a, b) => a.timeSeconds - b.timeSeconds)
-    .forEach((s) => push(s.inPlayerId as string, s.timeSeconds));
-  return entries;
-}

@@ -3225,7 +3225,14 @@
       "noPlayers": "Suunnitelmassa ei ole pelaajia - lisää heidät Suunnitelma-välilehdellä.",
       "absentHeading": "Poissa tästä pelistä",
       "benchEmptyAbsent": "Kaikki ovat kentällä tai poissa.",
-      "swapAction": "Vaihda…"
+      "subStint": "{{minute}}' {{player}} ({{position}})",
+      "removeSubAction": "Poista vaihto",
+      "clearAll": "Tyhjennä kenttä",
+      "clearedAll": "Kenttä tyhjennetty",
+      "clearedSlot": "Paikka tyhjennetty",
+      "movedSub": "Vaihto siirretty",
+      "subPlayerChanged": "Vaihto päivitetty",
+      "promotedStarter": "{{player}} nostettu avaukseen"
     },
     "subs": {
       "heading": "Vaihdot",
@@ -3300,13 +3307,6 @@
       "plan": "Asetukset"
     },
     "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen.",
-    "swapSheet": {
-      "title": "Pelaajien vaihto · {{position}}",
-      "hint": "Vaihtaa pelaajien kaikki esiintymät tässä pelissä (avauskokoonpano ja vaihdot).",
-      "who": "Kumpi vaihdetaan?",
-      "withLabel": "Vaihda pelaajaan",
-      "noTargets": "Ei muita pelaajia suunnitelmassa."
-    },
     "swap": {
       "done": "Vaihdettu {{a}} ja {{b}}"
     },
