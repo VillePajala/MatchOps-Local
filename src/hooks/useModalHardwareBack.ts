@@ -1,45 +1,72 @@
 /**
  * Hardware-back contract for lifted modals (two-level restructure, modal
- * governance rule): pressing the device/browser back button while a lifted
- * modal is open must CLOSE THE MODAL - never exit the app, never reveal the
- * screen underneath unexpectedly.
+ * governance rule): pressing the device/browser back button while lifted
+ * modals are open must close ONLY THE TOPMOST one - never exit the app,
+ * never close modals underneath.
  *
- * Mechanism: when the modal opens, push one history entry; a popstate while
- * open means the user pressed back - close the modal (the entry is already
- * consumed). When the modal is closed through its own UI instead, consume
- * our entry with history.back() so the stack never accumulates ghosts.
+ * Mechanism: each open modal pushes one history entry and registers itself
+ * on a module-level stack. A single shared popstate listener closes only
+ * the most recently opened modal (its history entry is already consumed by
+ * the browser's back action). When a modal is closed through its own UI
+ * instead, it removes itself from the stack and consumes its history entry
+ * with history.back(); the popstate that programmatic back() fires is
+ * counted and swallowed so it cannot close another modal.
  */
 import { useEffect, useRef } from 'react';
 
+type StackEntry = { close: () => void };
+
+const modalStack: StackEntry[] = [];
+let suppressedPops = 0;
+let listenerAttached = false;
+
+function handleGlobalPop(): void {
+  if (suppressedPops > 0) {
+    suppressedPops -= 1;
+    return;
+  }
+  const topmost = modalStack.pop();
+  topmost?.close();
+}
+
+/** Test-only: clears module-level stack state between test cases. */
+export function __resetModalHardwareBackForTests(): void {
+  modalStack.length = 0;
+  suppressedPops = 0;
+}
+
 export function useModalHardwareBack(isOpen: boolean, onClose: () => void): void {
-  const pushedRef = useRef(false);
-  const closingViaPopRef = useRef(false);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    window.history.pushState({ liftedModal: true }, '');
-    pushedRef.current = true;
+    // Attached once, never removed: detaching while a suppressed pop is
+    // still in flight would leak the suppression count into the next open.
+    if (!listenerAttached) {
+      window.addEventListener('popstate', handleGlobalPop);
+      listenerAttached = true;
+    }
 
-    const onPop = () => {
-      // Back pressed while open: the entry is consumed by the browser.
-      pushedRef.current = false;
-      closingViaPopRef.current = true;
-      onCloseRef.current();
-    };
-    window.addEventListener('popstate', onPop);
+    const entry: StackEntry = { close: () => onCloseRef.current() };
+    window.history.pushState({ liftedModal: true }, '');
+    modalStack.push(entry);
 
     return () => {
-      window.removeEventListener('popstate', onPop);
-      if (pushedRef.current) {
+      const index = modalStack.indexOf(entry);
+      if (index !== -1) {
         // Closed via the modal's own UI: consume our history entry so the
         // NEXT back press doesn't need two taps.
-        pushedRef.current = false;
+        modalStack.splice(index, 1);
+        suppressedPops += 1;
         window.history.back();
       }
-      closingViaPopRef.current = false;
+      // index === -1 means a hardware back press closed this modal - both
+      // the stack entry and the history entry were consumed already.
     };
   }, [isOpen]);
 }
