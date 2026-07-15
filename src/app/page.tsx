@@ -269,11 +269,8 @@ export default function Home() {
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
-  const handleDataImportSuccess = useCallback(() => {
-    // Trigger app state refresh after data import
-    setRefreshTrigger(prev => prev + 1);
-    // Stay in current screen - modal will close naturally after user clicks Continue
-  }, []);
+  // handleDataImportSuccess removed (L.0b): the SettingsModal prop it fed was
+  // dead - backup restore uses a full page reload, not a state refresh.
 
   // ============================================================================
   // WELCOME SCREEN HANDLERS (First-Install Onboarding)
@@ -1211,8 +1208,16 @@ export default function Home() {
     }}>
       <ModalProvider>
         {/* Club/app-scope modals render at PAGE level (two-level restructure
-            L-waves): opening them from Home never mounts the match view. */}
-        <ClubModalsHost />
+            L-waves): opening them from Home never mounts the match view.
+            Gated behind the SAME readiness checks as the app screens below:
+            useAppSettingsController's storage effects (language persist,
+            team-name read) must not fire on the multi-tab-block, loading,
+            welcome, auth or migration screens - matching where these effects
+            lived (post-gates) before the L.0b lift. */}
+        {!isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
+          !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard && (
+          <ClubModalsHost />
+        )}
         {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
             pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.
             Valid for single-line banner text. If banner wraps on very narrow screens (<320px),
@@ -1355,7 +1360,6 @@ export default function Home() {
               <HomePage
                 initialAction={initialAction ?? undefined}
                 skipInitialSetup
-                onDataImportSuccess={handleDataImportSuccess}
                 isFirstTimeUser={isFirstTimeUser}
                 onGoToStartScreen={handleGoToStartScreen}
                 initialGameType={lastGameType}

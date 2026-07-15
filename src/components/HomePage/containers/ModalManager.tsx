@@ -16,8 +16,6 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
 const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
 const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
-const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
-const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
 import type {
   Player,
   GameEvent,
@@ -56,11 +54,9 @@ interface SeasonTournamentMutations {
   deleteTournament?: UseMutationResult<boolean, Error, string, unknown>;
 }
 
-type SettingsTab = 'general' | 'data' | 'account' | 'about';
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalManagerState {
-  isInstructionsModalOpen: boolean;
   isPersonnelManagerOpen: boolean;
   isTeamManagerOpen: boolean;
   isGoalLogModalOpen: boolean;
@@ -70,13 +66,10 @@ interface ModalManagerState {
   isRosterModalOpen: boolean;
   isSeasonTournamentModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
-  isSettingsModalOpen: boolean;
-  settingsInitialTab?: SettingsTab;
   gameStatsInitialTab?: StatsTab;
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
-  showHardResetConfirm: boolean;
   showSaveBeforeNewConfirm: boolean;
   showStartNewConfirm: boolean;
   showResetFieldConfirm: boolean;
@@ -101,8 +94,6 @@ interface ModalManagerData {
   newGameDemandFactor: number;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
-  appLanguage: string;
-  defaultTeamNameSetting: string;
   gameIdentifierForSave: string;
   isPlayed: boolean;
   isRosterUpdating: boolean;
@@ -113,7 +104,6 @@ interface ModalManagerData {
 }
 
 interface ModalManagerHandlers {
-  toggleInstructionsModal: () => void;
   closePersonnelManager: () => void;
   closeTeamManagerModal: () => void;
   toggleGoalLogModal: () => void;
@@ -198,13 +188,6 @@ interface ModalManagerHandlers {
   updateSelectedPlayers: (playerIds: string[]) => void;
   reapplyPlan: () => void | Promise<void>;
   setGamePersonnel?: (personnelIds: string[]) => void;
-  closeSettingsModal: () => void;
-  setAppLanguage: (lang: string) => void;
-  setDefaultTeamName: (name: string) => void;
-  showAppGuide: () => void;
-  hardResetApp: () => void;
-  resyncFromCloud: () => void;
-  factoryReset: () => void;
   closePlayerAssessmentModal: () => void;
   savePlayerAssessment: (playerId: string, assessment: Partial<PlayerAssessment>) => void;
   deletePlayerAssessment: (playerId: string) => void;
@@ -212,8 +195,6 @@ interface ModalManagerHandlers {
   setIsTeamReassignModalOpen: (open: boolean) => void;
   confirmNoPlayers: () => void;
   setShowNoPlayersConfirm: (open: boolean) => void;
-  confirmHardReset: () => void;
-  setShowHardResetConfirm: (open: boolean) => void;
   saveBeforeNewConfirmed: () => void;
   saveBeforeNewCancelled: () => void;
   setShowStartNewConfirm: (open: boolean) => void;
@@ -221,9 +202,6 @@ interface ModalManagerHandlers {
   setShowResetFieldConfirm: (open: boolean) => void;
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
-  onCreateBackup: () => void;
-  onCloudDataDownload?: () => Promise<void>;
-  onDataImportSuccess?: () => void;
   manageTeamRosterFromNewGame: (teamId?: string) => void;
 }
 
@@ -242,13 +220,9 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
   return (
     <ModalPortal>
       <>
-        {/* TrainingResources + RulesDirectory LIFTED to ClubModalsHost (L.0a)
+        {/* TrainingResources + RulesDirectory LIFTED to ClubModalsHost (L.0a),
+            Settings + Instructions + hard-reset confirm LIFTED there too (L.0b)
             - never render them here again (dual-render guard). */}
-        <InstructionsModal
-          isOpen={state.isInstructionsModalOpen}
-          onClose={handlers.toggleInstructionsModal}
-        />
-
         <PersonnelManagerModal
           isOpen={state.isPersonnelManagerOpen}
           onClose={handlers.closePersonnelManager}
@@ -478,22 +452,6 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onTeamIdChange={(teamId) => handlers.teamIdChange(teamId ?? undefined)}
         />
 
-        <SettingsModal
-          isOpen={state.isSettingsModalOpen}
-          onClose={handlers.closeSettingsModal}
-          language={data.appLanguage}
-          onLanguageChange={handlers.setAppLanguage}
-          defaultTeamName={data.defaultTeamNameSetting}
-          onDefaultTeamNameChange={handlers.setDefaultTeamName}
-          onHardResetApp={handlers.hardResetApp}
-          onCreateBackup={handlers.onCreateBackup}
-          onCloudDataDownload={handlers.onCloudDataDownload}
-          onDataImportSuccess={handlers.onDataImportSuccess}
-          initialTab={state.settingsInitialTab}
-          onResyncFromCloud={handlers.resyncFromCloud}
-          onFactoryReset={handlers.factoryReset}
-        />
-
         <PlayerAssessmentModal
           isOpen={state.isPlayerAssessmentModalOpen}
           onClose={handlers.closePlayerAssessmentModal}
@@ -570,17 +528,6 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onCancel={() => handlers.setShowNoPlayersConfirm(false)}
           confirmLabel={t('common.addPlayers', 'Add Players')}
           variant="primary"
-        />
-
-        <ConfirmationModal
-          isOpen={state.showHardResetConfirm}
-          title={t('controlBar.hardResetTitle', 'Reset Application')}
-          message={t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.')}
-          warningMessage={t('controlBar.hardResetWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
-          onConfirm={handlers.confirmHardReset}
-          onCancel={() => handlers.setShowHardResetConfirm(false)}
-          confirmLabel={t('common.reset', 'Reset')}
-          variant="danger"
         />
 
         <ConfirmationModal
