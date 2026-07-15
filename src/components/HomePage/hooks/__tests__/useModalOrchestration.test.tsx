@@ -126,15 +126,8 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
   } as unknown as UseFieldCoordinationReturn;
 
   const mockPersistence: UseGamePersistenceReturn = {
-    handleLoadGame: jest.fn(),
-    handleDeleteGame: jest.fn(),
     handleDeleteGameEvent: jest.fn(),
     handleQuickSaveGame: jest.fn(),
-    isGameLoading: false,
-    gameLoadError: null,
-    isGameDeleting: false,
-    gameDeleteError: null,
-    processingGameId: null,
   };
 
   const mockTimerManagement: UseTimerManagementReturn = {
@@ -219,8 +212,6 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       gameIdentifierForSave: overrides?.ui?.gameIdentifierForSave ?? 'game-123',
       isPlayed: overrides?.ui?.isPlayed ?? false,
       setIsPlayed: (overrides?.ui?.setIsPlayed ?? jest.fn()) as (played: boolean) => void,
-      isLoadingGamesList: overrides?.ui?.isLoadingGamesList ?? false,
-      loadGamesListError: overrides?.ui?.loadGamesListError ?? null,
       updateGameDetailsMutation: (overrides?.ui?.updateGameDetailsMutation ?? { mutate: jest.fn() }) as UseMutationResult<AppState | null, Error, unknown, unknown>,
       isTeamReassignModalOpen: overrides?.ui?.isTeamReassignModalOpen ?? false,
       setIsTeamReassignModalOpen: (overrides?.ui?.setIsTeamReassignModalOpen ?? jest.fn()) as (open: boolean) => void,
@@ -329,7 +320,7 @@ describe('useModalOrchestration', () => {
       // isTeamManagerOpen/isRosterModalOpen LIFTED too (L.2)
       expect(state).toHaveProperty('isGoalLogModalOpen');
       expect(state).toHaveProperty('isGameStatsModalOpen');
-      expect(state).toHaveProperty('isLoadGameModalOpen');
+      // isLoadGameModalOpen lifted to ClubModalsHost (L.3a)
       expect(state).toHaveProperty('isNewGameSetupModalOpen');
       expect(state).toHaveProperty('isGameSettingsModalOpen');
       expect(state).toHaveProperty('isPlayerAssessmentModalOpen');
@@ -374,7 +365,7 @@ describe('useModalOrchestration', () => {
 
       // These come from ModalProvider context
       expect(state.isGameSettingsModalOpen).toBe(false);
-      expect(state.isLoadGameModalOpen).toBe(false);
+      // isLoadGameModalOpen lifted to ClubModalsHost (L.3a);
       // isRosterModalOpen lifted to ClubModalsHost (L.2);
       // isSeasonTournamentModalOpen lifted to ClubModalsHost (L.1)
       expect(state.isGoalLogModalOpen).toBe(false);
@@ -488,15 +479,8 @@ describe('useModalOrchestration', () => {
       const mockProps = createMockProps({
         hooks: {
           persistence: {
-            handleLoadGame: jest.fn(),
-            handleDeleteGame: jest.fn(),
             handleDeleteGameEvent: jest.fn(),
             handleQuickSaveGame: jest.fn(),
-            isGameLoading: true,
-            gameLoadError: 'Load error',
-            isGameDeleting: false,
-            gameDeleteError: null,
-            processingGameId: 'game-123',
           },
         },
       });
@@ -507,9 +491,9 @@ describe('useModalOrchestration', () => {
 
       const { data } = result.current.modalManagerProps;
 
-      expect(data.loadGameState.isGameLoading).toBe(true);
-      expect(data.loadGameState.gameLoadError).toBe('Load error');
-      expect(data.loadGameState.processingGameId).toBe('game-123');
+      // loadGameState lifted to useLoadGameController (L.3a) - the persistence
+      // loading flags no longer flow through ModalManager.
+      expect(data.gameSessionState).toBeDefined();
     });
 
     /**
@@ -542,8 +526,7 @@ describe('useModalOrchestration', () => {
       // Verify key handlers are present (spot check, not exhaustive)
       expect(handlers.updateGameEvent).toBe(props.handlers.handleUpdateGameEvent);
       expect(handlers.exportOneExcel).toBe(props.handlers.handleExportOneExcel);
-      expect(handlers.loadGame).toBe(props.hooks.persistence.handleLoadGame);
-      expect(handlers.deleteGame).toBe(props.hooks.persistence.handleDeleteGame);
+      // loadGame/deleteGame lifted to useLoadGameController (L.3a)
       expect(handlers.startNewGameWithSetup).toBe(props.handlers.handleStartNewGameWithSetup);
     });
   });

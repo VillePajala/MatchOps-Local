@@ -19,6 +19,7 @@ type StartScreenProps = React.ComponentProps<typeof StartScreen>;
 
 /** The entries whose modals render in ClubModalsHost - opened in place. */
 type LiftedHandlerProps =
+  | 'onLoadGame'
   | 'onManageRoster'
   | 'onManageTeams'
   | 'onManagePersonnel'
@@ -33,6 +34,7 @@ export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerP
 
 export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgeProps) {
   const {
+    setIsLoadGameModalOpen,
     setIsRosterModalOpen,
     setIsTeamManagerOpen,
     setIsPersonnelManagerOpen,
@@ -46,6 +48,7 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
   return (
     <StartScreen
       {...props}
+      onLoadGame={() => setIsLoadGameModalOpen(true)}
       onManageRoster={() => setIsRosterModalOpen(true)}
       onManageTeams={() => setIsTeamManagerOpen(true)}
       onManagePersonnel={() => setIsPersonnelManagerOpen(true)}

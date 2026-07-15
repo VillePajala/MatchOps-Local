@@ -11,7 +11,6 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 // Lazy-loaded modals: these pull in heavy dependencies (recharts, xlsx, etc.)
 // and are not visible on initial render
 const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
-const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
 import type {
   Player,
   GameEvent,
@@ -30,22 +29,12 @@ import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import type { UseMutationResult } from '@tanstack/react-query';
 
-interface LoadGameState {
-  isLoadingGamesList: boolean;
-  loadGamesListError: string | null;
-  isGameLoading: boolean;
-  gameLoadError: string | null;
-  isGameDeleting: boolean;
-  gameDeleteError: string | null;
-  processingGameId: string | null;
-}
 
 type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalManagerState {
   isGoalLogModalOpen: boolean;
   isGameStatsModalOpen: boolean;
-  isLoadGameModalOpen: boolean;
   isNewGameSetupModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   gameStatsInitialTab?: StatsTab;
@@ -77,7 +66,6 @@ interface ModalManagerData {
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   gameIdentifierForSave: string;
   isPlayed: boolean;
-  loadGameState: LoadGameState;
   updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
 }
 
@@ -93,9 +81,6 @@ interface ModalManagerHandlers {
   exportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   exportPlayerExcel: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
   gameLogClick: (gameId: string) => void;
-  closeLoadGameModal: () => void;
-  loadGame: (gameId: string) => void;
-  deleteGame: (gameId: string) => void;
   exportOneJson: (gameId: string) => void;
   setNewGameDemandFactor: (factor: number) => void;
   startNewGameWithSetup: (
@@ -249,28 +234,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
         />
       )}
 
-        <LoadGameModal
-          isOpen={state.isLoadGameModalOpen}
-          onClose={handlers.closeLoadGameModal}
-          savedGames={data.savedGames}
-          onLoad={handlers.loadGame}
-          onDelete={handlers.deleteGame}
-          onExportOneJson={handlers.exportOneJson}
-          onExportOneExcel={handlers.exportOneExcel}
-          currentGameId={data.currentGameId || undefined}
-          currentSessionHomeScore={data.gameSessionState.homeScore}
-          currentSessionAwayScore={data.gameSessionState.awayScore}
-          isLoadingGamesList={data.loadGameState.isLoadingGamesList}
-          loadGamesListError={data.loadGameState.loadGamesListError}
-          isGameLoading={data.loadGameState.isGameLoading}
-          gameLoadError={data.loadGameState.gameLoadError}
-          isGameDeleting={data.loadGameState.isGameDeleting}
-          gameDeleteError={data.loadGameState.gameDeleteError}
-          processingGameId={data.loadGameState.processingGameId}
-          seasons={data.seasons}
-          tournaments={data.tournaments}
-          teams={data.teams}
-        />
+        {/* LoadGameModal LIFTED to ClubModalsHost (L.3a) - dual-render guard. */}
 
         {state.isNewGameSetupModalOpen && (
           <NewGameSetupModal

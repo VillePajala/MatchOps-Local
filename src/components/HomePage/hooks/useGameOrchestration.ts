@@ -694,7 +694,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
-  const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
   // Confirmation modal states - Passed to useModalOrchestration via ui object
   // (showHardResetConfirm LIFTED to useAppSettingsController, L.0b)
@@ -706,7 +705,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const saveBeforeNewInFlightRef = useRef(false);
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
-  const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
   const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
   const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
@@ -935,18 +933,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // that doesn't include recent optimistic updates (new games, saves in progress).
       // See: "new game becomes copy of old game" bug investigation.
       if (!initialLoadComplete) {
-        if (gameDataManagement.isLoading) {
-          setIsLoadingGamesList(true);
-        }
+        // (List loading/error FLAGS lifted with LoadGameModal to
+        // useLoadGameController, L.3a - only the data sync remains.)
         if (gameDataManagement.savedGames) {
           setSavedGames(gameDataManagement.savedGames || {});
-          setIsLoadingGamesList(false);
         }
         if (gameDataManagement.error) {
           logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', gameDataManagement.error);
-          setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
           setSavedGames({});
-          setIsLoadingGamesList(false);
         }
       }
 
@@ -1025,8 +1019,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameDataManagement.isLoading,
     gameDataManagement.error,
     setSavedGames,
-    setIsLoadingGamesList,
-    setLoadGamesListError,
     setCurrentGameId,
     setHasSkippedInitialSetup,
     t,
@@ -1400,21 +1392,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // History management
     resetHistory,
 
-    // Initial state for resets
-    initialState,
-    initialGameSessionData,
-
     // Callbacks
     dispatchGameSession,
-    loadGameStateFromData,
     showToast,
     t,
 
     // Query client for cache invalidation
     queryClient,
-
-    // Modal control
-    handleCloseLoadGameModal: closeLoadGameViaReducer,
   });
 
   // useModalOrchestration hook call moved to line 2138 (after all handlers are defined)
@@ -2507,8 +2491,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       gameIdentifierForSave,
       isPlayed,
       setIsPlayed,
-      isLoadingGamesList,
-      loadGamesListError,
       updateGameDetailsMutation,
       isTeamReassignModalOpen,
       setIsTeamReassignModalOpen,

@@ -116,6 +116,33 @@ jest.mock('@/hooks/useTeamQueries', () => ({
   useTeamsQuery: () => ({ data: [] }),
 }));
 
+jest.mock('@/components/LoadGameModal', () => ({
+  __esModule: true,
+  default: ({ onLoad }: { onLoad: (id: string) => void }) => (
+    <div data-testid="load-game-modal">
+      <button onClick={() => onLoad('g1')}>pick-g1</button>
+    </div>
+  ),
+}));
+const mockLoadGameController = {
+  savedGames: {},
+  currentGameId: undefined,
+  isLoadingGamesList: false,
+  loadGamesListError: null,
+  isGameLoading: false,
+  isGameDeleting: false,
+  gameDeleteError: null,
+  processingGameId: null,
+  handleLoadGame: jest.fn(),
+  handleDeleteGame: jest.fn(),
+  handleExportOneJson: jest.fn(),
+  handleExportOneExcel: jest.fn(),
+};
+jest.mock('@/hooks/useLoadGameController', () => ({
+  __esModule: true,
+  useLoadGameController: () => mockLoadGameController,
+}));
+
 function Opener() {
   const {
     setIsTrainingResourcesOpen,
@@ -127,6 +154,7 @@ function Opener() {
     setIsPersonnelManagerOpen,
     setIsRosterModalOpen,
     setIsTeamManagerOpen,
+    setIsLoadGameModalOpen,
   } = useModalContext();
   return (
     <>
@@ -139,6 +167,7 @@ function Opener() {
       <button onClick={() => setIsPersonnelManagerOpen(true)}>open-personnel</button>
       <button onClick={() => setIsRosterModalOpen(true)}>open-roster</button>
       <button onClick={() => setIsTeamManagerOpen(true)}>open-teams</button>
+      <button onClick={() => setIsLoadGameModalOpen(true)}>open-load</button>
     </>
   );
 }
@@ -224,7 +253,7 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
       <ModalProvider>
         <Opener />
         <StatsProbe />
-        <ClubModalsHost onEnterMatchForPlayerStats={onEnterMatch} />
+        <ClubModalsHost onEnterMatch={onEnterMatch} />
       </ModalProvider>,
     );
     fireEvent.click(screen.getByText('open-roster'));
@@ -234,6 +263,14 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     await waitFor(() => expect(screen.queryByTestId('roster-modal')).not.toBeInTheDocument());
     expect(screen.getByTestId('stats-probe')).toHaveTextContent('Testaaja:open');
     expect(onEnterMatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders LoadGame at host level and delegates the pick to the controller (L.3a)', async () => {
+    renderHost();
+    fireEvent.click(screen.getByText('open-load'));
+    await waitFor(() => expect(screen.getByTestId('load-game-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('pick-g1'));
+    expect(mockLoadGameController.handleLoadGame).toHaveBeenCalledWith('g1');
   });
 
   it('renders Settings and Instructions at host level (L.0b)', async () => {
