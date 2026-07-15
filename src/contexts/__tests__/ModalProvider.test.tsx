@@ -112,6 +112,28 @@ test('clubStatsInitialTab is set by openClubStatsToTab and CLEARED on close (no 
   expect(result.current.clubStatsInitialTab).toBeUndefined();
 });
 
+test('match stats and club stats are mutually exclusive (L.4 - same component, same z-index)', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ModalProvider>{children}</ModalProvider>
+  );
+  const { result } = renderHook(() => useModalContext(), { wrapper });
+
+  act(() => {
+    result.current.setIsGameStatsModalOpen(true);
+  });
+  act(() => {
+    result.current.openClubStatsToTab('season');
+  });
+  expect(result.current.isClubStatsOpen).toBe(true);
+  expect(result.current.isGameStatsModalOpen).toBe(false);
+
+  act(() => {
+    result.current.setIsGameStatsModalOpen(true);
+  });
+  expect(result.current.isGameStatsModalOpen).toBe(true);
+  expect(result.current.isClubStatsOpen).toBe(false);
+});
+
 test('sign-out closes the planner (L.3c - replaces the PLANNER_OPEN_KEY cleanup)', () => {
   function PlannerProbe() {
     const { isPlaytimePlannerOpen, setIsPlaytimePlannerOpen } = useModalContext();

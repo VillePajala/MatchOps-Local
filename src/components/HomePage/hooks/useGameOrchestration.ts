@@ -33,10 +33,9 @@ import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
 import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
-import { exportJson } from '@/utils/exportGames';
+import { exportJson, exportAggregateStatsExcel, exportPlayerStatsExcel } from '@/utils/exportGames';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
-import { exportAggregateStatsExcel, exportPlayerStatsExcel } from '@/utils/exportGames';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
@@ -649,7 +648,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         openSeasonTournamentViaReducer();
         break;
       case 'stats':
-        setIsGameStatsModalOpen(true);
+        // PWA shortcut "Pelaajatilastot": land on the club-level PLAYER
+        // stats (L.4) - the match modal would show the current-game tab of
+        // whatever game happened to boot, which is not what the shortcut
+        // promises. (The match still mounts underneath via the deep-link
+        // screen switch; rerouting that is 3.1's menu/navigation work.)
+        openClubStatsToTab('player');
         break;
       case 'roster':
         openRosterViaReducer();

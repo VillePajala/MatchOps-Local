@@ -113,22 +113,10 @@ export const ModalProvider = ({ children, currentUserId }: {
   // L.3c: planner open-state + the match view's live-game hooks lifted here.
   const [isPlaytimePlannerOpen, setIsPlaytimePlannerOpen] = useState(false);
   const [plannerLiveGameHooks, setPlannerLiveGameHooks] = useState<PlannerLiveGameHooks | null>(null);
-  // L.4: club-level aggregate stats surface.
+  // L.4: club-level aggregate stats surface (setters defined below, after
+  // the match stats setter they mutually exclude against).
   const [clubStatsOpen, setClubStatsOpen] = useState(false);
   const [clubStatsInitialTab, setClubStatsInitialTab] = useState<StatsTab | undefined>(undefined);
-  const setIsClubStatsOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
-    setClubStatsOpen((prev) => {
-      const next = typeof valueOrUpdater === 'function'
-        ? (valueOrUpdater as (p: boolean) => boolean)(prev)
-        : valueOrUpdater;
-      if (!next && prev) setClubStatsInitialTab(undefined); // reset tab on close
-      return next;
-    });
-  }, []);
-  const openClubStatsToTab = useCallback((tab: StatsTab) => {
-    setClubStatsInitialTab(tab);
-    setClubStatsOpen(true);
-  }, []);
 
   // Sign-out closes the planner (mirrors the retired PLANNER_OPEN_KEY cleanup
   // in page.tsx): without this, an open planner would auto-reopen over Home
@@ -247,6 +235,11 @@ export const ModalProvider = ({ children, currentUserId }: {
       : valueOrUpdater;
     if (next && !prev) {
       gameStatsOpenRef.current = true;
+      // Mutual exclusion with the club-stats surface: both are mounts of
+      // GameStatsModal at the same z-index, so opening one closes the other
+      // (UI flows can't stack them today; this pins the invariant).
+      setClubStatsOpen(false);
+      setClubStatsInitialTab(undefined);
       dispatchModal({ type: 'OPEN_MODAL', id: 'gameStats', at: Date.now() });
       return;
     }
@@ -255,6 +248,24 @@ export const ModalProvider = ({ children, currentUserId }: {
       dispatchModal({ type: 'CLOSE_MODAL', id: 'gameStats' });
     }
   }, []);
+
+  // L.4: club-stats surface setters. Opening goes through
+  // setIsGameStatsModalOpen(false) for the mutual exclusion (both surfaces
+  // are GameStatsModal mounts at the same z-index).
+  const setIsClubStatsOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
+    setClubStatsOpen((prev) => {
+      const next = typeof valueOrUpdater === 'function'
+        ? (valueOrUpdater as (p: boolean) => boolean)(prev)
+        : valueOrUpdater;
+      if (!next && prev) setClubStatsInitialTab(undefined); // reset tab on close
+      return next;
+    });
+  }, []);
+  const openClubStatsToTab = useCallback((tab: StatsTab) => {
+    setIsGameStatsModalOpen(false);
+    setClubStatsInitialTab(tab);
+    setClubStatsOpen(true);
+  }, [setIsGameStatsModalOpen]);
 
   // Roster modal setter (no anti-flash guard needed)
   // Rationale: Triggered from static buttons (ControlBar CTAs),

@@ -138,9 +138,13 @@ const mockLoadGameController = {
   handleExportOneJson: jest.fn(),
   handleExportOneExcel: jest.fn(),
 };
+let capturedLoadGameArgs: { onEnterMatch: () => void } | undefined;
 jest.mock('@/hooks/useLoadGameController', () => ({
   __esModule: true,
-  useLoadGameController: () => mockLoadGameController,
+  useLoadGameController: (args: { onEnterMatch: () => void }) => {
+    capturedLoadGameArgs = args;
+    return mockLoadGameController;
+  },
 }));
 
 jest.mock('@/components/NewGameSetupModal', () => ({
@@ -352,10 +356,14 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     fireEvent.click(screen.getByText('open-club-stats'));
     await waitFor(() => expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument());
     expect(screen.getByTestId('club-stats-shape')).toHaveTextContent('aggregate:season:none');
-    // Tapping a game in the log persists the pick via the load controller
-    // (which then closes + enterMatch through its own callback).
+    // Tapping a game row hands the pick to the load controller. The surface
+    // must NOT close yet - a stale row (game deleted elsewhere) errors and
+    // keeps it open, so only the controller's success callback closes it.
     fireEvent.click(screen.getByText('stats-open-g1'));
     expect(mockLoadGameController.handleLoadGame).toHaveBeenCalledWith('g1');
+    expect(screen.getByTestId('club-stats-modal')).toBeInTheDocument();
+    // Simulate the successful load: the controller fires onEnterMatch.
+    act(() => capturedLoadGameArgs!.onEnterMatch());
     await waitFor(() => expect(screen.queryByTestId('club-stats-modal')).not.toBeInTheDocument());
   });
 

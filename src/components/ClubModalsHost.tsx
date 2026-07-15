@@ -134,7 +134,12 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   const { data: teams = [] } = useTeamsQuery();
   const loadGame = useLoadGameController({
     onEnterMatch: () => {
+      // Fires only on a SUCCESSFUL load: close whichever surface initiated
+      // it (the LoadGame modal or the club-stats game log) - a failed pick
+      // keeps the surface open with the error visible.
       setIsLoadGameModalOpen(false);
+      setIsClubStatsOpen(false);
+      setSelectedPlayerForStats(null);
       onEnterMatch?.();
     },
     onActiveGameDeleted,
@@ -338,16 +343,15 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           currentGameId={null}
           masterRoster={clubStats.masterRoster}
           personnelDirectory={personnelManager.personnel}
-          onExportOneExcel={loadGame.handleExportOneExcel}
           onExportAggregateExcel={clubStats.handleExportAggregateExcel}
           onExportPlayerExcel={clubStats.handleExportPlayerExcel}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           initialTab={clubStatsInitialTab}
           onGameClick={(gameId) => {
-            /* The log's game rows are the LoadGame level crossing: persist
-               the pick, close this surface, fresh-mount the match. */
-            setIsClubStatsOpen(false);
-            setSelectedPlayerForStats(null);
+            /* The log's game rows are the LoadGame level crossing. The
+               surface closes via the load controller's onEnterMatch - i.e.
+               only on SUCCESS; a stale row (game deleted elsewhere) keeps
+               it open and the controller toasts the error. */
             void loadGame.handleLoadGame(gameId);
           }}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
