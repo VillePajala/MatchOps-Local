@@ -518,6 +518,27 @@ describe('<GameSettingsModal />', () => {
       await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     });
 
+    it('blocks a case-insensitive duplicate name BEFORE the club write (parity with PlayerDetailsModal)', async () => {
+      const user = userEvent.setup();
+      const onAddPlayerToRoster = jest.fn();
+      const onSelectedPlayersChange = jest.fn();
+      renderModal({ ...defaultProps, onAddPlayerToRoster, onSelectedPlayersChange });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      // defaultProps.availablePlayers contains 'Player One' (id p1).
+      await user.type(
+        screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')),
+        `  ${defaultProps.availablePlayers[0].name.toUpperCase()}  `,
+      );
+      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.addToClubRoster') }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        t('playerDetailsModal.duplicateNameError'),
+      );
+      expect(onAddPlayerToRoster).not.toHaveBeenCalled();
+      expect(onSelectedPlayersChange).not.toHaveBeenCalled();
+    });
+
     it('renders no add affordance without the bridge handler', async () => {
       renderModal();
       expect(await screen.findByText(t('gameSettingsModal.selectPlayers'))).toBeInTheDocument();

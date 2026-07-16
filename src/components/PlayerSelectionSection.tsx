@@ -35,16 +35,16 @@ export interface PlayerSelectionSectionProps {
    * Roster bridge (two-level restructure 3.2): inline "add to club roster".
    * When provided, the picker renders an add row - the handler writes the
    * CLUB roster and (at the call site) selects the new player in the game.
-   * The ONLY club-write from match scope. Resolve to true on success to
-   * clear + close the input row.
+   * The ONLY club-write from match scope. Resolve `true` on success (clears
+   * + closes the row) or a ready-to-display error message (duplicate name,
+   * failed write) shown inline under the row.
    */
-  onAddPlayer?: (name: string) => Promise<boolean>;
+  onAddPlayer?: (name: string) => Promise<true | string>;
   /** Label for the inline-add affordance (e.g. "Lisää seuran listaan"). */
   addPlayerLabel?: string;
   /** Placeholder for the inline-add name input. */
   addPlayerPlaceholder?: string;
-  /** Shown inline when the club-write fails (cleared on typing/cancel). */
-  addPlayerErrorText?: string;
+
   /**
    * Additional CSS classes to apply to the wrapper div.
    *
@@ -73,12 +73,11 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   onAddPlayer,
   addPlayerLabel,
   addPlayerPlaceholder,
-  addPlayerErrorText,
 }) => {
   const [isAddingOpen, setIsAddingOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
-  const [showAddError, setShowAddError] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const submitAddPlayer = async () => {
     const name = newPlayerName.trim();
@@ -86,15 +85,16 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
     // in-flight mutations (isProcessing) - the add-write must too.
     if (!name || !onAddPlayer || isSubmittingAdd || disabled) return;
     setIsSubmittingAdd(true);
-    setShowAddError(false);
+    setAddError(null);
     try {
-      const ok = await onAddPlayer(name);
-      if (ok) {
+      const result = await onAddPlayer(name);
+      if (result === true) {
         setNewPlayerName('');
         setIsAddingOpen(false);
       } else {
-        // Keep the input open for retry AND say why nothing happened.
-        setShowAddError(true);
+        // Keep the input open for retry AND say why nothing happened
+        // (duplicate name / failed write - the caller words it).
+        setAddError(result);
       }
     } finally {
       setIsSubmittingAdd(false);
@@ -173,7 +173,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               <input
                 type="text"
                 value={newPlayerName}
-                onChange={(e) => { setNewPlayerName(e.target.value); setShowAddError(false); }}
+                onChange={(e) => { setNewPlayerName(e.target.value); setAddError(null); }}
                 placeholder={addPlayerPlaceholder}
                 aria-label={addPlayerPlaceholder}
                 autoFocus
@@ -193,7 +193,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => { setIsAddingOpen(false); setNewPlayerName(''); setShowAddError(false); }}
+                onClick={() => { setIsAddingOpen(false); setNewPlayerName(''); setAddError(null); }}
                 disabled={disabled || isSubmittingAdd}
                 className="p-2 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-700/60 transition-colors disabled:opacity-50"
                 aria-label={`${addPlayerLabel} - cancel`}
@@ -201,8 +201,8 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                 ✕
               </button>
             </form>
-            {showAddError && addPlayerErrorText && (
-              <p role="alert" className="mt-2 text-sm text-red-400">{addPlayerErrorText}</p>
+            {addError && (
+              <p role="alert" className="mt-2 text-sm text-red-400">{addError}</p>
             )}
             </>
           ) : (

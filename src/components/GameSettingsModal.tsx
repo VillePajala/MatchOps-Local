@@ -1686,24 +1686,34 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 onAddPlayer={
                   onAddPlayerToRoster
                     ? async (name: string) => {
-                        /* Roster bridge (3.2): club write first; on success
-                           select the new player into THIS game through the
-                           same persist path the checkboxes use. */
+                        /* Roster bridge (3.2): duplicate gate first (same
+                           case-insensitive rule as PlayerDetailsModal - the
+                           two add-player paths must not diverge), then the
+                           club write; on success select the new player into
+                           THIS game through the same persist path the
+                           checkboxes use. */
+                        const isDuplicate = availablePlayers.some(
+                          (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
+                        );
+                        if (isDuplicate) {
+                          return t('playerDetailsModal.duplicateNameError', 'A player with this name already exists');
+                        }
                         const saved = await onAddPlayerToRoster(name);
-                        if (!saved) return false;
+                        if (!saved) {
+                          return t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.');
+                        }
                         const nextIds = [...selectedPlayerIds, saved.id];
                         onSelectedPlayersChange(nextIds);
                         mutateGameDetails(
                           { selectedPlayerIds: nextIds, gameDate },
                           { source: 'stateSync', expectedState: { selectedPlayerIds: nextIds, gameDate } }
                         );
-                        return true;
+                        return true as const;
                       }
                     : undefined
                 }
                 addPlayerLabel={t('gameSettingsModal.addToClubRoster', 'Add to club roster')}
                 addPlayerPlaceholder={t('gameSettingsModal.addToClubRosterPlaceholder', 'New player name')}
-                addPlayerErrorText={t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.')}
               />
 
               {/* Personnel Selection Section */}
