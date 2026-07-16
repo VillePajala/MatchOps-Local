@@ -1703,6 +1703,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 }
                 addPlayerLabel={t('gameSettingsModal.addToClubRoster', 'Add to club roster')}
                 addPlayerPlaceholder={t('gameSettingsModal.addToClubRosterPlaceholder', 'New player name')}
+                addPlayerErrorText={t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.')}
               />
 
               {/* Personnel Selection Section */}

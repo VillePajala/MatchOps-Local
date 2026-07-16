@@ -509,6 +509,13 @@ describe('<GameSettingsModal />', () => {
       await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalled());
       expect(onSelectedPlayersChange).not.toHaveBeenCalled();
       expect(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder'))).toBeInTheDocument();
+      // Review fix: the failure SAYS why nothing happened...
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        t('gameSettingsModal.addToClubRosterFailed'),
+      );
+      // ...and typing clears the message for the retry.
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'X');
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
     });
 
     it('renders no add affordance without the bridge handler', async () => {

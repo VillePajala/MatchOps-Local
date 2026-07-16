@@ -705,6 +705,7 @@ export type TranslationKey =
   | 'gameResult.penalties'
   | 'gameSettingsModal.addButton'
   | 'gameSettingsModal.addToClubRoster'
+  | 'gameSettingsModal.addToClubRosterFailed'
   | 'gameSettingsModal.addToClubRosterPlaceholder'
   | 'gameSettingsModal.ageGroupLabel'
   | 'gameSettingsModal.away'

@@ -380,7 +380,9 @@ describe('Translation File Validation', () => {
       //     direct sign out in the gear sheet)
       // +2: gameSettingsModal.addToClubRoster(+Placeholder) - the 3.2 roster
       //     bridge: inline club-roster add in the game's player picker
-      expect(enKeys.length).toBe(2824);
+      // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
+      //     club-write must say why nothing happened)
+      expect(enKeys.length).toBe(2825);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -479,7 +481,9 @@ describe('Translation File Validation', () => {
       //     direct sign out in the gear sheet)
       // +2: gameSettingsModal.addToClubRoster(+Placeholder) - the 3.2 roster
       //     bridge: inline club-roster add in the game's player picker
-      expect(fiKeys.length).toBe(2824);
+      // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
+      //     club-write must say why nothing happened)
+      expect(fiKeys.length).toBe(2825);
     });
   });
 });

@@ -1539,7 +1539,8 @@
     "wentToOvertime": "Jatkoaika",
     "wentToPenalties": "Rangaistuslaukaukset",
     "addToClubRoster": "Lisää seuran listaan",
-    "addToClubRosterPlaceholder": "Uuden pelaajan nimi"
+    "addToClubRosterPlaceholder": "Uuden pelaajan nimi",
+    "addToClubRosterFailed": "Pelaajan lisääminen epäonnistui. Yritä uudelleen."
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
