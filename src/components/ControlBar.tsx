@@ -5,36 +5,23 @@ import {
   HiBars3,
   HiOutlineChevronLeft,
   HiOutlineArchiveBoxArrowDown,
-  HiOutlineFolderOpen,
-  HiOutlineArrowPath,
   HiOutlineAdjustmentsHorizontal,
-  HiOutlineUsers,
-  HiOutlineUserGroup,
-  HiOutlineTrophy,
   HiOutlineClipboardDocumentList,
   HiOutlineClipboardDocumentCheck,
   HiOutlineClipboard,
-  HiOutlineBookOpen,
-  HiOutlineDocumentArrowDown,
   HiOutlineArrowTopRightOnSquare,
-  HiOutlineCog6Tooth,
   HiOutlineArrowUturnLeft,
   HiOutlineArrowUturnRight,
   HiOutlineTrash,
   HiOutlineBackspace,
   HiOutlinePlusCircle,
   HiOutlineXMark,
-  HiOutlineIdentification,
-  HiOutlineScale,
   HiOutlineHome,
-  HiOutlineArrowRightOnRectangle,
-  HiOutlineTableCells,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
 import logger from '@/utils/logger';
-import { useModalContext } from '@/contexts/ModalProvider';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
@@ -95,28 +82,16 @@ interface ControlBarProps {
   selectedPlayerCount: number;
   isDrawingEnabled: boolean;
   onToggleDrawingMode: () => void;
-  // Menu (existing functionality)
-  onToggleTrainingResources: () => void;
-  onToggleRulesDirectory: () => void;
+  // Menu (3.1 shrink: MATCH-scope only - every club/app surface opens from
+  // Home now; the one way back is "Koti", mirrored by hardware back).
   onToggleGameStatsModal: () => void;
+  /** "Joukkueen tilastot ->" - opens the HOST club-stats surface over the match. */
   onOpenTeamStats?: () => void;
-  onOpenLoadGameModal: () => void;
-  onStartNewGame: () => void;
-  onOpenRosterModal: () => void;
   onQuickSave: () => void;
   onOpenGameSettingsModal: () => void;
   isGameLoaded: boolean;
-  onOpenSeasonTournamentModal: () => void;
-  onToggleInstructionsModal: () => void;
-  onOpenSettingsModal: () => void;
   onOpenPlayerAssessmentModal: () => void;
-  onOpenTeamManagerModal: () => void;
-  onOpenPersonnelManager: () => void;
   onGoToStartScreen?: () => void;
-  onOpenPlanner?: () => void;
-  // Cloud mode
-  onSignOut?: () => void;
-  isCloudMode?: boolean;
 }
 
 const ControlBar: React.FC<ControlBarProps> = React.memo(({
@@ -142,29 +117,15 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   selectedPlayerCount,
   isDrawingEnabled,
   onToggleDrawingMode,
-  onToggleTrainingResources,
-  onToggleRulesDirectory,
   onToggleGameStatsModal,
   onOpenTeamStats,
-  onOpenLoadGameModal,
-  onStartNewGame,
-  onOpenRosterModal,
   onQuickSave,
   onOpenGameSettingsModal,
   isGameLoaded,
-  onOpenSeasonTournamentModal,
-  onToggleInstructionsModal: _onToggleInstructionsModal,
-  onOpenSettingsModal,
   onOpenPlayerAssessmentModal,
-  onOpenTeamManagerModal,
-  onOpenPersonnelManager,
   onGoToStartScreen,
-  onOpenPlanner,
-  onSignOut,
-  isCloudMode = false,
 }) => {
   const { t } = useTranslation();
-  const { openSettingsToTab } = useModalContext();
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
@@ -354,7 +315,6 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     setDragOffset(0);
   };
 
-  const handleStartNewGame = () => closeMenuThen(onStartNewGame);
 
   return (
     <>
@@ -554,21 +514,14 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
 
         {/* Navigation content */}
         <nav className="relative flex flex-col p-4 space-y-1 overflow-y-auto flex-1 z-10">
-          {/* Start Screen link */}
-          {onGoToStartScreen && (
-            <button
-              onClick={wrapImmediate(onGoToStartScreen)}
-              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors mb-4"
-            >
-              <HiOutlineHome className="w-5 h-5 mr-2" />
-              {t('controlBar.startScreen', 'Start Screen')}
-            </button>
-          )}
-
-          {/* Section: THIS MATCH - everything here touches only the game on
-              screen. The club/app items live in the next group; the two-scope
-              split is the two-level restructure's phase 0 (see
-              docs/03-active-plans/two-level-app-structure.md). */}
+          {/* 3.1 menu shrink: MATCH scope only. Every club/app entry
+              (load/new game, roster, teams, personnel, seasons, planner,
+              training, rules, backup, settings, sign out, external
+              resources) lives on Home now - the reachability table in
+              two-level-app-structure.md SS2 gives each item exactly one
+              home. Taso stays: it is a game-day workflow tool (owner
+              decision 2026-07-14). "Koti" is the one way back (also the
+              top-bar house icon + hardware back). */}
           <div className="mb-4">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.thisMatch', 'This match')}
@@ -598,87 +551,20 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.stats', 'Match stats')}
             </button>
-          </div>
-
-          {/* Section: TEAM & APP - the club/season library and app-level tools. */}
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {t('controlBar.menu.teamAndApp', 'Team & app')}
-            </h4>
-            <button onClick={wrapModal(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineFolderOpen className="w-5 h-5 mr-2" /> {t('controlBar.loadGame', 'Load Game...')}
-            </button>
-            <button onClick={handleStartNewGame} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineArrowPath className="w-5 h-5 mr-2" /> {t('controlBar.newGameButton', 'New Game')}
-            </button>
-            {onOpenPlanner && (
-              <button onClick={wrapModal(onOpenPlanner)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-                <HiOutlineTableCells className="w-5 h-5 mr-2" /> {t('controlBar.planner', 'Match planner')}
-              </button>
-            )}
             {onOpenTeamStats && (
               <button onClick={wrapModal(onOpenTeamStats)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-                <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.teamStats', 'Team stats')}
+                <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />
+                {t('controlBar.teamStats', 'Team stats')}
+                <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
               </button>
             )}
-            <button onClick={wrapModal(onOpenRosterModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineUsers className="w-5 h-5 mr-2" /> {t('controlBar.manageRoster', 'Manage Roster')}
-            </button>
-            <button onClick={wrapModal(onOpenTeamManagerModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineUserGroup className="w-5 h-5 mr-2" /> {t('controlBar.manageTeams', 'Manage Teams')}
-            </button>
-            <button onClick={wrapModal(onOpenPersonnelManager)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineIdentification className="w-5 h-5 mr-2" /> {t('controlBar.personnelManager', 'Personnel Manager')}
-            </button>
-            <button onClick={wrapModal(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineTrophy className="w-5 h-5 mr-2" /> {t('controlBar.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')}
-            </button>
-            <button onClick={wrapModal(onToggleTrainingResources)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineBookOpen className="w-5 h-5 mr-2" />{t('controlBar.training', 'Training')}
-            </button>
-            <button onClick={wrapModal(onToggleRulesDirectory)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineScale className="w-5 h-5 mr-2" />{t('controlBar.rulesDirectory', 'Rules')}
-            </button>
-            <button onClick={wrapModal(() => openSettingsToTab('data'))} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineDocumentArrowDown className="w-5 h-5 mr-2" />{t('controlBar.backupRestore', 'Backup & Restore')}
-            </button>
           </div>
 
-          {/* Section: Resources */}
+          {/* Taso: game-day workflow tool (lineups before, results after). */}
           <div className="mb-4">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.resources', 'Resources')}
             </h4>
-            <a
-              href="https://www.match-ops.com/guide"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              onClick={wrapImmediate(() => {})}
-            >
-              <HiOutlineBookOpen className="w-5 h-5 mr-2" />
-              {t('controlBar.userGuide', 'User Guide')}
-            </a>
-            <a
-              href="https://www.match-ops.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              onClick={wrapImmediate(() => {})}
-            >
-              <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
-              {t('controlBar.appWebsite', 'match-ops.com')}
-            </a>
-            <a
-              href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              onClick={wrapImmediate(() => {})}
-            >
-              <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
-              {t('controlBar.coachingMaterials', 'Coaching Materials')}
-            </a>
             <a
               href="https://taso.palloliitto.fi"
               target="_blank"
@@ -691,25 +577,19 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </a>
           </div>
 
-          {/* Section: Settings */}
-          <div>
-            <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              {t('controlBar.menu.settings', 'Settings')}
-            </h4>
-            <button onClick={wrapModal(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineCog6Tooth className="w-5 h-5 mr-2" /> {t('controlBar.appSettings', 'App Settings')}
-            </button>
-            {/* Sign Out - only shown in cloud mode */}
-            {isCloudMode && onSignOut && (
+          {/* The one way back to club scope (mirrored by hardware back and
+              the top-bar house icon). Autosave makes leaving always safe. */}
+          {onGoToStartScreen && (
+            <div className="pt-2 border-t border-slate-700/60">
               <button
-                onClick={wrapImmediate(onSignOut)}
+                onClick={wrapImmediate(onGoToStartScreen)}
                 className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
               >
-                <HiOutlineArrowRightOnRectangle className="w-5 h-5 mr-2" />
-                {t('controlBar.signOut', 'Sign Out')}
+                <HiOutlineHome className="w-5 h-5 mr-2" />
+                {t('controlBar.home', 'Home')}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </nav>
       </div>
     </>
@@ -724,7 +604,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   // MAINTAINER NOTE: If you add a new DATA prop (not a callback), add it here!
   // Current data props: timeElapsedInSeconds, isTimerRunning, canUndo, canRedo,
   // canTacticalUndo, canTacticalRedo, isTacticsBoardView, isDrawingEnabled, isGameLoaded,
-  // selectedPlayerCount, isCloudMode, onGoToStartScreen (truthiness), onSignOut (truthiness)
+  // selectedPlayerCount, onGoToStartScreen (truthiness), onOpenTeamStats (truthiness)
   //
   // Return true = props equal (skip re-render), false = props changed (re-render)
   return (
@@ -738,9 +618,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     prevProps.isDrawingEnabled === nextProps.isDrawingEnabled &&
     prevProps.isGameLoaded === nextProps.isGameLoaded &&
     prevProps.selectedPlayerCount === nextProps.selectedPlayerCount &&
-    prevProps.isCloudMode === nextProps.isCloudMode &&
     !!prevProps.onGoToStartScreen === !!nextProps.onGoToStartScreen &&
-    !!prevProps.onSignOut === !!nextProps.onSignOut
+    !!prevProps.onOpenTeamStats === !!nextProps.onOpenTeamStats
   );
 });
 

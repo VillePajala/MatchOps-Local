@@ -62,17 +62,13 @@ export interface ModalUIState {
   playerAssessments: Record<string, PlayerAssessment>;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
-  gameIdentifierForSave: string;
   isPlayed: boolean;
   setIsPlayed: (played: boolean) => void;
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
   isTeamReassignModalOpen: boolean;
   setIsTeamReassignModalOpen: (open: boolean) => void;
-  showSaveBeforeNewConfirm: boolean;
   showNoPlayersConfirm: boolean;
   setShowNoPlayersConfirm: (open: boolean) => void;
-  showStartNewConfirm: boolean;
-  setShowStartNewConfirm: (open: boolean) => void;
 }
 
 /**
@@ -119,9 +115,6 @@ export interface ModalHandlers {
   handleDeletePlayerAssessment: (playerId: string) => void;
   handleTeamReassignment: (teamId: string | null) => void;
   handleNoPlayersConfirmed: () => void;
-  handleSaveBeforeNewConfirmed: () => void;
-  handleSaveBeforeNewCancelled: () => void;
-  handleStartNewConfirmed: () => void;
 }
 
 /**
@@ -180,17 +173,13 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     playerAssessments,
     availableTeams,
     orphanedGameInfo,
-    gameIdentifierForSave,
     isPlayed,
     setIsPlayed,
     updateGameDetailsMutation,
     isTeamReassignModalOpen,
     setIsTeamReassignModalOpen,
-    showSaveBeforeNewConfirm,
     showNoPlayersConfirm,
     setShowNoPlayersConfirm,
-    showStartNewConfirm,
-    setShowStartNewConfirm,
   } = ui;
 
   // Destructure handlers
@@ -233,9 +222,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleDeletePlayerAssessment,
     handleTeamReassignment,
     handleNoPlayersConfirmed,
-    handleSaveBeforeNewConfirmed,
-    handleSaveBeforeNewCancelled,
-    handleStartNewConfirmed,
   } = handlers;
 
   // --- Modal State from Context ---
@@ -371,8 +357,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       isPlayerAssessmentModalOpen,
       isTeamReassignModalOpen,
       showNoPlayersConfirm,
-      showSaveBeforeNewConfirm,
-      showStartNewConfirm,
       showResetFieldConfirm: fieldCoordination.showResetFieldConfirm,
     },
     data: {
@@ -390,7 +374,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       playerAssessments,
       availableTeams,
       orphanedGameInfo,
-      gameIdentifierForSave,
       isPlayed,
       updateGameDetailsMutation,
     },
@@ -444,10 +427,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setIsTeamReassignModalOpen,
       confirmNoPlayers: handleNoPlayersConfirmed,
       setShowNoPlayersConfirm,
-      saveBeforeNewConfirmed: handleSaveBeforeNewConfirmed,
-      saveBeforeNewCancelled: handleSaveBeforeNewCancelled,
-      setShowStartNewConfirm,
-      startNewConfirmed: handleStartNewConfirmed,
       setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
       openSettingsModal: handleOpenSettingsModal,
