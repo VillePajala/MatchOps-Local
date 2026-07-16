@@ -28,8 +28,14 @@ stats) and 3.1 (PR #677: match menu shrunk to
 match scope + Taso + Koti; bar-level Home button (relocated from the score bar per owner feedback 2026-07-17); hardware back exits to Home
 beneath the modal stack - match-scope modals audited onto it; dead
 save-before-new chain deleted; 19 dead controlBar keys removed, guard 2819)
-are MERGED to the feature branch. ALL L-WAVES + 3.1 COMPLETE. Next: 3.2
-(roster bridge), then F (final PR to master).
+3.1-fu (PR #678: home button relocated
+into the ControlBar as a first-class square button) and 3.1b (PR #679, Home
+polish per owner feedback 2026-07-17: Kaudet & Tilastot became REAL panels
+with entry rows - the tab contract holds for all four tabs; external links
+as solid rows; direct gear-sheet sign out, with the migration-flag clear
+centralized into AuthProvider.signOut) are MERGED to the feature branch.
+ALL L-WAVES + 3.1 + 3.1b COMPLETE. Next: 3.2 (roster bridge), then F
+(final PR to master).
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
