@@ -24,9 +24,12 @@ lifted - aggregateOnly host surface via isClubStatsOpen; game-row tap =
 LoadGame level crossing, success-threaded close; roster player-stats
 shortcut lands on the host player tab - the L.2 interim is retired; match
 modal is current-game-first; PWA stats shortcut routes to club player
-stats) are MERGED to the feature branch. ALL L-WAVES COMPLETE - the facade
-is gone. Next: 3.1 (match-menu shrink + top-bar home exit), 3.2 (roster
-bridge), then F (final PR to master).
+stats) and 3.1 (PR #677: match menu shrunk to
+match scope + Taso + Koti; top-bar house icon; hardware back exits to Home
+beneath the modal stack - match-scope modals audited onto it; dead
+save-before-new chain deleted; 19 dead controlBar keys removed, guard 2819)
+are MERGED to the feature branch. ALL L-WAVES + 3.1 COMPLETE. Next: 3.2
+(roster bridge), then F (final PR to master).
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
