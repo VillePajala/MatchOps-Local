@@ -138,3 +138,40 @@ describe('ControlBar - the bar-level Home button (3.1 follow-up)', () => {
     expect(onGoToStartScreen).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('ControlBar - bar-level Home button without a handler', () => {
+  it('renders no bar Home button when onGoToStartScreen is absent', () => {
+    render(
+      <ControlBar
+        timeElapsedInSeconds={0}
+        isTimerRunning={false}
+        onToggleLargeTimerOverlay={noop}
+        onUndo={noop}
+        onRedo={noop}
+        canUndo={false}
+        canRedo={false}
+        onTacticalUndo={noop}
+        onTacticalRedo={noop}
+        canTacticalUndo={false}
+        canTacticalRedo={false}
+        onResetField={noop}
+        onClearDrawings={noop}
+        onAddOpponent={noop}
+        isTacticsBoardView={false}
+        onToggleTacticsBoard={noop}
+        onAddHomeDisc={noop}
+        onAddOpponentDisc={noop}
+        onPlaceAllPlayers={noop}
+        selectedPlayerCount={0}
+        isDrawingEnabled={false}
+        onToggleDrawingMode={noop}
+        onToggleGameStatsModal={noop}
+        onQuickSave={noop}
+        onOpenGameSettingsModal={noop}
+        isGameLoaded={true}
+        onOpenPlayerAssessmentModal={noop}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Back to Home' })).not.toBeInTheDocument();
+  });
+});
