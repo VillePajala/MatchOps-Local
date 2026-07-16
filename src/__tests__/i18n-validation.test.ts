@@ -378,7 +378,11 @@ describe('Translation File Validation', () => {
       // +3: startScreen.rowCompetitions/rowPlayerStats/gearSignOut (3.1b Home
       //     polish: Kaudet & Tilastot become REAL panels with entry rows;
       //     direct sign out in the gear sheet)
-      expect(enKeys.length).toBe(2822);
+      // +2: gameSettingsModal.addToClubRoster(+Placeholder) - the 3.2 roster
+      //     bridge: inline club-roster add in the game's player picker
+      // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
+      //     club-write must say why nothing happened)
+      expect(enKeys.length).toBe(2825);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -475,7 +479,11 @@ describe('Translation File Validation', () => {
       // +3: startScreen.rowCompetitions/rowPlayerStats/gearSignOut (3.1b Home
       //     polish: Kaudet & Tilastot become REAL panels with entry rows;
       //     direct sign out in the gear sheet)
-      expect(fiKeys.length).toBe(2822);
+      // +2: gameSettingsModal.addToClubRoster(+Placeholder) - the 3.2 roster
+      //     bridge: inline club-roster add in the game's player picker
+      // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
+      //     club-write must say why nothing happened)
+      expect(fiKeys.length).toBe(2825);
     });
   });
 });

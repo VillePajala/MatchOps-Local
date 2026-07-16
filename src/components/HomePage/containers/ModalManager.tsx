@@ -101,6 +101,8 @@ interface ModalManagerHandlers {
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
+  /** 3.2 roster bridge: club write from the game picker. */
+  addPlayerToClubRoster: (name: string) => Promise<Player | null>;
   reapplyPlan: () => void | Promise<void>;
   setGamePersonnel?: (personnelIds: string[]) => void;
   closePlayerAssessmentModal: () => void;
@@ -229,6 +231,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
           selectedPersonnelIds={data.gameSessionState.gamePersonnel || []}
           onSelectedPlayersChange={handlers.updateSelectedPlayers}
+          onAddPlayerToRoster={handlers.addPlayerToClubRoster}
           canReapplyPlan={data.canReapplyPlan}
           onReapplyPlan={handlers.reapplyPlan}
           onSelectedPersonnelChange={handlers.setGamePersonnel || (() => {})}

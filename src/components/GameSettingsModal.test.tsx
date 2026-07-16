@@ -457,6 +457,74 @@ describe('<GameSettingsModal />', () => {
     });
   });
 
+  describe('Roster bridge (3.2): inline add to club roster', () => {
+    /**
+     * Acceptance (two-level restructure 3.2): the added player lands in the
+     * CLUB roster (the onAddPlayerToRoster club-write) AND the game
+     * selection (onSelectedPlayersChange + the persist mutation).
+     * @critical
+     */
+    it('club-write succeeds -> the new player is selected into the game and persisted', async () => {
+      const user = userEvent.setup();
+      const saved = { id: 'new-p9', name: 'Uusi Pelaaja', isGoalie: false, receivedFairPlayCard: false };
+      const onAddPlayerToRoster = jest.fn().mockResolvedValue(saved);
+      const onSelectedPlayersChange = jest.fn();
+      const mutate = jest.fn();
+      renderModal({
+        ...defaultProps,
+        onAddPlayerToRoster,
+        onSelectedPlayersChange,
+        updateGameDetailsMutation: {
+          mutate,
+          mutateAsync: jest.fn().mockResolvedValue({ id: 'game123' }),
+        } as unknown as typeof defaultProps.updateGameDetailsMutation,
+      });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), '  Uusi Pelaaja  ');
+      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.addToClubRoster') }));
+
+      await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalledWith('Uusi Pelaaja'));
+      await waitFor(() =>
+        expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p1', 'p2', 'new-p9']),
+      );
+      // Persisted through the same path the selection checkboxes use.
+      expect(mutate).toHaveBeenCalled();
+      // The add row clears + closes on success.
+      await waitFor(() =>
+        expect(screen.queryByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder'))).not.toBeInTheDocument(),
+      );
+    });
+
+    it('failed club-write selects nothing and keeps the input open for retry', async () => {
+      const user = userEvent.setup();
+      const onAddPlayerToRoster = jest.fn().mockResolvedValue(null);
+      const onSelectedPlayersChange = jest.fn();
+      renderModal({ ...defaultProps, onAddPlayerToRoster, onSelectedPlayersChange });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'Uusi');
+      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.addToClubRoster') }));
+
+      await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalled());
+      expect(onSelectedPlayersChange).not.toHaveBeenCalled();
+      expect(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder'))).toBeInTheDocument();
+      // Review fix: the failure SAYS why nothing happened...
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        t('gameSettingsModal.addToClubRosterFailed'),
+      );
+      // ...and typing clears the message for the retry.
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'X');
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    });
+
+    it('renders no add affordance without the bridge handler', async () => {
+      renderModal();
+      expect(await screen.findByText(t('gameSettingsModal.selectPlayers'))).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: new RegExp(t('gameSettingsModal.addToClubRoster')) })).not.toBeInTheDocument();
+    });
+  });
+
   describe('Game Notes Section', () => {
     test('calls onGameNotesChange and updateGameDetails when game notes are edited', async () => {
       // Force clean state for this test
