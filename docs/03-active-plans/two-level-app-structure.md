@@ -222,13 +222,23 @@ after the lift (fewer things depend on mounting the game).
   a place inside an existing scope-true modal or justifies a NEW modal - it
   never widens one into a junk drawer. (GameStats' five tabs are the cautionary
   precedent.)
-- **Footer retirement candidate (owner idea 2026-07-16, post-lift)**: with
-  hardware back reliably closing the topmost lifted modal, modal FOOTERS
-  (Sulje rows) may become removable, freeing content space on phones.
-  Not part of the L-waves; revisit after L.4. Caveat: iOS PWA and desktop
-  have no hardware back, so footers can only go where another visible close
-  affordance exists (header X or equivalent) - never leave a modal with no
-  on-screen exit.
+- **Modal chrome slimming (owner idea 2026-07-16, elaborated; post-F polish
+  wave, pending go decision)**: with hardware back closing the topmost modal,
+  slim ALL modal chrome in three ordered steps, one PR each: (1) header X
+  close on every modal - the prerequisite; iOS PWA/desktop have no hardware
+  back, so a visible exit must remain; (2) delete pure-Sulje footers; move
+  primary actions (Aloita, save/confirm) to header-right or a sticky CTA
+  shown only when there is something to commit, utilities to header/
+  overflow; (3) headers carrying controls adopt the planner's scroll-aware
+  collapse (title-only on scroll down, controls back on scroll up).
+  ~100px of phone content space reclaimed per modal. Runs AFTER the final
+  master merge - it touches every modal.
+- **Menu shrink watchpoint (owner reflection 2026-07-16)**: the 3.1 menu cut
+  trades shortcut density for scannability; tap cost is unchanged for
+  front-page items (2 taps either way). The lift made shortcuts CHEAP to
+  restore (any club surface opens over the match from a one-line provider
+  flag), so the policy is: ship clean, watch real game-day usage, restore
+  individual items only on proven friction - never speculatively.
 
 ## 7. Process rules for this branch (planner lessons, binding)
 
