@@ -1537,7 +1537,10 @@
     "shootoutLabel": "Rangaistuslaukaukset",
     "editShootout": "(muokkaa)",
     "wentToOvertime": "Jatkoaika",
-    "wentToPenalties": "Rangaistuslaukaukset"
+    "wentToPenalties": "Rangaistuslaukaukset",
+    "addToClubRoster": "Lisää seuran listaan",
+    "addToClubRosterPlaceholder": "Uuden pelaajan nimi",
+    "addToClubRosterFailed": "Pelaajan lisääminen epäonnistui. Yritä uudelleen."
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
