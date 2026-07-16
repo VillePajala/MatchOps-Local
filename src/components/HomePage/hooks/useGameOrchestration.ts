@@ -2256,8 +2256,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     controlBarProps,
     // Planner live-game hooks (flush/refresh) now reach the host-level
     // planner via ModalProvider registration (L.3c), not through props.
-    // 3.1: the top-bar house icon - the direct match->Home exit.
-    onGoHome: onGoToStartScreen,
   };
 
   // --- Modal Orchestration Hook (Step 2.6.6 - FINAL, Step 2.8 - Grouped interface) ---

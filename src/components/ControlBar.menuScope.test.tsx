@@ -124,3 +124,17 @@ describe('ControlBar menu - match scope only (restructure 3.1)', () => {
     await waitFor(() => expect(onGoToStartScreen).toHaveBeenCalledTimes(1));
   });
 });
+
+describe('ControlBar - the bar-level Home button (3.1 follow-up)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    renderBar();
+  });
+
+  it('is a first-class bar button that exits to Home WITHOUT opening the menu', () => {
+    // Rendered directly on the bar - one always-visible tap out. (The
+    // GameInfoBar-row icon looked bolted-on; owner feedback 2026-07-17.)
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Home' }));
+    expect(onGoToStartScreen).toHaveBeenCalledTimes(1);
+  });
+});
