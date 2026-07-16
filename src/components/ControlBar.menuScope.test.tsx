@@ -1,9 +1,10 @@
 /**
- * Two-level restructure PR 0.1 - the hamburger menu groups by SCOPE:
- * "This match" holds only items that touch the game on screen, "Team & app"
- * holds the club library and app tools. Every pre-split item must remain
- * reachable under exactly one of the scope groups (plus the untouched
- * Resources/Settings sections). See two-level-app-structure.md §6.
+ * Two-level restructure 3.1 - the match menu is MATCH-scope only. Every
+ * club/app entry lives on Home (reachability table: each item has exactly
+ * one home, two-level-app-structure.md §2). The menu holds: Save, Match
+ * details, Assess Players, Game report, Match stats + the "Team stats →"
+ * link, the Taso link (game-day workflow tool), and "Home" - the one way
+ * back to club scope (mirrored by hardware back + the top-bar house icon).
  * @critical navigation reachability - a lost menu item is a lost feature
  */
 
@@ -23,14 +24,13 @@ import React from 'react';
 import { render, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ControlBar from './ControlBar';
-import ModalProvider from '@/contexts/ModalProvider';
 
 const noop = () => {};
 const onOpenTeamStats = jest.fn();
+const onGoToStartScreen = jest.fn();
 
 const renderBar = () =>
   render(
-    <ModalProvider>
     <ControlBar
       timeElapsedInSeconds={0}
       isTimerRunning={false}
@@ -54,25 +54,14 @@ const renderBar = () =>
       selectedPlayerCount={0}
       isDrawingEnabled={false}
       onToggleDrawingMode={noop}
-      onToggleTrainingResources={noop}
-      onToggleRulesDirectory={noop}
       onToggleGameStatsModal={noop}
-      onOpenLoadGameModal={noop}
-      onStartNewGame={noop}
-      onOpenRosterModal={noop}
       onQuickSave={noop}
       onOpenGameSettingsModal={noop}
       isGameLoaded={true}
-      onOpenSeasonTournamentModal={noop}
-      onToggleInstructionsModal={noop}
-      onOpenSettingsModal={noop}
       onOpenPlayerAssessmentModal={noop}
-      onOpenTeamManagerModal={noop}
-      onOpenPersonnelManager={noop}
-      onOpenPlanner={noop}
       onOpenTeamStats={onOpenTeamStats}
-    />
-    </ModalProvider>,
+      onGoToStartScreen={onGoToStartScreen}
+    />,
   );
 
 /** The section DIV that a group header belongs to (header + its items). */
@@ -81,24 +70,29 @@ const section = (heading: string): HTMLElement => {
   return h.parentElement as HTMLElement;
 };
 
-describe('ControlBar menu - scope grouping (restructure PR 0.1)', () => {
+describe('ControlBar menu - match scope only (restructure 3.1)', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     renderBar();
     fireEvent.click(screen.getByLabelText(/Settings/i)); // open the hamburger
   });
 
-  it('groups by scope: match items under "This match", club/app items under "Team & app"', () => {
+  it('holds exactly the match-scope items plus Taso and Home', () => {
     const match = within(section('This match'));
-    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', 'Match stats']) {
+    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', 'Match stats', /Team stats/]) {
       expect(match.getByRole('button', { name: item })).toBeInTheDocument();
     }
+    // Taso is the one external link that stays: game-day workflow tool.
+    expect(screen.getByRole('link', { name: 'Taso' })).toBeInTheDocument();
+    // The one way back to club scope.
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
+  });
 
-    const club = within(section('Team & app'));
-    for (const item of [
+  it('every club/app entry left the menu (they live on Home now)', () => {
+    for (const gone of [
       'Load Game...',
       'Start New Game',
       'Match planner',
-      'Team stats',
       'All Players',
       'Teams',
       'Personnel Manager',
@@ -106,28 +100,27 @@ describe('ControlBar menu - scope grouping (restructure PR 0.1)', () => {
       'Warmup Plan',
       'Rules',
       'Backup & Restore',
+      'App Settings',
+      'Sign Out',
+      'Start Screen',
     ]) {
-      expect(club.getByRole('button', { name: item })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: gone })).not.toBeInTheDocument();
     }
+    expect(screen.queryByRole('heading', { name: 'Team & app' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Settings' })).not.toBeInTheDocument();
+    // The other external links moved to Home's gear bucket.
+    expect(screen.queryByRole('link', { name: 'User Guide' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'match-ops.com' })).not.toBeInTheDocument();
   });
 
-  it('the two stats entries route to their own scopes (PR 0.2)', async () => {
-    // "Team stats" must call the aggregate-tab opener, not the plain toggle.
+  it('"Team stats →" routes to the host club-stats surface (L.4 link)', async () => {
     // The menu defers handlers until its close animation settles.
-    fireEvent.click(within(section('Team & app')).getByRole('button', { name: 'Team stats' }));
+    fireEvent.click(within(section('This match')).getByRole('button', { name: /Team stats/ }));
     await waitFor(() => expect(onOpenTeamStats).toHaveBeenCalledTimes(1));
   });
 
-  it('the old scope-mixed group headers are gone', () => {
-    for (const gone of ['Game Management', 'Setup & Configuration', 'Analysis & Tools']) {
-      expect(screen.queryByRole('heading', { name: gone })).not.toBeInTheDocument();
-    }
-    expect(screen.queryByText('Game Settings')).not.toBeInTheDocument();
-  });
-
-  it('Resources and Settings sections are untouched (already single-scope)', () => {
-    expect(screen.getByRole('heading', { name: 'Resources' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'App Settings' })).toBeInTheDocument();
+  it('"Home" exits to club scope', async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    await waitFor(() => expect(onGoToStartScreen).toHaveBeenCalledTimes(1));
   });
 });

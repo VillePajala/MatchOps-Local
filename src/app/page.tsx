@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useMultiTabPrevention } from '@/hooks/useMultiTabPrevention';
 import { useDeepLinkHandler } from '@/hooks/useDeepLinkHandler';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import type { AppAction } from '@/hooks/useDeepLinkHandler';
 import { usePremium } from '@/hooks/usePremium';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -267,6 +268,13 @@ export default function Home() {
   }, [userId, setAction]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
+
+  // 3.1: hardware back mirrors "Koti" - with the match on screen and no
+  // modal open, back returns to Home instead of leaving the app. Registered
+  // at PAGE level (not inside HomePage) so enterMatch's key-bump remounts
+  // don't re-push history entries; modals opened later stack ABOVE this
+  // entry, so back still closes the topmost modal first.
+  useModalHardwareBack(screen === 'home', handleGoToStartScreen);
 
   // handleDataImportSuccess removed (L.0b): the SettingsModal prop it fed was
   // dead - backup restore uses a full page reload, not a state refresh.

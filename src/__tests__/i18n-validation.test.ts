@@ -364,7 +364,18 @@ describe('Translation File Validation', () => {
       // +1: lineup.benchLabel (sideline strip heading on the planner field)
       // +6: plan-wide field reset (lineup.clearAllGames + confirm
       //     title/message/warning/label + clearedAllGames announcement)
-      expect(enKeys.length).toBe(2836);
+      // +1: controlBar.home (3.1: the one way back to club scope - menu
+      //     "Koti" entry + the top-bar house icon share the label)
+      // -17/+1 net -16: 3.1 menu shrink review - dead controlBar keys of the
+      //     removed menu entries and the deleted save-before-new chain
+      //     (discard, saveAndContinue, saveBeforeNew*, startNewMatch*,
+      //     startScreen, loadGame, newGameButton, manage*, rulesDirectory,
+      //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
+      //     house icon's own accessible name - distinguishes it from the
+      //     menu's "Koti" entry for screen readers)
+      // -2: controlBar.menu.teamAndApp/.settings - the section headings of
+      //     the menu groups the 3.1 shrink deleted (review round 2 catch)
+      expect(enKeys.length).toBe(2819);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -447,7 +458,18 @@ describe('Translation File Validation', () => {
       // +1: lineup.benchLabel (sideline strip heading on the planner field)
       // +6: plan-wide field reset (lineup.clearAllGames + confirm
       //     title/message/warning/label + clearedAllGames announcement)
-      expect(fiKeys.length).toBe(2836);
+      // +1: controlBar.home (3.1: the one way back to club scope - menu
+      //     "Koti" entry + the top-bar house icon share the label)
+      // -17/+1 net -16: 3.1 menu shrink review - dead controlBar keys of the
+      //     removed menu entries and the deleted save-before-new chain
+      //     (discard, saveAndContinue, saveBeforeNew*, startNewMatch*,
+      //     startScreen, loadGame, newGameButton, manage*, rulesDirectory,
+      //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
+      //     house icon's own accessible name - distinguishes it from the
+      //     menu's "Koti" entry for screen readers)
+      // -2: controlBar.menu.teamAndApp/.settings - the section headings of
+      //     the menu groups the 3.1 shrink deleted (review round 2 catch)
+      expect(fiKeys.length).toBe(2819);
     });
   });
 });
