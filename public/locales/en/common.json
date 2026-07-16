@@ -1050,7 +1050,9 @@
     "shootoutLabel": "Shootout",
     "editShootout": "(edit)",
     "wentToOvertime": "Overtime",
-    "wentToPenalties": "Penalties"
+    "wentToPenalties": "Penalties",
+    "addToClubRoster": "Add to club roster",
+    "addToClubRosterPlaceholder": "New player name"
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",

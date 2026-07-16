@@ -183,10 +183,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // setHighlightRosterButton: both writers retired (post-create highlight
     // in L.3b, the menu roster entry's clear in 3.1).
     playersForCurrentGame,
-    // handleAdd/Update/RemovePlayer + isRosterUpdating/rosterError/setRosterError
-    // now used only by the lifted roster modal (useRosterSettingsController, L.2);
+    // handleAddPlayer: back in use for the 3.2 roster bridge (the game
+    // picker's inline "add to club roster" - the ONLY club-write from match
+    // scope). handleUpdate/RemovePlayer + isRosterUpdating/rosterError live
+    // only in the lifted roster modal (useRosterSettingsController, L.2);
     // game-side goalie errors surface via showToast instead.
-    // handleSetGoalieStatus: no longer used - using per-game implementation
+    handleAddPlayer,
   } = useRoster({
     initialPlayers: initialState.availablePlayers,
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
@@ -2031,6 +2033,19 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
+  // 3.2 roster bridge: the game picker's inline add writes the CLUB roster
+  // (query cache + in-memory roster update inside useRoster) and returns the
+  // saved player so GameSettingsModal can select them into the game. The
+  // game blob's own availablePlayers snapshot follows on the next autosave -
+  // the snapshot's per-game roster IS this live club roster state.
+  const handleAddPlayerToClubRoster = useCallback(
+    async (name: string): Promise<Player | null> => {
+      const saved = await handleAddPlayer({ name });
+      return saved ?? null;
+    },
+    [handleAddPlayer],
+  );
+
   // handleStartNewGameWithSetup + handleCancelNewGameSetup LIFTED to
   // useNewGameSetupController (L.3b). Confirming the setup persists the game
   // as current and the page freshly mounts the match view (enterMatch), so
@@ -2321,6 +2336,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleSetShootoutKicks,
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
+      handleAddPlayerToClubRoster,
       handleReapplyPlan,
       handleSetGamePersonnel,
       handleSavePlayerAssessment,

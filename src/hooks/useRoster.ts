@@ -35,7 +35,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
 
   const handleAddPlayer = useCallback(async (
     data: Omit<Player, 'id' | 'isGoalie' | 'receivedFairPlayCard'>,
-  ) => {
+  ): Promise<Player | null> => {
     const temp: Player = {
       id: `temp-${Date.now()}`,
       isGoalie: false,
@@ -66,6 +66,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         });
         // Also invalidate to ensure background sync
         await queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] });
+        // Returned so the 3.2 roster bridge can select the new player in the
+        // game right after the club write.
+        return saved;
       } else {
         setAvailablePlayers(rollbackSnapshot);
         setRosterError('Failed to add player');
@@ -77,6 +80,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
     } finally {
       setIsRosterUpdating(false);
     }
+    return null;
   }, [userId, queryClient]);
 
   const handleUpdatePlayer = useCallback(async (

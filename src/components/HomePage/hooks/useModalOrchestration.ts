@@ -109,6 +109,8 @@ export interface ModalHandlers {
   handleSetShootoutKicks: (kicks: ShootoutKick[]) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
+  /** 3.2 roster bridge: club write from the game picker; returns the saved player. */
+  handleAddPlayerToClubRoster: (name: string) => Promise<import('@/types').Player | null>;
   handleReapplyPlan: () => void | Promise<void>;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
   handleSavePlayerAssessment: (playerId: string, assessment: Partial<import('@/types').PlayerAssessment>) => void;
@@ -216,6 +218,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetShootoutKicks,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
+    handleAddPlayerToClubRoster,
     handleReapplyPlan,
     handleSetGamePersonnel,
     handleSavePlayerAssessment,
@@ -418,6 +421,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
+      addPlayerToClubRoster: handleAddPlayerToClubRoster,
       reapplyPlan: handleReapplyPlan,
       setGamePersonnel: handleSetGamePersonnel,
       closePlayerAssessmentModal,

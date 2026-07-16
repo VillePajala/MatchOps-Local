@@ -82,6 +82,12 @@ export interface GameSettingsModalProps {
   selectedPlayerIds: string[];
   selectedPersonnelIds: string[];
   onSelectedPlayersChange: (playerIds: string[]) => void;
+  /**
+   * Roster bridge (3.2): write a new player to the CLUB roster from the
+   * game's picker. On success the modal selects them into the game too -
+   * the added player lands in the club roster AND the game selection.
+   */
+  onAddPlayerToRoster?: (name: string) => Promise<Player | null>;
   /** Whether this game was created from a plan and can still be re-applied (unplayed). */
   canReapplyPlan?: boolean;
   /** Re-apply the source plan to this game (overwrites the lineup + planned subs). */
@@ -228,6 +234,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   selectedPlayerIds,
   selectedPersonnelIds,
   onSelectedPlayersChange,
+  onAddPlayerToRoster,
   canReapplyPlan = false,
   onReapplyPlan,
   onSelectedPersonnelChange,
@@ -1676,6 +1683,26 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 selectAllText={t('gameSettingsModal.selectAll', 'Select All')}
                 noPlayersText={t('gameSettingsModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
                 disabled={isProcessing}
+                onAddPlayer={
+                  onAddPlayerToRoster
+                    ? async (name: string) => {
+                        /* Roster bridge (3.2): club write first; on success
+                           select the new player into THIS game through the
+                           same persist path the checkboxes use. */
+                        const saved = await onAddPlayerToRoster(name);
+                        if (!saved) return false;
+                        const nextIds = [...selectedPlayerIds, saved.id];
+                        onSelectedPlayersChange(nextIds);
+                        mutateGameDetails(
+                          { selectedPlayerIds: nextIds, gameDate },
+                          { source: 'stateSync', expectedState: { selectedPlayerIds: nextIds, gameDate } }
+                        );
+                        return true;
+                      }
+                    : undefined
+                }
+                addPlayerLabel={t('gameSettingsModal.addToClubRoster', 'Add to club roster')}
+                addPlayerPlaceholder={t('gameSettingsModal.addToClubRosterPlaceholder', 'New player name')}
               />
 
               {/* Personnel Selection Section */}

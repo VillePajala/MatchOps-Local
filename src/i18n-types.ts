@@ -704,6 +704,8 @@ export type TranslationKey =
   | 'gameResult.overtime'
   | 'gameResult.penalties'
   | 'gameSettingsModal.addButton'
+  | 'gameSettingsModal.addToClubRoster'
+  | 'gameSettingsModal.addToClubRosterPlaceholder'
   | 'gameSettingsModal.ageGroupLabel'
   | 'gameSettingsModal.away'
   | 'gameSettingsModal.cancelCreate'
