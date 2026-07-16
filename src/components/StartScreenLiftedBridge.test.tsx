@@ -26,6 +26,7 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onNewGame}>tap-new</button>
       <button onClick={props.onOpenPlanner}>tap-planner</button>
       <button onClick={props.onViewStats}>tap-stats</button>
+      <button onClick={props.onViewPlayerStats}>tap-player-stats</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
     </div>
   ),
@@ -67,6 +68,7 @@ describe('StartScreenLiftedBridge (L.2)', () => {
     ['tap-new', 'newGame'],
     ['tap-planner', 'planner'],
     ['tap-stats', 'clubStats(season)'],
+    ['tap-player-stats', 'clubStats(player)'],
     ['tap-roster', 'roster'],
     ['tap-teams', 'teams'],
     ['tap-personnel', 'personnel'],

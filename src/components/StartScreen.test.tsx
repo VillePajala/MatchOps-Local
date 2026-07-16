@@ -191,6 +191,34 @@ describe('StartScreen', () => {
     expect(onOpenAccount).toHaveBeenCalledTimes(1);
   });
 
+  it('cloud mode: the gear sheet has a DIRECT sign out (3.1b - no longer buried in Settings)', () => {
+    const { useAuth } = jest.requireMock('@/contexts/AuthProvider');
+    useAuth.mockReturnValue({
+      user: { email: 'test@example.com' },
+      mode: 'cloud',
+      signOut: mockSignOut,
+    });
+    const onSignOut = jest.fn();
+    render(
+      <StartScreen
+        onLoadGame={jest.fn()}
+        onResumeGame={jest.fn()}
+        onGetStarted={jest.fn()}
+        onViewStats={jest.fn()}
+        onOpenSettings={jest.fn()}
+        onSignOut={onSignOut}
+        canResume={false}
+        hasSavedGames={true}
+        isFirstTimeUser={false}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(onSignOut).toHaveBeenCalledTimes(1);
+    // The sheet closes after routing.
+    expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
+  });
+
   it('does not show Sign Out footer when in local mode', () => {
     const { useAuth } = jest.requireMock('@/contexts/AuthProvider');
     useAuth.mockReturnValue({
@@ -346,19 +374,30 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(screen.getByRole('button', { name: 'New Game' })).toBeInTheDocument();
   });
 
-  it('Seasons and Stats tabs stay one-tap openers for their single-purpose scopes', () => {
-    const props = shellProps();
+  it('Seasons and Stats are REAL panels: tabs switch, the rows open the surfaces (3.1b)', () => {
+    const props = { ...shellProps(), onViewPlayerStats: jest.fn() };
     render(<StartScreen {...props} />);
+    // Competitions tab -> panel with its entry row; the tab itself opens nothing.
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    expect(props.onManageSeasons).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Seasons & Tournaments' }));
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
+    // Stats tab -> panel with the two aggregate rows.
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(props.onViewStats).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Team stats' }));
     expect(props.onViewStats).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Player stats' }));
+    expect(props.onViewPlayerStats).toHaveBeenCalledTimes(1);
   });
 
   it('disables the Stats tab without saved games; the gear opens the app sheet', () => {
     const props = { ...shellProps(), hasSavedGames: false, onOpenBackup: jest.fn(), onOpenRules: jest.fn() };
     render(<StartScreen {...props} />);
-    expect(screen.getByRole('tab', { name: 'Stats' })).toBeDisabled();
+    // 3.1b: the tab always switches; the PANEL ROWS are what disable
+    // without saved games (never silently dead-clickable).
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByRole('button', { name: 'Team stats' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     // The sheet holds the whole device/account bucket.
     const sheet = screen.getByRole('dialog', { name: 'App & account' });
@@ -402,11 +441,12 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(screen.getByRole('button', { name: 'Teams' })).toBeDisabled(); // onManageTeams not passed
   });
 
-  it('an unwired Seasons tab renders DISABLED - never silently dead-clickable', () => {
-    // (The Team tab now switches a local panel, so it needs no handler.)
+  it('an unwired Seasons panel renders its row DISABLED - never silently dead-clickable', () => {
+    // (All four tabs switch local panels now; the ROW needs the handler.)
     const props = { ...shellProps(), onManageSeasons: undefined };
     render(<StartScreen {...props} />);
-    expect(screen.getByRole('tab', { name: 'Competitions' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    expect(screen.getByRole('button', { name: 'Seasons & Tournaments' })).toBeDisabled();
   });
 
   it('exactly one Settings control exists after the footer link folded into the gear', () => {

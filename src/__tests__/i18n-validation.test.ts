@@ -375,7 +375,10 @@ describe('Translation File Validation', () => {
       //     menu's "Koti" entry for screen readers)
       // -2: controlBar.menu.teamAndApp/.settings - the section headings of
       //     the menu groups the 3.1 shrink deleted (review round 2 catch)
-      expect(enKeys.length).toBe(2819);
+      // +3: startScreen.rowCompetitions/rowPlayerStats/gearSignOut (3.1b Home
+      //     polish: Kaudet & Tilastot become REAL panels with entry rows;
+      //     direct sign out in the gear sheet)
+      expect(enKeys.length).toBe(2822);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -469,7 +472,10 @@ describe('Translation File Validation', () => {
       //     menu's "Koti" entry for screen readers)
       // -2: controlBar.menu.teamAndApp/.settings - the section headings of
       //     the menu groups the 3.1 shrink deleted (review round 2 catch)
-      expect(fiKeys.length).toBe(2819);
+      // +3: startScreen.rowCompetitions/rowPlayerStats/gearSignOut (3.1b Home
+      //     polish: Kaudet & Tilastot become REAL panels with entry rows;
+      //     direct sign out in the gear sheet)
+      expect(fiKeys.length).toBe(2822);
     });
   });
 });

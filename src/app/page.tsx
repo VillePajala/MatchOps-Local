@@ -101,7 +101,7 @@ export default function Home() {
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
@@ -1354,6 +1354,7 @@ export default function Home() {
               onEnableCloudSync={handleEnableCloudSync}
               onSignInExistingSubscriber={handleSignInExistingSubscriber}
               onShowWelcome={() => setShowWelcome(true)}
+              onSignOut={signOut}
               isCloudAvailable={isCloudAvailable()}
             />
           </ErrorBoundary>
