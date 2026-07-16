@@ -132,9 +132,7 @@
     "menu": {
       "title": "Menu",
       "thisMatch": "This match",
-      "teamAndApp": "Team & app",
-      "resources": "Resources",
-      "settings": "Settings"
+      "resources": "Resources"
     },
     "saveGame": "Quick Save",
     "gameSettingsButton": "Match details",

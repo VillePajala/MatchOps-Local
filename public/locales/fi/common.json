@@ -132,9 +132,7 @@
     "menu": {
       "title": "Valikko",
       "thisMatch": "Tämä ottelu",
-      "teamAndApp": "Joukkue & sovellus",
-      "resources": "Resurssit",
-      "settings": "Asetukset"
+      "resources": "Resurssit"
     },
     "saveGame": "Pikatallennus",
     "gameSettingsButton": "Ottelun tiedot",

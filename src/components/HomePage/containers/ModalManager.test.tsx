@@ -1,8 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from './ModalManager';
 import { useModalHardwareBack, __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
-import { renderHook, act } from '@testing-library/react';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
@@ -159,8 +158,19 @@ describe('ModalManager', () => {
     },
   });
 
+  let backSpy: jest.SpyInstance;
+
   beforeEach(() => {
     queryClient.clear();
+    __resetModalHardwareBackForTests();
+    // No-op implementation: jsdom's real back() fires an ASYNC popstate that
+    // races the next test's assertions (a tracked modal unmounting in RTL
+    // cleanup calls it) - same guard as ClubModalsHost.test.tsx.
+    backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    backSpy.mockRestore();
   });
 
   const renderWithProvider = (component: React.ReactElement) => {
@@ -195,7 +205,6 @@ describe('ModalManager', () => {
    * @critical
    */
   it('hardware back closes an open match-scope modal INSTEAD of exiting the match', async () => {
-    __resetModalHardwareBackForTests();
     const goHome = jest.fn();
     // Simulate page.tsx's match-level registration (bottom of the stack).
     const { result: _pageEntry } = renderHook(() => useModalHardwareBack(true, goHome));

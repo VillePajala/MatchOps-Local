@@ -411,8 +411,6 @@ export type TranslationKey =
   | 'controlBar.logGoal'
   | 'controlBar.marketingSite'
   | 'controlBar.menu.resources'
-  | 'controlBar.menu.settings'
-  | 'controlBar.menu.teamAndApp'
   | 'controlBar.menu.thisMatch'
   | 'controlBar.menu.title'
   | 'controlBar.noPlayersTitle'

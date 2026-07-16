@@ -373,7 +373,9 @@ describe('Translation File Validation', () => {
       //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
       //     house icon's own accessible name - distinguishes it from the
       //     menu's "Koti" entry for screen readers)
-      expect(enKeys.length).toBe(2821);
+      // -2: controlBar.menu.teamAndApp/.settings - the section headings of
+      //     the menu groups the 3.1 shrink deleted (review round 2 catch)
+      expect(enKeys.length).toBe(2819);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -465,7 +467,9 @@ describe('Translation File Validation', () => {
       //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
       //     house icon's own accessible name - distinguishes it from the
       //     menu's "Koti" entry for screen readers)
-      expect(fiKeys.length).toBe(2821);
+      // -2: controlBar.menu.teamAndApp/.settings - the section headings of
+      //     the menu groups the 3.1 shrink deleted (review round 2 catch)
+      expect(fiKeys.length).toBe(2819);
     });
   });
 });
