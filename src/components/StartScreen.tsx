@@ -8,6 +8,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
+import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -17,6 +18,10 @@ interface StartScreenProps {
    *  to onGetStarted (the old enter-the-workspace behavior) when absent. */
   onNewGame?: () => void;
   onViewStats: () => void;
+  /** Stats panel: player stats (club-stats surface, player tab). */
+  onViewPlayerStats?: () => void;
+  /** Gear sheet: direct sign out (cloud mode only). */
+  onSignOut?: () => void;
   onOpenSettings: () => void;
   /** Home tab: master roster / teams / personnel (opens the existing modal). */
   onManageRoster?: () => void;
@@ -56,6 +61,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onGetStarted,
   onNewGame,
   onViewStats,
+  onViewPlayerStats,
+  onSignOut,
   onOpenSettings,
   onManageRoster,
   onManageSeasons,
@@ -86,7 +93,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
   // tabs - Games (front page) and Team (club entry rows) switch panels here;
   // Seasons/Stats stay one-tap openers for their single-purpose scopes.
-  const [activeTab, setActiveTab] = useState<'games' | 'team'>('games');
+  const [activeTab, setActiveTab] = useState<'games' | 'team' | 'seasons' | 'stats'>('games');
   // Gear sheet (restructure PR 1.4): the app/account bucket. Everything
   // device- or account-scoped lives here, off the front page.
   const [showGearSheet, setShowGearSheet] = useState(false);
@@ -256,16 +263,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 >
                   {t('startScreen.tabTeam', 'Team')}
                 </button>
+                {/* 3.1b (owner feedback 2026-07-17): Kaudet & Tilastot are
+                    REAL tabs now - same panel-switching behavior as the
+                    first two; their panels hold the entry rows. A tab that
+                    popped a modal directly broke the tab contract. */}
                 <button
                   type="button"
                   role="tab"
-                  aria-selected="false"
-                  onClick={onManageSeasons}
-                  disabled={!onManageSeasons}
+                  aria-selected={activeTab === 'seasons'}
+                  onClick={() => setActiveTab('seasons')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    onManageSeasons
-                      ? 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
-                      : 'text-slate-600 cursor-not-allowed'
+                    activeTab === 'seasons'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabSeasons', 'Competitions')}
@@ -273,13 +283,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <button
                   type="button"
                   role="tab"
-                  aria-selected="false"
-                  onClick={hasSavedGames ? onViewStats : undefined}
-                  disabled={!hasSavedGames}
+                  aria-selected={activeTab === 'stats'}
+                  onClick={() => setActiveTab('stats')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    hasSavedGames
-                      ? 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
-                      : 'text-slate-600 cursor-not-allowed'
+                    activeTab === 'stats'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
                   {t('startScreen.tabStats', 'Stats')}
@@ -365,15 +374,75 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
                 {/* Training CONTENT scope: the coaching materials link lives
-                    with the team, not under the gear. */}
+                    with the team, not under the gear. Solid row like its
+                    siblings (3.1b - bare link text looked out of place);
+                    the corner icon is honest about leaving the app. */}
                 <a
                   href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center text-sm text-slate-400 hover:text-amber-400 transition-colors pt-1"
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                 >
-                  {t('controlBar.coachingMaterials', 'Coaching Materials')} →
+                  <span className="text-sm font-semibold text-white">
+                    {t('controlBar.coachingMaterials', 'Coaching Materials')}
+                  </span>
+                  <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
                 </a>
+              </>
+            ) : activeTab === 'seasons' ? (
+              /* Seasons panel (3.1b): entry rows - room to grow glanceable
+                 season content later. */
+              <button
+                type="button"
+                onClick={onManageSeasons}
+                disabled={!onManageSeasons}
+                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                  onManageSeasons
+                    ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                    : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <span className="text-sm font-semibold text-white">
+                  {t('startScreen.rowCompetitions', 'Seasons & Tournaments')}
+                </span>
+                <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+              </button>
+            ) : activeTab === 'stats' ? (
+              /* Stats panel (3.1b): the aggregate surfaces, disabled until
+                 there is a game to aggregate - never silently dead-clickable. */
+              <>
+                <button
+                  type="button"
+                  onClick={onViewStats}
+                  disabled={!hasSavedGames}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    hasSavedGames
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('controlBar.teamStats', 'Team stats')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+                {onViewPlayerStats && (
+                  <button
+                    type="button"
+                    onClick={onViewPlayerStats}
+                    disabled={!hasSavedGames}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      hasSavedGames
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowPlayerStats', 'Player stats')}
+                    </span>
+                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                  </button>
+                )}
               </>
             ) : (
               /* Returning user: the Pelit front page (two-level restructure
@@ -424,15 +493,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </button>
                 )}
                 {/* Taso is a game-day workflow tool (submit the lineup before,
-                    report the result after) - it earns a games-tab link, not a
-                    burial under the gear. */}
+                    report the result after) - it earns a games-tab row, not a
+                    burial under the gear. Solid row like its siblings (3.1b). */}
                 <a
                   href="https://taso.palloliitto.fi"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center text-sm text-slate-400 hover:text-amber-400 transition-colors pt-1"
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                 >
-                  {t('startScreen.tasoLink', 'Taso - lineups & results')} →
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.tasoLink', 'Taso - lineups & results')}
+                  </span>
+                  <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
                 </a>
               </>
             )}
@@ -500,6 +572,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
               <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="block w-full px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
                 {t('controlBar.userGuide', 'User Guide')}
               </a>
+              {/* Direct sign out (3.1b, owner decision 2026-07-17): account-
+                  scope action, so it lives in the gear - no longer buried
+                  behind Settings -> Account. Cloud mode only. */}
+              {isCloudMode && onSignOut && (
+                <button
+                  type="button"
+                  onClick={() => { setShowGearSheet(false); onSignOut(); }}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                >
+                  {t('startScreen.gearSignOut', 'Sign out')}
+                </button>
+              )}
               <div className="pt-2 mt-1 border-t border-slate-700/60 px-3 text-xs">
                 <a href="https://www.match-ops.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">match-ops.com</a>
               </div>

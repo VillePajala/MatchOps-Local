@@ -1109,7 +1109,10 @@
     "gearBackup": "Backup & Restore",
     "gearAccount": "Cloud account",
     "gearRules": "Rules",
-    "tasoLink": "Taso - lineups & results"
+    "tasoLink": "Taso - lineups & results",
+    "rowCompetitions": "Seasons & Tournaments",
+    "rowPlayerStats": "Player stats",
+    "gearSignOut": "Sign out"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

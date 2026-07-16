@@ -122,6 +122,7 @@ jest.mock('@/config/backendConfig', () => ({
   getBackendMode: jest.fn(() => 'local'),
   // Issue #336: isCloudAvailable determines auth behavior, not mode
   isCloudAvailable: jest.fn(() => true),
+  clearMigrationCompleted: jest.fn(),
 }));
 
 jest.mock('@/utils/logger', () => ({
@@ -321,6 +322,38 @@ describe('AuthProvider', () => {
       expect(screen.getByTestId('authenticated')).toHaveTextContent('yes');
       expect(screen.getByTestId('mode')).toHaveTextContent('cloud');
       expect(screen.getByTestId('user-id')).toHaveTextContent('cloud-user-123');
+    });
+
+    it('signOut clears the migration-completed flag for EVERY caller (3.1b review fix)', async () => {
+      // The flag gates the one-time post-login cloud-hydration check; a
+      // sign-out that leaves it set means silently stale local data on the
+      // next sign-in. Centralized in AuthProvider.signOut so the gear-sheet
+      // button, Settings -> Account, and future callers all get it.
+      function SignOutTester() {
+        const { isLoading, signOut } = useAuth();
+        return (
+          <div>
+            <span data-testid="loading">{isLoading ? 'loading' : 'ready'}</span>
+            <button data-testid="sign-out-btn" onClick={() => { void signOut(); }}>Sign Out</button>
+          </div>
+        );
+      }
+      render(
+        <AuthProvider>
+          <SignOutTester />
+        </AuthProvider>
+      );
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('ready');
+      });
+
+      const backendConfig = jest.requireMock('@/config/backendConfig');
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('sign-out-btn'));
+      });
+      await waitFor(() => {
+        expect(backendConfig.clearMigrationCompleted).toHaveBeenCalledWith('cloud-user-123');
+      });
     });
 
     it('closes the DataStore BEFORE deleting local databases on account deletion (erasure not blocked)', async () => {

@@ -22,7 +22,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getAuthService, getDataStore, isDataStoreInitialized, closeDataStore } from '@/datastore/factory';
-import { getBackendMode, isCloudAvailable } from '@/config/backendConfig';
+import { getBackendMode, isCloudAvailable, clearMigrationCompleted } from '@/config/backendConfig';
 import { POLICY_VERSION } from '@/config/constants';
 import { NetworkError } from '@/interfaces/DataStoreErrors';
 import type { User, Session, AuthState } from '@/interfaces/AuthTypes';
@@ -834,6 +834,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Mark intentional sign-out BEFORE calling authService.signOut() so the
     // onAuthStateChange handler (trigger 3) won't re-enter grace period.
     isIntentionalSignOutRef.current = true;
+
+    // Clear the migration-completed flag BEFORE signing out (while the user
+    // id is still available) so the next sign-in re-checks cloud data.
+    // Centralized here so EVERY sign-out entry point (gear sheet, Settings ->
+    // Account, future callers) gets it - the flag gates the one-time
+    // post-login cloud-hydration check; a stale flag means silently stale
+    // local data after signing back in.
+    if (user?.id) {
+      clearMigrationCompleted(user.id);
+    }
 
     try {
       await authService.signOut();
