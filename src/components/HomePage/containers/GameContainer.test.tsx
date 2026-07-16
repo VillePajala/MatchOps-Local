@@ -3,7 +3,7 @@
  * @edge-case
  * Validates GameContainer rendering paths and VM parity before extraction.
  */
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { GameContainer } from './GameContainer';
 import { TestFixtures } from '../../../../tests/fixtures';
@@ -37,13 +37,6 @@ jest.mock('@/components/ControlBar', () => ({
   }),
 }));
 
-// Planner LIFTED to ClubModalsHost (L.3c): GameContainer only flips the
-// shared provider flag from the ControlBar entry.
-const setIsPlaytimePlannerOpen = jest.fn();
-jest.mock('@/contexts/ModalProvider', () => ({
-  useModalContext: () => ({ setIsPlaytimePlannerOpen }),
-}));
-
 jest.mock('./FieldContainer', () => ({
   __esModule: true,
   FieldContainer: jest.fn((props) => {
@@ -66,11 +59,16 @@ describe('GameContainer', () => {
     });
   });
 
-  it("ControlBar's planner entry opens the HOST-level planner via the shared flag (L.3c)", () => {
+  it('the top-bar house icon is the direct match->Home exit (3.1)', () => {
+    const onGoHome = jest.fn();
+    render(<GameContainer {...createGameContainerProps()} onGoHome={onGoHome} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    expect(onGoHome).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders no house icon without an onGoHome handler', () => {
     render(<GameContainer {...createGameContainerProps()} />);
-    const controlBarProps = ControlBarMock.mock.calls[0][0];
-    controlBarProps.onOpenPlanner();
-    expect(setIsPlaytimePlannerOpen).toHaveBeenCalledWith(true);
+    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument();
   });
 
   it('renders even when no game session state (renders shell)', () => {

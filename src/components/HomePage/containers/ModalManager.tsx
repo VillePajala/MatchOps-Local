@@ -37,8 +37,6 @@ interface ModalManagerState {
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
-  showSaveBeforeNewConfirm: boolean;
-  showStartNewConfirm: boolean;
   showResetFieldConfirm: boolean;
 }
 
@@ -57,7 +55,6 @@ interface ModalManagerData {
   playerAssessments: Record<string, PlayerAssessment>;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
-  gameIdentifierForSave: string;
   isPlayed: boolean;
   updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
 }
@@ -112,10 +109,6 @@ interface ModalManagerHandlers {
   setIsTeamReassignModalOpen: (open: boolean) => void;
   confirmNoPlayers: () => void;
   setShowNoPlayersConfirm: (open: boolean) => void;
-  saveBeforeNewConfirmed: () => void;
-  saveBeforeNewCancelled: () => void;
-  setShowStartNewConfirm: (open: boolean) => void;
-  startNewConfirmed: () => void;
   setShowResetFieldConfirm: (open: boolean) => void;
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
@@ -353,28 +346,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           variant="primary"
         />
 
-        <ConfirmationModal
-          isOpen={state.showSaveBeforeNewConfirm}
-          title={t('controlBar.saveBeforeNewTitle', 'Save Current Game?')}
-          message={t('controlBar.saveBeforeNewPrompt', `Save changes to the current game "${data.gameIdentifierForSave}" before starting a new one?`, { gameName: data.gameIdentifierForSave })}
-          warningMessage={t('controlBar.saveBeforeNewInfo', 'Click "Save & Continue" to save your progress, or "Discard" to start fresh without saving.')}
-          onConfirm={handlers.saveBeforeNewConfirmed}
-          onCancel={handlers.saveBeforeNewCancelled}
-          confirmLabel={t('controlBar.saveAndContinue', 'Save & Continue')}
-          cancelLabel={t('controlBar.discard', 'Discard')}
-          variant="primary"
-        />
-
-        <ConfirmationModal
-          isOpen={state.showStartNewConfirm}
-          title={t('controlBar.startNewMatchTitle', 'Start New Match?')}
-          message={t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.')}
-          warningMessage={t('controlBar.startNewMatchWarning', 'Make sure you have saved your current game if you want to keep it.')}
-          onConfirm={handlers.startNewConfirmed}
-          onCancel={() => handlers.setShowStartNewConfirm(false)}
-          confirmLabel={t('common.startNew', 'Start New')}
-          variant="danger"
-        />
+        {/* Save-before-new / start-new confirms DELETED (3.1) - their only
+            entry (the menu's New Game item) left with the menu shrink. */}
 
         <ConfirmationModal
           isOpen={state.showResetFieldConfirm}

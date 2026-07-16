@@ -25,7 +25,6 @@ import { useGameSessionCoordination } from './useGameSessionCoordination';
 import { useGamePersistence } from './useGamePersistence';
 import { useModalOrchestration } from './useModalOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
-import { useAuth } from '@/contexts/AuthProvider';
 import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/storage';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -173,9 +172,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // --- Get showToast early (needed by Field Coordination) ---
   const { showToast } = useToast();
 
-  // --- Auth (for cloud mode sign out) ---
-  const { signOut, mode: authMode } = useAuth();
-
   // --- User-Scoped Storage ---
   const { userId } = useDataStore();
 
@@ -184,7 +180,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     availablePlayers,
     setAvailablePlayers,
     highlightRosterButton,
-    setHighlightRosterButton,
+    // setHighlightRosterButton: both writers retired (post-create highlight
+    // in L.3b, the menu roster entry's clear in 3.1).
     playersForCurrentGame,
     // handleAdd/Update/RemovePlayer + isRosterUpdating/rosterError/setRosterError
     // now used only by the lifted roster modal (useRosterSettingsController, L.2);
@@ -469,8 +466,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     isSettingsModalOpen,
     setIsSettingsModalOpen,
     openSettingsToTab,
-    // L.0b: Instructions open-state lives in ModalProvider (modal renders in ClubModalsHost)
-    setIsInstructionsModalOpen,
     // L.1: Personnel open-state lives in ModalProvider (modal renders in ClubModalsHost)
     setIsPersonnelManagerOpen,
     // L.2: TeamManager open-state lives in ModalProvider (modal renders in ClubModalsHost)
@@ -703,13 +698,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Confirmation modal states - Passed to useModalOrchestration via ui object
   // (showHardResetConfirm LIFTED to useAppSettingsController, L.0b)
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
-  const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
   // Re-entry guard for the async "Save & Continue" handler. The dialog stays open
   // during the save (it only closes on success - see the save-loss fix), so without
   // this a mobile double-tap would start two saves and create a duplicate game.
-  const saveBeforeNewInFlightRef = useRef(false);
-  const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
-  const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
+  // 3.1: the save-before-new / start-new confirm chain is DELETED with its
+  // only entry (the menu's New Game item). Creation lives on Home; the
+  // scratch workspace is autosaved, so nothing needs a leave-prompt.
   const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
   const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
@@ -1433,14 +1427,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const handleSetNumberOfPeriods = sessionCoordination.handlers.setNumberOfPeriods;
   const handleSetPeriodDuration = sessionCoordination.handlers.setPeriodDuration;
 
-  const handleToggleTrainingResources = useCallback(() => {
-    setIsTrainingResourcesOpen(prev => !prev);
-  }, [setIsTrainingResourcesOpen]);
-
-  const handleToggleRulesDirectory = useCallback(() => {
-    setIsRulesDirectoryOpen(prev => !prev);
-  }, [setIsRulesDirectoryOpen]);
-
   // handleShowAppGuide, hard reset flow, resync-from-cloud and factory reset
   // LIFTED to useAppSettingsController (L.0b) - they render/act from ClubModalsHost.
 
@@ -1487,11 +1473,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       showToast(t('export.exportGameFailed'), 'error');
     }
   }, [savedGames, showToast, t, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments]);
-
-  const openRosterModal = useCallback(() => {
-    openRosterViaReducer();
-    setHighlightRosterButton(false);
-  }, [openRosterViaReducer, setHighlightRosterButton]);
 
   const openPlayerAssessmentModal = useCallback(() => setIsPlayerAssessmentModalOpen(true), [setIsPlayerAssessmentModalOpen]);
 
@@ -2058,68 +2039,15 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // retired with the render.
 
   // --- Start New Game Handler (Uses Quick Save) ---
-  const handleStartNewGame = useCallback(() => {
-    // Check if roster is empty first
-    if (availablePlayers.length === 0) {
-      setShowNoPlayersConfirm(true);
-      return; // Exit early
-    }
+  // handleStartNewGame + the save-before-new/start-new confirm handlers
+  // DELETED (3.1) - see the note at the former state block.
 
-    // Only prompt to save for unsaved scratch games (DEFAULT_GAME_ID)
-    // Saved games are auto-saved, so no prompt needed
-    if (currentGameId === DEFAULT_GAME_ID) {
-      setGameIdentifierForSave(t('controlBar.unsavedGame', 'Unsaved game'));
-      setShowSaveBeforeNewConfirm(true);
-    } else {
-      // For saved games (auto-saved), go directly to new game setup modal
-      setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Prefill with last game's selection
-      openNewGameViaReducer();
-    }
-  }, [currentGameId, availablePlayers, t, openNewGameViaReducer, gameSessionState.selectedPlayerIds, setPlayerIdsForNewGame]);
-
-  // Handler for "No Players" confirmation
+  // Handler for "No Players" confirmation (initialAction 'newGame' guard)
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);
     openRosterViaReducer();
   }, [openRosterViaReducer]);
 
-  // Handler for "Save Before New" confirmation - user chooses to save
-  const handleSaveBeforeNewConfirmed = useCallback(async () => {
-    // Ignore re-entrant taps while a save is already in flight (mobile double-tap).
-    if (saveBeforeNewInFlightRef.current) {
-      return;
-    }
-    saveBeforeNewInFlightRef.current = true;
-    try {
-      const saved = await persistence.handleQuickSaveGame(); // Await save to ensure it completes
-      // If the save did NOT succeed, keep the confirmation open (the error toast is
-      // already shown by handleQuickSaveGame) so the user can retry or cancel. Do NOT
-      // proceed to new-game setup, which would discard the just-played (unsaved) game.
-      if (!saved) {
-        return;
-      }
-      setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
-      setShowSaveBeforeNewConfirm(false);
-      openNewGameViaReducer(); // Open setup modal after save completes
-    } finally {
-      // Release the guard either way so a failed save can be retried.
-      saveBeforeNewInFlightRef.current = false;
-    }
-  }, [persistence, gameSessionState.selectedPlayerIds, openNewGameViaReducer, setPlayerIdsForNewGame]);
-
-  // Handler for "Save Before New" cancellation - user chooses to discard
-  const handleSaveBeforeNewCancelled = useCallback(() => {
-    setShowSaveBeforeNewConfirm(false);
-    // Show the "start new" confirmation after discarding
-    setShowStartNewConfirm(true);
-  }, []);
-
-  // Handler for "Start New" confirmation
-  const handleStartNewConfirmed = useCallback(() => {
-    setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);
-    setShowStartNewConfirm(false);
-    openNewGameViaReducer(); // Open the setup modal
-  }, [openNewGameViaReducer, gameSessionState.selectedPlayerIds, setPlayerIdsForNewGame]);
 
   if (debug.enabled('home')) {
     logger.log('[Home Render] highlightRosterButton:', highlightRosterButton);
@@ -2264,7 +2192,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenSeasonTournamentModal: reducerDrivenModals.seasonTournament.open,
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
-    onOpenRulesModal: handleToggleRulesDirectory,
+    onOpenRulesModal: () => setIsRulesDirectoryOpen(true),
     onTeamNameChange: handleTeamNameChange,
     onOpponentNameChange: handleOpponentNameChange,
     onTogglePositionLabels: handleSetShowPositionLabels,
@@ -2298,29 +2226,17 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onAddOpponentDisc: () => fieldCoordination.handleAddTacticalDisc('opponent'),
     isDrawingEnabled: fieldCoordination.isDrawingEnabled,
     onToggleDrawingMode: fieldCoordination.handleToggleDrawingMode,
-    onToggleTrainingResources: handleToggleTrainingResources,
-    onToggleRulesDirectory: handleToggleRulesDirectory,
+    // 3.1 menu shrink: MATCH scope only (see the reachability table in
+    // two-level-app-structure.md SS2) - the club/app entries left the menu.
     onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev),
-    // Two-level restructure PR 0.2: "Team stats" lands on the aggregate side
-    // (season tab) instead of the current game.
-    // L.4: "Team stats" opens the HOST-level aggregate surface (works over
-    // the match too - the match modal keeps only the current-game side).
+    // L.4: "Joukkueen tilastot ->" opens the HOST-level aggregate surface
+    // (works over the match too - the match modal keeps the current-game side).
     onOpenTeamStats: () => openClubStatsToTab('season'),
-    onOpenLoadGameModal: openLoadGameViaReducer,
-    onStartNewGame: handleStartNewGame,
-    onOpenRosterModal: openRosterModal,
     onQuickSave: persistence.handleQuickSaveGame,
     onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
-    onOpenSeasonTournamentModal: openSeasonTournamentViaReducer,
-    onToggleInstructionsModal: () => setIsInstructionsModalOpen(prev => !prev),
-    onOpenSettingsModal: () => setIsSettingsModalOpen(true),
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
-    onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
-    onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
     onGoToStartScreen,
-    onSignOut: signOut,
-    isCloudMode: authMode === 'cloud',
   };
 
   const isBootstrapping = !initialLoadComplete;
@@ -2340,6 +2256,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     controlBarProps,
     // Planner live-game hooks (flush/refresh) now reach the host-level
     // planner via ModalProvider registration (L.3c), not through props.
+    // 3.1: the top-bar house icon - the direct match->Home exit.
+    onGoHome: onGoToStartScreen,
   };
 
   // --- Modal Orchestration Hook (Step 2.6.6 - FINAL, Step 2.8 - Grouped interface) ---
@@ -2364,17 +2282,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       playerAssessments,
       availableTeams,
       orphanedGameInfo,
-      gameIdentifierForSave,
       isPlayed,
       setIsPlayed,
       updateGameDetailsMutation,
       isTeamReassignModalOpen,
       setIsTeamReassignModalOpen,
-      showSaveBeforeNewConfirm,
       showNoPlayersConfirm,
       setShowNoPlayersConfirm,
-      showStartNewConfirm,
-      setShowStartNewConfirm,
     },
     handlers: {
       handleUpdateGameEvent,
@@ -2415,9 +2329,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       handleDeletePlayerAssessment,
       handleTeamReassignment,
       handleNoPlayersConfirmed,
-      handleSaveBeforeNewConfirmed,
-      handleSaveBeforeNewCancelled,
-      handleStartNewConfirmed,
     },
   });
 

@@ -74,8 +74,6 @@ const createProps = (): ModalManagerProps => ({
     isPlayerAssessmentModalOpen: false,
     isTeamReassignModalOpen: false,
     showNoPlayersConfirm: false,
-    showSaveBeforeNewConfirm: false,
-    showStartNewConfirm: false,
     showResetFieldConfirm: false,
   },
   data: {
@@ -93,7 +91,6 @@ const createProps = (): ModalManagerProps => ({
     playerAssessments: {} as Record<string, PlayerAssessment>,
     availableTeams: [],
     orphanedGameInfo: null,
-    gameIdentifierForSave: '',
     isPlayed: false,
   },
   handlers: {
@@ -146,10 +143,6 @@ const createProps = (): ModalManagerProps => ({
     setIsTeamReassignModalOpen: noop,
     confirmNoPlayers: noop,
     setShowNoPlayersConfirm: noop,
-    saveBeforeNewConfirmed: noop,
-    saveBeforeNewCancelled: noop,
-    setShowStartNewConfirm: noop,
-    startNewConfirmed: noop,
     setShowResetFieldConfirm: noop,
     resetFieldConfirmed: noop,
     openSettingsModal: noop,

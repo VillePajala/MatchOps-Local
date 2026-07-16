@@ -206,17 +206,13 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       playerAssessments: (overrides?.ui?.playerAssessments ?? {}) as Record<string, import('@/types').PlayerAssessment>,
       availableTeams: (overrides?.ui?.availableTeams ?? [createMockTeam()]) as Team[],
       orphanedGameInfo: overrides?.ui?.orphanedGameInfo ?? null,
-      gameIdentifierForSave: overrides?.ui?.gameIdentifierForSave ?? 'game-123',
       isPlayed: overrides?.ui?.isPlayed ?? false,
       setIsPlayed: (overrides?.ui?.setIsPlayed ?? jest.fn()) as (played: boolean) => void,
       updateGameDetailsMutation: (overrides?.ui?.updateGameDetailsMutation ?? { mutate: jest.fn() }) as UseMutationResult<AppState | null, Error, unknown, unknown>,
       isTeamReassignModalOpen: overrides?.ui?.isTeamReassignModalOpen ?? false,
       setIsTeamReassignModalOpen: (overrides?.ui?.setIsTeamReassignModalOpen ?? jest.fn()) as (open: boolean) => void,
-      showSaveBeforeNewConfirm: overrides?.ui?.showSaveBeforeNewConfirm ?? false,
       showNoPlayersConfirm: overrides?.ui?.showNoPlayersConfirm ?? false,
       setShowNoPlayersConfirm: (overrides?.ui?.setShowNoPlayersConfirm ?? jest.fn()) as (open: boolean) => void,
-      showStartNewConfirm: overrides?.ui?.showStartNewConfirm ?? false,
-      setShowStartNewConfirm: (overrides?.ui?.setShowStartNewConfirm ?? jest.fn()) as (open: boolean) => void,
     },
     handlers: {
       handleUpdateGameEvent: overrides?.handlers?.handleUpdateGameEvent ?? jest.fn(),
@@ -246,9 +242,6 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
       handleDeletePlayerAssessment: overrides?.handlers?.handleDeletePlayerAssessment ?? jest.fn(),
       handleTeamReassignment: overrides?.handlers?.handleTeamReassignment ?? jest.fn(),
       handleNoPlayersConfirmed: overrides?.handlers?.handleNoPlayersConfirmed ?? jest.fn(),
-      handleSaveBeforeNewConfirmed: overrides?.handlers?.handleSaveBeforeNewConfirmed ?? jest.fn(),
-      handleSaveBeforeNewCancelled: overrides?.handlers?.handleSaveBeforeNewCancelled ?? jest.fn(),
-      handleStartNewConfirmed: overrides?.handlers?.handleStartNewConfirmed ?? jest.fn(),
       handleTournamentSeriesIdChange: overrides?.handlers?.handleTournamentSeriesIdChange ?? jest.fn(),
       handleTeamIdChange: overrides?.handlers?.handleTeamIdChange ?? jest.fn(),
       handleSetLeagueId: overrides?.handlers?.handleSetLeagueId ?? jest.fn(),
@@ -322,8 +315,6 @@ describe('useModalOrchestration', () => {
 
       // 4 confirmation dialogs (showHardResetConfirm lifted, L.0b)
       expect(state).toHaveProperty('showNoPlayersConfirm');
-      expect(state).toHaveProperty('showSaveBeforeNewConfirm');
-      expect(state).toHaveProperty('showStartNewConfirm');
       expect(state).toHaveProperty('showResetFieldConfirm');
     });
   });
@@ -383,8 +374,6 @@ describe('useModalOrchestration', () => {
 
       expect(state.showNoPlayersConfirm).toBe(false);
       // showHardResetConfirm lifted to useAppSettingsController (L.0b)
-      expect(state.showSaveBeforeNewConfirm).toBe(false);
-      expect(state.showStartNewConfirm).toBe(false);
       expect(state.showResetFieldConfirm).toBe(false);
     });
   });
@@ -541,9 +530,6 @@ describe('useModalOrchestration', () => {
 
       expect(handlers.confirmNoPlayers).toBe(props.handlers.handleNoPlayersConfirmed);
       // confirmHardReset lifted to useAppSettingsController (L.0b)
-      expect(handlers.saveBeforeNewConfirmed).toBe(props.handlers.handleSaveBeforeNewConfirmed);
-      expect(handlers.saveBeforeNewCancelled).toBe(props.handlers.handleSaveBeforeNewCancelled);
-      expect(handlers.startNewConfirmed).toBe(props.handlers.handleStartNewConfirmed);
     });
 
     /**
@@ -560,7 +546,6 @@ describe('useModalOrchestration', () => {
 
       expect(typeof handlers.setShowNoPlayersConfirm).toBe('function');
       // setShowHardResetConfirm lifted to useAppSettingsController (L.0b)
-      expect(typeof handlers.setShowStartNewConfirm).toBe('function');
     });
   });
 

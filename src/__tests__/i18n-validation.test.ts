@@ -364,7 +364,9 @@ describe('Translation File Validation', () => {
       // +1: lineup.benchLabel (sideline strip heading on the planner field)
       // +6: plan-wide field reset (lineup.clearAllGames + confirm
       //     title/message/warning/label + clearedAllGames announcement)
-      expect(enKeys.length).toBe(2836);
+      // +1: controlBar.home (3.1: the one way back to club scope - menu
+      //     "Koti" entry + the top-bar house icon share the label)
+      expect(enKeys.length).toBe(2837);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -447,7 +449,9 @@ describe('Translation File Validation', () => {
       // +1: lineup.benchLabel (sideline strip heading on the planner field)
       // +6: plan-wide field reset (lineup.clearAllGames + confirm
       //     title/message/warning/label + clearedAllGames announcement)
-      expect(fiKeys.length).toBe(2836);
+      // +1: controlBar.home (3.1: the one way back to club scope - menu
+      //     "Koti" entry + the top-bar house icon share the label)
+      expect(fiKeys.length).toBe(2837);
     });
   });
 });

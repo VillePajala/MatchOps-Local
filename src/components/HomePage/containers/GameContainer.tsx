@@ -5,7 +5,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import PlayerBar from '@/components/PlayerBar';
 import GameInfoBar from '@/components/GameInfoBar';
 import ControlBar from '@/components/ControlBar';
-import { useModalContext } from '@/contexts/ModalProvider';
+import { HiOutlineHome } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from './FieldContainer';
@@ -27,6 +27,9 @@ export interface GameContainerProps {
   onOpenTeamReassignModal: () => void;
   fieldProps: FieldContainerProps;
   controlBarProps: ControlBarProps;
+  /** Direct match->Home exit (3.1, owner decision 2026-07-15): the top-bar
+   *  house icon - one always-visible tap back. Autosave makes it safe. */
+  onGoHome?: () => void;
 }
 
 export function GameContainer({
@@ -42,13 +45,9 @@ export function GameContainer({
   onOpenTeamReassignModal: _onOpenTeamReassignModal,
   fieldProps,
   controlBarProps,
+  onGoHome,
 }: GameContainerProps) {
   const { t } = useTranslation();
-  // Playing-Time Planner LIFTED to ClubModalsHost (L.3c): the ControlBar
-  // entry just flips the shared provider flag. Provider state survives the
-  // resume-from-background loading flash, which is what the old
-  // PLANNER_OPEN_KEY sessionStorage mirror existed for.
-  const { setIsPlaytimePlannerOpen } = useModalContext();
 
   return (
     <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
@@ -70,15 +69,30 @@ export function GameContainer({
             onToggleGoalie={onToggleGoalie}
           />
         </ErrorBoundary>
-        <GameInfoBar
-          teamName={gameInfo.teamName}
-          opponentName={gameInfo.opponentName}
-          homeScore={gameInfo.homeScore}
-          awayScore={gameInfo.awayScore}
-          onTeamNameChange={onTeamNameChange}
-          onOpponentNameChange={onOpponentNameChange}
-          homeOrAway={gameInfo.homeOrAway}
-        />
+        <div className="flex items-stretch">
+          {onGoHome && (
+            <button
+              type="button"
+              onClick={onGoHome}
+              className="flex items-center justify-center px-3 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-colors border-r border-slate-700/60"
+              title={t('controlBar.home', 'Home')}
+              aria-label={t('controlBar.home', 'Home')}
+            >
+              <HiOutlineHome className="w-5 h-5" />
+            </button>
+          )}
+          <div className="flex-1 min-w-0">
+            <GameInfoBar
+              teamName={gameInfo.teamName}
+              opponentName={gameInfo.opponentName}
+              homeScore={gameInfo.homeScore}
+              awayScore={gameInfo.awayScore}
+              onTeamNameChange={onTeamNameChange}
+              onOpponentNameChange={onOpponentNameChange}
+              homeOrAway={gameInfo.homeOrAway}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
@@ -87,7 +101,9 @@ export function GameContainer({
       <FieldContainer {...fieldProps} />
 
       <div className={barStyle}>
-        <ControlBar {...controlBarProps} onOpenPlanner={() => setIsPlaytimePlannerOpen(true)} />
+        {/* 3.1: the planner entry left the match menu (reachability: it
+            lives on Home/Pelit - it creates games). */}
+        <ControlBar {...controlBarProps} />
       </div>
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.

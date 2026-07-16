@@ -405,6 +405,7 @@ export type TranslationKey =
   | 'controlBar.hardResetTitle'
   | 'controlBar.hardResetWarning'
   | 'controlBar.help'
+  | 'controlBar.home'
   | 'controlBar.howItWorks'
   | 'controlBar.language'
   | 'controlBar.languageToggle'
