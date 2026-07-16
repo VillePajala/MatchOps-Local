@@ -382,6 +382,9 @@ describe('Translation File Validation', () => {
       //     bridge: inline club-roster add in the game's player picker
       // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
       //     club-write must say why nothing happened)
+      // -2/+2 net 0: firstGameGuide.startNewGameTip/loadGameTip retired (the
+      //     3.1 menu shrink moved those actions Home; final-PR review catch)
+      //     -> assessPlayersTip/backHomeTip describe the menu that exists
       expect(enKeys.length).toBe(2825);
     });
 
@@ -483,6 +486,9 @@ describe('Translation File Validation', () => {
       //     bridge: inline club-roster add in the game's player picker
       // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
       //     club-write must say why nothing happened)
+      // -2/+2 net 0: firstGameGuide.startNewGameTip/loadGameTip retired (the
+      //     3.1 menu shrink moved those actions Home; final-PR review catch)
+      //     -> assessPlayersTip/backHomeTip describe the menu that exists
       expect(fiKeys.length).toBe(2825);
     });
   });

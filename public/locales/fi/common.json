@@ -1037,8 +1037,6 @@
     "gameManagement": "Valikon käyttö",
     "otherFeatures": "Muut ominaisuudet",
     "otherFeaturesNote": "Myös valikosta saatavilla:",
-    "startNewGameTip": "Aloita uusi ottelu",
-    "loadGameTip": "Lataa tallennettu ottelu",
     "quickSaveTip": "Pikatallennus (Ctrl/Cmd+S)",
     "goalLogTip": "Kirjaa maalit ja tapahtumat",
     "rosterManageTip": "Hallitse pelaajaluetteloa",
@@ -1048,7 +1046,9 @@
     "helpTip": "Hae ohje ja käyttöohjeet",
     "appSettingsTip": "Avaa sovelluksen asetukset",
     "gotIt": "Selvä, aloitetaan!",
-    "needHelp": "Lisää ohjeita?"
+    "needHelp": "Lisää ohjeita?",
+    "assessPlayersTip": "Arvioi pelaajat ja katso ottelun tilastot",
+    "backHomeTip": "Palaa kotinäkymään (Koti)"
   },
   "seasonTournamentModal": {
     "confirmDelete": "Haluatko varmasti poistaa {{name}}?",

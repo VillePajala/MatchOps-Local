@@ -1168,8 +1168,6 @@
     "gameManagement": "Using the menu",
     "otherFeatures": "Other Features",
     "otherFeaturesNote": "Also available from the Menu:",
-    "startNewGameTip": "Start a new game",
-    "loadGameTip": "Load a saved game",
     "quickSaveTip": "Quick save your game (Ctrl/Cmd+S)",
     "goalLogTip": "Log goals and events",
     "rosterManageTip": "Manage player list",
@@ -1179,7 +1177,9 @@
     "helpTip": "Get help and instructions",
     "appSettingsTip": "Access app settings",
     "gotIt": "Got it, let's start!",
-    "needHelp": "Need more help?"
+    "needHelp": "Need more help?",
+    "assessPlayersTip": "Assess players and view match stats",
+    "backHomeTip": "Return to the Home screen (Koti)"
   },
   "seasonTournamentModal": {
     "confirmDelete": "Are you sure you want to delete {{name}}?",

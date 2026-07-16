@@ -135,10 +135,12 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
               <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
             </p>
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              {/* 3.1: new/load game moved to Home - the match menu holds
+                  match-scope items + the way back. */}
               <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
-                <li>{t('firstGameGuide.startNewGameTip', 'Start a new game')}</li>
-                <li>{t('firstGameGuide.loadGameTip', 'Load a saved game')}</li>
                 <li>{t('firstGameGuide.gameSettingsTip', 'Edit match details')}</li>
+                <li>{t('firstGameGuide.assessPlayersTip', 'Assess players and view match stats')}</li>
+                <li>{t('firstGameGuide.backHomeTip', 'Return to the Home screen (Koti)')}</li>
               </ul>
             </div>
           </section>

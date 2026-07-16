@@ -22,7 +22,6 @@ const baseProps = {
   noPlayersText: 'No players',
   addPlayerLabel: 'Add to club roster',
   addPlayerPlaceholder: 'New player name',
-  addPlayerErrorText: 'Adding failed.',
 };
 
 describe('PlayerSelectionSection - inline add-form disabled gate (3.2)', () => {
