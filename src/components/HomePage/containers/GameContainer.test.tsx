@@ -3,7 +3,7 @@
  * @edge-case
  * Validates GameContainer rendering paths and VM parity before extraction.
  */
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { GameContainer } from './GameContainer';
 import { TestFixtures } from '../../../../tests/fixtures';
@@ -59,17 +59,8 @@ describe('GameContainer', () => {
     });
   });
 
-  it('the top-bar house icon is the direct match->Home exit (3.1)', () => {
-    const onGoHome = jest.fn();
-    render(<GameContainer {...createGameContainerProps()} onGoHome={onGoHome} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Back to Home' }));
-    expect(onGoHome).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders no house icon without an onGoHome handler', () => {
-    render(<GameContainer {...createGameContainerProps()} />);
-    expect(screen.queryByRole('button', { name: 'Back to Home' })).not.toBeInTheDocument();
-  });
+  // The direct match->Home exit moved to the ControlBar as a first-class
+  // bar button (3.1 follow-up) - covered in ControlBar.menuScope.test.tsx.
 
   it('renders even when no game session state (renders shell)', () => {
     const props = createGameContainerProps();
