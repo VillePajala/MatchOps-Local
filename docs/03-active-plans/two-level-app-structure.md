@@ -34,8 +34,12 @@ polish per owner feedback 2026-07-17: Kaudet & Tilastot became REAL panels
 with entry rows - the tab contract holds for all four tabs; external links
 as solid rows; direct gear-sheet sign out, with the migration-flag clear
 centralized into AuthProvider.signOut) are MERGED to the feature branch.
-ALL L-WAVES + 3.1 + 3.1b COMPLETE. Next: 3.2 (roster bridge), then F
-(final PR to master).
+and 3.2 (PR #680: roster bridge - inline
+"Lisää seuran listaan" in the game's player picker, the ONLY club-write
+from match scope; club write + game selection in one action) are MERGED to
+the feature branch. ALL CODE WAVES COMPLETE (L.0a-L.4, 3.1, 3.1-fu, 3.1b,
+3.2). F in progress: release-notes entry added, docs updated, final PR
+feature/two-level-structure -> master opened for owner review/merge.
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
