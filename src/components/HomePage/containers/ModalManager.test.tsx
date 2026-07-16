@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from './ModalManager';
+import { useModalHardwareBack, __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
+import { renderHook, act } from '@testing-library/react';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
@@ -106,7 +108,7 @@ const createProps = (): ModalManagerProps => ({
     exportPlayerExcel: noop,
     gameLogClick: noop,
     exportOneJson: noop,
-    closeGameSettingsModal: noop,
+    closeGameSettingsModal: jest.fn(),
     teamNameChange: noop,
     opponentNameChange: noop,
     gameDateChange: noop,
@@ -183,5 +185,37 @@ describe('ModalManager', () => {
     renderWithProvider(<ModalManager {...props} />);
 
     expect(await screen.findByTestId('stats-modal')).toBeInTheDocument();
+  });
+
+  /**
+   * 3.1 hardware-back contract: with the page-level "back exits to Home"
+   * entry at the BOTTOM of the stack, an open MATCH-scope modal must
+   * consume the back press - back closes the modal, it never exits the
+   * match while one is open. Regression test for the 3.1 review Bug.
+   * @critical
+   */
+  it('hardware back closes an open match-scope modal INSTEAD of exiting the match', async () => {
+    __resetModalHardwareBackForTests();
+    const goHome = jest.fn();
+    // Simulate page.tsx's match-level registration (bottom of the stack).
+    const { result: _pageEntry } = renderHook(() => useModalHardwareBack(true, goHome));
+
+    const props = createProps();
+    props.state.isGameSettingsModalOpen = true;
+    renderWithProvider(<ModalManager {...props} />);
+
+    // Back press #1: the OPEN modal (registered above the match entry)
+    // closes; the match stays.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(props.handlers.closeGameSettingsModal).toHaveBeenCalledTimes(1);
+    expect(goHome).not.toHaveBeenCalled();
+
+    // Back press #2 (no modal left): NOW back exits to Home.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(goHome).toHaveBeenCalledTimes(1);
   });
 });

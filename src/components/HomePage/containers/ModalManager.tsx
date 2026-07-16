@@ -2,6 +2,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import GoalLogModal from '@/components/GoalLogModal';
 const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
@@ -126,6 +127,19 @@ export interface ModalManagerProps {
 
 export function ModalManager({ state, data, handlers, ratingStyle = 'words', assessmentTemplate = 'balanced' }: ModalManagerProps) {
   const { t } = useTranslation();
+
+  // Hardware-back contract (modal governance, audited in 3.1): MATCH-scope
+  // modals register on the SAME stack as the lifted ones, so they sit above
+  // the page-level match entry ("back exits to Home") and close first -
+  // back must never exit the match while one of these is open.
+  useModalHardwareBack(state.isGoalLogModalOpen, handlers.toggleGoalLogModal);
+  useModalHardwareBack(state.isGameStatsModalOpen, handlers.toggleGameStatsModal);
+  useModalHardwareBack(state.isGameSettingsModalOpen, handlers.closeGameSettingsModal);
+  useModalHardwareBack(state.isPlayerAssessmentModalOpen, handlers.closePlayerAssessmentModal);
+  useModalHardwareBack(state.isTeamReassignModalOpen, () => handlers.setIsTeamReassignModalOpen(false));
+  useModalHardwareBack(state.showNoPlayersConfirm, () => handlers.setShowNoPlayersConfirm(false));
+  useModalHardwareBack(state.showResetFieldConfirm, () => handlers.setShowResetFieldConfirm(false));
+
   return (
     <ModalPortal>
       <>

@@ -75,8 +75,8 @@ export function GameContainer({
               type="button"
               onClick={onGoHome}
               className="flex items-center justify-center px-3 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-colors border-r border-slate-700/60"
-              title={t('controlBar.home', 'Home')}
-              aria-label={t('controlBar.home', 'Home')}
+              title={t('controlBar.backToHome', 'Back to Home')}
+              aria-label={t('controlBar.backToHome', 'Back to Home')}
             >
               <HiOutlineHome className="w-5 h-5" />
             </button>

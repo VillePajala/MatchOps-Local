@@ -62,13 +62,13 @@ describe('GameContainer', () => {
   it('the top-bar house icon is the direct match->Home exit (3.1)', () => {
     const onGoHome = jest.fn();
     render(<GameContainer {...createGameContainerProps()} onGoHome={onGoHome} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Home' }));
     expect(onGoHome).toHaveBeenCalledTimes(1);
   });
 
   it('renders no house icon without an onGoHome handler', () => {
     render(<GameContainer {...createGameContainerProps()} />);
-    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Back to Home' })).not.toBeInTheDocument();
   });
 
   it('renders even when no game session state (renders shell)', () => {

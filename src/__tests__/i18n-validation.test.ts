@@ -366,7 +366,14 @@ describe('Translation File Validation', () => {
       //     title/message/warning/label + clearedAllGames announcement)
       // +1: controlBar.home (3.1: the one way back to club scope - menu
       //     "Koti" entry + the top-bar house icon share the label)
-      expect(enKeys.length).toBe(2837);
+      // -17/+1 net -16: 3.1 menu shrink review - dead controlBar keys of the
+      //     removed menu entries and the deleted save-before-new chain
+      //     (discard, saveAndContinue, saveBeforeNew*, startNewMatch*,
+      //     startScreen, loadGame, newGameButton, manage*, rulesDirectory,
+      //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
+      //     house icon's own accessible name - distinguishes it from the
+      //     menu's "Koti" entry for screen readers)
+      expect(enKeys.length).toBe(2821);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -451,7 +458,14 @@ describe('Translation File Validation', () => {
       //     title/message/warning/label + clearedAllGames announcement)
       // +1: controlBar.home (3.1: the one way back to club scope - menu
       //     "Koti" entry + the top-bar house icon share the label)
-      expect(fiKeys.length).toBe(2837);
+      // -17/+1 net -16: 3.1 menu shrink review - dead controlBar keys of the
+      //     removed menu entries and the deleted save-before-new chain
+      //     (discard, saveAndContinue, saveBeforeNew*, startNewMatch*,
+      //     startScreen, loadGame, newGameButton, manage*, rulesDirectory,
+      //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
+      //     house icon's own accessible name - distinguishes it from the
+      //     menu's "Koti" entry for screen readers)
+      expect(fiKeys.length).toBe(2821);
     });
   });
 });
