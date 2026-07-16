@@ -326,6 +326,24 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View */
           <>
+            {/* Home Button - the direct match->Home exit (3.1 follow-up: a
+                first-class bar button; the GameInfoBar-row icon looked
+                bolted-on - owner feedback 2026-07-17). Leftmost, away from
+                the destructive Reset. Autosave makes leaving always safe.
+                Hidden in the EXPANDED tactics view by design: that is a
+                focused mode with its own Back button, and hardware back
+                still exits to Home from it. */}
+            {onGoToStartScreen && (
+              <button
+                onClick={onGoToStartScreen}
+                className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+                title={t('controlBar.backToHome', 'Back to Home')}
+                aria-label={t('controlBar.backToHome', 'Back to Home')}
+              >
+                <HiOutlineHome className={iconSize} />
+              </button>
+            )}
+
             {/* Tactics Button - Opens field tools + enters tactics mode + enables drawing */}
             <button
               onClick={() => {
@@ -521,7 +539,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               two-level-app-structure.md SS2 gives each item exactly one
               home. Taso stays: it is a game-day workflow tool (owner
               decision 2026-07-14). "Koti" is the one way back (also the
-              top-bar house icon + hardware back). */}
+              bar-level Home button + hardware back). */}
           <div className="mb-4">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.thisMatch', 'This match')}
@@ -578,7 +596,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
           </div>
 
           {/* The one way back to club scope (mirrored by hardware back and
-              the top-bar house icon). Autosave makes leaving always safe. */}
+              the bar-level Home button). Autosave makes leaving always safe. */}
           {onGoToStartScreen && (
             <div className="pt-2 border-t border-slate-700/60">
               <button

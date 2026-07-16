@@ -5,7 +5,6 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import PlayerBar from '@/components/PlayerBar';
 import GameInfoBar from '@/components/GameInfoBar';
 import ControlBar from '@/components/ControlBar';
-import { HiOutlineHome } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from './FieldContainer';
@@ -27,9 +26,6 @@ export interface GameContainerProps {
   onOpenTeamReassignModal: () => void;
   fieldProps: FieldContainerProps;
   controlBarProps: ControlBarProps;
-  /** Direct match->Home exit (3.1, owner decision 2026-07-15): the top-bar
-   *  house icon - one always-visible tap back. Autosave makes it safe. */
-  onGoHome?: () => void;
 }
 
 export function GameContainer({
@@ -45,7 +41,6 @@ export function GameContainer({
   onOpenTeamReassignModal: _onOpenTeamReassignModal,
   fieldProps,
   controlBarProps,
-  onGoHome,
 }: GameContainerProps) {
   const { t } = useTranslation();
 
@@ -69,30 +64,15 @@ export function GameContainer({
             onToggleGoalie={onToggleGoalie}
           />
         </ErrorBoundary>
-        <div className="flex items-stretch">
-          {onGoHome && (
-            <button
-              type="button"
-              onClick={onGoHome}
-              className="flex items-center justify-center px-3 text-slate-300 hover:text-white hover:bg-slate-700/60 transition-colors border-r border-slate-700/60"
-              title={t('controlBar.backToHome', 'Back to Home')}
-              aria-label={t('controlBar.backToHome', 'Back to Home')}
-            >
-              <HiOutlineHome className="w-5 h-5" />
-            </button>
-          )}
-          <div className="flex-1 min-w-0">
-            <GameInfoBar
-              teamName={gameInfo.teamName}
-              opponentName={gameInfo.opponentName}
-              homeScore={gameInfo.homeScore}
-              awayScore={gameInfo.awayScore}
-              onTeamNameChange={onTeamNameChange}
-              onOpponentNameChange={onOpponentNameChange}
-              homeOrAway={gameInfo.homeOrAway}
-            />
-          </div>
-        </div>
+        <GameInfoBar
+          teamName={gameInfo.teamName}
+          opponentName={gameInfo.opponentName}
+          homeScore={gameInfo.homeScore}
+          awayScore={gameInfo.awayScore}
+          onTeamNameChange={onTeamNameChange}
+          onOpponentNameChange={onOpponentNameChange}
+          homeOrAway={gameInfo.homeOrAway}
+        />
       </div>
 
       {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
