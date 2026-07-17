@@ -69,6 +69,27 @@ describe('useModalHardwareBack (single sentinel)', () => {
     a.unmount();
   });
 
+  it('close() returning true keeps the entry (sub-view back); next back closes it', () => {
+    // Models the planner: first back steps plan -> manager (stay open),
+    // second back closes. One entry, no desync, no app exit in between.
+    let view = 'plan';
+    const closed = jest.fn();
+    const a = renderHook(({ open }) => useModalHardwareBack(open, () => {
+      if (view !== 'manager') { view = 'manager'; return true; }
+      closed();
+      return false;
+    }), { initialProps: { open: true } });
+
+    pop(); // plan -> manager, entry kept, sentinel re-armed
+    expect(view).toBe('manager');
+    expect(closed).not.toHaveBeenCalled();
+    expect(pushSpy).toHaveBeenCalledTimes(2); // initial + re-arm
+
+    pop(); // manager -> close
+    expect(closed).toHaveBeenCalledTimes(1);
+    a.unmount();
+  });
+
   it('exposes the hardware-back flag ONLY during a popstate-driven close', () => {
     let flagDuringClose: boolean | null = null;
     const a = renderHook(({ open }) => useModalHardwareBack(open, () => { flagDuringClose = isHandlingHardwareBack(); }), { initialProps: { open: true } });

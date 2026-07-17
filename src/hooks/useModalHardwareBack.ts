@@ -20,7 +20,11 @@
  */
 import { useEffect, useRef } from 'react';
 
-type StackEntry = { close: () => void };
+// close() may return `true` to mean "handled internally, keep me on the
+// stack" (e.g. a modal with sub-views: back steps a view instead of
+// closing). Any other return (void/false) closes normally. This lets ONE
+// entry own a multi-level back without a second, desync-prone entry.
+type StackEntry = { close: () => void | boolean };
 
 const modalStack: StackEntry[] = [];
 let suppressedPops = 0;
@@ -50,15 +54,21 @@ function handleGlobalPop(): void {
   if (!sentinelPushed) return; // not our entry - let the navigation happen
   // The browser consumed our sentinel with this back press.
   sentinelPushed = false;
-  const topmost = modalStack.pop();
+  // Peek, not pop: if close() returns true it handled the back internally
+  // (e.g. stepped a sub-view) and stays open - keep its entry so the NEXT
+  // back reaches it again instead of falling through to the app.
+  const topmost = modalStack[modalStack.length - 1];
   handlingHardwareBack = true;
+  let keepOpen = false;
   try {
-    topmost?.close();
+    keepOpen = topmost?.close() === true;
   } finally {
     handlingHardwareBack = false;
   }
-  // Something is still open beneath - re-arm the guard so the NEXT back
-  // press comes to us instead of leaving the app.
+  if (!keepOpen) {
+    modalStack.pop();
+  }
+  // Anything still open (this entry kept, or others beneath) - re-arm.
   if (modalStack.length > 0) {
     pushSentinel();
   }
@@ -71,7 +81,7 @@ export function __resetModalHardwareBackForTests(): void {
   sentinelPushed = false;
 }
 
-export function useModalHardwareBack(isOpen: boolean, onClose: () => void): void {
+export function useModalHardwareBack(isOpen: boolean, onClose: () => void | boolean): void {
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
