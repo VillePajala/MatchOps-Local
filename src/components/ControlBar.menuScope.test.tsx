@@ -80,7 +80,7 @@ describe('ControlBar menu - match scope only (restructure 3.1)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     renderBar();
-    fireEvent.click(screen.getByLabelText(/Settings/i)); // open the hamburger
+    fireEvent.click(screen.getByLabelText(/Menu/i)); // open the hamburger
   });
 
   it('holds exactly the match-scope items plus Taso and Home', () => {

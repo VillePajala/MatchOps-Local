@@ -95,12 +95,12 @@ Navigation rules:
 
 | Where | Items |
 |---|---|
-| Home / **Pelit** (default tab) | Saved-games list (search/filter; LoadGameModal dissolves here), pinned **Uusi peli**, **Jatka ottelua** card when a match is live, per-row 3-dot (open/delete/duplicate/export), **Ottelusuunnittelu** (it creates games) |
+| Home / **Pelit** (default tab) | Saved-games list (search/filter; LoadGameModal dissolves here), pinned **Uusi peli**, **Jatka ottelua** card when a match is live, per-row 3-dot (open/delete/export; duplicate = future idea), **Ottelusuunnittelu** (it creates games) |
 | Home / **Joukkue** | Master roster, Teams, Personnel (+ Training materials) |
 | Home / **Kaudet & turnaukset** | Seasons, Tournaments |
 | Home / **Tilastot** | Season / tournament / overall / player stats (split OUT of GameStatsModal) |
 | Home / **⚙ gear** (not a tab) | App settings, Backup & Restore, cloud account, language, user guide, external resources, rules directory |
-| **Match menu** (~6 items) | Ottelun tiedot (ex-"Game Settings"), Arvioi pelaajat, Otteluraportti, Ottelun tilastot (this game only, with ONE labeled link "Joukkueen tilastot →" to Home/Tilastot), Tallenna / Tallenna nimellä, ← Koti |
+| **Match menu** (~6 items) | Ottelun tiedot (ex-"Game Settings"), Arvioi pelaajat, Otteluraportti, Ottelun tilastot (this game only, with ONE labeled link "Joukkueen tilastot →" to Home/Tilastot), Tallenna (Tallenna nimellä = future idea), ← Koti |
 | Match bar (unchanged) | Timer, tactics board, drawing, reset, undo/redo |
 
 One-way street: club→match at need-time only. The game's player picker gets an
@@ -291,6 +291,27 @@ Fix on the feature branch before merge (F-wave fixes):
   persists until dismissed, once per sub). The generic sub-interval alarm
   keeps running independently. OPEN DECISION: for plan-created games,
   default the generic interval alarm off so only planned prompts speak.
+
+### Deep-review (2026-07-17, four-lens agent audit) - all findings fixed pre-merge
+
+Fixed on the feature branch: dead cloud-hydration after sign-out (sync is
+push-only - the skip branch now runs the same cloud check + re-sets the
+flag); match stats modal is current-game-only and the retired in-place
+switch (handleGameLogClick) is deleted; W5 resume marker was dead code
+(cleared on first mount) - transition-aware now; autosave races closed
+(silent saves never rewrite the current-id setting, cache merges instead of
+replacing, ghost-guard existence check, unmount FLUSHES pending debounces,
+crossings flush the live match first, load clears timer records only after
+a good persist); roster merge preserves departed players (per-game history
+intact); creation rolls back orphans; hardware-back closes bypass the
+anti-flash guard; user change resets ALL match-scope transient modal state;
+stale Home fixed (flags re-check on match->Home return, isFirstTimeUser
+requires truly empty, scratch workspace not counted); club-scope deep links
+route to host modals over Home (DeepLinkClubRouter); duplicate "Match
+stats" menu entry collapsed into Game report; 8 missing locale keys added;
+menu button announced as "Menu"; planner test suite history-race fixed.
+Deferred as future ideas: per-row duplicate, Tallenna nimellä, fi
+peli/ottelu terminology pass, planner internal-back walking deeper views.
 
 ## 7. Process rules for this branch (planner lessons, binding)
 

@@ -2,6 +2,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor, fireEvent, act, cleanup, within } from '@testing-library/react';
 import PlaytimePlannerModal from './PlaytimePlannerModal';
+import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import type { Player } from '@/types';
 
 // Interpolating t mock: resolves the default string and substitutes {{vars}}
@@ -179,6 +180,18 @@ const enterPlan = async (name: string | RegExp = /Saved Cup/) => {
 };
 
 describe('PlaytimePlannerModal', () => {
+  // Deep-review F1: the planner registers on the hardware-back stack now;
+  // jsdom's REAL history.back() fires an ASYNC popstate that races the next
+  // test (same guard as ClubModalsHost.test / ModalManager.test).
+  let hwBackSpy: jest.SpyInstance;
+  beforeEach(() => {
+    __resetModalHardwareBackForTests();
+    hwBackSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    hwBackSpy.mockRestore();
+  });
+
   it('renders nothing when closed', () => {
     const { container } = render(<PlaytimePlannerModal isOpen={false} onClose={jest.fn()} />);
     expect(container).toBeEmptyDOMElement();

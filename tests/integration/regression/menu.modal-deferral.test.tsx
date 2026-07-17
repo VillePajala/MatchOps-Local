@@ -68,8 +68,8 @@ describe('Menu → Modal deferral guard', () => {
     const onOpenTeamStats = jest.fn();
     setup(onOpenTeamStats);
 
-    // Open menu (button aria-label is localized; English = "Settings")
-    fireEvent.click(screen.getByLabelText(/Settings/i));
+    // Open menu (button aria-label is localized; English = "Menu")
+    fireEvent.click(screen.getByLabelText(/Menu/i));
 
     // Click "Team stats" in the menu (3.1: a surviving deferred entry)
     fireEvent.click(screen.getByRole('button', { name: /Team stats/i }));
@@ -91,11 +91,11 @@ describe('Menu → Modal deferral guard', () => {
     setup(onOpenTeamStats);
 
     // First sequence: open menu and click Load Game (sets up listener + fallback)
-    fireEvent.click(screen.getByLabelText(/Settings/i));
+    fireEvent.click(screen.getByLabelText(/Menu/i));
     fireEvent.click(screen.getByRole('button', { name: /Team stats/i }));
 
     // Without firing transitionend, open menu again and click Load Game again
-    fireEvent.click(screen.getByLabelText(/Settings/i));
+    fireEvent.click(screen.getByLabelText(/Menu/i));
     fireEvent.click(screen.getByRole('button', { name: /Team stats/i }));
 
     // Fire a transitionend once — should only invoke the latest handler once
@@ -106,7 +106,7 @@ describe('Menu → Modal deferral guard', () => {
     expect(onOpenTeamStats).toHaveBeenCalledTimes(1);
 
     // Repeat: open again and verify a second call occurs (no duplicate from prior)
-    fireEvent.click(screen.getByLabelText(/Settings/i));
+    fireEvent.click(screen.getByLabelText(/Menu/i));
     fireEvent.click(screen.getByRole('button', { name: /Team stats/i }));
     act(() => {
       fireEvent.transitionEnd(panel, { propertyName: 'transform' });

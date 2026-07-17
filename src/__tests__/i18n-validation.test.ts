@@ -398,7 +398,12 @@ describe('Translation File Validation', () => {
       // -1: controlBar.stats - the menu's "Match stats" entry was identical
       //     to Game report (same modal, same landing) and was collapsed
       //     (deep-review); aggregate stats live behind "Team stats ->"
-      expect(enKeys.length).toBe(2829);
+      // +8: deep-review i18n batch - keys used in code but missing from BOTH
+      //     locales (Finnish users saw English fallbacks): controlBar.
+      //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
+      //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
+      //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
+      expect(enKeys.length).toBe(2837);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -515,7 +520,12 @@ describe('Translation File Validation', () => {
       // -1: controlBar.stats - the menu's "Match stats" entry was identical
       //     to Game report (same modal, same landing) and was collapsed
       //     (deep-review); aggregate stats live behind "Team stats ->"
-      expect(fiKeys.length).toBe(2829);
+      // +8: deep-review i18n batch - keys used in code but missing from BOTH
+      //     locales (Finnish users saw English fallbacks): controlBar.
+      //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
+      //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
+      //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
+      expect(fiKeys.length).toBe(2837);
     });
   });
 });

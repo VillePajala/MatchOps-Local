@@ -153,7 +153,10 @@
     "resetFieldNormalTitle": "Reset Field?",
     "resetFieldTacticsTitle": "Reset Tactics Board?",
     "userGuide": "User Guide",
-    "planner": "Match planner"
+    "planner": "Match planner",
+    "noPlayersForNewGame": "You need at least one player in your roster to create a game. Would you like to add players now?",
+    "openTimer": "Open Timer",
+    "toggleTacticsBoardShow": "Tactics Board"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -306,7 +309,8 @@
     "startNew": "Start New",
     "continue": "Continue",
     "backButton": "Back",
-    "next": "Next"
+    "next": "Next",
+    "futsal": "Futsal"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -427,7 +431,9 @@
     "game": "Game",
     "games": "Games",
     "noSeasonGames": "No games found for this season.",
-    "noTournamentGames": "No games found for this tournament."
+    "noTournamentGames": "No games found for this tournament.",
+    "noGoals": "No goals recorded.",
+    "deleteEventFailed": "Failed to delete the event. Please try again."
   },
   "importResults": {
     "title": "Import Results",
@@ -959,7 +965,9 @@
       "deleteFailed": "Failed to delete event. Please try again.",
       "genericDeleteError": "An unexpected error occurred while deleting the event.",
       "genericInlineSaveError": "Error saving changes. Please try again.",
-      "missingGameIdInline": "Cannot save: Game ID missing."
+      "missingGameIdInline": "Cannot save: Game ID missing.",
+      "seasonUpdateFailed": "Failed to apply season settings",
+      "tournamentUpdateFailed": "Failed to apply tournament settings"
     },
     "confirmDeleteEvent": "Are you sure you want to delete this event? This cannot be undone.",
     "confirmDeleteEventTitle": "Delete Event",

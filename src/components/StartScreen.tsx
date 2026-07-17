@@ -559,8 +559,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   {t('startScreen.gearRules', 'Rules')}
                 </button>
               )}
-              <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="block w-full px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+              <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
                 {t('controlBar.userGuide', 'User Guide')}
+                <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
               </a>
               {/* Direct sign out (3.1b, owner decision 2026-07-17): account-
                   scope action, so it lives in the gear - no longer buried
