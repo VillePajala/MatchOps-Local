@@ -392,7 +392,10 @@ describe('Translation File Validation', () => {
       // +4: startScreen.statsSeason/-Tournament/-Overall/-Player (walkthrough
       //     round 2 R4: the stats rows get their own compound names -
       //     Kausitilastot/Turnaustilastot/Kokonaistilastot/Pelaajatilastot)
-      expect(enKeys.length).toBe(2829);
+      // +1: controlBar.rulesDirectory restored - R6 put Rules back in the
+      //     match menu after the 3.1 cleanup had removed the then-dead key
+      //     (fi 'Säännöt' was falling back to English)
+      expect(enKeys.length).toBe(2830);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -503,7 +506,10 @@ describe('Translation File Validation', () => {
       // +4: startScreen.statsSeason/-Tournament/-Overall/-Player (walkthrough
       //     round 2 R4: the stats rows get their own compound names -
       //     Kausitilastot/Turnaustilastot/Kokonaistilastot/Pelaajatilastot)
-      expect(fiKeys.length).toBe(2829);
+      // +1: controlBar.rulesDirectory restored - R6 put Rules back in the
+      //     match menu after the 3.1 cleanup had removed the then-dead key
+      //     (fi 'Säännöt' was falling back to English)
+      expect(fiKeys.length).toBe(2830);
     });
   });
 });
