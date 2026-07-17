@@ -385,9 +385,9 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // Stats tab -> one row PER aggregate stats tab (W8).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(props.onViewStatsTab).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Season' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Season stats' }));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('season');
-    fireEvent.click(screen.getByRole('button', { name: 'Player' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Player stats' }));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('player');
   });
 
@@ -397,7 +397,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // 3.1b: the tab always switches; the PANEL ROWS are what disable
     // without saved games (never silently dead-clickable).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    expect(screen.getByRole('button', { name: 'Season' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Season stats' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     // The sheet holds the whole device/account bucket.
     const sheet = screen.getByRole('dialog', { name: 'App & account' });

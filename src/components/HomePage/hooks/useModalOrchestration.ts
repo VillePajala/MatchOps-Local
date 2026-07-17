@@ -21,7 +21,7 @@
  * @category HomePage Hooks
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useModalContext } from '@/contexts/ModalProvider';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
 import type { UseGameDataManagementReturn } from './useGameDataManagement';
@@ -246,6 +246,12 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
 
+  // R3: which wrap-up section GameSettings should open scrolled to (cleared
+  // when the modal closes so a plain open starts at the top).
+  const [gameSettingsInitialSection, setGameSettingsInitialSection] = useState<
+    'roster' | 'report' | 'positions' | 'competition' | undefined
+  >(undefined);
+
   // --- Local Modal State ---
   // isInstructionsModalOpen LIFTED to ModalProvider (L.0b) - the modal renders
   // in ClubModalsHost and Settings' "show app guide" chain drives it from there.
@@ -263,6 +269,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
 
   const handleCloseGameSettingsModal = useCallback(() => {
     setIsGameSettingsModalOpen(false);
+    setGameSettingsInitialSection(undefined);
   }, [setIsGameSettingsModalOpen]);
 
   const handleOpenSettingsModal = useCallback(() => {
@@ -357,6 +364,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       isGoalLogModalOpen,
       isGameStatsModalOpen,
       isGameSettingsModalOpen,
+      gameSettingsInitialSection,
       isPlayerAssessmentModalOpen,
       isTeamReassignModalOpen,
       showNoPlayersConfirm,
@@ -434,8 +442,10 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
       openSettingsModal: handleOpenSettingsModal,
-      // W6: leave the stats modal and land where the item is completed.
-      wrapUpToGameSettings: () => {
+      // W6 + R3: leave the stats modal and land where the item is
+      // completed, scrolled to its section.
+      wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => {
+        setGameSettingsInitialSection(section);
         setIsGameStatsModalOpen(false);
         setIsGameSettingsModalOpen(true);
       },

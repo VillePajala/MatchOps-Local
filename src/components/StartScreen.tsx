@@ -413,10 +413,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  is a game to aggregate - never silently dead-clickable. */
               <>
                 {([
-                  ['season', t('gameStatsModal.tabs.season', 'Season')],
-                  ['tournament', t('gameStatsModal.tabs.tournament', 'Tournament')],
-                  ['overall', t('gameStatsModal.tabs.overall', 'Overall')],
-                  ['player', t('gameStatsModal.tabs.player', 'Player')],
+                  ['season', t('startScreen.statsSeason', 'Season stats')],
+                  ['tournament', t('startScreen.statsTournament', 'Tournament stats')],
+                  ['overall', t('startScreen.statsOverall', 'Overall stats')],
+                  ['player', t('startScreen.statsPlayer', 'Player stats')],
                 ] as const).map(([tab, label]) => (
                   <button
                     key={tab}

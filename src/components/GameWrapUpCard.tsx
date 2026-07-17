@@ -7,10 +7,9 @@ import type { GameCompleteness, CountCheck } from '@/utils/gameCompleteness';
 
 interface GameWrapUpCardProps {
   completeness: GameCompleteness;
-  /** Routes the settings-backed rows (report, positions, competition/team)
-   *  to GAME settings (Ottelun tiedot) - W6: rows navigate to where the
-   *  item is completed. */
-  onOpenSettings?: () => void;
+  /** Routes the settings-backed rows to GAME settings (Ottelun tiedot),
+   *  scrolled to the row's own section (W6 + R3). */
+  onOpenSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
   /** Routes the assessments row to the player-assessment editor. */
   onOpenAssessments?: () => void;
 }
@@ -38,20 +37,20 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
 
   const rows: Row[] = [];
   if (!completeness.roster) {
-    rows.push({ key: 'roster', label: t('gameStatsModal.wrapUpRoster', 'Squad selected'), status: 'todo', onClick: onOpenSettings });
+    rows.push({ key: 'roster', label: t('gameStatsModal.wrapUpRoster', 'Squad selected'), status: 'todo', onClick: onOpenSettings && (() => onOpenSettings('roster')) });
   }
   rows.push({
     key: 'report',
     label: t('gameStatsModal.wrapUpReport', 'Match report'),
     status: completeness.report ? 'done' : 'todo',
-    onClick: onOpenSettings,
+    onClick: onOpenSettings && (() => onOpenSettings('report')),
   });
   rows.push({
     key: 'positions',
     label: t('gameStatsModal.wrapUpPositions', 'Positions played'),
     status: countStatus(completeness.positions),
     count: completeness.positions,
-    onClick: onOpenSettings,
+    onClick: onOpenSettings && (() => onOpenSettings('positions')),
   });
   rows.push({
     key: 'assessments',
@@ -64,7 +63,7 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     key: 'competition',
     label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
     status: completeness.competition && completeness.team ? 'done' : 'todo',
-    onClick: onOpenSettings,
+    onClick: onOpenSettings && (() => onOpenSettings('competition')),
   });
 
   const done = completeness.coreComplete;

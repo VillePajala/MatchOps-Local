@@ -18,6 +18,8 @@ import {
   HiOutlineXMark,
   HiOutlineHome,
   HiOutlineTableCells,
+  HiOutlineScale,
+  HiOutlineBookOpen,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
@@ -96,6 +98,9 @@ interface ControlBarProps {
    *  access to the planner right after creating/entering a game. Opens the
    *  HOST planner over the match. */
   onOpenPlanner?: () => void;
+  /** R6: game-day reference material stays reachable mid-match. */
+  onOpenTraining?: () => void;
+  onOpenRules?: () => void;
   onGoToStartScreen?: () => void;
 }
 
@@ -129,6 +134,8 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   isGameLoaded,
   onOpenPlayerAssessmentModal,
   onOpenPlanner,
+  onOpenTraining,
+  onOpenRules,
   onGoToStartScreen,
 }) => {
   const { t } = useTranslation();
@@ -605,6 +612,16 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.resources', 'Resources')}
             </h4>
+            {onOpenTraining && (
+              <button onClick={wrapModal(onOpenTraining)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                <HiOutlineBookOpen className="w-5 h-5 mr-2" />{t('controlBar.training', 'Warmup Plan')}
+              </button>
+            )}
+            {onOpenRules && (
+              <button onClick={wrapModal(onOpenRules)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                <HiOutlineScale className="w-5 h-5 mr-2" />{t('controlBar.rulesDirectory', 'Rules')}
+              </button>
+            )}
             <a
               href="https://taso.palloliitto.fi"
               target="_blank"

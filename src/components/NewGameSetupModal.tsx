@@ -896,6 +896,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         if (!saved) {
                           return t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.');
                         }
+                        // R1: the picker lists a SNAPSHOT of the roster -
+                        // append the new player so they render immediately
+                        // (the club write already updated the query cache).
+                        setAvailablePlayersForSetup((prev) =>
+                          prev.some((p) => p.id === saved.id) ? prev : [...prev, saved],
+                        );
                         setSelectedPlayerIds((prev) => [...prev, saved.id]);
                         return true as const;
                       }

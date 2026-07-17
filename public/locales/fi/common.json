@@ -983,7 +983,11 @@
     "gearRules": "Säännöt",
     "tasoLink": "Taso - kokoonpanot ja tulokset",
     "rowCompetitions": "Kaudet ja turnaukset",
-    "gearSignOut": "Kirjaudu ulos"
+    "gearSignOut": "Kirjaudu ulos",
+    "statsSeason": "Kausitilastot",
+    "statsTournament": "Turnaustilastot",
+    "statsOverall": "Kokonaistilastot",
+    "statsPlayer": "Pelaajatilastot"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

@@ -1115,7 +1115,11 @@
     "gearRules": "Rules",
     "tasoLink": "Taso - lineups & results",
     "rowCompetitions": "Seasons & Tournaments",
-    "gearSignOut": "Sign out"
+    "gearSignOut": "Sign out",
+    "statsSeason": "Season stats",
+    "statsTournament": "Tournament stats",
+    "statsOverall": "Overall stats",
+    "statsPlayer": "Player stats"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
