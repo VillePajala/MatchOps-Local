@@ -36,6 +36,9 @@ export interface UseRosterSettingsControllerReturn {
   handleSetPlayerNotesForModal: (playerId: string, notes: string) => void;
   handleRemovePlayerForModal: (playerId: string) => void;
   handleAddPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
+  /** Raw club-write returning the saved player (W1: the new-game picker's
+   *  inline add needs the id to select). Callers do their own dup-check. */
+  handleAddPlayerReturning: (data: { name: string; nickname?: string }) => Promise<import('@/types').Player | null>;
 }
 
 export function useRosterSettingsController(): UseRosterSettingsControllerReturn {
@@ -177,6 +180,7 @@ export function useRosterSettingsController(): UseRosterSettingsControllerReturn
     handleSetPlayerNotesForModal,
     handleRemovePlayerForModal,
     handleAddPlayerForModal,
+    handleAddPlayerReturning: async (data: { name: string; nickname?: string }) => (await handleAddPlayer(data)) ?? null,
   };
 }
 

@@ -33,6 +33,7 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
 import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
 import { exportJson, exportAggregateStatsExcel, exportPlayerStatsExcel } from '@/utils/exportGames';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
@@ -553,6 +554,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     handleToggleLargeTimerOverlay,
     timerInteractions,
   } = timerManagement;
+
+  // W4: the full-screen timer overlay behaves like a modal - hardware back
+  // must close IT, not exit the match underneath.
+  useModalHardwareBack(showLargeTimerOverlay, handleToggleLargeTimerOverlay);
 
   // Merge goalie status from playersOnField into players for the PlayerBar.
   // When on DEFAULT_GAME_ID (no real game), show all availablePlayers so users can explore.
@@ -2039,8 +2044,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // game blob's own availablePlayers snapshot follows on the next autosave -
   // the snapshot's per-game roster IS this live club roster state.
   const handleAddPlayerToClubRoster = useCallback(
-    async (name: string): Promise<Player | null> => {
-      const saved = await handleAddPlayer({ name });
+    async (name: string, nickname?: string): Promise<Player | null> => {
+      const saved = await handleAddPlayer({ name, nickname });
       return saved ?? null;
     },
     [handleAddPlayer],

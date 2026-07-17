@@ -102,7 +102,7 @@ interface ModalManagerHandlers {
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
   /** 3.2 roster bridge: club write from the game picker. */
-  addPlayerToClubRoster: (name: string) => Promise<Player | null>;
+  addPlayerToClubRoster: (name: string, nickname?: string) => Promise<Player | null>;
   reapplyPlan: () => void | Promise<void>;
   setGamePersonnel?: (personnelIds: string[]) => void;
   closePlayerAssessmentModal: () => void;

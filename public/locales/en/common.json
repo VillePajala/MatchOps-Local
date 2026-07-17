@@ -1051,8 +1051,9 @@
     "editShootout": "(edit)",
     "wentToOvertime": "Overtime",
     "wentToPenalties": "Penalties",
-    "addToClubRoster": "Add to club roster",
+    "addToClubRoster": "Add new player",
     "addToClubRosterPlaceholder": "New player name",
+    "addToClubRosterNickname": "Nickname (shown on the disc)",
     "addToClubRosterFailed": "Adding the player failed. Please try again."
   },
   "errors": {

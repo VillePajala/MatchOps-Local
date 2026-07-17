@@ -482,9 +482,9 @@ describe('<GameSettingsModal />', () => {
 
       await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
       await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), '  Uusi Pelaaja  ');
-      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.addToClubRoster') }));
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
 
-      await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalledWith('Uusi Pelaaja'));
+      await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalledWith('Uusi Pelaaja', undefined));
       await waitFor(() =>
         expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p1', 'p2', 'new-p9']),
       );
@@ -504,7 +504,7 @@ describe('<GameSettingsModal />', () => {
 
       await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
       await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'Uusi');
-      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.addToClubRoster') }));
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
 
       await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalled());
       expect(onSelectedPlayersChange).not.toHaveBeenCalled();
@@ -530,7 +530,7 @@ describe('<GameSettingsModal />', () => {
         screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')),
         `  ${defaultProps.availablePlayers[0].name.toUpperCase()}  `,
       );
-      await user.click(screen.getByRole('button', { name: t('gameSettingsModal.addToClubRoster') }));
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
         t('playerDetailsModal.duplicateNameError'),

@@ -293,6 +293,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
             setIsTeamManagerOpen(true);
           }}
           onStart={newGameSetup.handleStartNewGameWithSetup}
+          onAddPlayerToRoster={(name, nickname) => rosterSettings.handleAddPlayerReturning({ name, nickname })}
           onCancel={handleCloseNewGameSetup}
           masterRoster={newGameSetup.masterRoster}
           seasons={seasonTournament.seasons}

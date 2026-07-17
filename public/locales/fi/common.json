@@ -1538,8 +1538,9 @@
     "editShootout": "(muokkaa)",
     "wentToOvertime": "Jatkoaika",
     "wentToPenalties": "Rangaistuslaukaukset",
-    "addToClubRoster": "Lisää seuran listaan",
+    "addToClubRoster": "Lisää uusi pelaaja",
     "addToClubRosterPlaceholder": "Uuden pelaajan nimi",
+    "addToClubRosterNickname": "Lempinimi (näkyy kiekossa)",
     "addToClubRosterFailed": "Pelaajan lisääminen epäonnistui. Yritä uudelleen."
   },
   "gameStats": {
