@@ -13,6 +13,7 @@ import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, d
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { PlayerStatAdjustment } from '@/types';
 import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection, type AssessmentScope } from '@/utils/assessmentStats';
+import { ModalToggleButton } from '@/styles/modalStyles';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
@@ -647,30 +648,24 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </div>
               </div>
               <div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={adjFairPlayCards > 0}
-                    onChange={(e) => setAdjFairPlayCards(e.target.checked ? 1 : 0)}
-                    className="form-checkbox h-4 w-4 text-green-600 bg-slate-600 border-slate-500 rounded"
-                  />
-                  <span className="text-xs font-medium text-slate-400">{t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}</span>
-                  <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
-                </label>
+                <ModalToggleButton
+                  pressed={adjFairPlayCards > 0}
+                  onToggle={() => setAdjFairPlayCards(adjFairPlayCards > 0 ? 0 : 1)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    {t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}
+                    <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
+                  </span>
+                </ModalToggleButton>
               </div>
               <div className="lg:col-span-3">
-                <label className="flex items-center gap-2">
-                  <input 
-                    type="checkbox"
-                    checked={adjIncludeInSeasonTournament}
-                    onChange={(e) => setAdjIncludeInSeasonTournament(e.target.checked)}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded"
-                  />
-                  <span className="text-xs text-slate-400">
-                    {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
-                  </span>
-                </label>
-                <p className="text-xs text-slate-500 mt-1 ml-6">
+                <ModalToggleButton
+                  pressed={adjIncludeInSeasonTournament}
+                  onToggle={() => setAdjIncludeInSeasonTournament(v => !v)}
+                >
+                  {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                </ModalToggleButton>
+                <p className="text-xs text-slate-500 mt-1 ml-1">
                   {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
                 </p>
               </div>
@@ -880,30 +875,24 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           </div>
                         </div>
                         <div>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editFairPlayCards > 0}
-                              onChange={(e) => setEditFairPlayCards(e.target.checked ? 1 : 0)}
-                              className="form-checkbox h-4 w-4 text-green-600 bg-slate-600 border-slate-500 rounded"
-                            />
-                            <span className="text-xs font-medium text-slate-400">{t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}</span>
-                            <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
-                          </label>
+                          <ModalToggleButton
+                            pressed={editFairPlayCards > 0}
+                            onToggle={() => setEditFairPlayCards(editFairPlayCards > 0 ? 0 : 1)}
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              {t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}
+                              <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
+                            </span>
+                          </ModalToggleButton>
                         </div>
                         <div className="lg:col-span-3">
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={editIncludeInSeasonTournament}
-                              onChange={(e) => setEditIncludeInSeasonTournament(e.target.checked)}
-                              className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded"
-                            />
-                            <span className="text-xs text-slate-400">
-                              {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
-                            </span>
-                          </label>
-                          <p className="text-xs text-slate-500 mt-1 ml-6">
+                          <ModalToggleButton
+                            pressed={editIncludeInSeasonTournament}
+                            onToggle={() => setEditIncludeInSeasonTournament(v => !v)}
+                          >
+                            {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                          </ModalToggleButton>
+                          <p className="text-xs text-slate-500 mt-1 ml-1">
                             {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
                           </p>
                         </div>

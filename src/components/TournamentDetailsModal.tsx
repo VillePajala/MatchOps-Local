@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types';
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -536,17 +536,9 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
               </div>
 
               {/* Archived */}
-              <div>
-                <label className="text-slate-200 text-sm flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={archived}
-                    onChange={(e) => setArchived(e.target.checked)}
-                    className="form-checkbox h-4 w-4 text-indigo-600 rounded"
-                  />
-                  {t('tournamentDetailsModal.archivedLabel', 'Archived')}
-                </label>
-              </div>
+              <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>
+                {t('tournamentDetailsModal.archivedLabel', 'Archived')}
+              </ModalToggleButton>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Season, GameType, Gender } from '@/types';
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -611,17 +611,9 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               </div>
 
               {/* Archived */}
-              <div>
-                <label className="text-slate-200 text-sm flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={archived}
-                    onChange={(e) => setArchived(e.target.checked)}
-                    className="form-checkbox h-4 w-4 text-indigo-600 rounded"
-                  />
-                  {t('seasonDetailsModal.archivedLabel', 'Archived')}
-                </label>
-              </div>
+              <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>
+                {t('seasonDetailsModal.archivedLabel', 'Archived')}
+              </ModalToggleButton>
             </div>
           </div>
         </div>
