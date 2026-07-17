@@ -284,8 +284,13 @@ Fix on the feature branch before merge (F-wave fixes):
 - **W5 Resume-from-background defaults to Home even when the match was on
   screen** - owner leaning: restore the view you left; needs a "was in
   match" session marker + decision.
-- **W3 (question, answered in chat)**: planner subs vs timer sub-interval
-  interplay - document in §4 once verified.
+- **W3 (answered + documented)**: planned subs and the timer's sub-interval
+  are separate mechanisms that both run. A game created from a plan stores
+  its planned sub schedule; as the clock passes each planned time,
+  usePlannedSubPrompts surfaces an ADVISORY prompt (who on / who off,
+  persists until dismissed, once per sub). The generic sub-interval alarm
+  keeps running independently. OPEN DECISION: for plan-created games,
+  default the generic interval alarm off so only planned prompts speak.
 
 ## 7. Process rules for this branch (planner lessons, binding)
 

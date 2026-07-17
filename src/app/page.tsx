@@ -61,6 +61,19 @@ const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
+
+  // W5: restore the VIEW you left. The auto-resume guard only fires for a
+  // live game; when the OS recreates the WebView with the match on screen
+  // but the clock not running, the user used to land on Home. This session
+  // marker records "the match was the visible view" and boot re-enters it.
+  useEffect(() => {
+    try {
+      if (screen === 'home') sessionStorage.setItem('matchops_was_in_match', '1');
+      else sessionStorage.removeItem('matchops_was_in_match');
+    } catch {
+      // sessionStorage unavailable - resume falls back to the live-game rule.
+    }
+  }, [screen]);
   const { initialAction, hasDeepLink, setAction } = useDeepLinkHandler();
   const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
   const [canResume, setCanResume] = useState(false);
@@ -209,7 +222,11 @@ export default function Home() {
         // restore straight into a LIVE match (in progress OR at a period break -
         // half-time backgrounding is the common case) instead of dropping the
         // user on the start screen with a "Continue" button.
-        if (shouldAutoResumeOnLaunch(isFirstCheck, games[lastId])) {
+        let wasInMatch = false;
+        try {
+          wasInMatch = sessionStorage.getItem('matchops_was_in_match') === '1';
+        } catch { /* fall back to the live-game rule */ }
+        if (shouldAutoResumeOnLaunch(isFirstCheck, games[lastId]) || (isFirstCheck && wasInMatch)) {
           logger.info('[page.tsx] Live game detected on launch — restoring into the game view');
           setAction('resumeGame');
           setScreen('home');
