@@ -214,15 +214,15 @@ describe('ModalManager', () => {
     renderWithProvider(<ModalManager {...props} />);
 
     // Back press #1: the OPEN modal (registered above the match entry)
-    // closes; the match stays.
-    act(() => {
+    // closes; the match stays. Async act flushes the deferred re-arm.
+    await act(async () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     expect(props.handlers.closeGameSettingsModal).toHaveBeenCalledTimes(1);
     expect(goHome).not.toHaveBeenCalled();
 
     // Back press #2 (no modal left): NOW back exits to Home.
-    act(() => {
+    await act(async () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     expect(goHome).toHaveBeenCalledTimes(1);

@@ -46,6 +46,18 @@ function pushSentinel(): void {
   sentinelPushed = true;
 }
 
+function reArmSentinel(): void {
+  // Re-arm the guard AFTER the popstate dispatch finishes (a microtask):
+  // calling pushState SYNCHRONOUSLY inside a popstate handler is unreliable
+  // on some WebViews - it silently fails to create a trap entry, so the
+  // NEXT back exits the app (owner-reported: planner plan->manager->exit).
+  // A microtask is outside the dispatch yet flushes long before a human's
+  // next tap (and inside React's act() in tests).
+  queueMicrotask(() => {
+    if (modalStack.length > 0 && !sentinelPushed) pushSentinel();
+  });
+}
+
 function handleGlobalPop(): void {
   if (suppressedPops > 0) {
     suppressedPops -= 1;
@@ -68,9 +80,10 @@ function handleGlobalPop(): void {
   if (!keepOpen) {
     modalStack.pop();
   }
-  // Anything still open (this entry kept, or others beneath) - re-arm.
+  // Anything still open (this entry kept, or others beneath) - re-arm the
+  // guard on the next microtask (NOT synchronously here - see reArmSentinel).
   if (modalStack.length > 0) {
-    pushSentinel();
+    reArmSentinel();
   }
 }
 
