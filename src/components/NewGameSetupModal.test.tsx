@@ -136,6 +136,40 @@ describe('NewGameSetupModal', () => {
     );
   };
 
+  test('R1: inline add appends the saved player to the picker snapshot AND selects them', async () => {
+    const saved = { id: 'new-9', name: 'Uusi', isGoalie: false, receivedFairPlayCard: false };
+    const onAddPlayerToRoster = jest.fn().mockResolvedValue(saved);
+    render(
+      <ToastProvider>
+        <NewGameSetupModal {...defaultProps} onAddPlayerToRoster={onAddPlayerToRoster} />
+      </ToastProvider>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Add new player/ }));
+    fireEvent.change(screen.getByPlaceholderText('New player name'), { target: { value: 'Uusi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalledWith('Uusi', undefined));
+    // The picker renders the new player immediately (snapshot append) and
+    // they are selected - the owner-walkthrough R1 regression.
+    expect(await screen.findByText('Uusi')).toBeInTheDocument();
+    const checkbox = screen.getByText('Uusi').closest('label')!.querySelector('input')!;
+    expect(checkbox).toBeChecked();
+  });
+
+  test('R1: duplicate name is refused with an inline message, no club write', async () => {
+    const onAddPlayerToRoster = jest.fn();
+    render(
+      <ToastProvider>
+        <NewGameSetupModal {...defaultProps} onAddPlayerToRoster={onAddPlayerToRoster} />
+      </ToastProvider>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Add new player/ }));
+    fireEvent.change(screen.getByPlaceholderText('New player name'),
+      { target: { value: defaultProps.masterRoster[0].name.toUpperCase() } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(onAddPlayerToRoster).not.toHaveBeenCalled();
+  });
+
   test('loads the last home team name from appSettings utility and populates input', async () => {
     renderModal();
     expect(getLastHomeTeamName).toHaveBeenCalled();
