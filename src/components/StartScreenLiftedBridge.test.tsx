@@ -11,7 +11,7 @@ import ModalProvider, { useModalContext } from '@/contexts/ModalProvider';
 
 jest.mock('@/components/StartScreen', () => ({
   __esModule: true,
-  default: (props: Record<string, () => void>) => (
+  default: (props: Record<string, (...args: unknown[]) => void>) => (
     <div>
       <button onClick={props.onManageRoster}>tap-roster</button>
       <button onClick={props.onManageTeams}>tap-teams</button>
@@ -26,7 +26,7 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onNewGame}>tap-new</button>
       <button onClick={props.onOpenPlanner}>tap-planner</button>
       <button onClick={props.onViewStats}>tap-stats</button>
-      <button onClick={() => props.onViewStatsTab('player')}>tap-player-stats</button>
+      <button onClick={() => props.onViewStatsTab?.('player')}>tap-player-stats</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
     </div>
   ),

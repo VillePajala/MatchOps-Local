@@ -115,6 +115,9 @@ interface ModalManagerHandlers {
   setShowResetFieldConfirm: (open: boolean) => void;
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
+  /** W6: wrap-up rows navigate to where the item is completed. */
+  wrapUpToGameSettings: () => void;
+  wrapUpToAssessments: () => void;
 }
 
 export interface ModalManagerProps {
@@ -203,6 +206,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             masterRoster={data.masterRoster}
             onGameNotesChange={handlers.gameNotesChange}
           onOpenSettings={handlers.openSettingsModal}
+          onOpenGameSettings={handlers.wrapUpToGameSettings}
+          onOpenAssessments={handlers.wrapUpToAssessments}
         />
       )}
 
