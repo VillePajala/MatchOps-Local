@@ -1293,7 +1293,7 @@
     "showArchived": "Näytä arkistoidut",
     "archivedBadge": "Arkistoitu",
     "manageOrphanedGames": "Hallinnoi poistettujen joukkueiden pelejä",
-    "orphanedGames": "Orpoperit",
+    "orphanedGames": "Orvot pelit",
     "confirmDelete": "Poistetaanko joukkue \"{{name}}\"?",
     "deleteImpactWarning": "Tämä tekee {{count}} pelistä orpoja. Pelit säilyvät, mutta ne eivät liity tähän joukkueeseen.",
     "noGamesImpact": "Tähän joukkueeseen ei ole liitetty otteluita.",

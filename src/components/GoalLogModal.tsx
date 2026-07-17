@@ -11,7 +11,7 @@ import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
 
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 
 // Re-export shared types for backward compatibility with test imports
@@ -374,21 +374,19 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col h-full">
-          {/* Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {t('goalLogModal.title', 'Log Goal Event')}
-            </h2>
-          </div>
-
-          {/* Fixed Counter Section (timer as header counter) */}
-          <div className="px-6 pt-1 pb-2 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-            <div className="mb-1 text-center text-sm">
+          {/* Chrome slimming: X-header. The live match clock is PINNED (no
+              collapse prop) so it never scrolls away while logging a goal. */}
+          <CollapsibleModalHeader
+            title={t('goalLogModal.title', 'Log Goal Event')}
+            onClose={onClose}
+            closeLabel={t('common.doneButton', 'Done')}
+          >
+            <div className="px-6 pt-1 pb-2 text-center text-sm">
               <div className="flex justify-center items-center text-slate-300">
                 <span className="text-yellow-400 font-semibold">{formatTime(currentTime)}</span>
               </div>
             </div>
-          </div>
+          </CollapsibleModalHeader>
 
           {/* Scrollable Content - Split View Layout */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
@@ -633,12 +631,6 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
             </div>
           </div>
 
-          {/* Footer */}
-          <ModalFooter>
-            <button onClick={onClose} className={primaryButtonStyle}>
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
 

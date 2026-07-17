@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally, getShootoutWinner } from '@/utils/shootout';
+import { CollapsibleModalHeader, ModalStickyPrimary, useCollapsingHeader } from '@/styles/modalStyles';
 
 interface ShootoutModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
   opponentName,
 }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const [kicks, setKicks] = useState<ShootoutKick[]>(initialKicks);
   const [scorerId, setScorerId] = useState<string>('');
   // Which side took the first kick (coin toss). Drives the alternation guide.
@@ -105,21 +107,24 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="shootout-modal-title"
+      aria-label={t('shootoutModal.title', 'Penalty Shootout')}
     >
       <div className="bg-slate-800 shadow-xl flex flex-col border-0 overflow-hidden h-full w-full relative">
-        {/* Header */}
-        <div className="flex flex-col items-center pt-10 pb-4 px-6 shrink-0">
-          <h2 id="shootout-modal-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-            {t('shootoutModal.title', 'Penalty Shootout')}
-          </h2>
-          <p className="text-sm text-slate-400 text-center mt-2">
+        {/* Chrome slimming: full-screen X-header (Cancel folds into the X);
+            the instructions line collapses on scroll. */}
+        <CollapsibleModalHeader
+          title={t('shootoutModal.title', 'Penalty Shootout')}
+          onClose={onClose}
+          closeLabel={t('common.cancel', 'Cancel')}
+          collapse={headerCollapse}
+        >
+          <p className="text-sm text-slate-400 text-center px-6 pb-3">
             {t('shootoutModal.instructions', 'Log each shot as it happens.')}
           </p>
-        </div>
+        </CollapsibleModalHeader>
 
         {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 space-y-5">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pb-4 pt-4 space-y-5" onScroll={headerCollapse.onScroll}>
           {/* Tally */}
           <div className="bg-slate-900/70 rounded-lg p-4 text-center border border-slate-700">
             <div className="text-4xl font-bold text-yellow-400">
@@ -261,23 +266,10 @@ const ShootoutModal: React.FC<ShootoutModalProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="shrink-0 flex justify-end gap-2 px-6 py-4 border-t border-slate-700 bg-slate-800">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-md bg-slate-600 hover:bg-slate-500 text-white text-sm font-medium transition-colors"
-          >
-            {t('common.cancel', 'Cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
-          >
-            {t('common.save', 'Save')}
-          </button>
-        </div>
+        {/* Sticky primary in the thumb zone. Cancel lives in the header X. */}
+        <ModalStickyPrimary onClick={handleSave}>
+          {t('common.save', 'Save')}
+        </ModalStickyPrimary>
       </div>
     </div>
   );
