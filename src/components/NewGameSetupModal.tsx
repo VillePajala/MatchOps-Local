@@ -21,7 +21,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -1377,17 +1377,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </label>
               </div>
             </div>
-
-            {/* Primary action at the END of the form (chrome slimming: no
-                footer; the commit is the natural terminus of the flow). */}
-            <button
-              type="button"
-              onClick={handleStartClick}
-              className="w-full py-3 rounded-md text-base font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              {t('newGameSetupModal.createGame', 'Create Game')}
-            </button>
           </div>
+
+          {/* Chrome slimming: the ONE commit action as a sticky bottom bar
+              (thumb zone); Cancel is the header X / hardware back. */}
+          <ModalStickyPrimary onClick={handleStartClick}>
+            {t('newGameSetupModal.createGame', 'Create Game')}
+          </ModalStickyPrimary>
 
         </div>
       </div>
