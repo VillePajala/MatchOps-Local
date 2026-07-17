@@ -465,6 +465,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // L.3c: planner renders in ClubModalsHost; the match registers its
     // live-game hooks (flush + post-bulk-re-apply refresh) while mounted.
     setPlannerLiveGameHooks,
+    setIsPlaytimePlannerOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isSettingsModalOpen,
     setIsSettingsModalOpen,
@@ -2256,6 +2257,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
+    // W10: quick planner access from the match (host planner over the pitch).
+    onOpenPlanner: () => setIsPlaytimePlannerOpen(true),
     onGoToStartScreen,
   };
 

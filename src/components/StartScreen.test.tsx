@@ -375,20 +375,20 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   });
 
   it('Seasons and Stats are REAL panels: tabs switch, the rows open the surfaces (3.1b)', () => {
-    const props = { ...shellProps(), onViewPlayerStats: jest.fn() };
+    const props = { ...shellProps(), onViewStatsTab: jest.fn() };
     render(<StartScreen {...props} />);
     // Competitions tab -> panel with its entry row; the tab itself opens nothing.
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
     expect(props.onManageSeasons).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Seasons & Tournaments' }));
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
-    // Stats tab -> panel with the two aggregate rows.
+    // Stats tab -> one row PER aggregate stats tab (W8).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    expect(props.onViewStats).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Team stats' }));
-    expect(props.onViewStats).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Player stats' }));
-    expect(props.onViewPlayerStats).toHaveBeenCalledTimes(1);
+    expect(props.onViewStatsTab).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Season' }));
+    expect(props.onViewStatsTab).toHaveBeenCalledWith('season');
+    fireEvent.click(screen.getByRole('button', { name: 'Player' }));
+    expect(props.onViewStatsTab).toHaveBeenCalledWith('player');
   });
 
   it('disables the Stats tab without saved games; the gear opens the app sheet', () => {
@@ -397,7 +397,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // 3.1b: the tab always switches; the PANEL ROWS are what disable
     // without saved games (never silently dead-clickable).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    expect(screen.getByRole('button', { name: 'Team stats' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Season' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     // The sheet holds the whole device/account bucket.
     const sheet = screen.getByRole('dialog', { name: 'App & account' });

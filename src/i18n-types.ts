@@ -2384,7 +2384,6 @@ export type TranslationKey =
   | 'startScreen.resumeGame'
   | 'startScreen.rowCompetitions'
   | 'startScreen.rowPersonnel'
-  | 'startScreen.rowPlayerStats'
   | 'startScreen.rowPlayers'
   | 'startScreen.rowTeams'
   | 'startScreen.rowTraining'

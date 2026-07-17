@@ -26,7 +26,7 @@ jest.mock('@/components/StartScreen', () => ({
       <button onClick={props.onNewGame}>tap-new</button>
       <button onClick={props.onOpenPlanner}>tap-planner</button>
       <button onClick={props.onViewStats}>tap-stats</button>
-      <button onClick={props.onViewPlayerStats}>tap-player-stats</button>
+      <button onClick={() => props.onViewStatsTab('player')}>tap-player-stats</button>
       <button onClick={props.onGetStarted}>tap-get-started</button>
     </div>
   ),
