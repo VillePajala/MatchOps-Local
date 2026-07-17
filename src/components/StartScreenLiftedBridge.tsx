@@ -26,7 +26,7 @@ type LiftedHandlerProps =
   | 'onNewGame'
   | 'onOpenPlanner'
   | 'onViewStats'
-  | 'onViewPlayerStats'
+  | 'onViewStatsTab'
   | 'onManageRoster'
   | 'onManageTeams'
   | 'onManagePersonnel'
@@ -69,7 +69,7 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
       }}
       onOpenPlanner={() => setIsPlaytimePlannerOpen(true)}
       onViewStats={() => openClubStatsToTab('season')}
-      onViewPlayerStats={() => openClubStatsToTab('player')}
+      onViewStatsTab={(tab) => openClubStatsToTab(tab)}
       onManageRoster={() => setIsRosterModalOpen(true)}
       onManageTeams={() => setIsTeamManagerOpen(true)}
       onManagePersonnel={() => setIsPersonnelManagerOpen(true)}

@@ -17,6 +17,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineXMark,
   HiOutlineHome,
+  HiOutlineTableCells,
 } from 'react-icons/hi2';
 import FormationPicker from './FormationPicker';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +92,10 @@ interface ControlBarProps {
   onOpenGameSettingsModal: () => void;
   isGameLoaded: boolean;
   onOpenPlayerAssessmentModal: () => void;
+  /** W10 (menu watchpoint, restored on proven friction day one): quick
+   *  access to the planner right after creating/entering a game. Opens the
+   *  HOST planner over the match. */
+  onOpenPlanner?: () => void;
   onGoToStartScreen?: () => void;
 }
 
@@ -123,6 +128,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenGameSettingsModal,
   isGameLoaded,
   onOpenPlayerAssessmentModal,
+  onOpenPlanner,
   onGoToStartScreen,
 }) => {
   const { t } = useTranslation();
@@ -324,7 +330,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {!isFieldToolsOpen ? (
-          /* Collapsed State - Normal View */
+          /* Collapsed State - Normal View. W2: Home pinned LEFT and Menu
+             pinned RIGHT with the tool cluster truly centered between two
+             equal spacers - the timer stays visually centered. */
           <>
             {/* Home Button - the direct match->Home exit (3.1 follow-up: a
                 first-class bar button; the GameInfoBar-row icon looked
@@ -333,17 +341,20 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
                 Hidden in the EXPANDED tactics view by design: that is a
                 focused mode with its own Back button, and hardware back
                 still exits to Home from it. */}
-            {onGoToStartScreen && (
-              <button
-                onClick={onGoToStartScreen}
-                className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
-                title={t('controlBar.backToHome', 'Back to Home')}
-                aria-label={t('controlBar.backToHome', 'Back to Home')}
-              >
-                <HiOutlineHome className={iconSize} />
-              </button>
-            )}
+            <div className="flex-1 flex items-center justify-start">
+              {onGoToStartScreen && (
+                <button
+                  onClick={onGoToStartScreen}
+                  className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+                  title={t('controlBar.backToHome', 'Back to Home')}
+                  aria-label={t('controlBar.backToHome', 'Back to Home')}
+                >
+                  <HiOutlineHome className={iconSize} />
+                </button>
+              )}
+            </div>
 
+            <div className="flex items-center gap-2">
             {/* Tactics Button - Opens field tools + enters tactics mode + enables drawing */}
             <button
               onClick={() => {
@@ -390,7 +401,10 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               <HiOutlineTrash className={iconSize} />
             </button>
 
+            </div>
+
             {/* Menu Button - Square shape (rightmost) */}
+            <div className="flex-1 flex items-center justify-end">
             <button
               onClick={handleSettingsButtonClick}
               className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
@@ -399,6 +413,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             >
               <HiBars3 className={`${iconSize} transition-transform duration-150 ${isSettingsMenuOpen ? 'rotate-90' : ''}`} />
             </button>
+            </div>
           </>
         ) : (
           /* Expanded State - Field Tools Mode */
@@ -573,6 +588,13 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               <button onClick={wrapModal(onOpenTeamStats)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
                 <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />
                 {t('controlBar.teamStats', 'Team stats')}
+                <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
+              </button>
+            )}
+            {onOpenPlanner && (
+              <button onClick={wrapModal(onOpenPlanner)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                <HiOutlineTableCells className="w-5 h-5 mr-2" />
+                {t('controlBar.planner', 'Match planner')}
                 <span className="ml-auto text-slate-500" aria-hidden="true">&rarr;</span>
               </button>
             )}

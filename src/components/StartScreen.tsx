@@ -18,8 +18,8 @@ interface StartScreenProps {
    *  to onGetStarted (the old enter-the-workspace behavior) when absent. */
   onNewGame?: () => void;
   onViewStats: () => void;
-  /** Stats panel: player stats (club-stats surface, player tab). */
-  onViewPlayerStats?: () => void;
+  /** Stats panel rows mirror the aggregate tabs (W8): open club stats on one. */
+  onViewStatsTab?: (tab: 'season' | 'tournament' | 'overall' | 'player') => void;
   /** Gear sheet: direct sign out (cloud mode only). */
   onSignOut?: () => void;
   onOpenSettings: () => void;
@@ -61,7 +61,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onGetStarted,
   onNewGame,
   onViewStats,
-  onViewPlayerStats,
+  onViewStatsTab,
   onSignOut,
   onOpenSettings,
   onManageRoster,
@@ -408,28 +408,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
               </button>
             ) : activeTab === 'stats' ? (
-              /* Stats panel (3.1b): the aggregate surfaces, disabled until
-                 there is a game to aggregate - never silently dead-clickable. */
+              /* Stats panel (W8): one row per aggregate stats tab - the rows
+                 name exactly the surfaces that exist. Disabled until there
+                 is a game to aggregate - never silently dead-clickable. */
               <>
-                <button
-                  type="button"
-                  onClick={onViewStats}
-                  disabled={!hasSavedGames}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    hasSavedGames
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('controlBar.teamStats', 'Team stats')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-                {onViewPlayerStats && (
+                {([
+                  ['season', t('gameStatsModal.tabs.season', 'Season')],
+                  ['tournament', t('gameStatsModal.tabs.tournament', 'Tournament')],
+                  ['overall', t('gameStatsModal.tabs.overall', 'Overall')],
+                  ['player', t('gameStatsModal.tabs.player', 'Player')],
+                ] as const).map(([tab, label]) => (
                   <button
+                    key={tab}
                     type="button"
-                    onClick={onViewPlayerStats}
+                    onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
                     disabled={!hasSavedGames}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
                       hasSavedGames
@@ -437,12 +429,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
                     }`}
                   >
-                    <span className="text-sm font-semibold text-white">
-                      {t('startScreen.rowPlayerStats', 'Player stats')}
-                    </span>
+                    <span className="text-sm font-semibold text-white">{label}</span>
                     <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                   </button>
-                )}
+                ))}
               </>
             ) : (
               /* Returning user: the Pelit front page (two-level restructure

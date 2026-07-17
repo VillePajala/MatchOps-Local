@@ -387,7 +387,9 @@ describe('Translation File Validation', () => {
       //     -> assessPlayersTip/backHomeTip describe the menu that exists
       // +1: gameSettingsModal.addToClubRosterNickname (walkthrough W1: the
       //     disc shows the nickname - the inline add must capture it)
-      expect(enKeys.length).toBe(2826);
+      // -1: startScreen.rowPlayerStats - W8 replaced the two stats rows with
+      //     one row per aggregate tab, reusing gameStatsModal.tabs.* labels
+      expect(enKeys.length).toBe(2825);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -493,7 +495,9 @@ describe('Translation File Validation', () => {
       //     -> assessPlayersTip/backHomeTip describe the menu that exists
       // +1: gameSettingsModal.addToClubRosterNickname (walkthrough W1: the
       //     disc shows the nickname - the inline add must capture it)
-      expect(fiKeys.length).toBe(2826);
+      // -1: startScreen.rowPlayerStats - W8 replaced the two stats rows with
+      //     one row per aggregate tab, reusing gameStatsModal.tabs.* labels
+      expect(fiKeys.length).toBe(2825);
     });
   });
 });
