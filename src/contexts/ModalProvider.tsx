@@ -295,10 +295,10 @@ export const ModalProvider = ({ children, currentUserId }: {
   // direct mirror-ref access - the compiler forbids mutating a ref an
   // effect also reads).
   const effectPrevUserRef = useRef(currentUserId);
-   
-  // must route through the guarded reducer-backed setter (mirror ref), which
-  // rules out the adjust-during-render form; fires at most once per user
-  // change via the ref gate, so no cascading renders.
+  // The reset must route through the guarded reducer-backed setter (mirror
+  // ref), which rules out the adjust-during-render form; fires at most once
+  // per user change via the ref gate, so no cascading renders.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (effectPrevUserRef.current === currentUserId) return;
     effectPrevUserRef.current = currentUserId;
