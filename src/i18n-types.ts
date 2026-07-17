@@ -422,6 +422,7 @@ export type TranslationKey =
   | 'controlBar.resetField'
   | 'controlBar.resetFieldNormalTitle'
   | 'controlBar.resetFieldTacticsTitle'
+  | 'controlBar.rulesDirectory'
   | 'controlBar.saveGame'
   | 'controlBar.saveGameAs'
   | 'controlBar.settings'
