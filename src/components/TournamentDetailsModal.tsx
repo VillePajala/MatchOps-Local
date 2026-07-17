@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types';
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -255,17 +255,14 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex flex-col flex-shrink-0">
-          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-              {mode === 'create'
+        {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
+        <CollapsibleModalHeader
+          title={mode === 'create'
                 ? t('tournamentDetailsModal.createTitle', 'Create Tournament')
                 : tournament?.name || t('tournamentDetailsModal.editTitle', 'Tournament Details')}
-            </h2>
-          </div>
-
-        </div>
+          onClose={handleCancel}
+          closeLabel={t('common.cancel', 'Cancel')}
+        />
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
@@ -555,22 +552,13 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <ModalFooter>
-          <button onClick={handleCancel} className={secondaryButtonStyle}>
-            {t('common.cancel', 'Cancel')}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!name.trim() || isPending}
-            className={primaryButtonStyle}
-          >
-            {isPending
-              ? t('common.saving', 'Saving...')
-              : mode === 'create'
-              ? t('common.create', 'Create')
-              : t('common.save', 'Save')}
-          </button>
-        </ModalFooter>
+        <ModalStickyPrimary onClick={handleSave} disabled={!name.trim() || isPending}>
+          {isPending
+            ? t('common.saving', 'Saving...')
+            : mode === 'create'
+            ? t('common.create', 'Create')
+            : t('common.save', 'Save')}
+        </ModalStickyPrimary>
       </div>
     </div>
   );
