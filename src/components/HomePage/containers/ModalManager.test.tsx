@@ -214,9 +214,11 @@ describe('ModalManager', () => {
     renderWithProvider(<ModalManager {...props} />);
 
     // Back press #1: the OPEN modal (registered above the match entry)
-    // closes; the match stays. Async act flushes the deferred re-arm.
+    // closes; the match stays. Flush the macrotask that re-arms the sentinel
+    // (setTimeout(0)) so the next back is guarded.
     await act(async () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
     });
     expect(props.handlers.closeGameSettingsModal).toHaveBeenCalledTimes(1);
     expect(goHome).not.toHaveBeenCalled();
@@ -224,6 +226,7 @@ describe('ModalManager', () => {
     // Back press #2 (no modal left): NOW back exits to Home.
     await act(async () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
     });
     expect(goHome).toHaveBeenCalledTimes(1);
   });

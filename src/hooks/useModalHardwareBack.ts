@@ -46,16 +46,27 @@ function pushSentinel(): void {
   sentinelPushed = true;
 }
 
+let reArmTimer: ReturnType<typeof setTimeout> | null = null;
+
 function reArmSentinel(): void {
-  // Re-arm the guard AFTER the popstate dispatch finishes (a microtask):
-  // calling pushState SYNCHRONOUSLY inside a popstate handler is unreliable
-  // on some WebViews - it silently fails to create a trap entry, so the
-  // NEXT back exits the app (owner-reported: planner plan->manager->exit).
-  // A microtask is outside the dispatch yet flushes long before a human's
-  // next tap (and inside React's act() in tests).
-  queueMicrotask(() => {
+  // Re-arm the guard AFTER the history traversal fully settles - as a MACRO
+  // task (setTimeout), not a microtask.
+  //
+  // Why not synchronous, and why not a microtask: on Android WebViews the
+  // popstate handler runs as part of the back-navigation task, and the
+  // history stays "mid-traversal" through the end of that task - which
+  // includes the microtask checkpoint. A pushState issued synchronously OR
+  // in a queueMicrotask is silently dropped there, so no trap entry is
+  // created and the NEXT back exits the app (owner-reported twice: planner
+  // plan -> manager -> exit, with both the sync and the microtask version).
+  // A setTimeout(0) runs in a fresh task after the traversal has committed,
+  // where pushState reliably creates the entry - and still fires ~immediately,
+  // long before any human's next tap.
+  if (reArmTimer !== null) clearTimeout(reArmTimer);
+  reArmTimer = setTimeout(() => {
+    reArmTimer = null;
     if (modalStack.length > 0 && !sentinelPushed) pushSentinel();
-  });
+  }, 0);
 }
 
 function handleGlobalPop(): void {
@@ -92,6 +103,7 @@ export function __resetModalHardwareBackForTests(): void {
   modalStack.length = 0;
   suppressedPops = 0;
   sentinelPushed = false;
+  if (reArmTimer !== null) { clearTimeout(reArmTimer); reArmTimer = null; }
 }
 
 export function useModalHardwareBack(isOpen: boolean, onClose: () => void | boolean): void {
