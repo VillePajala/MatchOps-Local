@@ -1582,7 +1582,7 @@
     "title": "Title"
   },
   "settingsModal": {
-    "title": "Sovelluksen asetukset",
+    "title": "Asetukset",
     "tabs": {
       "general": "Yleiset",
       "season": "Kausi",
