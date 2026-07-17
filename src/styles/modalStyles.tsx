@@ -308,6 +308,30 @@ export const ModalStickyPrimary: React.FC<{
 );
 
 /**
+ * Full-width solid on/off toggle - the house replacement for a settings
+ * checkbox (owner: no checkboxes for settings; always solid, full-width).
+ * `aria-pressed` carries the state; indigo when on, slate when off. Matches
+ * the "Show archived" / "Show only unplayed" filter toggles.
+ */
+export const ModalToggleButton: React.FC<{
+  pressed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+  className?: string;
+}> = ({ pressed, onToggle, children, disabled, className = '' }) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    aria-pressed={pressed}
+    disabled={disabled}
+    className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${pressed ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${className}`}
+  >
+    {children}
+  </button>
+);
+
+/**
  * Slimmed modal header: always-visible X + centered title + optional pinned
  * action cluster (primary + utilities), with an optional collapsing region
  * below (`children`). Replaces the per-modal header div + the footer.

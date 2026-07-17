@@ -21,7 +21,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -1364,17 +1364,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 />
               </div>
 
-              {/* Not Played Yet Checkbox */}
+              {/* Not Played Yet toggle */}
               <div className="mb-4">
-                <label className="inline-flex items-center text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={!isPlayed}
-                    onChange={(e) => setIsPlayed(!e.target.checked)}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="ml-2">{t('newGameSetupModal.unplayedToggle', 'Not played yet')}</span>
-                </label>
+                <ModalToggleButton pressed={!isPlayed} onToggle={() => setIsPlayed(v => !v)}>
+                  {t('newGameSetupModal.unplayedToggle', 'Not played yet')}
+                </ModalToggleButton>
               </div>
             </div>
           </div>

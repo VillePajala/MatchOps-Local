@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { CollapsibleModalHeader, ModalStickyPrimary, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Team, Player, Tournament, Season } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
@@ -725,17 +725,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     </div>
 
                     {/* Archived */}
-                    <div>
-                      <label className="text-slate-200 text-sm flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={archived}
-                          onChange={(e) => setArchived(e.target.checked)}
-                          className="form-checkbox h-4 w-4 text-indigo-600 rounded"
-                        />
-                        {t('teamDetailsModal.archivedLabel', 'Archived')}
-                      </label>
-                    </div>
+                    <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>
+                      {t('teamDetailsModal.archivedLabel', 'Archived')}
+                    </ModalToggleButton>
 
                     {/* Tournament & Season Placements Section */}
                     {teamId && (teamHistory.tournaments.length > 0 || teamHistory.seasons.length > 0) && (

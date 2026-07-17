@@ -661,7 +661,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               type="button"
               onClick={() => setShowUnplayedOnly(v => !v)}
               aria-pressed={showUnplayedOnly}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+              className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                 showUnplayedOnly ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >

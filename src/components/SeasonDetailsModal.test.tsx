@@ -194,18 +194,19 @@ describe('SeasonDetailsModal', () => {
     expect(saveButton).toBeDisabled();
   });
 
-  it('handles archived checkbox toggle', async () => {
+  it('handles archived toggle', async () => {
     const user = userEvent.setup();
 
     await act(async () => {
       renderWithProviders();
     });
 
-    const archivedCheckbox = screen.getByRole('checkbox', { name: i18n.t('seasonDetailsModal.archivedLabel', 'Archived') });
-    expect(archivedCheckbox).not.toBeChecked();
+    // The archived setting is a house-style toggle button (aria-pressed), not a checkbox.
+    const archivedToggle = screen.getByRole('button', { name: i18n.t('seasonDetailsModal.archivedLabel', 'Archived') });
+    expect(archivedToggle).toHaveAttribute('aria-pressed', 'false');
 
-    await user.click(archivedCheckbox);
-    expect(archivedCheckbox).toBeChecked();
+    await user.click(archivedToggle);
+    expect(archivedToggle).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('handles date inputs correctly', async () => {
