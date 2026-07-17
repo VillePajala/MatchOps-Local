@@ -66,10 +66,20 @@ export default function Home() {
   // live game; when the OS recreates the WebView with the match on screen
   // but the clock not running, the user used to land on Home. This session
   // marker records "the match was the visible view" and boot re-enters it.
+  const prevScreenRef = useRef<'start' | 'home' | null>(null);
   useEffect(() => {
+    const prev = prevScreenRef.current;
+    prevScreenRef.current = screen;
     try {
-      if (screen === 'home') sessionStorage.setItem('matchops_was_in_match', '1');
-      else sessionStorage.removeItem('matchops_was_in_match');
+      if (screen === 'home') {
+        sessionStorage.setItem('matchops_was_in_match', '1');
+      } else if (prev === 'home') {
+        // Deep-review fix: clear ONLY on a real match->Home exit. The old
+        // unconditional else cleared the marker on the very first mount
+        // (screen starts as 'start'), before boot could read it - making
+        // the whole restore-the-view feature dead code.
+        sessionStorage.removeItem('matchops_was_in_match');
+      }
     } catch {
       // sessionStorage unavailable - resume falls back to the live-game rule.
     }
@@ -194,7 +204,10 @@ export default function Home() {
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
-  const isFirstTimeUser = !hasPlayers || !hasSavedGames;
+  // Deep-review fix: first-time mode only when TRULY empty - a coach with a
+  // roster but no saved game (or who deleted them) must still reach the
+  // Joukkue/Kaudet/Tilastot tabs; the || form locked them out of Home.
+  const isFirstTimeUser = !hasPlayers && !hasSavedGames;
 
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
@@ -249,7 +262,10 @@ export default function Home() {
       }
 
       // Check if user has any saved games
-      setHasSavedGames(Object.keys(games).length > 0);
+      // Deep-review fix: the scratch workspace (unsaved_game) is not a saved
+      // game - counting it enabled stats rows and flipped first-time mode
+      // on a phantom.
+      setHasSavedGames(Object.keys(games).filter(id => id !== 'unsaved_game').length > 0);
 
       // Check if user has any players in roster
       // CRITICAL: Pass userId for user-scoped storage (cloud mode)
@@ -552,6 +568,20 @@ export default function Home() {
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
 
+  // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
+  // hasSavedGames, first-time mode, setup card) were computed once at boot;
+  // returning via Koti showed the BOOT-time Home - most visibly, a brand-new
+  // user's first game left Home in first-time mode until a reload. Re-check
+  // whenever the user lands back on the start screen after a match.
+  const hasVisitedMatchRef = useRef(false);
+  useEffect(() => {
+    if (screen === 'home') {
+      hasVisitedMatchRef.current = true;
+    } else if (hasVisitedMatchRef.current) {
+      void checkAppState();
+    }
+  }, [screen, checkAppState]);
+
   // Reset state when user signs out
   // This ensures the loading screen and start screen show again on next sign-in
   useEffect(() => {
@@ -833,22 +863,41 @@ export default function Home() {
           // otherwise fall through to the cloud-hydration path.
           const { getLocalDataSummary } = await import('@/services/migrationService');
           const summary = await getLocalDataSummary().catch(() => null);
-          const migratableCount = summary
-            ? Object.values(summary).reduce((acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0)
-            : 0;
-          if (summary && migratableCount > 0) {
+          if (summary === null) {
+            // M8: a failed anonymous-store read must not silently decide
+            // anything - same treatment as the local-data check failing:
+            // tell the user, allow retry, set no flag.
+            logger.warn('[page.tsx] Migratable-count summary read failed - will retry');
+            showToast(
+              t('page.couldNotCheckLocalData', 'Could not check for local data. Please refresh the page to try again.'),
+              'info'
+            );
+            migrationCheckInitiatedRef.current = false;
+            setPostLoginCheckComplete(true);
+            return;
+          }
+          const migratableCount = Object.values(summary).reduce(
+            (acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0);
+          if (migratableCount > 0) {
             logger.info('[page.tsx] Local data found, showing migration wizard');
             setShowMigrationWizard(true);
             // Mark post-login check complete - wizard handles its own loading
             setPostLoginCheckComplete(true);
-          } else {
-            logger.info('[page.tsx] Local store hit was already-synced user data (nothing migratable) - skipping wizard');
-            setPostLoginCheckComplete(true);
+            return;
           }
+          // Deep-review B1: the skip branch must still run the cloud check -
+          // sync is push-only, so this hydration is the ONLY cloud->local
+          // pull. Skipping it here (and never re-setting the migration flag)
+          // left a device permanently blind to changes made elsewhere after
+          // a sign-out. Hydration is merge-safe (skips entities whose local
+          // version is newer), so falling through with a synced local cache
+          // is correct.
+          logger.info('[page.tsx] Local store hit was already-synced user data (nothing migratable) - running cloud check instead of the wizard');
         } else {
           // No local data - check if cloud has data that needs to be loaded
           logger.info('[page.tsx] No local data, checking if cloud has data...');
-
+        }
+        {
           const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {

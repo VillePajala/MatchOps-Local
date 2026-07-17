@@ -34,13 +34,16 @@ import type { SavedGamesCollection } from '@/types';
 const DEFAULT_SUB_INTERVAL_MINUTES = 5;
 
 export interface UseNewGameSetupControllerArgs {
+  /** Flush the LIVE match's pending autosave before the crossing (see
+   *  useLoadGameController - same rationale). */
+  flushLiveMatch?: () => Promise<void>;
   /** The page's level-crossing: the game is persisted as current - close the
    *  modal and freshly mount the match view (which boots it). NOT called when
    *  creation was blocked (premium limit) or the save failed. */
   onGameCreated: (gameId: string) => void;
 }
 
-export function useNewGameSetupController({ onGameCreated }: UseNewGameSetupControllerArgs) {
+export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: UseNewGameSetupControllerArgs) {
   const { t } = useTranslation();
   const { userId } = useDataStore();
   const { showToast } = useToast();
@@ -101,6 +104,7 @@ export function useNewGameSetupController({ onGameCreated }: UseNewGameSetupCont
       if (createInFlightRef.current) return;
       createInFlightRef.current = true;
       try {
+        await flushLiveMatch?.().catch(() => undefined);
         const result = await buildAndPersistNewGame(
           {
             availablePlayers: masterRoster,

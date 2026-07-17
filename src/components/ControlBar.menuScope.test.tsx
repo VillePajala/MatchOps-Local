@@ -28,6 +28,9 @@ import ControlBar from './ControlBar';
 const noop = () => {};
 const onOpenTeamStats = jest.fn();
 const onGoToStartScreen = jest.fn();
+const onOpenPlanner = jest.fn();
+const onOpenTraining = jest.fn();
+const onOpenRules = jest.fn();
 
 const renderBar = () =>
   render(
@@ -60,6 +63,9 @@ const renderBar = () =>
       isGameLoaded={true}
       onOpenPlayerAssessmentModal={noop}
       onOpenTeamStats={onOpenTeamStats}
+      onOpenPlanner={onOpenPlanner}
+      onOpenTraining={onOpenTraining}
+      onOpenRules={onOpenRules}
       onGoToStartScreen={onGoToStartScreen}
     />,
   );
@@ -79,7 +85,7 @@ describe('ControlBar menu - match scope only (restructure 3.1)', () => {
 
   it('holds exactly the match-scope items plus Taso and Home', () => {
     const match = within(section('This match'));
-    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', 'Match stats', /Team stats/]) {
+    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', /Team stats/]) {
       expect(match.getByRole('button', { name: item })).toBeInTheDocument();
     }
     // Taso is the one external link that stays: game-day workflow tool.
@@ -88,17 +94,19 @@ describe('ControlBar menu - match scope only (restructure 3.1)', () => {
     expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
   });
 
-  it('every club/app entry left the menu (they live on Home now)', () => {
+  it('the game-day re-additions render and route (W10/R6) - the rest stayed gone', () => {
+    // Restored on proven friction: planner + the two reference materials.
+    expect(screen.getByRole('button', { name: /Match planner/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Warmup Plan' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rules' })).toBeInTheDocument();
     for (const gone of [
       'Load Game...',
       'Start New Game',
-      'Match planner',
+      'Match stats',
       'All Players',
       'Teams',
       'Personnel Manager',
       'Competitions',
-      'Warmup Plan',
-      'Rules',
       'Backup & Restore',
       'App Settings',
       'Sign Out',

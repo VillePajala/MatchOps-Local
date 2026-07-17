@@ -116,6 +116,13 @@ interface GameStatsModalProps {
    * so the current-game props are neutral placeholders there.
    */
   aggregateOnly?: boolean;
+  /**
+   * Match-side surface (deep-review B2): current-game tab ONLY. The
+   * aggregate tabs live on the club-stats surface ("Joukkueen tilastot ->"
+   * in the menu / Home Tilastot); duplicating them here kept the RETIRED
+   * in-place game switch reachable through the aggregate game log.
+   */
+  currentGameOnly?: boolean;
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -153,6 +160,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   initialTab,
   onGameClick = NOOP,
   aggregateOnly = false,
+  currentGameOnly = false,
   masterRoster = [],
   onOpenSettings,
   onOpenGameSettings,
@@ -727,6 +735,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 {t('gameStatsModal.tabs.currentGame')}
               </button>
             )}
+            {!currentGameOnly && (<>
             <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
               {t('gameStatsModal.tabs.season')}
             </button>
@@ -739,6 +748,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
               {t('gameStatsModal.tabs.player', 'Player')}
             </button>
+            </>)}
               </div>
             </div>
           </div>

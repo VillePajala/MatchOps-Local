@@ -217,9 +217,6 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
     handlers: {
       handleUpdateGameEvent: overrides?.handlers?.handleUpdateGameEvent ?? jest.fn(),
       handleExportOneExcel: overrides?.handlers?.handleExportOneExcel ?? jest.fn(),
-      handleExportAggregateExcel: overrides?.handlers?.handleExportAggregateExcel ?? jest.fn(),
-      handleExportPlayerExcel: overrides?.handlers?.handleExportPlayerExcel ?? jest.fn(),
-      handleGameLogClick: overrides?.handlers?.handleGameLogClick ?? jest.fn(),
       handleExportOneJson: overrides?.handlers?.handleExportOneJson ?? jest.fn(),
       handleTeamNameChange: overrides?.handlers?.handleTeamNameChange ?? jest.fn(),
       handleOpponentNameChange: overrides?.handlers?.handleOpponentNameChange ?? jest.fn(),
@@ -511,7 +508,6 @@ describe('useModalOrchestration', () => {
       expect(handlers.exportOneExcel).toBe(props.handlers.handleExportOneExcel);
       // loadGame/deleteGame lifted to useLoadGameController (L.3a);
       // startNewGameWithSetup lifted to useNewGameSetupController (L.3b)
-      expect(handlers.gameLogClick).toBe(props.handlers.handleGameLogClick);
     });
   });
 

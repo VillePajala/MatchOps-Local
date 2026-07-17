@@ -2014,28 +2014,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- AGGREGATE EXPORT HANDLERS ---
 
-  // Excel export wrappers shared with the host-level club-stats surface
-  // (L.4): one implementation in utils/exportGames, two call sites.
-  const handleExportAggregateExcel = useCallback(
-    (gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) =>
-      exportAggregateStatsExcel(
-        { savedGames, seasons: gameDataManagement.seasons, tournaments: gameDataManagement.tournaments, showToast, t, userId },
-        gameIds,
-        aggregateStats,
-      ),
-    [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, showToast, t, userId],
-  );
-
-  const handleExportPlayerExcel = useCallback(
-    (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) =>
-      exportPlayerStatsExcel(
-        { savedGames, seasons: gameDataManagement.seasons, tournaments: gameDataManagement.tournaments, showToast, t, userId },
-        playerId,
-        playerData,
-        gameIds,
-      ),
-    [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, showToast, t, userId],
-  );
+  // Aggregate/player Excel exports + the game-log click moved WHOLLY to the
+  // club-stats surface (deep-review B2): the match stats modal is current-
+  // game-only now, so the match tree no longer wires them.
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
@@ -2079,11 +2060,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // shared selectedPlayerForStats deep-link in ModalProvider.
 
 
-  const handleGameLogClick = useCallback((gameId: string) => {
-    setCurrentGameId(gameId);
-    // handleClosePlayerStats(); // This function no longer exists
-    setIsGameStatsModalOpen(prev => !prev); // handleToggleGameStatsModal moved to useModalOrchestration
-  }, [setIsGameStatsModalOpen]);
+  // handleGameLogClick DELETED (deep-review B2): it was the retired
+  // in-place game switch (raw setCurrentGameId - no timer hygiene, no
+  // persist, no cache invalidation) surviving inside the match stats
+  // modal's aggregate game log. Game rows live on the club-stats surface,
+  // which routes through the LoadGame level crossing.
 
   // Memoize fieldInteractions with explicit handler dependencies.
   // All handlers are useCallback-wrapped in useFieldCoordination, so they're stable.
@@ -2317,9 +2298,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     handlers: {
       handleUpdateGameEvent,
       handleExportOneExcel,
-      handleExportAggregateExcel,
-      handleExportPlayerExcel,
-      handleGameLogClick,
       handleExportOneJson,
       handleTeamNameChange,
       handleOpponentNameChange,

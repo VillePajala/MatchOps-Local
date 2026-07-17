@@ -40,6 +40,10 @@ import type { SavedGamesCollection } from '@/types';
 import logger from '@/utils/logger';
 
 export interface UseLoadGameControllerArgs {
+  /** Flush the LIVE match's pending autosave before the crossing persists a
+   *  new current id (deep-review: last-moment edits land under the OLD game
+   *  before the switch; no-op from Home where no match is mounted). */
+  flushLiveMatch?: () => Promise<void>;
   /** The page's level-crossing: freshly mount the match view (which boots
    *  the persisted current game). Called AFTER the picked id is persisted. */
   onEnterMatch: () => void;
@@ -48,7 +52,7 @@ export interface UseLoadGameControllerArgs {
   onActiveGameDeleted?: () => void;
 }
 
-export function useLoadGameController({ onEnterMatch, onActiveGameDeleted }: UseLoadGameControllerArgs) {
+export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flushLiveMatch }: UseLoadGameControllerArgs) {
   const { t } = useTranslation();
   const { userId } = useDataStore();
   const { showToast } = useToast();
@@ -102,15 +106,19 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted }: Use
       setIsGameLoading(true);
       setGameLoadError(null);
       try {
-        // Same pre-switch hygiene as the match-side loader: stale timer state
-        // or a wall-clock anchor from the previous game must not replay onto
-        // the newly opened one.
-        await clearTimerState(userId);
-        clearTimerAnchor();
+        // Land any last-moment edits of the still-mounted match under the
+        // OLD game before we repoint the current id (best-effort).
+        await flushLiveMatch?.().catch(() => undefined);
         await utilSaveCurrentGameIdSetting(gameId, userId);
         await queryClient.invalidateQueries({
           queryKey: [...queryKeys.appSettingsCurrentGameId, userId],
         });
+        // Pre-switch hygiene AFTER the persist is known good (M6): stale
+        // timer state or a wall-clock anchor from the previous game must not
+        // replay onto the newly opened one - but a failed persist must not
+        // cost the STILL-CURRENT game its crash-recovery records.
+        await clearTimerState(userId);
+        clearTimerAnchor();
         onEnterMatch();
       } catch (error) {
         logger.error('[useLoadGameController] Failed to open game:', error);

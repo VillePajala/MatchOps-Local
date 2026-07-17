@@ -132,7 +132,13 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   const personnelManager = usePersonnelManager();
   const rosterSettings = useRosterSettingsController();
   const { data: teams = [] } = useTeamsQuery();
+  // The match registers this while mounted (L.3c hooks) - the crossings
+  // reuse it to land pending edits before switching games.
+  const flushLiveMatch = plannerLiveGameHooks
+    ? async () => { await plannerLiveGameHooks.onFlushLiveGame(); }
+    : undefined;
   const loadGame = useLoadGameController({
+    flushLiveMatch,
     onEnterMatch: () => {
       // Fires only on a SUCCESSFUL load: close whichever surface initiated
       // it (the LoadGame modal or the club-stats game log) - a failed pick
@@ -146,6 +152,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   });
   const clubStats = useClubStatsController();
   const newGameSetup = useNewGameSetupController({
+    flushLiveMatch,
     onGameCreated: () => {
       setIsNewGameSetupModalOpen(false);
       setPlayerIdsForNewGame(null);

@@ -150,6 +150,11 @@ export const useAutoSave = ({
 
   // Debounce timers for short and long tiers
   const shortTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Deep-review: a pending debounce at UNMOUNT used to be silently
+  // cancelled - since 3.1 the match unmounts on every exit (Home button,
+  // hardware back, enterMatch remount), so a change made in the last
+  // 500/2000ms was lost. Tracked here so the unmount cleanup can flush it.
+  const pendingSaveRef = useRef(false);
   const longTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Always-current refs to prevent stale closures in timer callbacks
@@ -254,7 +259,9 @@ export const useAutoSave = ({
         clearTimeout(shortTimerRef.current);
       }
 
+      pendingSaveRef.current = true;
       shortTimerRef.current = setTimeout(async () => {
+        pendingSaveRef.current = false;
         if (enabledRef.current && !cancelled) {
           logger.debug(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
 
@@ -312,7 +319,9 @@ export const useAutoSave = ({
         clearTimeout(longTimerRef.current);
       }
 
+      pendingSaveRef.current = true;
       longTimerRef.current = setTimeout(async () => {
+        pendingSaveRef.current = false;
         if (enabledRef.current && !cancelled) {
           logger.debug(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
 
@@ -358,6 +367,14 @@ export const useAutoSave = ({
       }
       if (longTimerRef.current) {
         clearTimeout(longTimerRef.current);
+      }
+      // Deep-review: FLUSH (don't drop) a pending debounce - "autosave makes
+      // leaving safe" must hold for the 3.1 exits. Fire-and-forget: the save
+      // fn's own guards (existence check, no current-id write on silent
+      // saves) make a post-crossing flush harmless.
+      if (pendingSaveRef.current && enabledRef.current) {
+        pendingSaveRef.current = false;
+        void saveFunctionRef.current();
       }
     };
   }, []);

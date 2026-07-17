@@ -77,9 +77,6 @@ export interface ModalUIState {
 export interface ModalHandlers {
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
   handleExportOneExcel: (gameId: string) => void;
-  handleExportAggregateExcel: (gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => void;
-  handleExportPlayerExcel: (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => Promise<void>;
-  handleGameLogClick: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
   // New-game handlers LIFTED to useNewGameSetupController (L.3b).
   // Roster modal handlers LIFTED to useRosterSettingsController (L.2).
@@ -188,9 +185,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   const {
     handleUpdateGameEvent,
     handleExportOneExcel,
-    handleExportAggregateExcel,
-    handleExportPlayerExcel,
-    handleGameLogClick,
     handleExportOneJson,
     handleTeamNameChange,
     handleOpponentNameChange,
@@ -397,9 +391,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       deleteGameEvent: persistence.handleDeleteGameEvent,
       toggleGameStatsModal: handleToggleGameStatsModal,
       exportOneExcel: handleExportOneExcel,
-      exportAggregateExcel: handleExportAggregateExcel,
-      exportPlayerExcel: handleExportPlayerExcel,
-      gameLogClick: handleGameLogClick,
       exportOneJson: handleExportOneJson,
       closeGameSettingsModal: handleCloseGameSettingsModal,
       teamNameChange: handleTeamNameChange,
