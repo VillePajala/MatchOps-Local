@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import packageJson from '../../package.json';
 import {
   HiOutlineSquares2X2,
@@ -43,11 +43,13 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
         <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
 
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-            {t('instructionsModal.title')}
-          </h2>
-        </div>
+        {/* Chrome slimming: X-header replaces the header + close-only footer;
+            the version moves to the end of the content. */}
+        <CollapsibleModalHeader
+          title={t('instructionsModal.title')}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+        />
 
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6">
           {/* Base: Use First Game Guide content */}
@@ -172,16 +174,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
               </ul>
             </div>
           </section>
-        </div>
 
-        <ModalFooter>
-          <div className="flex flex-col items-center gap-2 w-full">
-            <button onClick={onClose} className={primaryButtonStyle}>
-              {t('common.doneButton', 'Done')}
-            </button>
-            <span className="text-xs text-slate-500">v{packageJson.version}</span>
-          </div>
-        </ModalFooter>
+          <p className="text-xs text-slate-500 text-center pt-2">v{packageJson.version}</p>
+        </div>
       </div>
     </div>
   );

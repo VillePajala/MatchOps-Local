@@ -13,7 +13,7 @@ import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 // backendConfig import removed — migration flag is now handled entirely by importFullBackup
 import { useAuth } from '@/contexts/AuthProvider';
-import { ModalFooter, modalContainerStyle, primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader, modalContainerStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
@@ -134,6 +134,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const headerCollapse = useCollapsingHeader();
+  // Switching tabs reveals the collapsed tab strip again.
+  useEffect(() => { headerCollapse.reset(); }, [activeTab, headerCollapse]);
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isDownloadingCloudData, setIsDownloadingCloudData] = useState(false);
@@ -554,8 +557,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
   };
 
-  const titleStyle =
-    'text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg';
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
   const inputStyle =
     'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
@@ -607,12 +608,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col h-full">
-          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-            <h2 className={titleStyle}>{t('settingsModal.title', 'App Settings')}</h2>
-          </div>
-
+          {/* Chrome slimming: X-header + collapsing tab strip; close-only
+              footer removed. */}
+          <CollapsibleModalHeader
+            title={t('settingsModal.title', 'App Settings')}
+            onClose={onClose}
+            closeLabel={t('settingsModal.doneButton', 'Done')}
+            collapse={headerCollapse}
+          >
           {/* Tab Navigation */}
-          <div className="flex w-full gap-2 px-6 py-3 bg-slate-900/50 border-b border-slate-700/30 flex-shrink-0">
+          <div className="flex w-full gap-2 px-6 py-3 bg-slate-900/50 flex-shrink-0">
             <button onClick={() => setActiveTab('general')} className={`${getTabStyle('general')} flex-1`} aria-pressed={activeTab === 'general'}>
               {t('settingsModal.tabs.general', 'General')}
             </button>
@@ -626,8 +631,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               {t('settingsModal.tabs.about', 'About')}
             </button>
           </div>
+          </CollapsibleModalHeader>
 
-          <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4 space-y-4" onScroll={headerCollapse.onScroll}>
             {/* General Tab - App preferences and season settings */}
             {activeTab === 'general' && (
             <>
@@ -1268,11 +1274,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             )}
           </div>
-          <ModalFooter>
-            <button onClick={onClose} className={primaryButtonStyle}>
-              {t('settingsModal.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
 

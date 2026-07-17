@@ -162,7 +162,7 @@ describe('RulesDirectoryModal', () => {
     // Get all link buttons (4 total)
     const allButtons = screen.getAllByRole('button');
     // Filter to get only link buttons (not the Done button)
-    const linkButtons = allButtons.filter(btn => btn.textContent !== 'Done');
+    const linkButtons = allButtons.filter(btn => btn.getAttribute('aria-label') !== 'Done');
 
     expect(linkButtons).toHaveLength(4);
 

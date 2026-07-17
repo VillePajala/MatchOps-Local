@@ -258,6 +258,31 @@ export function useCollapsingHeader(): CollapsingHeaderController {
 export const modalCloseButtonStyle =
   "hidden sm:flex items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
 
+// Sticky single-primary bottom bar (owner decision 2026-07-17): the ONE
+// commit action for a form/wizard modal, pinned and thumb-reachable -
+// replaces the old Cancel+Save footer (Cancel is the header X / hardware
+// back). Utilities do NOT live here; they go inline by their content.
+export const modalStickyBarStyle =
+  "flex-shrink-0 px-4 py-3 border-t border-slate-700/30 bg-slate-800/60 backdrop-blur-sm";
+
+export const ModalStickyPrimary: React.FC<{
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ onClick, disabled, children, className = '' }) => (
+  <div className={`${modalStickyBarStyle} ${className}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full py-3 rounded-md text-base font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {children}
+    </button>
+  </div>
+);
+
 /**
  * Slimmed modal header: always-visible X + centered title + optional pinned
  * action cluster (primary + utilities), with an optional collapsing region
