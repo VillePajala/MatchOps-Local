@@ -14,7 +14,6 @@ const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
 import type {
   Player,
   GameEvent,
-  PlayerStatRow,
   SavedGamesCollection,
   Season,
   Tournament,

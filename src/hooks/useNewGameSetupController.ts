@@ -165,7 +165,7 @@ export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: Use
         createInFlightRef.current = false;
       }
     },
-    [masterRoster, savedGames, queryClient, showToast, t, canCreate, showUpgradePrompt, userId, onGameCreated],
+    [masterRoster, savedGames, queryClient, showToast, t, canCreate, showUpgradePrompt, userId, onGameCreated, flushLiveMatch],
   );
 
   // Cancel/close housekeeping (the host also clears the shared prefill and

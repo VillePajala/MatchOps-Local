@@ -32,7 +32,7 @@ import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
 import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
-import { exportJson, exportAggregateStatsExcel, exportPlayerStatsExcel } from '@/utils/exportGames';
+import { exportJson } from '@/utils/exportGames';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';

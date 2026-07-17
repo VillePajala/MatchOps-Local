@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useMemo, useRef, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useRef, useReducer, useCallback, useEffect } from 'react';
 import { initialModalState, modalReducer } from './modalReducer';
+import { isHandlingHardwareBack } from '@/hooks/useModalHardwareBack';
 import type { Player } from '@/types';
 
 /** Live-match hooks for the host-level planner (L.3c). Registered by the
@@ -117,6 +118,15 @@ export const ModalProvider = ({ children, currentUserId }: {
   // the match stats setter they mutually exclude against).
   const [clubStatsOpen, setClubStatsOpen] = useState(false);
   const [clubStatsInitialTab, setClubStatsInitialTab] = useState<StatsTab | undefined>(undefined);
+  // Deep-review Minor 7: whenever club stats is CLOSED - by the host
+  // handler, the mutual exclusion, or the user-change reset - the player
+  // deep-link must not linger for the next open. Adjust-during-render
+  // pattern (sanctioned setState-during-own-render).
+  const [prevClubStatsOpen, setPrevClubStatsOpen] = useState(clubStatsOpen);
+  if (prevClubStatsOpen !== clubStatsOpen) {
+    setPrevClubStatsOpen(clubStatsOpen);
+    if (!clubStatsOpen) setSelectedPlayerForStats(null);
+  }
 
   // Sign-out closes the planner (mirrors the retired PLANNER_OPEN_KEY cleanup
   // in page.tsx): without this, an open planner would auto-reopen over Home
@@ -164,7 +174,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     }
 
     if (!next && prev) {
-      if (now - loadGameLastOpenRef.current < ANTI_FLASH_MS) {
+      if (!isHandlingHardwareBack() && now - loadGameLastOpenRef.current < ANTI_FLASH_MS) {
         return;
       }
       loadGameOpenRef.current = false;
@@ -188,7 +198,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     }
 
     if (!next && prev) {
-      if (now - newGameLastOpenRef.current < ANTI_FLASH_MS) {
+      if (!isHandlingHardwareBack() && now - newGameLastOpenRef.current < ANTI_FLASH_MS) {
         return;
       }
       newGameSetupOpenRef.current = false;
@@ -234,6 +244,10 @@ export const ModalProvider = ({ children, currentUserId }: {
       ? (valueOrUpdater as (prev: boolean) => boolean)(prev)
       : valueOrUpdater;
     if (next && !prev) {
+       
+      // (same pattern as every guarded setter here): written at EVENT time,
+      // never read during render; the compiler flags it only because this
+      // callback also calls sibling state setters for the exclusion below.
       gameStatsOpenRef.current = true;
       // Mutual exclusion with the club-stats surface: both are mounts of
       // GameStatsModal at the same z-index, so opening one closes the other
@@ -253,6 +267,12 @@ export const ModalProvider = ({ children, currentUserId }: {
   // setIsGameStatsModalOpen(false) for the mutual exclusion (both surfaces
   // are GameStatsModal mounts at the same z-index).
   const setIsClubStatsOpen = useCallback<React.Dispatch<React.SetStateAction<boolean>>>((valueOrUpdater) => {
+    // Q6 symmetry: opening through the RAW setter excludes the match stats
+    // modal too, so the invariant is not caller-convention-only.
+    const opening = typeof valueOrUpdater === 'function' ? undefined : valueOrUpdater === true;
+    if (opening) {
+      setIsGameStatsModalOpen(false);
+    }
     setClubStatsOpen((prev) => {
       const next = typeof valueOrUpdater === 'function'
         ? (valueOrUpdater as (p: boolean) => boolean)(prev)
@@ -260,12 +280,36 @@ export const ModalProvider = ({ children, currentUserId }: {
       if (!next && prev) setClubStatsInitialTab(undefined); // reset tab on close
       return next;
     });
-  }, []);
+  }, [setIsGameStatsModalOpen]);
   const openClubStatsToTab = useCallback((tab: StatsTab) => {
     setIsGameStatsModalOpen(false);
     setClubStatsInitialTab(tab);
     setClubStatsOpen(true);
   }, [setIsGameStatsModalOpen]);
+
+  // Deep-review Issue 5: MATCH-scope transient state must not survive a
+  // user change - a session expiring mid-modal used to re-open that modal
+  // over the NEXT user's match with inverted back-stack order, and a stale
+  // prefill selection could seed a new game with another user's player ids.
+  // Declared after the guarded setters so it can route through them (no
+  // direct mirror-ref access - the compiler forbids mutating a ref an
+  // effect also reads).
+  const effectPrevUserRef = useRef(currentUserId);
+   
+  // must route through the guarded reducer-backed setter (mirror ref), which
+  // rules out the adjust-during-render form; fires at most once per user
+  // change via the ref gate, so no cascading renders.
+  useEffect(() => {
+    if (effectPrevUserRef.current === currentUserId) return;
+    effectPrevUserRef.current = currentUserId;
+    setIsGameSettingsModalOpen(false);
+    setIsGoalLogModalOpen(false);
+    setIsPlayerAssessmentModalOpen(false);
+    setIsGameStatsModalOpen(false);
+    setPlayerIdsForNewGame(null);
+    setSelectedPlayerForStats(null);
+    setClubStatsOpen(false);
+  }, [currentUserId, setIsGameStatsModalOpen]);
 
   // Roster modal setter (no anti-flash guard needed)
   // Rationale: Triggered from static buttons (ControlBar CTAs),

@@ -125,7 +125,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
             <label className="flex items-center text-sm text-slate-300 hover:text-slate-200 cursor-pointer">
               <input
                 type="checkbox"
-                disabled={disabled}
+                disabled={disabled || isSubmittingAdd}
                 checked={availablePlayers.length === selectedPlayerIds.length}
                 onChange={() => {
                   if (selectedPlayerIds.length === availablePlayers.length) {
@@ -147,7 +147,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                 <label className="flex items-center flex-1 cursor-pointer">
                   <input
                     type="checkbox"
-                    disabled={disabled}
+                    disabled={disabled || isSubmittingAdd}
                     checked={selectedPlayerIds.includes(player.id)}
                     onChange={() => {
                       if (selectedPlayerIds.includes(player.id)) {

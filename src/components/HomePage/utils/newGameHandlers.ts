@@ -157,11 +157,13 @@ export async function buildAndPersistNewGame(
   // and make sure everyone left on the field stays selected.
   const availableIdSet = new Set(availablePlayersForGame.map((p) => p.id));
   const reconciledOnField = (prefill?.playersOnField ?? []).filter((p) => availableIdSet.has(p.id));
-  const reconciledSelectedPlayerIds = prefill
-    ? [...new Set([...finalSelectedPlayerIds, ...reconciledOnField.map((p) => p.id)])].filter((id) =>
-        availableIdSet.has(id),
-      )
-    : finalSelectedPlayerIds;
+  // Deep-review M7: reconcile the NON-prefill selection too - the full-club
+  // fallback (and any future caller) must not persist ids outside this
+  // game's roster (selectedPlayerIds ⊆ availablePlayers, always).
+  const reconciledSelectedPlayerIds = (prefill
+    ? [...new Set([...finalSelectedPlayerIds, ...reconciledOnField.map((p) => p.id)])]
+    : finalSelectedPlayerIds
+  ).filter((id) => availableIdSet.has(id));
 
   // Sentry breadcrumb: Game creation started
   const newGameId = `game_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -272,6 +274,16 @@ export async function buildAndPersistNewGame(
     }
   } catch (error) {
     logger.error('Error explicitly saving new game state:', error);
+    // Deep-review I5: if the game blob was already written before a later
+    // step failed, roll it back - otherwise an invisible orphan lingers in
+    // storage (uncounted by the premium check, duplicated on retry).
+    try {
+      const { deleteGame } = await import('@/utils/savedGames');
+      await deleteGame(newGameId, userId);
+      await queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
+    } catch (rollbackError) {
+      logger.warn('[NEW GAME] Orphan rollback failed (non-fatal):', rollbackError);
+    }
     showToast(
       t('newGameSetupModal.saveGameFailed', 'Failed to save the new game. Please try again.'),
       'error'

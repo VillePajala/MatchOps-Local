@@ -129,7 +129,7 @@ export function useLoadGameController({ onEnterMatch, onActiveGameDeleted, flush
         setProcessingGameId(null);
       }
     },
-    [savedGames, userId, queryClient, onEnterMatch, showToast, t],
+    [savedGames, userId, queryClient, onEnterMatch, showToast, t, flushLiveMatch],
   );
 
   const handleDeleteGame = useCallback(

@@ -26,6 +26,16 @@ const modalStack: StackEntry[] = [];
 let suppressedPops = 0;
 let sentinelPushed = false;
 let listenerAttached = false;
+let handlingHardwareBack = false;
+
+/** True while a popstate-driven close() is executing. ModalProvider's
+ *  anti-flash guards check this to NEVER swallow a hardware-back close -
+ *  a swallowed close leaves the modal open with its stack entry and
+ *  sentinel already consumed, so the next back exits the app underneath
+ *  an open modal (deep-review Issue 4). */
+export function isHandlingHardwareBack(): boolean {
+  return handlingHardwareBack;
+}
 
 function pushSentinel(): void {
   window.history.pushState({ liftedModal: true }, '');
@@ -41,7 +51,12 @@ function handleGlobalPop(): void {
   // The browser consumed our sentinel with this back press.
   sentinelPushed = false;
   const topmost = modalStack.pop();
-  topmost?.close();
+  handlingHardwareBack = true;
+  try {
+    topmost?.close();
+  } finally {
+    handlingHardwareBack = false;
+  }
   // Something is still open beneath - re-arm the guard so the NEXT back
   // press comes to us instead of leaving the app.
   if (modalStack.length > 0) {
