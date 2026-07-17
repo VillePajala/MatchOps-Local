@@ -15,8 +15,6 @@ import {
   HiChevronDown,
   HiChevronRight,
   HiOutlineArchiveBox,
-  HiOutlineArrowUturnLeft,
-  HiOutlineArrowUturnRight,
   HiOutlineDocumentDuplicate,
   HiOutlineEllipsisVertical,
   HiOutlinePencil,
@@ -604,37 +602,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       if (toSave) void persist(toSave);
     }, 600);
   }, [activePlan, persist]);
-
-  // Step through the snapshot stack WITHOUT pushing; the restored state persists
-  // through the same debounced autosave as a normal edit.
-  const applyHistory = useCallback(
-    (delta: -1 | 1) => {
-      const h = historyRef.current;
-      const ni = h.index + delta;
-      if (ni < 0 || ni >= h.stack.length) return;
-      h.index = ni;
-      const restored = h.stack[ni];
-      pendingEditRef.current = null; // restoring is not an edit
-      lastEditCoalescedRef.current = null;
-      setActivePlan(restored);
-      // The restored roster may lack currently-highlighted players (undo of a
-      // replace/remove) - prune, or the whole lineup ghost-dims with no cell
-      // left to un-toggle.
-      setHighlightPlayerIds((prev) => prev.filter((id) => restored.players.some((pl) => pl.id === id)));
-      dirtyPlanRef.current = restored;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        saveTimerRef.current = null;
-        const pending = dirtyPlanRef.current;
-        dirtyPlanRef.current = null;
-        if (pending) void persist(pending);
-      }, 600);
-      setHistoryTick((t) => t + 1);
-    },
-    [persist],
-  );
-  const canUndo = historyRef.current.index > 0;
-  const canRedo = historyRef.current.index < historyRef.current.stack.length - 1;
 
   // Horizontal swipe on the lineup flips to the previous/next game (standalone
   // heuristic: >60px, clearly more horizontal than vertical, <700ms). Complements
@@ -1488,8 +1455,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // plan. Hidden on phones that have gesture/hardware back (desktop pointer /
   // iOS standalone only), where stepping hardware-back covers navigation.
   const showClose = useModalCloseVisible();
-  // Whether an inline "Back to manager" step is available on the current view.
-  const showInlineBack = isPlanTab(view) || (view === 'setup' && planList.length > 0);
 
   // Open a plan from the manager (re-opening the already-loaded plan is instant).
   const handleOpenPlan = useCallback(
@@ -1590,6 +1555,34 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         <HiOutlineXMark className="w-6 h-6" />
       </button>
 
+      {/* Games-tab layout toggle (single <-> side-by-side): a floating action
+          button in the bottom-right, so it costs no layout row and stays put
+          while the lineup scrolls. Only when the plan has more than one game. */}
+      {view === 'games' && activePlan && activePlan.games.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
+          aria-pressed={gamesLayout === 'grid'}
+          aria-label={
+            gamesLayout === 'single'
+              ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+              : t('playtimePlanner.lineup.viewSingle', 'Single game')
+          }
+          title={
+            gamesLayout === 'single'
+              ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+              : t('playtimePlanner.lineup.viewSingle', 'Single game')
+          }
+          className={`absolute bottom-4 right-4 z-20 p-3 rounded-full shadow-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+            gamesLayout === 'grid'
+              ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+              : 'bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600'
+          }`}
+        >
+          <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
+        </button>
+      )}
+
       {/* Header names what's on screen: tool name outside a plan; the ACTIVE
           GAME (tap-editable) on the single-game surface; the plan name
           (tap-editable on the plan tab) everywhere else in an open plan. */}
@@ -1635,12 +1628,21 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         <ModalHeader title={t('playtimePlanner.title', 'Match planner')} />
       )}
 
-      {/* House pattern (TeamManager/RosterSettings): create-new is a full-width
-          primary button PINNED under the header, not buried in the scroll. */}
+      {/* House pattern (TeamManager/RosterSettings): create-new is pinned under
+          the header, not buried in the scroll. Import JSON sits beside it (its
+          former top-of-content spot didn't work) - New plan stays the primary,
+          Import is the secondary. */}
       {view === 'manager' && (
-        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
+        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0 flex gap-2">
+          <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} flex-1`}>
             {t('playtimePlanner.manager.new', 'New plan')}
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={secondaryButtonStyle}
+          >
+            {t('playtimePlanner.versions.import', 'Import JSON')}
           </button>
         </div>
       )}
@@ -1697,85 +1699,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       )}
 
       <ScrollableContent className="px-6 py-4" onScroll={handleContentScroll} data-testid="planner-scroll">
-        {/* Chrome slimming: the tab's utility actions now sit inline at the top
-            of its content (was the footer's left side) - "Back" to the manager,
-            Import JSON on the manager, Export JSON on the plan tab, undo/redo +
-            layout on the games tab. Full Close is the header X. */}
-        {(showInlineBack || view === 'manager') && (
-          <div className="flex items-center gap-1.5 mb-4">
-            {showInlineBack && (
-              <button
-                type="button"
-                onClick={goBackOneLevel}
-                className={`${secondaryButtonStyle} mr-auto`}
-              >
-                {t('playtimePlanner.lineup.back', 'Back')}
-              </button>
-            )}
-            {view === 'manager' && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={`${secondaryButtonStyle} min-w-[9rem]`}
-              >
-                {t('playtimePlanner.versions.import', 'Import JSON')}
-              </button>
-            )}
-            {view === 'plan' && activePlan && (
-              <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} min-w-[9rem]`}>
-                {t('playtimePlanner.versions.export', 'Export JSON')}
-              </button>
-            )}
-            {view === 'games' && activePlan && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => applyHistory(-1)}
-                  disabled={!canUndo}
-                  aria-label={t('controlBar.undo', 'Undo')}
-                  title={t('controlBar.undo', 'Undo')}
-                  className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                >
-                  <HiOutlineArrowUturnLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => applyHistory(1)}
-                  disabled={!canRedo}
-                  aria-label={t('controlBar.redo', 'Redo')}
-                  title={t('controlBar.redo', 'Redo')}
-                  className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                >
-                  <HiOutlineArrowUturnRight className="w-4 h-4" />
-                </button>
-                {activePlan.games.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
-                    aria-pressed={gamesLayout === 'grid'}
-                    aria-label={
-                      gamesLayout === 'single'
-                        ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-                        : t('playtimePlanner.lineup.viewSingle', 'Single game')
-                    }
-                    title={
-                      gamesLayout === 'single'
-                        ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-                        : t('playtimePlanner.lineup.viewSingle', 'Single game')
-                    }
-                    className={`p-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-                      gamesLayout === 'grid'
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-                        : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
-                    }`}
-                  >
-                    <HiOutlineSquares2X2 className="w-4 h-4" aria-hidden="true" />
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        )}
         {view === 'loading' && (
           <div className="flex flex-col items-center justify-center py-10 text-slate-400">
             <svg className="animate-spin h-8 w-8 mb-3 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -2336,6 +2259,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </button>
             </div>
 
+            {/* Export JSON: a rare utility, inline at the bottom of the Settings
+                tab (was the footer's left side). */}
+            <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} w-full`}>
+              {t('playtimePlanner.versions.export', 'Export JSON')}
+            </button>
           </div>
         )}
 
