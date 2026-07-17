@@ -385,7 +385,9 @@ describe('Translation File Validation', () => {
       // -2/+2 net 0: firstGameGuide.startNewGameTip/loadGameTip retired (the
       //     3.1 menu shrink moved those actions Home; final-PR review catch)
       //     -> assessPlayersTip/backHomeTip describe the menu that exists
-      expect(enKeys.length).toBe(2825);
+      // +1: gameSettingsModal.addToClubRosterNickname (walkthrough W1: the
+      //     disc shows the nickname - the inline add must capture it)
+      expect(enKeys.length).toBe(2826);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -489,7 +491,9 @@ describe('Translation File Validation', () => {
       // -2/+2 net 0: firstGameGuide.startNewGameTip/loadGameTip retired (the
       //     3.1 menu shrink moved those actions Home; final-PR review catch)
       //     -> assessPlayersTip/backHomeTip describe the menu that exists
-      expect(fiKeys.length).toBe(2825);
+      // +1: gameSettingsModal.addToClubRosterNickname (walkthrough W1: the
+      //     disc shows the nickname - the inline add must capture it)
+      expect(fiKeys.length).toBe(2826);
     });
   });
 });

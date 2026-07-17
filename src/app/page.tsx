@@ -808,12 +808,26 @@ export default function Home() {
           // Mark post-login check complete even on failure (user can use app)
           setPostLoginCheckComplete(true);
         } else if (result.hasData) {
-          // Local data found - show simplified migration wizard
-          // (No need to fetch cloud counts - wizard always uses merge mode)
-          logger.info('[page.tsx] Local data found, showing migration wizard');
-          setShowMigrationWizard(true);
-          // Mark post-login check complete - wizard handles its own loading
-          setPostLoginCheckComplete(true);
+          // W11 guard: the gate reads the USER-scoped local store, which
+          // after a sign-out still holds this user's own already-synced
+          // local-first cache - but the wizard MIGRATES the anonymous
+          // (local-mode) store and previews ITS counts. Offer the wizard
+          // only when the store it would migrate actually has something;
+          // otherwise fall through to the cloud-hydration path.
+          const { getLocalDataSummary } = await import('@/services/migrationService');
+          const summary = await getLocalDataSummary().catch(() => null);
+          const migratableCount = summary
+            ? Object.values(summary).reduce((acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0)
+            : 0;
+          if (summary && migratableCount > 0) {
+            logger.info('[page.tsx] Local data found, showing migration wizard');
+            setShowMigrationWizard(true);
+            // Mark post-login check complete - wizard handles its own loading
+            setPostLoginCheckComplete(true);
+          } else {
+            logger.info('[page.tsx] Local store hit was already-synced user data (nothing migratable) - skipping wizard');
+            setPostLoginCheckComplete(true);
+          }
         } else {
           // No local data - check if cloud has data that needs to be loaded
           logger.info('[page.tsx] No local data, checking if cloud has data...');

@@ -110,7 +110,7 @@ export interface ModalHandlers {
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   /** 3.2 roster bridge: club write from the game picker; returns the saved player. */
-  handleAddPlayerToClubRoster: (name: string) => Promise<import('@/types').Player | null>;
+  handleAddPlayerToClubRoster: (name: string, nickname?: string) => Promise<import('@/types').Player | null>;
   handleReapplyPlan: () => void | Promise<void>;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
   handleSavePlayerAssessment: (playerId: string, assessment: Partial<import('@/types').PlayerAssessment>) => void;

@@ -39,11 +39,15 @@ export interface PlayerSelectionSectionProps {
    * + closes the row) or a ready-to-display error message (duplicate name,
    * failed write) shown inline under the row.
    */
-  onAddPlayer?: (name: string) => Promise<true | string>;
-  /** Label for the inline-add affordance (e.g. "Lisää seuran listaan"). */
+  onAddPlayer?: (name: string, nickname?: string) => Promise<true | string>;
+  /** Label for the inline-add trigger (e.g. "Lisää uusi pelaaja"). */
   addPlayerLabel?: string;
+  /** Label for the submit button (e.g. "Lisää"). */
+  addPlayerConfirmLabel?: string;
   /** Placeholder for the inline-add name input. */
   addPlayerPlaceholder?: string;
+  /** Placeholder for the OPTIONAL nickname input (what the disc shows). */
+  addPlayerNicknamePlaceholder?: string;
 
   /**
    * Additional CSS classes to apply to the wrapper div.
@@ -72,8 +76,11 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   className = '',
   onAddPlayer,
   addPlayerLabel,
+  addPlayerConfirmLabel,
   addPlayerPlaceholder,
+  addPlayerNicknamePlaceholder,
 }) => {
+  const [newPlayerNickname, setNewPlayerNickname] = useState('');
   const [isAddingOpen, setIsAddingOpen] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
@@ -87,9 +94,10 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
     setIsSubmittingAdd(true);
     setAddError(null);
     try {
-      const result = await onAddPlayer(name);
+      const result = await onAddPlayer(name, newPlayerNickname.trim() || undefined);
       if (result === true) {
         setNewPlayerName('');
+        setNewPlayerNickname('');
         setIsAddingOpen(false);
       } else {
         // Keep the input open for retry AND say why nothing happened
@@ -168,7 +176,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
             <>
             <form
               onSubmit={(e) => { e.preventDefault(); void submitAddPlayer(); }}
-              className="flex items-center gap-2"
+              className="flex flex-col gap-2"
             >
               <input
                 type="text"
@@ -178,28 +186,39 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
                 aria-label={addPlayerPlaceholder}
                 autoFocus
                 disabled={disabled || isSubmittingAdd}
-                className="flex-1 min-w-0 px-3 py-2 rounded-md bg-slate-700 border border-slate-500 text-slate-100 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full px-3 py-2.5 rounded-md bg-slate-700 border border-slate-500 text-slate-100 text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
               />
-              <button
-                type="submit"
-                disabled={disabled || !newPlayerName.trim() || isSubmittingAdd}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                  !disabled && newPlayerName.trim() && !isSubmittingAdd
-                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                    : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                }`}
-              >
-                {addPlayerLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIsAddingOpen(false); setNewPlayerName(''); setAddError(null); }}
+              <input
+                type="text"
+                value={newPlayerNickname}
+                onChange={(e) => { setNewPlayerNickname(e.target.value); setAddError(null); }}
+                placeholder={addPlayerNicknamePlaceholder}
+                aria-label={addPlayerNicknamePlaceholder}
                 disabled={disabled || isSubmittingAdd}
-                className="p-2 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-700/60 transition-colors disabled:opacity-50"
-                aria-label={`${addPlayerLabel} - cancel`}
-              >
-                ✕
-              </button>
+                className="w-full px-3 py-2.5 rounded-md bg-slate-700 border border-slate-500 text-slate-100 text-base placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={disabled || !newPlayerName.trim() || isSubmittingAdd}
+                  className={`flex-1 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors ${
+                    !disabled && newPlayerName.trim() && !isSubmittingAdd
+                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                      : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  }`}
+                >
+                  {addPlayerConfirmLabel ?? addPlayerLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsAddingOpen(false); setNewPlayerName(''); setNewPlayerNickname(''); setAddError(null); }}
+                  disabled={disabled || isSubmittingAdd}
+                  className="px-4 py-2.5 rounded-md text-sm text-slate-300 hover:text-slate-100 bg-slate-700/60 hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  aria-label={`${addPlayerLabel} - cancel`}
+                >
+                  ✕
+                </button>
+              </div>
             </form>
             {addError && (
               <p role="alert" className="mt-2 text-sm text-red-400">{addError}</p>

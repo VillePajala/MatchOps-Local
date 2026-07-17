@@ -67,6 +67,9 @@ interface NewGameSetupModalProps {
     }
   ) => void;
   onCancel: () => void;
+  /** W1 roster bridge in game creation too: club write returning the saved
+   *  player; the modal dup-checks and selects them into this setup. */
+  onAddPlayerToRoster?: (name: string, nickname?: string) => Promise<import('@/types').Player | null>;
   // Fresh data from React Query
   masterRoster: Player[];
   seasons: Season[];
@@ -85,6 +88,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   onManageTeamRoster,
   onStart,
   onCancel,
+  onAddPlayerToRoster,
   masterRoster,
   seasons,
   tournaments,
@@ -878,6 +882,29 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
                 selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
                 noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
+                onAddPlayer={
+                  onAddPlayerToRoster
+                    ? async (name: string, nickname?: string) => {
+                        /* Same contract as the in-match picker (W1). */
+                        const isDuplicate = masterRoster.some(
+                          (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
+                        );
+                        if (isDuplicate) {
+                          return t('playerDetailsModal.duplicateNameError', 'A player with this name already exists');
+                        }
+                        const saved = await onAddPlayerToRoster(name, nickname);
+                        if (!saved) {
+                          return t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.');
+                        }
+                        setSelectedPlayerIds((prev) => [...prev, saved.id]);
+                        return true as const;
+                      }
+                    : undefined
+                }
+                addPlayerLabel={t('gameSettingsModal.addToClubRoster', 'Add new player')}
+                addPlayerConfirmLabel={t('common.add', 'Add')}
+                addPlayerPlaceholder={t('gameSettingsModal.addToClubRosterPlaceholder', 'New player name')}
+                addPlayerNicknamePlaceholder={t('gameSettingsModal.addToClubRosterNickname', 'Nickname (shown on the disc)')}
               />
 
               {/* Personnel Selection */}
