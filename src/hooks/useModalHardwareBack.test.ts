@@ -3,7 +3,7 @@
  * the invariants live here, independent of any host component.
  */
 import { renderHook, act } from '@testing-library/react';
-import { useModalHardwareBack, __resetModalHardwareBackForTests, isHandlingHardwareBack } from './useModalHardwareBack';
+import { useModalHardwareBack, useHardwareBackSubLevel, __resetModalHardwareBackForTests, isHandlingHardwareBack } from './useModalHardwareBack';
 
 describe('useModalHardwareBack (single sentinel)', () => {
   let pushSpy: jest.SpyInstance;
@@ -96,6 +96,46 @@ describe('useModalHardwareBack (single sentinel)', () => {
 
     await pop(); // manager -> close
     expect(closed).toHaveBeenCalledTimes(1);
+    a.unmount();
+  });
+
+  it('a sub-level guard steps internally FIRST and leaves the sentinel intact (no re-arm)', async () => {
+    // Models the planner robustly: entering a plan pushes a PREEMPTIVE guard
+    // above the sentinel, so back#1 steps to the manager without consuming the
+    // sentinel and without any re-push-after-a-back. back#2 then closes.
+    const closeMain = jest.fn();
+    const stepped = jest.fn();
+    const a = renderHook(({ open }) => useModalHardwareBack(open, closeMain), { initialProps: { open: true } });
+    expect(pushSpy).toHaveBeenCalledTimes(1); // sentinel
+
+    const b = renderHook(({ active }) => useHardwareBackSubLevel(active, stepped), { initialProps: { active: true } });
+    expect(pushSpy).toHaveBeenCalledTimes(2); // + preemptive sub-guard
+
+    await pop(); // consumes the sub-guard -> step; sentinel untouched, NO re-push
+    expect(stepped).toHaveBeenCalledTimes(1);
+    expect(closeMain).not.toHaveBeenCalled();
+    expect(pushSpy).toHaveBeenCalledTimes(2);
+
+    // The step took us out of the sub-level; that must NOT fire a second back().
+    b.rerender({ active: false });
+    expect(backSpy).not.toHaveBeenCalled();
+
+    await pop(); // now the sentinel: back#2 closes the main modal
+    expect(closeMain).toHaveBeenCalledTimes(1);
+    a.unmount();
+  });
+
+  it('leaving a sub-level via the UI retires its guard with a suppressed back', async () => {
+    const closeMain = jest.fn();
+    const a = renderHook(({ open }) => useModalHardwareBack(open, closeMain), { initialProps: { open: true } });
+    const b = renderHook(({ active }) => useHardwareBackSubLevel(active, jest.fn()), { initialProps: { active: true } });
+    expect(pushSpy).toHaveBeenCalledTimes(2);
+
+    b.rerender({ active: false }); // left the sub-level via UI/state, not a back
+    expect(backSpy).toHaveBeenCalledTimes(1); // guard retired with a suppressed back
+
+    await pop(); // that programmatic back's popstate is swallowed - closes nothing
+    expect(closeMain).not.toHaveBeenCalled();
     a.unmount();
   });
 

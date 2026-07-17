@@ -34,7 +34,7 @@ import { getTournaments } from '@/utils/tournaments';
 import type { Team, Season, Tournament } from '@/types';
 import { PRESETS_BY_SIZE, FIELD_SIZES, getPresetById } from '@/config/formationPresets';
 import logger from '@/utils/logger';
-import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
+import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { generateId } from '@/utils/idGenerator';
 import {
   ModalContainer,
@@ -607,6 +607,15 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // heuristic: >60px, clearly more horizontal than vertical, <700ms). Complements
   // the tab strip for one-handed use.
   const swipeRef = useRef<{ x: number; y: number; at: number } | null>(null);
+  // Direction of the last game switch, so the incoming lineup slides in from the
+  // matching side (forward = from the right, back = from the left).
+  const [slideDir, setSlideDir] = useState<'fwd' | 'back' | null>(null);
+  // Switch the edited game and remember which way we moved (for the slide-in).
+  const switchGame = useCallback((id: string, dir: 'fwd' | 'back') => {
+    setSlideDir(dir);
+    setEditingGameId(id);
+    setSubSheetTarget(null);
+  }, []);
   const handleLineupTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
     swipeRef.current = { x: touch.clientX, y: touch.clientY, at: Date.now() };
@@ -626,8 +635,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     const idx = activePlan.games.findIndex((g) => g.id === currentId);
     const nextGame = activePlan.games[dx < 0 ? idx + 1 : idx - 1];
     if (nextGame) {
-      setEditingGameId(nextGame.id);
-      setSubSheetTarget(null);
+      switchGame(nextGame.id, dx < 0 ? 'fwd' : 'back');
     }
   };
 
@@ -1426,34 +1434,35 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setView('manager');
   }, [flushSave, refreshPlanList]);
 
-  // One level "back" for BOTH the header X and hardware back, so the two can
-  // never diverge. Returns true when it stepped internally (planner stays
-  // open), false when it closed the planner. Inside a plan -> back to the
-  // manager; from a fresh unsaved plan (setup with no saved plans) or the
-  // manager -> close.
-  const goBackOneLevel = useCallback((): boolean => {
+  // Whether the current view is a sub-level that a hardware back should STEP up
+  // from (rather than close): a plan's tabs, or the setup form when there are
+  // saved plans to return to.
+  const atSubLevel = isPlanTab(view) || (view === 'setup' && planList.length > 0);
+
+  // Step up one internal level to the manager (from a plan or the setup form).
+  const stepToManager = useCallback(() => {
     if (isPlanTab(view)) {
       void handleBackToManager();
-      return true;
-    }
-    if (view === 'setup' && planList.length > 0) {
+    } else {
       setView('manager');
-      return true;
     }
-    handleClose();
-    return false;
-  }, [view, planList.length, handleBackToManager, handleClose]);
+  }, [view, handleBackToManager]);
 
-  // R5 (hardened): the planner owns its ENTIRE hardware-back behaviour with
-  // ONE stack entry that STEPS (plan -> manager -> close) and returns true to
-  // stay open mid-step. A single entry can't desync. The host does NOT
-  // register the planner separately.
-  useModalHardwareBack(isOpen, goBackOneLevel);
+  // Hardware back:
+  //  - the BASE registration closes the planner (manager/loading -> close), the
+  //    same single-level path every other modal uses;
+  //  - the SUB-LEVEL guard steps a plan back to the manager WITHOUT closing.
+  // The sub-guard is a real history entry pushed PREEMPTIVELY on entering the
+  // sub-level, so a back consumes it directly and the base sentinel is never
+  // touched - no fragile re-arm-after-a-back (which was exiting the app on
+  // Android WebViews). back-in-plan -> manager, back-in-manager -> home.
+  useModalHardwareBack(isOpen, handleClose);
+  useHardwareBackSubLevel(isOpen && atSubLevel, stepToManager);
 
   // The header X fully closes the planner from any view (like every other
-  // modal - one-tap exit). "Back to manager" is a separate inline control in a
-  // plan. Hidden on phones that have gesture/hardware back (desktop pointer /
-  // iOS standalone only), where stepping hardware-back covers navigation.
+  // modal - one-tap exit). Stepping a plan back to the manager is hardware/
+  // gesture back (the sub-level guard above). Hidden on phones that have
+  // gesture/hardware back (desktop pointer / iOS standalone only).
   const showClose = useModalCloseVisible();
 
   // Open a plan from the manager (re-opening the already-loaded plan is instant).
@@ -2308,8 +2317,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setEditingGameId(g.id);
-                        setSubSheetTarget(null);
+                        const curIdx = activePlan.games.findIndex((gg) => gg.id === editingGame.id);
+                        switchGame(g.id, i >= curIdx ? 'fwd' : 'back');
                       }}
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
@@ -2377,26 +2386,32 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 onToggleCollapsed={() => setStripCollapsed((c) => !c)}
               />
             </div>
-            <PlanFieldView
+            {/* Keyed wrapper: remounts on game switch so the incoming lineup
+                slides in from the side matching the swipe/tab direction. */}
+            <div
               key={editingGame.id}
-              game={editingGame}
-              players={activePlan.players}
-              onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
-              minutesByPlayer={fairness.byPlayer}
-              highlightPlayerIds={highlightPlayerIds}
-              onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
-              onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
-              onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
-              onClearAll={() => handleClearAllPlacements(editingGame.id)}
-              onClearAllGames={() => setShowClearAllGamesConfirm(true)}
-              onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
-              onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
-              onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
-              onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(editingGame.id, subId, playerId)}
-              onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
-              absenceOpen={absenceOpen}
-              onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
-            />
+              className={slideDir === 'fwd' ? 'planner-slide-fwd' : slideDir === 'back' ? 'planner-slide-back' : undefined}
+            >
+              <PlanFieldView
+                game={editingGame}
+                players={activePlan.players}
+                onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
+                minutesByPlayer={fairness.byPlayer}
+                highlightPlayerIds={highlightPlayerIds}
+                onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
+                onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
+                onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
+                onClearAll={() => handleClearAllPlacements(editingGame.id)}
+                onClearAllGames={() => setShowClearAllGamesConfirm(true)}
+                onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
+                onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
+                onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
+                onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(editingGame.id, subId, playerId)}
+                onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
+                absenceOpen={absenceOpen}
+                onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
+              />
+            </div>
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor
                 game={editingGame}
