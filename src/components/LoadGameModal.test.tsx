@@ -145,7 +145,7 @@ describe('LoadGameModal', () => {
     await renderModal();
     await screen.findByText('Lions');
 
-    const toggle = screen.getByLabelText('loadGameModal.showUnplayedOnly');
+    const toggle = screen.getByRole('button', { name: 'loadGameModal.showUnplayedOnly' });
     fireEvent.click(toggle);
 
     expect(screen.queryByText('Lions')).not.toBeInTheDocument();

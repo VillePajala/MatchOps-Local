@@ -654,16 +654,19 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           <div className="relative mb-4">
             <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
           </div>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
-                checked={showUnplayedOnly}
-                onChange={(e) => setShowUnplayedOnly(e.target.checked)}
-                className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-              />
+          <div className="mb-4">
+            {/* Filter toggle button - matches the "Show archived" toggles in
+                the Team/Season managers (aria-pressed, indigo when active). */}
+            <button
+              type="button"
+              onClick={() => setShowUnplayedOnly(v => !v)}
+              aria-pressed={showUnplayedOnly}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                showUnplayedOnly ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
               {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}
-            </label>
+            </button>
           </div>
 
           {mainContent}
