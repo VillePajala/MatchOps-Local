@@ -20,8 +20,14 @@ describe('useModalHardwareBack (single sentinel)', () => {
   });
 
   const pop = async () => {
-    // Async act flushes the deferred (queueMicrotask) sentinel re-arm.
-    await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')); });
+    // Dispatch the back, then deterministically flush the macrotask the hook
+    // schedules to re-arm the sentinel (setTimeout(0) - runs after the history
+    // traversal settles on real WebViews). This awaits the SUT's own timer, not
+    // an arbitrary delay.
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
   };
 
   it('N stacked surfaces share ONE sentinel; each back closes topmost and re-arms', async () => {
