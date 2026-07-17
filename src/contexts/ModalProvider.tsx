@@ -298,7 +298,7 @@ export const ModalProvider = ({ children, currentUserId }: {
   // The reset must route through the guarded reducer-backed setter (mirror
   // ref), which rules out the adjust-during-render form; fires at most once
   // per user change via the ref gate, so no cascading renders.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (effectPrevUserRef.current === currentUserId) return;
     effectPrevUserRef.current = currentUserId;
@@ -310,6 +310,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     setSelectedPlayerForStats(null);
     setClubStatsOpen(false);
   }, [currentUserId, setIsGameStatsModalOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Roster modal setter (no anti-flash guard needed)
   // Rationale: Triggered from static buttons (ControlBar CTAs),
