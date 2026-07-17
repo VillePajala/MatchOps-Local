@@ -457,6 +457,24 @@ describe('<GameSettingsModal />', () => {
     });
   });
 
+  describe('R3: wrap-up scroll targets', () => {
+    it('scrolls to the requested section anchor on open; none without the prop', async () => {
+      const scrollSpy = jest.fn();
+      window.HTMLElement.prototype.scrollIntoView = scrollSpy;
+      const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { setTimeout(() => cb(0), 0); return 0; });
+      try {
+        renderModal({ ...defaultProps, initialScrollSection: 'roster' });
+        await screen.findByText(t('gameSettingsModal.selectPlayers'));
+        await waitFor(() => expect(scrollSpy).toHaveBeenCalled());
+        scrollSpy.mockClear();
+        renderModal();
+        await waitFor(() => expect(scrollSpy).not.toHaveBeenCalled());
+      } finally {
+        raf.mockRestore();
+      }
+    });
+  });
+
   describe('Roster bridge (3.2): inline add to club roster', () => {
     /**
      * Acceptance (two-level restructure 3.2): the added player lands in the

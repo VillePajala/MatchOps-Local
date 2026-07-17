@@ -287,11 +287,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // R3: land scrolled to the wrap-up section the coach tapped.
   useEffect(() => {
     if (!isOpen || !initialScrollSection) return;
-    const el = document.querySelector(`[data-wrapup-section="${initialScrollSection}"]`);
-    if (el) {
-      // Next frame: the modal's content must have laid out first.
-      requestAnimationFrame(() => el.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-    }
+    // Query INSIDE the frame callback: the section anchors may not exist on
+    // the first commit (async-gated sections lay out a frame later).
+    const frame = requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-wrapup-section="${initialScrollSection}"]`);
+      el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [isOpen, initialScrollSection]);
 
 
