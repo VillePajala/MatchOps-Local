@@ -103,10 +103,39 @@ body > div {
   animation: gradient-flow 3s ease infinite;
 }
 
+/* Playtime planner: directional slide-in when switching games (swipe/tab). */
+@keyframes planner-slide-in-fwd {
+  from {
+    opacity: 0;
+    transform: translateX(2.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes planner-slide-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-2.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.planner-slide-fwd {
+  animation: planner-slide-in-fwd 0.22s ease-out;
+}
+.planner-slide-back {
+  animation: planner-slide-in-back 0.22s ease-out;
+}
+
 /* Respect reduced motion — disable all custom animations */
 @media (prefers-reduced-motion: reduce) {
   .animate-pulse-slow, .animate-rotate-slow, .animate-gradient,
-  .animate-gradient-fast, .animate-fade-in-out, .flash-feedback {
+  .animate-gradient-fast, .animate-fade-in-out, .flash-feedback,
+  .planner-slide-fwd, .planner-slide-back {
     animation: none !important;
   }
 }
