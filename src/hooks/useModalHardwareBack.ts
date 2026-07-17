@@ -69,9 +69,54 @@ function reArmSentinel(): void {
   }, 0);
 }
 
+// --- Preemptive sub-level guards ----------------------------------------
+// A modal with internal sub-views (the planner: a plan steps back to its
+// manager) needs a hardware back to STEP without closing. Doing that with the
+// single sentinel means consuming it and RE-PUSHING it after the popstate - and
+// that re-push is silently dropped on some Android WebViews, so the NEXT back
+// exits the app (owner-reported repeatedly, with the sync, microtask AND
+// macrotask re-arm variants). A sub-guard sidesteps re-arm entirely: the
+// sub-view pushes its OWN history entry PREEMPTIVELY (in a normal render task,
+// where pushState is reliable), sitting ABOVE the sentinel. A back consumes
+// that guard, we step internally, and the sentinel is never touched - so
+// nothing has to be re-pushed after a back.
+type SubGuard = { onPop: () => void; consumed: boolean };
+const subGuards: SubGuard[] = [];
+
+function pushSubGuard(onPop: () => void): SubGuard {
+  const g: SubGuard = { onPop, consumed: false };
+  subGuards.push(g);
+  window.history.pushState({ liftedSubGuard: true }, '');
+  return g;
+}
+
+function removeSubGuard(g: SubGuard): void {
+  const i = subGuards.indexOf(g);
+  if (i === -1) return; // already consumed by a hardware back - nothing to undo
+  subGuards.splice(i, 1);
+  // Left via the UI (or a forced state change), not a hardware back: our
+  // history entry is still live, so retire it with a suppressed back().
+  suppressedPops += 1;
+  window.history.back();
+}
+
 function handleGlobalPop(): void {
   if (suppressedPops > 0) {
     suppressedPops -= 1;
+    return;
+  }
+  // A preemptive sub-guard sits ABOVE the sentinel; a back consumes it first.
+  // Step internally and leave the sentinel intact - no re-arm needed.
+  if (subGuards.length > 0) {
+    const g = subGuards[subGuards.length - 1];
+    g.consumed = true;
+    subGuards.pop();
+    handlingHardwareBack = true;
+    try {
+      g.onPop();
+    } finally {
+      handlingHardwareBack = false;
+    }
     return;
   }
   if (!sentinelPushed) return; // not our entry - let the navigation happen
@@ -101,6 +146,7 @@ function handleGlobalPop(): void {
 /** Test-only: clears module-level stack state between test cases. */
 export function __resetModalHardwareBackForTests(): void {
   modalStack.length = 0;
+  subGuards.length = 0;
   suppressedPops = 0;
   sentinelPushed = false;
   if (reArmTimer !== null) { clearTimeout(reArmTimer); reArmTimer = null; }
@@ -147,6 +193,37 @@ export function useModalHardwareBack(isOpen: boolean, onClose: () => void | bool
       // pop handler already did the bookkeeping.
     };
   }, [isOpen]);
+}
+
+/**
+ * Sub-level back for a modal that's already registered with
+ * useModalHardwareBack. While `active` (e.g. the planner is inside a plan), a
+ * hardware back runs `onBack` to step UP one internal level instead of closing
+ * the modal; the modal's own sentinel stays intact underneath. Because the
+ * guard entry is pushed preemptively here (not re-pushed after a back), it
+ * survives on WebViews where re-arm does not.
+ */
+export function useHardwareBackSubLevel(active: boolean, onBack: () => void): void {
+  const onBackRef = useRef(onBack);
+
+  useEffect(() => {
+    onBackRef.current = onBack;
+  }, [onBack]);
+
+  useEffect(() => {
+    if (!active) return;
+
+    // Share the single global listener (attached-once, never removed).
+    if (!listenerAttached) {
+      window.addEventListener('popstate', handleGlobalPop);
+      listenerAttached = true;
+    }
+
+    const guard = pushSubGuard(() => onBackRef.current());
+    return () => {
+      removeSubGuard(guard);
+    };
+  }, [active]);
 }
 
 export default useModalHardwareBack;
