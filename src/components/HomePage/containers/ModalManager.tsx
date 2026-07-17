@@ -71,9 +71,6 @@ interface ModalManagerHandlers {
   deleteGameEvent: (eventId: string) => Promise<boolean>;
   toggleGameStatsModal: () => void;
   exportOneExcel: (gameId: string) => void;
-  exportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
-  exportPlayerExcel: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
-  gameLogClick: (gameId: string) => void;
   exportOneJson: (gameId: string) => void;
   closeGameSettingsModal: () => void;
   teamNameChange: (name: string) => void;
@@ -202,9 +199,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             currentGameId={data.currentGameId}
             onDeleteGameEvent={handlers.deleteGameEvent}
             onExportOneExcel={handlers.exportOneExcel}
-            onExportAggregateExcel={handlers.exportAggregateExcel}
-            onExportPlayerExcel={handlers.exportPlayerExcel}
-            onGameClick={handlers.gameLogClick}
+            currentGameOnly
             masterRoster={data.masterRoster}
             onGameNotesChange={handlers.gameNotesChange}
           onOpenSettings={handlers.openSettingsModal}

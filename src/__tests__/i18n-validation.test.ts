@@ -395,7 +395,10 @@ describe('Translation File Validation', () => {
       // +1: controlBar.rulesDirectory restored - R6 put Rules back in the
       //     match menu after the 3.1 cleanup had removed the then-dead key
       //     (fi 'Säännöt' was falling back to English)
-      expect(enKeys.length).toBe(2830);
+      // -1: controlBar.stats - the menu's "Match stats" entry was identical
+      //     to Game report (same modal, same landing) and was collapsed
+      //     (deep-review); aggregate stats live behind "Team stats ->"
+      expect(enKeys.length).toBe(2829);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -509,7 +512,10 @@ describe('Translation File Validation', () => {
       // +1: controlBar.rulesDirectory restored - R6 put Rules back in the
       //     match menu after the 3.1 cleanup had removed the then-dead key
       //     (fi 'Säännöt' was falling back to English)
-      expect(fiKeys.length).toBe(2830);
+      // -1: controlBar.stats - the menu's "Match stats" entry was identical
+      //     to Game report (same modal, same landing) and was collapsed
+      //     (deep-review); aggregate stats live behind "Team stats ->"
+      expect(fiKeys.length).toBe(2829);
     });
   });
 });

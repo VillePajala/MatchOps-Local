@@ -60,8 +60,9 @@ import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSession
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import {
   saveGame as utilSaveGame,
-removeGameEvent,
-createGame as utilCreateGame,
+  removeGameEvent,
+  createGame as utilCreateGame,
+  getGame as utilGetGame,
 } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { DEFAULT_GAME_ID } from '@/config/constants';
@@ -278,18 +279,40 @@ export function useGamePersistence({
       });
 
       try {
+        // Deep-review race guards (silent/auto-save path only):
+        // 1) A save landing AFTER a club-side level crossing (load/create/
+        //    delete changed the persisted current id) must not act on a
+        //    game that no longer exists - check existence first, so a
+        //    just-deleted game cannot be resurrected by a late debounce.
+        if (silent) {
+          const stillExists = await utilGetGame(currentGameId, userId);
+          if (!stillExists) {
+            logger.log('[handleQuickSaveGame] Skipping auto-save: game no longer exists (deleted mid-flight)');
+            return false;
+          }
+        }
         // Update savedGames state and storage
         const updatedSavedGames = { ...savedGames, [currentGameId]: currentSnapshot };
         setSavedGames(updatedSavedGames);
         await utilSaveGame(currentGameId, currentSnapshot, userId);
-        await utilSaveCurrentGameIdSetting(currentGameId, userId);
+        // 2) The AUTO-save must never rewrite the persisted current-game-id
+        //    setting: it cannot change while this match is mounted, and a
+        //    late write raced the level crossings (reverting the id the
+        //    club side had just persisted, booting the WRONG game on the
+        //    fresh mount). Manual saves keep the write for legacy parity.
+        if (!silent) {
+          await utilSaveCurrentGameIdSetting(currentGameId, userId);
+        }
 
-        // CR-H7: Keep the saved-games cache fresh by writing the data we just
-        // persisted, instead of invalidateQueries (which refetched storage on
-        // EVERY save — needless churn during a match, since auto-save fires on
-        // each meaningful change). The queryFn just reads storage, so setQueryData
-        // with the in-memory snapshot matches a refetch.
-        queryClient.setQueryData<SavedGamesCollection>([...queryKeys.savedGames, userId], updatedSavedGames);
+        // CR-H7 + deep-review: keep the saved-games cache fresh by MERGING
+        // this game's snapshot into the CURRENT cache (functional update) -
+        // replacing the whole collection from this mount's local state
+        // erased games created by the club side after this mount's snapshot
+        // of `savedGames` was taken.
+        queryClient.setQueryData<SavedGamesCollection>(
+          [...queryKeys.savedGames, userId],
+          (prev) => ({ ...(prev ?? updatedSavedGames), [currentGameId]: currentSnapshot }),
+        );
 
         // CR-H7: Only clear undo/redo on an explicit (manual) save — "saved = clean
         // baseline". Silent auto-saves must NOT wipe undo, or the user can never undo

@@ -588,9 +588,9 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />{t('controlBar.gameReport', 'Game report')}
             </button>
-            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.stats', 'Match stats')}
-            </button>
+            {/* Deep-review: the separate "Match stats" entry was identical to
+                Game report (same modal, same landing) - collapsed into one.
+                Aggregate stats live behind "Team stats ->". */}
             {onOpenTeamStats && (
               <button onClick={wrapModal(onOpenTeamStats)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
                 <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />

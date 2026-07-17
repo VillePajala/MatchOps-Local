@@ -429,7 +429,6 @@ export type TranslationKey =
   | 'controlBar.showStats'
   | 'controlBar.startNewGame'
   | 'controlBar.startNewGameConfirm'
-  | 'controlBar.stats'
   | 'controlBar.tasoLink'
   | 'controlBar.teamStats'
   | 'controlBar.timerControls'
