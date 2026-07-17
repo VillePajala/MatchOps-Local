@@ -334,7 +334,10 @@ export const CollapsibleModalHeader: React.FC<{
           <HiOutlineXMark className="w-6 h-6" />
         </button>
       </div>
-      <h2 className={`${titleStyle} text-2xl flex-1 text-center truncate min-w-0`}>{title}</h2>
+      {/* No truncation: the full title must always show (owner feedback
+          2026-07-17). Original prominence (text-3xl from titleStyle),
+          centered, wrapping to a second line for long titles. */}
+      <h2 className={`${titleStyle} flex-1 text-center text-balance leading-tight min-w-0`}>{title}</h2>
       <div className="flex items-center justify-end gap-1.5 basis-10 shrink-0">{actions}</div>
     </div>
     {children && (
