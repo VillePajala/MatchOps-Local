@@ -35,6 +35,8 @@ interface ModalManagerState {
   isGoalLogModalOpen: boolean;
   isGameStatsModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
+  /** R3: wrap-up rows land scrolled to their section. */
+  gameSettingsInitialSection?: 'roster' | 'report' | 'positions' | 'competition';
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
@@ -116,7 +118,7 @@ interface ModalManagerHandlers {
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
   /** W6: wrap-up rows navigate to where the item is completed. */
-  wrapUpToGameSettings: () => void;
+  wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
   wrapUpToAssessments: () => void;
 }
 
@@ -218,6 +220,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
           onClose={handlers.closeGameSettingsModal}
+          initialScrollSection={state.gameSettingsInitialSection}
           currentGameId={data.currentGameId}
           teamId={data.gameSessionState.teamId}
           teamName={data.gameSessionState.teamName}

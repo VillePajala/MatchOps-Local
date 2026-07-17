@@ -2259,6 +2259,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
     // W10: quick planner access from the match (host planner over the pitch).
     onOpenPlanner: () => setIsPlaytimePlannerOpen(true),
+    // R6: game-day reference material (host modals over the pitch).
+    onOpenTraining: () => setIsTrainingResourcesOpen(true),
+    onOpenRules: () => setIsRulesDirectoryOpen(true),
     onGoToStartScreen,
   };
 

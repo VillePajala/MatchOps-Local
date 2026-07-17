@@ -389,7 +389,10 @@ describe('Translation File Validation', () => {
       //     disc shows the nickname - the inline add must capture it)
       // -1: startScreen.rowPlayerStats - W8 replaced the two stats rows with
       //     one row per aggregate tab, reusing gameStatsModal.tabs.* labels
-      expect(enKeys.length).toBe(2825);
+      // +4: startScreen.statsSeason/-Tournament/-Overall/-Player (walkthrough
+      //     round 2 R4: the stats rows get their own compound names -
+      //     Kausitilastot/Turnaustilastot/Kokonaistilastot/Pelaajatilastot)
+      expect(enKeys.length).toBe(2829);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -497,7 +500,10 @@ describe('Translation File Validation', () => {
       //     disc shows the nickname - the inline add must capture it)
       // -1: startScreen.rowPlayerStats - W8 replaced the two stats rows with
       //     one row per aggregate tab, reusing gameStatsModal.tabs.* labels
-      expect(fiKeys.length).toBe(2825);
+      // +4: startScreen.statsSeason/-Tournament/-Overall/-Player (walkthrough
+      //     round 2 R4: the stats rows get their own compound names -
+      //     Kausitilastot/Turnaustilastot/Kokonaistilastot/Pelaajatilastot)
+      expect(fiKeys.length).toBe(2829);
     });
   });
 });

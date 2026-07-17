@@ -88,6 +88,8 @@ export interface GameSettingsModalProps {
    * the added player lands in the club roster AND the game selection.
    */
   onAddPlayerToRoster?: (name: string, nickname?: string) => Promise<Player | null>;
+  /** R3: open scrolled to a wrap-up section (set by the stats wrap-up card). */
+  initialScrollSection?: 'roster' | 'report' | 'positions' | 'competition';
   /** Whether this game was created from a plan and can still be re-applied (unplayed). */
   canReapplyPlan?: boolean;
   /** Re-apply the source plan to this game (overwrites the lineup + planned subs). */
@@ -235,6 +237,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   selectedPersonnelIds,
   onSelectedPlayersChange,
   onAddPlayerToRoster,
+  initialScrollSection,
   canReapplyPlan = false,
   onReapplyPlan,
   onSelectedPersonnelChange,
@@ -280,6 +283,17 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
+
+  // R3: land scrolled to the wrap-up section the coach tapped.
+  useEffect(() => {
+    if (!isOpen || !initialScrollSection) return;
+    const el = document.querySelector(`[data-wrapup-section="${initialScrollSection}"]`);
+    if (el) {
+      // Next frame: the modal's content must have laid out first.
+      requestAnimationFrame(() => el.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+    }
+  }, [isOpen, initialScrollSection]);
+
 
 
   // Memoize valid series from selected tournament (filter by valid levels)
@@ -1668,6 +1682,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
 
               {/* Player Selection Section */}
+              <div data-wrapup-section="roster" />
               <PlayerSelectionSection
                 availablePlayers={availablePlayers}
                 selectedPlayerIds={selectedPlayerIds}
@@ -1764,6 +1779,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {/* CARD 2: Game Details */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
+                <span data-wrapup-section="competition" />
                 {t('gameSettingsModal.gameDetailsLabel', 'Game Details')}
               </h3>
 
@@ -2592,6 +2608,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {/* Game Notes Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
+                <span data-wrapup-section="report" />
                 {t('gameSettingsModal.notesTitle', 'Game Notes')}
               </h3>
               {inlineEditingField === 'notes' ? (
@@ -2644,6 +2661,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {/* Line-up / Positions Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 mt-4">
               <h3 className="text-lg font-semibold text-slate-200 mb-1">
+                <span data-wrapup-section="positions" />
                 {t('gameSettingsModal.lineupTitle', 'Positions played')}
               </h3>
               <p className="text-xs text-slate-400 mb-4">
