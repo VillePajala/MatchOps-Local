@@ -18,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useMultiTabPrevention } from '@/hooks/useMultiTabPrevention';
 import { useDeepLinkHandler } from '@/hooks/useDeepLinkHandler';
+import DeepLinkClubRouter from '@/components/DeepLinkClubRouter';
 import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import type { AppAction } from '@/hooks/useDeepLinkHandler';
 import { usePremium } from '@/hooks/usePremium';
@@ -84,7 +85,7 @@ export default function Home() {
       // sessionStorage unavailable - resume falls back to the live-game rule.
     }
   }, [screen]);
-  const { initialAction, hasDeepLink, setAction } = useDeepLinkHandler();
+  const { initialAction, hasDeepLink, setAction, clearAction } = useDeepLinkHandler();
   const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
@@ -1249,10 +1250,13 @@ export default function Home() {
 
   // Skip start screen when a PWA shortcut deep link was detected
   useEffect(() => {
-    if (hasDeepLink) {
+    // Deep-review: only MATCH-BOUND deep links mount the match; club-scope
+    // shortcuts (new game, stats, roster, ...) open their host modal over
+    // Home via DeepLinkClubRouter - closing lands on Home, not the pitch.
+    if (hasDeepLink && (initialAction === 'resumeGame' || initialAction === 'explore')) {
       setScreen('home');
     }
-  }, [hasDeepLink]);
+  }, [hasDeepLink, initialAction]);
 
   const handleAction = useCallback((
     action: AppAction | 'getStarted'
@@ -1309,7 +1313,12 @@ export default function Home() {
             lived (post-gates) before the L.0b lift. */}
         {!isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
           !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard && (
-          <ClubModalsHost onEnterMatch={enterMatch} onActiveGameDeleted={handleActiveGameDeleted} />
+          <>
+            <ClubModalsHost onEnterMatch={enterMatch} onActiveGameDeleted={handleActiveGameDeleted} />
+            {screen === 'start' && hasDeepLink && initialAction && (
+              <DeepLinkClubRouter action={initialAction} onConsumed={clearAction} />
+            )}
+          </>
         )}
         {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
             pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.

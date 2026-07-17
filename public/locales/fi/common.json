@@ -153,7 +153,10 @@
     "resetFieldNormalTitle": "Nollataanko kenttä?",
     "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?",
     "userGuide": "Käyttöohje",
-    "planner": "Ottelusuunnittelu"
+    "planner": "Ottelusuunnittelu",
+    "noPlayersForNewGame": "Tarvitset vähintään yhden pelaajan kokoonpanoon luodaksesi pelin. Haluatko lisätä pelaajia nyt?",
+    "openTimer": "Avaa ajastin",
+    "toggleTacticsBoardShow": "Taktiikkataulu"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -306,7 +309,8 @@
     "addPlayers": "Lisää pelaajia",
     "reset": "Nollaa",
     "startNew": "Aloita uusi",
-    "continue": "Jatka"
+    "continue": "Jatka",
+    "futsal": "Futsal"
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -768,7 +772,9 @@
     "noSeasonGames": "Ei otteluita tälle kaudelle.",
     "noTournamentGames": "Ei otteluita tälle turnaukselle.",
     "game": "Ottelu",
-    "games": "Ottelut"
+    "games": "Ottelut",
+    "noGoals": "Ei kirjattuja maaleja.",
+    "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen."
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."
@@ -1451,7 +1457,9 @@
       "deleteFailed": "Tapahtuman poistaminen epäonnistui. Yritä uudelleen.",
       "genericDeleteError": "Tapahtuman poistossa tapahtui virhe.",
       "genericInlineSaveError": "Virhe tallennettaessa muutoksia. Yritä uudelleen.",
-      "missingGameIdInline": "Tallennus ei onnistu: pelin ID puuttuu."
+      "missingGameIdInline": "Tallennus ei onnistu: pelin ID puuttuu.",
+      "seasonUpdateFailed": "Kauden asetusten käyttö epäonnistui",
+      "tournamentUpdateFailed": "Turnauksen asetusten käyttö epäonnistui"
     },
     "confirmDeleteEvent": "Haluatko varmasti poistaa tämän tapahtuman? Tätä ei voi perua.",
     "invalidDateFormat": "Virheellinen päivämäärämuoto. Käytä VVVV-KK-PP.",
