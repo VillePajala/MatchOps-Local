@@ -7,8 +7,12 @@ import type { GameCompleteness, CountCheck } from '@/utils/gameCompleteness';
 
 interface GameWrapUpCardProps {
   completeness: GameCompleteness;
-  /** Routes the settings-backed rows (report, positions, competition/team). */
+  /** Routes the settings-backed rows (report, positions, competition/team)
+   *  to GAME settings (Ottelun tiedot) - W6: rows navigate to where the
+   *  item is completed. */
   onOpenSettings?: () => void;
+  /** Routes the assessments row to the player-assessment editor. */
+  onOpenAssessments?: () => void;
 }
 
 type RowStatus = 'done' | 'todo';
@@ -21,7 +25,7 @@ const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.to
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenAssessments }) => {
   const { t } = useTranslation();
 
   interface Row {
@@ -54,6 +58,7 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     label: t('gameStatsModal.wrapUpAssessments', 'Player assessments'),
     status: countStatus(completeness.assessments),
     count: completeness.assessments,
+    onClick: onOpenAssessments,
   });
   rows.push({
     key: 'competition',

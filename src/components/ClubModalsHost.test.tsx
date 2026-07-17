@@ -525,17 +525,18 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     fireEvent.click(screen.getByText('close-training'));
     await waitFor(() => expect(screen.queryByTestId('training-modal')).not.toBeInTheDocument());
     expect(screen.getByTestId('rules-modal')).toBeInTheDocument();
-    expect(backSpy).toHaveBeenCalledTimes(1);
-    // The suppressed pop from back() must not close the remaining modal...
-    act(() => {
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    });
-    expect(screen.getByTestId('rules-modal')).toBeInTheDocument();
-    // ...but the NEXT real back press does.
+    // Single-sentinel invariant (W7/W9): NO history operation while other
+    // surfaces remain open - back()/pushState never interleave, so the
+    // entry count cannot drift on Android WebViews.
+    expect(backSpy).not.toHaveBeenCalled();
+    // The next real back press closes the remaining modal.
     act(() => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     await waitFor(() => expect(screen.queryByTestId('rules-modal')).not.toBeInTheDocument());
+    // The sentinel is consumed only when the LAST surface closes - here by
+    // the hardware back itself, so no programmatic back() at all.
+    expect(backSpy).not.toHaveBeenCalled();
   });
 
   it('renders the resetting overlay when a reset is in progress (L.0b)', () => {

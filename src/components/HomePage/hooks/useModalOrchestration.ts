@@ -434,6 +434,15 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
       openSettingsModal: handleOpenSettingsModal,
+      // W6: leave the stats modal and land where the item is completed.
+      wrapUpToGameSettings: () => {
+        setIsGameStatsModalOpen(false);
+        setIsGameSettingsModalOpen(true);
+      },
+      wrapUpToAssessments: () => {
+        setIsGameStatsModalOpen(false);
+        setIsPlayerAssessmentModalOpen(true);
+      },
     },
   };
 

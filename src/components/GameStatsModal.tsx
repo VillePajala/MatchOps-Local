@@ -106,6 +106,10 @@ interface GameStatsModalProps {
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
   onOpenSettings?: () => void;
+  /** W6/W7: the wrap-up rows open GAME settings (Ottelun tiedot), NOT app
+   *  settings - tapping a row lands where the item can be completed. */
+  onOpenGameSettings?: () => void;
+  onOpenAssessments?: () => void;
   /**
    * Club-level surface (L.4): hide the current-game tab entirely and land on
    * the aggregate side. The host renders this with NO live match behind it,
@@ -151,6 +155,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   aggregateOnly = false,
   masterRoster = [],
   onOpenSettings,
+  onOpenGameSettings,
+  onOpenAssessments,
 }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -990,7 +996,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {activeTab === 'currentGame' && currentGameCompleteness?.applicable && (
                     <GameWrapUpCard
                       completeness={currentGameCompleteness}
-                      onOpenSettings={onOpenSettings}
+                      onOpenSettings={onOpenGameSettings}
+                      onOpenAssessments={onOpenAssessments}
                     />
                   )}
                   {activeTab === 'currentGame' && (

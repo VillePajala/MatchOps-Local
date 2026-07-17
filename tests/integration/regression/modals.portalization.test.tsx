@@ -137,6 +137,8 @@ const createProps = (): ModalManagerProps => ({
     setIsPlayed: noop,
     updateSelectedPlayers: noop,
     addPlayerToClubRoster: async () => null,
+    wrapUpToGameSettings: noop,
+    wrapUpToAssessments: noop,
     reapplyPlan: noop,
     setGamePersonnel: noop,
     closePlayerAssessmentModal: noop,
