@@ -19,9 +19,9 @@ import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
 import ConfirmationModal from './ConfirmationModal';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
 import {
-  ModalFooter,
+  CollapsibleModalHeader,
+  useCollapsingHeader,
   modalContainerStyle,
-  titleStyle,
   cardStyle,
   primaryButtonStyle,
   iconButtonBaseStyle,
@@ -47,6 +47,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   isUpdating,
 }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const { showToast } = useToast();
 
   // Modal state
@@ -222,18 +223,14 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0 h-full">
-          {/* Header */}
-          <div className="flex flex-col">
-            {/* Title Section */}
-            <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-              <h2 className={`${titleStyle} drop-shadow-lg`}>
-                {t('personnelManager.title', 'Personnel Manager')}
-              </h2>
-            </div>
-
-            {/* Fixed Section (Add Personnel Button) */}
-            <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-              {/* Add Personnel Button */}
+          {/* Chrome slimming: X-header; Add Personnel collapses on scroll. */}
+          <CollapsibleModalHeader
+            title={t('personnelManager.title', 'Personnel Manager')}
+            onClose={onClose}
+            closeLabel={t('common.doneButton', 'Done')}
+            collapse={headerCollapse}
+          >
+            <div className="px-6 pt-3 pb-4">
               <button
                 onClick={() => setCreatePersonnelModalOpen(true)}
                 className={`${primaryButtonStyle} w-full`}
@@ -242,10 +239,10 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                 {t('personnelManager.addPersonnel', 'Add Personnel')}
               </button>
             </div>
-          </div>
+          </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
             {/* Search Input */}
             <input
               type="text"
@@ -352,15 +349,6 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
             </div>
           </div>
 
-          {/* Footer with Close Button */}
-          <ModalFooter>
-            <button
-              onClick={onClose}
-              className={primaryButtonStyle}
-            >
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
@@ -52,6 +52,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   assessmentTemplate = 'balanced',
 }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
   React.useLayoutEffect(() => {
@@ -73,8 +74,6 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
 
   const modalContainerStyle =
     'bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden';
-  const titleStyle =
-    'text-3xl font-bold text-yellow-400 tracking-wide';
   const cardStyle =
     'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
   const buttonBaseStyle =
@@ -128,31 +127,25 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col min-h-0">
-          {/* Header */}
-          <div className="flex flex-col">
-            {/* Title Section */}
-            <div className="flex justify-center items-center pt-10 pb-4 px-4 sm:px-6 backdrop-blur-sm bg-slate-900/20">
-              <h2 className={`${titleStyle} drop-shadow-lg`}>
-                {t('playerAssessmentModal.title', 'Arvioi pelaajat')}
-              </h2>
-            </div>
-
-            {/* Fixed Section (Assessment Progress) */}
-            <div className="px-4 sm:px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
-              {/* Assessment Progress */}
-              <div className="mb-5 text-center text-sm">
-                <div className="flex justify-center items-center text-slate-300">
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{savedIds.length}/{selectedPlayerIds.length}</span>
-                    {" "}{t('playerAssessmentModal.assessed', 'assessed')}
-                  </span>
-                </div>
+          {/* Chrome slimming: X-header; progress counter collapses on scroll. */}
+          <CollapsibleModalHeader
+            title={t('playerAssessmentModal.title', 'Arvioi pelaajat')}
+            onClose={onClose}
+            closeLabel={t('common.doneButton', 'Done')}
+            collapse={headerCollapse}
+          >
+            <div className="px-4 sm:px-6 pt-1 pb-4 text-center text-sm">
+              <div className="flex justify-center items-center text-slate-300">
+                <span>
+                  <span className="text-yellow-400 font-semibold">{savedIds.length}/{selectedPlayerIds.length}</span>
+                  {" "}{t('playerAssessmentModal.assessed', 'assessed')}
+                </span>
               </div>
             </div>
-          </div>
+          </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
+          <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6" onScroll={headerCollapse.onScroll}>
             {/* Game Information Section */}
             {(teamName || opponentName) && (
               <div className={`${cardStyle} mb-4`}>
@@ -249,12 +242,6 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
             </div>
           </div>
 
-          {/* Footer */}
-          <ModalFooter>
-            <button onClick={onClose} className={primaryButtonStyle}>
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { Season, Tournament, Player } from '@/types';
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -40,6 +40,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     onOpenSettings
 }) => {
     const { t } = useTranslation();
+    const headerCollapse = useCollapsingHeader();
     const { getStore } = useDataStore();
 
     // Premium limit checks (count non-archived items)
@@ -354,37 +355,31 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex flex-col flex-shrink-0">
-          {/* Title Section */}
-          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-              {t('seasonTournamentModal.title')}
-            </h2>
+        {/* Chrome slimming: X-header; Add buttons collapse on scroll. */}
+        <CollapsibleModalHeader
+          title={t('seasonTournamentModal.title')}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+          collapse={headerCollapse}
+        >
+          <div className="px-6 pt-3 pb-4 grid grid-cols-2 gap-3">
+            <button
+              onClick={handleAddSeason}
+              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+            >
+              {t('seasonTournamentModal.addSeason', 'Add Season')}
+            </button>
+            <button
+              onClick={handleAddTournament}
+              className="px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+            >
+              {t('seasonTournamentModal.addTournament', 'Add Tournament')}
+            </button>
           </div>
-
-          {/* Fixed Section (Add Buttons) */}
-          <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-            {/* Add Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleAddSeason}
-                className="px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-              >
-                {t('seasonTournamentModal.addSeason', 'Add Season')}
-              </button>
-              <button
-                onClick={handleAddTournament}
-                className="px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-              >
-                {t('seasonTournamentModal.addTournament', 'Add Tournament')}
-              </button>
-            </div>
-          </div>
-        </div>
+        </CollapsibleModalHeader>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
             {/* Search Field and Show Archived Toggle */}
             <div className="mb-4 flex flex-col sm:flex-row gap-3">
               <input
@@ -413,12 +408,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             </div>
         </div>
 
-        {/* Footer */}
-        <ModalFooter>
-          <button onClick={onClose} className={primaryButtonStyle}>
-            {t('common.doneButton', 'Done')}
-          </button>
-        </ModalFooter>
       </div>
 
       {/* Season Create Modal */}
