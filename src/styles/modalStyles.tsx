@@ -14,7 +14,8 @@
  * - Consistent spacing and shadows
  */
 
-import React from 'react';
+import React, { useCallback, useRef } from 'react';
+import { HiOutlineXMark } from 'react-icons/hi2';
 
 // ============================================================================
 // Container & Layout Styles
@@ -181,6 +182,107 @@ export const ScrollableContent: React.FC<{
 }> = ({ children, className = '', onScroll, 'data-testid': testId }) => (
   <div className={`flex-1 overflow-y-auto min-h-0 ${className}`} onScroll={onScroll} data-testid={testId}>
     {children}
+  </div>
+);
+
+// ============================================================================
+// Collapsing modal chrome (modal-chrome slimming, 2026-07-17)
+// ============================================================================
+//
+// Generalizes the Playing-Time Planner's bespoke collapse-on-scroll so every
+// modal can drop its footer and reclaim phone space:
+//  - the TITLE ROW (X close + title + a small pinned action cluster) is
+//    always visible - iOS/desktop have no hardware back, so a modal must
+//    keep one on-screen exit;
+//  - the COLLAPSING REGION (tabs, add buttons, read-only counters - anything
+//    non-title, per owner decision 2026-07-17) shrinks away on scroll-down
+//    and returns on scroll-up.
+// The small action cluster stays pinned (a Save that vanishes when you
+// scroll to a form's end helps no one); the bulky extras collapse.
+
+export interface CollapsingHeaderController {
+  outerRef: React.RefObject<HTMLDivElement | null>;
+  innerRef: React.RefObject<HTMLDivElement | null>;
+  /** Wire to the ScrollableContent's onScroll. */
+  onScroll: React.UIEventHandler<HTMLDivElement>;
+  /** Fully reveal the region (call when the collapsing content changes, e.g. tab switch). */
+  reset: () => void;
+}
+
+/** Imperative collapse-on-scroll for a modal's non-title chrome. */
+export function useCollapsingHeader(): CollapsingHeaderController {
+  const outerRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const offsetRef = useRef(0);
+  const lastYRef = useRef(0);
+
+  const apply = useCallback((offset: number) => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const h = inner.offsetHeight;
+    const clamped = Math.max(0, Math.min(h, offset));
+    offsetRef.current = clamped;
+    outer.style.height = `${h - clamped}px`;
+    inner.style.transform = `translateY(-${clamped}px)`;
+    inner.setAttribute('aria-hidden', clamped >= h && h > 0 ? 'true' : 'false');
+  }, []);
+
+  const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const y = e.currentTarget.scrollTop;
+    const delta = y - lastYRef.current;
+    lastYRef.current = y;
+    if (delta === 0) return;
+    // At (or rubber-banding past) the top the region is always fully shown.
+    apply(y <= 0 ? 0 : offsetRef.current + delta);
+  }, [apply]);
+
+  const reset = useCallback(() => {
+    lastYRef.current = 0;
+    offsetRef.current = 0;
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (outer && inner) {
+      outer.style.height = '';
+      inner.style.transform = '';
+      inner.setAttribute('aria-hidden', 'false');
+    }
+  }, []);
+
+  return { outerRef, innerRef, onScroll, reset };
+}
+
+export const modalCloseButtonStyle =
+  "p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
+
+/**
+ * Slimmed modal header: always-visible X + centered title + optional pinned
+ * action cluster (primary + utilities), with an optional collapsing region
+ * below (`children`). Replaces the per-modal header div + the footer.
+ */
+export const CollapsibleModalHeader: React.FC<{
+  title: React.ReactNode;
+  onClose: () => void;
+  closeLabel?: string;
+  /** Pinned top-right cluster: primary action + utilities (Q2). Stays visible. */
+  actions?: React.ReactNode;
+  /** Collapsing region below the title row (tabs, add buttons, counters). */
+  children?: React.ReactNode;
+  collapse?: CollapsingHeaderController;
+}> = ({ title, onClose, closeLabel = 'Close', actions, children, collapse }) => (
+  <div className="flex-shrink-0">
+    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
+      <button type="button" onClick={onClose} aria-label={closeLabel} title={closeLabel} className={modalCloseButtonStyle}>
+        <HiOutlineXMark className="w-6 h-6" />
+      </button>
+      <h2 className={`${titleStyle} text-2xl text-center truncate min-w-0`}>{title}</h2>
+      <div className="justify-self-end flex items-center gap-1.5 min-w-0">{actions}</div>
+    </div>
+    {children && (
+      <div ref={collapse?.outerRef} className="overflow-hidden border-b border-slate-700/20">
+        <div ref={collapse?.innerRef}>{children}</div>
+      </div>
+    )}
   </div>
 );
 

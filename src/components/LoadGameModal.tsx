@@ -20,7 +20,7 @@ import {
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 
 /**
@@ -640,13 +640,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex flex-col">
-          {/* Title Section */}
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">{t('loadGameModal.title', 'Load Game')}</h2>
-          </div>
-        </div>
+        {/* Modal-chrome slimming: X-header replaces the header + the
+            close-only footer. Filter/checkbox stay in the scroll body. */}
+        <CollapsibleModalHeader
+          title={t('loadGameModal.title', 'Load Game')}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+        />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-4 pb-6">
@@ -668,11 +668,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
           {mainContent}
         </div>
-        <ModalFooter>
-          <button onClick={onClose} className={primaryButtonStyle}>
-            {t('common.doneButton', 'Done')}
-          </button>
-        </ModalFooter>
       </div>
 
       {/* Confirmation Modal */}

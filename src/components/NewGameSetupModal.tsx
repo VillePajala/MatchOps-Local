@@ -21,7 +21,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -97,6 +97,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   savedGames,
 }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');
   const [opponentName, setOpponentName] = useState('');
@@ -748,28 +749,39 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0">
-          {/* Fixed Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {t('newGameSetupModal.title', 'New Game Setup')}
-            </h2>
-          </div>
-
-          {/* Quick-fill from the most recent game (opponent, venue, format, roster) */}
-          {lastGame && (
-            <div className="px-6 pb-2 backdrop-blur-sm bg-slate-900/20">
+          {/* Modal-chrome slimming: X-header + pinned primary (Create) replace
+              the header and the Cancel/Create footer. "Repeat last game"
+              (utility) sits in the collapsing region below the title. */}
+          <CollapsibleModalHeader
+            title={t('newGameSetupModal.title', 'New Game Setup')}
+            onClose={onCancel}
+            closeLabel={t('common.cancelButton', 'Cancel')}
+            collapse={headerCollapse}
+            actions={
               <button
                 type="button"
-                onClick={handleRepeatLastGame}
-                className="w-full px-4 py-2 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-sm font-medium border border-indigo-500/40 transition-colors"
+                onClick={handleStartClick}
+                className="px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
+                {t('newGameSetupModal.createGame', 'Create Game')}
               </button>
-            </div>
-          )}
+            }
+          >
+            {lastGame && (
+              <div className="px-4 pb-3 pt-1 backdrop-blur-sm bg-slate-900/20">
+                <button
+                  type="button"
+                  onClick={handleRepeatLastGame}
+                  className="w-full px-4 py-2 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-sm font-medium border border-indigo-500/40 transition-colors"
+                >
+                  {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
+                </button>
+              </div>
+            )}
+          </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4" onScroll={headerCollapse.onScroll}>
             {/* CARD 1: Teams & Roster */}
             <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
@@ -1376,23 +1388,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             </div>
           </div>
 
-          {/* Footer */}
-          <ModalFooter>
-            <div className="flex gap-3 w-full">
-              <button
-                onClick={onCancel}
-                className="flex-1 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30"
-              >
-                {t('common.cancelButton', 'Cancel')}
-              </button>
-              <button
-                onClick={handleStartClick}
-                className="flex-[2] py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-              >
-                {t('newGameSetupModal.createGame', 'Create Game')}
-              </button>
-            </div>
-          </ModalFooter>
         </div>
       </div>
 

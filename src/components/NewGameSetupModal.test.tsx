@@ -308,10 +308,10 @@ describe('NewGameSetupModal', () => {
     expect(mockOnStart).not.toHaveBeenCalled();
   });
 
-  test('calls onCancel when cancel button is clicked', async () => {
+  test('calls onCancel when the header close (X) is clicked', async () => {
     renderModal();
-    // Use translation key for button text
-    const cancelButton = screen.getByText(translations['common.cancel']);
+    // Chrome slimming: Cancel is now the header X (aria-label = Cancel).
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
     await act(async () => {
         fireEvent.click(cancelButton);
     });
