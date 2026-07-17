@@ -26,7 +26,7 @@ import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { queryKeys } from '@/config/queryKeys';
 
 // Import extracted hooks
@@ -167,6 +167,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onOpenAssessments,
 }) => {
   const { t, i18n } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const { showToast } = useToast();
   const { userId, getStore } = useDataStore();
 
@@ -717,17 +718,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
         <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        {/* Header */}
-        <div className="flex flex-col items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-            {getTabTitle()}
-          </h2>
-        </div>
-
-        {/* Controls Section */}
-        <div className="px-4 sm:px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Tabs */}
+        {/* Chrome slimming: X-header (Done->X); the tab strip collapses on scroll. */}
+        <CollapsibleModalHeader
+          title={getTabTitle()}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+          collapse={headerCollapse}
+        >
+          <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center gap-2 flex-wrap flex-1">
               <div className="flex w-full gap-2" role="tablist">
             {!aggregateOnly && (
@@ -752,10 +750,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </CollapsibleModalHeader>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0" onScroll={headerCollapse.onScroll}>
           {activeTab === 'player' ? (
             <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Player filter with collapsible Game Type and Season filters */}
@@ -1115,12 +1113,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               )}
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <ModalFooter>
-          {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) ? (
-            <>
+          {/* Chrome slimming: Export Excel moved inline, per active tab,
+              below that tab's content (was a fixed footer). */}
+          {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) && (
+            <div className="px-4 sm:px-6 pb-6">
               {activeTab === 'currentGame' && currentGameId && onExportOneExcel && (
                 <button
                   onClick={() => onExportOneExcel(currentGameId)}
@@ -1153,13 +1150,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
               )}
-              <div className="flex-1" />
-            </>
-          ) : null}
-          <button onClick={onClose} className={primaryButtonStyle}>
-            {t('common.doneButton', 'Done')}
-          </button>
-        </ModalFooter>
+            </div>
+          )}
+        </div>
 
         {/* Confirmation Modal for Delete Event */}
         <ConfirmationModal

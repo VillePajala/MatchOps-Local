@@ -31,7 +31,7 @@ import {
 } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -1603,12 +1603,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col h-full">
-          {/* Fixed Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {t('gameSettingsModal.title', 'Match details')}
-            </h2>
-          </div>
+          {/* Chrome slimming: X-header (Done->X). The X stays locked while a
+              re-apply is in flight (was the footer Done's `disabled`) so the
+              async chain can't overwrite a newly-loaded game's lineup. */}
+          <CollapsibleModalHeader
+            title={t('gameSettingsModal.title', 'Match details')}
+            onClose={onClose}
+            closeLabel={t('common.doneButton', 'Done')}
+            closeDisabled={isReapplying}
+          />
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
@@ -2682,26 +2685,26 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 }}
               />
             </div>
+            {/* Chrome slimming: Re-apply plan is a utility action, moved
+                inline at the bottom of the content (Done is now the header
+                X). R3 scroll anchors are id-based and unaffected. */}
+            {(error || (canReapplyPlan && onReapplyPlan)) && (
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                {error && (
+                  <div className="text-red-400 text-sm mr-auto">{error}</div>
+                )}
+                {canReapplyPlan && onReapplyPlan && (
+                  <button
+                    onClick={() => setShowReapplyConfirm(true)}
+                    className={secondaryButtonStyle}
+                    disabled={isReapplying}
+                  >
+                    {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Footer */}
-          <ModalFooter>
-            {error && (
-              <div className="text-red-400 text-sm mr-auto">{error}</div>
-            )}
-            {canReapplyPlan && onReapplyPlan && (
-              <button
-                onClick={() => setShowReapplyConfirm(true)}
-                className={secondaryButtonStyle}
-                disabled={isReapplying}
-              >
-                {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
-              </button>
-            )}
-            <button onClick={onClose} className={primaryButtonStyle} disabled={isReapplying}>
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
 
