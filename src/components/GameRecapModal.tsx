@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineShare, HiOutlineClipboardCopy, HiOutlineCheck } from 'react-icons/hi';
-import { modalContainerStyle, ModalBackgroundEffects, ModalFooter } from '@/styles/modalStyles';
+import { modalContainerStyle, ModalBackgroundEffects, CollapsibleModalHeader } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 
 interface GameRecapModalProps {
@@ -57,59 +57,51 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap 
       className="fixed inset-0 z-[80] font-display flex"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="game-recap-title"
+      aria-label={t('recap.title', 'Game recap')}
     >
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         <ModalBackgroundEffects />
         <div className="relative z-10 flex flex-col h-full min-h-0">
-          {/* Header */}
-          <div className="px-6 pt-10 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0 text-center">
-            <h2 id="game-recap-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {t('recap.title', 'Game recap')}
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
+          {/* Chrome slimming: X-header (Close->X); subtitle pinned below. */}
+          <CollapsibleModalHeader
+            title={t('recap.title', 'Game recap')}
+            onClose={onClose}
+            closeLabel={t('common.close', 'Close')}
+          >
+            <p className="text-xs text-slate-400 px-6 pb-3 text-center">
               {t('recap.subtitle', 'Ready to paste into the team chat. Edit if you like.')}
             </p>
-          </div>
+          </CollapsibleModalHeader>
 
-          {/* Editable preview */}
-          <div className="flex-1 min-h-0 px-4 sm:px-6 py-4">
+          {/* Editable preview with its Copy/Share actions inline beneath it. */}
+          <div className="flex-1 min-h-0 px-4 sm:px-6 py-4 flex flex-col gap-3">
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
               aria-label={t('recap.title', 'Game recap')}
-              className="w-full h-full min-h-[16rem] resize-none bg-slate-900/60 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="flex-1 w-full min-h-[16rem] resize-none bg-slate-900/60 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
-          </div>
-
-          {/* Footer */}
-          <ModalFooter>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-200"
-            >
-              {t('common.close', 'Close')}
-            </button>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 inline-flex items-center gap-1.5"
-            >
-              {copied ? <HiOutlineCheck className="text-emerald-400" /> : <HiOutlineClipboardCopy />}
-              {copied ? t('recap.copied', 'Copied') : t('recap.copy', 'Copy')}
-            </button>
-            {canShare && (
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={handleShare}
-                className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white inline-flex items-center gap-1.5"
+                onClick={handleCopy}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100 inline-flex items-center gap-1.5"
               >
-                <HiOutlineShare />
-                {t('recap.share', 'Share')}
+                {copied ? <HiOutlineCheck className="text-emerald-400" /> : <HiOutlineClipboardCopy />}
+                {copied ? t('recap.copied', 'Copied') : t('recap.copy', 'Copy')}
               </button>
-            )}
-          </ModalFooter>
+              {canShare && (
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white inline-flex items-center gap-1.5"
+                >
+                  <HiOutlineShare />
+                  {t('recap.share', 'Share')}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

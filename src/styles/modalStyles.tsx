@@ -316,12 +316,16 @@ export const CollapsibleModalHeader: React.FC<{
   title: React.ReactNode;
   onClose: () => void;
   closeLabel?: string;
+  /** Lock the close control (e.g. while an in-flight op must not be
+      interrupted by closing the modal). Mirrors the old footer Done's
+      `disabled`. */
+  closeDisabled?: boolean;
   /** Pinned top-right cluster: primary action + utilities (Q2). Stays visible. */
   actions?: React.ReactNode;
   /** Collapsing region below the title row (tabs, add buttons, counters). */
   children?: React.ReactNode;
   collapse?: CollapsingHeaderController;
-}> = ({ title, onClose, closeLabel = 'Close', actions, children, collapse }) => {
+}> = ({ title, onClose, closeLabel = 'Close', closeDisabled, actions, children, collapse }) => {
   const showClose = useModalCloseVisible();
   return (
   <div className="flex-shrink-0">
@@ -330,7 +334,7 @@ export const CollapsibleModalHeader: React.FC<{
         center (owner feedback 2026-07-17). */}
     <div className="flex items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
       <div className="flex items-center justify-start basis-10 shrink-0">
-        <button type="button" onClick={onClose} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle}`}>
+        <button type="button" onClick={onClose} disabled={closeDisabled} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle} disabled:opacity-50 disabled:cursor-not-allowed`}>
           <HiOutlineXMark className="w-6 h-6" />
         </button>
       </div>
