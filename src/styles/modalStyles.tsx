@@ -285,7 +285,7 @@ export function useModalCloseVisible(): boolean {
 // replaces the old Cancel+Save footer (Cancel is the header X / hardware
 // back). Utilities do NOT live here; they go inline by their content.
 export const modalStickyBarStyle =
-  "flex-shrink-0 px-4 py-3 border-t border-slate-700/30 bg-slate-800/60 backdrop-blur-sm";
+  "flex-shrink-0 px-4 py-2.5 border-t border-slate-700/30 bg-slate-800/60 backdrop-blur-sm";
 
 export const ModalStickyPrimary: React.FC<{
   onClick: () => void;
@@ -294,11 +294,13 @@ export const ModalStickyPrimary: React.FC<{
   className?: string;
 }> = ({ onClick, disabled, children, className = '' }) => (
   <div className={`${modalStickyBarStyle} ${className}`}>
+    {/* Sized to match the in-modal quick-fill buttons (py-2 / text-sm) - the
+        full-height version read as too heavy (owner feedback 2026-07-17). */}
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full py-3 rounded-md text-base font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {children}
     </button>
@@ -323,12 +325,17 @@ export const CollapsibleModalHeader: React.FC<{
   const showClose = useModalCloseVisible();
   return (
   <div className="flex-shrink-0">
-    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
-      <button type="button" onClick={onClose} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle}`}>
-        <HiOutlineXMark className="w-6 h-6" />
-      </button>
-      <h2 className={`${titleStyle} text-2xl text-center truncate min-w-0`}>{title}</h2>
-      <div className="justify-self-end flex items-center gap-1.5 min-w-0">{actions}</div>
+    {/* Balanced fixed-width side slots keep the title centered whether or not
+        the X shows (hidden on phones) - a bare auto-column shoved it off
+        center (owner feedback 2026-07-17). */}
+    <div className="flex items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
+      <div className="flex items-center justify-start basis-10 shrink-0">
+        <button type="button" onClick={onClose} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle}`}>
+          <HiOutlineXMark className="w-6 h-6" />
+        </button>
+      </div>
+      <h2 className={`${titleStyle} text-2xl flex-1 text-center truncate min-w-0`}>{title}</h2>
+      <div className="flex items-center justify-end gap-1.5 basis-10 shrink-0">{actions}</div>
     </div>
     {children && (
       <div ref={collapse?.outerRef} className="overflow-hidden border-b border-slate-700/20">
