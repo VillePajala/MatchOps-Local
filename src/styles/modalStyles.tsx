@@ -14,7 +14,7 @@
  * - Consistent spacing and shadows
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useSyncExternalStore } from 'react';
 import { HiOutlineXMark } from 'react-icons/hi2';
 
 // ============================================================================
@@ -252,11 +252,33 @@ export function useCollapsingHeader(): CollapsingHeaderController {
   return { outerRef, innerRef, onScroll, reset };
 }
 
-// The close X is hidden on phones (owner decision 2026-07-17: hardware /
-// gesture back handles closing there) and shown from `sm` up, where there
-// is no hardware back. Kept in the DOM for a11y regardless.
+// The close X shows ONLY where there is no reliable back affordance (owner
+// decision 2026-07-17, refined): a desktop pointer (mouse) OR an iOS
+// home-screen PWA (standalone Safari has no back gesture at all). It is
+// hidden on Android TWA (hardware back) and mobile Safari (browser back +
+// edge-swipe), where a visible X is redundant. See useModalCloseVisible.
 export const modalCloseButtonStyle =
-  "hidden sm:flex items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
+  "items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
+
+function subscribeCloseVisibility(cb: () => void): () => void {
+  const mq = typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(pointer: fine)')
+    : null;
+  mq?.addEventListener?.('change', cb);
+  return () => mq?.removeEventListener?.('change', cb);
+}
+
+function getCloseVisibilitySnapshot(): boolean {
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  const finePointer = window.matchMedia?.('(pointer: fine)')?.matches ?? true;
+  return finePointer || nav.standalone === true;
+}
+
+/** True where the modal X should show: desktop pointer OR iOS standalone PWA.
+ *  SSR/test snapshot is `true` (show), so no missing-X flash and tests find it. */
+export function useModalCloseVisible(): boolean {
+  return useSyncExternalStore(subscribeCloseVisibility, getCloseVisibilitySnapshot, () => true);
+}
 
 // Sticky single-primary bottom bar (owner decision 2026-07-17): the ONE
 // commit action for a form/wizard modal, pinned and thumb-reachable -
@@ -297,10 +319,12 @@ export const CollapsibleModalHeader: React.FC<{
   /** Collapsing region below the title row (tabs, add buttons, counters). */
   children?: React.ReactNode;
   collapse?: CollapsingHeaderController;
-}> = ({ title, onClose, closeLabel = 'Close', actions, children, collapse }) => (
+}> = ({ title, onClose, closeLabel = 'Close', actions, children, collapse }) => {
+  const showClose = useModalCloseVisible();
+  return (
   <div className="flex-shrink-0">
     <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
-      <button type="button" onClick={onClose} aria-label={closeLabel} title={closeLabel} className={modalCloseButtonStyle}>
+      <button type="button" onClick={onClose} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle}`}>
         <HiOutlineXMark className="w-6 h-6" />
       </button>
       <h2 className={`${titleStyle} text-2xl text-center truncate min-w-0`}>{title}</h2>
@@ -312,7 +336,8 @@ export const CollapsibleModalHeader: React.FC<{
       </div>
     )}
   </div>
-);
+  );
+};
 
 // ============================================================================
 // Dialog/Overlay Backdrop Styles
