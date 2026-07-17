@@ -757,15 +757,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             onClose={onCancel}
             closeLabel={t('common.cancelButton', 'Cancel')}
             collapse={headerCollapse}
-            actions={
-              <button
-                type="button"
-                onClick={handleStartClick}
-                className="px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {t('newGameSetupModal.createGame', 'Create Game')}
-              </button>
-            }
           >
             {lastGame && (
               <div className="px-4 pb-3 pt-1 backdrop-blur-sm bg-slate-900/20">
@@ -1386,6 +1377,16 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </label>
               </div>
             </div>
+
+            {/* Primary action at the END of the form (chrome slimming: no
+                footer; the commit is the natural terminus of the flow). */}
+            <button
+              type="button"
+              onClick={handleStartClick}
+              className="w-full py-3 rounded-md text-base font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {t('newGameSetupModal.createGame', 'Create Game')}
+            </button>
           </div>
 
         </div>

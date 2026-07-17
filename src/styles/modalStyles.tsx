@@ -252,8 +252,11 @@ export function useCollapsingHeader(): CollapsingHeaderController {
   return { outerRef, innerRef, onScroll, reset };
 }
 
+// The close X is hidden on phones (owner decision 2026-07-17: hardware /
+// gesture back handles closing there) and shown from `sm` up, where there
+// is no hardware back. Kept in the DOM for a11y regardless.
 export const modalCloseButtonStyle =
-  "p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
+  "hidden sm:flex items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
 
 /**
  * Slimmed modal header: always-visible X + centered title + optional pinned
