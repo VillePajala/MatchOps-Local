@@ -187,7 +187,7 @@ export function useGameDataManagement(
           });
 
           // Merge: use master roster data but preserve per-game isGoalie
-          return masterRosterQueryResultData.map(masterPlayer => {
+          const merged = masterRosterQueryResultData.map(masterPlayer => {
             const hasPerGameGoalie = perGameGoalieMap.has(masterPlayer.id);
             // If player exists in current game with explicit goalie status, preserve it
             if (hasPerGameGoalie) {
@@ -196,6 +196,16 @@ export function useGameDataManagement(
             // New player from master roster - use master's isGoalie
             return masterPlayer;
           });
+          // Deep-review I3: PRESERVE per-game players who are no longer in
+          // the club roster. The per-game availablePlayers is this game's
+          // HISTORICAL record - mapping only over the master roster silently
+          // deleted departed players from old games on load (breaking stats
+          // name resolution and writing selectedPlayerIds ⊄ availablePlayers
+          // back to storage). Live deletions still prune field/selection via
+          // rosterRemovalDiff; the roster snapshot keeps the name.
+          const masterIds = new Set(masterRosterQueryResultData.map(p => p.id));
+          const departed = currentPlayers.filter((p: Player) => !masterIds.has(p.id));
+          return departed.length > 0 ? [...merged, ...departed] : merged;
         });
       }
     }

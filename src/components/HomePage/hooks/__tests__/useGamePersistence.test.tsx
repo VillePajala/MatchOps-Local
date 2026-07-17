@@ -27,6 +27,8 @@ jest.mock('@/utils/playtimePlanner/planLinks', () => ({
 
 jest.mock('@/utils/savedGames', () => ({
   saveGame: jest.fn().mockResolvedValue(true),
+  // Deep-review: silent saves verify the game still exists (ghost guard).
+  getGame: jest.fn().mockResolvedValue({ teamName: 'T' }),
   deleteGame: jest.fn().mockResolvedValue(true),
   removeGameEvent: jest.fn().mockResolvedValue({}),
   getLatestGameId: jest.fn().mockResolvedValue(null),
