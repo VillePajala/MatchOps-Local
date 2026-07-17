@@ -23,6 +23,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineTrash,
   HiOutlineUsers,
+  HiOutlineXMark,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -40,7 +41,6 @@ import { generateId } from '@/utils/idGenerator';
 import {
   ModalContainer,
   ModalHeader,
-  ModalFooter,
   ScrollableContent,
   headerStyle,
   titleStyle,
@@ -52,6 +52,8 @@ import {
   iconButtonDangerStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
+  modalCloseButtonStyle,
+  useModalCloseVisible,
 } from '@/styles/modalStyles';
 import {
   getPlans,
@@ -1457,20 +1459,37 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setView('manager');
   }, [flushSave, refreshPlanList]);
 
-  // R5 (hardened): the planner owns its ENTIRE back behaviour with ONE stack
-  // entry that branches on the current view - inside a plan, back returns to
-  // the manager and KEEPS the planner open (returns true); from the manager
-  // it closes the planner. A single entry can't desync (the old two-entry
-  // version could leave the app-exit entry exposed after the async
-  // view-change). The host does NOT register the planner separately.
-  useModalHardwareBack(isOpen, () => {
-    if (view !== 'manager' && view !== 'loading') {
+  // One level "back" for BOTH the header X and hardware back, so the two can
+  // never diverge. Returns true when it stepped internally (planner stays
+  // open), false when it closed the planner. Inside a plan -> back to the
+  // manager; from a fresh unsaved plan (setup with no saved plans) or the
+  // manager -> close.
+  const goBackOneLevel = useCallback((): boolean => {
+    if (isPlanTab(view)) {
       void handleBackToManager();
-      return true; // handled internally - stay open for the next back
+      return true;
+    }
+    if (view === 'setup' && planList.length > 0) {
+      setView('manager');
+      return true;
     }
     handleClose();
-    return false; // closed
-  });
+    return false;
+  }, [view, planList.length, handleBackToManager, handleClose]);
+
+  // R5 (hardened): the planner owns its ENTIRE hardware-back behaviour with
+  // ONE stack entry that STEPS (plan -> manager -> close) and returns true to
+  // stay open mid-step. A single entry can't desync. The host does NOT
+  // register the planner separately.
+  useModalHardwareBack(isOpen, goBackOneLevel);
+
+  // The header X fully closes the planner from any view (like every other
+  // modal - one-tap exit). "Back to manager" is a separate inline control in a
+  // plan. Hidden on phones that have gesture/hardware back (desktop pointer /
+  // iOS standalone only), where stepping hardware-back covers navigation.
+  const showClose = useModalCloseVisible();
+  // Whether an inline "Back to manager" step is available on the current view.
+  const showInlineBack = isPlanTab(view) || (view === 'setup' && planList.length > 0);
 
   // Open a plan from the manager (re-opening the already-loaded plan is instant).
   const handleOpenPlan = useCallback(
@@ -1558,6 +1577,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   return (
     <ModalContainer containerRef={modalRootRef} aria-label={t('playtimePlanner.title', 'Match planner')}>
+      {/* Chrome slimming: the modal-level Close is an X in the header's
+          top-left (was the footer's Close). Absolutely positioned so it never
+          shifts the centered/editable title. Fully closes from any view. */}
+      <button
+        type="button"
+        onClick={handleClose}
+        aria-label={t('common.close', 'Close')}
+        title={t('common.close', 'Close')}
+        className={`${showClose ? 'flex' : 'hidden'} absolute left-2 top-7 z-20 ${modalCloseButtonStyle}`}
+      >
+        <HiOutlineXMark className="w-6 h-6" />
+      </button>
+
       {/* Header names what's on screen: tool name outside a plan; the ACTIVE
           GAME (tap-editable) on the single-game surface; the plan name
           (tap-editable on the plan tab) everywhere else in an open plan. */}
@@ -1665,6 +1697,85 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       )}
 
       <ScrollableContent className="px-6 py-4" onScroll={handleContentScroll} data-testid="planner-scroll">
+        {/* Chrome slimming: the tab's utility actions now sit inline at the top
+            of its content (was the footer's left side) - "Back" to the manager,
+            Import JSON on the manager, Export JSON on the plan tab, undo/redo +
+            layout on the games tab. Full Close is the header X. */}
+        {(showInlineBack || view === 'manager') && (
+          <div className="flex items-center gap-1.5 mb-4">
+            {showInlineBack && (
+              <button
+                type="button"
+                onClick={goBackOneLevel}
+                className={`${secondaryButtonStyle} mr-auto`}
+              >
+                {t('playtimePlanner.lineup.back', 'Back')}
+              </button>
+            )}
+            {view === 'manager' && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={`${secondaryButtonStyle} min-w-[9rem]`}
+              >
+                {t('playtimePlanner.versions.import', 'Import JSON')}
+              </button>
+            )}
+            {view === 'plan' && activePlan && (
+              <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} min-w-[9rem]`}>
+                {t('playtimePlanner.versions.export', 'Export JSON')}
+              </button>
+            )}
+            {view === 'games' && activePlan && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => applyHistory(-1)}
+                  disabled={!canUndo}
+                  aria-label={t('controlBar.undo', 'Undo')}
+                  title={t('controlBar.undo', 'Undo')}
+                  className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                >
+                  <HiOutlineArrowUturnLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyHistory(1)}
+                  disabled={!canRedo}
+                  aria-label={t('controlBar.redo', 'Redo')}
+                  title={t('controlBar.redo', 'Redo')}
+                  className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                >
+                  <HiOutlineArrowUturnRight className="w-4 h-4" />
+                </button>
+                {activePlan.games.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
+                    aria-pressed={gamesLayout === 'grid'}
+                    aria-label={
+                      gamesLayout === 'single'
+                        ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+                        : t('playtimePlanner.lineup.viewSingle', 'Single game')
+                    }
+                    title={
+                      gamesLayout === 'single'
+                        ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+                        : t('playtimePlanner.lineup.viewSingle', 'Single game')
+                    }
+                    className={`p-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                      gamesLayout === 'grid'
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+                        : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
+                    }`}
+                  >
+                    <HiOutlineSquares2X2 className="w-4 h-4" aria-hidden="true" />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
         {view === 'loading' && (
           <div className="flex flex-col items-center justify-center py-10 text-slate-400">
             <svg className="animate-spin h-8 w-8 mb-3 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -2503,89 +2614,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             />
           );
         })()}
-
-      <ModalFooter>
-        {/* Left side of the footer holds the tab's utility actions (house
-            pattern - navigation stays right): manager = Import JSON, undo/redo
-            on the editing tabs, Export JSON on the plan tab. */}
-        {view === 'manager' && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={`${secondaryButtonStyle} mr-auto min-w-[9rem]`}
-          >
-            {t('playtimePlanner.versions.import', 'Import JSON')}
-          </button>
-        )}
-        {view === 'plan' && activePlan && (
-          <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} mr-auto min-w-[9rem]`}>
-            {t('playtimePlanner.versions.export', 'Export JSON')}
-          </button>
-        )}
-        {activePlan && view === 'games' && (
-          <div className="flex gap-1.5 mr-auto">
-            <button
-              type="button"
-              onClick={() => applyHistory(-1)}
-              disabled={!canUndo}
-              aria-label={t('controlBar.undo', 'Undo')}
-              title={t('controlBar.undo', 'Undo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
-              <HiOutlineArrowUturnLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => applyHistory(1)}
-              disabled={!canRedo}
-              aria-label={t('controlBar.redo', 'Redo')}
-              title={t('controlBar.redo', 'Redo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
-              <HiOutlineArrowUturnRight className="w-4 h-4" />
-            </button>
-            {/* Layout toggle lives with the other games-tab utilities - inline
-                with the ribbon it read as a broken, misaligned extra tab. */}
-            {activePlan.games.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
-                aria-pressed={gamesLayout === 'grid'}
-                aria-label={
-                  gamesLayout === 'single'
-                    ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-                    : t('playtimePlanner.lineup.viewSingle', 'Single game')
-                }
-                title={
-                  gamesLayout === 'single'
-                    ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-                    : t('playtimePlanner.lineup.viewSingle', 'Single game')
-                }
-                className={`p-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-                  gamesLayout === 'grid'
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-                    : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
-                }`}
-              >
-                <HiOutlineSquares2X2 className="w-4 h-4" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        )}
-        {isPlanTab(view) && (
-          <button type="button" onClick={() => void handleBackToManager()} className={secondaryButtonStyle}>
-            {t('playtimePlanner.lineup.back', 'Back')}
-          </button>
-        )}
-        {view === 'setup' && planList.length > 0 && (
-          <button type="button" onClick={() => setView('manager')} className={secondaryButtonStyle}>
-            {t('playtimePlanner.lineup.back', 'Back')}
-          </button>
-        )}
-        <button type="button" onClick={handleClose} className={primaryButtonStyle}>
-          {t('common.close', 'Close')}
-        </button>
-      </ModalFooter>
 
       <ConfirmationModal
         isOpen={showSuggestConfirm}
