@@ -253,6 +253,40 @@ after the lift (fewer things depend on mounting the game).
   flag), so the policy is: ship clean, watch real game-day usage, restore
   individual items only on proven friction - never speculatively.
 
+### Owner walkthrough findings (2026-07-17, pre-merge of PR #681)
+
+Fix on the feature branch before merge (F-wave fixes):
+- **W1 Roster-bridge UX**: trigger label "Lisää uusi pelaaja", submit button
+  "Lisää"; BIGGER input; add a NICKNAME field (disc shows nickname - full
+  name on the disc is wrong); offer the same inline add in NEW GAME
+  creation's picker too, not only Ottelun tiedot.
+- **W4 Timer overlay ignores hardware back** - register the large timer
+  overlay on the modal back-stack.
+- **W7 Back from Otteluraportti lands on App Settings, second back exits
+  the app** - stack corruption/misorder; investigate + fix (likely a stale
+  or unregistered entry being consumed).
+- **W9 Back inside the planner closes the APP** - the planner's stack entry
+  is missing/consumed in some flow; fix, and consider back walking the
+  planner's INTERNAL views (plan -> list) instead of closing outright.
+- **W11 Post-sign-in migration wizard shows "move to cloud" with NOTHING to
+  move** - regression of the centralized clearMigrationCompleted-on-signout:
+  the wizard must skip when local data is empty.
+- **W8 Tilastot panel rows should mirror the stats tabs** (Kausi / Turnaus /
+  Kaikki / Pelaaja) - "Joukkueen tilastot" names a surface that doesn't
+  exist as such.
+- **W10 Planner entry back into the match menu** (menu-watchpoint policy:
+  proven friction on day one - a coach wants the plan right after creating
+  the game). One-line provider-flag entry.
+- **W6 "Viimeistele ottelu" open items should NAVIGATE to where each item
+  can be completed** (tap-through), not just list them.
+- **W2 ControlBar imbalance**: the Home button un-centers the timer -
+  needs a layout decision (symmetric spacer / regroup) - owner discussion.
+- **W5 Resume-from-background defaults to Home even when the match was on
+  screen** - owner leaning: restore the view you left; needs a "was in
+  match" session marker + decision.
+- **W3 (question, answered in chat)**: planner subs vs timer sub-interval
+  interplay - document in §4 once verified.
+
 ## 7. Process rules for this branch (planner lessons, binding)
 
 - **Merge gate (binding, 2026-07-14): a sub-PR merges ONLY when the Claude
