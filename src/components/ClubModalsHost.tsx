@@ -207,7 +207,8 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useModalHardwareBack(isTeamManagerOpen, () => setIsTeamManagerOpen(false));
   useModalHardwareBack(isLoadGameModalOpen, () => setIsLoadGameModalOpen(false));
   useModalHardwareBack(isNewGameSetupModalOpen, handleCloseNewGameSetup);
-  useModalHardwareBack(isPlaytimePlannerOpen, () => setIsPlaytimePlannerOpen(false));
+  // Planner hardware-back is owned by PlaytimePlannerModal itself (one
+  // branching entry: plan->manager->close). Not registered here.
   useModalHardwareBack(isClubStatsOpen, handleCloseClubStats);
   // The hard-reset confirm stacks ON TOP of Settings - it must register too,
   // or back would close Settings underneath and orphan a destructive dialog.

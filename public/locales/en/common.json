@@ -849,7 +849,7 @@
     }
   },
   "newGameSetupModal": {
-    "title": "New Game Setup",
+    "title": "Create New Match",
     "repeatLastGame": "Repeat last game",
     "repeatedLastGame": "Filled from your last game",
     "opponentLabel": "Opponent Name:",

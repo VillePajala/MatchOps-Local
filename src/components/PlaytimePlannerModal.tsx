@@ -1457,15 +1457,20 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setView('manager');
   }, [flushSave, refreshPlanList]);
 
-  // R5: hardware back walks the planner's INTERNAL navigation first - from
-  // inside a plan (or setup) back returns to the plan manager through the
-  // SAME handler as the UI back (flush + list refresh); only from the
-  // manager does the next back close the planner (the host's own stack
-  // entry, registered before this one, so this stacks above it).
-  useModalHardwareBack(
-    isOpen && view !== 'manager' && view !== 'loading',
-    () => { void handleBackToManager(); },
-  );
+  // R5 (hardened): the planner owns its ENTIRE back behaviour with ONE stack
+  // entry that branches on the current view - inside a plan, back returns to
+  // the manager and KEEPS the planner open (returns true); from the manager
+  // it closes the planner. A single entry can't desync (the old two-entry
+  // version could leave the app-exit entry exposed after the async
+  // view-change). The host does NOT register the planner separately.
+  useModalHardwareBack(isOpen, () => {
+    if (view !== 'manager' && view !== 'loading') {
+      void handleBackToManager();
+      return true; // handled internally - stay open for the next back
+    }
+    handleClose();
+    return false; // closed
+  });
 
   // Open a plan from the manager (re-opening the already-loaded plan is instant).
   const handleOpenPlan = useCallback(
