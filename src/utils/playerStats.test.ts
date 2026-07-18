@@ -59,6 +59,34 @@ describe('calculatePlayerStats', () => {
     expect(stats.performanceByTournament['t1'].gamesPlayed).toBe(1);
   });
 
+  describe('friendly matches (isFriendly)', () => {
+    // A friendly that ALSO carries a season tag - the edge case the plan doc
+    // says the friendly flag must win: never counted in the season breakdown.
+    const friendlyWithSeason = {
+      ...game1,
+      seasonId: 's1',
+      isFriendly: true,
+      gameDate: '2024-03-01',
+      gameEvents: [{ id: 'f1', type: 'goal', time: 5, scorerId: 'p1' } as GameEvent],
+    } as AppState;
+    const withFriendly = { ...savedGames, gf: friendlyWithSeason };
+
+    it('excludes friendlies from a player’s totals by default', () => {
+      const stats = calculatePlayerStats(player, withFriendly, seasons, tournaments);
+      expect(stats.totalGames).toBe(2); // g1 + g2 only, the friendly is skipped
+      expect(stats.totalGoals).toBe(1); // the friendly goal is not counted
+    });
+
+    it('includeFriendlies folds a friendly into the OVERALL total but NEVER into a season breakdown', () => {
+      const stats = calculatePlayerStats(player, withFriendly, seasons, tournaments, undefined, undefined, true);
+      expect(stats.totalGames).toBe(3); // friendly now counts toward the career total
+      expect(stats.totalGoals).toBe(2);
+      // ...but the friendly-with-season game must NOT leak into the season breakdown.
+      expect(stats.performanceBySeason['s1'].gamesPlayed).toBe(1); // still only the competitive game
+      expect(stats.performanceBySeason['s1'].goals).toBe(1);
+    });
+  });
+
   /**
    * Tests fair play card aggregation from game events
    * @critical

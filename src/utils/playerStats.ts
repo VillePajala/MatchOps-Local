@@ -45,7 +45,8 @@ export const calculatePlayerStats = (
   seasons: Season[],
   tournaments: Tournament[],
   adjustments?: PlayerStatAdjustment[],
-  teamId?: string  // Optional team filtering
+  teamId?: string,  // Optional team filtering
+  includeFriendlies: boolean = false  // Fold friendly/practice games into totals
 ): PlayerStats => {
   const gameByGameStats: GameStats[] = [];
   const performanceBySeason: { [seasonId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number } } = {};
@@ -56,7 +57,13 @@ export const calculatePlayerStats = (
     if (game.isPlayed === false) {
       return;
     }
-    
+
+    // Friendly/practice games are excluded from a player's competitive career
+    // stats unless the caller opts in (mirrors the stats modal's toggle).
+    if (game.isFriendly === true && !includeFriendlies) {
+      return;
+    }
+
     // Filter by team if specified
     if (teamId && game.teamId !== teamId) {
       return;
@@ -76,8 +83,11 @@ export const calculatePlayerStats = (
       // Add to total fair play cards
       totalFairPlayCards += fairPlayCards;
 
-      // Aggregate stats by season
-      if (game.seasonId) {
+      // Aggregate stats by season. A friendly ALWAYS stays out of a season's
+      // competitive breakdown, even with includeFriendlies on (which only folds
+      // friendlies into the OVERALL/career total) - the friendly flag wins over
+      // any season/tournament tag (see the friendly-matches plan).
+      if (game.seasonId && game.isFriendly !== true) {
         if (!performanceBySeason[game.seasonId]) {
           const seasonInfo = seasons.find(s => s.id === game.seasonId);
           performanceBySeason[game.seasonId] = { name: seasonInfo ? getSeasonDisplayName(seasonInfo) : 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0, fairPlayCards: 0 };
@@ -89,8 +99,8 @@ export const calculatePlayerStats = (
         performanceBySeason[game.seasonId].fairPlayCards += fairPlayCards;
       }
 
-      // Aggregate stats by tournament
-      if (game.tournamentId) {
+      // Aggregate stats by tournament (friendly flag wins - see season note).
+      if (game.tournamentId && game.isFriendly !== true) {
         const tournament = tournaments.find(t => t.id === game.tournamentId);
         const isTournamentWinner = tournament?.awardedPlayerId === player.id;
 

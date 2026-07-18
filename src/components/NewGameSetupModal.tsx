@@ -64,7 +64,9 @@ interface NewGameSetupModalProps {
       formationSnapPoints: Point[];
       sourcePlanId: string;
       sourcePlanGameId: string;
-    }
+    },
+    // Friendly / practice match: excluded from competitive stat totals by default.
+    isFriendly?: boolean,
   ) => void;
   onCancel: () => void;
   /** W1 roster bridge in game creation too: club write returning the saved
@@ -132,6 +134,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // <<< Step 4a: State for Home/Away >>>
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  const [isFriendly, setIsFriendly] = useState<boolean>(false);
 
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament
   const [gameType, setGameType] = useState<GameType>('soccer');
@@ -689,7 +692,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '', // Custom league name when leagueId === CUSTOM_LEAGUE_ID
       gameType, // Sport type: 'soccer' or 'futsal'
       gender, // Gender: 'boys' or 'girls' (optional)
-      prefillPayload // Planner prefill (Phase 2): planned XI + subs, or undefined
+      prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
+      isFriendly, // Friendly / practice match flag
     );
 
     // Modal will be closed by parent component after onStart
@@ -1368,6 +1372,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               <div className="mb-4">
                 <ModalToggleButton pressed={!isPlayed} onToggle={() => setIsPlayed(v => !v)}>
                   {t('newGameSetupModal.unplayedToggle', 'Not played yet')}
+                </ModalToggleButton>
+              </div>
+
+              {/* Friendly / practice match toggle */}
+              <div className="mb-4">
+                <ModalToggleButton pressed={isFriendly} onToggle={() => setIsFriendly(v => !v)}>
+                  {t('newGameSetupModal.friendlyToggle', 'Friendly match (kept out of competitive stats)')}
                 </ModalToggleButton>
               </div>
             </div>
