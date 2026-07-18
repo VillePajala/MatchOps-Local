@@ -1,5 +1,23 @@
 # Friendly Matches (Harjoitusottelut)
 
+## Status (implementation)
+
+- **Done:** the data layer (isFriendly on the model, local + cloud transforms,
+  migration 039, generated types); the stats rules (filterGameIds Friendlies
+  scope + includeFriendlies; calculatePlayerStats + overallTeamStats exclude
+  friendlies by default); the **New Game "Friendly match" toggle**; the stats
+  modal **Friendlies tab + "Include friendly matches" toggle**; EN/FI i18n.
+  All tested; no regressions.
+- **Deploy gate:** migration 039 must be applied to staging (verify) then prod
+  BEFORE cloud users rely on it. The code is forward-compatible (the flag is
+  silently dropped for cloud until the column exists; local works fully), so
+  merging without the migration causes no errors - only unpersisted cloud flags.
+- **Deferred (fast-follow):** a Game Settings "reclassify as friendly" toggle
+  (lets existing games be tagged; mirrors the deeply-threaded isPlayed path);
+  and a dedicated "Harjoitusottelut" entry point in the Start screen's Kilpailut
+  tab - which only exists on the (unmerged) two-level restructure, so on master
+  the Friendlies STATS tab is the access point.
+
 ## What it is
 
 A way to mark a game as a **friendly / practice match** and keep its stats out of
