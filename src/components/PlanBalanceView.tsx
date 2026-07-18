@@ -616,7 +616,7 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                         <div className="flex items-baseline justify-between gap-2">
                           <span className="flex-1 min-w-0 truncate font-semibold text-sm text-slate-100">{name}</span>
                           <span className="shrink-0 text-xs text-slate-400 tabular-nums">
-                            {t('playtimePlanner.balance.rolesCount', '{{count}} roles', { count: p.positionCount })}
+                            {t('playtimePlanner.balance.rolesCount', { count: p.positionCount, defaultValue_one: '{{count}} role', defaultValue_other: '{{count}} roles' })}
                           </span>
                         </div>
                         <div className="flex h-2 rounded-full overflow-hidden bg-slate-950/60">
