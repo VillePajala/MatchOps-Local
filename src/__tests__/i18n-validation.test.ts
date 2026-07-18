@@ -403,7 +403,12 @@ describe('Translation File Validation', () => {
       //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
       //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
       //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
-      expect(enKeys.length).toBe(2841);
+      // -2: gameStatsModal.tabs.friendlies/.titleFriendlies - the dedicated
+      //     friendlies stats tab was removed (overflowed the tab row); friendly
+      //     stats stay behind the "include friendlies" toggle
+      // Merged master: the planner Balance PRs (#682/#683) added their own keys,
+      //     so the net branch count lands at 2856.
+      expect(enKeys.length).toBe(2856);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -525,7 +530,12 @@ describe('Translation File Validation', () => {
       //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
       //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
       //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
-      expect(fiKeys.length).toBe(2841);
+      // -2: gameStatsModal.tabs.friendlies/.titleFriendlies - the dedicated
+      //     friendlies stats tab was removed (overflowed the tab row); friendly
+      //     stats stay behind the "include friendlies" toggle
+      // Merged master: the planner Balance PRs (#682/#683) added their own keys,
+      //     so the net branch count lands at 2856.
+      expect(fiKeys.length).toBe(2856);
     });
   });
 });
