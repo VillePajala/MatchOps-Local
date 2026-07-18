@@ -385,6 +385,10 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Tournaments' }));
     expect(props.onManageTournaments).toHaveBeenCalledTimes(1);
+    // Harjoitusottelut row opens the Friendlies stats scope.
+    fireEvent.click(screen.getByRole('button', { name: 'Friendlies' }));
+    expect(props.onViewStatsTab).toHaveBeenCalledWith('friendlies');
+    (props.onViewStatsTab as jest.Mock).mockClear();
     // Stats tab -> one row PER aggregate stats tab (W8).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(props.onViewStatsTab).not.toHaveBeenCalled();
