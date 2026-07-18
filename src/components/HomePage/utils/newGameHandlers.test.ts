@@ -106,6 +106,14 @@ describe('newGameHandlers', () => {
       .toHaveBeenCalledTimes(2);
   });
 
+  it('threads the isFriendly flag onto the built game (default false, explicit true)', async () => {
+    const def = await buildAndPersistNewGame(createTestDeps(), createBaseRequest());
+    expect(def!.gameState.isFriendly).toBe(false);
+
+    const friendly = await buildAndPersistNewGame(createTestDeps(), createBaseRequest({ isFriendly: true }));
+    expect(friendly!.gameState.isFriendly).toBe(true);
+  });
+
   it('falls back to the full club roster when the modal passes no selection', async () => {
     const deps = createTestDeps();
 

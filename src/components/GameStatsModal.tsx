@@ -36,7 +36,7 @@ import { useGoalEditor } from './GameStatsModal/hooks/useGoalEditor';
 import { useStatsFilters } from './GameStatsModal/hooks/useStatsFilters';
 
 // Import shared utilities
-import { getPlayedGamesByTeam } from './GameStatsModal/utils/gameFilters';
+import { filterGameIds } from './GameStatsModal/utils/gameFilters';
 
 // Import extracted components
 import {
@@ -487,38 +487,25 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const overallTeamStats = useMemo(() => {
     if (activeTab !== 'overall' && activeTab !== 'friendlies') return null;
 
-    const playedGameIds = getPlayedGamesByTeam(savedGames, selectedTeamIdFilter);
+    // Reuse the single filtering source of truth (team/type/gender/club-season +
+    // the friendly rule for this scope) rather than re-implementing it here.
+    const scopedGameIds = filterGameIds(savedGames, {
+      playedOnly: true,
+      teamFilter: selectedTeamIdFilter,
+      gameTypeFilter: selectedGameTypeFilter,
+      genderFilter: selectedGenderFilter,
+      clubSeasonFilter: selectedClubSeason,
+      clubSeasonStartDate,
+      clubSeasonEndDate,
+      activeTab,
+      includeFriendlies,
+    });
 
     let gamesPlayed = 0, wins = 0, losses = 0, ties = 0, goalsFor = 0, goalsAgainst = 0;
 
-    playedGameIds.forEach(gameId => {
+    scopedGameIds.forEach(gameId => {
       const game = savedGames?.[gameId];
       if (!game) return;
-
-      // Friendly-match rule (harjoitusottelut).
-      const isFriendly = game.isFriendly === true;
-      if (activeTab === 'friendlies') {
-        if (!isFriendly) return;
-      } else if (isFriendly && !includeFriendlies) {
-        return;
-      }
-
-      // Filter by club season if one is selected
-      if (selectedClubSeason !== 'all' && game.gameDate) {
-        const gameSeason = getClubSeasonForDate(game.gameDate, clubSeasonStartDate, clubSeasonEndDate);
-        if (gameSeason !== selectedClubSeason) return; // Skip games not in selected club season
-      }
-
-      // Filter by game type if one is selected
-      if (selectedGameTypeFilter !== 'all') {
-        const gameType = game.gameType || 'soccer'; // Default to soccer for legacy games
-        if (gameType !== selectedGameTypeFilter) return;
-      }
-
-      // Filter by gender if one is selected
-      if (selectedGenderFilter !== 'all') {
-        if (game.gender !== selectedGenderFilter) return;
-      }
 
       gamesPlayed++;
       const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
