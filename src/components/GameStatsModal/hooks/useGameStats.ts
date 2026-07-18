@@ -243,6 +243,7 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     return { stats: filteredAndSortedStats, gameIds: processedGameIds };
   }, [
     activeTab,
+    includeFriendlies,
     localGameEvents,
     savedGames,
     availablePlayers,
