@@ -722,7 +722,6 @@
       "season": "Kausi",
       "tournament": "Turnaus",
       "overall": "Kaikki",
-      "friendlies": "Harjoitusottelut",
       "player": "Pelaaja"
     },
     "filterAllSeasons": "Kaikki kaudet",
@@ -755,7 +754,6 @@
     },
     "titleTournament": "Turnaustilastot",
     "titleOverall": "Kokonaistilastot",
-    "titleFriendlies": "Harjoitusottelut",
     "includeFriendlies": "Sisällytä harjoitusottelut",
     "titleCurrentGame": "Nykyisen pelin tilastot",
     "invalidTimeFormat": "Virheellinen aikamuoto. MM:SS",
