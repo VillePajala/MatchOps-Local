@@ -56,6 +56,7 @@ export interface StartNewGameRequest {
   tournamentLevel: string;
   tournamentSeriesId: string | null;
   isPlayed: boolean;
+  isFriendly?: boolean;
   teamId: string | null;
   availablePlayersForGame: Player[];
   selectedPersonnelIds: string[];
@@ -101,6 +102,7 @@ export async function buildAndPersistNewGame(
     tournamentLevel,
     tournamentSeriesId,
     isPlayed,
+    isFriendly,
     teamId,
     availablePlayersForGame,
     selectedPersonnelIds,
@@ -209,6 +211,7 @@ export async function buildAndPersistNewGame(
     homeOrAway,
     demandFactor,
     isPlayed,
+    isFriendly: isFriendly ?? false,
     teamId: teamId || undefined,
     leagueId: leagueId || undefined,
     customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,

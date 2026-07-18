@@ -248,6 +248,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [activeTab, setActiveTab] = useState<StatsTab>(
     initialTab ?? (initialSelectedPlayerId ? 'player' : aggregateOnly ? 'season' : 'currentGame'),
   );
+  // Fold friendly/practice games into the Overall & Player totals (off = the
+  // competitive record). Only meaningful on those two scopes.
+  const [includeFriendlies, setIncludeFriendlies] = useState(false);
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
@@ -414,6 +417,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // --- Use extracted hooks ---
   const { stats: playerStats, gameIds: processedGameIds, totals } = useGameStats({
     activeTab,
+    includeFriendlies,
     savedGames,
     availablePlayers,
     selectedPlayerIds,
@@ -477,9 +481,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     t,
   });
 
-  // Calculate overall team stats (for overall tab)
+  // Calculate overall team stats (Overall tab + the Friendlies results line).
+  // Friendly-aware: Overall excludes friendlies unless opted in; Friendlies
+  // counts only friendlies.
   const overallTeamStats = useMemo(() => {
-    if (activeTab !== 'overall') return null;
+    if (activeTab !== 'overall' && activeTab !== 'friendlies') return null;
 
     const playedGameIds = getPlayedGamesByTeam(savedGames, selectedTeamIdFilter);
 
@@ -488,6 +494,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     playedGameIds.forEach(gameId => {
       const game = savedGames?.[gameId];
       if (!game) return;
+
+      // Friendly-match rule (harjoitusottelut).
+      const isFriendly = game.isFriendly === true;
+      if (activeTab === 'friendlies') {
+        if (!isFriendly) return;
+      } else if (isFriendly && !includeFriendlies) {
+        return;
+      }
 
       // Filter by club season if one is selected
       if (selectedClubSeason !== 'all' && game.gameDate) {
@@ -532,7 +546,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       averageGoalsFor: gamesPlayed > 0 ? goalsFor / gamesPlayed : 0,
       averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
     };
-  }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, includeFriendlies, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Tab counter memoized for performance
   // Calculate team assessment averages (applying same filters as overallTeamStats)
@@ -660,6 +674,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       case 'season': return t('gameStatsModal.titleSeason', 'Kausitilastot');
       case 'tournament': return t('gameStatsModal.titleTournament', 'Turnaustilastot');
       case 'overall': return t('gameStatsModal.titleOverall', 'Kokonaisstilastot');
+      case 'friendlies': return t('gameStatsModal.titleFriendlies', 'Harjoitusottelut');
       case 'player': {
         const selectedTeamName = selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy'
           ? teams.find(team => team.id === selectedTeamIdFilter)?.name
@@ -743,12 +758,30 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-selected={activeTab === 'overall'}>
               {t('gameStatsModal.tabs.overall')}
             </button>
+            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('friendlies'); }} className={`${getTabStyle('friendlies')} flex-1`} aria-selected={activeTab === 'friendlies'}>
+              {t('gameStatsModal.tabs.friendlies', 'Friendlies')}
+            </button>
             <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
               {t('gameStatsModal.tabs.player', 'Player')}
             </button>
             </>)}
               </div>
             </div>
+            {/* Include friendlies in the competitive read (Overall / Player only). */}
+            {(activeTab === 'overall' || activeTab === 'player') && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setIncludeFriendlies(v => !v)}
+                  aria-pressed={includeFriendlies}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                    includeFriendlies ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {t('gameStatsModal.includeFriendlies', 'Include friendly matches')}
+                </button>
+              </div>
+            )}
           </div>
         </CollapsibleModalHeader>
 
@@ -820,12 +853,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 clubSeasonEndDate={clubSeasonEndDate}
                 selectedGameTypeFilter={selectedGameTypeFilter}
                 selectedGenderFilter={selectedGenderFilter}
+                includeFriendlies={includeFriendlies}
               />
             </div>
           ) : (
             <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Filters */}
-              {activeTab === 'overall' || activeTab === 'tournament' || activeTab === 'season' ? (
+              {activeTab === 'overall' || activeTab === 'tournament' || activeTab === 'season' || activeTab === 'friendlies' ? (
                 /* Overall, Tournament and Season tabs - collapsible filters for space efficiency */
                 <CollapsibleFilters
                   activeTab={activeTab}
@@ -864,7 +898,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 {/* Left Column */}
                 <div className="space-y-6">
                   {/* Overall Statistics Section */}
-                  {activeTab === 'overall' && overallTeamStats && (
+                  {(activeTab === 'overall' || activeTab === 'friendlies') && overallTeamStats && (
                     <TeamPerformanceCard
                       title={
                         selectedTeamIdFilter === 'all'
@@ -1106,7 +1140,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               </div>
 
               {/* Position balance - full-width, below the two-column stats grid */}
-              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall' || activeTab === 'friendlies') && (
                 <div className="mt-6">
                   <PositionBalanceSection games={scopedGames} players={playerPool} />
                 </div>

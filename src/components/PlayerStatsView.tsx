@@ -48,9 +48,10 @@ interface PlayerStatsViewProps {
   selectedGameTypeFilter?: GameType | 'all';
   /** Optional gender filter - 'boys', 'girls', or 'all' */
   selectedGenderFilter?: Gender | 'all';
+  includeFriendlies?: boolean;
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all' }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -314,8 +315,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId);
-  }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId]);
+    return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId, includeFriendlies);
+  }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId, includeFriendlies]);
 
   // This player's position spread over the current scope, for the compact
   // "Positions played" card (games where they were recorded at a position).
@@ -331,8 +332,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   // Calculate unfiltered stats to detect if empty state is due to filtering
   const unfilteredPlayerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments, teamId);
-  }, [player, savedGames, seasons, tournaments, adjustments, teamId]);
+    return calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments, teamId, includeFriendlies);
+  }, [player, savedGames, seasons, tournaments, adjustments, teamId, includeFriendlies]);
 
   if (!player || !playerStats) {
     return (
