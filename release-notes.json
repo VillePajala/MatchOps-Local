@@ -4,6 +4,15 @@
     {
       "date": "2026-07-18",
       "en": [
+        "Match stats: mark a game as a friendly / practice match when you create it. Friendlies are kept out of your competitive Season, Tournament and Overall totals by default - a new Friendlies tab shows them on their own, and an 'Include friendly matches' toggle folds them back in when you want the full picture."
+      ],
+      "fi": [
+        "Ottelutilastot: merkitse ottelu harjoitusotteluksi sitä luodessasi. Harjoitusottelut pidetään oletuksena erossa kilpailullisista Kausi-, Turnaus- ja Kaikki-yhteenvedoista - uusi Harjoitusottelut-välilehti näyttää ne erikseen, ja 'Sisällytä harjoitusottelut' -valinnalla saat kokonaiskuvan."
+      ]
+    },
+    {
+      "date": "2026-07-18",
+      "en": [
         "Match planner: the Balance tab's Positions view now has a Zones / Roles switch - Roles shows the exact position each player plays (RM, CDM, ST…) and counts their distinct roles, so you can see role-switching load even within one area (a winger and a holding midfielder are both 'midfield' but very different jobs)."
       ],
       "fi": [
