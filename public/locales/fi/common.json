@@ -590,6 +590,7 @@
     ]
   },
   "warmupPlanModal": {
+    "title": "Lämmittely",
     "editButton": "Muokkaa",
     "saveButton": "Tallenna",
     "cancelButton": "Peruuta",

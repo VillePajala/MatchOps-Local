@@ -184,18 +184,20 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
               inside the collapse region and fold away on scroll. The X
               absorbs Done (view) / Cancel (edit). */}
           <CollapsibleModalHeader
-            title={t('controlBar.training', 'Warmup Plan')}
+            title={t('warmupPlanModal.title', 'Warmup')}
             onClose={isEditMode ? cancelEditing : onClose}
             closeLabel={isEditMode ? t('warmupPlanModal.cancelButton', 'Cancel') : t('common.doneButton', 'Done')}
             collapse={headerCollapse}
           >
-            <div className="px-6 pt-1 pb-3 flex flex-wrap justify-center items-center gap-2">
+            {/* House header buttons: full-width, stretching across the row -
+                alone (Edit) or split evenly with a sibling (Reset + Save). */}
+            <div className="px-6 pt-1 pb-3 flex gap-2">
               {isEditMode ? (
                 <>
                   <button
                     onClick={() => setShowResetConfirm(true)}
                     disabled={isResetting}
-                    className={`${secondaryButtonStyle} flex items-center gap-2 disabled:opacity-50 text-xs sm:text-sm px-3 sm:px-6`}
+                    className={`${secondaryButtonStyle} flex-1 flex items-center justify-center gap-2 disabled:opacity-50`}
                   >
                     <FaUndo className="w-3 h-3" />
                     {t('warmupPlanModal.resetToDefaultButton', 'Reset to Default')}
@@ -203,7 +205,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className={`${primaryButtonStyle} disabled:opacity-50 text-xs sm:text-sm px-3 sm:px-6`}
+                    className={`${primaryButtonStyle} flex-1 disabled:opacity-50`}
                   >
                     {isSaving
                       ? t('common.saving', 'Saving...')
@@ -213,7 +215,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
               ) : (
                 <button
                   onClick={startEditing}
-                  className={`${secondaryButtonStyle} flex items-center gap-2`}
+                  className={`${secondaryButtonStyle} flex-1 flex items-center justify-center gap-2`}
                 >
                   <FaPen className="w-3 h-3" />
                   {t('warmupPlanModal.editButton', 'Edit')}

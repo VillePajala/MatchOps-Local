@@ -2804,6 +2804,7 @@ export type TranslationKey =
   | 'warmupPlanModal.saveButton'
   | 'warmupPlanModal.saveError'
   | 'warmupPlanModal.sectionTitlePlaceholder'
+  | 'warmupPlanModal.title'
   | 'welcome.androidRequired'
   | 'welcome.badgeFree'
   | 'welcome.badgeFreeAccount'
