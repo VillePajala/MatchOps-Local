@@ -2202,7 +2202,6 @@ export type TranslationKey =
   | 'seasonTournamentModal.startDateLabel'
   | 'seasonTournamentModal.statsGames'
   | 'seasonTournamentModal.statsGoals'
-  | 'seasonTournamentModal.title'
   | 'seasonTournamentModal.tournamentSingular'
   | 'seasonTournamentModal.tournaments'
   | 'seasonTournamentModal.unarchive'
