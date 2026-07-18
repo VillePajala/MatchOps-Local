@@ -13,14 +13,24 @@
  * chips, the cards, the lineup view and the fairness strip.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
 import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
+import { computePlanPositions, PLAN_ZONES, type PlanZone } from '@/utils/playtimePlanner/positions';
 import { gameTotalSeconds, type PlaytimePlan, type PlanGame } from '@/utils/playtimePlanner/types';
 import { getGameSlots } from '@/utils/playtimePlanner/lineup';
+import { getPositionLabel } from '@/utils/positionLabels';
 import { fairnessChipColors } from '@/utils/playtimePlanner/colors';
 import { cardStyle, subtextStyle } from '@/styles/modalStyles';
+
+/** Solid, distinct fill per zone for the distribution bar (dark-theme tuned). */
+const ZONE_BAR_COLOR: Record<PlanZone, string> = {
+  gk: '#38bdf8', // sky-400
+  def: '#60a5fa', // blue-400
+  mid: '#34d399', // emerald-400
+  att: '#fb7185', // rose-400
+};
 
 interface PlanBalanceViewProps {
   plan: PlaytimePlan;
@@ -60,6 +70,15 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   onOpenGame,
 }) => {
   const { t } = useTranslation();
+  const [mode, setMode] = useState<'minutes' | 'positions'>('minutes');
+
+  // Short zone labels for the position read (GK/DEF/MID/ATT).
+  const zoneLabel = useMemo<Record<PlanZone, string>>(() => ({
+    gk: t('playtimePlanner.balance.zoneGk', 'GK'),
+    def: t('playtimePlanner.balance.zoneDef', 'DEF'),
+    mid: t('playtimePlanner.balance.zoneMid', 'MID'),
+    att: t('playtimePlanner.balance.zoneAtt', 'ATT'),
+  }), [t]);
 
   const { minutes, gameTotals, nameById } = useMemo(() => {
     const m = computePlanMinutes(toEnginePlan(plan));
@@ -97,13 +116,16 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   const gameShort = (i: number) => t('playtimePlanner.balance.gameShort', 'G{{n}}', { n: i + 1 });
 
   // Positions a player holds in one game: starting slot, plus any slot they enter
-  // via a sub, deduped in order ("#2/MV"); em dash when they never appear.
+  // via a sub, deduped in order ("CB/ST"); em dash when they never appear.
+  // Uses the field's real position labels (CB, ST, GK) rather than slot numbers.
   const positionsFor = (playerId: string, game: PlanGame): string => {
     const slots = getGameSlots(game.formationId);
     const labelOf = (slotId: string): string | null => {
-      const idx = slots.findIndex((s) => s.slotId === slotId);
-      if (idx < 0) return null;
-      return slots[idx].isGoalie ? t('playtimePlanner.gkShort', 'GK') : `#${idx}`;
+      const slot = slots.find((s) => s.slotId === slotId);
+      if (!slot) return null;
+      return slot.isGoalie
+        ? t('playtimePlanner.gkShort', 'GK')
+        : getPositionLabel(slot.relX, slot.relY).label;
     };
     const seq: string[] = [];
     for (const a of game.startingSlots) {
@@ -245,6 +267,24 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
 
   const fairMin = minutes.fairShareSeconds !== null ? toMin(minutes.fairShareSeconds) : null;
 
+  // ── Positions: zone distribution per player (the "control positions" read) ──
+  const positions = useMemo(() => computePlanPositions(plan), [plan]);
+  const posRows = useMemo(
+    () =>
+      // Only players who actually take the field; least variety first, then
+      // least time, then name - so players stuck in one position surface first.
+      positions.players
+        .filter((p) => p.totalSeconds > 0)
+        .sort((a, b) => {
+          if (a.zoneCount !== b.zoneCount) return a.zoneCount - b.zoneCount;
+          if (a.totalSeconds !== b.totalSeconds) return a.totalSeconds - b.totalSeconds;
+          return (nameById.get(a.playerId) ?? '').localeCompare(nameById.get(b.playerId) ?? '');
+        }),
+    [positions.players, nameById],
+  );
+  // Players who only ever play ONE zone across the plan (variety flag).
+  const singleZoneIds = useMemo(() => posRows.filter((p) => p.zoneCount === 1).map((p) => p.playerId), [posRows]);
+
   return (
     <div className="space-y-4">
       <div>
@@ -262,6 +302,29 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
         </p>
       </div>
 
+      {/* Minutes / Positions toggle: the tab reads both time AND position
+          variety (hence "Balance" / "Tasapaino"). */}
+      <div className="flex w-full gap-2" role="tablist" aria-label={t('playtimePlanner.balance.readToggle', 'Balance view')}>
+        {([
+          ['minutes', t('playtimePlanner.balance.modeMinutes', 'Minutes')],
+          ['positions', t('playtimePlanner.balance.modePositions', 'Positions')],
+        ] as const).map(([m, label]) => (
+          <button
+            key={m}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            onClick={() => setMode(m)}
+            className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              mode === m ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'minutes' && (<>
       <div className={`${cardStyle} space-y-3`}>
       {/* Warnings: tappable - each replaces the highlight with its players. */}
       {warnings.length > 0 && (
@@ -410,6 +473,90 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
           );
         })}
       </div>
+      </>)}
+
+      {mode === 'positions' && (
+        <div className={`${cardStyle} space-y-3`}>
+          {posRows.length === 0 ? (
+            <p className={subtextStyle}>
+              {t('playtimePlanner.balance.noPositionData', 'No positions yet. Fill in some lineups on included games.')}
+            </p>
+          ) : (
+            <>
+              {/* Variety flag: players stuck in a single zone (tap to highlight). */}
+              {singleZoneIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onReplaceHighlights(singleZoneIds)}
+                  className="flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left cursor-pointer bg-amber-900/30 border-amber-700 text-amber-200"
+                >
+                  <span className="text-[13px] font-bold">
+                    {t('playtimePlanner.balance.oneZone', '{{count}} players play only one position', { count: singleZoneIds.length })}
+                  </span>
+                  <span className="text-[11px] opacity-85">
+                    {t('playtimePlanner.balance.oneZoneDetail', 'Tap to review and rotate them')}
+                  </span>
+                </button>
+              )}
+
+              {/* Zone legend */}
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {PLAN_ZONES.map((z) => (
+                  <span key={z} className="inline-flex items-center gap-1.5 text-xs text-slate-300">
+                    <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: ZONE_BAR_COLOR[z] }} aria-hidden="true" />
+                    {zoneLabel[z]}
+                  </span>
+                ))}
+              </div>
+
+              {/* Per-player zone distribution: a stacked bar + minutes per zone.
+                  Shares the highlight selection with the minutes chips + lineup. */}
+              <div className="flex flex-col gap-2">
+                {posRows.map((p) => {
+                  const name = nameById.get(p.playerId) ?? p.playerId;
+                  const highlighted = highlightPlayerIds.includes(p.playerId);
+                  const zones = PLAN_ZONES.filter((z) => p.byZone[z] > 0);
+                  return (
+                    <button
+                      key={p.playerId}
+                      type="button"
+                      onClick={() => onToggleHighlight(p.playerId)}
+                      aria-pressed={highlighted}
+                      className={[
+                        'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
+                        'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                        highlighted ? 'ring-2 ring-amber-300' : '',
+                        anyHighlight && !highlighted ? 'opacity-40' : '',
+                      ].join(' ')}
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="flex-1 min-w-0 truncate font-semibold text-sm text-slate-100">{name}</span>
+                        <span className="shrink-0 text-xs text-slate-400 tabular-nums">{toMin(p.totalSeconds)}&#39;</span>
+                      </div>
+                      <div className="flex h-2 rounded-full overflow-hidden bg-slate-950/60">
+                        {zones.map((z) => (
+                          <div
+                            key={z}
+                            style={{ width: `${(p.byZone[z] / p.totalSeconds) * 100}%`, backgroundColor: ZONE_BAR_COLOR[z] }}
+                            title={`${zoneLabel[z]} ${toMin(p.byZone[z])}'`}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                        {zones.map((z) => (
+                          <span key={z} className="text-[11px] font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[z] }}>
+                            {zoneLabel[z]} {toMin(p.byZone[z])}&#39;
+                          </span>
+                        ))}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

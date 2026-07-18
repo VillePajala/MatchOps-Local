@@ -3256,6 +3256,16 @@
     },
     "balance": {
       "title": "Peliaikatasapaino",
+      "readToggle": "Tasapainonäkymä",
+      "modeMinutes": "Minuutit",
+      "modePositions": "Pelipaikat",
+      "zoneGk": "MV",
+      "zoneDef": "PUO",
+      "zoneMid": "KES",
+      "zoneAtt": "HYÖ",
+      "oneZone": "{{count}} pelaajaa pelaa vain yhtä pelipaikkaa",
+      "oneZoneDetail": "Napauta tarkastellaksesi ja kierrättääksesi heitä",
+      "noPositionData": "Ei vielä pelipaikkoja. Täytä kokoonpanoja mukana oleviin peleihin.",
       "fairShare": "Osuus {{minutes}}' / pelaaja",
       "gamesCounted_one": "{{count}} peli laskettu",
       "gamesCounted_other": "{{count}} peliä laskettu",
@@ -3310,7 +3320,7 @@
     },
     "tabs": {
       "games": "Pelit",
-      "minutes": "Minuutit",
+      "minutes": "Tasapaino",
       "plan": "Asetukset"
     },
     "loadError": "Suunnitelmien lataus epäonnistui. Sulje suunnittelu ja yritä uudelleen.",
