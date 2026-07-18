@@ -139,6 +139,40 @@ describe('useModalHardwareBack (single sentinel)', () => {
     a.unmount();
   });
 
+  it('closing the main modal from INSIDE a sub-level balances the counter (no stuck pops)', async () => {
+    // Models closing the planner via its X while still inside a plan: the
+    // preemptive sub-guard AND the main sentinel both retire in the same
+    // cleanup tick, firing two suppressed back()s. The two swallowed popstates
+    // must leave the suppression counter at ZERO, so a later unrelated back is
+    // not silently eaten. (Refutes the recurring review flag about this path.)
+    const closeMain = jest.fn();
+    const stepped = jest.fn();
+    const planner = renderHook(
+      ({ open }) => {
+        useModalHardwareBack(open, closeMain);
+        useHardwareBackSubLevel(open, stepped); // active while inside a plan
+      },
+      { initialProps: { open: true } },
+    );
+    expect(pushSpy).toHaveBeenCalledTimes(2); // sentinel + preemptive sub-guard
+
+    planner.rerender({ open: false }); // close the planner from the sub-level via UI
+    expect(backSpy).toHaveBeenCalledTimes(2); // sub-guard back + sentinel back
+
+    // Both programmatic backs' popstates are swallowed - neither callback fires.
+    await pop();
+    await pop();
+    expect(stepped).not.toHaveBeenCalled();
+    expect(closeMain).not.toHaveBeenCalled();
+    planner.unmount();
+
+    // Counter is balanced: a brand-new modal's hardware back closes normally.
+    const other = renderHook(({ open }) => useModalHardwareBack(open, closeMain), { initialProps: { open: true } });
+    await pop();
+    expect(closeMain).toHaveBeenCalledTimes(1);
+    other.unmount();
+  });
+
   it('exposes the hardware-back flag ONLY during a popstate-driven close', async () => {
     let flagDuringClose: boolean | null = null;
     const a = renderHook(({ open }) => useModalHardwareBack(open, () => { flagDuringClose = isHandlingHardwareBack(); }), { initialProps: { open: true } });

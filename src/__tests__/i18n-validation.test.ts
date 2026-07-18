@@ -406,9 +406,10 @@ describe('Translation File Validation', () => {
       // -2: gameStatsModal.tabs.friendlies/.titleFriendlies - the dedicated
       //     friendlies stats tab was removed (overflowed the tab row); friendly
       //     stats stay behind the "include friendlies" toggle
-      // Merged master: the planner Balance PRs (#682/#683) added their own keys,
-      //     so the net branch count lands at 2856.
-      expect(enKeys.length).toBe(2856);
+      // Merged master: the planner Balance PRs (#682/#683) added their own keys.
+      // -1: seasonTournamentModal.title - orphaned when Kaudet/Turnaukset split
+      //     off its own kind-scoped managerTitle; net branch count lands at 2855.
+      expect(enKeys.length).toBe(2855);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -533,9 +534,10 @@ describe('Translation File Validation', () => {
       // -2: gameStatsModal.tabs.friendlies/.titleFriendlies - the dedicated
       //     friendlies stats tab was removed (overflowed the tab row); friendly
       //     stats stay behind the "include friendlies" toggle
-      // Merged master: the planner Balance PRs (#682/#683) added their own keys,
-      //     so the net branch count lands at 2856.
-      expect(fiKeys.length).toBe(2856);
+      // Merged master: the planner Balance PRs (#682/#683) added their own keys.
+      // -1: seasonTournamentModal.title - orphaned when Kaudet/Turnaukset split
+      //     off its own kind-scoped managerTitle; net branch count lands at 2855.
+      expect(fiKeys.length).toBe(2855);
     });
   });
 });
