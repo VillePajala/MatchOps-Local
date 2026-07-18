@@ -27,6 +27,7 @@ interface StartScreenProps {
   onManageRoster?: () => void;
   /** Home tab: seasons & tournaments (opens the existing modal). */
   onManageSeasons?: () => void;
+  onManageTournaments?: () => void;
   /** Front-page entry: open the Playing-Time Planner. */
   onOpenPlanner?: () => void;
   /** Team panel: teams manager (opens the existing modal). */
@@ -66,6 +67,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onOpenSettings,
   onManageRoster,
   onManageSeasons,
+  onManageTournaments,
   onOpenPlanner,
   onManageTeams,
   onManagePersonnel,
@@ -390,23 +392,40 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 </a>
               </>
             ) : activeTab === 'seasons' ? (
-              /* Seasons panel (3.1b): entry rows - room to grow glanceable
-                 season content later. */
-              <button
-                type="button"
-                onClick={onManageSeasons}
-                disabled={!onManageSeasons}
-                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                  onManageSeasons
-                    ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                    : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                }`}
-              >
-                <span className="text-sm font-semibold text-white">
-                  {t('startScreen.rowCompetitions', 'Seasons & Tournaments')}
-                </span>
-                <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-              </button>
+              /* Competitions panel: separate Kaudet and Turnaukset entries,
+                 each opening the manager scoped to that kind. */
+              <>
+                <button
+                  type="button"
+                  onClick={onManageSeasons}
+                  disabled={!onManageSeasons}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageSeasons
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('seasonTournamentModal.seasons', 'Seasons')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onManageTournaments}
+                  disabled={!onManageTournaments}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageTournaments
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('seasonTournamentModal.tournaments', 'Tournaments')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+              </>
             ) : activeTab === 'stats' ? (
               /* Stats panel (W8): one row per aggregate stats tab - the rows
                  name exactly the surfaces that exist. Disabled until there

@@ -25,6 +25,10 @@ interface ModalContextValue {
   setIsRosterModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isSeasonTournamentModalOpen: boolean;
   setIsSeasonTournamentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  // Which competition list the (single) manager modal shows - the Kaudet and
+  // Turnaukset rows are two entry points into the same kind-parameterized modal.
+  competitionManagerKind: 'season' | 'tournament';
+  setCompetitionManagerKind: React.Dispatch<React.SetStateAction<'season' | 'tournament'>>;
   isTrainingResourcesOpen: boolean;
   setIsTrainingResourcesOpen: React.Dispatch<React.SetStateAction<boolean>>;
   isRulesDirectoryOpen: boolean;
@@ -114,6 +118,9 @@ export const ModalProvider = ({ children, currentUserId }: {
   // L.3c: planner open-state + the match view's live-game hooks lifted here.
   const [isPlaytimePlannerOpen, setIsPlaytimePlannerOpen] = useState(false);
   const [plannerLiveGameHooks, setPlannerLiveGameHooks] = useState<PlannerLiveGameHooks | null>(null);
+  // Which competition kind the manager modal shows (set by the Kaudet/Turnaukset
+  // rows before opening the shared modal).
+  const [competitionManagerKind, setCompetitionManagerKind] = useState<'season' | 'tournament'>('season');
   // L.4: club-level aggregate stats surface (setters defined below, after
   // the match stats setter they mutually exclude against).
   const [clubStatsOpen, setClubStatsOpen] = useState(false);
@@ -355,6 +362,8 @@ export const ModalProvider = ({ children, currentUserId }: {
     setIsRosterModalOpen,
     isSeasonTournamentModalOpen: modalState.seasonTournament,
     setIsSeasonTournamentModalOpen,
+    competitionManagerKind,
+    setCompetitionManagerKind,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
     isRulesDirectoryOpen,
@@ -396,6 +405,7 @@ export const ModalProvider = ({ children, currentUserId }: {
     modalState.loadGame, setIsLoadGameModalOpen,
     modalState.roster, setIsRosterModalOpen,
     modalState.seasonTournament, setIsSeasonTournamentModalOpen,
+    competitionManagerKind, setCompetitionManagerKind,
     isTrainingResourcesOpen, setIsTrainingResourcesOpen,
     isRulesDirectoryOpen, setIsRulesDirectoryOpen,
     isInstructionsModalOpen, setIsInstructionsModalOpen,

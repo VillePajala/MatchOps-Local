@@ -31,6 +31,7 @@ type LiftedHandlerProps =
   | 'onManageTeams'
   | 'onManagePersonnel'
   | 'onManageSeasons'
+  | 'onManageTournaments'
   | 'onOpenTraining'
   | 'onOpenBackup'
   | 'onOpenAccount'
@@ -50,6 +51,7 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
     setIsTeamManagerOpen,
     setIsPersonnelManagerOpen,
     setIsSeasonTournamentModalOpen,
+    setCompetitionManagerKind,
     setIsTrainingResourcesOpen,
     setIsRulesDirectoryOpen,
     setIsSettingsModalOpen,
@@ -73,7 +75,14 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
       onManageRoster={() => setIsRosterModalOpen(true)}
       onManageTeams={() => setIsTeamManagerOpen(true)}
       onManagePersonnel={() => setIsPersonnelManagerOpen(true)}
-      onManageSeasons={() => setIsSeasonTournamentModalOpen(true)}
+      onManageSeasons={() => {
+        setCompetitionManagerKind('season');
+        setIsSeasonTournamentModalOpen(true);
+      }}
+      onManageTournaments={() => {
+        setCompetitionManagerKind('tournament');
+        setIsSeasonTournamentModalOpen(true);
+      }}
       onOpenTraining={() => setIsTrainingResourcesOpen(true)}
       onOpenRules={() => setIsRulesDirectoryOpen(true)}
       onOpenBackup={() => openSettingsToTab('data')}

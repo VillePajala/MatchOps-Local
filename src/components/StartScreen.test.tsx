@@ -335,6 +335,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     onOpenSettings: jest.fn(),
     onManageRoster: jest.fn(),
     onManageSeasons: jest.fn(),
+    onManageTournaments: jest.fn(),
     canResume: true,
     hasSavedGames: true,
     isFirstTimeUser: false,
@@ -377,11 +378,13 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   it('Seasons and Stats are REAL panels: tabs switch, the rows open the surfaces (3.1b)', () => {
     const props = { ...shellProps(), onViewStatsTab: jest.fn() };
     render(<StartScreen {...props} />);
-    // Competitions tab -> panel with its entry row; the tab itself opens nothing.
+    // Competitions tab -> two entry rows (Seasons, Tournaments); the tab opens nothing.
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
     expect(props.onManageSeasons).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Seasons & Tournaments' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Seasons' }));
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Tournaments' }));
+    expect(props.onManageTournaments).toHaveBeenCalledTimes(1);
     // Stats tab -> one row PER aggregate stats tab (W8).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(props.onViewStatsTab).not.toHaveBeenCalled();
@@ -441,12 +444,13 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(screen.getByRole('button', { name: 'Teams' })).toBeDisabled(); // onManageTeams not passed
   });
 
-  it('an unwired Seasons panel renders its row DISABLED - never silently dead-clickable', () => {
-    // (All four tabs switch local panels now; the ROW needs the handler.)
-    const props = { ...shellProps(), onManageSeasons: undefined };
+  it('an unwired Competitions panel renders its rows DISABLED - never silently dead-clickable', () => {
+    // (All four tabs switch local panels now; each ROW needs its handler.)
+    const props = { ...shellProps(), onManageSeasons: undefined, onManageTournaments: undefined };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    expect(screen.getByRole('button', { name: 'Seasons & Tournaments' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Seasons' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tournaments' })).toBeDisabled();
   });
 
   it('exactly one Settings control exists after the footer link folded into the gear', () => {
