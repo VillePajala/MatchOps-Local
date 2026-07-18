@@ -919,6 +919,7 @@
     "demandFactorLabel": "Game Demand Level",
     "homeOrAwayLabel": "Your Team is",
     "unplayedToggle": "Not played yet",
+    "friendlyToggle": "Friendly match",
     "confirmAndStart": "Confirm & Start Game",
     "teamLabel": "Team Selection",
     "selectTeamLabel": "Select Team",

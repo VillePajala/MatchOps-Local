@@ -1323,6 +1323,7 @@ export type TranslationKey =
   | 'newGameSetupModal.errorAddingSeasonGeneric'
   | 'newGameSetupModal.errorAddingTournamentGeneric'
   | 'newGameSetupModal.errors.dataLoadFailed'
+  | 'newGameSetupModal.friendlyToggle'
   | 'newGameSetupModal.gameConfigLabel'
   | 'newGameSetupModal.gameDateLabel'
   | 'newGameSetupModal.gameDetailsLabel'
