@@ -51,6 +51,46 @@ describe('gameFilters', () => {
       });
     });
 
+    describe('friendly matches (isFriendly)', () => {
+      const games: SavedGamesCollection = {
+        league: createGame({ seasonId: 's1' }),
+        cup: createGame({ tournamentId: 't1' }),
+        friendly: createGame({ isFriendly: true }),
+        friendlyWithSeason: createGame({ seasonId: 's1', isFriendly: true }),
+      };
+
+      it('season scope excludes a friendly even when it carries the season tag', () => {
+        const r = filterGameIds(games, { activeTab: 'season', seasonFilter: 's1' });
+        expect(r).toContain('league');
+        expect(r).not.toContain('friendlyWithSeason');
+      });
+
+      it('tournament scope excludes friendlies', () => {
+        const r = filterGameIds(games, { activeTab: 'tournament', tournamentFilter: 't1' });
+        expect(r).toContain('cup');
+        expect(r).not.toContain('friendly');
+      });
+
+      it('overall excludes friendlies by default', () => {
+        const r = filterGameIds(games, { activeTab: 'overall' });
+        expect(r).toEqual(expect.arrayContaining(['league', 'cup']));
+        expect(r).not.toContain('friendly');
+        expect(r).not.toContain('friendlyWithSeason');
+      });
+
+      it('overall includes friendlies when includeFriendlies is set', () => {
+        const r = filterGameIds(games, { activeTab: 'overall', includeFriendlies: true });
+        expect(r).toEqual(expect.arrayContaining(['league', 'cup', 'friendly', 'friendlyWithSeason']));
+      });
+
+      it('friendlies scope shows only friendly games', () => {
+        const r = filterGameIds(games, { activeTab: 'friendlies' });
+        expect(r).toEqual(expect.arrayContaining(['friendly', 'friendlyWithSeason']));
+        expect(r).not.toContain('league');
+        expect(r).not.toContain('cup');
+      });
+    });
+
     describe('playedOnly filter', () => {
       it('excludes unplayed games by default', () => {
         const games: SavedGamesCollection = {
