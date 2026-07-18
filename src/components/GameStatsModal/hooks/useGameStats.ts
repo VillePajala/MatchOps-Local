@@ -23,6 +23,7 @@ interface UseGameStatsResult {
 export function useGameStats(params: GameStatsParams): UseGameStatsResult {
   const {
     activeTab,
+    includeFriendlies = false,
     savedGames,
     availablePlayers,
     selectedPlayerIds,
@@ -83,7 +84,8 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
         clubSeasonFilter: selectedClubSeason,
         clubSeasonStartDate,
         clubSeasonEndDate,
-        activeTab
+        activeTab,
+        includeFriendlies,
       });
 
       // Filter adjustments matching the current tab context

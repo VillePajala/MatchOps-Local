@@ -2319,7 +2319,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gender: import('@/types').Gender | undefined,
     // Optional Playing-Time Planner prefill (Phase 2): planned XI + sub schedule + snap points.
     // Phase 3: sourcePlanId/sourcePlanGameId link the game back to its plan.
-    prefill?: { playersOnField: Player[]; plannedSubs: import('@/utils/playtimePlanner/gameSubs').PlannedGameSub[]; formationSnapPoints: import('@/types').Point[]; sourcePlanId?: string; sourcePlanGameId?: string }
+    prefill?: { playersOnField: Player[]; plannedSubs: import('@/utils/playtimePlanner/gameSubs').PlannedGameSub[]; formationSnapPoints: import('@/types').Point[]; sourcePlanId?: string; sourcePlanGameId?: string },
+    isFriendly?: boolean,
   ) => {
     // Clear field state before creating new game to prevent stale data
     logger.info('[NEW GAME] Clearing field state BEFORE game creation', {
@@ -2386,6 +2387,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         gameType,
         gender,
         prefill,
+        isFriendly,
       },
     );
   }, [

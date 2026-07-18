@@ -734,8 +734,10 @@
       "season": "Kausi",
       "tournament": "Turnaus",
       "overall": "Kaikki",
+      "friendlies": "Harjoitusottelut",
       "player": "Pelaaja"
     },
+    "includeFriendlies": "Sisällytä harjoitusottelut",
     "filterAllSeasons": "Kaikki kaudet",
     "filterAllTournaments": "Kaikki turnaukset",
     "filterAllSeries": "Kaikki sarjat",
@@ -1486,6 +1488,7 @@
     "periodDurationLabel": "Erän kesto (minuuteissa)",
     "demandFactorLabel": "Pelin vaativuustaso",
     "unplayedToggle": "Ei vielä pelattu",
+    "friendlyToggle": "Harjoitusottelu (ei kilpailutilastoihin)",
     "linkita": "Linkitä",
     "eiMitaan": "Ei mitään",
     "kausi": "Kausi",
