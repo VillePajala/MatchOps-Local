@@ -4,10 +4,10 @@
     {
       "date": "2026-07-18",
       "en": [
-        "Match stats: mark a game as a friendly / practice match when you create it. Friendlies are kept out of your competitive Season, Tournament and Overall totals by default - a new Friendlies tab shows them on their own, and an 'Include friendly matches' toggle folds them back in when you want the full picture."
+        "Match stats: mark a game as a friendly / practice match - when you create it, or later from Game Settings. Friendlies are kept out of your competitive Season, Tournament and Overall totals by default; a new Friendlies tab shows them on their own, and an 'Include friendly matches' toggle folds them back in when you want the full picture."
       ],
       "fi": [
-        "Ottelutilastot: merkitse ottelu harjoitusotteluksi sitä luodessasi. Harjoitusottelut pidetään oletuksena erossa kilpailullisista Kausi-, Turnaus- ja Kaikki-yhteenvedoista - uusi Harjoitusottelut-välilehti näyttää ne erikseen, ja 'Sisällytä harjoitusottelut' -valinnalla saat kokonaiskuvan."
+        "Ottelutilastot: merkitse ottelu harjoitusotteluksi - joko sitä luodessasi tai myöhemmin Ottelun asetuksista. Harjoitusottelut pidetään oletuksena erossa kilpailullisista Kausi-, Turnaus- ja Kaikki-yhteenvedoista; uusi Harjoitusottelut-välilehti näyttää ne erikseen, ja 'Sisällytä harjoitusottelut' -valinnalla saat kokonaiskuvan."
       ]
     },
     {

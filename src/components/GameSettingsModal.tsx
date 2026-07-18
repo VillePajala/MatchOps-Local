@@ -137,6 +137,9 @@ export interface GameSettingsModalProps {
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
   onIsPlayedChange: (played: boolean) => void;
+  /** Whether this game is a friendly / practice match (excluded from
+   *  competitive stat totals by default). Persisted via mutateGameDetails. */
+  isFriendly: boolean;
   wentToOvertime?: boolean;
   wentToPenalties?: boolean;
   onWentToOvertimeChange: (value: boolean) => void;
@@ -249,6 +252,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSetHomeOrAway,
   isPlayed,
   onIsPlayedChange,
+  isFriendly,
   wentToOvertime = false,
   wentToPenalties = false,
   onWentToOvertimeChange,
@@ -2359,6 +2363,25 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   }`}
                 >
                   {t('gameSettingsModal.unplayedToggle', 'Not played yet')}
+                </button>
+                {/* Friendly / practice match: reclassify an existing game. Kept
+                    out of competitive stat totals by default. */}
+                <button
+                  type="button"
+                  aria-pressed={isFriendly}
+                  onClick={() => {
+                    mutateGameDetails(
+                      { isFriendly: !isFriendly },
+                      { source: 'stateSync' }
+                    );
+                  }}
+                  className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                    isFriendly
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {t('gameSettingsModal.friendlyToggle', 'Friendly match')}
                 </button>
                 {/* Overtime / penalties as toggle buttons (matching the timer's chip). */}
                 <div className="flex gap-2">

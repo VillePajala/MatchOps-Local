@@ -12,11 +12,12 @@
   BEFORE cloud users rely on it. The code is forward-compatible (the flag is
   silently dropped for cloud until the column exists; local works fully), so
   merging without the migration causes no errors - only unpersisted cloud flags.
-- **Deferred (fast-follow):** a Game Settings "reclassify as friendly" toggle
-  (lets existing games be tagged; mirrors the deeply-threaded isPlayed path);
-  and a dedicated "Harjoitusottelut" entry point in the Start screen's Kilpailut
-  tab - which only exists on the (unmerged) two-level restructure, so on master
-  the Friendlies STATS tab is the access point.
+- **Also done:** a **Game Settings "Friendly match" toggle** to reclassify an
+  existing (or old) game - persisted directly via mutateGameDetails; the
+  whitelist save preserves the flag.
+- **Deferred (fast-follow):** a dedicated "Harjoitusottelut" entry point in the
+  Start screen's Kilpailut tab - which only exists on the (unmerged) two-level
+  restructure, so on master the Friendlies STATS tab is the access point.
 
 ## What it is
 
