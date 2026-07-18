@@ -502,12 +502,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // State for event editing within the modal
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
   // Optimistic echo for the Friendly-match toggle (the persisted value arrives a
-  // tick later via the mutation's savedGames update). Re-syncs to the prop when
-  // it changes (game switch / external update) - sanctioned adjust-during-render.
+  // tick later via the mutation's savedGames update). Re-syncs to the prop on a
+  // GAME SWITCH - keyed on currentGameId, NOT the boolean value, so switching
+  // from a just-toggled game to another game that happens to share the same
+  // value still resets the echo (sanctioned adjust-during-render).
   const [isFriendlyLocal, setIsFriendlyLocal] = useState(isFriendly);
-  const [prevIsFriendlyProp, setPrevIsFriendlyProp] = useState(isFriendly);
-  if (prevIsFriendlyProp !== isFriendly) {
-    setPrevIsFriendlyProp(isFriendly);
+  const [prevFriendlyGameId, setPrevFriendlyGameId] = useState(currentGameId);
+  if (prevFriendlyGameId !== currentGameId) {
+    setPrevFriendlyGameId(currentGameId);
     setIsFriendlyLocal(isFriendly);
   }
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);

@@ -15,9 +15,10 @@
 - **Also done:** a **Game Settings "Friendly match" toggle** to reclassify an
   existing (or old) game - persisted directly via mutateGameDetails; the
   whitelist save preserves the flag.
-- **Deferred (fast-follow):** a dedicated "Harjoitusottelut" entry point in the
-  Start screen's Kilpailut tab - which only exists on the (unmerged) two-level
-  restructure, so on master the Friendlies STATS tab is the access point.
+- **Also done (this branch):** the dedicated "Harjoitusottelut" row in the Start
+  screen's Kilpailut tab, opening the Friendlies stats scope. (This is why the
+  feature was re-homed onto the two-level branch, which has the Kilpailut tab;
+  the Friendlies stats tab remains the access point until this ships.)
 
 ## What it is
 
