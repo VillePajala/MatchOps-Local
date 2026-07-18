@@ -279,6 +279,30 @@ describe('GameStatsModal', () => {
     ).toHaveAttribute('aria-selected', 'true');
   });
 
+  test('lands on the Friendlies tab via initialTab; the Include-friendlies toggle is NOT shown there', async () => {
+    const props = { ...getDefaultProps(), aggregateOnly: true, initialTab: 'friendlies' as const };
+    await act(async () => {
+      renderComponent(props);
+    });
+    expect(
+      screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.friendlies', 'Friendlies') }),
+    ).toHaveAttribute('aria-selected', 'true');
+    // The include-friendlies control is an Overall/Player affordance, not shown on the Friendlies scope itself.
+    expect(
+      screen.queryByRole('button', { name: i18n.t('gameStatsModal.includeFriendlies', 'Include friendly matches') }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('shows the Include-friendlies toggle on the Overall tab', async () => {
+    const props = { ...getDefaultProps(), aggregateOnly: true, initialTab: 'overall' as const };
+    await act(async () => {
+      renderComponent(props);
+    });
+    expect(
+      screen.getByRole('button', { name: i18n.t('gameStatsModal.includeFriendlies', 'Include friendly matches') }),
+    ).toBeInTheDocument();
+  });
+
   test('renders modal title and basic game info when open', async () => {
     const props = getDefaultProps();
     await act(async () => {
