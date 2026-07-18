@@ -1620,7 +1620,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             {(
               [
                 ['games', t('playtimePlanner.tabs.games', 'Games')],
-                ['minutes', t('playtimePlanner.tabs.minutes', 'Minutes')],
+                ['minutes', t('playtimePlanner.tabs.minutes', 'Balance')],
                 ['plan', t('playtimePlanner.tabs.plan', 'Settings')],
               ] as [PlanTab, string][]
             ).map(([tab, label]) => (

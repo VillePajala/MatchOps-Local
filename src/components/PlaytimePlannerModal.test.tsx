@@ -1454,14 +1454,14 @@ describe('PlaytimePlannerModal', () => {
     expect(outer.style.height).toBe('52px');
   });
 
-  it('switches to the Minutes tab and back to Games', async () => {
+  it('switches to the Balance tab and back to Games', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
     await enterPlan();
     await screen.findByLabelText('Game name');
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('tab', { name: 'Minutes' }));
+      fireEvent.click(screen.getByRole('tab', { name: 'Balance' }));
     });
     await waitFor(() => expect(screen.getByText('Playing-time balance')).toBeInTheDocument());
 

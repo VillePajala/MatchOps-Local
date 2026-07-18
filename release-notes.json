@@ -4,6 +4,15 @@
     {
       "date": "2026-07-18",
       "en": [
+        "Match planner: the Balance tab's Positions view now has a Zones / Roles switch - Roles shows the exact position each player plays (RM, CDM, ST…) and counts their distinct roles, so you can see role-switching load even within one area (a winger and a holding midfielder are both 'midfield' but very different jobs)."
+      ],
+      "fi": [
+        "Ottelusuunnittelu: Tasapaino-välilehden Pelipaikat-näkymässä on nyt Alueet / Roolit -valinta - Roolit näyttää kunkin pelaajan tarkan pelipaikan (RM, CDM, ST…) ja laskee eri roolit, joten näet roolien vaihtokuorman myös yhden alueen sisällä (laituri ja alakeskikenttä ovat molemmat keskikenttää mutta hyvin eri tehtäviä)."
+      ]
+    },
+    {
+      "date": "2026-07-18",
+      "en": [
         "Match planner: the Minutes tab is now Balance, with a new Positions view - see which areas each player plays across the plan (goalkeeper, defence, midfield, attack) and spot anyone stuck in a single position so you can rotate them.",
         "Match planner: the per-game tiles now name the real position each player takes (CB, ST, GK) instead of a slot number."
       ],
