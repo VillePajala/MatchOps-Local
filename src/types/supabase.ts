@@ -214,6 +214,7 @@ export type Database = {
           home_score: number
           id: string
           is_played: boolean
+          is_friendly: boolean
           league_id: string | null
           number_of_periods: number
           opponent_name: string
@@ -256,6 +257,7 @@ export type Database = {
           home_score?: number
           id: string
           is_played?: boolean
+          is_friendly?: boolean
           league_id?: string | null
           number_of_periods?: number
           opponent_name: string
@@ -298,6 +300,7 @@ export type Database = {
           home_score?: number
           id?: string
           is_played?: boolean
+          is_friendly?: boolean
           league_id?: string | null
           number_of_periods?: number
           opponent_name?: string

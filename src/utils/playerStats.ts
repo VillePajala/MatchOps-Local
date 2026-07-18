@@ -45,7 +45,8 @@ export const calculatePlayerStats = (
   seasons: Season[],
   tournaments: Tournament[],
   adjustments?: PlayerStatAdjustment[],
-  teamId?: string  // Optional team filtering
+  teamId?: string,  // Optional team filtering
+  includeFriendlies: boolean = false  // Fold friendly/practice games into totals
 ): PlayerStats => {
   const gameByGameStats: GameStats[] = [];
   const performanceBySeason: { [seasonId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number } } = {};
@@ -56,7 +57,13 @@ export const calculatePlayerStats = (
     if (game.isPlayed === false) {
       return;
     }
-    
+
+    // Friendly/practice games are excluded from a player's competitive career
+    // stats unless the caller opts in (mirrors the stats modal's toggle).
+    if (game.isFriendly === true && !includeFriendlies) {
+      return;
+    }
+
     // Filter by team if specified
     if (teamId && game.teamId !== teamId) {
       return;

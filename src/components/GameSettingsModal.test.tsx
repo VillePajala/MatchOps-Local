@@ -70,6 +70,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.home': 'Koti',
         'gameSettingsModal.away': 'Vieras',
         'gameSettingsModal.unplayedToggle': 'Ei vielä pelattu',
+        'gameSettingsModal.friendlyToggle': 'Harjoitusottelu',
         'gameSettingsModal.confirmDeleteEvent': 'Are you sure you want to delete this event? This cannot be undone.',
         'gameSettingsModal.eventActions': 'Event actions',
         'common.doneButton': 'Done',
@@ -176,6 +177,7 @@ const defaultProps: GameSettingsModalProps = {
   onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
+  isFriendly: false,
   onWentToOvertimeChange: jest.fn(),
   onWentToPenaltiesChange: jest.fn(),
   onShootoutKicksChange: jest.fn(),
@@ -236,6 +238,17 @@ describe('<GameSettingsModal />', () => {
     const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('the Friendly-match toggle reclassifies the game via a mutation', async () => {
+    const user = userEvent.setup();
+    (defaultProps.updateGameDetailsMutation.mutate as jest.Mock).mockClear();
+    renderModal();
+    await user.click(screen.getByRole('button', { name: 'Harjoitusottelu' }));
+    expect(defaultProps.updateGameDetailsMutation.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ gameId: 'game123', updates: { isFriendly: true } }),
+      expect.anything(),
+    );
   });
 
   describe('Re-apply plan', () => {

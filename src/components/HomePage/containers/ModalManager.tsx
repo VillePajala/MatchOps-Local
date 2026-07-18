@@ -268,6 +268,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onSetHomeOrAway={handlers.setHomeOrAway}
           isPlayed={data.isPlayed}
           onIsPlayedChange={handlers.setIsPlayed}
+          isFriendly={data.savedGames[data.currentGameId ?? '']?.isFriendly ?? false}
           wentToOvertime={data.gameSessionState.wentToOvertime}
           wentToPenalties={data.gameSessionState.wentToPenalties}
           onWentToOvertimeChange={handlers.setWentToOvertime}
