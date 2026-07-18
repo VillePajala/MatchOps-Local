@@ -17,7 +17,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { computePlanMinutes } from '@/utils/playtimePlanner/minutes';
 import { toEnginePlan } from '@/utils/playtimePlanner/adapter';
-import { computePlanPositions, PLAN_ZONES, type PlanZone } from '@/utils/playtimePlanner/positions';
+import { computePlanPositions, PLAN_ZONES, zoneOfLabel, type PlanZone } from '@/utils/playtimePlanner/positions';
 import { gameTotalSeconds, type PlaytimePlan, type PlanGame } from '@/utils/playtimePlanner/types';
 import { getGameSlots } from '@/utils/playtimePlanner/lineup';
 import { getPositionLabel } from '@/utils/positionLabels';
@@ -71,6 +71,8 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
 }) => {
   const { t } = useTranslation();
   const [mode, setMode] = useState<'minutes' | 'positions'>('minutes');
+  // Within Positions: coarse zones (GK/DEF/MID/ATT) or specific roles (RM, CDM…).
+  const [granularity, setGranularity] = useState<'zones' | 'roles'>('zones');
 
   // Short zone labels for the position read (GK/DEF/MID/ATT).
   const zoneLabel = useMemo<Record<PlanZone, string>>(() => ({
@@ -284,6 +286,17 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
   );
   // Players who only ever play ONE zone across the plan (variety flag).
   const singleZoneIds = useMemo(() => posRows.filter((p) => p.zoneCount === 1).map((p) => p.playerId), [posRows]);
+  // Roles view: MOST distinct roles first, so the highest role-switching load
+  // (the point of the detailed read - RM vs CDM is a real role change) surfaces.
+  const roleRows = useMemo(
+    () =>
+      [...posRows].sort((a, b) => {
+        if (b.positionCount !== a.positionCount) return b.positionCount - a.positionCount;
+        if (a.totalSeconds !== b.totalSeconds) return a.totalSeconds - b.totalSeconds;
+        return (nameById.get(a.playerId) ?? '').localeCompare(nameById.get(b.playerId) ?? '');
+      }),
+    [posRows, nameById],
+  );
 
   return (
     <div className="space-y-4">
@@ -483,23 +496,28 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
             </p>
           ) : (
             <>
-              {/* Variety flag: players stuck in a single zone (tap to highlight). */}
-              {singleZoneIds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => onReplaceHighlights(singleZoneIds)}
-                  className="flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left cursor-pointer bg-amber-900/30 border-amber-700 text-amber-200"
-                >
-                  <span className="text-[13px] font-bold">
-                    {t('playtimePlanner.balance.oneZone', '{{count}} players play only one position', { count: singleZoneIds.length })}
-                  </span>
-                  <span className="text-[11px] opacity-85">
-                    {t('playtimePlanner.balance.oneZoneDetail', 'Tap to review and rotate them')}
-                  </span>
-                </button>
-              )}
+              {/* Zones | Roles: coarse zones vs specific positions. Roles reads
+                  the switching load INSIDE a zone (RM vs CDM are both mid). */}
+              <div className="flex w-full gap-2" role="group" aria-label={t('playtimePlanner.balance.granularityToggle', 'Position detail')}>
+                {([
+                  ['zones', t('playtimePlanner.balance.granularityZones', 'Zones')],
+                  ['roles', t('playtimePlanner.balance.granularityRoles', 'Roles')],
+                ] as const).map(([g, label]) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGranularity(g)}
+                    aria-pressed={granularity === g}
+                    className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      granularity === g ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-              {/* Zone legend */}
+              {/* Zone legend (colours are shared - a role is tinted by its zone). */}
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {PLAN_ZONES.map((z) => (
                   <span key={z} className="inline-flex items-center gap-1.5 text-xs text-slate-300">
@@ -509,50 +527,120 @@ const PlanBalanceView: React.FC<PlanBalanceViewProps> = ({
                 ))}
               </div>
 
-              {/* Per-player zone distribution: a stacked bar + minutes per zone.
-                  Shares the highlight selection with the minutes chips + lineup. */}
-              <div className="flex flex-col gap-2">
-                {posRows.map((p) => {
-                  const name = nameById.get(p.playerId) ?? p.playerId;
-                  const highlighted = highlightPlayerIds.includes(p.playerId);
-                  const zones = PLAN_ZONES.filter((z) => p.byZone[z] > 0);
-                  return (
+              {granularity === 'zones' ? (
+                <>
+                  {/* Variety flag: players stuck in a single zone (tap to highlight). */}
+                  {singleZoneIds.length > 0 && (
                     <button
-                      key={p.playerId}
                       type="button"
-                      onClick={() => onToggleHighlight(p.playerId)}
-                      aria-pressed={highlighted}
-                      className={[
-                        'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
-                        'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
-                        highlighted ? 'ring-2 ring-amber-300' : '',
-                        anyHighlight && !highlighted ? 'opacity-40' : '',
-                      ].join(' ')}
+                      onClick={() => onReplaceHighlights(singleZoneIds)}
+                      className="flex flex-col items-start gap-0.5 px-3 py-2 rounded-lg border text-left cursor-pointer bg-amber-900/30 border-amber-700 text-amber-200"
                     >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="flex-1 min-w-0 truncate font-semibold text-sm text-slate-100">{name}</span>
-                        <span className="shrink-0 text-xs text-slate-400 tabular-nums">{toMin(p.totalSeconds)}&#39;</span>
-                      </div>
-                      <div className="flex h-2 rounded-full overflow-hidden bg-slate-950/60">
-                        {zones.map((z) => (
-                          <div
-                            key={z}
-                            style={{ width: `${(p.byZone[z] / p.totalSeconds) * 100}%`, backgroundColor: ZONE_BAR_COLOR[z] }}
-                            title={`${zoneLabel[z]} ${toMin(p.byZone[z])}'`}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                        {zones.map((z) => (
-                          <span key={z} className="text-[11px] font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[z] }}>
-                            {zoneLabel[z]} {toMin(p.byZone[z])}&#39;
-                          </span>
-                        ))}
-                      </div>
+                      <span className="text-[13px] font-bold">
+                        {t('playtimePlanner.balance.oneZone', '{{count}} players play only one position', { count: singleZoneIds.length })}
+                      </span>
+                      <span className="text-[11px] opacity-85">
+                        {t('playtimePlanner.balance.oneZoneDetail', 'Tap to review and rotate them')}
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                  )}
+
+                  {/* Per-player zone distribution: a stacked bar + minutes per zone.
+                      Shares the highlight selection with the minutes chips + lineup. */}
+                  <div className="flex flex-col gap-2">
+                    {posRows.map((p) => {
+                      const name = nameById.get(p.playerId) ?? p.playerId;
+                      const highlighted = highlightPlayerIds.includes(p.playerId);
+                      const zones = PLAN_ZONES.filter((z) => p.byZone[z] > 0);
+                      return (
+                        <button
+                          key={p.playerId}
+                          type="button"
+                          onClick={() => onToggleHighlight(p.playerId)}
+                          aria-pressed={highlighted}
+                          className={[
+                            'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
+                            'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                            highlighted ? 'ring-2 ring-amber-300' : '',
+                            anyHighlight && !highlighted ? 'opacity-40' : '',
+                          ].join(' ')}
+                        >
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="flex-1 min-w-0 truncate font-semibold text-sm text-slate-100">{name}</span>
+                            <span className="shrink-0 text-xs text-slate-400 tabular-nums">{toMin(p.totalSeconds)}&#39;</span>
+                          </div>
+                          <div className="flex h-2 rounded-full overflow-hidden bg-slate-950/60">
+                            {zones.map((z) => (
+                              <div
+                                key={z}
+                                style={{ width: `${(p.byZone[z] / p.totalSeconds) * 100}%`, backgroundColor: ZONE_BAR_COLOR[z] }}
+                                title={`${zoneLabel[z]} ${toMin(p.byZone[z])}'`}
+                              />
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                            {zones.map((z) => (
+                              <span key={z} className="text-[11px] font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[z] }}>
+                                {zoneLabel[z]} {toMin(p.byZone[z])}&#39;
+                              </span>
+                            ))}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                /* Roles: specific positions, tinted by zone, most-roles-first.
+                   The role count is the switching-load headline. */
+                <div className="flex flex-col gap-2">
+                  {roleRows.map((p) => {
+                    const name = nameById.get(p.playerId) ?? p.playerId;
+                    const highlighted = highlightPlayerIds.includes(p.playerId);
+                    const labels = Object.keys(p.byLabel)
+                      .filter((l) => p.byLabel[l] > 0)
+                      .sort((a, b) => p.byLabel[b] - p.byLabel[a]);
+                    return (
+                      <button
+                        key={p.playerId}
+                        type="button"
+                        onClick={() => onToggleHighlight(p.playerId)}
+                        aria-pressed={highlighted}
+                        className={[
+                          'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border border-slate-600/50 bg-slate-800/60 text-left',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
+                          highlighted ? 'ring-2 ring-amber-300' : '',
+                          anyHighlight && !highlighted ? 'opacity-40' : '',
+                        ].join(' ')}
+                      >
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="flex-1 min-w-0 truncate font-semibold text-sm text-slate-100">{name}</span>
+                          <span className="shrink-0 text-xs text-slate-400 tabular-nums">
+                            {t('playtimePlanner.balance.rolesCount', { count: p.positionCount, defaultValue_one: '{{count}} role', defaultValue_other: '{{count}} roles' })}
+                          </span>
+                        </div>
+                        <div className="flex h-2 rounded-full overflow-hidden bg-slate-950/60">
+                          {labels.map((l) => (
+                            <div
+                              key={l}
+                              className="border-r border-slate-950/50 last:border-r-0"
+                              style={{ width: `${(p.byLabel[l] / p.totalSeconds) * 100}%`, backgroundColor: ZONE_BAR_COLOR[zoneOfLabel(l)] }}
+                              title={`${l} ${toMin(p.byLabel[l])}'`}
+                            />
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                          {labels.map((l) => (
+                            <span key={l} className="text-[11px] font-medium tabular-nums" style={{ color: ZONE_BAR_COLOR[zoneOfLabel(l)] }}>
+                              {l} {toMin(p.byLabel[l])}&#39;
+                            </span>
+                          ))}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
         </div>

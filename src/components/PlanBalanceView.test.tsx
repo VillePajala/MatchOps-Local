@@ -11,8 +11,21 @@ const interpolate = (template: string, options?: Record<string, unknown>): strin
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_k: string, dv?: string | Record<string, unknown>, opts?: Record<string, unknown>) =>
-      typeof dv === 'string' ? interpolate(dv, opts) : '',
+    t: (_k: string, dv?: string | Record<string, unknown>, opts?: Record<string, unknown>) => {
+      // String default-value form: t(key, 'default', opts).
+      if (typeof dv === 'string') return interpolate(dv, opts);
+      // Options-object form incl. i18next plurals: t(key, { count, defaultValue_one, defaultValue_other }).
+      const o = (dv ?? {}) as Record<string, unknown>;
+      const template =
+        o.count === 1 && typeof o.defaultValue_one === 'string'
+          ? o.defaultValue_one
+          : typeof o.defaultValue_other === 'string'
+            ? o.defaultValue_other
+            : typeof o.defaultValue === 'string'
+              ? o.defaultValue
+              : '';
+      return interpolate(template, o);
+    },
   }),
 }));
 
@@ -68,6 +81,31 @@ describe('PlanBalanceView', () => {
     // and the single-position variety flag.
     expect(screen.getByText(/GK 24'/)).toBeInTheDocument();
     expect(screen.getByText(/only one position/)).toBeInTheDocument();
+  });
+
+  it('Roles read: two same-zone roles show as distinct positions with a role count', () => {
+    // Alex plays LDM in one game and RDM in the next - both midfield (one zone),
+    // two distinct roles. The Roles sub-view must surface both.
+    const p = plan([
+      game({ id: 'g1', startingSlots: [{ slotId: 's0', playerId: 'p1' }] }),
+      game({ id: 'g2', startingSlots: [{ slotId: 's1', playerId: 'p1' }] }),
+    ]);
+    render(<PlanBalanceView plan={p} onToggleHighlight={noop} onReplaceHighlights={noop} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Positions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Roles' }));
+
+    expect(screen.getByText(/LDM 24'/)).toBeInTheDocument();
+    expect(screen.getByText(/RDM 24'/)).toBeInTheDocument();
+    expect(screen.getByText(/2 roles/)).toBeInTheDocument();
+  });
+
+  it('Roles count is singular for a one-role player (1 role, not "1 roles")', () => {
+    // Alex plays only goalkeeper -> exactly one role; the count must read "1 role".
+    render(<PlanBalanceView plan={plan([game()])} onToggleHighlight={noop} onReplaceHighlights={noop} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Positions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Roles' }));
+    expect(screen.getByText(/^1 role$/)).toBeInTheDocument();
+    expect(screen.queryByText(/1 roles/)).not.toBeInTheDocument();
   });
 
   it('renders whole-colour player chips sorted least-played first, tap toggles highlight', () => {

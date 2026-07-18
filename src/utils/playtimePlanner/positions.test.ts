@@ -62,6 +62,29 @@ describe('computePlanPositions', () => {
     expect(by('keeper').zoneCount).toBe(1);
     expect(by('bench').totalSeconds).toBe(0);
     expect(by('bench').zoneCount).toBe(0);
+
+    // Specific position labels (s0 = LB, s6 = ST, gk = GK).
+    expect(by('keeper').byLabel).toEqual({ GK: 600 });
+    expect(by('back').byLabel).toEqual({ LB: 600 });
+    expect(by('striker').byLabel).toEqual({ ST: 600 });
+    expect(by('striker').positionCount).toBe(1);
+    expect(by('bench').positionCount).toBe(0);
+  });
+
+  it('counts two roles in the SAME zone as distinct (LB vs RB, both defence)', () => {
+    // The cognitive-load case: same zone, different role.
+    const p = plan(
+      [
+        game({ id: 'g1', startingSlots: [{ slotId: 's0', playerId: 'wide' }] }), // LB (def)
+        game({ id: 'g2', startingSlots: [{ slotId: 's2', playerId: 'wide' }] }), // RB (def)
+      ],
+      ['wide'],
+    );
+    const wide = computePlanPositions(p).players.find((x) => x.playerId === 'wide')!;
+    expect(wide.byZone).toEqual({ gk: 0, def: 1200, mid: 0, att: 0 });
+    expect(wide.zoneCount).toBe(1); // both defence
+    expect(wide.byLabel).toEqual({ LB: 600, RB: 600 });
+    expect(wide.positionCount).toBe(2); // but two distinct roles
   });
 
   it('splits a slot between the starter and a sub by time', () => {
