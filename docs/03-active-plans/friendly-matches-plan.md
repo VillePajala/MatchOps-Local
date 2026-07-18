@@ -115,10 +115,7 @@ the stats aggregation changes rather than the UI.
 - Existing games default to not-friendly (no migration).
 - `isFriendly` always excludes from competitive totals even if a season/tournament
   tag is also present.
-
-## Open questions
-
-- Should the New Game "Friendly match" toggle also clear/allow a season/tournament
-  selection, or leave both independently settable? (Leaning: independent, simplest.)
-- Does the Friendlies scope need its own W-D-L / results summary, or just the
-  per-player breakdown to start? (Leaning: per-player + a simple results line.)
+- The New Game "Friendly match" toggle and the season/tournament selection are
+  **independent** — both settable, no gating between them.
+- The Friendlies scope shows the **per-player breakdown plus a simple results
+  line** (games / record) to start — no elaborate standings.
