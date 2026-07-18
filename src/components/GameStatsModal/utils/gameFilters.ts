@@ -165,12 +165,8 @@ export function filterGameIds(
     }
 
     // Friendly-match handling (harjoitusottelut). Runs after the shared filters
-    // (team/type/gender/club-season) so those still apply to the Friendlies scope.
+    // (team/type/gender/club-season) so those still apply.
     const isFriendly = game.isFriendly === true;
-    if (activeTab === 'friendlies') {
-      // Friendlies scope: friendly games only (any season/tournament tag ignored).
-      return isFriendly;
-    }
     if (isFriendly) {
       // Season & Tournament are strictly competitive - a friendly never counts
       // there, even if it carries a season/tournament tag.

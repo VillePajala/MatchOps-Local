@@ -83,13 +83,6 @@ describe('gameFilters', () => {
         const r = filterGameIds(games, { activeTab: 'overall', includeFriendlies: true });
         expect(r).toEqual(expect.arrayContaining(['league', 'cup', 'friendly', 'friendlyWithSeason']));
       });
-
-      it('friendlies scope shows only friendly games', () => {
-        const r = filterGameIds(games, { activeTab: 'friendlies' });
-        expect(r).toEqual(expect.arrayContaining(['friendly', 'friendlyWithSeason']));
-        expect(r).not.toContain('league');
-        expect(r).not.toContain('cup');
-      });
     });
 
     describe('playedOnly filter', () => {

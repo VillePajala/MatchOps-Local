@@ -14,7 +14,7 @@ export interface PlannerLiveGameHooks {
 }
 
 type SettingsTab = 'general' | 'data' | 'account' | 'about';
-type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player' | 'friendlies';
+type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 interface ModalContextValue {
   isGameSettingsModalOpen: boolean;

@@ -58,26 +58,26 @@ const openPanel = async () => {
 };
 
 describe('CollapsibleFilters - Period (club-season) visibility', () => {
-  it('shows the Period filter on the Friendlies tab', async () => {
-    renderFilters('friendlies');
-    await openPanel();
-    expect(screen.getByText('Period')).toBeInTheDocument();
-  });
-
   it('shows the Period filter on the Overall tab', async () => {
     renderFilters('overall');
     await openPanel();
     expect(screen.getByText('Period')).toBeInTheDocument();
   });
 
+  it('shows the Period filter on the Player tab', async () => {
+    renderFilters('player');
+    await openPanel();
+    expect(screen.getByText('Period')).toBeInTheDocument();
+  });
+
   it('hides the Period filter when onClubSeasonChange is missing', async () => {
-    renderFilters('friendlies', { handlers: { ...baseHandlers, onClubSeasonChange: undefined as unknown as StatsFiltersHandlers['onClubSeasonChange'] } });
+    renderFilters('overall', { handlers: { ...baseHandlers, onClubSeasonChange: undefined as unknown as StatsFiltersHandlers['onClubSeasonChange'] } });
     await openPanel();
     expect(screen.queryByText('Period')).not.toBeInTheDocument();
   });
 
   it('hides the Period filter when onOpenSettings is missing', async () => {
-    renderFilters('friendlies', { onOpenSettings: undefined });
+    renderFilters('overall', { onOpenSettings: undefined });
     await openPanel();
     expect(screen.queryByText('Period')).not.toBeInTheDocument();
   });

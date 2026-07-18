@@ -10,7 +10,7 @@ export type SortableColumn = 'name' | 'goals' | 'assists' | 'totalScore' | 'fpAw
 export type SortDirection = 'asc' | 'desc';
 
 // Define tab types
-export type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player' | 'friendlies';
+export type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
 
 // Minimal interface for saved game structure used in this component
 export interface SavedGame {

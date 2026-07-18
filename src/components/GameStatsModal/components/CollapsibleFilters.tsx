@@ -107,7 +107,7 @@ export function CollapsibleFilters({
   const hasTeamFilterInPanel = teams.length > 0 && activeTab !== 'currentGame' && activeTab !== 'overall' && activeTab !== 'player';
   const hasGameTypeFilter = activeTab !== 'currentGame';
   const hasGenderFilter = activeTab !== 'currentGame';
-  const hasClubSeasonFilter = !!onClubSeasonChange && !!onOpenSettings && (activeTab === 'tournament' || activeTab === 'season' || activeTab === 'overall' || activeTab === 'player' || activeTab === 'friendlies');
+  const hasClubSeasonFilter = !!onClubSeasonChange && !!onOpenSettings && (activeTab === 'tournament' || activeTab === 'season' || activeTab === 'overall' || activeTab === 'player');
 
   // Count active (non-default) filters for badge (only filters in collapsible panel)
   // Primary filters (Tournament/Season/Team) are visible, so don't count them in the badge

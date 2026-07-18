@@ -380,7 +380,6 @@
       "season": "Season",
       "tournament": "Tournament",
       "overall": "Overall",
-      "friendlies": "Friendlies",
       "player": "Player"
     },
     "filterAllSeasons": "All Seasons",
@@ -413,7 +412,6 @@
     },
     "titleTournament": "Tournament Stats",
     "titleOverall": "Overall Stats",
-    "titleFriendlies": "Friendlies",
     "includeFriendlies": "Include friendly matches",
     "titleCurrentGame": "Current Game Stats",
     "invalidTimeFormat": "Invalid time format. MM:SS",

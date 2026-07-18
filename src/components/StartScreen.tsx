@@ -19,7 +19,7 @@ interface StartScreenProps {
   onNewGame?: () => void;
   onViewStats: () => void;
   /** Stats panel rows mirror the aggregate tabs (W8): open club stats on one. */
-  onViewStatsTab?: (tab: 'season' | 'tournament' | 'overall' | 'player' | 'friendlies') => void;
+  onViewStatsTab?: (tab: 'season' | 'tournament' | 'overall' | 'player') => void;
   /** Gear sheet: direct sign out (cloud mode only). */
   onSignOut?: () => void;
   onOpenSettings: () => void;
@@ -422,23 +422,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 >
                   <span className="text-sm font-semibold text-white">
                     {t('seasonTournamentModal.tournaments', 'Tournaments')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-                {/* Harjoitusottelut: friendlies aren't a container to manage -
-                    this opens their stats scope (needs a game to aggregate). */}
-                <button
-                  type="button"
-                  onClick={onViewStatsTab ? () => onViewStatsTab('friendlies') : undefined}
-                  disabled={!hasSavedGames || !onViewStatsTab}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    hasSavedGames && onViewStatsTab
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('gameStatsModal.tabs.friendlies', 'Friendlies')}
                   </span>
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
