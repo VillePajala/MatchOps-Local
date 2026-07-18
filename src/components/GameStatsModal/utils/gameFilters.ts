@@ -55,6 +55,14 @@ export interface GameFilterOptions {
   activeTab?: StatsTab;
 
   /**
+   * Include friendly (harjoitusottelut) games in the Overall / Player scopes.
+   * Friendlies are excluded from competitive totals by default; this re-includes
+   * them ONLY for overall/player (never for a specific season/tournament).
+   * @default false
+   */
+  includeFriendlies?: boolean;
+
+  /**
    * Club season filter - 'all' or specific season label (e.g., '24/25')
    */
   clubSeasonFilter?: string | 'all';
@@ -105,6 +113,7 @@ export function filterGameIds(
     gameTypeFilter = 'all',
     genderFilter = 'all',
     activeTab,
+    includeFriendlies = false,
     clubSeasonFilter = 'all',
     clubSeasonStartDate = DEFAULT_CLUB_SEASON_START_DATE,
     clubSeasonEndDate = DEFAULT_CLUB_SEASON_END_DATE,
@@ -153,6 +162,21 @@ export function filterGameIds(
       if (!game.gameDate) return false;
       const gameSeason = getClubSeasonForDate(game.gameDate, clubSeasonStartDate, clubSeasonEndDate);
       if (gameSeason !== clubSeasonFilter) return false;
+    }
+
+    // Friendly-match handling (harjoitusottelut). Runs after the shared filters
+    // (team/type/gender/club-season) so those still apply to the Friendlies scope.
+    const isFriendly = game.isFriendly === true;
+    if (activeTab === 'friendlies') {
+      // Friendlies scope: friendly games only (any season/tournament tag ignored).
+      return isFriendly;
+    }
+    if (isFriendly) {
+      // Season & Tournament are strictly competitive - a friendly never counts
+      // there, even if it carries a season/tournament tag.
+      if (activeTab === 'season' || activeTab === 'tournament') return false;
+      // Overall & Player exclude friendlies unless the coach opts them in.
+      if ((activeTab === 'overall' || activeTab === 'player') && !includeFriendlies) return false;
     }
 
     // Season filter (based on activeTab context)

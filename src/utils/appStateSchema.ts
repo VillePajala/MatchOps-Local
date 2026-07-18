@@ -118,6 +118,7 @@ export const appStateSchema = z.object({
   tacticalBallPosition: pointSchema.nullable(),
   formationSnapPoints: z.array(pointSchema).optional(),
   isPlayed: z.boolean().optional(),
+  isFriendly: z.boolean().optional(),
   teamId: z.string().optional(),
   gamePersonnel: z.array(z.string()).optional(),
   leagueId: z.string().optional(),
