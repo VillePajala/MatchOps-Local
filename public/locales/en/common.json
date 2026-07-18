@@ -393,8 +393,10 @@
       "season": "Season",
       "tournament": "Tournament",
       "overall": "Overall",
+      "friendlies": "Friendlies",
       "player": "Player"
     },
+    "includeFriendlies": "Include friendly matches",
     "filterAllSeasons": "All Seasons",
     "filterAllTournaments": "All Tournaments",
     "filterAllSeries": "All Series",
@@ -1010,6 +1012,7 @@
     "periodDurationLabel": "Period Duration (minutes)",
     "demandFactorLabel": "Game Demand Level",
     "unplayedToggle": "Not played yet",
+    "friendlyToggle": "Friendly match (kept out of competitive stats)",
     "linkita": "Link",
     "eiMitaan": "None",
     "kausi": "Season",

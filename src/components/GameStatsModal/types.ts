@@ -58,6 +58,7 @@ export interface OverallTournamentSeasonStats {
 // Game stats calculation parameters
 export interface GameStatsParams {
   activeTab: StatsTab;
+  includeFriendlies?: boolean;
   savedGames: SavedGamesCollection | null;
   availablePlayers: Player[];
   selectedPlayerIds: string[];

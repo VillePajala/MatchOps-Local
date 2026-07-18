@@ -64,7 +64,9 @@ interface NewGameSetupModalProps {
       formationSnapPoints: Point[];
       sourcePlanId: string;
       sourcePlanGameId: string;
-    }
+    },
+    // Friendly / practice match: excluded from competitive stat totals by default.
+    isFriendly?: boolean,
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -127,6 +129,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // <<< Step 4a: State for Home/Away >>>
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  const [isFriendly, setIsFriendly] = useState<boolean>(false);
 
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament
   const [gameType, setGameType] = useState<GameType>('soccer');
@@ -684,7 +687,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '', // Custom league name when leagueId === CUSTOM_LEAGUE_ID
       gameType, // Sport type: 'soccer' or 'futsal'
       gender, // Gender: 'boys' or 'girls' (optional)
-      prefillPayload // Planner prefill (Phase 2): planned XI + subs, or undefined
+      prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
+      isFriendly, // Friendly / practice match flag
     );
 
     // Modal will be closed by parent component after onStart
@@ -1338,6 +1342,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
                   />
                   <span className="ml-2">{t('newGameSetupModal.unplayedToggle', 'Not played yet')}</span>
+                </label>
+              </div>
+
+              {/* Friendly / practice match */}
+              <div className="mb-4">
+                <label className="inline-flex items-center text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={isFriendly}
+                    onChange={(e) => setIsFriendly(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="ml-2">{t('newGameSetupModal.friendlyToggle', 'Friendly match (kept out of competitive stats)')}</span>
                 </label>
               </div>
             </div>

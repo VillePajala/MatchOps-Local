@@ -205,7 +205,8 @@ describe('NewGameSetupModal', () => {
       '', // customLeagueName
       'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
     );
   });
 
@@ -243,7 +244,8 @@ describe('NewGameSetupModal', () => {
         '', // customLeagueName
         'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
       );
     });
   });
@@ -400,7 +402,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // customLeagueName
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -518,7 +521,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // customLeagueName
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -773,7 +777,8 @@ describe('NewGameSetupModal', () => {
           '', // customLeagueName
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -853,7 +858,8 @@ describe('NewGameSetupModal', () => {
           'My Custom League', // customLeagueName - THE KEY ASSERTION
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -1103,11 +1109,11 @@ describe('NewGameSetupModal', () => {
       });
 
       // Verify onStart was called with gameType: 'futsal'
-      // Positional args: gameType is 3rd from the end (gender then optional prefill follow it).
+      // Positional args: gameType is 4th from the end (gender, optional prefill, isFriendly follow it).
       await waitFor(() => {
         expect(mockOnStart).toHaveBeenCalled();
         const args = mockOnStart.mock.calls[0];
-        const gameTypeArg = args[args.length - 3];
+        const gameTypeArg = args[args.length - 4];
         expect(gameTypeArg).toBe('futsal');
       });
     });
@@ -1235,7 +1241,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      const prefillArg = call[call.length - 1];
+      const prefillArg = call[call.length - 2]; // isFriendly is now the last arg
       expect(prefillArg).toBeDefined();
       expect(prefillArg.playersOnField).toHaveLength(2); // GK + one field player placed
       const gk = prefillArg.playersOnField.find((p: { id: string }) => p.id === 'player1');
@@ -1279,7 +1285,7 @@ describe('NewGameSetupModal', () => {
       });
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload
+      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload (isFriendly is last)
     });
 
     test('picker stays hidden when there are no plans', async () => {
@@ -1360,7 +1366,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload rode along
+      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload rode along (isFriendly is last)
     });
   });
 });
