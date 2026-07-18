@@ -104,6 +104,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     settingsInitialTab,
     isSeasonTournamentModalOpen,
     setIsSeasonTournamentModalOpen,
+    competitionManagerKind,
     isPersonnelManagerOpen,
     setIsPersonnelManagerOpen,
     isRosterModalOpen,
@@ -255,6 +256,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
       {isSeasonTournamentModalOpen && (
         <SeasonTournamentManagementModal
           isOpen
+          kind={competitionManagerKind}
           onClose={() => setIsSeasonTournamentModalOpen(false)}
           seasons={seasonTournament.seasons}
           tournaments={seasonTournament.tournaments}
