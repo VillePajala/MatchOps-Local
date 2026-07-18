@@ -57,6 +57,19 @@ describe('PlanBalanceView', () => {
     expect(screen.getByText(/1 games counted/)).toBeInTheDocument();
   });
 
+  it('Positions read: shows each player’s zone breakdown and flags single-position players', () => {
+    render(<PlanBalanceView plan={plan([game()])} onToggleHighlight={noop} onReplaceHighlights={noop} />);
+    // Default mode is Minutes; the position breakdown is not shown yet.
+    expect(screen.queryByText(/GK 24'/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Positions' }));
+
+    // Alex plays the whole 24' game in goal -> one GK zone worth 24 minutes,
+    // and the single-position variety flag.
+    expect(screen.getByText(/GK 24'/)).toBeInTheDocument();
+    expect(screen.getByText(/only one position/)).toBeInTheDocument();
+  });
+
   it('renders whole-colour player chips sorted least-played first, tap toggles highlight', () => {
     const onToggleHighlight = jest.fn();
     render(
