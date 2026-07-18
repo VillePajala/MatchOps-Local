@@ -223,21 +223,3 @@ export function filterGameIds(
 
   return gameIds;
 }
-
-/**
- * Get all played game IDs filtered by team
- * Convenience wrapper for common use case
- *
- * @param games - Collection of saved games
- * @param teamFilter - Team filter ('all', 'legacy', or team ID)
- * @returns Array of filtered game IDs
- */
-export function getPlayedGamesByTeam(
-  games: SavedGamesCollection | null,
-  teamFilter: string | 'all' | 'legacy' = 'all'
-): string[] {
-  return filterGameIds(games, {
-    playedOnly: true,
-    teamFilter
-  });
-}
