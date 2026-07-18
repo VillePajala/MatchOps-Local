@@ -768,6 +768,7 @@
     },
     "titleTournament": "Turnaustilastot",
     "titleOverall": "Kokonaistilastot",
+    "titleFriendlies": "Harjoitusottelut",
     "titleCurrentGame": "Nykyisen pelin tilastot",
     "invalidTimeFormat": "Virheellinen aikamuoto. MM:SS",
     "scorerRequired": "Maalintekijä on valittava.",

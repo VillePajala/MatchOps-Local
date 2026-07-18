@@ -478,6 +478,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // State for event editing within the modal
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
+  // Optimistic echo for the Friendly-match toggle (the persisted value arrives a
+  // tick later via the mutation's savedGames update). Re-syncs to the prop when
+  // it changes (game switch / external update) - sanctioned adjust-during-render.
+  const [isFriendlyLocal, setIsFriendlyLocal] = useState(isFriendly);
+  const [prevIsFriendlyProp, setPrevIsFriendlyProp] = useState(isFriendly);
+  if (prevIsFriendlyProp !== isFriendly) {
+    setPrevIsFriendlyProp(isFriendly);
+    setIsFriendlyLocal(isFriendly);
+  }
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const [editGoalTime, setEditGoalTime] = useState<string>('');
@@ -2368,15 +2377,17 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     out of competitive stat totals by default. */}
                 <button
                   type="button"
-                  aria-pressed={isFriendly}
+                  aria-pressed={isFriendlyLocal}
                   onClick={() => {
+                    const newValue = !isFriendlyLocal;
+                    setIsFriendlyLocal(newValue); // immediate echo
                     mutateGameDetails(
-                      { isFriendly: !isFriendly },
+                      { isFriendly: newValue },
                       { source: 'stateSync' }
                     );
                   }}
                   className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                    isFriendly
+                    isFriendlyLocal
                       ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
