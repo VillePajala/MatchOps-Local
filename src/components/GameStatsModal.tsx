@@ -644,6 +644,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       case 'season': return t('gameStatsModal.titleSeason', 'Kausitilastot');
       case 'tournament': return t('gameStatsModal.titleTournament', 'Turnaustilastot');
       case 'overall': return t('gameStatsModal.titleOverall', 'Kokonaisstilastot');
+      case 'friendlies': return t('gameStatsModal.titleFriendlies', 'Harjoitusottelut');
       case 'player': {
         const selectedTeamName = selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy'
           ? teams.find(team => team.id === selectedTeamIdFilter)?.name
@@ -822,6 +823,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 clubSeasonEndDate={clubSeasonEndDate}
                 selectedGameTypeFilter={selectedGameTypeFilter}
                 selectedGenderFilter={selectedGenderFilter}
+                includeFriendlies={includeFriendlies}
               />
             </div>
           ) : (

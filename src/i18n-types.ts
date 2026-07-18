@@ -914,6 +914,7 @@ export type TranslationKey =
   | 'gameStatsModal.teamFilterLabel'
   | 'gameStatsModal.title'
   | 'gameStatsModal.titleCurrentGame'
+  | 'gameStatsModal.titleFriendlies'
   | 'gameStatsModal.titleOverall'
   | 'gameStatsModal.titleSeason'
   | 'gameStatsModal.titleTournament'

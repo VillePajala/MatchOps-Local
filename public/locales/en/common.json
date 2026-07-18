@@ -427,6 +427,7 @@
     },
     "titleTournament": "Tournament Stats",
     "titleOverall": "Overall Stats",
+    "titleFriendlies": "Friendlies",
     "titleCurrentGame": "Current Game Stats",
     "invalidTimeFormat": "Invalid time format. MM:SS",
     "scorerRequired": "Scorer must be selected.",
