@@ -403,7 +403,7 @@ describe('Translation File Validation', () => {
       //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
       //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
       //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
-      expect(enKeys.length).toBe(2837);
+      expect(enKeys.length).toBe(2838);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -525,7 +525,7 @@ describe('Translation File Validation', () => {
       //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
       //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
       //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
-      expect(fiKeys.length).toBe(2837);
+      expect(fiKeys.length).toBe(2838);
     });
   });
 });

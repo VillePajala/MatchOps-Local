@@ -685,6 +685,7 @@
     ]
   },
   "warmupPlanModal": {
+    "title": "Warmup",
     "editButton": "Edit",
     "saveButton": "Save",
     "cancelButton": "Cancel",
