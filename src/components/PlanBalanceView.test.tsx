@@ -70,6 +70,22 @@ describe('PlanBalanceView', () => {
     expect(screen.getByText(/only one position/)).toBeInTheDocument();
   });
 
+  it('Roles read: two same-zone roles show as distinct positions with a role count', () => {
+    // Alex plays LDM in one game and RDM in the next - both midfield (one zone),
+    // two distinct roles. The Roles sub-view must surface both.
+    const p = plan([
+      game({ id: 'g1', startingSlots: [{ slotId: 's0', playerId: 'p1' }] }),
+      game({ id: 'g2', startingSlots: [{ slotId: 's1', playerId: 'p1' }] }),
+    ]);
+    render(<PlanBalanceView plan={p} onToggleHighlight={noop} onReplaceHighlights={noop} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Positions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Roles' }));
+
+    expect(screen.getByText(/LDM 24'/)).toBeInTheDocument();
+    expect(screen.getByText(/RDM 24'/)).toBeInTheDocument();
+    expect(screen.getByText(/2 roles/)).toBeInTheDocument();
+  });
+
   it('renders whole-colour player chips sorted least-played first, tap toggles highlight', () => {
     const onToggleHighlight = jest.fn();
     render(
