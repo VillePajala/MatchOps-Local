@@ -2,7 +2,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
-import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import GoalLogModal from '@/components/GoalLogModal';
 const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
@@ -132,16 +132,20 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
   const { t } = useTranslation();
 
   // Hardware-back contract (modal governance, audited in 3.1): MATCH-scope
-  // modals register on the SAME stack as the lifted ones, so they sit above
-  // the page-level match entry ("back exits to Home") and close first -
-  // back must never exit the match while one of these is open.
-  useModalHardwareBack(state.isGoalLogModalOpen, handlers.toggleGoalLogModal);
-  useModalHardwareBack(state.isGameStatsModalOpen, handlers.toggleGameStatsModal);
-  useModalHardwareBack(state.isGameSettingsModalOpen, handlers.closeGameSettingsModal);
-  useModalHardwareBack(state.isPlayerAssessmentModalOpen, handlers.closePlayerAssessmentModal);
-  useModalHardwareBack(state.isTeamReassignModalOpen, () => handlers.setIsTeamReassignModalOpen(false));
-  useModalHardwareBack(state.showNoPlayersConfirm, () => handlers.setShowNoPlayersConfirm(false));
-  useModalHardwareBack(state.showResetFieldConfirm, () => handlers.setShowResetFieldConfirm(false));
+  // modals sit ABOVE the page-level match entry ("back exits to Home") and must
+  // close first - back must never exit the match while one of these is open.
+  // They register as PREEMPTIVE sub-guards (not useModalHardwareBack): back#1
+  // consumes the sub-guard and closes the modal, leaving the match sentinel
+  // intact so back#2 reaches Home. useModalHardwareBack would instead re-push
+  // the sentinel via setTimeout AFTER back#1 - a re-arm that fails on Android
+  // WebViews, so back#2 exited the app (device bug).
+  useHardwareBackSubLevel(state.isGoalLogModalOpen, handlers.toggleGoalLogModal);
+  useHardwareBackSubLevel(state.isGameStatsModalOpen, handlers.toggleGameStatsModal);
+  useHardwareBackSubLevel(state.isGameSettingsModalOpen, handlers.closeGameSettingsModal);
+  useHardwareBackSubLevel(state.isPlayerAssessmentModalOpen, handlers.closePlayerAssessmentModal);
+  useHardwareBackSubLevel(state.isTeamReassignModalOpen, () => handlers.setIsTeamReassignModalOpen(false));
+  useHardwareBackSubLevel(state.showNoPlayersConfirm, () => handlers.setShowNoPlayersConfirm(false));
+  useHardwareBackSubLevel(state.showResetFieldConfirm, () => handlers.setShowResetFieldConfirm(false));
 
   return (
     <ModalPortal>
