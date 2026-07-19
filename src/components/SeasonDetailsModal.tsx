@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
-import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Season, GameType, Gender } from '@/types';
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -245,11 +245,12 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
     onClose();
   };
 
-  // Register with the hardware-back stack so Android's back button (and the
-  // hidden-on-mobile header X's counterpart) cancels THIS nested dialog rather
-  // than falling through to the parent manager's sentinel and closing the whole
-  // manager (which would discard the coach's in-progress edit).
-  useModalHardwareBack(isOpen, handleCancel);
+  // Cancel THIS nested dialog on hardware back instead of falling through to the
+  // parent manager (which would discard the in-progress edit). A PREEMPTIVE
+  // sub-guard (not useModalHardwareBack) so back#1 cancels the dialog and back#2
+  // still reaches the manager's sentinel - no fragile re-arm-after-a-back, which
+  // fails on Android WebViews and would exit the app on back#2.
+  useHardwareBackSubLevel(isOpen, handleCancel);
 
   if (!isOpen) {
     return null;
