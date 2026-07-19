@@ -351,13 +351,16 @@ export const CollapsibleModalHeader: React.FC<{
   collapse?: CollapsingHeaderController;
 }> = ({ title, onClose, closeLabel = 'Close', closeDisabled, actions, children, collapse }) => {
   const showClose = useModalCloseVisible();
+  // Balanced fixed-width side slots keep the title centered when the X shows or
+  // a right-side action cluster is present. But on phones (X hidden) with no
+  // actions, those 40px slots just steal width and wrap otherwise-one-line
+  // titles - so collapse both to give the title the full row (owner feedback).
+  const reserveSides = showClose || !!actions;
+  const sideSlot = reserveSides ? 'basis-10' : 'basis-0';
   return (
   <div className="flex-shrink-0">
-    {/* Balanced fixed-width side slots keep the title centered whether or not
-        the X shows (hidden on phones) - a bare auto-column shoved it off
-        center (owner feedback 2026-07-17). */}
     <div className="flex items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
-      <div className="flex items-center justify-start basis-10 shrink-0">
+      <div className={`flex items-center justify-start ${sideSlot} shrink-0`}>
         <button type="button" onClick={onClose} disabled={closeDisabled} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle} disabled:opacity-50 disabled:cursor-not-allowed`}>
           <HiOutlineXMark className="w-6 h-6" />
         </button>
@@ -368,7 +371,7 @@ export const CollapsibleModalHeader: React.FC<{
           so even a single long word (e.g. a Finnish compound) wraps instead
           of overflowing/clipping. */}
       <h2 className={`${titleStyle} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
-      <div className="flex items-center justify-end gap-1.5 basis-10 shrink-0">{actions}</div>
+      <div className={`flex items-center justify-end gap-1.5 ${sideSlot} shrink-0`}>{actions}</div>
     </div>
     {children && (
       <div ref={collapse?.outerRef} className="overflow-hidden border-b border-slate-700/20">
