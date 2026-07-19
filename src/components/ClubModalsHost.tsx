@@ -55,7 +55,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import { useModalContext } from '@/contexts/ModalProvider';
-import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
+import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
@@ -211,10 +211,12 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   // Planner hardware-back is owned by PlaytimePlannerModal itself (one
   // branching entry: plan->manager->close). Not registered here.
   useModalHardwareBack(isClubStatsOpen, handleCloseClubStats);
-  // The hard-reset confirm stacks ON TOP of Settings - it must register too,
-  // or back would close Settings underneath and orphan a destructive dialog.
-  // (Registered after Settings so a same-render mount keeps it topmost.)
-  useModalHardwareBack(settings.showHardResetConfirm, () => settings.setShowHardResetConfirm(false));
+  // The hard-reset confirm stacks ON TOP of Settings. A PREEMPTIVE sub-guard
+  // (not useModalHardwareBack): back#1 dismisses the confirm and leaves the
+  // Settings sentinel intact, so back#2 closes Settings. useModalHardwareBack
+  // would re-push Settings' sentinel via setTimeout after back#1 - a re-arm that
+  // fails on Android WebViews, exiting the app on back#2.
+  useHardwareBackSubLevel(settings.showHardResetConfirm, () => settings.setShowHardResetConfirm(false));
 
   if (settings.isResetting) {
     // Defense-in-depth during a data wipe: render ONLY the blocking overlay.
