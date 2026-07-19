@@ -139,6 +139,35 @@ describe('useModalHardwareBack (single sentinel)', () => {
     a.unmount();
   });
 
+  it('stacked sub-guards are consumed LIFO: overlay guard first, then plan guard, then close', async () => {
+    // Models the planner with an overlay (confirm dialog / sub-sheet) open over
+    // a plan: an overlay guard is pushed ABOVE the plan sub-guard. Hardware back
+    // cancels the overlay first (leaving the plan guard intact), the next back
+    // steps the plan to the manager, the next closes the planner.
+    const closeMain = jest.fn();
+    const stepPlan = jest.fn();
+    const cancelOverlay = jest.fn();
+    const a = renderHook(({ open }) => useModalHardwareBack(open, closeMain), { initialProps: { open: true } });
+    const plan = renderHook(({ active }) => useHardwareBackSubLevel(active, stepPlan), { initialProps: { active: true } });
+    const overlay = renderHook(({ active }) => useHardwareBackSubLevel(active, cancelOverlay), { initialProps: { active: true } });
+    expect(pushSpy).toHaveBeenCalledTimes(3); // sentinel + plan guard + overlay guard
+
+    await pop(); // topmost = overlay guard
+    expect(cancelOverlay).toHaveBeenCalledTimes(1);
+    expect(stepPlan).not.toHaveBeenCalled();
+    expect(closeMain).not.toHaveBeenCalled();
+    overlay.rerender({ active: false }); // overlay closed as a result
+
+    await pop(); // now the plan guard
+    expect(stepPlan).toHaveBeenCalledTimes(1);
+    expect(closeMain).not.toHaveBeenCalled();
+    plan.rerender({ active: false });
+
+    await pop(); // now the sentinel: closes the planner
+    expect(closeMain).toHaveBeenCalledTimes(1);
+    a.unmount();
+  });
+
   it('closing the main modal from INSIDE a sub-level balances the counter (no stuck pops)', async () => {
     // Models closing the planner via its X while still inside a plan: the
     // preemptive sub-guard AND the main sentinel both retire in the same

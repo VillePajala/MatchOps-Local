@@ -294,31 +294,6 @@ export const ModalProvider = ({ children, currentUserId }: {
     setClubStatsOpen(true);
   }, [setIsGameStatsModalOpen]);
 
-  // Deep-review Issue 5: MATCH-scope transient state must not survive a
-  // user change - a session expiring mid-modal used to re-open that modal
-  // over the NEXT user's match with inverted back-stack order, and a stale
-  // prefill selection could seed a new game with another user's player ids.
-  // Declared after the guarded setters so it can route through them (no
-  // direct mirror-ref access - the compiler forbids mutating a ref an
-  // effect also reads).
-  const effectPrevUserRef = useRef(currentUserId);
-  // The reset must route through the guarded reducer-backed setter (mirror
-  // ref), which rules out the adjust-during-render form; fires at most once
-  // per user change via the ref gate, so no cascading renders.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (effectPrevUserRef.current === currentUserId) return;
-    effectPrevUserRef.current = currentUserId;
-    setIsGameSettingsModalOpen(false);
-    setIsGoalLogModalOpen(false);
-    setIsPlayerAssessmentModalOpen(false);
-    setIsGameStatsModalOpen(false);
-    setPlayerIdsForNewGame(null);
-    setSelectedPlayerForStats(null);
-    setClubStatsOpen(false);
-  }, [currentUserId, setIsGameStatsModalOpen]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
   // Roster modal setter (no anti-flash guard needed)
   // Rationale: Triggered from static buttons (ControlBar CTAs),
   // not from closing menus/overlays. Lower risk of click-through timing issues.
@@ -352,6 +327,51 @@ export const ModalProvider = ({ children, currentUserId }: {
       dispatchModal({ type: 'CLOSE_MODAL', id: 'seasonTournament' });
     }
   }, []);
+
+  // Deep-review Issue 5 (+ #681 review): NO modal open-state may survive a user
+  // change. A session expiring mid-modal, or signing out from an open modal,
+  // used to re-open that modal over the NEXT user's session (match-scope with an
+  // inverted back-stack, or a club-scope modal popping over Home after sign-in),
+  // and a stale prefill could seed a new game with another user's player ids.
+  // Declared after every guarded setter so the reset routes through them (no
+  // direct mirror-ref mutation - the compiler forbids writing a ref an effect
+  // also reads). Fires at most once per user change via the ref gate.
+  const effectPrevUserRef = useRef(currentUserId);
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (effectPrevUserRef.current === currentUserId) return;
+    effectPrevUserRef.current = currentUserId;
+    // Match-scope
+    setIsGameSettingsModalOpen(false);
+    setIsGoalLogModalOpen(false);
+    setIsPlayerAssessmentModalOpen(false);
+    setIsGameStatsModalOpen(false);
+    setPlayerIdsForNewGame(null);
+    setSelectedPlayerForStats(null);
+    setClubStatsOpen(false);
+    // Club-scope (the #681 gap): these stayed open across sign-out and popped
+    // back over Home on the next sign-in.
+    setIsSettingsModalOpen(false);
+    setIsRosterModalOpen(false);
+    setIsSeasonTournamentModalOpen(false);
+    setIsPersonnelManagerOpen(false);
+    setIsTeamManagerOpen(false);
+    setIsLoadGameModalOpen(false);
+    setIsNewGameSetupModalOpen(false);
+    setIsTrainingResourcesOpen(false);
+    setIsRulesDirectoryOpen(false);
+    setIsInstructionsModalOpen(false);
+  }, [
+    currentUserId,
+    setIsGameStatsModalOpen,
+    setClubStatsOpen,
+    setIsSettingsModalOpen,
+    setIsRosterModalOpen,
+    setIsSeasonTournamentModalOpen,
+    setIsLoadGameModalOpen,
+    setIsNewGameSetupModalOpen,
+  ]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const value: ModalContextValue = useMemo(() => ({
     isGameSettingsModalOpen,

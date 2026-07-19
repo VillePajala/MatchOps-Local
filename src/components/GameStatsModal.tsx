@@ -543,6 +543,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     const filteredGames: SavedGamesCollection = {};
     Object.entries(savedGames || {}).forEach(([id, game]) => {
       if (game.isPlayed === false) return;
+      // Friendlies are excluded from the competitive Overall read unless the
+      // coach opts them in - mirror overallTeamStats so assessment averages
+      // and performance stats agree.
+      if (game.isFriendly === true && !includeFriendlies) return;
       if (selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' && game.teamId !== selectedTeamIdFilter) return;
       if (selectedTeamIdFilter === 'legacy' && game.teamId) return;
       if (selectedGameTypeFilter !== 'all') {
@@ -557,7 +561,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       filteredGames[id] = game;
     });
     return calculateTeamAssessmentAverages(filteredGames);
-  }, [activeTab, savedGames, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, includeFriendlies, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Sorted goals for current game
   const sortedGoals = useMemo(() => {

@@ -103,6 +103,26 @@ describe('SeasonDetailsModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('cancels via hardware back (Android, where the header X is hidden)', async () => {
+    // The nested dialog registers with the hardware-back stack so Android's back
+    // button cancels IT, instead of falling through to the parent manager's
+    // sentinel and closing the whole manager (discarding the edit).
+    const { __resetModalHardwareBackForTests } = jest.requireActual('@/hooks/useModalHardwareBack');
+    __resetModalHardwareBackForTests();
+    const onClose = jest.fn();
+
+    await act(async () => {
+      renderWithProviders({ onClose });
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('allows editing season name', async () => {
     const user = userEvent.setup();
 

@@ -1448,16 +1448,42 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     }
   }, [view, handleBackToManager]);
 
+  // Transient overlays that sit ABOVE the current view (confirm dialogs, the
+  // substitution sheet, a plan row's actions menu). None registers a hardware
+  // back handler of its own, so without this a back would skip past the overlay
+  // - consuming the plan sub-guard and jumping to the manager (or closing the
+  // planner at manager level) while the overlay stays mounted, orphaned. A
+  // preemptive guard pushed while any overlay is open makes hardware back cancel
+  // the topmost overlay first, matching the Escape ladder. It stacks ABOVE the
+  // plan sub-guard (declared after it), so back cancels the overlay, then the
+  // next back steps the plan to the manager.
+  const plannerOverlayOpen =
+    deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null ||
+    trimConfirm !== null || showSuggestConfirm || showClearAllGamesConfirm ||
+    actionsMenuId !== null || subSheetTarget !== null;
+  const closePlannerOverlay = useCallback(() => {
+    if (deleteTarget !== null) { setDeleteTarget(null); return; }
+    if (removeTarget !== null) { setRemoveQueue((q) => q.slice(1)); return; }
+    if (bulkReapplyTarget !== null) { setBulkReapplyTarget(null); return; }
+    if (trimConfirm !== null) { setTrimConfirm(null); return; }
+    if (showSuggestConfirm) { setShowSuggestConfirm(false); return; }
+    if (showClearAllGamesConfirm) { setShowClearAllGamesConfirm(false); return; }
+    if (actionsMenuId !== null) { setActionsMenuId(null); return; }
+    if (subSheetTarget !== null) { setSubSheetTarget(null); return; }
+  }, [deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, actionsMenuId, subSheetTarget]);
+
   // Hardware back:
   //  - the BASE registration closes the planner (manager/loading -> close), the
   //    same single-level path every other modal uses;
+  //  - the OVERLAY guard cancels an open confirm/sheet/menu first;
   //  - the SUB-LEVEL guard steps a plan back to the manager WITHOUT closing.
-  // The sub-guard is a real history entry pushed PREEMPTIVELY on entering the
-  // sub-level, so a back consumes it directly and the base sentinel is never
-  // touched - no fragile re-arm-after-a-back (which was exiting the app on
-  // Android WebViews). back-in-plan -> manager, back-in-manager -> home.
+  // Each sub-guard is a real history entry pushed PREEMPTIVELY, so a back
+  // consumes it directly and the base sentinel is never touched - no fragile
+  // re-arm-after-a-back (which was exiting the app on Android WebViews).
+  // back-over-overlay -> cancel it, back-in-plan -> manager, back-in-manager -> home.
   useModalHardwareBack(isOpen, handleClose);
   useHardwareBackSubLevel(isOpen && atSubLevel, stepToManager);
+  useHardwareBackSubLevel(isOpen && plannerOverlayOpen, closePlannerOverlay);
 
   // The header X fully closes the planner from any view (like every other
   // modal - one-tap exit). Stepping a plan back to the manager is hardware/

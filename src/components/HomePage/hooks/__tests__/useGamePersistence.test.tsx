@@ -259,6 +259,45 @@ describe('useGamePersistence', () => {
       expect(params.resetHistory).toHaveBeenCalled();
     });
 
+    it('preserves isFriendly from the saved record (it is not carried in the session, so autosave must not drop it)', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        // The persisted record is a friendly; the live session state has no such
+        // field. A full-overwrite autosave must carry it through.
+        savedGames: { game123: { isFriendly: true } as unknown as AppState },
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true); // silent autosave
+      });
+
+      expect(saveGame).toHaveBeenCalledTimes(1);
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(
+        expect.objectContaining({ isFriendly: true }),
+      );
+    });
+
+    it('defaults isFriendly to false when the record has none', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: {} as unknown as AppState },
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(
+        expect.objectContaining({ isFriendly: false }),
+      );
+    });
+
     it('keeps the saved-games cache fresh via setQueryData, not invalidateQueries (no per-save refetch)', async () => {
       const params = createMockParams();
       const invalidateSpy = jest.spyOn(params.queryClient, 'invalidateQueries');
