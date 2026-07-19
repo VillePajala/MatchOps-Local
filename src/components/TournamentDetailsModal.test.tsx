@@ -80,6 +80,9 @@ const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
 describe('TournamentDetailsModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The modal now registers with the module-level hardware-back stack; reset
+    // it between tests so pushed sentinels/entries don't leak across cases.
+    jest.requireActual('@/hooks/useModalHardwareBack').__resetModalHardwareBackForTests();
   });
 
   it('renders tournament details when open', async () => {

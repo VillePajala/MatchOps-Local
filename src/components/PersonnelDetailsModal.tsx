@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Personnel, PersonnelRole } from '@/types/personnel';
 import logger from '@/utils/logger';
@@ -158,6 +159,11 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
   const handleCancel = () => {
     onClose();
   };
+
+  // Register with the hardware-back stack so Android's back button cancels THIS
+  // nested dialog rather than falling through to the parent manager's sentinel
+  // and closing the whole manager (discarding the coach's in-progress edit).
+  useModalHardwareBack(isOpen, handleCancel);
 
   if (!isOpen) {
     return null;

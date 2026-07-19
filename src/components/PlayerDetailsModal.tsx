@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary } from '@/styles/modalStyles';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import logger from '@/utils/logger';
@@ -112,6 +113,11 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const handleCancel = () => {
     onClose();
   };
+
+  // Register with the hardware-back stack so Android's back button cancels THIS
+  // nested dialog rather than falling through to the parent roster manager's
+  // sentinel and closing it (discarding the coach's in-progress add/edit).
+  useModalHardwareBack(isOpen, handleCancel);
 
   if (!isOpen) {
     return null;
