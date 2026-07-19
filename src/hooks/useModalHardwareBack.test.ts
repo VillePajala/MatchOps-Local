@@ -139,6 +139,29 @@ describe('useModalHardwareBack (single sentinel)', () => {
     a.unmount();
   });
 
+  it('nested dialog over a manager: back closes the dialog, the NEXT back reaches the manager (no re-arm)', async () => {
+    // Regression for the device bug: a nested dialog wired with the RE-ARM path
+    // (useModalHardwareBack) closed on back#1, but its setTimeout re-push failed
+    // on Android WebViews, so back#2 fell through and EXITED THE APP instead of
+    // closing the manager. A preemptive sub-guard leaves the manager sentinel
+    // untouched, so back#2 always reaches it.
+    const closeManager = jest.fn();
+    const closeDialog = jest.fn();
+    const manager = renderHook(({ open }) => useModalHardwareBack(open, closeManager), { initialProps: { open: true } });
+    const dialog = renderHook(({ active }) => useHardwareBackSubLevel(active, closeDialog), { initialProps: { active: true } });
+    expect(pushSpy).toHaveBeenCalledTimes(2); // manager sentinel + dialog sub-guard
+
+    await pop(); // back#1 -> dialog sub-guard
+    expect(closeDialog).toHaveBeenCalledTimes(1);
+    expect(closeManager).not.toHaveBeenCalled();
+    expect(pushSpy).toHaveBeenCalledTimes(2); // NO re-push - the root cause of the bug
+    dialog.rerender({ active: false }); // dialog closed as a result
+
+    await pop(); // back#2 -> manager sentinel, must NOT be lost
+    expect(closeManager).toHaveBeenCalledTimes(1);
+    manager.unmount();
+  });
+
   it('stacked sub-guards are consumed LIFO: overlay guard first, then plan guard, then close', async () => {
     // Models the planner with an overlay (confirm dialog / sub-sheet) open over
     // a plan: an overlay guard is pushed ABOVE the plan sub-guard. Hardware back
