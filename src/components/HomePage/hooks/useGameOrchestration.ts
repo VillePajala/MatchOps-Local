@@ -33,7 +33,7 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
 import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
 import { exportJson } from '@/utils/exportGames';
-import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { readTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
@@ -557,8 +557,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   } = timerManagement;
 
   // W4: the full-screen timer overlay behaves like a modal - hardware back
-  // must close IT, not exit the match underneath.
-  useModalHardwareBack(showLargeTimerOverlay, handleToggleLargeTimerOverlay);
+  // must close IT, not exit the match underneath. A PREEMPTIVE sub-guard so
+  // closing it does not re-arm the match sentinel (the setTimeout re-arm fails
+  // on Android WebViews, which then exited the app on the next back).
+  useHardwareBackSubLevel(showLargeTimerOverlay, handleToggleLargeTimerOverlay);
 
   // Merge goalie status from playersOnField into players for the PlayerBar.
   // When on DEFAULT_GAME_ID (no real game), show all availablePlayers so users can explore.

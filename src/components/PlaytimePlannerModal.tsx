@@ -34,7 +34,7 @@ import { getTournaments } from '@/utils/tournaments';
 import type { Team, Season, Tournament } from '@/types';
 import { PRESETS_BY_SIZE, FIELD_SIZES, getPresetById } from '@/config/formationPresets';
 import logger from '@/utils/logger';
-import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { generateId } from '@/utils/idGenerator';
 import {
   ModalContainer,
@@ -1476,12 +1476,16 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   //  - the BASE registration closes the planner (manager/loading -> close), the
   //    same single-level path every other modal uses;
   //  - the OVERLAY guard cancels an open confirm/sheet/menu first;
-  //  - the SUB-LEVEL guard steps a plan back to the manager WITHOUT closing.
-  // Each sub-guard is a real history entry pushed PREEMPTIVELY, so a back
-  // consumes it directly and the base sentinel is never touched - no fragile
-  // re-arm-after-a-back (which was exiting the app on Android WebViews).
-  // back-over-overlay -> cancel it, back-in-plan -> manager, back-in-manager -> home.
-  useModalHardwareBack(isOpen, handleClose);
+  //  - the SUB-LEVEL guard steps a plan back to the manager WITHOUT closing;
+  //  - the BASE guard closes the planner from the manager.
+  // ALL THREE are preemptive sub-guards (real history entries consumed directly
+  // on back). The planner owns no sentinel of its own: when opened over the
+  // match it leaves the match view's sentinel intact (so back after closing
+  // reaches Home), and when opened from club Home it is the only level. This
+  // avoids the fragile re-arm-after-a-back that exits the app on Android
+  // WebViews. back-over-overlay -> cancel, back-in-plan -> manager,
+  // back-in-manager -> close (-> match/Home under it).
+  useHardwareBackSubLevel(isOpen, handleClose);
   useHardwareBackSubLevel(isOpen && atSubLevel, stepToManager);
   useHardwareBackSubLevel(isOpen && plannerOverlayOpen, closePlannerOverlay);
 
