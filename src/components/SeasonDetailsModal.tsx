@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Season, GameType, Gender } from '@/types';
 import { UseMutationResult, useQuery } from '@tanstack/react-query';
@@ -243,6 +244,12 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const handleCancel = () => {
     onClose();
   };
+
+  // Register with the hardware-back stack so Android's back button (and the
+  // hidden-on-mobile header X's counterpart) cancels THIS nested dialog rather
+  // than falling through to the parent manager's sentinel and closing the whole
+  // manager (which would discard the coach's in-progress edit).
+  useModalHardwareBack(isOpen, handleCancel);
 
   if (!isOpen) {
     return null;

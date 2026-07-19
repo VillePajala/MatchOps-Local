@@ -155,3 +155,28 @@ test('sign-out closes the planner (L.3c - replaces the PLANNER_OPEN_KEY cleanup)
   rerender(<ModalProvider currentUserId={undefined}><PlannerProbe /></ModalProvider>);
   expect(screen.getByTestId('planner-state')).toHaveTextContent('closed');
 });
+
+test('a user change closes club-scope modals too (#681: Settings must not survive sign-out/in)', () => {
+  function SettingsProbe() {
+    const { isSettingsModalOpen, setIsSettingsModalOpen, isRosterModalOpen, setIsRosterModalOpen } = useModalContext();
+    return (
+      <>
+        <div data-testid="settings-state">{isSettingsModalOpen ? 'open' : 'closed'}</div>
+        <div data-testid="roster-state">{isRosterModalOpen ? 'open' : 'closed'}</div>
+        <button onClick={() => { setIsSettingsModalOpen(true); setIsRosterModalOpen(true); }}>open-club</button>
+      </>
+    );
+  }
+  const { rerender } = render(
+    <ModalProvider currentUserId="user-1"><SettingsProbe /></ModalProvider>,
+  );
+  fireEvent.click(screen.getByText('open-club'));
+  expect(screen.getByTestId('settings-state')).toHaveTextContent('open');
+  expect(screen.getByTestId('roster-state')).toHaveTextContent('open');
+
+  // Sign out then a different user signs in: club-scope modals must be closed,
+  // otherwise they pop back over Home on the next sign-in.
+  rerender(<ModalProvider currentUserId={undefined}><SettingsProbe /></ModalProvider>);
+  expect(screen.getByTestId('settings-state')).toHaveTextContent('closed');
+  expect(screen.getByTestId('roster-state')).toHaveTextContent('closed');
+});

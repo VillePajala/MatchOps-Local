@@ -23,6 +23,7 @@ export default function DeepLinkClubRouter({ action, onConsumed }: {
     setIsTeamManagerOpen,
     setIsPersonnelManagerOpen,
     setIsSeasonTournamentModalOpen,
+    setCompetitionManagerKind,
     setIsSettingsModalOpen,
     setIsTrainingResourcesOpen,
     setIsRulesDirectoryOpen,
@@ -53,6 +54,9 @@ export default function DeepLinkClubRouter({ action, onConsumed }: {
         setIsPersonnelManagerOpen(true);
         break;
       case 'season':
+        // Pin the kind so the manager opens on Seasons, not whatever kind was
+        // last left in module state (matches the StartScreen bridge).
+        setCompetitionManagerKind('season');
         setIsSeasonTournamentModalOpen(true);
         break;
       case 'settings':
@@ -79,6 +83,7 @@ export default function DeepLinkClubRouter({ action, onConsumed }: {
   }, [action, onConsumed, setIsNewGameSetupModalOpen, setPlayerIdsForNewGame,
       setIsLoadGameModalOpen, setIsRosterModalOpen, setIsTeamManagerOpen,
       setIsPersonnelManagerOpen, setIsSeasonTournamentModalOpen,
+      setCompetitionManagerKind,
       setIsSettingsModalOpen, setIsTrainingResourcesOpen,
       setIsRulesDirectoryOpen, openSettingsToTab, openClubStatsToTab]);
 

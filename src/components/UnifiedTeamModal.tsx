@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton, secondaryButtonStyle } from '@/styles/modalStyles';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Team, Player, Tournament, Season } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
@@ -502,6 +503,20 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const handleCancel = () => {
     onClose();
   };
+
+  // Hardware back mirrors the header X: from the roster-edit sub-mode it steps
+  // back to the team form (returning true keeps the modal open); otherwise it
+  // cancels the whole dialog. Without this, Android's back button would fall
+  // through to the parent manager's sentinel and close everything, discarding
+  // the team edit.
+  useModalHardwareBack(isOpen, () => {
+    if (isEditingRoster) {
+      setIsEditingRoster(false);
+      return true;
+    }
+    handleCancel();
+    return false;
+  });
 
   const isPending = addTeamMutation.isPending || updateTeamMutation.isPending || setTeamRosterMutation.isPending;
 

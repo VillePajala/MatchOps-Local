@@ -218,6 +218,11 @@ export function useGamePersistence({
 
       // Override/add additional fields not in gameSessionState
       isPlayed,
+      // isFriendly is game metadata, not part of the live session reducer, so a
+      // full-overwrite autosave would otherwise silently drop it. Preserve it
+      // from the persisted record - it is only ever set at creation or via the
+      // reclassify toggle, both of which update savedGames first.
+      isFriendly: savedGames[currentGameId ?? '']?.isFriendly ?? false,
       assessments: playerAssessments,
 
       // From fieldCoordination
@@ -235,6 +240,8 @@ export function useGamePersistence({
   }, [
     gameSessionState,
     isPlayed,
+    savedGames,
+    currentGameId,
     playerAssessments,
     fieldCoordination.playersOnField,
     fieldCoordination.opponents,
