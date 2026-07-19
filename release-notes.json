@@ -5,14 +5,14 @@
       "date": "2026-07-17",
       "en": [
         "A clearer two-level app: the Home screen is now your club hub (Games / Team / Competitions / Stats tabs plus the gear menu) and the field is a focused match view - opening rosters, seasons, stats, settings or the planner from Home no longer flashes the pitch behind them.",
-        "The match menu slimmed down to match-day essentials, and getting back home is one tap: a new Home button on the match control bar (the phone's back button does the same once all windows are closed).",
+        "The match menu slimmed down to match-day essentials, and getting back home is one tap from the menu (the phone's back button does the same once all windows are closed).",
         "Team stats and player stats open straight from Home without loading a game, and picking a game anywhere always opens it fresh and safe.",
         "Late arrival? Add a new player to your club roster right from the match's player picker - they join the club list and this game's selection in one go.",
         "Signing out is now available directly under the gear menu."
       ],
       "fi": [
         "Selkeämpi kaksitasoinen sovellus: kotinäkymä on nyt seurasi keskus (Pelit / Joukkue / Kaudet / Tilastot -välilehdet ja ratas-valikko) ja kenttä on oma ottelunäkymänsä - kokoonpanojen, kausien, tilastojen, asetusten tai suunnittelun avaaminen kotoa ei enää välähdytä kenttää taustalla.",
-        "Ottelun valikko keveni ottelupäivän olennaisiin, ja kotiin pääsee yhdellä napautuksella: uusi Koti-painike ottelun palkissa (puhelimen takaisin-painike toimii samoin, kun ikkunat on suljettu).",
+        "Ottelun valikko keveni ottelupäivän olennaisiin, ja kotiin pääsee yhdellä napautuksella valikosta (puhelimen takaisin-painike toimii samoin, kun ikkunat on suljettu).",
         "Joukkueen ja pelaajien tilastot avautuvat suoraan kotinäkymästä ilman pelin lataamista, ja pelin valinta avaa sen aina puhtaasti ja turvallisesti.",
         "Myöhästynyt pelaaja? Lisää uusi pelaaja seuran listaan suoraan ottelun pelaajavalinnasta - hän liittyy sekä seuran listaan että tämän pelin kokoonpanoon kerralla.",
         "Uloskirjautuminen löytyy nyt suoraan ratas-valikosta."
