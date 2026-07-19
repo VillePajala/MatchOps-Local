@@ -6,6 +6,8 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
+import type { HomeSummary } from '@/utils/homeSummary';
+import { HomeDashboard } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
@@ -54,6 +56,14 @@ interface StartScreenProps {
   isCloudAvailable?: boolean;
   /** Completion signals for the recommended full-setup workflow card. */
   setupProgress?: SetupProgress;
+  /** Home presentation: 'simple' launcher (default) or the info-rich dashboard. */
+  homeView?: 'simple' | 'dashboard';
+  /** Computed Pelit-tab dashboard data (resume, Vuosi record, recent games). */
+  homeSummary?: HomeSummary | null;
+  /** Gear-sheet toggle for the view above. */
+  onSetHomeView?: (view: 'simple' | 'dashboard') => void;
+  /** Recent-strip deep-link: open a specific saved game by id. */
+  onOpenGameById?: (id: string) => void;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
@@ -83,8 +93,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
   isFirstTimeUser = false,
   isCloudAvailable = false,
   setupProgress,
+  homeView = 'simple',
+  homeSummary,
+  onSetHomeView,
+  onOpenGameById,
 }) => {
   const { t } = useTranslation();
+  // Opt-in dashboard: only for a returning user who actually has games, so the
+  // first-run / empty state always gets the clean welcome hero.
+  const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
   const { user, mode } = useAuth();
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
   // HTML and the first client render produce identical markup. Reading i18n.language
@@ -218,19 +235,23 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : 'justify-start pt-[6vh]'}`}>
-          <div className="text-center mb-6">
-            {/* App Name as Logo */}
-            <div className="relative inline-block mb-3">
-              <h1 className="relative text-5xl sm:text-6xl font-bold tracking-tight">
+        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : dashboardOn ? 'justify-start pt-2' : 'justify-start pt-[6vh]'}`}>
+          <div className={`text-center ${dashboardOn ? 'mb-3' : 'mb-6'}`}>
+            {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
+                so the reclaimed hero space becomes the dashboard (the hero stays
+                full-size on first-run / empty state). */}
+            <div className={`relative inline-block ${dashboardOn ? '' : 'mb-3'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-2xl' : 'text-5xl sm:text-6xl'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
 
-            {/* Tagline */}
-            <p className="text-lg text-slate-400">
-              {t('startScreen.tagline', 'Plan · Track · Discover')}
-            </p>
+            {/* Tagline - only in the full-hero states */}
+            {!dashboardOn && (
+              <p className="text-lg text-slate-400">
+                {t('startScreen.tagline', 'Plan · Track · Discover')}
+              </p>
+            )}
           </div>
 
           {/* === HOME TABS (two-level restructure PR 1.2, strangler stage):
@@ -459,7 +480,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  entry rows. The Stats/Load grid buttons are gone: the tab bar
                  and the rows below cover both. */
               <>
-                {canResume && (
+                {dashboardOn && homeSummary ? (
+                  /* Opt-in dashboard: informative resume card + Vuosi record +
+                     recent strip, in place of the plain Continue button. */
+                  <HomeDashboard
+                    summary={homeSummary}
+                    onResume={onResumeGame}
+                    onOpenVuosi={() => (onViewStatsTab ?? (() => onViewStats()))('overall')}
+                    onOpenGame={onOpenGameById}
+                    t={t}
+                  />
+                ) : canResume ? (
                   <button
                     type="button"
                     onClick={onResumeGame}
@@ -467,7 +498,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   >
                     {t('startScreen.resumeCard', 'Continue')}
                   </button>
-                )}
+                ) : null}
                 <button
                   type="button"
                   onClick={onNewGame ?? onGetStarted}
@@ -546,6 +577,21 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
             <h4 className="text-base font-semibold text-slate-100 mb-3">{t('startScreen.gearTitle', 'App & account')}</h4>
             <div className="space-y-1.5">
+              {/* Home view toggle - keeps the sheet open so the switch is
+                  visibly reactive; the Home body updates behind it. */}
+              {onSetHomeView && (
+                <button
+                  type="button"
+                  onClick={() => onSetHomeView(homeView === 'dashboard' ? 'simple' : 'dashboard')}
+                  aria-pressed={homeView === 'dashboard'}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                >
+                  <span>{t('startScreen.gearDashboardView', 'Dashboard home')}</span>
+                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'dashboard' ? 'bg-indigo-500' : 'bg-slate-600'}`} aria-hidden="true">
+                    <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'dashboard' ? 'translate-x-5' : ''}`} />
+                  </span>
+                </button>
+              )}
               <button type="button" onClick={() => { setShowGearSheet(false); onOpenSettings(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
                 {t('startScreen.appSettings', 'Settings')}
               </button>

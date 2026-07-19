@@ -25,7 +25,8 @@ import { usePremium } from '@/hooks/usePremium';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
-import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
@@ -94,6 +95,9 @@ export default function Home() {
   const [hasCompetition, setHasCompetition] = useState(false);
   const [hasTeam, setHasTeam] = useState(false);
   const [hasTeamLinkedGame, setHasTeamLinkedGame] = useState(false);
+  // Home dashboard (opt-in): the view preference + the computed Pelit-tab summary.
+  const [homeSummary, setHomeSummary] = useState<HomeSummary | null>(null);
+  const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('simple');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
@@ -138,6 +142,17 @@ export default function Home() {
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
+
+  // Toggle the Home view (gear sheet). Optimistic: flip immediately, persist
+  // in the background so the switch feels instant.
+  const handleSetHomeView = useCallback(async (view: 'simple' | 'dashboard') => {
+    setHomeView(view);
+    try {
+      await updateAppSettings({ homeView: view }, userId);
+    } catch (err) {
+      logger.warn('Failed to persist home view preference', { error: err });
+    }
+  }, [userId]);
 
   // Play Store context: cloud mode is required, local-mode entry points are hidden.
   // Computed once on mount — both checks are environment-stable and never change at runtime.
@@ -267,6 +282,24 @@ export default function Home() {
       // game - counting it enabled stats rows and flipped first-time mode
       // on a phantom.
       setHasSavedGames(Object.keys(games).filter(id => id !== 'unsaved_game').length > 0);
+
+      // Home view preference + dashboard summary (opt-in Pelit-tab dashboard).
+      // Both derive from settings + the games we just fetched; recomputed on
+      // every Home re-entry via the checkAppState re-run, so it stays fresh.
+      try {
+        const homeSettings = await getAppSettings(userId);
+        setHomeView(homeSettings.homeView === 'dashboard' ? 'dashboard' : 'simple');
+        const today = new Date().toISOString().slice(0, 10);
+        setHomeSummary(buildHomeSummary(games, {
+          today,
+          clubSeasonStartDate: homeSettings.clubSeasonStartDate,
+          clubSeasonEndDate: homeSettings.clubSeasonEndDate,
+          hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
+          currentGameId: lastId,
+        }));
+      } catch (summaryErr) {
+        logger.warn('Failed to build home summary', { error: summaryErr });
+      }
 
       // Check if user has any players in roster
       // CRITICAL: Pass userId for user-scoped storage (cloud mode)
@@ -1276,6 +1309,18 @@ export default function Home() {
     setMatchInstance((n) => n + 1);
     setScreen('home');
   }, [setAction, setScreen]);
+
+  // Open a specific game (Home dashboard recent strip). Same level-crossing as
+  // the Load Game modal: persist the id first, then freshly mount the match,
+  // whose boot loads the persisted current game.
+  const handleOpenGameById = useCallback(async (id: string) => {
+    try {
+      await utilSaveCurrentGameIdSetting(id, userId);
+    } catch (err) {
+      logger.warn('Failed to persist current game id before opening', { error: err });
+    }
+    enterMatch();
+  }, [userId, enterMatch]);
   // A live match whose game was just deleted must remount (its boot falls
   // back to the persisted next-latest game); on the start screen this is a
   // no-op - deleting from Home must not navigate.
@@ -1445,6 +1490,10 @@ export default function Home() {
               onShowWelcome={() => setShowWelcome(true)}
               onSignOut={signOut}
               isCloudAvailable={isCloudAvailable()}
+              homeView={homeView}
+              homeSummary={homeSummary}
+              onSetHomeView={handleSetHomeView}
+              onOpenGameById={handleOpenGameById}
             />
           </ErrorBoundary>
         ) : (
