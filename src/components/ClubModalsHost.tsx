@@ -198,8 +198,14 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   };
 
   // Hardware-back contract (modal governance): back closes the topmost modal.
-  useModalHardwareBack(isTrainingResourcesOpen, () => setIsTrainingResourcesOpen(false));
-  useModalHardwareBack(isRulesDirectoryOpen, () => setIsRulesDirectoryOpen(false));
+  // Training, Rules and Club stats can be opened from the MATCH menu, so they
+  // stack ON TOP of the match view's Home sentinel (page.tsx: screen==='home').
+  // They must be PREEMPTIVE sub-guards so back#1 closes them without re-arming
+  // the sentinel below (the setTimeout re-arm fails on Android WebViews, which
+  // made back#2 exit the app). As sub-guards they also work when opened from
+  // club Home (single level - back closes them, then back exits at the root).
+  useHardwareBackSubLevel(isTrainingResourcesOpen, () => setIsTrainingResourcesOpen(false));
+  useHardwareBackSubLevel(isRulesDirectoryOpen, () => setIsRulesDirectoryOpen(false));
   useModalHardwareBack(isInstructionsModalOpen, () => setIsInstructionsModalOpen(false));
   useModalHardwareBack(isSettingsModalOpen, () => setIsSettingsModalOpen(false));
   useModalHardwareBack(isSeasonTournamentModalOpen, () => setIsSeasonTournamentModalOpen(false));
@@ -210,7 +216,9 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useModalHardwareBack(isNewGameSetupModalOpen, handleCloseNewGameSetup);
   // Planner hardware-back is owned by PlaytimePlannerModal itself (one
   // branching entry: plan->manager->close). Not registered here.
-  useModalHardwareBack(isClubStatsOpen, handleCloseClubStats);
+  // Club stats ("Joukkueen tilastot") opens over the match from the match menu -
+  // preemptive sub-guard so back#1 closes it and back#2 reaches Home (see above).
+  useHardwareBackSubLevel(isClubStatsOpen, handleCloseClubStats);
   // The hard-reset confirm stacks ON TOP of Settings. A PREEMPTIVE sub-guard
   // (not useModalHardwareBack): back#1 dismisses the confirm and leaves the
   // Settings sentinel intact, so back#2 closes Settings. useModalHardwareBack

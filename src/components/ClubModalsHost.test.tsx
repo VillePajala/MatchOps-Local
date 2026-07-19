@@ -515,28 +515,33 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     expect(screen.queryByTestId('training-modal')).not.toBeInTheDocument();
   });
 
-  it('closing a NON-topmost modal via its own UI leaves the topmost open', async () => {
+  it('closing the topmost sub-guard modal via UI retires its own entry; the one under it stays until back', async () => {
+    // Training / Rules / Club stats can be opened over the MATCH view, so they
+    // register as PREEMPTIVE sub-guards (each owns its own history entry) rather
+    // than sharing the sentinel. Realistic stacking is LIFO (the visible/top
+    // modal is the one you can close), so open Rules first, Training on top.
     renderHost();
-    fireEvent.click(screen.getByText('open-training'));
-    await waitFor(() => expect(screen.getByTestId('training-modal')).toBeInTheDocument());
     fireEvent.click(screen.getByText('open-rules'));
     await waitFor(() => expect(screen.getByTestId('rules-modal')).toBeInTheDocument());
-    // Close the one UNDER the top (training opened first).
+    fireEvent.click(screen.getByText('open-training'));
+    await waitFor(() => expect(screen.getByTestId('training-modal')).toBeInTheDocument());
+    // Close the TOPMOST (training) via UI - it retires exactly its own entry
+    // with one suppressed back(); Rules under it stays open.
     fireEvent.click(screen.getByText('close-training'));
     await waitFor(() => expect(screen.queryByTestId('training-modal')).not.toBeInTheDocument());
     expect(screen.getByTestId('rules-modal')).toBeInTheDocument();
-    // Single-sentinel invariant (W7/W9): NO history operation while other
-    // surfaces remain open - back()/pushState never interleave, so the
-    // entry count cannot drift on Android WebViews.
-    expect(backSpy).not.toHaveBeenCalled();
-    // The next real back press closes the remaining modal.
+    expect(backSpy).toHaveBeenCalledTimes(1);
+    // That programmatic back's popstate is swallowed (a real WebView fires it;
+    // here history.back is mocked, so dispatch it manually) - closes nothing.
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    expect(screen.getByTestId('rules-modal')).toBeInTheDocument();
+    // The next real back closes the remaining modal via its own sub-guard.
     act(() => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     await waitFor(() => expect(screen.queryByTestId('rules-modal')).not.toBeInTheDocument());
-    // The sentinel is consumed only when the LAST surface closes - here by
-    // the hardware back itself, so no programmatic back() at all.
-    expect(backSpy).not.toHaveBeenCalled();
   });
 
   it('renders the resetting overlay when a reset is in progress (L.0b)', () => {
