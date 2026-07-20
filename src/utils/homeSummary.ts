@@ -145,13 +145,16 @@ export function buildHomeSummary(
     const seasonGames = ids.map((id) => all[id]).filter(Boolean) as AppState[];
     vuosi = { label, ...computeTeamRecord(seasonGames) };
 
-    // Top scorer over the same season set: tally goal events by scorer, map to a
-    // roster name. Ties break by first-seen (stable), which is fine for a hint.
+    // Top scorer over the same season set: tally goal events by scorer, but ONLY
+    // for scorers that resolve to a current roster player - so the tile can never
+    // show a blank name for a since-removed player (matches useGameStats, which
+    // also excludes unmatched scorer ids). Ties break by first-seen (stable).
     if (opts.roster && opts.roster.length > 0) {
+      const nameById = new Map(opts.roster.map((p) => [p.id, p.nickname || p.name || '']));
       const goalsById = new Map<string, number>();
       for (const g of seasonGames) {
         for (const ev of g.gameEvents ?? []) {
-          if (ev.type === 'goal' && ev.scorerId) {
+          if (ev.type === 'goal' && ev.scorerId && nameById.has(ev.scorerId)) {
             goalsById.set(ev.scorerId, (goalsById.get(ev.scorerId) ?? 0) + 1);
           }
         }
@@ -162,8 +165,8 @@ export function buildHomeSummary(
         if (n > bestGoals) { bestGoals = n; bestId = id; }
       }
       if (bestId && bestGoals > 0) {
-        const player = opts.roster.find((p) => p.id === bestId);
-        topScorer = { name: player?.nickname || player?.name || '', goals: bestGoals };
+        const name = nameById.get(bestId) || '';
+        if (name) topScorer = { name, goals: bestGoals };
       }
     }
   }

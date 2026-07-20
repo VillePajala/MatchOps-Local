@@ -34,7 +34,7 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import { getTeams } from '@/utils/teams';
-import { getPersonnelCollection } from '@/utils/personnelManager';
+import { getAllPersonnel } from '@/utils/personnelManager';
 import { runMigration } from '@/utils/migration';
 import {
   hasMigrationCompleted,
@@ -328,13 +328,16 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
-      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId), getPersonnelCollection(userId)])
+      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId)])
         .then(([seasonsList, tournamentsList, teamsList, personnel]) => {
           setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
           setHasTeam(teamsList.length > 0);
           // Enrich the dashboard summary with entity counts + top scorer (for the
           // Joukkue/Kilpailut/Tilastot tabs). Rebuilt with the same inputs as the
           // fast Pelit build above, plus the entity data now available.
+          // Closes over roster/resolvedCurrentId/today/homeSettings from THIS
+          // checkAppState call; single-tab usage means no interleave race in
+          // practice (a stale enrichment would at worst show counts a beat old).
           if (homeSettings) {
             setHomeSummary(buildHomeSummary(games, {
               today,
@@ -344,7 +347,7 @@ export default function Home() {
               currentGameId: resolvedCurrentId,
               roster,
               teamsCount: teamsList.length,
-              personnelCount: Object.keys(personnel).length,
+              personnelCount: personnel.length,
               seasonsCount: seasonsList.length,
               tournamentsCount: tournamentsList.length,
             }));

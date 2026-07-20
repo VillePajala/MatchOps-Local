@@ -121,6 +121,19 @@ describe('buildHomeSummary — counts + top scorer (phase 2)', () => {
     expect(topScorer).toEqual({ name: 'Aho', goals: 2 });
   });
 
+  it('excludes goals from scorers not in the current roster (no blank-name tile)', () => {
+    const games: SavedGamesCollection = {
+      m1: g({ gameDate: '2024-03-01', gameEvents: [
+        { id: 'e1', type: 'goal', time: 1, scorerId: 'removed' }, // player since deleted
+        { id: 'e2', type: 'goal', time: 2, scorerId: 'removed' },
+        { id: 'e3', type: 'goal', time: 3, scorerId: 'p1' },
+      ] } as Partial<AppState>),
+    };
+    const { topScorer } = buildHomeSummary(games, { ...opts, roster: [{ id: 'p1', name: 'Aho' }] as never });
+    // "removed" has more goals but isn't on the roster - the resolvable p1 wins.
+    expect(topScorer).toEqual({ name: 'Aho', goals: 1 });
+  });
+
   it('top scorer is null without a roster or without season config', () => {
     const games: SavedGamesCollection = {
       m1: g({ gameDate: '2024-03-01', gameEvents: [{ id: 'e1', type: 'goal', time: 1, scorerId: 'p1' }] } as Partial<AppState>),

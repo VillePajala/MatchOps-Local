@@ -433,7 +433,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeSeasonCard
                     vuosi={homeSummary.vuosi}
                     counts={homeSummary.counts}
-                    onOpen={onViewStatsTab ? () => onViewStatsTab('season') : onViewStats}
+                    onOpen={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
                     t={t}
                   />
                 )}
