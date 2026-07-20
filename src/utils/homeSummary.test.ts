@@ -100,6 +100,14 @@ describe('buildHomeSummary — counts + top scorer (phase 2)', () => {
     expect(buildHomeSummary({ a: g() }, opts).counts).toEqual({ players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 });
   });
 
+  it('countsReady is false in the fast build (no roster) and true once enriched', () => {
+    // Drives the empty-state no-flash guard: hints only render once real counts
+    // are loaded, so an existing user never sees "add your players" mid-load.
+    expect(buildHomeSummary({ a: g() }, opts).countsReady).toBe(false);
+    // Roster supplied (even empty) marks the enriched build - counts are real.
+    expect(buildHomeSummary({ a: g() }, { ...opts, roster: [] as never }).countsReady).toBe(true);
+  });
+
   it('picks the top scorer of the current club season (nickname preferred)', () => {
     const games: SavedGamesCollection = {
       m1: g({ gameDate: '2024-03-01', gameEvents: [

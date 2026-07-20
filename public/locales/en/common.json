@@ -1149,7 +1149,11 @@
     "statsSeason": "Season stats",
     "statsTournament": "Tournament stats",
     "statsOverall": "Overall stats",
-    "statsPlayer": "Player stats"
+    "statsPlayer": "Player stats",
+    "emptyTeam": "Start by adding your players.",
+    "emptyCompetitions": "Create a season or tournament to group your games.",
+    "emptyStats": "Statistics appear once you've played games.",
+    "gearGuide": "How it works"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -1175,14 +1179,12 @@
     "createRealGame": "Create Game"
   },
   "firstGameGuide": {
-    "title": "Welcome to Your First Game!",
-    "subtitle": "Let's quickly go over the basics",
     "playerSelection": "Player Selection (Top Bar)",
     "tapToSelect": "Tap player disc to select",
     "tapFieldPlace": "Tap field to place player",
     "dragToAdjust": "Drag players to reposition them",
     "doubleTapRemove": "Double-tap to remove a player from the field",
-    "goalieInstructions": "Set goalies via Menu → Roster",
+    "goalieInstructions": "Set goalies by tapping a player disc in the top bar",
     "controlBar": "Control Bar (Bottom)",
     "tacticsButtonTip": "Click Tactics Board to access drawing tools:",
     "placeAllTip": "Place all players at once:",
@@ -1197,23 +1199,9 @@
     "drawLinesTip": "Draw lines and arrows with your finger",
     "clearDrawingsTip": "Clear drawings:",
     "closeToolsTip": "Exit tools:",
-    "menuActions": "Menu Actions",
-    "menuActionsNote": "Click the Menu button to access:",
-    "gameManagement": "Using the menu",
-    "otherFeatures": "Other Features",
-    "otherFeaturesNote": "Also available from the Menu:",
-    "quickSaveTip": "Quick save your game (Ctrl/Cmd+S)",
-    "goalLogTip": "Log goals and events",
-    "rosterManageTip": "Manage player list",
     "gameSettingsTip": "Edit match details",
-    "statsReportsTip": "View stats and download reports",
-    "seasonsTeamsTip": "Manage seasons, teams, and personnel",
-    "helpTip": "Get help and instructions",
-    "appSettingsTip": "Access app settings",
-    "gotIt": "Got it, let's start!",
-    "needHelp": "Need more help?",
     "assessPlayersTip": "Assess players and view match stats",
-    "backHomeTip": "Return to the Home screen (Koti)"
+    "backHomeTip": "Return to the Home screen (Koti) — the phone back button does the same"
   },
   "seasonTournamentModal": {
     "confirmDelete": "Are you sure you want to delete {{name}}?",
@@ -3365,5 +3353,16 @@
     "conflicts": {
       "row": "{{player}} is in {{a}} and {{b}} at the same time ({{from}}'-{{to}}')"
     }
+  },
+  "appGuide": {
+    "homeTitle": "Home — your club hub",
+    "homeIntro": "The Home screen has four tabs plus the gear menu. Everything about your club lives here; a match opens on its own field.",
+    "homeGamesTab": "Games: start a new match, continue where you left off, open saved games and the match planner.",
+    "homeTeamTab": "Team: your players, teams, staff, and the warmup plan.",
+    "homeCompetitionsTab": "Competitions: set up seasons and tournaments to group your games.",
+    "homeStatsTab": "Stats: season, tournament, overall and player statistics.",
+    "homeGear": "The gear icon (top-left): settings, backups, your account, and this guide.",
+    "matchMenuTitle": "The match menu",
+    "matchMenuNote": "While in a match, the menu holds match-day actions:"
   }
 }

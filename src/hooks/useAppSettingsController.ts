@@ -18,7 +18,6 @@ import { exportFullBackup, trySharePrewarmedBackup } from '@/utils/fullBackup';
 import {
   resetAppSettings as utilResetAppSettings,
   resetUserAppSettings as utilResetUserAppSettings,
-  saveHasSeenAppGuide,
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
 } from '@/utils/appSettings';
@@ -43,7 +42,6 @@ export interface UseAppSettingsControllerReturn {
   handleFactoryReset: () => Promise<void>;
   handleCreateBackup: () => void;
   handleCloudDataDownload: () => Promise<void>;
-  handleShowAppGuide: () => void;
 }
 
 export function useAppSettingsController(): UseAppSettingsControllerReturn {
@@ -51,8 +49,6 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
   const { showToast } = useToast();
   const { userId } = useDataStore();
   const {
-    setIsSettingsModalOpen,
-    setIsInstructionsModalOpen,
     isAppResetting: isResetting,
     setIsAppResetting: setIsResetting,
   } = useModalContext();
@@ -96,12 +92,6 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
     const { exportCloudDataDownload } = await import('@/utils/fullBackup');
     await exportCloudDataDownload(showToast);
   }, [showToast]);
-
-  const handleShowAppGuide = useCallback(() => {
-    saveHasSeenAppGuide(false);
-    setIsSettingsModalOpen(false);
-    setIsInstructionsModalOpen(true);
-  }, [setIsSettingsModalOpen, setIsInstructionsModalOpen]);
 
   const handleHardResetApp = useCallback(() => {
     setShowHardResetConfirm(true);
@@ -237,7 +227,6 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
     handleFactoryReset,
     handleCreateBackup,
     handleCloudDataDownload,
-    handleShowAppGuide,
   };
 }
 

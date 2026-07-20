@@ -64,6 +64,9 @@ export interface HomeSummary {
   recent: HomeRecentGame[];
   /** Entity counts (0 when the source collection wasn't provided). */
   counts: HomeCounts;
+  /** True once the entity data has been supplied (the enriched build), so the
+      UI can tell "0 because empty" from "0 because not loaded yet". */
+  countsReady: boolean;
   /** Top scorer of the current club season - null when none / no season config. */
   topScorer: HomeTopScorer | null;
 }
@@ -198,5 +201,9 @@ export function buildHomeSummary(
     tournaments: opts.tournamentsCount ?? 0,
   };
 
-  return { resume, vuosi, recent, counts, topScorer };
+  // The enrichment pass always supplies roster + all counts together, so the
+  // presence of `roster` marks the counts as loaded (vs the fast Pelit build).
+  const countsReady = opts.roster !== undefined;
+
+  return { resume, vuosi, recent, counts, countsReady, topScorer };
 }

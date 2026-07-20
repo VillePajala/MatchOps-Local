@@ -20,7 +20,6 @@ jest.mock('@/hooks/useDataStore', () => ({
 jest.mock('@/utils/appSettings', () => ({
   resetAppSettings: jest.fn().mockResolvedValue(undefined),
   resetUserAppSettings: jest.fn().mockResolvedValue(undefined),
-  saveHasSeenAppGuide: jest.fn(),
   getLastHomeTeamName: jest.fn().mockResolvedValue('FC Persisted'),
   updateAppSettings: jest.fn().mockResolvedValue(undefined),
 }));
@@ -50,7 +49,6 @@ jest.mock('@/utils/logger', () => {
 });
 
 import {
-  saveHasSeenAppGuide,
   getLastHomeTeamName,
   resetAppSettings,
   resetUserAppSettings,
@@ -92,17 +90,6 @@ describe('useAppSettingsController (L.0b)', () => {
     expect(result.current.controller.showHardResetConfirm).toBe(false);
   });
 
-  it('show app guide closes Settings and opens Instructions (chain survives the lift)', async () => {
-    const { result } = await renderHarness();
-    act(() => result.current.modal.setIsSettingsModalOpen(true));
-    expect(result.current.modal.isSettingsModalOpen).toBe(true);
-
-    act(() => result.current.controller.handleShowAppGuide());
-
-    expect(saveHasSeenAppGuide).toHaveBeenCalledWith(false);
-    expect(result.current.modal.isSettingsModalOpen).toBe(false);
-    expect(result.current.modal.isInstructionsModalOpen).toBe(true);
-  });
 
   it('loads the persisted default team name for the current user', async () => {
     const { result } = await renderHarness();
