@@ -250,7 +250,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(1.85rem,8vw,2.75rem)]' : 'text-[clamp(3rem,13vw,4.75rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(2.1rem,9.5vw,3.25rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
