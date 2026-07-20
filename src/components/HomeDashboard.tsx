@@ -18,13 +18,13 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
     <button
       type="button"
       onClick={onResume}
-      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 transition-all"
+      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 transition-all"
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-base font-extrabold truncate">{resume.opponent || t('startScreen.dashResumeGame', 'Game')}</span>
-        <span className="text-2xl font-black tabular-nums leading-none">{resume.ourScore}–{resume.theirScore}</span>
+        <span className="text-xl font-black tabular-nums leading-none">{resume.ourScore}–{resume.theirScore}</span>
       </div>
-      <div className="flex items-center justify-between mt-1.5 text-xs font-bold">
+      <div className="flex items-center justify-between mt-1 text-xs font-bold">
         <span className="opacity-80">
           {resume.isPlayed
             ? t(resume.homeOrAway === 'home' ? 'startScreen.dashHome' : 'startScreen.dashAway', resume.homeOrAway === 'home' ? 'Home' : 'Away')
@@ -68,11 +68,11 @@ function RecentCard({ game, onOpen }: { game: HomeRecentGame; onOpen?: (id: stri
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className="flex-shrink-0 w-[116px] text-left p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700/70 transition-all"
+      className="flex-shrink-0 w-[108px] text-left px-2.5 py-2 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700/70 transition-all"
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
-      <div className={`text-sm font-black tabular-nums mt-0.5 ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
-      <div className="text-[10px] text-slate-500 mt-0.5 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
+      <div className={`text-sm font-black tabular-nums ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>
+      <div className="text-[10px] text-slate-500 tabular-nums">{game.date?.slice(5).replace('-', '.')}</div>
     </button>
   );
 }

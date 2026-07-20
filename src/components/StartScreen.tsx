@@ -240,7 +240,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
         <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : dashboardOn ? 'justify-start pt-2' : 'justify-start pt-[6vh]'}`}>
-          <div className={`text-center ${dashboardOn ? 'mb-3' : 'mb-6'}`}>
+          <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-6'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
@@ -262,7 +262,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               Pelit is this page; the other tabs OPEN THE EXISTING MODALS
               unchanged. Phase 2 dissolves the modals into real tab content. === */}
           {!isFirstTimeUser && (
-            <div className="max-w-sm mx-auto w-full mb-5" role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
+            <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-3' : 'mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
               <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
                 <button
                   type="button"
