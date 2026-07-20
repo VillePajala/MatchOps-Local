@@ -181,24 +181,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
           stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
       <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 py-8 pb-safe">
 
-        {/* === TOP: Welcome Link + Language Switcher === */}
+        {/* === TOP: gear (upper-left) + language switcher (upper-right) ===
+            Split to opposite corners (owner feedback: the gear looked cramped
+            next to the language pill); frees the hero for a slightly larger logo. */}
         <div className="flex justify-between items-center mb-4">
-          {/* Welcome screen link - local mode only */}
-          {!isCloudMode && onShowWelcome ? (
-            <button
-              type="button"
-              onClick={onShowWelcome}
-              className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              {t('startScreen.welcomeScreen', 'Welcome')}
-            </button>
-          ) : (
-            <div />
-          )}
-
+          {/* Upper-left: Settings gear, plus the Welcome back-link (local mode). */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -211,6 +198,21 @@ const StartScreen: React.FC<StartScreenProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </button>
+            {!isCloudMode && onShowWelcome && (
+              <button
+                type="button"
+                onClick={onShowWelcome}
+                className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                {t('startScreen.welcomeScreen', 'Welcome')}
+              </button>
+            )}
+          </div>
+
+          {/* Upper-right: language switcher (alone now). */}
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setLanguage('en')}
@@ -233,7 +235,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
               FI
             </button>
           </div>
-          </div>
         </div>
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
@@ -244,7 +245,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
             <div className={`relative inline-block ${dashboardOn ? '' : 'mb-3'}`}>
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-2xl' : 'text-5xl sm:text-6xl'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-2xl' : 'text-6xl sm:text-7xl'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>

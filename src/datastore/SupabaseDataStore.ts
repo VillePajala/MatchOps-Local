@@ -2778,6 +2778,7 @@ export class SupabaseDataStore implements DataStore {
       clubSeasonStartDate: row.club_season_start_date ?? DEFAULT_APP_SETTINGS.clubSeasonStartDate,
       clubSeasonEndDate: row.club_season_end_date ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate,
       isDrawingModeEnabled: row.is_drawing_mode_enabled ?? false,
+      homeView: row.home_view === 'dashboard' ? 'dashboard' : 'simple',
       // Carry the row's updated_at through so settings conflict resolution has a
       // real timestamp to compare (without it, settings always resolved local-wins).
       updatedAt: row.updated_at ?? undefined,
@@ -2796,6 +2797,7 @@ export class SupabaseDataStore implements DataStore {
       club_season_start_date: settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE,
       club_season_end_date: settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE,
       is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
+      home_view: settings.homeView ?? null,
       updated_at: new Date().toISOString(),
     };
   }

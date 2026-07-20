@@ -2407,6 +2407,7 @@ describe('SupabaseDataStore', () => {
           club_season_start_date: '2024-08-01',
           club_season_end_date: '2025-07-31',
           is_drawing_mode_enabled: true,
+          home_view: 'dashboard',
           updated_at: '2024-01-01T00:00:00.000Z',
         };
 
@@ -2421,6 +2422,9 @@ describe('SupabaseDataStore', () => {
         expect(settings.hasSeenAppGuide).toBe(true);
         expect(settings.currentGameId).toBe('game_123');
         expect(settings.isDrawingModeEnabled).toBe(true);
+        // home_view must round-trip (cloud mode previously dropped it, so the
+        // dashboard toggle never persisted).
+        expect(settings.homeView).toBe('dashboard');
         // updated_at must be carried through so settings conflict resolution has a
         // real timestamp to compare (otherwise it always resolved local-wins).
         expect(settings.updatedAt).toBe('2024-01-01T00:00:00.000Z');
@@ -2451,6 +2455,8 @@ describe('SupabaseDataStore', () => {
 
         // Verify drawing mode is properly read from database
         expect(settings.isDrawingModeEnabled).toBe(true);
+        // A row with no home_view (legacy row) reads as the simple launcher.
+        expect(settings.homeView).toBe('simple');
       });
 
       it('should default isDrawingModeEnabled to false when not set', async () => {
