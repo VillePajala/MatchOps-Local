@@ -8,12 +8,12 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team, Personnel, PlayerStatAdjustment } from '@/types';
-import { GameEvent, SavedGamesCollection } from '@/types';
+import { GameEvent, SavedGamesCollection, AppState } from '@/types';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally } from '@/utils/shootout';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
-import { resolveGameResult } from '@/utils/gameResult';
+import { computeTeamRecord } from '@/utils/teamRecord';
 import { getTeams as utilGetTeams } from '@/utils/teams';
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
@@ -501,37 +501,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       includeFriendlies,
     });
 
-    let gamesPlayed = 0, wins = 0, losses = 0, ties = 0, goalsFor = 0, goalsAgainst = 0;
-
-    scopedGameIds.forEach(gameId => {
-      const game = savedGames?.[gameId];
-      if (!game) return;
-
-      gamesPlayed++;
-      const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-      const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-
-      goalsFor += ourScore;
-      goalsAgainst += theirScore;
-
-      // W/L/D via the shared resolver (shootout-aware); goalsFor/Against stay raw.
-      const result = resolveGameResult(game);
-      if (result === 'W') wins++;
-      else if (result === 'L') losses++;
-      else ties++;
-    });
+    // Shared tally (also used by the Home Vuosi bar) so the two never drift.
+    const scopedGames = scopedGameIds
+      .map(id => savedGames?.[id])
+      .filter(Boolean) as AppState[];
+    const rec = computeTeamRecord(scopedGames);
 
     return {
-      gamesPlayed,
-      wins,
-      losses,
-      ties,
-      goalsFor,
-      goalsAgainst,
-      goalDifference: goalsFor - goalsAgainst,
-      winPercentage: gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0,
-      averageGoalsFor: gamesPlayed > 0 ? goalsFor / gamesPlayed : 0,
-      averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
+      ...rec,
+      winPercentage: rec.gamesPlayed > 0 ? (rec.wins / rec.gamesPlayed) * 100 : 0,
+      averageGoalsFor: rec.gamesPlayed > 0 ? rec.goalsFor / rec.gamesPlayed : 0,
+      averageGoalsAgainst: rec.gamesPlayed > 0 ? rec.goalsAgainst / rec.gamesPlayed : 0,
     };
   }, [activeTab, includeFriendlies, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 

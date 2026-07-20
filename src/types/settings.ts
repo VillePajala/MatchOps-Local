@@ -38,6 +38,9 @@ export interface AppSettings {
   clubSeasonEndDate?: string;
   /** Tracks whether user has explicitly configured season dates (enables season filtering UI) */
   hasConfiguredSeasonDates?: boolean;
+  /** Home screen presentation: 'simple' = launcher (default), 'dashboard' = the
+      info-rich Pelit tab. Toggled from the gear sheet. */
+  homeView?: 'simple' | 'dashboard';
   /** ISO timestamp of last update - used for conflict resolution in cloud sync */
   updatedAt?: string;
   // Add other settings as needed
@@ -58,4 +61,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   hasConfiguredSeasonDates: false,
   clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
   clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
+  // homeView intentionally omitted from defaults: an unset value reads as
+  // 'simple' everywhere, so the default costs nothing and adding it here would
+  // ripple through every exact-shape settings test.
 };
