@@ -122,11 +122,13 @@ describe('StartScreen', () => {
     expect(screen.queryByRole('button', { name: 'Match planner' })).not.toBeInTheDocument();
   });
 
-  it('renders first-time user interface with simplified buttons', () => {
+  it('first-run routes the new coach into Home setup (add players, then first game)', () => {
     const handlers = {
       onLoadGame: jest.fn(),
       onResumeGame: jest.fn(),
       onGetStarted: jest.fn(),
+      onNewGame: jest.fn(),
+      onManageRoster: jest.fn(),
       onViewStats: jest.fn(),
       onOpenSettings: jest.fn(),
     };
@@ -136,29 +138,60 @@ describe('StartScreen', () => {
         onLoadGame={handlers.onLoadGame}
         onResumeGame={handlers.onResumeGame}
         onGetStarted={handlers.onGetStarted}
+        onNewGame={handlers.onNewGame}
+        onManageRoster={handlers.onManageRoster}
         onViewStats={handlers.onViewStats}
         onOpenSettings={handlers.onOpenSettings}
         canResume={false}
         hasSavedGames={false}
-        isFirstTimeUser={true} // First-time user interface
+        isFirstTimeUser={true}
       />
     );
 
-    // Should only show simplified interface
-    expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'EN' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'FI' })).toBeInTheDocument();
+    // The two-step setup path replaces the old single "Get Started → demo field".
+    expect(screen.queryByRole('button', { name: 'Get Started' })).not.toBeInTheDocument();
+    const addPlayers = screen.getByRole('button', { name: /Add your players/ });
+    const createGame = screen.getByRole('button', { name: /Create your first game/ });
+    const explore = screen.getByRole('button', { name: 'Just explore first' });
 
-    // Should not show full interface buttons
-    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Statistics' })).not.toBeInTheDocument();
-    // The hero's gear corner is visible for EVERYONE since the Home shell
-    // (PR 1.2) - a first-timer restoring a backup needs Settings -> Data.
-    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+    // Step 1 opens the roster (Home setup), NOT the demo field.
+    fireEvent.click(addPlayers);
+    expect(handlers.onManageRoster).toHaveBeenCalled();
+    expect(handlers.onGetStarted).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
+    // Step 2 opens new-game setup.
+    fireEvent.click(createGame);
+    expect(handlers.onNewGame).toHaveBeenCalled();
+
+    // "Explore first" preserves the old demo-field opt-in.
+    fireEvent.click(explore);
     expect(handlers.onGetStarted).toHaveBeenCalled();
+
+    // Still no full-interface buttons / tabs for a first-timer.
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+  });
+
+  it('first-run buttons fall back to onGetStarted when the setup handlers are unwired', () => {
+    const onGetStarted = jest.fn();
+    render(
+      <StartScreen
+        onLoadGame={jest.fn()}
+        onResumeGame={jest.fn()}
+        onGetStarted={onGetStarted}
+        onViewStats={jest.fn()}
+        onOpenSettings={jest.fn()}
+        canResume={false}
+        hasSavedGames={false}
+        isFirstTimeUser={true}
+        // onManageRoster / onNewGame intentionally omitted
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Add your players/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Create your first game/ }));
+    // Both steps + Explore all route to onGetStarted when their handler is absent.
+    expect(onGetStarted).toHaveBeenCalledTimes(2);
   });
 
   it('cloud mode: the gear sheet shows the account entry with the email (footer is gone)', () => {
@@ -458,10 +491,10 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(screen.getAllByRole('button', { name: 'Settings' })).toHaveLength(1);
   });
 
-  it('hides the tab bar for first-time users (single Get Started flow untouched)', () => {
+  it('hides the tab bar for first-time users (focused first-run setup panel)', () => {
     render(<StartScreen {...shellProps()} isFirstTimeUser={true} />);
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
-    expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add your players/ })).toBeInTheDocument();
   });
 });
 
