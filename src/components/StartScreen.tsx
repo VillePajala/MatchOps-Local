@@ -324,7 +324,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           )}
 
           {/* === ACTION BUTTONS === */}
-          <div className="max-w-sm mx-auto w-full space-y-3">
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-2.5' : 'space-y-3'}`}>
             {isFirstTimeUser ? (
               /* First-time user: single prominent button */
               <button
@@ -502,26 +502,31 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     {t('startScreen.resumeCard', 'Continue')}
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={onNewGame ?? onGetStarted}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.newGame', 'New Game')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onLoadGame}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.savedGames', 'Saved games')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
+                {/* New Game + Saved games: paired side-by-side in dashboard mode
+                    to reclaim a row (the dashboard is taller); stacked full-width
+                    in the simple launcher. */}
+                <div className={dashboardOn ? 'flex gap-2.5' : 'space-y-3'}>
+                  <button
+                    type="button"
+                    onClick={onNewGame ?? onGetStarted}
+                    className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.newGame', 'New Game')}
+                    </span>
+                    {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onLoadGame}
+                    className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.savedGames', 'Saved games')}
+                    </span>
+                    {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
+                  </button>
+                </div>
 
                 {onOpenPlanner && (
                   <button
