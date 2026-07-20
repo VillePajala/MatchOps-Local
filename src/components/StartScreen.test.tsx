@@ -464,3 +464,63 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
   });
 });
+
+describe('Home dashboard view (opt-in)', () => {
+  const summary = {
+    resume: { id: 'g1', opponent: 'FC Inter', ourScore: 2, theirScore: 1, homeOrAway: 'home' as const, isPlayed: false },
+    vuosi: { label: '24/25', gamesPlayed: 8, wins: 5, ties: 2, losses: 1, goalsFor: 18, goalsAgainst: 9, goalDifference: 9 },
+    recent: [
+      { id: 'g2', opponent: 'HJK', ourScore: 3, theirScore: 1, result: 'W' as const, date: '2024-07-10', isFriendly: false },
+    ],
+  };
+  const dashProps = (over = {}) => ({
+    onLoadGame: jest.fn(), onResumeGame: jest.fn(), onGetStarted: jest.fn(),
+    onViewStats: jest.fn(), onViewStatsTab: jest.fn(), onOpenSettings: jest.fn(),
+    onSetHomeView: jest.fn(), onOpenGameById: jest.fn(),
+    canResume: true, hasSavedGames: true, isFirstTimeUser: false,
+    homeView: 'dashboard' as const, homeSummary: summary,
+    ...over,
+  });
+
+  it('renders the resume card, Vuosi bar and recent strip when on', () => {
+    render(<StartScreen {...dashProps()} />);
+    expect(screen.getByText('FC Inter')).toBeInTheDocument();       // resume card
+    expect(screen.getByText('2–1')).toBeInTheDocument();
+    expect(screen.getByText(/24\/25/)).toBeInTheDocument();          // Vuosi bar
+    expect(screen.getByText('HJK')).toBeInTheDocument();             // recent strip
+    // The plain Continue button is replaced by the card.
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
+  });
+
+  it('falls back to the plain launcher when off', () => {
+    render(<StartScreen {...dashProps({ homeView: 'simple' as const })} />);
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+    expect(screen.queryByText('FC Inter')).not.toBeInTheDocument();
+    expect(screen.queryByText('HJK')).not.toBeInTheDocument();
+  });
+
+  it('never shows the dashboard for a first-time user, even if toggled on', () => {
+    render(<StartScreen {...dashProps({ isFirstTimeUser: true })} />);
+    expect(screen.queryByText('FC Inter')).not.toBeInTheDocument();
+  });
+
+  it('recent card opens that game; Vuosi bar opens overall stats; resume resumes', () => {
+    const props = dashProps();
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByText('HJK'));
+    expect(props.onOpenGameById).toHaveBeenCalledWith('g2');
+    fireEvent.click(screen.getByText(/24\/25/));
+    expect(props.onViewStatsTab).toHaveBeenCalledWith('overall');
+    fireEvent.click(screen.getByText('FC Inter'));
+    expect(props.onResumeGame).toHaveBeenCalled();
+  });
+
+  it('gear sheet toggle flips the view via onSetHomeView', () => {
+    const props = dashProps();
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' })); // opens gear sheet
+    const sheet = screen.getByRole('dialog', { name: 'App & account' });
+    fireEvent.click(within(sheet).getByRole('button', { name: /Dashboard home/ }));
+    expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
+  });
+});
