@@ -239,7 +239,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : dashboardOn ? 'justify-start pt-[8vh]' : 'justify-start pt-[6vh]'}`}>
+        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : dashboardOn ? 'justify-start pt-[6vh]' : 'justify-start pt-[6vh]'}`}>
           <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-6'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
