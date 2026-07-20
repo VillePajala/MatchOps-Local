@@ -473,6 +473,7 @@ describe('Home dashboard view (opt-in)', () => {
       { id: 'g2', opponent: 'HJK', ourScore: 3, theirScore: 1, result: 'W' as const, date: '2024-07-10', isFriendly: false },
     ],
     counts: { players: 18, teams: 3, personnel: 2, seasons: 3, tournaments: 2 },
+    countsReady: true,
     topScorer: { name: 'Aho', goals: 6 },
   };
   const dashProps = (over = {}) => ({
@@ -554,5 +555,62 @@ describe('Home dashboard view (opt-in)', () => {
     expect(screen.getByText('Results')).toBeInTheDocument();
     expect(screen.getByText('Goal diff')).toBeInTheDocument();
     expect(screen.getByText(/Aho 6/)).toBeInTheDocument(); // top scorer tile
+  });
+});
+
+describe('Home guide + empty-state guidance', () => {
+  const props = (over = {}) => ({
+    onLoadGame: jest.fn(), onResumeGame: jest.fn(), onGetStarted: jest.fn(),
+    onViewStats: jest.fn(), onViewStatsTab: jest.fn(), onOpenSettings: jest.fn(),
+    onManageRoster: jest.fn(), onManageSeasons: jest.fn(), onManageTournaments: jest.fn(),
+    onManageTeams: jest.fn(), onManagePersonnel: jest.fn(),
+    onOpenGuide: jest.fn(),
+    canResume: true, hasSavedGames: true, isFirstTimeUser: false,
+    ...over,
+  });
+
+  it('gear sheet has an in-app "How it works" entry that calls onOpenGuide', () => {
+    const p = props();
+    render(<StartScreen {...p} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' })); // opens gear
+    const sheet = screen.getByRole('dialog', { name: 'App & account' });
+    fireEvent.click(within(sheet).getByRole('button', { name: 'How it works' }));
+    expect(p.onOpenGuide).toHaveBeenCalledTimes(1);
+  });
+
+  const emptySummary = (over = {}) => ({
+    resume: null, vuosi: null, recent: [],
+    counts: { players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 },
+    countsReady: true, topScorer: null, ...over,
+  });
+
+  it('Team tab shows the add-players hint when the roster is empty', () => {
+    render(<StartScreen {...props({ homeSummary: emptySummary() })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    expect(screen.getByText('Start by adding your players.')).toBeInTheDocument();
+  });
+
+  it('Team hint is hidden once players exist', () => {
+    render(<StartScreen {...props({ homeSummary: emptySummary({ counts: { players: 5, teams: 0, personnel: 0, seasons: 0, tournaments: 0 } }) })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    expect(screen.queryByText('Start by adding your players.')).not.toBeInTheDocument();
+  });
+
+  it('Team hint is suppressed until counts are ready (no flash for existing users)', () => {
+    render(<StartScreen {...props({ homeSummary: emptySummary({ countsReady: false }) })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    expect(screen.queryByText('Start by adding your players.')).not.toBeInTheDocument();
+  });
+
+  it('Competitions tab shows the create-competition hint when none exist', () => {
+    render(<StartScreen {...props({ homeSummary: emptySummary() })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    expect(screen.getByText('Create a season or tournament to group your games.')).toBeInTheDocument();
+  });
+
+  it('Stats tab explains stats are empty when there are no games', () => {
+    render(<StartScreen {...props({ hasSavedGames: false })} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByText("Statistics appear once you've played games.")).toBeInTheDocument();
   });
 });
