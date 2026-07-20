@@ -173,6 +173,27 @@ describe('StartScreen', () => {
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
   });
 
+  it('first-run buttons fall back to onGetStarted when the setup handlers are unwired', () => {
+    const onGetStarted = jest.fn();
+    render(
+      <StartScreen
+        onLoadGame={jest.fn()}
+        onResumeGame={jest.fn()}
+        onGetStarted={onGetStarted}
+        onViewStats={jest.fn()}
+        onOpenSettings={jest.fn()}
+        canResume={false}
+        hasSavedGames={false}
+        isFirstTimeUser={true}
+        // onManageRoster / onNewGame intentionally omitted
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Add your players/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Create your first game/ }));
+    // Both steps + Explore all route to onGetStarted when their handler is absent.
+    expect(onGetStarted).toHaveBeenCalledTimes(2);
+  });
+
   it('cloud mode: the gear sheet shows the account entry with the email (footer is gone)', () => {
     const { useAuth } = jest.requireMock('@/contexts/AuthProvider');
     useAuth.mockReturnValue({
