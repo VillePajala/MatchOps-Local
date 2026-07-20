@@ -7,7 +7,7 @@
  * "Season" here always means the CLUB SEASON (Vuosi), derived from today's date
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
-import type { SavedGamesCollection, AppState } from '@/types';
+import type { SavedGamesCollection, AppState, Player } from '@/types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { filterGameIds } from '@/components/GameStatsModal/utils/gameFilters';
 import { getClubSeasonForDate } from './clubSeason';
@@ -41,6 +41,20 @@ export interface HomeResumeGame {
   timeElapsedSeconds?: number;
 }
 
+/** Entity counts for the Joukkue / Kilpailut tab headers. */
+export interface HomeCounts {
+  players: number;
+  teams: number;
+  personnel: number;
+  seasons: number;
+  tournaments: number;
+}
+
+export interface HomeTopScorer {
+  name: string;
+  goals: number;
+}
+
 export interface HomeSummary {
   /** The resumable game (current game id) as a card - null when none. */
   resume: HomeResumeGame | null;
@@ -48,6 +62,10 @@ export interface HomeSummary {
   vuosi: HomeVuosi | null;
   /** Most recent played games, newest first. */
   recent: HomeRecentGame[];
+  /** Entity counts (0 when the source collection wasn't provided). */
+  counts: HomeCounts;
+  /** Top scorer of the current club season - null when none / no season config. */
+  topScorer: HomeTopScorer | null;
 }
 
 export interface HomeSummaryOptions {
@@ -61,6 +79,12 @@ export interface HomeSummaryOptions {
   recentLimit?: number;
   /** The persisted current game id - drives the resume card. */
   currentGameId?: string | null;
+  /** Master roster - for the players count AND top-scorer name resolution. */
+  roster?: Player[];
+  teamsCount?: number;
+  personnelCount?: number;
+  seasonsCount?: number;
+  tournamentsCount?: number;
 }
 
 /**
@@ -105,8 +129,9 @@ export function buildHomeSummary(
     };
   }
 
-  // --- Vuosi (current club season) record ---
+  // --- Vuosi (current club season) record + top scorer ---
   let vuosi: HomeVuosi | null = null;
+  let topScorer: HomeTopScorer | null = null;
   if (opts.hasConfiguredSeasonDates) {
     const label = getClubSeasonForDate(opts.today, opts.clubSeasonStartDate, opts.clubSeasonEndDate);
     const ids = filterGameIds(all, {
@@ -119,6 +144,28 @@ export function buildHomeSummary(
     });
     const seasonGames = ids.map((id) => all[id]).filter(Boolean) as AppState[];
     vuosi = { label, ...computeTeamRecord(seasonGames) };
+
+    // Top scorer over the same season set: tally goal events by scorer, map to a
+    // roster name. Ties break by first-seen (stable), which is fine for a hint.
+    if (opts.roster && opts.roster.length > 0) {
+      const goalsById = new Map<string, number>();
+      for (const g of seasonGames) {
+        for (const ev of g.gameEvents ?? []) {
+          if (ev.type === 'goal' && ev.scorerId) {
+            goalsById.set(ev.scorerId, (goalsById.get(ev.scorerId) ?? 0) + 1);
+          }
+        }
+      }
+      let bestId: string | null = null;
+      let bestGoals = 0;
+      for (const [id, n] of goalsById) {
+        if (n > bestGoals) { bestGoals = n; bestId = id; }
+      }
+      if (bestId && bestGoals > 0) {
+        const player = opts.roster.find((p) => p.id === bestId);
+        topScorer = { name: player?.nickname || player?.name || '', goals: bestGoals };
+      }
+    }
   }
 
   // --- Recent strip ---
@@ -140,5 +187,13 @@ export function buildHomeSummary(
       };
     });
 
-  return { resume, vuosi, recent };
+  const counts: HomeCounts = {
+    players: opts.roster?.length ?? 0,
+    teams: opts.teamsCount ?? 0,
+    personnel: opts.personnelCount ?? 0,
+    seasons: opts.seasonsCount ?? 0,
+    tournaments: opts.tournamentsCount ?? 0,
+  };
+
+  return { resume, vuosi, recent, counts, topScorer };
 }

@@ -7,7 +7,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
@@ -336,9 +336,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </button>
             ) : activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
-                 Home entry - the rows open the EXISTING modals (strangler);
-                 phase 2 turns them into page sections. */
+                 Home entry - the rows open the EXISTING modals (strangler). */
               <>
+                {dashboardOn && homeSummary && (
+                  <HomeCountsBar counts={homeSummary.counts} t={t} />
+                )}
                 <button
                   type="button"
                   onClick={onManageRoster}
@@ -384,6 +386,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </span>
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
+                {/* Valmennus group (dashboard mode): pulls the prep/content
+                    items out of the loose "who" rows into their own labelled
+                    section. */}
+                {dashboardOn && (
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-2 px-0.5">
+                    {t('startScreen.dashCoachingGroup', 'Coaching')}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={onOpenTraining}
@@ -419,6 +429,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
               /* Competitions panel: separate Kaudet and Turnaukset entries,
                  each opening the manager scoped to that kind. */
               <>
+                {dashboardOn && homeSummary && (
+                  <HomeSeasonCard
+                    vuosi={homeSummary.vuosi}
+                    counts={homeSummary.counts}
+                    onOpen={onViewStatsTab ? () => onViewStatsTab('season') : onViewStats}
+                    t={t}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={onManageSeasons}
@@ -455,6 +473,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  name exactly the surfaces that exist. Disabled until there
                  is a game to aggregate - never silently dead-clickable. */
               <>
+                {dashboardOn && homeSummary && (
+                  <HomeStatsTiles vuosi={homeSummary.vuosi} topScorer={homeSummary.topScorer} t={t} />
+                )}
                 {([
                   ['season', t('startScreen.statsSeason', 'Season stats')],
                   ['tournament', t('startScreen.statsTournament', 'Tournament stats')],
@@ -594,7 +615,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   aria-pressed={homeView === 'dashboard'}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
                 >
-                  <span>{t('startScreen.gearDashboardView', 'Dashboard home')}</span>
+                  <span>{t('startScreen.gearDashboardView', 'Show summary on home')}</span>
                   <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'dashboard' ? 'bg-indigo-500' : 'bg-slate-600'}`} aria-hidden="true">
                     <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'dashboard' ? 'translate-x-5' : ''}`} />
                   </span>

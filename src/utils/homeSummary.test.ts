@@ -86,6 +86,50 @@ describe('buildHomeSummary — resume card', () => {
   });
 });
 
+describe('buildHomeSummary — counts + top scorer (phase 2)', () => {
+  it('passes through entity counts', () => {
+    const { counts } = buildHomeSummary({ a: g() }, {
+      ...opts,
+      roster: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }] as never,
+      teamsCount: 3, personnelCount: 2, seasonsCount: 4, tournamentsCount: 1,
+    });
+    expect(counts).toEqual({ players: 2, teams: 3, personnel: 2, seasons: 4, tournaments: 1 });
+  });
+
+  it('counts default to 0 when collections are absent', () => {
+    expect(buildHomeSummary({ a: g() }, opts).counts).toEqual({ players: 0, teams: 0, personnel: 0, seasons: 0, tournaments: 0 });
+  });
+
+  it('picks the top scorer of the current club season (nickname preferred)', () => {
+    const games: SavedGamesCollection = {
+      m1: g({ gameDate: '2024-03-01', gameEvents: [
+        { id: 'e1', type: 'goal', time: 1, scorerId: 'p1' },
+        { id: 'e2', type: 'goal', time: 2, scorerId: 'p1' },
+        { id: 'e3', type: 'goal', time: 3, scorerId: 'p2' },
+      ] } as Partial<AppState>),
+      // out of season - must not count toward the scorer
+      old: g({ gameDate: '2023-03-01', gameEvents: [
+        { id: 'e4', type: 'goal', time: 1, scorerId: 'p2' },
+        { id: 'e5', type: 'goal', time: 2, scorerId: 'p2' },
+        { id: 'e6', type: 'goal', time: 3, scorerId: 'p2' },
+      ] } as Partial<AppState>),
+    };
+    const { topScorer } = buildHomeSummary(games, {
+      ...opts,
+      roster: [{ id: 'p1', name: 'Player One', nickname: 'Aho' }, { id: 'p2', name: 'Player Two' }] as never,
+    });
+    expect(topScorer).toEqual({ name: 'Aho', goals: 2 });
+  });
+
+  it('top scorer is null without a roster or without season config', () => {
+    const games: SavedGamesCollection = {
+      m1: g({ gameDate: '2024-03-01', gameEvents: [{ id: 'e1', type: 'goal', time: 1, scorerId: 'p1' }] } as Partial<AppState>),
+    };
+    expect(buildHomeSummary(games, opts).topScorer).toBeNull(); // no roster
+    expect(buildHomeSummary(games, { ...opts, hasConfiguredSeasonDates: false, roster: [{ id: 'p1', name: 'A' }] as never }).topScorer).toBeNull();
+  });
+});
+
 describe('buildHomeSummary — recent strip', () => {
   it('newest first, played only, excludes undated', () => {
     const games: SavedGamesCollection = {
