@@ -36,6 +36,7 @@ type LiftedHandlerProps =
   | 'onOpenBackup'
   | 'onOpenAccount'
   | 'onOpenRules'
+  | 'onOpenGuide'
   | 'onOpenSettings';
 
 export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerProps>;
@@ -54,6 +55,7 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
     setCompetitionManagerKind,
     setIsTrainingResourcesOpen,
     setIsRulesDirectoryOpen,
+    setIsInstructionsModalOpen,
     setIsSettingsModalOpen,
     openSettingsToTab,
   } = useModalContext();
@@ -85,6 +87,7 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
       }}
       onOpenTraining={() => setIsTrainingResourcesOpen(true)}
       onOpenRules={() => setIsRulesDirectoryOpen(true)}
+      onOpenGuide={() => setIsInstructionsModalOpen(true)}
       onOpenBackup={() => openSettingsToTab('data')}
       onOpenAccount={() => openSettingsToTab('account')}
       onOpenSettings={() => setIsSettingsModalOpen(true)}

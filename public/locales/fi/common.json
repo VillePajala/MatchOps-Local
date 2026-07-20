@@ -1014,7 +1014,11 @@
     "statsSeason": "Kausitilastot",
     "statsTournament": "Turnaustilastot",
     "statsOverall": "Kokonaistilastot",
-    "statsPlayer": "Pelaajatilastot"
+    "statsPlayer": "Pelaajatilastot",
+    "emptyTeam": "Aloita lisäämällä pelaajat.",
+    "emptyCompetitions": "Luo kausi tai turnaus pelien ryhmittelyyn.",
+    "emptyStats": "Tilastot ilmestyvät, kun olet pelannut pelejä.",
+    "gearGuide": "Näin se toimii"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -1040,14 +1044,12 @@
     "createRealGame": "Luo ottelu"
   },
   "firstGameGuide": {
-    "title": "Tervetuloa ensimmäiseen otteluusi!",
-    "subtitle": "Käydään nopeasti läpi perustoiminnot",
     "playerSelection": "Pelaajien valinta (yläpalkki)",
     "tapToSelect": "Napauta pelaajakiekkoa valitaksesi",
     "tapFieldPlace": "Napauta kenttää sijoittaaksesi pelaaja",
     "dragToAdjust": "Liikuta pelaajia raahaamalla",
     "doubleTapRemove": "Kaksoisnapautus poistaa pelaajan kentältä",
-    "goalieInstructions": "Aseta maalivahdit: Valikko → Kokoonpano",
+    "goalieInstructions": "Aseta maalivahdit napauttamalla pelaajaa yläpalkissa",
     "controlBar": "Ohjainpalkki (alhaalla)",
     "tacticsButtonTip": "Paina Taktiikat-painiketta päästäksesi piirtotyökaluihin:",
     "placeAllTip": "Aseta kaikki pelaajat kerralla:",
@@ -1062,23 +1064,9 @@
     "drawLinesTip": "Piirrä viivoja ja nuolia sormellasi",
     "clearDrawingsTip": "Poista piirrokset:",
     "closeToolsTip": "Poistu työkaluista:",
-    "menuActions": "Valikko-toiminnot",
-    "menuActionsNote": "Paina Valikko-painiketta päästäksesi:",
-    "gameManagement": "Valikon käyttö",
-    "otherFeatures": "Muut ominaisuudet",
-    "otherFeaturesNote": "Myös valikosta saatavilla:",
-    "quickSaveTip": "Pikatallennus (Ctrl/Cmd+S)",
-    "goalLogTip": "Kirjaa maalit ja tapahtumat",
-    "rosterManageTip": "Hallitse pelaajaluetteloa",
     "gameSettingsTip": "Muokkaa ottelun tietoja",
-    "statsReportsTip": "Tarkastele tilastoja ja lataa raportit",
-    "seasonsTeamsTip": "Hallitse kausia, joukkueita ja henkilöstöä",
-    "helpTip": "Hae ohje ja käyttöohjeet",
-    "appSettingsTip": "Avaa sovelluksen asetukset",
-    "gotIt": "Selvä, aloitetaan!",
-    "needHelp": "Lisää ohjeita?",
     "assessPlayersTip": "Arvioi pelaajat ja katso ottelun tilastot",
-    "backHomeTip": "Palaa kotinäkymään (Koti)"
+    "backHomeTip": "Palaa kotinäkymään (Koti) — puhelimen takaisin-painike toimii samoin"
   },
   "seasonTournamentModal": {
     "confirmDelete": "Haluatko varmasti poistaa {{name}}?",
@@ -3365,5 +3353,16 @@
     "conflicts": {
       "row": "{{player}} on paikoissa {{a}} ja {{b}} samaan aikaan ({{from}}'-{{to}}')"
     }
+  },
+  "appGuide": {
+    "homeTitle": "Etusivu — seurasi keskus",
+    "homeIntro": "Etusivulla on neljä välilehteä ja ratas-valikko. Kaikki seuraasi liittyvä on täällä; ottelu avautuu omalle kentälleen.",
+    "homeGamesTab": "Pelit: aloita uusi ottelu, jatka keskeneräistä, avaa tallennetut pelit ja ottelusuunnittelu.",
+    "homeTeamTab": "Joukkue: pelaajat, joukkueet, taustahenkilöt ja lämmittelysuunnitelma.",
+    "homeCompetitionsTab": "Kilpailut: luo kaudet ja turnaukset pelien ryhmittelyyn.",
+    "homeStatsTab": "Tilastot: kausi-, turnaus-, kokonais- ja pelaajatilastot.",
+    "homeGear": "Ratas-kuvake (vasen yläkulma): asetukset, varmuuskopiot, tili ja tämä opas.",
+    "matchMenuTitle": "Ottelun valikko",
+    "matchMenuNote": "Ottelun aikana valikko sisältää ottelupäivän toiminnot:"
   }
 }

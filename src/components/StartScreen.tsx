@@ -44,6 +44,8 @@ interface StartScreenProps {
   onOpenAccount?: () => void;
   /** Gear sheet: the rules directory. */
   onOpenRules?: () => void;
+  /** Gear sheet: the in-app "How it works" guide. */
+  onOpenGuide?: () => void;
   /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
   onEnableCloudSync?: () => void;
   /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
@@ -85,6 +87,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onOpenBackup,
   onOpenAccount,
   onOpenRules,
+  onOpenGuide,
   onEnableCloudSync,
   onSignInExistingSubscriber,
   onShowWelcome,
@@ -347,6 +350,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {dashboardOn && homeSummary && (
                   <HomeCountsBar counts={homeSummary.counts} t={t} />
                 )}
+                {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
+                  <p className="text-sm text-slate-400 px-1 pb-1">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
+                )}
                 <button
                   type="button"
                   onClick={onManageRoster}
@@ -443,6 +449,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     t={t}
                   />
                 )}
+                {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
+                  <p className="text-sm text-slate-400 px-1 pb-1">{t('startScreen.emptyCompetitions', 'Create a season or tournament to group your games.')}</p>
+                )}
                 <button
                   type="button"
                   onClick={onManageSeasons}
@@ -481,6 +490,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
               <>
                 {dashboardOn && homeSummary && (
                   <HomeStatsTiles vuosi={homeSummary.vuosi} topScorer={homeSummary.topScorer} t={t} />
+                )}
+                {!hasSavedGames && (
+                  <p className="text-sm text-slate-400 px-1 pb-1">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
                 )}
                 {([
                   ['season', t('startScreen.statsSeason', 'Season stats')],
@@ -657,6 +669,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {onOpenRules && (
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenRules(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
                   {t('startScreen.gearRules', 'Rules')}
+                </button>
+              )}
+              {/* In-app "How it works" guide (rebuilt for the two-level UI). */}
+              {onOpenGuide && (
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  {t('startScreen.gearGuide', 'How it works')}
                 </button>
               )}
               <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
