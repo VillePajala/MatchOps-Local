@@ -115,4 +115,90 @@ export function HomeDashboard({
   );
 }
 
+/** Joukkue tab: a one-line roster/team/personnel count header. */
+export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t: TFunction }) {
+  const parts = [
+    `${counts.players} ${t('startScreen.dashPlayers', 'players')}`,
+    `${counts.teams} ${t('startScreen.dashTeams', 'teams')}`,
+    `${counts.personnel} ${t('startScreen.dashPersonnel', 'staff')}`,
+  ];
+  return (
+    <div className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-1">
+      {parts.map((p, i) => (
+        <React.Fragment key={p}>
+          {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
+          <span className="tabular-nums">{p}</span>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** Kilpailut tab: the current club-season context card (no single "active"
+ *  season - shows the club season + how many Kaudet/Turnaukset exist). */
+export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
+  vuosi: HomeSummary['vuosi'];
+  counts: HomeSummary['counts'];
+  onOpen?: () => void;
+  t: TFunction;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all mb-1"
+    >
+      <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/80">
+        {t('startScreen.dashClubSeason', 'This season')}
+      </div>
+      <div className="flex items-baseline justify-between gap-3 mt-0.5">
+        <span className="text-base font-extrabold text-white">
+          {vuosi ? `${t('startScreen.dashSeason', 'Season')} ${vuosi.label}` : t('seasonTournamentModal.title', 'Competitions')}
+        </span>
+        {vuosi && (
+          <span className="text-sm font-bold tabular-nums whitespace-nowrap">
+            <span className="text-green-400">{vuosi.wins}</span>
+            <span className="text-slate-400">-{vuosi.ties}-</span>
+            <span className="text-red-400">{vuosi.losses}</span>
+          </span>
+        )}
+      </div>
+      <div className="text-xs text-indigo-200/70 mt-1 tabular-nums">
+        {counts.seasons} {t('startScreen.dashSeasons', 'seasons')} · {counts.tournaments} {t('startScreen.dashTournaments', 'tournaments')}
+      </div>
+    </button>
+  );
+}
+
+/** Tilastot tab: a three-tile overview of the current club season. */
+export function HomeStatsTiles({ vuosi, topScorer, t }: {
+  vuosi: HomeSummary['vuosi'];
+  topScorer: HomeSummary['topScorer'];
+  t: TFunction;
+}) {
+  if (!vuosi) return null;
+  const tile = (n: React.ReactNode, label: string) => (
+    <div className="flex-1 text-center p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60">
+      <div className="text-lg font-black text-slate-100 tabular-nums leading-tight">{n}</div>
+      <div className="text-[9px] uppercase tracking-wider text-slate-400 mt-0.5">{label}</div>
+    </div>
+  );
+  return (
+    <div className="flex gap-2 mb-1">
+      {tile(
+        <span><span className="text-green-400">{vuosi.wins}</span>-{vuosi.ties}-<span className="text-red-400">{vuosi.losses}</span></span>,
+        t('startScreen.dashTileResults', 'Results'),
+      )}
+      {tile(
+        `${vuosi.goalDifference >= 0 ? '+' : ''}${vuosi.goalDifference}`,
+        t('startScreen.dashTileGoalDiff', 'Goal diff'),
+      )}
+      {tile(
+        topScorer ? <span className="text-sm">{topScorer.name} {topScorer.goals}⚽</span> : '–',
+        t('startScreen.dashTileScorer', 'Top scorer'),
+      )}
+    </div>
+  );
+}
+
 export default HomeDashboard;

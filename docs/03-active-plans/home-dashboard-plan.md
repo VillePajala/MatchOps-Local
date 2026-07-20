@@ -72,9 +72,25 @@ reads opponent, score, home/away, and period/elapsed for display. No new persist
   the overall win/draw/loss tally. Extract a small pure helper so Home and Stats agree.
 - Recent list + result: derive from `savedGames` (sort, slice, compute result).
 
-## Out of scope (later PRs)
-- Joukkue roster-count header, Kilpailut club-season card, Tilastot overview tiles.
+## Phase 2 (separate PR, on feature/home-dashboard-phase2)
+The other tabs' dashboard content, all gated behind the same `homeView` toggle:
+- **Joukkue**: a one-line roster/teams/personnel count header + a "Valmennus"
+  group label pulling Warmup + Coaching Materials out of the loose "who" rows.
+- **Kilpailut**: a club-season context card (Vuosi label + record + "N kautta ·
+  N turnausta") above the Kaudet/Turnaukset rows. No single "active" season -
+  the card shows the club-season context and how many exist.
+- **Tilastot**: a three-tile overview of the current club season (Tulokset
+  W-D-L, Maaliero, top scorer) above the four stat rows.
+
+Data: `buildHomeSummary` extended with `counts` (players/teams/personnel/
+seasons/tournaments) and `topScorer` (current club season, from goal events +
+roster names). Counts + top scorer are enriched a beat after the fast Pelit
+build, from the existing fire-and-forget entity fetch in checkAppState. All
+club-season summaries stay keyed to the Vuosi window (never a user Kausi).
+
+## Out of scope
 - Any change to the four-tab structure or the gear sheet contents.
+- "Running/active" detection for individual Kaudet/Turnaukset (counts only).
 
 ## Acceptance
 - Toggle off (default): Home is byte-for-byte today's launcher.

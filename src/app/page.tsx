@@ -34,6 +34,7 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import { getTeams } from '@/utils/teams';
+import { getAllPersonnel } from '@/utils/personnelManager';
 import { runMigration } from '@/utils/migration';
 import {
   hasMigrationCompleted,
@@ -292,13 +293,16 @@ export default function Home() {
       // on a phantom.
       setHasSavedGames(Object.keys(games).filter(id => id !== 'unsaved_game').length > 0);
 
-      // Home view preference + dashboard summary (opt-in Pelit-tab dashboard).
-      // Both derive from settings + the games we just fetched; recomputed on
-      // every Home re-entry via the checkAppState re-run, so it stays fresh.
+      // Home view preference + dashboard summary (opt-in dashboard).
+      // The Pelit-tab summary (resume/vuosi/recent) derives from settings + the
+      // games we just fetched, so build it FAST here; the other tabs' counts +
+      // top scorer are enriched a beat later from the fire-and-forget entity
+      // fetch below. Recomputed on every Home re-entry via the checkAppState re-run.
+      let homeSettings: Awaited<ReturnType<typeof getAppSettings>> | null = null;
+      const today = new Date().toISOString().slice(0, 10);
       try {
-        const homeSettings = await getAppSettings(userId);
+        homeSettings = await getAppSettings(userId);
         setHomeView(homeSettings.homeView === 'dashboard' ? 'dashboard' : 'simple');
-        const today = new Date().toISOString().slice(0, 10);
         setHomeSummary(buildHomeSummary(games, {
           today,
           clubSeasonStartDate: homeSettings.clubSeasonStartDate,
@@ -324,10 +328,30 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
-      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId)])
-        .then(([seasonsList, tournamentsList, teamsList]) => {
+      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId)])
+        .then(([seasonsList, tournamentsList, teamsList, personnel]) => {
           setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
           setHasTeam(teamsList.length > 0);
+          // Enrich the dashboard summary with entity counts + top scorer (for the
+          // Joukkue/Kilpailut/Tilastot tabs). Rebuilt with the same inputs as the
+          // fast Pelit build above, plus the entity data now available.
+          // Closes over roster/resolvedCurrentId/today/homeSettings from THIS
+          // checkAppState call; single-tab usage means no interleave race in
+          // practice (a stale enrichment would at worst show counts a beat old).
+          if (homeSettings) {
+            setHomeSummary(buildHomeSummary(games, {
+              today,
+              clubSeasonStartDate: homeSettings.clubSeasonStartDate,
+              clubSeasonEndDate: homeSettings.clubSeasonEndDate,
+              hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
+              currentGameId: resolvedCurrentId,
+              roster,
+              teamsCount: teamsList.length,
+              personnelCount: personnel.length,
+              seasonsCount: seasonsList.length,
+              tournamentsCount: tournamentsList.length,
+            }));
+          }
         })
         .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
     } catch (error) {

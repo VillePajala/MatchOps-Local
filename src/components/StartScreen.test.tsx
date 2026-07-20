@@ -472,6 +472,8 @@ describe('Home dashboard view (opt-in)', () => {
     recent: [
       { id: 'g2', opponent: 'HJK', ourScore: 3, theirScore: 1, result: 'W' as const, date: '2024-07-10', isFriendly: false },
     ],
+    counts: { players: 18, teams: 3, personnel: 2, seasons: 3, tournaments: 2 },
+    topScorer: { name: 'Aho', goals: 6 },
   };
   const dashProps = (over = {}) => ({
     onLoadGame: jest.fn(), onResumeGame: jest.fn(), onGetStarted: jest.fn(),
@@ -520,7 +522,37 @@ describe('Home dashboard view (opt-in)', () => {
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' })); // opens gear sheet
     const sheet = screen.getByRole('dialog', { name: 'App & account' });
-    fireEvent.click(within(sheet).getByRole('button', { name: /Dashboard home/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: /Show summary on home/ }));
     expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
+  });
+
+  it('Joukkue tab shows the counts header + Valmennus group when on', () => {
+    const props = { ...dashProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    expect(screen.getByText(/18 players/)).toBeInTheDocument();
+    expect(screen.getByText(/3 teams/)).toBeInTheDocument();
+    expect(screen.getByText('Coaching')).toBeInTheDocument(); // Valmennus group label
+  });
+
+  it('Kilpailut tab shows the club-season card; it opens OVERALL stats (not a Kausi)', () => {
+    const props = { ...dashProps(), onManageSeasons: jest.fn(), onManageTournaments: jest.fn() };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
+    expect(screen.getByText('This season')).toBeInTheDocument();
+    expect(screen.getByText(/3 seasons · 2 tournaments/)).toBeInTheDocument();
+    // The card shows the club-season (Vuosi) record, so it must open OVERALL
+    // stats - NOT the 'season' tab (a user Kausi). Guards the #688 fix.
+    (props.onViewStatsTab as jest.Mock).mockClear();
+    fireEvent.click(screen.getByText('This season'));
+    expect(props.onViewStatsTab).toHaveBeenCalledWith('overall');
+  });
+
+  it('Tilastot tab shows the overview tiles when on', () => {
+    render(<StartScreen {...dashProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByText('Results')).toBeInTheDocument();
+    expect(screen.getByText('Goal diff')).toBeInTheDocument();
+    expect(screen.getByText(/Aho 6/)).toBeInTheDocument(); // top scorer tile
   });
 });
