@@ -245,7 +245,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
             <div className={`relative inline-block ${dashboardOn ? '' : 'mb-3'}`}>
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-2xl' : 'text-6xl sm:text-7xl'}`}>
+              {/* Fluid logo: clamp(min, vw, max) scales the wordmark with the
+                  screen width (bigger phones -> bigger logo) instead of a fixed
+                  px size, bounded so it never gets silly on very small/large
+                  screens. Dashboard mode is a touch larger now that the tighter
+                  cards freed room. */}
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(1.85rem,8vw,2.75rem)]' : 'text-[clamp(3rem,13vw,4.75rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
