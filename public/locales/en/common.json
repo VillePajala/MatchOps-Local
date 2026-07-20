@@ -1153,7 +1153,11 @@
     "emptyTeam": "Start by adding your players.",
     "emptyCompetitions": "Create a season or tournament to group your games.",
     "emptyStats": "Statistics appear once you've played games.",
-    "gearGuide": "How it works"
+    "gearGuide": "How it works",
+    "firstRunWelcome": "Welcome! Set up your team in two steps.",
+    "firstRunAddPlayers": "Add your players",
+    "firstRunCreateGame": "Create your first game",
+    "firstRunExplore": "Just explore first"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

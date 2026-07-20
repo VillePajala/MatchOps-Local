@@ -1018,7 +1018,11 @@
     "emptyTeam": "Aloita lisäämällä pelaajat.",
     "emptyCompetitions": "Luo kausi tai turnaus pelien ryhmittelyyn.",
     "emptyStats": "Tilastot ilmestyvät, kun olet pelannut pelejä.",
-    "gearGuide": "Näin se toimii"
+    "gearGuide": "Näin se toimii",
+    "firstRunWelcome": "Tervetuloa! Ota joukkueesi käyttöön kahdessa vaiheessa.",
+    "firstRunAddPlayers": "Lisää pelaajat",
+    "firstRunCreateGame": "Luo ensimmäinen ottelu",
+    "firstRunExplore": "Tutustu ensin"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
