@@ -4,12 +4,7 @@ import React from 'react';
 import type { TFunction } from 'i18next';
 import type { HomeSummary, HomeResumeGame, HomeRecentGame } from '@/utils/homeSummary';
 
-/** Left-border colour by result (language-neutral - no letter to translate). */
-const resultBorder: Record<'W' | 'D' | 'L', string> = {
-  W: 'border-l-green-500',
-  D: 'border-l-slate-400',
-  L: 'border-l-red-500',
-};
+/** Result shown through the score colour only (no coloured card edge). */
 const scoreColour: Record<'W' | 'D' | 'L', string> = {
   W: 'text-green-300',
   D: 'text-slate-200',
@@ -73,7 +68,7 @@ function RecentCard({ game, onOpen }: { game: HomeRecentGame; onOpen?: (id: stri
     <button
       type="button"
       onClick={() => onOpen?.(game.id)}
-      className={`flex-shrink-0 w-[116px] text-left p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 border-l-4 ${resultBorder[game.result]} hover:bg-slate-700/70 transition-all`}
+      className="flex-shrink-0 w-[116px] text-left p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-700/70 transition-all"
     >
       <div className="text-xs font-semibold text-slate-100 truncate">{game.opponent || '—'}</div>
       <div className={`text-sm font-black tabular-nums mt-0.5 ${scoreColour[game.result]}`}>{game.ourScore}–{game.theirScore}</div>

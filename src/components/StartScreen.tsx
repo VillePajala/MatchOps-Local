@@ -166,7 +166,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   }, [language]);
 
   return (
-    <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
+    <div className="relative flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden">
       {/* === AMBIENT BACKGROUND GLOWS === */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Blue glow - top right */}
@@ -176,7 +176,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
       </div>
 
       {/* === MAIN CONTENT === */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe">
+      {/* Scrolls when content exceeds the viewport (e.g. the dashboard's extra
+          cards) so the lower action rows are never clipped; the bg glows above
+          stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 py-8 pb-safe">
 
         {/* === TOP: Welcome Link + Language Switcher === */}
         <div className="flex justify-between items-center mb-4">
