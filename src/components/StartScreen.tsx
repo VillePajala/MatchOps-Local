@@ -335,14 +335,39 @@ const StartScreen: React.FC<StartScreenProps> = ({
           {/* === ACTION BUTTONS === */}
           <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-2.5' : 'space-y-3'}`}>
             {isFirstTimeUser ? (
-              /* First-time user: single prominent button */
-              <button
-                type="button"
-                onClick={onGetStarted}
-                className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-              >
-                {t('startScreen.getStarted', 'Get Started')}
-              </button>
+              /* First-run (two-level onboarding): route the new coach into the
+                 Home hub to SET UP first - add players, then create their first
+                 game - instead of dropping them onto an empty demo field. The
+                 field comes when they create a game (the right moment). "Explore
+                 first" preserves the old demo-field path as an opt-in. */
+              <>
+                <p className="text-center text-slate-300 text-sm mb-1">
+                  {t('startScreen.firstRunWelcome', 'Welcome! Set up your team in two steps.')}
+                </p>
+                <button
+                  type="button"
+                  onClick={onManageRoster ?? onGetStarted}
+                  className="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                >
+                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-slate-900/20 flex items-center justify-center text-base font-black">1</span>
+                  {t('startScreen.firstRunAddPlayers', 'Add your players')}
+                </button>
+                <button
+                  type="button"
+                  onClick={onNewGame ?? onGetStarted}
+                  className="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                >
+                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold text-white">2</span>
+                  <span className="text-sm font-semibold text-white">{t('startScreen.firstRunCreateGame', 'Create your first game')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onGetStarted}
+                  className="w-full text-center text-sm text-slate-400 hover:text-white transition-colors pt-1"
+                >
+                  {t('startScreen.firstRunExplore', 'Just explore first')}
+                </button>
+              </>
             ) : activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
