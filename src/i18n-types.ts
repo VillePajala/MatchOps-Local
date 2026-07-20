@@ -2393,6 +2393,7 @@ export type TranslationKey =
   | 'startScreen.dashInProgress'
   | 'startScreen.dashRecent'
   | 'startScreen.dashResumeGame'
+  | 'startScreen.dashSeason'
   | 'startScreen.description'
   | 'startScreen.enableCloudSync'
   | 'startScreen.exploreApp'

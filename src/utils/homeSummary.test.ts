@@ -54,6 +54,17 @@ describe('buildHomeSummary — Vuosi record', () => {
     const { vuosi } = buildHomeSummary({ a: g() }, { ...opts, hasConfiguredSeasonDates: false });
     expect(vuosi).toBeNull();
   });
+
+  it('excludes the unsaved_game scratch entry from vuosi, recent, and resume', () => {
+    const games: SavedGamesCollection = {
+      real: g({ gameDate: '2024-03-01', homeScore: 1, awayScore: 0 }),
+      unsaved_game: g({ gameDate: '2024-04-01', homeScore: 9, awayScore: 0 }),
+    };
+    const { vuosi, recent, resume } = buildHomeSummary(games, { ...opts, recentLimit: 10, currentGameId: 'unsaved_game' });
+    expect(vuosi!.gamesPlayed).toBe(1);            // scratch not counted
+    expect(recent.map((r) => r.id)).toEqual(['real']); // scratch not in the strip
+    expect(resume).toBeNull();                     // scratch id never becomes a resume card
+  });
 });
 
 describe('buildHomeSummary — resume card', () => {

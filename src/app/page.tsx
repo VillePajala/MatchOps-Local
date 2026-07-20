@@ -150,7 +150,10 @@ export default function Home() {
     try {
       await updateAppSettings({ homeView: view }, userId);
     } catch (err) {
+      // Roll back the optimistic flip so the UI never disagrees with what was
+      // actually persisted.
       logger.warn('Failed to persist home view preference', { error: err });
+      setHomeView(view === 'dashboard' ? 'simple' : 'dashboard');
     }
   }, [userId]);
 
@@ -241,8 +244,13 @@ export default function Home() {
       // Without userId, DataStore queries anonymous/legacy storage instead of user's data
       const lastId = await getCurrentGameIdSetting(userId);
       const games = await getSavedGames(userId);
+      // The game a "Continue"/resume actually opens: lastId when valid, else the
+      // latest game the fallback below selects. The dashboard resume card must
+      // use THIS, not the stale lastId.
+      let resolvedCurrentId: string | null = null;
 
       if (lastId && games[lastId]) {
+        resolvedCurrentId = lastId;
         setCanResume(true);
         // Extract gameType from last game to prevent field color flash on mount
         // (avoids defaulting to soccer green when last game was futsal blue)
@@ -266,6 +274,7 @@ export default function Home() {
         if (ids.length > 0) {
           const latestId = getLatestGameId(games);
           if (latestId) {
+            resolvedCurrentId = latestId;
             await utilSaveCurrentGameIdSetting(latestId, userId);
             setCanResume(true);
             setLastGameType(games[latestId].gameType);
@@ -295,7 +304,7 @@ export default function Home() {
           clubSeasonStartDate: homeSettings.clubSeasonStartDate,
           clubSeasonEndDate: homeSettings.clubSeasonEndDate,
           hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
-          currentGameId: lastId,
+          currentGameId: resolvedCurrentId,
         }));
       } catch (summaryErr) {
         logger.warn('Failed to build home summary', { error: summaryErr });

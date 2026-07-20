@@ -486,7 +486,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeDashboard
                     summary={homeSummary}
                     onResume={onResumeGame}
-                    onOpenVuosi={() => (onViewStatsTab ?? (() => onViewStats()))('overall')}
+                    onOpenVuosi={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
                     onOpenGame={onOpenGameById}
                     t={t}
                   />

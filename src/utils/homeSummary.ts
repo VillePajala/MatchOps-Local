@@ -8,6 +8,7 @@
  * and the coach's configured season window - never one of the coach's Kaudet.
  */
 import type { SavedGamesCollection, AppState } from '@/types';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import { filterGameIds } from '@/components/GameStatsModal/utils/gameFilters';
 import { getClubSeasonForDate } from './clubSeason';
 import { resolveGameResult, type GameResult } from './gameResult';
@@ -77,13 +78,20 @@ export function buildHomeSummary(
   games: SavedGamesCollection | null,
   opts: HomeSummaryOptions,
 ): HomeSummary {
-  const all = games ?? {};
   const recentLimit = opts.recentLimit ?? 6;
+
+  // Exclude the scratch/unsaved workspace, like every other SavedGamesCollection
+  // reader (getLatestGameId, checkAppState, LoadGameModal). A phantom entry must
+  // never count toward the Vuosi record or appear in the recent strip.
+  const all: SavedGamesCollection = {};
+  for (const [id, g] of Object.entries(games ?? {})) {
+    if (id !== DEFAULT_GAME_ID) all[id] = g;
+  }
 
   // --- Resume card (the current game) ---
   let resume: HomeResumeGame | null = null;
   const currentId = opts.currentGameId;
-  if (currentId && all[currentId]) {
+  if (currentId && currentId !== DEFAULT_GAME_ID && all[currentId]) {
     const c = all[currentId];
     resume = {
       id: currentId,

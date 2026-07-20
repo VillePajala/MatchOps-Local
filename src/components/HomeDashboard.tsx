@@ -16,6 +16,8 @@ const scoreColour: Record<'W' | 'D' | 'L', string> = {
   L: 'text-red-300',
 };
 
+const fmtElapsed = (s: number): string => `${Math.floor(s / 60)}:${String(Math.abs(s % 60)).padStart(2, '0')}`;
+
 function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?: () => void; t: TFunction }) {
   return (
     <button
@@ -31,7 +33,11 @@ function ResumeCard({ resume, onResume, t }: { resume: HomeResumeGame; onResume?
         <span className="opacity-80">
           {resume.isPlayed
             ? t(resume.homeOrAway === 'home' ? 'startScreen.dashHome' : 'startScreen.dashAway', resume.homeOrAway === 'home' ? 'Home' : 'Away')
-            : t('startScreen.dashInProgress', 'In progress')}
+            : [
+                t('startScreen.dashInProgress', 'In progress'),
+                resume.currentPeriod ? `${resume.currentPeriod}.` : null,
+                typeof resume.timeElapsedSeconds === 'number' ? fmtElapsed(resume.timeElapsedSeconds) : null,
+              ].filter(Boolean).join(' · ')}
         </span>
         <span className="bg-slate-900 text-amber-200 rounded-full px-3 py-0.5">{t('startScreen.resumeCard', 'Continue')} →</span>
       </div>
@@ -46,7 +52,7 @@ function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi'
       onClick={onOpen}
       className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 hover:bg-slate-700/70 transition-all text-[13px]"
     >
-      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('playerStats.periodLabel', 'Period')} {vuosi.label}</span>
+      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashSeason', 'Season')} {vuosi.label}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
       <span className="text-slate-300 tabular-nums">{vuosi.gamesPlayed} {t('startScreen.dashGames', 'games')}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
