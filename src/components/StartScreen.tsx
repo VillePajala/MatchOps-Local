@@ -239,7 +239,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : dashboardOn ? 'justify-start pt-2' : 'justify-start pt-[6vh]'}`}>
+        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : dashboardOn ? 'justify-start pt-[8vh]' : 'justify-start pt-[6vh]'}`}>
           <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-6'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
@@ -250,7 +250,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(2.1rem,9.5vw,3.25rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
