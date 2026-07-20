@@ -123,7 +123,7 @@ export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t:
     `${counts.personnel} ${t('startScreen.dashPersonnel', 'staff')}`,
   ];
   return (
-    <div className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-1">
+    <div className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-4">
       {parts.map((p, i) => (
         <React.Fragment key={p}>
           {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
@@ -146,7 +146,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
     <button
       type="button"
       onClick={onOpen}
-      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all mb-1"
+      className="w-full text-left p-3.5 rounded-xl bg-gradient-to-r from-indigo-900/70 to-slate-800/70 border border-indigo-700/40 hover:from-indigo-900/90 hover:to-slate-800/90 transition-all mb-4"
     >
       <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-300/80">
         {t('startScreen.dashClubSeason', 'This season')}
@@ -184,7 +184,7 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
     </div>
   );
   return (
-    <div className="flex gap-2 mb-1">
+    <div className="flex gap-2 mb-4">
       {tile(
         <span><span className="text-green-400">{vuosi.wins}</span>-{vuosi.ties}-<span className="text-red-400">{vuosi.losses}</span></span>,
         t('startScreen.dashTileResults', 'Results'),
