@@ -337,16 +337,12 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {!isFieldToolsOpen ? (
-          /* Collapsed State - Normal View. W2: Home pinned LEFT and Menu
-             pinned RIGHT with the tool cluster truly centered between two
-             equal spacers - the timer stays visually centered. */
+          /* Collapsed State - Normal View. Since the bar-level Home button was
+             removed (owner feedback: Home is the menu "Koti" entry + hardware
+             back), the remaining buttons - tactics, formation, timer, reset,
+             menu - are ONE centered group (the parent is justify-center); no
+             more left/right spacers stranding the menu on the far right. */
           <>
-            {/* Left spacer - balances the Menu on the right so the tool cluster
-                (timer) stays centered. The bar-level Home button was removed
-                (owner feedback): the way back to Home is the menu "Koti" entry,
-                mirrored by hardware back. */}
-            <div className="flex-1 flex items-center justify-start" />
-
             <div className="flex items-center gap-2">
             {/* Tactics Button - Opens field tools + enters tactics mode + enables drawing */}
             <button
@@ -394,10 +390,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               <HiOutlineTrash className={iconSize} />
             </button>
 
-            </div>
-
-            {/* Menu Button - Square shape (rightmost) */}
-            <div className="flex-1 flex items-center justify-end">
+            {/* Menu Button - Square shape (rightmost of the centered group) */}
             <button
               onClick={handleSettingsButtonClick}
               className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
@@ -406,6 +399,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             >
               <HiBars3 className={`${iconSize} transition-transform duration-150 ${isSettingsMenuOpen ? 'rotate-90' : ''}`} />
             </button>
+
             </div>
           </>
         ) : (

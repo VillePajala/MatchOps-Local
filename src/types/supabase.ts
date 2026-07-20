@@ -1021,6 +1021,7 @@ export type Database = {
           current_game_id: string | null
           has_configured_season_dates: boolean | null
           has_seen_app_guide: boolean | null
+          home_view: string | null
           is_drawing_mode_enabled: boolean | null
           language: string | null
           last_home_team_name: string | null
@@ -1035,6 +1036,7 @@ export type Database = {
           current_game_id?: string | null
           has_configured_season_dates?: boolean | null
           has_seen_app_guide?: boolean | null
+          home_view?: string | null
           is_drawing_mode_enabled?: boolean | null
           language?: string | null
           last_home_team_name?: string | null
@@ -1049,6 +1051,7 @@ export type Database = {
           current_game_id?: string | null
           has_configured_season_dates?: boolean | null
           has_seen_app_guide?: boolean | null
+          home_view?: string | null
           is_drawing_mode_enabled?: boolean | null
           language?: string | null
           last_home_team_name?: string | null
