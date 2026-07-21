@@ -743,8 +743,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
           onClick={() => setShowSetupSheet(false)}
           data-testid="setup-sheet-backdrop"
         >
-          <div className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-1" aria-hidden="true" />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('recommendedSetup.title', 'Get the most out of MatchOps')}
+            className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
             <RecommendedSetupCard
               progress={setupProgress}
               onDismiss={() => { handleDismissSetup(); setShowSetupSheet(false); }}

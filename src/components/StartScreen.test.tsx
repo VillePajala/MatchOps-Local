@@ -372,6 +372,46 @@ describe('StartScreen', () => {
       // Persisted dismissal keeps the gear entry hidden.
       expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
     });
+
+    it('opening the setup sheet closes the gear sheet (not stacked)', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      openGear();
+      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Getting started/ }));
+      // Gear sheet is gone; only the setup sheet remains.
+      expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Get the most out of MatchOps' })).toBeInTheDocument();
+    });
+
+    it('backdrop tap closes the setup sheet WITHOUT dismissing it (entry survives)', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      openGear();
+      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Getting started/ }));
+      expect(screen.getByText('Get the most out of MatchOps')).toBeInTheDocument();
+
+      // Tap the backdrop (not the ×) - closes the sheet only.
+      fireEvent.click(screen.getByTestId('setup-sheet-backdrop'));
+      expect(screen.queryByText('Get the most out of MatchOps')).not.toBeInTheDocument();
+
+      // The gear entry is NOT dismissed - it reopens.
+      openGear();
+      expect(within(screen.getByRole('dialog', { name: 'App & account' })).getByRole('button', { name: /Getting started/ })).toBeInTheDocument();
+    });
   });
 });
 
