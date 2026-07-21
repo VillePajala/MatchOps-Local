@@ -1156,7 +1156,8 @@
     "firstRunWelcome": "Welcome! Set up your team in two steps.",
     "firstRunAddPlayers": "Add your players",
     "firstRunCreateGame": "Create your first game",
-    "firstRunExplore": "Just explore first"
+    "firstRunExplore": "Just explore first",
+    "gearSetup": "Getting started ({{done}}/4)"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

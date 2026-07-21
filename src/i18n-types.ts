@@ -2413,6 +2413,7 @@ export type TranslationKey =
   | 'startScreen.gearDashboardView'
   | 'startScreen.gearGuide'
   | 'startScreen.gearRules'
+  | 'startScreen.gearSetup'
   | 'startScreen.gearSignOut'
   | 'startScreen.gearTitle'
   | 'startScreen.homeTabs'

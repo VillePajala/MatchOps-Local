@@ -1021,7 +1021,8 @@
     "firstRunWelcome": "Tervetuloa! Ota joukkueesi käyttöön kahdessa vaiheessa.",
     "firstRunAddPlayers": "Lisää pelaajat",
     "firstRunCreateGame": "Luo ensimmäinen ottelu",
-    "firstRunExplore": "Tutustu ensin"
+    "firstRunExplore": "Tutustu ensin",
+    "gearSetup": "Käyttöönotto ({{done}}/4)"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
