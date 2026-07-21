@@ -1527,7 +1527,21 @@ export default function Home() {
               homeSummary={homeSummary}
               onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
-              onSetupModalsClosed={() => setRefreshTrigger(prev => prev + 1)}
+              onSetupModalsClosed={async () => {
+                // A first-time user who just added players in a setup modal must
+                // graduate off the first-run panel. Refresh ONLY hasPlayers -
+                // targeted, so it flips isFirstTimeUser WITHOUT the full
+                // checkAppState round-trip (which flashes the loading screen).
+                // Gated to first-timers: everyday setup-modal closes for existing
+                // users need no refresh at all.
+                if (!isFirstTimeUser) return;
+                try {
+                  const roster = await getMasterRoster(userId);
+                  setHasPlayers(roster.length > 0);
+                } catch (err) {
+                  logger.warn('Failed to refresh players after setup', { error: err });
+                }
+              }}
             />
           </ErrorBoundary>
         ) : (
