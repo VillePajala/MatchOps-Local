@@ -245,6 +245,17 @@ export async function buildAndPersistNewGame(
   try {
     await utilSaveGame(newGameId, newGameState, userId);
     await utilSaveCurrentGameIdSetting(newGameId, userId);
+    // Seed the shared caches SYNCHRONOUSLY before entering the match. The fresh
+    // match mount boots its current-game id from these queries exactly once; if
+    // it races the async invalidate-refetch below and the new game isn't in the
+    // savedGames snapshot yet, the boot falls back to the demo DEFAULT_GAME_ID
+    // and the field wrongly shows the "set up roster" first-game overlay. A
+    // direct setQueryData guarantees the game + id are present at boot.
+    queryClient.setQueryData(
+      [...queryKeys.savedGames, userId],
+      (prev: Record<string, AppState> | undefined) => ({ ...(prev ?? {}), [newGameId]: newGameState }),
+    );
+    queryClient.setQueryData([...queryKeys.appSettingsCurrentGameId, userId], newGameId);
     await queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
     // The fresh match mount boots from the persisted current-game id via this
     // shared query - it must not serve the previous game's id from cache.

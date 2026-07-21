@@ -51,6 +51,7 @@ const createTestDeps = (overrides?: Record<string, unknown>) => ({
   savedGames: {} as SavedGamesCollection,
   queryClient: {
     invalidateQueries: jest.fn().mockResolvedValue(undefined),
+    setQueryData: jest.fn(),
   } as unknown as QueryClient,
   showToast: jest.fn(),
   t: ((_key: string, fallback?: string) => fallback ?? _key) as TFunction,
@@ -104,6 +105,13 @@ describe('newGameHandlers', () => {
     // fresh match mount boots from.
     expect((deps.queryClient as unknown as { invalidateQueries: jest.Mock }).invalidateQueries)
       .toHaveBeenCalledTimes(2);
+    // AND the caches are seeded SYNCHRONOUSLY (setQueryData) so the match mount
+    // finds the new game at boot and never falls back to the demo DEFAULT_GAME_ID
+    // (which would wrongly show the "set up roster" first-game overlay).
+    const setQueryData = (deps.queryClient as unknown as { setQueryData: jest.Mock }).setQueryData;
+    expect(setQueryData).toHaveBeenCalledTimes(2);
+    // The current-game-id cache is set to the new game id.
+    expect(setQueryData.mock.calls.some((c: unknown[]) => c[1] === result!.gameId)).toBe(true);
   });
 
   it('threads the isFriendly flag onto the built game (default false, explicit true)', async () => {

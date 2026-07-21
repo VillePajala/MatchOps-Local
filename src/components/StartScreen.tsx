@@ -265,8 +265,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </h1>
             </div>
 
-            {/* Tagline - only in the full-hero states */}
-            {!dashboardOn && (
+            {/* Tagline - full-hero states only, and NOT on first run: the
+                first-run panel shows its own "welcome + two steps" line, so
+                showing the brand tagline too would stack two texts under the
+                logo (owner feedback). First-timers get the guiding line instead. */}
+            {!dashboardOn && !isFirstTimeUser && (
               <p className="text-lg text-slate-400">
                 {t('startScreen.tagline', 'Plan · Track · Discover')}
               </p>

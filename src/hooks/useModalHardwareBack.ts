@@ -69,6 +69,30 @@ function reArmSentinel(): void {
   }, 0);
 }
 
+let retireTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Retire the sentinel when the last modal closes via UI - but DEFER it a
+// macrotask. On the Start-screen -> Match crossing, the closing modal's cleanup
+// and the opening match-view guard's setup land in ONE React commit, and React
+// runs cleanup BEFORE setup. A synchronous retire here would fire history.back()
+// and then the match guard's pushState in the same tick - the exact back()+
+// pushState interleave Android WebViews drop, leaving sentinelPushed=true with
+// no real entry (first hardware back then exits the app). Deferring lets the
+// same-commit setup CANCEL this retire and reuse the still-live sentinel.
+function scheduleSentinelRetire(): void {
+  if (retireTimer !== null) return;
+  retireTimer = setTimeout(() => {
+    retireTimer = null;
+    // Only retire if nothing re-registered in the meantime and the sentinel
+    // is still up (a same-commit reopen/crossing cancels this instead).
+    if (modalStack.length === 0 && sentinelPushed) {
+      sentinelPushed = false;
+      suppressedPops += 1;
+      window.history.back();
+    }
+  }, 0);
+}
+
 // --- Preemptive sub-level guards ----------------------------------------
 // A modal with internal sub-views (the planner: a plan steps back to its
 // manager) needs a hardware back to STEP without closing. Doing that with the
@@ -150,6 +174,7 @@ export function __resetModalHardwareBackForTests(): void {
   suppressedPops = 0;
   sentinelPushed = false;
   if (reArmTimer !== null) { clearTimeout(reArmTimer); reArmTimer = null; }
+  if (retireTimer !== null) { clearTimeout(retireTimer); retireTimer = null; }
 }
 
 export function useModalHardwareBack(isOpen: boolean, onClose: () => void | boolean): void {
@@ -170,6 +195,10 @@ export function useModalHardwareBack(isOpen: boolean, onClose: () => void | bool
     }
 
     const entry: StackEntry = { close: () => onCloseRef.current() };
+    // Cancel a pending sentinel-retire: if a modal closed THIS commit (its
+    // cleanup ran first) and set one, this registration reuses the still-live
+    // sentinel rather than letting it retire (the Start->Match crossing).
+    if (retireTimer !== null) { clearTimeout(retireTimer); retireTimer = null; }
     modalStack.push(entry);
     if (!sentinelPushed) {
       pushSentinel();
@@ -184,9 +213,7 @@ export function useModalHardwareBack(isOpen: boolean, onClose: () => void | bool
         // surface opening, because that open re-uses the live sentinel.
         modalStack.splice(index, 1);
         if (modalStack.length === 0 && sentinelPushed) {
-          sentinelPushed = false;
-          suppressedPops += 1;
-          window.history.back();
+          scheduleSentinelRetire();
         }
       }
       // index === -1 means a hardware back press closed this surface - the

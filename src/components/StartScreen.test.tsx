@@ -171,6 +171,29 @@ describe('StartScreen', () => {
     expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
+
+    // The brand tagline is hidden for first-timers - the first-run panel already
+    // shows its own guiding line, so both would stack under the logo.
+    expect(screen.queryByText('Plan · Track · Discover')).not.toBeInTheDocument();
+  });
+
+  it('shows the brand tagline for a returning coach (not a first-timer)', () => {
+    render(
+      <StartScreen
+        onLoadGame={jest.fn()}
+        onResumeGame={jest.fn()}
+        onGetStarted={jest.fn()}
+        onNewGame={jest.fn()}
+        onManageRoster={jest.fn()}
+        onViewStats={jest.fn()}
+        onOpenSettings={jest.fn()}
+        canResume={false}
+        hasSavedGames={true}
+        isFirstTimeUser={false}
+      />
+    );
+
+    expect(screen.getByText('Plan · Track · Discover')).toBeInTheDocument();
   });
 
   it('first-run buttons fall back to onGetStarted when the setup handlers are unwired', () => {

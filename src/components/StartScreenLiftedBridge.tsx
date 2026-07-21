@@ -39,9 +39,14 @@ type LiftedHandlerProps =
   | 'onOpenGuide'
   | 'onOpenSettings';
 
-export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerProps>;
+export type StartScreenLiftedBridgeProps = Omit<StartScreenProps, LiftedHandlerProps> & {
+  /** Called after a setup-relevant modal (roster/teams/competitions/new game)
+      closes, so page.tsx can re-check its Home flags - adding players there must
+      graduate a first-time user off the first-run panel to the normal Home. */
+  onSetupModalsClosed?: () => void;
+};
 
-export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgeProps) {
+export default function StartScreenLiftedBridge({ onSetupModalsClosed, ...props }: StartScreenLiftedBridgeProps) {
   const {
     setIsLoadGameModalOpen,
     setIsNewGameSetupModalOpen,
@@ -58,7 +63,24 @@ export default function StartScreenLiftedBridge(props: StartScreenLiftedBridgePr
     setIsInstructionsModalOpen,
     setIsSettingsModalOpen,
     openSettingsToTab,
+    isRosterModalOpen,
+    isNewGameSetupModalOpen,
+    isSeasonTournamentModalOpen,
+    isTeamManagerOpen,
+    isPersonnelManagerOpen,
   } = useModalContext();
+
+  // The page's Home flags (hasPlayers -> isFirstTimeUser, the setup tracker) are
+  // snapshotted in checkAppState and don't refresh when a club modal closes.
+  // After a setup modal closes, ask page to re-check so the Home reflects the
+  // change (e.g. added players -> not a first-time user anymore).
+  const anySetupOpen = isRosterModalOpen || isNewGameSetupModalOpen ||
+    isSeasonTournamentModalOpen || isTeamManagerOpen || isPersonnelManagerOpen;
+  const prevAnySetupOpen = React.useRef(anySetupOpen);
+  React.useEffect(() => {
+    if (prevAnySetupOpen.current && !anySetupOpen) onSetupModalsClosed?.();
+    prevAnySetupOpen.current = anySetupOpen;
+  }, [anySetupOpen, onSetupModalsClosed]);
 
   return (
     <StartScreen
