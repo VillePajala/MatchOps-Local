@@ -1527,6 +1527,7 @@ export default function Home() {
               homeSummary={homeSummary}
               onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
+              onSetupModalsClosed={() => setRefreshTrigger(prev => prev + 1)}
             />
           </ErrorBoundary>
         ) : (
