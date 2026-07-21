@@ -150,7 +150,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   const setupComplete = !!setupProgress &&
     setupProgress.players && setupProgress.competition && setupProgress.team && setupProgress.teamLinkedGame;
-  const showSetupCard = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
+  // The setup tracker moved OFF the (space-tight) home tabs into an on-demand
+  // gear-sheet entry - the contextual empty-states already nudge setup inline
+  // where there's room. This entry shows its progress and opens the checklist.
+  const showSetupEntry = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
+  const setupDoneCount = setupProgress
+    ? [setupProgress.players, setupProgress.competition, setupProgress.team, setupProgress.teamLinkedGame].filter(Boolean).length
+    : 0;
+  const [showSetupSheet, setShowSetupSheet] = useState(false);
 
   // Adopt the real i18n language once on the client, after hydration has completed.
   useEffect(() => {
@@ -622,11 +629,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
           </div>
 
-          {/* Recommended setup card — teaches the fuller workflow to quick-path users */}
-          {showSetupCard && setupProgress && (
-            <RecommendedSetupCard progress={setupProgress} onDismiss={handleDismissSetup} />
-          )}
-
         </div>
       </div>
 
@@ -696,6 +698,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   {t('startScreen.gearRules', 'Rules')}
                 </button>
               )}
+              {/* Setup tracker (moved off the home tabs) - on-demand, shows N/4. */}
+              {showSetupEntry && (
+                <button type="button" onClick={() => { setShowGearSheet(false); setShowSetupSheet(true); }} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  <span>{t('startScreen.gearSetup', 'Getting started ({{done}}/4)', { done: setupDoneCount })}</span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+              )}
               {/* In-app "How it works" guide (rebuilt for the two-level UI). */}
               {onOpenGuide && (
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
@@ -722,6 +731,30 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <a href="https://www.match-ops.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">match-ops.com</a>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Setup tracker sheet (opened from the gear entry). Backdrop tap just
+          closes it; the card's × permanently dismisses (hides the gear entry). */}
+      {showSetupSheet && setupProgress && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60"
+          onClick={() => setShowSetupSheet(false)}
+          data-testid="setup-sheet-backdrop"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('recommendedSetup.title', 'Get the most out of MatchOps')}
+            className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
+            <RecommendedSetupCard
+              progress={setupProgress}
+              onDismiss={() => { handleDismissSetup(); setShowSetupSheet(false); }}
+            />
           </div>
         </div>
       )}
