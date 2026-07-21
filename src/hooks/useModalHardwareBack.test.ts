@@ -30,6 +30,12 @@ describe('useModalHardwareBack (single sentinel)', () => {
     });
   };
 
+  // Flush the macrotask the hook uses to DEFER the sentinel-retire on a UI close
+  // (so a same-commit reopen can cancel it - the Start->Match crossing fix).
+  const flushRetire = async () => {
+    await act(async () => { await new Promise<void>((resolve) => setTimeout(resolve, 0)); });
+  };
+
   it('N stacked surfaces share ONE sentinel; each back closes topmost and re-arms', async () => {
     const closeA = jest.fn();
     const closeB = jest.fn();
@@ -61,6 +67,7 @@ describe('useModalHardwareBack (single sentinel)', () => {
     const close = jest.fn();
     const a = renderHook(({ open }) => useModalHardwareBack(open, close), { initialProps: { open: true } });
     a.rerender({ open: false });
+    await flushRetire(); // the retire is deferred a macrotask now
     expect(backSpy).toHaveBeenCalledTimes(1);
     // The programmatic back()'s popstate is swallowed - closes nothing.
     await pop();
@@ -209,6 +216,7 @@ describe('useModalHardwareBack (single sentinel)', () => {
     expect(pushSpy).toHaveBeenCalledTimes(2); // sentinel + preemptive sub-guard
 
     planner.rerender({ open: false }); // close the planner from the sub-level via UI
+    await flushRetire(); // the sentinel retire is deferred a macrotask now
     expect(backSpy).toHaveBeenCalledTimes(2); // sub-guard back + sentinel back
 
     // Both programmatic backs' popstates are swallowed - neither callback fires.
@@ -223,6 +231,39 @@ describe('useModalHardwareBack (single sentinel)', () => {
     await pop();
     expect(closeMain).toHaveBeenCalledTimes(1);
     other.unmount();
+  });
+
+  it('Start->Match crossing: a modal closing WHILE the match guard registers keeps the sentinel (no exit)', async () => {
+    // Device bug: creating a game from the Start screen closes the new-game modal
+    // AND flips screen start->home (match) in ONE commit. React runs the modal's
+    // cleanup before the match guard's setup, so a synchronous retire would fire
+    // back()+pushState in the same tick (Android drops the pushState -> next back
+    // exits the app). The deferred retire must be CANCELLED by the same-commit
+    // match registration, keeping the ONE live sentinel intact.
+    const closeModal = jest.fn();
+    const goHome = jest.fn();
+    // Both hooks in one component; the modal is open, the match guard is not yet.
+    const app = renderHook(
+      ({ modalOpen, inMatch }) => {
+        useModalHardwareBack(modalOpen, closeModal);
+        useModalHardwareBack(inMatch, goHome);
+      },
+      { initialProps: { modalOpen: true, inMatch: false } },
+    );
+    expect(pushSpy).toHaveBeenCalledTimes(1); // one sentinel
+
+    // The crossing: modal closes and the match guard activates in the SAME commit.
+    app.rerender({ modalOpen: false, inMatch: true });
+    await flushRetire();
+    // No churn: the sentinel was reused, not retired-and-repushed.
+    expect(backSpy).not.toHaveBeenCalled();
+    expect(pushSpy).toHaveBeenCalledTimes(1); // still the SAME one sentinel
+
+    // The sentinel is live: the first hardware back closes the match (-> Home),
+    // it does NOT fall through and exit the app.
+    await pop();
+    expect(goHome).toHaveBeenCalledTimes(1);
+    app.unmount();
   });
 
   it('exposes the hardware-back flag ONLY during a popstate-driven close', async () => {
