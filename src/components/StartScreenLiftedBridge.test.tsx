@@ -50,6 +50,17 @@ function Probe() {
   return <div data-testid="probe">{open || 'none'}</div>;
 }
 
+/** Lets a test close modals via context (there is no Home tap that closes them). */
+function Closer() {
+  const ctx = useModalContext();
+  return (
+    <>
+      <button onClick={() => ctx.setIsRosterModalOpen(false)}>close-roster</button>
+      <button onClick={() => ctx.setIsTrainingResourcesOpen(false)}>close-training</button>
+    </>
+  );
+}
+
 describe('StartScreenLiftedBridge (L.2)', () => {
   const renderBridge = (onGetStarted = jest.fn()) => {
     render(
@@ -61,6 +72,20 @@ describe('StartScreenLiftedBridge (L.2)', () => {
       </ModalProvider>,
     );
     return { onGetStarted };
+  };
+
+  const renderBridgeWithCloser = (onSetupModalsClosed = jest.fn()) => {
+    render(
+      <ModalProvider>
+        <Probe />
+        <Closer />
+        <StartScreenLiftedBridge
+          onGetStarted={jest.fn()}
+          onSetupModalsClosed={onSetupModalsClosed}
+        />
+      </ModalProvider>,
+    );
+    return { onSetupModalsClosed };
   };
 
   it.each([
@@ -89,5 +114,33 @@ describe('StartScreenLiftedBridge (L.2)', () => {
     fireEvent.click(screen.getByText('tap-get-started'));
     expect(onGetStarted).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('probe')).toHaveTextContent('none');
+  });
+
+  // A first-time user who adds players in the roster modal must graduate off the
+  // first-run panel when it closes - the bridge signals that via onSetupModalsClosed.
+  describe('onSetupModalsClosed (setup-modal-close -> Home re-check)', () => {
+    it('fires once when a setup modal transitions open -> closed', () => {
+      const { onSetupModalsClosed } = renderBridgeWithCloser();
+
+      // Opening a setup modal must NOT fire it (edge is close only).
+      fireEvent.click(screen.getByText('tap-roster'));
+      expect(screen.getByTestId('probe')).toHaveTextContent('roster');
+      expect(onSetupModalsClosed).not.toHaveBeenCalled();
+
+      // Closing it fires exactly once.
+      fireEvent.click(screen.getByText('close-roster'));
+      expect(screen.getByTestId('probe')).toHaveTextContent('none');
+      expect(onSetupModalsClosed).toHaveBeenCalledTimes(1);
+    });
+
+    it('does NOT fire when a non-setup modal (training) closes', () => {
+      const { onSetupModalsClosed } = renderBridgeWithCloser();
+
+      fireEvent.click(screen.getByText('tap-training'));
+      expect(screen.getByTestId('probe')).toHaveTextContent('training');
+      fireEvent.click(screen.getByText('close-training'));
+      expect(screen.getByTestId('probe')).toHaveTextContent('none');
+      expect(onSetupModalsClosed).not.toHaveBeenCalled();
+    });
   });
 });
