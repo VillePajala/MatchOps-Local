@@ -409,7 +409,7 @@ describe('Translation File Validation', () => {
       // Merged master: the planner Balance PRs (#682/#683) added their own keys.
       // -1: seasonTournamentModal.title - orphaned when Kaudet/Turnaukset split
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
-      expect(enKeys.length).toBe(2873);
+      expect(enKeys.length).toBe(2874);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -537,7 +537,7 @@ describe('Translation File Validation', () => {
       // Merged master: the planner Balance PRs (#682/#683) added their own keys.
       // -1: seasonTournamentModal.title - orphaned when Kaudet/Turnaukset split
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
-      expect(fiKeys.length).toBe(2873);
+      expect(fiKeys.length).toBe(2874);
     });
   });
 });
