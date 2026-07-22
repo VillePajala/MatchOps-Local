@@ -2,11 +2,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
-import PersonnelManagerModal from '@/components/PersonnelManagerModal';
-import TeamManagerModal from '@/components/TeamManagerModal';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import GoalLogModal from '@/components/GoalLogModal';
-import NewGameSetupModal from '@/components/NewGameSetupModal';
-import RosterSettingsModal from '@/components/RosterSettingsModal';
 const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -14,16 +11,9 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 // Lazy-loaded modals: these pull in heavy dependencies (recharts, xlsx, etc.)
 // and are not visible on initial render
 const GameStatsModal = dynamic(() => import('@/components/GameStatsModal'));
-const LoadGameModal = dynamic(() => import('@/components/LoadGameModal'));
-const SeasonTournamentManagementModal = dynamic(() => import('@/components/SeasonTournamentManagementModal'));
-const SettingsModal = dynamic(() => import('@/components/SettingsModal'));
-const TrainingResourcesModal = dynamic(() => import('@/components/TrainingResourcesModal'));
-const RulesDirectoryModal = dynamic(() => import('@/components/RulesDirectoryModal'));
-const InstructionsModal = dynamic(() => import('@/components/InstructionsModal'));
 import type {
   Player,
   GameEvent,
-  PlayerStatRow,
   SavedGamesCollection,
   Season,
   Tournament,
@@ -36,51 +26,19 @@ import type {
 } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
-import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
-interface LoadGameState {
-  isLoadingGamesList: boolean;
-  loadGamesListError: string | null;
-  isGameLoading: boolean;
-  gameLoadError: string | null;
-  isGameDeleting: boolean;
-  gameDeleteError: string | null;
-  processingGameId: string | null;
-}
 
-interface SeasonTournamentMutations {
-  addSeason?: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
-  addTournament?: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
-  updateSeason?: UseMutationResult<Season | null, Error, Season, unknown>;
-  deleteSeason?: UseMutationResult<boolean, Error, string, unknown>;
-  updateTournament?: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
-  deleteTournament?: UseMutationResult<boolean, Error, string, unknown>;
-}
-
-type SettingsTab = 'general' | 'data' | 'account' | 'about';
 
 interface ModalManagerState {
-  isTrainingResourcesOpen: boolean;
-  isRulesDirectoryOpen: boolean;
-  isInstructionsModalOpen: boolean;
-  isPersonnelManagerOpen: boolean;
-  isTeamManagerOpen: boolean;
   isGoalLogModalOpen: boolean;
   isGameStatsModalOpen: boolean;
-  isLoadGameModalOpen: boolean;
-  isNewGameSetupModalOpen: boolean;
-  isRosterModalOpen: boolean;
-  isSeasonTournamentModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
-  isSettingsModalOpen: boolean;
-  settingsInitialTab?: SettingsTab;
+  /** R3: wrap-up rows land scrolled to their section. */
+  gameSettingsInitialSection?: 'roster' | 'report' | 'positions' | 'competition';
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
-  showHardResetConfirm: boolean;
-  showSaveBeforeNewConfirm: boolean;
-  showStartNewConfirm: boolean;
   showResetFieldConfirm: boolean;
 }
 
@@ -96,30 +54,14 @@ interface ModalManagerData {
   tournaments: Tournament[];
   masterRoster: Player[];
   personnel: Personnel[];
-  personnelManager: Pick<PersonnelManagerReturn, 'addPersonnel' | 'updatePersonnel' | 'removePersonnel' | 'isLoading'>;
   playerAssessments: Record<string, PlayerAssessment>;
-  selectedPlayerForStats: Player | null;
-  playerIdsForNewGame: string[] | null;
-  newGameDemandFactor: number;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
-  appLanguage: string;
-  defaultTeamNameSetting: string;
-  gameIdentifierForSave: string;
   isPlayed: boolean;
-  isRosterUpdating: boolean;
-  rosterError: string | null;
-  loadGameState: LoadGameState;
-  seasonTournamentMutations: SeasonTournamentMutations;
   updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
 }
 
 interface ModalManagerHandlers {
-  toggleTrainingResources: () => void;
-  toggleRulesDirectory: () => void;
-  toggleInstructionsModal: () => void;
-  closePersonnelManager: () => void;
-  closeTeamManagerModal: () => void;
   toggleGoalLogModal: () => void;
   addGoalEvent: (playerId: string | undefined, assistId?: string) => void;
   logOpponentGoal: (timeSeconds: number) => void;
@@ -128,50 +70,7 @@ interface ModalManagerHandlers {
   deleteGameEvent: (eventId: string) => Promise<boolean>;
   toggleGameStatsModal: () => void;
   exportOneExcel: (gameId: string) => void;
-  exportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
-  exportPlayerExcel: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
-  gameLogClick: (gameId: string) => void;
-  closeLoadGameModal: () => void;
-  loadGame: (gameId: string) => void;
-  deleteGame: (gameId: string) => void;
   exportOneJson: (gameId: string) => void;
-  setSelectedTeamForRoster: (teamId: string | null) => void;
-  setNewGameDemandFactor: (factor: number) => void;
-  startNewGameWithSetup: (
-    initialSelectedPlayerIds: string[],
-    homeTeamName: string,
-    opponentName: string,
-    gameDate: string,
-    gameLocation: string,
-    gameTime: string,
-    seasonId: string | null,
-    tournamentId: string | null,
-    numPeriods: 1 | 2,
-    periodDuration: number,
-    homeOrAway: 'home' | 'away',
-    demandFactor: number,
-    ageGroup: string,
-    tournamentLevel: string,
-    tournamentSeriesId: string | null,
-    isPlayedParam: boolean,
-    teamId: string | null,
-    availablePlayersForGame: Player[],
-    selectedPersonnelIds: string[],
-    leagueId: string,
-    customLeagueName: string,
-    gameType: import('@/types').GameType,
-    gender: import('@/types').Gender | undefined
-  ) => void;
-  cancelNewGameSetup: () => void;
-  closeRosterModal: () => void;
-  updatePlayerForModal: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
-  renamePlayerForModal: (playerId: string, playerData: { name: string; nickname?: string }) => void;
-  setJerseyNumberForModal: (playerId: string, jerseyNumber: string) => void;
-  setPlayerNotesForModal: (playerId: string, notes: string) => void;
-  removePlayerForModal: (playerId: string) => void;
-  addPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
-  openPlayerStats: (playerId: string) => void;
-  closeSeasonTournamentModal: () => void;
   closeGameSettingsModal: () => void;
   teamNameChange: (name: string) => void;
   opponentNameChange: (name: string) => void;
@@ -200,15 +99,10 @@ interface ModalManagerHandlers {
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
+  /** 3.2 roster bridge: club write from the game picker. */
+  addPlayerToClubRoster: (name: string, nickname?: string) => Promise<Player | null>;
   reapplyPlan: () => void | Promise<void>;
   setGamePersonnel?: (personnelIds: string[]) => void;
-  closeSettingsModal: () => void;
-  setAppLanguage: (lang: string) => void;
-  setDefaultTeamName: (name: string) => void;
-  showAppGuide: () => void;
-  hardResetApp: () => void;
-  resyncFromCloud: () => void;
-  factoryReset: () => void;
   closePlayerAssessmentModal: () => void;
   savePlayerAssessment: (playerId: string, assessment: Partial<PlayerAssessment>) => void;
   deletePlayerAssessment: (playerId: string) => void;
@@ -216,19 +110,12 @@ interface ModalManagerHandlers {
   setIsTeamReassignModalOpen: (open: boolean) => void;
   confirmNoPlayers: () => void;
   setShowNoPlayersConfirm: (open: boolean) => void;
-  confirmHardReset: () => void;
-  setShowHardResetConfirm: (open: boolean) => void;
-  saveBeforeNewConfirmed: () => void;
-  saveBeforeNewCancelled: () => void;
-  setShowStartNewConfirm: (open: boolean) => void;
-  startNewConfirmed: () => void;
   setShowResetFieldConfirm: (open: boolean) => void;
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
-  onCreateBackup: () => void;
-  onCloudDataDownload?: () => Promise<void>;
-  onDataImportSuccess?: () => void;
-  manageTeamRosterFromNewGame: (teamId?: string) => void;
+  /** W6: wrap-up rows navigate to where the item is completed. */
+  wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  wrapUpToAssessments: () => void;
 }
 
 export interface ModalManagerProps {
@@ -243,40 +130,32 @@ export interface ModalManagerProps {
 
 export function ModalManager({ state, data, handlers, ratingStyle = 'words', assessmentTemplate = 'balanced' }: ModalManagerProps) {
   const { t } = useTranslation();
+
+  // Hardware-back contract (modal governance, audited in 3.1): MATCH-scope
+  // modals sit ABOVE the page-level match entry ("back exits to Home") and must
+  // close first - back must never exit the match while one of these is open.
+  // They register as PREEMPTIVE sub-guards (not useModalHardwareBack): back#1
+  // consumes the sub-guard and closes the modal, leaving the match sentinel
+  // intact so back#2 reaches Home. useModalHardwareBack would instead re-push
+  // the sentinel via setTimeout AFTER back#1 - a re-arm that fails on Android
+  // WebViews, so back#2 exited the app (device bug).
+  useHardwareBackSubLevel(state.isGoalLogModalOpen, handlers.toggleGoalLogModal);
+  useHardwareBackSubLevel(state.isGameStatsModalOpen, handlers.toggleGameStatsModal);
+  useHardwareBackSubLevel(state.isGameSettingsModalOpen, handlers.closeGameSettingsModal);
+  useHardwareBackSubLevel(state.isPlayerAssessmentModalOpen, handlers.closePlayerAssessmentModal);
+  useHardwareBackSubLevel(state.isTeamReassignModalOpen, () => handlers.setIsTeamReassignModalOpen(false));
+  useHardwareBackSubLevel(state.showNoPlayersConfirm, () => handlers.setShowNoPlayersConfirm(false));
+  useHardwareBackSubLevel(state.showResetFieldConfirm, () => handlers.setShowResetFieldConfirm(false));
+
   return (
     <ModalPortal>
       <>
-        <TrainingResourcesModal
-          isOpen={state.isTrainingResourcesOpen}
-          onClose={handlers.toggleTrainingResources}
-        />
-        <RulesDirectoryModal
-          isOpen={state.isRulesDirectoryOpen}
-          onClose={handlers.toggleRulesDirectory}
-        />
-
-        <InstructionsModal
-          isOpen={state.isInstructionsModalOpen}
-          onClose={handlers.toggleInstructionsModal}
-        />
-
-        <PersonnelManagerModal
-          isOpen={state.isPersonnelManagerOpen}
-          onClose={handlers.closePersonnelManager}
-          personnel={data.personnel}
-          onAddPersonnel={data.personnelManager.addPersonnel}
-          onUpdatePersonnel={data.personnelManager.updatePersonnel}
-          onRemovePersonnel={data.personnelManager.removePersonnel}
-          isUpdating={data.personnelManager.isLoading}
-        />
-
-        <TeamManagerModal
-          isOpen={state.isTeamManagerOpen}
-          onClose={handlers.closeTeamManagerModal}
-          teams={data.teams}
-          masterRoster={data.masterRoster}
-        />
-
+        {/* TrainingResources + RulesDirectory LIFTED to ClubModalsHost (L.0a),
+            Settings + Instructions + hard-reset confirm LIFTED there too (L.0b)
+            - never render them here again (dual-render guard). */}
+        {/* PersonnelManagerModal + SeasonTournamentManagementModal LIFTED to
+            ClubModalsHost (L.1); RosterSettingsModal + TeamManagerModal LIFTED
+            there too (L.2) - never render them here again (dual-render guard). */}
         <GoalLogModal
           isOpen={state.isGoalLogModalOpen}
           onClose={handlers.toggleGoalLogModal}
@@ -323,100 +202,23 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             currentGameId={data.currentGameId}
             onDeleteGameEvent={handlers.deleteGameEvent}
             onExportOneExcel={handlers.exportOneExcel}
-            onExportAggregateExcel={handlers.exportAggregateExcel}
-            onExportPlayerExcel={handlers.exportPlayerExcel}
-            initialSelectedPlayerId={data.selectedPlayerForStats?.id}
-            onGameClick={handlers.gameLogClick}
+            currentGameOnly
             masterRoster={data.masterRoster}
             onGameNotesChange={handlers.gameNotesChange}
           onOpenSettings={handlers.openSettingsModal}
+          onOpenGameSettings={handlers.wrapUpToGameSettings}
+          onOpenAssessments={handlers.wrapUpToAssessments}
         />
       )}
 
-        <LoadGameModal
-          isOpen={state.isLoadGameModalOpen}
-          onClose={handlers.closeLoadGameModal}
-          savedGames={data.savedGames}
-          onLoad={handlers.loadGame}
-          onDelete={handlers.deleteGame}
-          onExportOneJson={handlers.exportOneJson}
-          onExportOneExcel={handlers.exportOneExcel}
-          currentGameId={data.currentGameId || undefined}
-          currentSessionHomeScore={data.gameSessionState.homeScore}
-          currentSessionAwayScore={data.gameSessionState.awayScore}
-          isLoadingGamesList={data.loadGameState.isLoadingGamesList}
-          loadGamesListError={data.loadGameState.loadGamesListError}
-          isGameLoading={data.loadGameState.isGameLoading}
-          gameLoadError={data.loadGameState.gameLoadError}
-          isGameDeleting={data.loadGameState.isGameDeleting}
-          gameDeleteError={data.loadGameState.gameDeleteError}
-          processingGameId={data.loadGameState.processingGameId}
-          seasons={data.seasons}
-          tournaments={data.tournaments}
-          teams={data.teams}
-        />
+        {/* LoadGameModal LIFTED to ClubModalsHost (L.3a) - dual-render guard. */}
 
-        {state.isNewGameSetupModalOpen && (
-          <NewGameSetupModal
-            isOpen={state.isNewGameSetupModalOpen}
-            initialPlayerSelection={data.playerIdsForNewGame}
-            demandFactor={data.newGameDemandFactor}
-            onDemandFactorChange={handlers.setNewGameDemandFactor}
-          onManageTeamRoster={(teamId) => {
-            handlers.manageTeamRosterFromNewGame(teamId);
-          }}
-            onStart={handlers.startNewGameWithSetup}
-            onCancel={handlers.cancelNewGameSetup}
-            masterRoster={data.masterRoster}
-            seasons={data.seasons}
-            tournaments={data.tournaments}
-            teams={data.teams}
-            personnel={data.personnel}
-            savedGames={data.savedGames}
-          />
-        )}
-
-        <RosterSettingsModal
-          isOpen={state.isRosterModalOpen}
-          onClose={handlers.closeRosterModal}
-          availablePlayers={data.availablePlayers}
-          onUpdatePlayer={handlers.updatePlayerForModal}
-          onRenamePlayer={handlers.renamePlayerForModal}
-          onSetJerseyNumber={handlers.setJerseyNumberForModal}
-          onSetPlayerNotes={handlers.setPlayerNotesForModal}
-          onRemovePlayer={handlers.removePlayerForModal}
-          onAddPlayer={handlers.addPlayerForModal}
-          isRosterUpdating={data.isRosterUpdating}
-          rosterError={data.rosterError}
-          onOpenPlayerStats={handlers.openPlayerStats}
-        />
-
-        {state.isSeasonTournamentModalOpen &&
-          data.seasonTournamentMutations.addSeason &&
-          data.seasonTournamentMutations.addTournament &&
-          data.seasonTournamentMutations.updateSeason &&
-          data.seasonTournamentMutations.deleteSeason &&
-          data.seasonTournamentMutations.updateTournament &&
-          data.seasonTournamentMutations.deleteTournament && (
-          <SeasonTournamentManagementModal
-            isOpen={state.isSeasonTournamentModalOpen}
-            onClose={handlers.closeSeasonTournamentModal}
-            seasons={data.seasons}
-            tournaments={data.tournaments}
-            masterRoster={data.masterRoster}
-            addSeasonMutation={data.seasonTournamentMutations.addSeason}
-            addTournamentMutation={data.seasonTournamentMutations.addTournament}
-            updateSeasonMutation={data.seasonTournamentMutations.updateSeason}
-            deleteSeasonMutation={data.seasonTournamentMutations.deleteSeason}
-            updateTournamentMutation={data.seasonTournamentMutations.updateTournament}
-            deleteTournamentMutation={data.seasonTournamentMutations.deleteTournament}
-            onOpenSettings={handlers.openSettingsModal}
-          />
-        )}
+        {/* NewGameSetupModal LIFTED to ClubModalsHost (L.3b) - dual-render guard. */}
 
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
           onClose={handlers.closeGameSettingsModal}
+          initialScrollSection={state.gameSettingsInitialSection}
           currentGameId={data.currentGameId}
           teamId={data.gameSessionState.teamId}
           teamName={data.gameSessionState.teamName}
@@ -435,6 +237,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
           selectedPersonnelIds={data.gameSessionState.gamePersonnel || []}
           onSelectedPlayersChange={handlers.updateSelectedPlayers}
+          onAddPlayerToRoster={handlers.addPlayerToClubRoster}
           canReapplyPlan={data.canReapplyPlan}
           onReapplyPlan={handlers.reapplyPlan}
           onSelectedPersonnelChange={handlers.setGamePersonnel || (() => {})}
@@ -469,6 +272,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onSetHomeOrAway={handlers.setHomeOrAway}
           isPlayed={data.isPlayed}
           onIsPlayedChange={handlers.setIsPlayed}
+          isFriendly={data.savedGames[data.currentGameId ?? '']?.isFriendly ?? false}
           wentToOvertime={data.gameSessionState.wentToOvertime}
           wentToPenalties={data.gameSessionState.wentToPenalties}
           onWentToOvertimeChange={handlers.setWentToOvertime}
@@ -486,22 +290,6 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           masterRoster={data.masterRoster}
           teams={data.teams}
           onTeamIdChange={(teamId) => handlers.teamIdChange(teamId ?? undefined)}
-        />
-
-        <SettingsModal
-          isOpen={state.isSettingsModalOpen}
-          onClose={handlers.closeSettingsModal}
-          language={data.appLanguage}
-          onLanguageChange={handlers.setAppLanguage}
-          defaultTeamName={data.defaultTeamNameSetting}
-          onDefaultTeamNameChange={handlers.setDefaultTeamName}
-          onHardResetApp={handlers.hardResetApp}
-          onCreateBackup={handlers.onCreateBackup}
-          onCloudDataDownload={handlers.onCloudDataDownload}
-          onDataImportSuccess={handlers.onDataImportSuccess}
-          initialTab={state.settingsInitialTab}
-          onResyncFromCloud={handlers.resyncFromCloud}
-          onFactoryReset={handlers.factoryReset}
         />
 
         <PlayerAssessmentModal
@@ -582,39 +370,8 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           variant="primary"
         />
 
-        <ConfirmationModal
-          isOpen={state.showHardResetConfirm}
-          title={t('controlBar.hardResetTitle', 'Reset Application')}
-          message={t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.')}
-          warningMessage={t('controlBar.hardResetWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
-          onConfirm={handlers.confirmHardReset}
-          onCancel={() => handlers.setShowHardResetConfirm(false)}
-          confirmLabel={t('common.reset', 'Reset')}
-          variant="danger"
-        />
-
-        <ConfirmationModal
-          isOpen={state.showSaveBeforeNewConfirm}
-          title={t('controlBar.saveBeforeNewTitle', 'Save Current Game?')}
-          message={t('controlBar.saveBeforeNewPrompt', `Save changes to the current game "${data.gameIdentifierForSave}" before starting a new one?`, { gameName: data.gameIdentifierForSave })}
-          warningMessage={t('controlBar.saveBeforeNewInfo', 'Click "Save & Continue" to save your progress, or "Discard" to start fresh without saving.')}
-          onConfirm={handlers.saveBeforeNewConfirmed}
-          onCancel={handlers.saveBeforeNewCancelled}
-          confirmLabel={t('controlBar.saveAndContinue', 'Save & Continue')}
-          cancelLabel={t('controlBar.discard', 'Discard')}
-          variant="primary"
-        />
-
-        <ConfirmationModal
-          isOpen={state.showStartNewConfirm}
-          title={t('controlBar.startNewMatchTitle', 'Start New Match?')}
-          message={t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.')}
-          warningMessage={t('controlBar.startNewMatchWarning', 'Make sure you have saved your current game if you want to keep it.')}
-          onConfirm={handlers.startNewConfirmed}
-          onCancel={() => handlers.setShowStartNewConfirm(false)}
-          confirmLabel={t('common.startNew', 'Start New')}
-          variant="danger"
-        />
+        {/* Save-before-new / start-new confirms DELETED (3.1) - their only
+            entry (the menu's New Game item) left with the menu shrink. */}
 
         <ConfirmationModal
           isOpen={state.showResetFieldConfirm}

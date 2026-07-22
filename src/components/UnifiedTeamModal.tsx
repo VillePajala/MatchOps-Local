@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalStickyPrimary, ModalToggleButton, secondaryButtonStyle } from '@/styles/modalStyles';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useTranslation } from 'react-i18next';
 import { Team, Player, Tournament, Season } from '@/types';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
@@ -503,6 +504,14 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     onClose();
   };
 
+  // PREEMPTIVE sub-guards (not useModalHardwareBack) so back never relies on the
+  // fragile re-arm-after-a-back that fails on Android WebViews and would exit the
+  // app. Two stacked levels: back in the roster-edit sub-mode steps to the team
+  // form; back in the team form cancels the dialog; back#N still reaches the
+  // parent manager's sentinel.
+  useHardwareBackSubLevel(isOpen, handleCancel);
+  useHardwareBackSubLevel(isOpen && isEditingRoster, () => setIsEditingRoster(false));
+
   const isPending = addTeamMutation.isPending || updateTeamMutation.isPending || setTeamRosterMutation.isPending;
 
   if (!isOpen) return null;
@@ -516,15 +525,16 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50 pointer-events-none" />
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50 pointer-events-none" />
 
-        {/* Header */}
-        <div className="relative z-10 flex-shrink-0">
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {mode === 'create'
-                ? t('unifiedTeamModal.createTitle', 'Create Team')
-                : team?.name || t('unifiedTeamModal.editTitle', 'Edit Team')}
-            </h2>
-          </div>
+        {/* Chrome slimming: X-header (Cancel; in roster-edit sub-mode the X
+            returns to the team form) + sticky primary. */}
+        <div className="relative z-10">
+          <CollapsibleModalHeader
+            title={mode === 'create'
+              ? t('unifiedTeamModal.createTitle', 'Create Team')
+              : team?.name || t('unifiedTeamModal.editTitle', 'Edit Team')}
+            onClose={isEditingRoster ? () => setIsEditingRoster(false) : handleCancel}
+            closeLabel={t('common.cancel', 'Cancel')}
+          />
         </div>
 
         {/* Content */}
@@ -724,17 +734,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     </div>
 
                     {/* Archived */}
-                    <div>
-                      <label className="text-slate-200 text-sm flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={archived}
-                          onChange={(e) => setArchived(e.target.checked)}
-                          className="form-checkbox h-4 w-4 text-indigo-600 rounded"
-                        />
-                        {t('teamDetailsModal.archivedLabel', 'Archived')}
-                      </label>
-                    </div>
+                    <ModalToggleButton pressed={archived} onToggle={() => setArchived(v => !v)}>
+                      {t('teamDetailsModal.archivedLabel', 'Archived')}
+                    </ModalToggleButton>
 
                     {/* Tournament & Season Placements Section */}
                     {teamId && (teamHistory.tournaments.length > 0 || teamHistory.seasons.length > 0) && (
@@ -890,35 +892,19 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         </div>
 
         {/* Footer */}
-        <ModalFooter>
-          {isEditingRoster ? (
-            <>
-              <button onClick={() => setIsEditingRoster(false)} className={secondaryButtonStyle}>
-                {t('common.cancel', 'Cancel')}
-              </button>
-              <button onClick={() => setIsEditingRoster(false)} className={primaryButtonStyle}>
-                {t('common.doneButton', 'Done')}
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={handleCancel} className={secondaryButtonStyle}>
-                {t('common.cancel', 'Cancel')}
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isPending}
-                className={primaryButtonStyle}
-              >
-                {isPending
-                  ? t('common.saving', 'Saving...')
-                  : mode === 'create'
-                  ? t('common.create', 'Create')
-                  : t('unifiedTeamModal.saveChanges', 'Save Changes')}
-              </button>
-            </>
-          )}
-        </ModalFooter>
+        {isEditingRoster ? (
+          <ModalStickyPrimary onClick={() => setIsEditingRoster(false)}>
+            {t('common.doneButton', 'Done')}
+          </ModalStickyPrimary>
+        ) : (
+          <ModalStickyPrimary onClick={handleSave} disabled={isPending}>
+            {isPending
+              ? t('common.saving', 'Saving...')
+              : mode === 'create'
+              ? t('common.create', 'Create')
+              : t('unifiedTeamModal.saveChanges', 'Save Changes')}
+          </ModalStickyPrimary>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, render, screen, fireEvent } from '@testing-library/react';
 import { ModalProvider, useModalContext } from '../ModalProvider';
 import React from 'react';
 
@@ -82,4 +82,101 @@ test('supports function updater form for roster modal', () => {
     result.current.setIsRosterModalOpen(prev => !prev);
   });
   expect(result.current.isRosterModalOpen).toBe(false);
+});
+
+test('clubStatsInitialTab is set by openClubStatsToTab and CLEARED on close (no stale tab on reopen)', () => {
+  // L.4: "Team stats" targets the club-stats surface. Close must clear the
+  // tab so a plain reopen lands on the surface's own default.
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ModalProvider>{children}</ModalProvider>
+  );
+  const { result } = renderHook(() => useModalContext(), { wrapper });
+
+  act(() => {
+    result.current.openClubStatsToTab('season');
+  });
+  expect(result.current.isClubStatsOpen).toBe(true);
+  expect(result.current.clubStatsInitialTab).toBe('season');
+
+  act(() => {
+    result.current.setIsClubStatsOpen(false);
+  });
+  expect(result.current.isClubStatsOpen).toBe(false);
+  expect(result.current.clubStatsInitialTab).toBeUndefined();
+
+  // Plain reopen keeps the default landing.
+  act(() => {
+    result.current.setIsClubStatsOpen(true);
+  });
+  expect(result.current.isClubStatsOpen).toBe(true);
+  expect(result.current.clubStatsInitialTab).toBeUndefined();
+});
+
+test('match stats and club stats are mutually exclusive (L.4 - same component, same z-index)', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ModalProvider>{children}</ModalProvider>
+  );
+  const { result } = renderHook(() => useModalContext(), { wrapper });
+
+  act(() => {
+    result.current.setIsGameStatsModalOpen(true);
+  });
+  act(() => {
+    result.current.openClubStatsToTab('season');
+  });
+  expect(result.current.isClubStatsOpen).toBe(true);
+  expect(result.current.isGameStatsModalOpen).toBe(false);
+
+  act(() => {
+    result.current.setIsGameStatsModalOpen(true);
+  });
+  expect(result.current.isGameStatsModalOpen).toBe(true);
+  expect(result.current.isClubStatsOpen).toBe(false);
+});
+
+test('sign-out closes the planner (L.3c - replaces the PLANNER_OPEN_KEY cleanup)', () => {
+  function PlannerProbe() {
+    const { isPlaytimePlannerOpen, setIsPlaytimePlannerOpen } = useModalContext();
+    return (
+      <>
+        <div data-testid="planner-state">{isPlaytimePlannerOpen ? 'open' : 'closed'}</div>
+        <button onClick={() => setIsPlaytimePlannerOpen(true)}>open-planner</button>
+      </>
+    );
+  }
+  const { rerender } = render(
+    <ModalProvider currentUserId="user-1"><PlannerProbe /></ModalProvider>,
+  );
+  fireEvent.click(screen.getByText('open-planner'));
+  expect(screen.getByTestId('planner-state')).toHaveTextContent('open');
+
+  // The user signs out (userId gone): the provider closes the planner so it
+  // cannot auto-reopen over Home after the next sign-in.
+  rerender(<ModalProvider currentUserId={undefined}><PlannerProbe /></ModalProvider>);
+  expect(screen.getByTestId('planner-state')).toHaveTextContent('closed');
+});
+
+test('a user change closes club-scope modals too (#681: Settings must not survive sign-out/in)', () => {
+  function SettingsProbe() {
+    const { isSettingsModalOpen, setIsSettingsModalOpen, isRosterModalOpen, setIsRosterModalOpen } = useModalContext();
+    return (
+      <>
+        <div data-testid="settings-state">{isSettingsModalOpen ? 'open' : 'closed'}</div>
+        <div data-testid="roster-state">{isRosterModalOpen ? 'open' : 'closed'}</div>
+        <button onClick={() => { setIsSettingsModalOpen(true); setIsRosterModalOpen(true); }}>open-club</button>
+      </>
+    );
+  }
+  const { rerender } = render(
+    <ModalProvider currentUserId="user-1"><SettingsProbe /></ModalProvider>,
+  );
+  fireEvent.click(screen.getByText('open-club'));
+  expect(screen.getByTestId('settings-state')).toHaveTextContent('open');
+  expect(screen.getByTestId('roster-state')).toHaveTextContent('open');
+
+  // Sign out then a different user signs in: club-scope modals must be closed,
+  // otherwise they pop back over Home on the next sign-in.
+  rerender(<ModalProvider currentUserId={undefined}><SettingsProbe /></ModalProvider>);
+  expect(screen.getByTestId('settings-state')).toHaveTextContent('closed');
+  expect(screen.getByTestId('roster-state')).toHaveTextContent('closed');
 });

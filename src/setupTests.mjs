@@ -18,6 +18,7 @@ jest.mock('@sentry/nextjs', () => ({
 
 // Initialize i18n for tests with English language
 import i18n from './i18n.ts';
+import { __resetModalHardwareBackForTests } from './hooks/useModalHardwareBack.ts';
 // Immediately change to English synchronously if possible, or queue it
 if (i18n.isInitialized) {
   i18n.changeLanguage('en');
@@ -371,6 +372,16 @@ if (typeof global !== 'undefined' && global.URL) {
 afterEach(() => {
   jest.restoreAllMocks();
   localStorageMock.clear();
+
+  // Reset the module-level hardware-back stack. Modals that register with it
+  // (planner, nested detail dialogs) push history entries and bump a suppression
+  // counter on render/unmount; without this, that state leaks into the next test
+  // and can swallow a later popstate (a real cross-test flake source).
+  try {
+    __resetModalHardwareBackForTests();
+  } catch {
+    // Hook may be mocked in some suites - nothing to reset then.
+  }
 
   // Clear unhandled rejection tracking for next test and recreate Set to prevent references
   unhandledRejections.clear();

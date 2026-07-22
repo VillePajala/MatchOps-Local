@@ -106,14 +106,12 @@ describe('LoadGameModal', () => {
     await renderModal({
       savedGames: saved,
       currentGameId: 'game_1659123456_abc',
-      currentSessionHomeScore: 2,
-      currentSessionAwayScore: 1,
     });
 
     const card = await screen.findByTestId('game-item-game_1659123456_abc');
-    // Score is now split into separate elements (number - span - number)
-    expect(card.textContent).toContain('2');
-    expect(card.textContent).toContain('1');
+    // Scores come from the SAVED game (the live-session override was retired
+    // with the page-level lift, L.3a).
+    expect(card.textContent).toContain(String(saved['game_1659123456_abc'].homeScore ?? 0));
   });
   
   it('renders correctly and displays games', async () => {
@@ -147,7 +145,7 @@ describe('LoadGameModal', () => {
     await renderModal();
     await screen.findByText('Lions');
 
-    const toggle = screen.getByLabelText('loadGameModal.showUnplayedOnly');
+    const toggle = screen.getByRole('button', { name: 'loadGameModal.showUnplayedOnly' });
     fireEvent.click(toggle);
 
     expect(screen.queryByText('Lions')).not.toBeInTheDocument();

@@ -15,14 +15,13 @@ import {
   HiChevronDown,
   HiChevronRight,
   HiOutlineArchiveBox,
-  HiOutlineArrowUturnLeft,
-  HiOutlineArrowUturnRight,
   HiOutlineDocumentDuplicate,
   HiOutlineEllipsisVertical,
   HiOutlinePencil,
   HiOutlineSquares2X2,
   HiOutlineTrash,
   HiOutlineUsers,
+  HiOutlineXMark,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -35,11 +34,11 @@ import { getTournaments } from '@/utils/tournaments';
 import type { Team, Season, Tournament } from '@/types';
 import { PRESETS_BY_SIZE, FIELD_SIZES, getPresetById } from '@/config/formationPresets';
 import logger from '@/utils/logger';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { generateId } from '@/utils/idGenerator';
 import {
   ModalContainer,
   ModalHeader,
-  ModalFooter,
   ScrollableContent,
   headerStyle,
   titleStyle,
@@ -51,6 +50,8 @@ import {
   iconButtonDangerStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
+  modalCloseButtonStyle,
+  useModalCloseVisible,
 } from '@/styles/modalStyles';
 import {
   getPlans,
@@ -119,8 +120,9 @@ interface PlaytimePlannerModalProps {
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
 
-/** Which plan was open - survives a resume-from-background remount (pairs with
- *  GameContainer's PLANNER_OPEN_KEY, which already restores the modal itself). */
+/** Which plan was open - survives a resume-from-background remount (the
+ *  modal's OPEN state itself lives in ModalProvider since L.3c and survives
+ *  in React state; this key restores the workspace inside it). */
 const PLANNER_ACTIVE_PLAN_KEY = 'matchops_planner_active_plan';
 
 type View = 'loading' | 'manager' | 'setup' | 'games' | 'minutes' | 'plan';
@@ -601,41 +603,19 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     }, 600);
   }, [activePlan, persist]);
 
-  // Step through the snapshot stack WITHOUT pushing; the restored state persists
-  // through the same debounced autosave as a normal edit.
-  const applyHistory = useCallback(
-    (delta: -1 | 1) => {
-      const h = historyRef.current;
-      const ni = h.index + delta;
-      if (ni < 0 || ni >= h.stack.length) return;
-      h.index = ni;
-      const restored = h.stack[ni];
-      pendingEditRef.current = null; // restoring is not an edit
-      lastEditCoalescedRef.current = null;
-      setActivePlan(restored);
-      // The restored roster may lack currently-highlighted players (undo of a
-      // replace/remove) - prune, or the whole lineup ghost-dims with no cell
-      // left to un-toggle.
-      setHighlightPlayerIds((prev) => prev.filter((id) => restored.players.some((pl) => pl.id === id)));
-      dirtyPlanRef.current = restored;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        saveTimerRef.current = null;
-        const pending = dirtyPlanRef.current;
-        dirtyPlanRef.current = null;
-        if (pending) void persist(pending);
-      }, 600);
-      setHistoryTick((t) => t + 1);
-    },
-    [persist],
-  );
-  const canUndo = historyRef.current.index > 0;
-  const canRedo = historyRef.current.index < historyRef.current.stack.length - 1;
-
   // Horizontal swipe on the lineup flips to the previous/next game (standalone
   // heuristic: >60px, clearly more horizontal than vertical, <700ms). Complements
   // the tab strip for one-handed use.
   const swipeRef = useRef<{ x: number; y: number; at: number } | null>(null);
+  // Direction of the last game switch, so the incoming lineup slides in from the
+  // matching side (forward = from the right, back = from the left).
+  const [slideDir, setSlideDir] = useState<'fwd' | 'back' | null>(null);
+  // Switch the edited game and remember which way we moved (for the slide-in).
+  const switchGame = useCallback((id: string, dir: 'fwd' | 'back') => {
+    setSlideDir(dir);
+    setEditingGameId(id);
+    setSubSheetTarget(null);
+  }, []);
   const handleLineupTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
     swipeRef.current = { x: touch.clientX, y: touch.clientY, at: Date.now() };
@@ -655,8 +635,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     const idx = activePlan.games.findIndex((g) => g.id === currentId);
     const nextGame = activePlan.games[dx < 0 ? idx + 1 : idx - 1];
     if (nextGame) {
-      setEditingGameId(nextGame.id);
-      setSubSheetTarget(null);
+      switchGame(nextGame.id, dx < 0 ? 'fwd' : 'back');
     }
   };
 
@@ -1455,6 +1434,67 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     setView('manager');
   }, [flushSave, refreshPlanList]);
 
+  // Whether the current view is a sub-level that a hardware back should STEP up
+  // from (rather than close): a plan's tabs, or the setup form when there are
+  // saved plans to return to.
+  const atSubLevel = isPlanTab(view) || (view === 'setup' && planList.length > 0);
+
+  // Step up one internal level to the manager (from a plan or the setup form).
+  const stepToManager = useCallback(() => {
+    if (isPlanTab(view)) {
+      void handleBackToManager();
+    } else {
+      setView('manager');
+    }
+  }, [view, handleBackToManager]);
+
+  // Transient overlays that sit ABOVE the current view (confirm dialogs, the
+  // substitution sheet, a plan row's actions menu). None registers a hardware
+  // back handler of its own, so without this a back would skip past the overlay
+  // - consuming the plan sub-guard and jumping to the manager (or closing the
+  // planner at manager level) while the overlay stays mounted, orphaned. A
+  // preemptive guard pushed while any overlay is open makes hardware back cancel
+  // the topmost overlay first, matching the Escape ladder. It stacks ABOVE the
+  // plan sub-guard (declared after it), so back cancels the overlay, then the
+  // next back steps the plan to the manager.
+  const plannerOverlayOpen =
+    deleteTarget !== null || removeTarget !== null || bulkReapplyTarget !== null ||
+    trimConfirm !== null || showSuggestConfirm || showClearAllGamesConfirm ||
+    actionsMenuId !== null || subSheetTarget !== null;
+  const closePlannerOverlay = useCallback(() => {
+    if (deleteTarget !== null) { setDeleteTarget(null); return; }
+    if (removeTarget !== null) { setRemoveQueue((q) => q.slice(1)); return; }
+    if (bulkReapplyTarget !== null) { setBulkReapplyTarget(null); return; }
+    if (trimConfirm !== null) { setTrimConfirm(null); return; }
+    if (showSuggestConfirm) { setShowSuggestConfirm(false); return; }
+    if (showClearAllGamesConfirm) { setShowClearAllGamesConfirm(false); return; }
+    if (actionsMenuId !== null) { setActionsMenuId(null); return; }
+    if (subSheetTarget !== null) { setSubSheetTarget(null); return; }
+  }, [deleteTarget, removeTarget, bulkReapplyTarget, trimConfirm, showSuggestConfirm, showClearAllGamesConfirm, actionsMenuId, subSheetTarget]);
+
+  // Hardware back:
+  //  - the BASE registration closes the planner (manager/loading -> close), the
+  //    same single-level path every other modal uses;
+  //  - the OVERLAY guard cancels an open confirm/sheet/menu first;
+  //  - the SUB-LEVEL guard steps a plan back to the manager WITHOUT closing;
+  //  - the BASE guard closes the planner from the manager.
+  // ALL THREE are preemptive sub-guards (real history entries consumed directly
+  // on back). The planner owns no sentinel of its own: when opened over the
+  // match it leaves the match view's sentinel intact (so back after closing
+  // reaches Home), and when opened from club Home it is the only level. This
+  // avoids the fragile re-arm-after-a-back that exits the app on Android
+  // WebViews. back-over-overlay -> cancel, back-in-plan -> manager,
+  // back-in-manager -> close (-> match/Home under it).
+  useHardwareBackSubLevel(isOpen, handleClose);
+  useHardwareBackSubLevel(isOpen && atSubLevel, stepToManager);
+  useHardwareBackSubLevel(isOpen && plannerOverlayOpen, closePlannerOverlay);
+
+  // The header X fully closes the planner from any view (like every other
+  // modal - one-tap exit). Stepping a plan back to the manager is hardware/
+  // gesture back (the sub-level guard above). Hidden on phones that have
+  // gesture/hardware back (desktop pointer / iOS standalone only).
+  const showClose = useModalCloseVisible();
+
   // Open a plan from the manager (re-opening the already-loaded plan is instant).
   const handleOpenPlan = useCallback(
     (id: string) => {
@@ -1541,6 +1581,47 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
 
   return (
     <ModalContainer containerRef={modalRootRef} aria-label={t('playtimePlanner.title', 'Match planner')}>
+      {/* Chrome slimming: the modal-level Close is an X in the header's
+          top-left (was the footer's Close). Absolutely positioned so it never
+          shifts the centered/editable title. Fully closes from any view. */}
+      <button
+        type="button"
+        onClick={handleClose}
+        aria-label={t('common.close', 'Close')}
+        title={t('common.close', 'Close')}
+        className={`${showClose ? 'flex' : 'hidden'} absolute left-2 top-7 z-20 ${modalCloseButtonStyle}`}
+      >
+        <HiOutlineXMark className="w-6 h-6" />
+      </button>
+
+      {/* Games-tab layout toggle (single <-> side-by-side): a floating action
+          button in the bottom-right, so it costs no layout row and stays put
+          while the lineup scrolls. Only when the plan has more than one game. */}
+      {view === 'games' && activePlan && activePlan.games.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
+          aria-pressed={gamesLayout === 'grid'}
+          aria-label={
+            gamesLayout === 'single'
+              ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+              : t('playtimePlanner.lineup.viewSingle', 'Single game')
+          }
+          title={
+            gamesLayout === 'single'
+              ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
+              : t('playtimePlanner.lineup.viewSingle', 'Single game')
+          }
+          className={`absolute bottom-4 right-4 z-20 p-3 rounded-full shadow-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+            gamesLayout === 'grid'
+              ? 'bg-indigo-600 text-white hover:bg-indigo-500'
+              : 'bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600'
+          }`}
+        >
+          <HiOutlineSquares2X2 className="w-5 h-5" aria-hidden="true" />
+        </button>
+      )}
+
       {/* Header names what's on screen: tool name outside a plan; the ACTIVE
           GAME (tap-editable) on the single-game surface; the plan name
           (tap-editable on the plan tab) everywhere else in an open plan. */}
@@ -1586,12 +1667,21 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         <ModalHeader title={t('playtimePlanner.title', 'Match planner')} />
       )}
 
-      {/* House pattern (TeamManager/RosterSettings): create-new is a full-width
-          primary button PINNED under the header, not buried in the scroll. */}
+      {/* House pattern (TeamManager/RosterSettings): create-new is pinned under
+          the header, not buried in the scroll. Import JSON sits beside it (its
+          former top-of-content spot didn't work) - New plan stays the primary,
+          Import is the secondary. */}
       {view === 'manager' && (
-        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} w-full`}>
+        <div className="px-6 py-3 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0 flex gap-2">
+          <button type="button" onClick={startNewPlan} className={`${primaryButtonStyle} flex-1`}>
             {t('playtimePlanner.manager.new', 'New plan')}
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={secondaryButtonStyle}
+          >
+            {t('playtimePlanner.versions.import', 'Import JSON')}
           </button>
         </div>
       )}
@@ -2208,6 +2298,11 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
               </button>
             </div>
 
+            {/* Export JSON: a rare utility, inline at the bottom of the Settings
+                tab (was the footer's left side). */}
+            <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} w-full`}>
+              {t('playtimePlanner.versions.export', 'Export JSON')}
+            </button>
           </div>
         )}
 
@@ -2252,8 +2347,8 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        setEditingGameId(g.id);
-                        setSubSheetTarget(null);
+                        const curIdx = activePlan.games.findIndex((gg) => gg.id === editingGame.id);
+                        switchGame(g.id, i >= curIdx ? 'fwd' : 'back');
                       }}
                       aria-current={isCurrent ? 'true' : undefined}
                       title={g.label}
@@ -2321,26 +2416,32 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                 onToggleCollapsed={() => setStripCollapsed((c) => !c)}
               />
             </div>
-            <PlanFieldView
+            {/* Keyed wrapper: remounts on game switch so the incoming lineup
+                slides in from the side matching the swipe/tab direction. */}
+            <div
               key={editingGame.id}
-              game={editingGame}
-              players={activePlan.players}
-              onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
-              minutesByPlayer={fairness.byPlayer}
-              highlightPlayerIds={highlightPlayerIds}
-              onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
-              onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
-              onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
-              onClearAll={() => handleClearAllPlacements(editingGame.id)}
-              onClearAllGames={() => setShowClearAllGamesConfirm(true)}
-              onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
-              onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
-              onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
-              onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(editingGame.id, subId, playerId)}
-              onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
-              absenceOpen={absenceOpen}
-              onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
-            />
+              className={slideDir === 'fwd' ? 'planner-slide-fwd' : slideDir === 'back' ? 'planner-slide-back' : undefined}
+            >
+              <PlanFieldView
+                game={editingGame}
+                players={activePlan.players}
+                onAssign={(slotId, playerId) => handleAssign(editingGame.id, slotId, playerId)}
+                minutesByPlayer={fairness.byPlayer}
+                highlightPlayerIds={highlightPlayerIds}
+                onRequestSub={(slotId) => setSubSheetTarget({ gameId: editingGame.id, slotId })}
+                onSwapPlayers={(a, b) => handleSwapPlayers(editingGame.id, a, b)}
+                onClearSlot={(slotId) => handleClearSlot(editingGame.id, slotId)}
+                onClearAll={() => handleClearAllPlacements(editingGame.id)}
+                onClearAllGames={() => setShowClearAllGamesConfirm(true)}
+                onRemoveSub={(subId) => handleRemoveSub(editingGame.id, subId)}
+                onMoveSub={(subId, slotId) => handleMoveSub(editingGame.id, subId, slotId)}
+                onPromoteSub={(subId, slotId, playerId) => handlePromoteSubToStarter(editingGame.id, subId, slotId, playerId)}
+                onSetSubPlayer={(subId, playerId) => handleSetSubPlayer(editingGame.id, subId, playerId)}
+                onToggleAbsent={(playerId) => handleToggleAbsent(editingGame.id, playerId)}
+                absenceOpen={absenceOpen}
+                onToggleAbsenceOpen={() => setAbsenceOpen((v) => !v)}
+              />
+            </div>
             <div className="border-t border-slate-700/40 pt-4">
               <PlanSubsEditor
                 game={editingGame}
@@ -2486,89 +2587,6 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             />
           );
         })()}
-
-      <ModalFooter>
-        {/* Left side of the footer holds the tab's utility actions (house
-            pattern - navigation stays right): manager = Import JSON, undo/redo
-            on the editing tabs, Export JSON on the plan tab. */}
-        {view === 'manager' && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={`${secondaryButtonStyle} mr-auto min-w-[9rem]`}
-          >
-            {t('playtimePlanner.versions.import', 'Import JSON')}
-          </button>
-        )}
-        {view === 'plan' && activePlan && (
-          <button type="button" onClick={handleExport} className={`${secondaryButtonStyle} mr-auto min-w-[9rem]`}>
-            {t('playtimePlanner.versions.export', 'Export JSON')}
-          </button>
-        )}
-        {activePlan && view === 'games' && (
-          <div className="flex gap-1.5 mr-auto">
-            <button
-              type="button"
-              onClick={() => applyHistory(-1)}
-              disabled={!canUndo}
-              aria-label={t('controlBar.undo', 'Undo')}
-              title={t('controlBar.undo', 'Undo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
-              <HiOutlineArrowUturnLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => applyHistory(1)}
-              disabled={!canRedo}
-              aria-label={t('controlBar.redo', 'Redo')}
-              title={t('controlBar.redo', 'Redo')}
-              className="p-2 rounded-md bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:bg-slate-800 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-            >
-              <HiOutlineArrowUturnRight className="w-4 h-4" />
-            </button>
-            {/* Layout toggle lives with the other games-tab utilities - inline
-                with the ribbon it read as a broken, misaligned extra tab. */}
-            {activePlan.games.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setGamesLayout((l) => (l === 'single' ? 'grid' : 'single'))}
-                aria-pressed={gamesLayout === 'grid'}
-                aria-label={
-                  gamesLayout === 'single'
-                    ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-                    : t('playtimePlanner.lineup.viewSingle', 'Single game')
-                }
-                title={
-                  gamesLayout === 'single'
-                    ? t('playtimePlanner.lineup.viewGrid', 'Side by side')
-                    : t('playtimePlanner.lineup.viewSingle', 'Single game')
-                }
-                className={`p-2 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-                  gamesLayout === 'grid'
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-                    : 'bg-slate-700 text-slate-200 hover:bg-slate-600'
-                }`}
-              >
-                <HiOutlineSquares2X2 className="w-4 h-4" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        )}
-        {isPlanTab(view) && (
-          <button type="button" onClick={() => void handleBackToManager()} className={secondaryButtonStyle}>
-            {t('playtimePlanner.lineup.back', 'Back')}
-          </button>
-        )}
-        {view === 'setup' && planList.length > 0 && (
-          <button type="button" onClick={() => setView('manager')} className={secondaryButtonStyle}>
-            {t('playtimePlanner.lineup.back', 'Back')}
-          </button>
-        )}
-        <button type="button" onClick={handleClose} className={primaryButtonStyle}>
-          {t('common.close', 'Close')}
-        </button>
-      </ModalFooter>
 
       <ConfirmationModal
         isOpen={showSuggestConfirm}

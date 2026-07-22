@@ -43,6 +43,9 @@ const renderWithProviders = (props: Partial<PlayerDetailsModalProps> = {}) => {
 describe('PlayerDetailsModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The modal now registers with the module-level hardware-back stack; reset
+    // it between tests so pushed sentinels/entries don't leak across cases.
+    jest.requireActual('@/hooks/useModalHardwareBack').__resetModalHardwareBackForTests();
   });
 
   describe('Rendering', () => {
@@ -170,6 +173,25 @@ describe('PlayerDetailsModal', () => {
       expect(onUpdatePlayer).toHaveBeenCalledWith('p1', {
         name: 'Updated Player',
       });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancels via hardware back (Android, where the header X is hidden)', async () => {
+      // Back must cancel THIS nested dialog, not fall through to the parent
+      // roster manager and close it (discarding the add/edit).
+      const { __resetModalHardwareBackForTests } = jest.requireActual('@/hooks/useModalHardwareBack');
+      __resetModalHardwareBackForTests();
+      const onClose = jest.fn();
+
+      await act(async () => {
+        renderWithProviders({ onClose });
+      });
+
+      await act(async () => {
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      });
+
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 

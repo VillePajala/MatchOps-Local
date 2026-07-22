@@ -1,6 +1,45 @@
 # Two-Level App Structure — Club Home vs Match Mode
 
-Status: planned (2026-07-13). Do AFTER the Playing-Time Planner is finalized.
+Status: delivery plan locked (2026-07-14) - see §6/§7. Planner shipped; this
+is next. All work on `feature/two-level-structure`; ONE final PR to master.
+Progress (2026-07-15): 0.1, 0.2, 1.1, 1.2, 1.3 (+1.3b, button polish), 1.4,
+L.0a (PR #663: ClubModalsHost + Training/Rules + topmost-only hardware back)
+L.0b (PR #665: Settings + Instructions lifted; useAppSettingsController;
+shared isAppResetting unmounts the game hook chain during wipes; host gated
+behind app readiness checks) L.1 (PR #666: SeasonTournament + Personnel lifted; useSeasonTournamentManagement
+owns the CRUD mutations) and L.2 (PR #667: Roster + TeamManager lifted;
+StartScreenLiftedBridge opens ALL lifted modals in place from Home - no game
+mount; roster-removal pruning via query diff; player-stats shortcut interim
+until L.4), L.3a (PR #673: enterMatch contract - every match entry is a
+FRESH mount booting the persisted current game; LoadGame lifted with
+useLoadGameController; live-score row override retired deliberately),
+L.3b (PR #674: NewGameSetup lifted; buildAndPersistNewGame persist half +
+enterMatch fresh mount replaces the in-place session apply everywhere;
+Home "New Game" opens in place; roster highlight retired deliberately) and
+L.3c (PR #675: planner joins the host; PLANNER_OPEN_KEY retired - provider
+state survives the background-resume flash; sign-out closes the planner via
+ModalProvider currentUserId; match registers plannerLiveGameHooks) are
+and L.4 (PR #676: GameStats aggregate side
+lifted - aggregateOnly host surface via isClubStatsOpen; game-row tap =
+LoadGame level crossing, success-threaded close; roster player-stats
+shortcut lands on the host player tab - the L.2 interim is retired; match
+modal is current-game-first; PWA stats shortcut routes to club player
+stats) and 3.1 (PR #677: match menu shrunk to
+match scope + Taso + Koti; bar-level Home button (relocated from the score bar per owner feedback 2026-07-17); hardware back exits to Home
+beneath the modal stack - match-scope modals audited onto it; dead
+save-before-new chain deleted; 19 dead controlBar keys removed, guard 2819)
+3.1-fu (PR #678: home button relocated
+into the ControlBar as a first-class square button) and 3.1b (PR #679, Home
+polish per owner feedback 2026-07-17: Kaudet & Tilastot became REAL panels
+with entry rows - the tab contract holds for all four tabs; external links
+as solid rows; direct gear-sheet sign out, with the migration-flag clear
+centralized into AuthProvider.signOut) are MERGED to the feature branch.
+and 3.2 (PR #680: roster bridge - inline
+"Lisää seuran listaan" in the game's player picker, the ONLY club-write
+from match scope; club write + game selection in one action) are MERGED to
+the feature branch. ALL CODE WAVES COMPLETE (L.0a-L.4, 3.1, 3.1-fu, 3.1b,
+3.2). F in progress: release-notes entry added, docs updated, final PR
+feature/two-level-structure -> master opened for owner review/merge.
 Owner decision that triggered this: "the app is too complicated... we are
 mixing 2 levels of settings and menus and views - app/the big picture &
 individual game."
@@ -56,12 +95,12 @@ Navigation rules:
 
 | Where | Items |
 |---|---|
-| Home / **Pelit** (default tab) | Saved-games list (search/filter; LoadGameModal dissolves here), pinned **Uusi peli**, **Jatka ottelua** card when a match is live, per-row 3-dot (open/delete/duplicate/export), **Ottelusuunnittelu** (it creates games) |
+| Home / **Pelit** (default tab) | Saved-games list (search/filter; LoadGameModal dissolves here), pinned **Uusi peli**, **Jatka ottelua** card when a match is live, per-row 3-dot (open/delete/export; duplicate = future idea), **Ottelusuunnittelu** (it creates games) |
 | Home / **Joukkue** | Master roster, Teams, Personnel (+ Training materials) |
 | Home / **Kaudet & turnaukset** | Seasons, Tournaments |
 | Home / **Tilastot** | Season / tournament / overall / player stats (split OUT of GameStatsModal) |
 | Home / **⚙ gear** (not a tab) | App settings, Backup & Restore, cloud account, language, user guide, external resources, rules directory |
-| **Match menu** (~6 items) | Ottelun tiedot (ex-"Game Settings"), Arvioi pelaajat, Otteluraportti, Ottelun tilastot (this game only, with ONE labeled link "Joukkueen tilastot →" to Home/Tilastot), Tallenna / Tallenna nimellä, ← Koti |
+| **Match menu** (~6 items) | Ottelun tiedot (ex-"Game Settings"), Arvioi pelaajat, Otteluraportti, Ottelun tilastot (this game only, with ONE labeled link "Joukkueen tilastot →" to Home/Tilastot), Tallenna (Tallenna nimellä = future idea), ← Koti |
 | Match bar (unchanged) | Timer, tactics board, drawing, reset, undo/redo |
 
 One-way street: club→match at need-time only. The game's player picker gets an
@@ -130,7 +169,170 @@ Risk register + mitigations:
 
 ## 5. Sequencing
 
-1. Finalize the Playing-Time Planner (current work) — it also becomes the
-   in-app proof of the manager-first + peer-tabs pattern.
-2. Phase 0 can ship any time (independent, tiny, immediate relief).
-3. Phases 1→2→3 in order. Phase 4 re-evaluated afterwards.
+1. ~~Finalize the Playing-Time Planner~~ DONE (shipped to master 2026-07-14) —
+   it is the in-app proof of the manager-first + peer-tabs pattern.
+2. Phases 0→1→2→3 in order on the feature branch (decision 2026-07-14: Phase 0
+   does NOT ship separately - master stays untouched until the final PR).
+3. Phase 4 re-evaluated afterwards; explicitly OUT of this branch's scope.
+
+## 6. Delivery plan — PR by PR (decided 2026-07-14)
+
+**Workflow**: everything lands on `feature/two-level-structure` (cut from
+master). Every slice below is a PR AGAINST THAT BRANCH - CI and the Claude
+review run on each (verified: only the Release Notes Guard is master-only).
+Master gets ONE PR at the very end, when all phases are done and accepted.
+Same rhythm as the planner: small verified batches (tsc → targeted jest →
+eslint → build), user tests on the Vercel preview at each checkpoint.
+
+| PR | Scope | Done when |
+|----|-------|-----------|
+| **0.1 Menu scope split** | Hamburger regrouped into "Tämä ottelu" / "Joukkue & sovellus"; "Game Settings" → "Ottelun tiedot". Pure JSX + i18n. | Menu tests updated; every existing item reachable under its new group. |
+| **0.2 Stats entry split** | Menu offers "Ottelun tilastot" (opens GameStats on the current-game tab) and "Joukkueen tilastot" (opens on the aggregate tabs). No modal internals change. | Both entries deep-link to the right tab; tests assert the tab. |
+| **1.1 Auto-resume guardrail** | Launch auto-resume reads the PERSISTED game status (stronger than the planned session key - survives process kills): in-progress AND period-break (half-time!) games land straight in the match. Decision extracted to `launchResume.ts`. Ships FIRST so game-day speed can never regress unnoticed. | Tests pin all four statuses + first-check gating; half-time gap closed. |
+| **1.2 Home shell (strangler)** | StartScreen becomes Home: hero header kept (logo/tagline/glows, slightly shorter), house tab bar (Pelit · Joukkue · Kaudet · Tilastot) + ⚙ corner. Tabs only OPEN THE EXISTING MODALS. `page.tsx`'s `'start'` branch renders it; field boot path untouched. | All four tabs + gear open their modals; StartScreen tests reworked to Home. |
+| **1.3 Pelit front page** | Tab content v1: "Jatka ottelua" card (when live), pinned "Uusi peli", saved-games entry (opens LoadGameModal), Ottelusuunnittelu entry. Cloud/subscribe/Play-store rows move under ⚙ / welcome flow. | Front page shows ONLY hero + those items (anti-clutter rule holds). **User preview checkpoint.** |
+| **1.4 Gear bucket** | ⚙ sheet: app settings, Backup & Restore, cloud account, language, user guide, external resources, rules directory. Entries open existing modals. | Every Device/Account-scope item reachable ONLY via ⚙. |
+| **L.0a ClubModalsHost scaffold + Training/Rules** | Page-level host rendered on BOTH screens; the two truly trivial modals (isOpen/onClose only, state already in ModalProvider) prove the pattern - including the hardware-back contract below. | Both open from Home with the game view UNMOUNTED; hardware back closes the modal. |
+| **L.0b Lift Settings + Instructions** | Settings' ~12 handlers (language, backup, hard reset, cloud ops) extract into a page-usable hook; Instructions' open-state moves into ModalProvider (Settings' "show app guide" chain must keep working from Home). Opening them from Home no longer mounts the match at all; closing lands on whatever screen you were on - the 2-lite goal falls out for free, wave by wave. Dual-render guard: a modal must never render in both the host and ModalManager. | Gear-sheet items open with the game view UNMOUNTED (assert no game-view testid); close returns to Home. |
+| **L.1 Lift SeasonTournament + Personnel** | Query-backed CRUD with mutation hooks - least coupled. Hook instances move to the host; ModalManager rows deleted; suites follow. | Kilpailut tab + Taustahenkilöt row work with no game mounted. |
+| **L.2 Lift Roster + TeamManager** | useRoster ownership moves to the host; the game view consumes roster data via the query cache as it already does. Watch: single ownership of any LOCAL state (selectedTeamForRoster moves into the host). | Pelaajat/Joukkueet rows work with no game mounted; in-match roster editing unregressed. |
+| **L.3 Lift LoadGame + NewGameSetup (level crossing)** | The two modals that END in the match. Page exposes one small `enterMatch(gameId?)` contract: save current-game id, switch screen, let the game view's existing load path take over. Replaces today's mount-the-game-first flow AND the planner's session-key hack (planner joins the host here too - it is already self-contained). | Pick a saved game from Home -> match opens loaded; create game -> match opens set up; cancel either -> still on Home. |
+| **L.4 Lift GameStats (aggregate)** | The Tilastot tab renders host-level GameStats opening on the aggregate side (PR 0.2's initialTab). The current-game tab STAYS with the match modal - matching the final match-menu design. | Team stats from Home with no game mounted; match stats in-game unregressed. |
+| **3.1 Match menu shrink** | Match menu to ~7 items (Ottelun tiedot, Arvioi pelaajat, Otteluraportti, Ottelun tilastot + "Joukkueen tilastot →" link, **Taso link** - owner decision 2026-07-14: Taso is a game-day workflow tool (lineups before, results after), it stays in-game, Tallenna/Tallenna nimellä, ← Koti). Hardware back mirrors ← Koti. **Direct home exit (owner decision 2026-07-15, placement revised 2026-07-17): a persistent house icon as a first-class ControlBar button (leftmost; the score-bar placement looked bolted-on) - one always-visible tap back to Home. Menu ← Koti stays as the redundant path; no leave-confirm (autosave makes exiting always safe).** | Reachability table (§2) holds exactly; home icon exits from any match state; menu tests updated. |
+| **3.2 Roster bridge** | Game player picker gets inline "lisää seuran listaan" (writes club roster + selects). The ONLY club-write from match scope. | Test: added player lands in club roster AND the game selection. |
+| **F Final** | Docs (§7 status here, UNIFIED-ROADMAP), release-notes entry (the guard needs it), full-suite run, then the ONE PR `feature/two-level-structure` → master. | The 9 scenario walkthroughs in §2 all pass on the preview; review verdict posted; user merges. |
+
+### The facade, named (owner discussion 2026-07-15)
+
+After 2-lite, Home is structurally a FACADE: every tab tap mounts the full
+match view underneath and floats the existing modal over it; "close -> Home"
+is a screen swap. Known risks of living with this: (1) match machinery
+(orchestration, autosave wiring, timers, queries) boots on every Home
+interaction - wasted work + a standing source of on-mount side effects;
+(2) back-button/transition fragility (pitch can flash on slow devices);
+(3) conceptual debt - future features keep landing in the game tree because
+that is where modals live, which makes phase 4 harder every month.
+**OWNER DECISION 2026-07-15: the lift IS the final architecture.** Modals
+are kept (no dissolving, ever); their RENDERING moves out of the game tree
+into a page-level ClubModalsHost, wave by wave (L.0-L.4 above). Key enabling
+fact: ModalProvider (open/close state) already lives at page level - only
+rendering + data wiring move. After L.4 the facade is gone: Home opens
+modals without mounting the match, closes land back where you were, and the
+game tree contains only match-scope surfaces (GameSettings, assessment,
+goal log, current-game stats). Phase 4 remains parked and becomes EASIER
+after the lift (fewer things depend on mounting the game).
+
+### Modal governance (owner + review discussion, 2026-07-15, binding)
+
+- **Tasks live in modals; glanceable content lives on pages.** Modals are the
+  app's navigation for bounded tasks (manage roster, competitions, settings);
+  pages/tabs carry only content you glance at (resume card, entry rows, and -
+  later, optionally - a recent-games teaser).
+- **Hardware back must close the topmost lifted modal** - never exit the app,
+  never reveal the pitch. This is an ACCEPTANCE CRITERION of every L-wave,
+  proven first in L.0a and audited per lifted modal.
+- **Modal scope rule** (the anti-clutter rule's sibling): a new feature earns
+  a place inside an existing scope-true modal or justifies a NEW modal - it
+  never widens one into a junk drawer. (GameStats' five tabs are the cautionary
+  precedent.)
+- **Modal chrome slimming (owner idea 2026-07-16, elaborated; post-F polish
+  wave, pending go decision)**: with hardware back closing the topmost modal,
+  slim ALL modal chrome in three ordered steps, one PR each: (1) header X
+  close on every modal - the prerequisite; iOS PWA/desktop have no hardware
+  back, so a visible exit must remain; (2) delete pure-Sulje footers; move
+  primary actions (Aloita, save/confirm) to header-right or a sticky CTA
+  shown only when there is something to commit, utilities to header/
+  overflow; (3) headers carrying controls adopt the planner's scroll-aware
+  collapse (title-only on scroll down, controls back on scroll up).
+  ~100px of phone content space reclaimed per modal. Runs AFTER the final
+  master merge - it touches every modal.
+- **Menu shrink watchpoint (owner reflection 2026-07-16)**: the 3.1 menu cut
+  trades shortcut density for scannability; tap cost is unchanged for
+  front-page items (2 taps either way). The lift made shortcuts CHEAP to
+  restore (any club surface opens over the match from a one-line provider
+  flag), so the policy is: ship clean, watch real game-day usage, restore
+  individual items only on proven friction - never speculatively.
+
+### Owner walkthrough findings (2026-07-17, pre-merge of PR #681)
+
+Fix on the feature branch before merge (F-wave fixes):
+- **W1 Roster-bridge UX**: trigger label "Lisää uusi pelaaja", submit button
+  "Lisää"; BIGGER input; add a NICKNAME field (disc shows nickname - full
+  name on the disc is wrong); offer the same inline add in NEW GAME
+  creation's picker too, not only Ottelun tiedot.
+- **W4 Timer overlay ignores hardware back** - register the large timer
+  overlay on the modal back-stack.
+- **W7 Back from Otteluraportti lands on App Settings, second back exits
+  the app** - stack corruption/misorder; investigate + fix (likely a stale
+  or unregistered entry being consumed).
+- **W9 Back inside the planner closes the APP** - the planner's stack entry
+  is missing/consumed in some flow; fix, and consider back walking the
+  planner's INTERNAL views (plan -> list) instead of closing outright.
+- **W11 Post-sign-in migration wizard shows "move to cloud" with NOTHING to
+  move** - regression of the centralized clearMigrationCompleted-on-signout:
+  the wizard must skip when local data is empty.
+- **W8 Tilastot panel rows should mirror the stats tabs** (Kausi / Turnaus /
+  Kaikki / Pelaaja) - "Joukkueen tilastot" names a surface that doesn't
+  exist as such.
+- **W10 Planner entry back into the match menu** (menu-watchpoint policy:
+  proven friction on day one - a coach wants the plan right after creating
+  the game). One-line provider-flag entry.
+- **W6 "Viimeistele ottelu" open items should NAVIGATE to where each item
+  can be completed** (tap-through), not just list them.
+- **W2 ControlBar imbalance**: the Home button un-centers the timer -
+  needs a layout decision (symmetric spacer / regroup) - owner discussion.
+- **W5 Resume-from-background defaults to Home even when the match was on
+  screen** - owner leaning: restore the view you left; needs a "was in
+  match" session marker + decision.
+- **W3 (answered + documented)**: planned subs and the timer's sub-interval
+  are separate mechanisms that both run. A game created from a plan stores
+  its planned sub schedule; as the clock passes each planned time,
+  usePlannedSubPrompts surfaces an ADVISORY prompt (who on / who off,
+  persists until dismissed, once per sub). The generic sub-interval alarm
+  keeps running independently. OPEN DECISION: for plan-created games,
+  default the generic interval alarm off so only planned prompts speak.
+
+### Deep-review (2026-07-17, four-lens agent audit) - all findings fixed pre-merge
+
+Fixed on the feature branch: dead cloud-hydration after sign-out (sync is
+push-only - the skip branch now runs the same cloud check + re-sets the
+flag); match stats modal is current-game-only and the retired in-place
+switch (handleGameLogClick) is deleted; W5 resume marker was dead code
+(cleared on first mount) - transition-aware now; autosave races closed
+(silent saves never rewrite the current-id setting, cache merges instead of
+replacing, ghost-guard existence check, unmount FLUSHES pending debounces,
+crossings flush the live match first, load clears timer records only after
+a good persist); roster merge preserves departed players (per-game history
+intact); creation rolls back orphans; hardware-back closes bypass the
+anti-flash guard; user change resets ALL match-scope transient modal state;
+stale Home fixed (flags re-check on match->Home return, isFirstTimeUser
+requires truly empty, scratch workspace not counted); club-scope deep links
+route to host modals over Home (DeepLinkClubRouter); duplicate "Match
+stats" menu entry collapsed into Game report; 8 missing locale keys added;
+menu button announced as "Menu"; planner test suite history-race fixed.
+Deferred as future ideas: per-row duplicate, Tallenna nimellä, fi
+peli/ottelu terminology pass, planner internal-back walking deeper views.
+
+## 7. Process rules for this branch (planner lessons, binding)
+
+- **Merge gate (binding, 2026-07-14): a sub-PR merges ONLY when the Claude
+  review has posted an Approve for the exact current head.** CI green alone
+  never merges. Review requests changes -> fix -> push -> wait for the fresh
+  review of the NEW head -> loop until it approves.
+- **Verify before push, per batch**: `npx tsc --noEmit` → targeted jest
+  (`--no-coverage`) → eslint on touched files → `npm run build` → restore
+  `public/changelog.json` + `public/sw.js` before committing.
+- **Full suite** (`npm test`, ~5.4k tests - it covers `tests/` too, the
+  planner's blind spot) at EVERY phase boundary AND before the master PR.
+- **Weekly `master` → feature merge** to stop drift; release-notes conflicts
+  resolve as: our entries keep position, master's new entries slot by date.
+- **A dissolved modal's test suite is reworked in the SAME PR** that dissolves
+  it - never deferred (planner: ~25 tests per shell change is one sitting).
+- **i18n**: key-count guard + `npm run generate:i18n-types` in the same PR as
+  any key change; `t()` fallbacks byte-match the en JSON.
+- **No schema/DB changes anywhere in this scope.** No migrations, no DataStore
+  interface changes. If one seems needed, stop - the plan is wrong somewhere.
+- **Phase 4 (`unsaved_game` retirement) is out of scope** - any PR that starts
+  touching `DEFAULT_GAME_ID` semantics gets split out and parked.
+- Cleanup after the final merge: archive tag on the feature branch tip, delete
+  all step branches (same as `archive/playtime-planner-history`).

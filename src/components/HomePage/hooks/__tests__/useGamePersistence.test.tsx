@@ -27,6 +27,8 @@ jest.mock('@/utils/playtimePlanner/planLinks', () => ({
 
 jest.mock('@/utils/savedGames', () => ({
   saveGame: jest.fn().mockResolvedValue(true),
+  // Deep-review: silent saves verify the game still exists (ghost guard).
+  getGame: jest.fn().mockResolvedValue({ teamName: 'T' }),
   deleteGame: jest.fn().mockResolvedValue(true),
   removeGameEvent: jest.fn().mockResolvedValue({}),
   getLatestGameId: jest.fn().mockResolvedValue(null),
@@ -154,14 +156,10 @@ const createMockParams = (overrides?: Partial<UseGamePersistenceParams>): UseGam
     savedGames: {},
     setSavedGames: jest.fn(),
     resetHistory: jest.fn(),
-    initialState: {} as AppState,
-    initialGameSessionData: createMockGameSessionState(),
     dispatchGameSession: jest.fn(),
-    loadGameStateFromData: jest.fn(),
     showToast: jest.fn(),
     t: jest.fn((key: string) => key) as unknown as UseGamePersistenceParams['t'],
     queryClient,
-    handleCloseLoadGameModal: jest.fn(),
     ...overrides,
   };
 };
@@ -187,20 +185,13 @@ describe('useGamePersistence', () => {
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
       // Verify all required exports are present
+      // (handleLoadGame/handleDeleteGame + their loading/error states LIFTED
+      // to useLoadGameController, L.3a)
       expect(result.current).toHaveProperty('handleQuickSaveGame');
-      expect(result.current).toHaveProperty('handleLoadGame');
-      expect(result.current).toHaveProperty('handleDeleteGame');
       expect(result.current).toHaveProperty('handleDeleteGameEvent');
-      expect(result.current).toHaveProperty('isGameLoading');
-      expect(result.current).toHaveProperty('gameLoadError');
-      expect(result.current).toHaveProperty('isGameDeleting');
-      expect(result.current).toHaveProperty('gameDeleteError');
-      expect(result.current).toHaveProperty('processingGameId');
 
       // Verify handlers are functions
       expect(typeof result.current.handleQuickSaveGame).toBe('function');
-      expect(typeof result.current.handleLoadGame).toBe('function');
-      expect(typeof result.current.handleDeleteGame).toBe('function');
       expect(typeof result.current.handleDeleteGameEvent).toBe('function');
     });
 
@@ -212,11 +203,9 @@ describe('useGamePersistence', () => {
       const params = createMockParams();
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
-      expect(result.current.isGameLoading).toBe(false);
-      expect(result.current.gameLoadError).toBe(null);
-      expect(result.current.isGameDeleting).toBe(false);
-      expect(result.current.gameDeleteError).toBe(null);
-      expect(result.current.processingGameId).toBe(null);
+      // Load/delete state lifted to useLoadGameController (L.3a); the hook's
+      // remaining stateful surface is the save/undo machinery.
+      expect(typeof result.current.handleQuickSaveGame).toBe('function');
     });
 
     /**
@@ -229,8 +218,6 @@ describe('useGamePersistence', () => {
 
       const handlers1 = {
         handleQuickSaveGame: result.current.handleQuickSaveGame,
-        handleLoadGame: result.current.handleLoadGame,
-        handleDeleteGame: result.current.handleDeleteGame,
         handleDeleteGameEvent: result.current.handleDeleteGameEvent,
       };
 
@@ -238,15 +225,11 @@ describe('useGamePersistence', () => {
 
       const handlers2 = {
         handleQuickSaveGame: result.current.handleQuickSaveGame,
-        handleLoadGame: result.current.handleLoadGame,
-        handleDeleteGame: result.current.handleDeleteGame,
         handleDeleteGameEvent: result.current.handleDeleteGameEvent,
       };
 
       // Handlers should be stable (same reference)
       expect(handlers1.handleQuickSaveGame).toBe(handlers2.handleQuickSaveGame);
-      expect(handlers1.handleLoadGame).toBe(handlers2.handleLoadGame);
-      expect(handlers1.handleDeleteGame).toBe(handlers2.handleDeleteGame);
       expect(handlers1.handleDeleteGameEvent).toBe(handlers2.handleDeleteGameEvent);
     });
   });
@@ -276,6 +259,45 @@ describe('useGamePersistence', () => {
       expect(params.resetHistory).toHaveBeenCalled();
     });
 
+    it('preserves isFriendly from the saved record (it is not carried in the session, so autosave must not drop it)', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        // The persisted record is a friendly; the live session state has no such
+        // field. A full-overwrite autosave must carry it through.
+        savedGames: { game123: { isFriendly: true } as unknown as AppState },
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true); // silent autosave
+      });
+
+      expect(saveGame).toHaveBeenCalledTimes(1);
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(
+        expect.objectContaining({ isFriendly: true }),
+      );
+    });
+
+    it('defaults isFriendly to false when the record has none', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: {} as unknown as AppState },
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(
+        expect.objectContaining({ isFriendly: false }),
+      );
+    });
+
     it('keeps the saved-games cache fresh via setQueryData, not invalidateQueries (no per-save refetch)', async () => {
       const params = createMockParams();
       const invalidateSpy = jest.spyOn(params.queryClient, 'invalidateQueries');
@@ -291,243 +313,8 @@ describe('useGamePersistence', () => {
     });
   });
 
-  describe('Load Game Behavior', () => {
-    /**
-     * Tests that load game calls the callback
-     * @critical
-     */
-    it('should call loadGameStateFromData when loading existing game', async () => {
-      const mockGameData: AppState = {
-        teamName: 'Loaded Team',
-        opponentName: 'Loaded Opponent',
-        gameDate: '2024-01-15',
-        homeScore: 3,
-        awayScore: 2,
-        gameNotes: '',
-        homeOrAway: 'home',
-        numberOfPeriods: 2,
-        periodDurationMinutes: 45,
-        currentPeriod: 1,
-        gameStatus: 'inProgress',
-        selectedPlayerIds: [],
-        gamePersonnel: [],
-        seasonId: '',
-        tournamentId: '',
-        demandFactor: 5,
-        gameEvents: [],
-        playersOnField: [],
-        opponents: [],
-        drawings: [],
-        tacticalDiscs: [],
-        tacticalDrawings: [],
-        tacticalBallPosition: null,
-        availablePlayers: [],
-        assessments: {},
-        isPlayed: true,
-        showPlayerNames: true,
-      };
-
-      const loadGameStateFromData = jest.fn().mockResolvedValue(undefined);
-      const setCurrentGameId = jest.fn();
-
-      // Suppress console.error for storage cleanup failures (non-critical)
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      const params = createMockParams({
-        savedGames: { 'game456': mockGameData },
-        loadGameStateFromData,
-        setCurrentGameId,
-      });
-      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.handleLoadGame('game456');
-      });
-
-      await waitFor(() => {
-        expect(loadGameStateFromData).toHaveBeenCalledTimes(1);
-        expect(loadGameStateFromData).toHaveBeenCalledWith(mockGameData);
-        expect(setCurrentGameId).toHaveBeenCalledTimes(1);
-        expect(setCurrentGameId).toHaveBeenCalledWith('game456');
-      });
-
-      consoleErrorSpy.mockRestore();
-    });
-
-    /**
-     * Regression: loading a game must clear the localStorage wall-clock anchor
-     * alongside the IndexedDB timer state. Otherwise a stale anchor from the
-     * previous game survives the switch and mis-resumes the clock on next boot.
-     * @edge-case
-     */
-    it('clears the timer anchor when loading a game', async () => {
-      const { clearTimerAnchor } = jest.requireMock('@/utils/timerAnchor');
-      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
-
-      const mockGameData: AppState = {
-        teamName: 'Anchor Team',
-        opponentName: 'Anchor Opp',
-        gameDate: '2026-06-25',
-        homeScore: 0,
-        awayScore: 0,
-        gameNotes: '',
-        homeOrAway: 'home',
-        numberOfPeriods: 2,
-        periodDurationMinutes: 45,
-        currentPeriod: 1,
-        gameStatus: 'inProgress',
-        selectedPlayerIds: [],
-        gamePersonnel: [],
-        seasonId: '',
-        tournamentId: '',
-        demandFactor: 5,
-        gameEvents: [],
-        playersOnField: [],
-        opponents: [],
-        drawings: [],
-        tacticalDiscs: [],
-        tacticalDrawings: [],
-        tacticalBallPosition: null,
-        availablePlayers: [],
-        assessments: {},
-        isPlayed: true,
-        showPlayerNames: true,
-      };
-
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      const params = createMockParams({ savedGames: { 'game789': mockGameData } });
-      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.handleLoadGame('game789');
-      });
-
-      await waitFor(() => {
-        expect(clearTimerState).toHaveBeenCalled();
-        expect(clearTimerAnchor).toHaveBeenCalled();
-      });
-
-      consoleErrorSpy.mockRestore();
-    });
-
-    /**
-     * Tests error state when game not found
-     * @edge-case
-     */
-    it('should set error when game not found', async () => {
-      // Suppress console.error for this test as we expect an error
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      const params = createMockParams({ savedGames: {} });
-      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.handleLoadGame('nonexistent');
-      });
-
-      await waitFor(() => {
-        expect(result.current.gameLoadError).toBeTruthy();
-      });
-
-      consoleErrorSpy.mockRestore();
-    });
-  });
-
-  describe('Delete Game Behavior', () => {
-    /**
-     * Tests that delete calls setSavedGames
-     * @critical
-     */
-    it('should call setSavedGames when deleting game', async () => {
-      const setSavedGames = jest.fn();
-      const params = createMockParams({
-        currentGameId: 'game123',
-        savedGames: { 'game123': {} as AppState, 'game456': {} as AppState },
-        setSavedGames,
-      });
-      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.handleDeleteGame('game456');
-      });
-
-      // Should attempt to update saved games
-      await waitFor(() => {
-        expect(setSavedGames).toHaveBeenCalledTimes(1);
-      }, { timeout: 1000 });
-    });
-
-    /**
-     * Deleting a game must also drop its planner bookkeeping (planned-sub
-     * schedule + plan link, both keyed by game id) or they accumulate as orphans.
-     * @critical
-     */
-    it('cleans up the planner stores for the deleted game id', async () => {
-      const { deleteGameSubs } = jest.requireMock('@/utils/playtimePlanner/gameSubs');
-      const { deletePlanLink } = jest.requireMock('@/utils/playtimePlanner/planLinks');
-      const params = createMockParams({
-        currentGameId: 'game123',
-        savedGames: { game123: {} as AppState, game456: {} as AppState },
-      });
-      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.handleDeleteGame('game456');
-      });
-
-      expect(deleteGameSubs).toHaveBeenCalledWith('game456');
-      expect(deletePlanLink).toHaveBeenCalledWith('game456');
-    });
-
-    /**
-     * Planner cleanup failure must never fail the (already deleted) game delete.
-     * @edge-case
-     */
-    it('still completes the delete when planner cleanup fails (non-fatal)', async () => {
-      // The hook logs the cleanup failure (expected) - keep the console clean.
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      const { deleteGameSubs } = jest.requireMock('@/utils/playtimePlanner/gameSubs');
-      (deleteGameSubs as jest.Mock).mockRejectedValueOnce(new Error('boom'));
-      const setSavedGames = jest.fn();
-      const params = createMockParams({
-        currentGameId: 'game123',
-        savedGames: { game123: {} as AppState, game456: {} as AppState },
-        setSavedGames,
-      });
-      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.handleDeleteGame('game456');
-      });
-
-      await waitFor(() => {
-        expect(setSavedGames).toHaveBeenCalledTimes(1);
-      }, { timeout: 1000 });
-      consoleWarnSpy.mockRestore();
-    });
-
-    /**
-     * Tests protection against deleting default game
-     * @edge-case
-     */
-    it('should not call setSavedGames for DEFAULT_GAME_ID', async () => {
-      // Suppress console.warn for this test as we expect a warning
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-      const setSavedGames = jest.fn();
-      const params = createMockParams({ setSavedGames });
-      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
-
-      await act(async () => {
-        await result.current.handleDeleteGame(DEFAULT_GAME_ID);
-      });
-
-      // Should not attempt to delete default game
-      expect(setSavedGames).not.toHaveBeenCalled();
-      consoleWarnSpy.mockRestore();
-    });
-  });
+  // 'Load Game Behavior' + 'Delete Game Behavior' suites MOVED to
+  // src/hooks/useLoadGameController.test.tsx (L.3a lift).
 
   describe('Delete Game Event Behavior', () => {
     /**

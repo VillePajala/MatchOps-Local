@@ -136,6 +136,40 @@ describe('NewGameSetupModal', () => {
     );
   };
 
+  test('R1: inline add appends the saved player to the picker snapshot AND selects them', async () => {
+    const saved = { id: 'new-9', name: 'Uusi', isGoalie: false, receivedFairPlayCard: false };
+    const onAddPlayerToRoster = jest.fn().mockResolvedValue(saved);
+    render(
+      <ToastProvider>
+        <NewGameSetupModal {...defaultProps} onAddPlayerToRoster={onAddPlayerToRoster} />
+      </ToastProvider>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Add new player/ }));
+    fireEvent.change(screen.getByPlaceholderText('New player name'), { target: { value: 'Uusi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalledWith('Uusi', undefined));
+    // The picker renders the new player immediately (snapshot append) and
+    // they are selected - the owner-walkthrough R1 regression.
+    expect(await screen.findByText('Uusi')).toBeInTheDocument();
+    const checkbox = screen.getByText('Uusi').closest('label')!.querySelector('input')!;
+    expect(checkbox).toBeChecked();
+  });
+
+  test('R1: duplicate name is refused with an inline message, no club write', async () => {
+    const onAddPlayerToRoster = jest.fn();
+    render(
+      <ToastProvider>
+        <NewGameSetupModal {...defaultProps} onAddPlayerToRoster={onAddPlayerToRoster} />
+      </ToastProvider>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Add new player/ }));
+    fireEvent.change(screen.getByPlaceholderText('New player name'),
+      { target: { value: defaultProps.masterRoster[0].name.toUpperCase() } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(onAddPlayerToRoster).not.toHaveBeenCalled();
+  });
+
   test('loads the last home team name from appSettings utility and populates input', async () => {
     renderModal();
     expect(getLastHomeTeamName).toHaveBeenCalled();
@@ -205,7 +239,8 @@ describe('NewGameSetupModal', () => {
       '', // customLeagueName
       'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
     );
   });
 
@@ -224,7 +259,7 @@ describe('NewGameSetupModal', () => {
 
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
-    const toggle = screen.getByLabelText(translations['newGameSetupModal.unplayedToggle']);
+    const toggle = screen.getByRole('button', { name: translations['newGameSetupModal.unplayedToggle'] });
     fireEvent.click(toggle);
     const startButton = screen.getByRole('button', { name: /Create Game/i });
     await act(async () => {
@@ -243,7 +278,8 @@ describe('NewGameSetupModal', () => {
         '', // customLeagueName
         'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
       );
     });
   });
@@ -274,10 +310,10 @@ describe('NewGameSetupModal', () => {
     expect(mockOnStart).not.toHaveBeenCalled();
   });
 
-  test('calls onCancel when cancel button is clicked', async () => {
+  test('calls onCancel when the header close (X) is clicked', async () => {
     renderModal();
-    // Use translation key for button text
-    const cancelButton = screen.getByText(translations['common.cancel']);
+    // Chrome slimming: Cancel is now the header X (aria-label = Cancel).
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
     await act(async () => {
         fireEvent.click(cancelButton);
     });
@@ -400,7 +436,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // customLeagueName
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -518,7 +555,8 @@ describe('NewGameSetupModal', () => {
           expect.any(String), // customLeagueName
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -773,7 +811,8 @@ describe('NewGameSetupModal', () => {
           '', // customLeagueName
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -853,7 +892,8 @@ describe('NewGameSetupModal', () => {
           'My Custom League', // customLeagueName - THE KEY ASSERTION
           'soccer', // gameType
       undefined, // gender
-      undefined // prefill (Phase 2 planner)
+      undefined, // prefill (Phase 2 planner)
+      false // isFriendly
         );
       });
     });
@@ -1103,11 +1143,11 @@ describe('NewGameSetupModal', () => {
       });
 
       // Verify onStart was called with gameType: 'futsal'
-      // Positional args: gameType is 3rd from the end (gender then optional prefill follow it).
+      // Positional args: gameType is 4th from the end (gender, optional prefill, isFriendly follow it).
       await waitFor(() => {
         expect(mockOnStart).toHaveBeenCalled();
         const args = mockOnStart.mock.calls[0];
-        const gameTypeArg = args[args.length - 3];
+        const gameTypeArg = args[args.length - 4];
         expect(gameTypeArg).toBe('futsal');
       });
     });
@@ -1235,7 +1275,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      const prefillArg = call[call.length - 1];
+      const prefillArg = call[call.length - 2]; // isFriendly is now the last arg
       expect(prefillArg).toBeDefined();
       expect(prefillArg.playersOnField).toHaveLength(2); // GK + one field player placed
       const gk = prefillArg.playersOnField.find((p: { id: string }) => p.id === 'player1');
@@ -1279,7 +1319,7 @@ describe('NewGameSetupModal', () => {
       });
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload
+      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload
     });
 
     test('picker stays hidden when there are no plans', async () => {
@@ -1360,7 +1400,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 1]).toBeUndefined(); // no prefill payload rode along
+      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload rode along
     });
   });
 });

@@ -14,7 +14,8 @@
  * - Consistent spacing and shadows
  */
 
-import React from 'react';
+import React, { useCallback, useRef, useSyncExternalStore } from 'react';
+import { HiOutlineXMark } from 'react-icons/hi2';
 
 // ============================================================================
 // Container & Layout Styles
@@ -183,6 +184,203 @@ export const ScrollableContent: React.FC<{
     {children}
   </div>
 );
+
+// ============================================================================
+// Collapsing modal chrome (modal-chrome slimming, 2026-07-17)
+// ============================================================================
+//
+// Generalizes the Playing-Time Planner's bespoke collapse-on-scroll so every
+// modal can drop its footer and reclaim phone space:
+//  - the TITLE ROW (X close + title + a small pinned action cluster) is
+//    always visible - iOS/desktop have no hardware back, so a modal must
+//    keep one on-screen exit;
+//  - the COLLAPSING REGION (tabs, add buttons, read-only counters - anything
+//    non-title, per owner decision 2026-07-17) shrinks away on scroll-down
+//    and returns on scroll-up.
+// The small action cluster stays pinned (a Save that vanishes when you
+// scroll to a form's end helps no one); the bulky extras collapse.
+
+export interface CollapsingHeaderController {
+  outerRef: React.RefObject<HTMLDivElement | null>;
+  innerRef: React.RefObject<HTMLDivElement | null>;
+  /** Wire to the ScrollableContent's onScroll. */
+  onScroll: React.UIEventHandler<HTMLDivElement>;
+  /** Fully reveal the region (call when the collapsing content changes, e.g. tab switch). */
+  reset: () => void;
+}
+
+/** Imperative collapse-on-scroll for a modal's non-title chrome. */
+export function useCollapsingHeader(): CollapsingHeaderController {
+  const outerRef = useRef<HTMLDivElement | null>(null);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const offsetRef = useRef(0);
+  const lastYRef = useRef(0);
+
+  const apply = useCallback((offset: number) => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const h = inner.offsetHeight;
+    const clamped = Math.max(0, Math.min(h, offset));
+    offsetRef.current = clamped;
+    outer.style.height = `${h - clamped}px`;
+    inner.style.transform = `translateY(-${clamped}px)`;
+    inner.setAttribute('aria-hidden', clamped >= h && h > 0 ? 'true' : 'false');
+  }, []);
+
+  const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const y = e.currentTarget.scrollTop;
+    const delta = y - lastYRef.current;
+    lastYRef.current = y;
+    if (delta === 0) return;
+    // At (or rubber-banding past) the top the region is always fully shown.
+    apply(y <= 0 ? 0 : offsetRef.current + delta);
+  }, [apply]);
+
+  const reset = useCallback(() => {
+    lastYRef.current = 0;
+    offsetRef.current = 0;
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (outer && inner) {
+      outer.style.height = '';
+      inner.style.transform = '';
+      inner.setAttribute('aria-hidden', 'false');
+    }
+  }, []);
+
+  return { outerRef, innerRef, onScroll, reset };
+}
+
+// The close X shows ONLY where there is no reliable back affordance (owner
+// decision 2026-07-17, refined): a desktop pointer (mouse) OR an iOS
+// home-screen PWA (standalone Safari has no back gesture at all). It is
+// hidden on Android TWA (hardware back) and mobile Safari (browser back +
+// edge-swipe), where a visible X is redundant. See useModalCloseVisible.
+export const modalCloseButtonStyle =
+  "items-center justify-center p-2 -m-2 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0";
+
+function subscribeCloseVisibility(cb: () => void): () => void {
+  const mq = typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(pointer: fine)')
+    : null;
+  mq?.addEventListener?.('change', cb);
+  return () => mq?.removeEventListener?.('change', cb);
+}
+
+function getCloseVisibilitySnapshot(): boolean {
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  const finePointer = window.matchMedia?.('(pointer: fine)')?.matches ?? true;
+  return finePointer || nav.standalone === true;
+}
+
+/** True where the modal X should show: desktop pointer OR iOS standalone PWA.
+ *  SSR/test snapshot is `true` (show), so no missing-X flash and tests find it. */
+export function useModalCloseVisible(): boolean {
+  return useSyncExternalStore(subscribeCloseVisibility, getCloseVisibilitySnapshot, () => true);
+}
+
+// Sticky single-primary bottom bar (owner decision 2026-07-17): the ONE
+// commit action for a form/wizard modal, pinned and thumb-reachable -
+// replaces the old Cancel+Save footer (Cancel is the header X / hardware
+// back). Utilities do NOT live here; they go inline by their content.
+export const modalStickyBarStyle =
+  "flex-shrink-0 px-4 py-2.5 border-t border-slate-700/30 bg-slate-800/60 backdrop-blur-sm";
+
+export const ModalStickyPrimary: React.FC<{
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ onClick, disabled, children, className = '' }) => (
+  <div className={`${modalStickyBarStyle} ${className}`}>
+    {/* Sized to match the in-modal quick-fill buttons (py-2 / text-sm) - the
+        full-height version read as too heavy (owner feedback 2026-07-17). */}
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {children}
+    </button>
+  </div>
+);
+
+/**
+ * Full-width solid on/off toggle - the house replacement for a settings
+ * checkbox (owner: no checkboxes for settings; always solid, full-width).
+ * `aria-pressed` carries the state; indigo when on, slate when off. Matches
+ * the "Show archived" / "Show only unplayed" filter toggles.
+ */
+export const ModalToggleButton: React.FC<{
+  pressed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+  className?: string;
+}> = ({ pressed, onToggle, children, disabled, className = '' }) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    aria-pressed={pressed}
+    disabled={disabled}
+    className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed ${pressed ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'} ${className}`}
+  >
+    {children}
+  </button>
+);
+
+/**
+ * Slimmed modal header: always-visible X + centered title + optional pinned
+ * action cluster (primary + utilities), with an optional collapsing region
+ * below (`children`). Replaces the per-modal header div + the footer.
+ */
+export const CollapsibleModalHeader: React.FC<{
+  title: React.ReactNode;
+  onClose: () => void;
+  closeLabel?: string;
+  /** Lock the close control (e.g. while an in-flight op must not be
+      interrupted by closing the modal). Mirrors the old footer Done's
+      `disabled`. */
+  closeDisabled?: boolean;
+  /** Pinned top-right cluster: primary action + utilities (Q2). Stays visible. */
+  actions?: React.ReactNode;
+  /** Collapsing region below the title row (tabs, add buttons, counters). */
+  children?: React.ReactNode;
+  collapse?: CollapsingHeaderController;
+}> = ({ title, onClose, closeLabel = 'Close', closeDisabled, actions, children, collapse }) => {
+  const showClose = useModalCloseVisible();
+  // Balanced fixed-width side slots keep the title centered when the X shows or
+  // a right-side action cluster is present. But on phones (X hidden) with no
+  // actions, those 40px slots just steal width and wrap otherwise-one-line
+  // titles - so collapse both to give the title the full row (owner feedback).
+  const reserveSides = showClose || !!actions;
+  const sideSlot = reserveSides ? 'basis-10' : 'basis-0';
+  return (
+  <div className="flex-shrink-0">
+    <div className="flex items-center gap-2 pt-8 pb-3 px-4 backdrop-blur-sm bg-slate-900/20">
+      <div className={`flex items-center justify-start ${sideSlot} shrink-0`}>
+        <button type="button" onClick={onClose} disabled={closeDisabled} aria-label={closeLabel} title={closeLabel} className={`${showClose ? 'flex' : 'hidden'} ${modalCloseButtonStyle} disabled:opacity-50 disabled:cursor-not-allowed`}>
+          <HiOutlineXMark className="w-6 h-6" />
+        </button>
+      </div>
+      {/* No truncation: the full title must always show (owner feedback
+          2026-07-17). Original prominence (text-3xl from titleStyle),
+          centered, wrapping to a second line for long titles. `break-words`
+          so even a single long word (e.g. a Finnish compound) wraps instead
+          of overflowing/clipping. */}
+      <h2 className={`${titleStyle} flex-1 text-center text-balance break-words leading-tight min-w-0`}>{title}</h2>
+      <div className={`flex items-center justify-end gap-1.5 ${sideSlot} shrink-0`}>{actions}</div>
+    </div>
+    {children && (
+      <div ref={collapse?.outerRef} className="overflow-hidden border-b border-slate-700/20">
+        <div ref={collapse?.innerRef}>{children}</div>
+      </div>
+    )}
+  </div>
+  );
+};
 
 // ============================================================================
 // Dialog/Overlay Backdrop Styles

@@ -2778,6 +2778,7 @@ export class SupabaseDataStore implements DataStore {
       clubSeasonStartDate: row.club_season_start_date ?? DEFAULT_APP_SETTINGS.clubSeasonStartDate,
       clubSeasonEndDate: row.club_season_end_date ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate,
       isDrawingModeEnabled: row.is_drawing_mode_enabled ?? false,
+      homeView: row.home_view === 'dashboard' ? 'dashboard' : 'simple',
       // Carry the row's updated_at through so settings conflict resolution has a
       // real timestamp to compare (without it, settings always resolved local-wins).
       updatedAt: row.updated_at ?? undefined,
@@ -2796,6 +2797,7 @@ export class SupabaseDataStore implements DataStore {
       club_season_start_date: settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE,
       club_season_end_date: settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE,
       is_drawing_mode_enabled: settings.isDrawingModeEnabled ?? false,
+      home_view: settings.homeView ?? null,
       updated_at: new Date().toISOString(),
     };
   }
@@ -3028,6 +3030,8 @@ export class SupabaseDataStore implements DataStore {
         game_status: normalizeGameStatus(game.gameStatus) ?? 'notStarted',
         // CRITICAL: Local semantics treat undefined as true (legacy migration)
         is_played: game.isPlayed ?? true,
+        // Friendly flag: absent/false = a competitive game (Rule: default false).
+        is_friendly: game.isFriendly ?? false,
         home_score: normalizeInteger(game.homeScore, 0),
         away_score: normalizeInteger(game.awayScore, 0),
         game_notes: game.gameNotes,
@@ -3206,6 +3210,8 @@ export class SupabaseDataStore implements DataStore {
       gameStatus: normalizeGameStatus(game.game_status) ?? 'notStarted',
       // Rule 2: Legacy default - undefined → true (legacy games assumed played)
       isPlayed: game.is_played ?? true,
+      // Friendly flag: NULL/undefined (legacy rows) → false (competitive).
+      isFriendly: game.is_friendly ?? false,
       homeScore: game.home_score,
       awayScore: game.away_score,
       gameNotes: game.game_notes,
@@ -3526,6 +3532,7 @@ export class SupabaseDataStore implements DataStore {
       currentPeriod: 1,
       gameStatus: 'notStarted',
       isPlayed: true,
+      isFriendly: false,
       homeScore: 0,
       awayScore: 0,
       gameNotes: '',

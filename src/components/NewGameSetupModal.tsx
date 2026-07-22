@@ -21,7 +21,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -64,9 +64,14 @@ interface NewGameSetupModalProps {
       formationSnapPoints: Point[];
       sourcePlanId: string;
       sourcePlanGameId: string;
-    }
+    },
+    // Friendly / practice match: excluded from competitive stat totals by default.
+    isFriendly?: boolean,
   ) => void;
   onCancel: () => void;
+  /** W1 roster bridge in game creation too: club write returning the saved
+   *  player; the modal dup-checks and selects them into this setup. */
+  onAddPlayerToRoster?: (name: string, nickname?: string) => Promise<import('@/types').Player | null>;
   // Fresh data from React Query
   masterRoster: Player[];
   seasons: Season[];
@@ -85,6 +90,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   onManageTeamRoster,
   onStart,
   onCancel,
+  onAddPlayerToRoster,
   masterRoster,
   seasons,
   tournaments,
@@ -93,6 +99,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   savedGames,
 }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');
   const [opponentName, setOpponentName] = useState('');
@@ -127,6 +134,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // <<< Step 4a: State for Home/Away >>>
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  const [isFriendly, setIsFriendly] = useState<boolean>(false);
 
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament
   const [gameType, setGameType] = useState<GameType>('soccer');
@@ -684,7 +692,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '', // Custom league name when leagueId === CUSTOM_LEAGUE_ID
       gameType, // Sport type: 'soccer' or 'futsal'
       gender, // Gender: 'boys' or 'girls' (optional)
-      prefillPayload // Planner prefill (Phase 2): planned XI + subs, or undefined
+      prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
+      isFriendly, // Friendly / practice match flag
     );
 
     // Modal will be closed by parent component after onStart
@@ -744,28 +753,30 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0">
-          {/* Fixed Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {t('newGameSetupModal.title', 'New Game Setup')}
-            </h2>
-          </div>
-
-          {/* Quick-fill from the most recent game (opponent, venue, format, roster) */}
-          {lastGame && (
-            <div className="px-6 pb-2 backdrop-blur-sm bg-slate-900/20">
-              <button
-                type="button"
-                onClick={handleRepeatLastGame}
-                className="w-full px-4 py-2 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-sm font-medium border border-indigo-500/40 transition-colors"
-              >
-                {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
-              </button>
-            </div>
-          )}
+          {/* Modal-chrome slimming: X-header + pinned primary (Create) replace
+              the header and the Cancel/Create footer. "Repeat last game"
+              (utility) sits in the collapsing region below the title. */}
+          <CollapsibleModalHeader
+            title={t('newGameSetupModal.title', 'New Game Setup')}
+            onClose={onCancel}
+            closeLabel={t('common.cancelButton', 'Cancel')}
+            collapse={headerCollapse}
+          >
+            {lastGame && (
+              <div className="px-4 pb-3 pt-1 backdrop-blur-sm bg-slate-900/20">
+                <button
+                  type="button"
+                  onClick={handleRepeatLastGame}
+                  className="w-full px-4 py-2 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-sm font-medium border border-indigo-500/40 transition-colors"
+                >
+                  {t('newGameSetupModal.repeatLastGame', 'Repeat last game')}
+                </button>
+              </div>
+            )}
+          </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4" onScroll={headerCollapse.onScroll}>
             {/* CARD 1: Teams & Roster */}
             <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
@@ -877,7 +888,36 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 title={t('newGameSetupModal.selectPlayers', 'Select Players')}
                 playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
                 selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
-                noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
+                noPlayersText={t('newGameSetupModal.noPlayersAddInline', 'No players yet - add your first player below.')}
+                onAddPlayer={
+                  onAddPlayerToRoster
+                    ? async (name: string, nickname?: string) => {
+                        /* Same contract as the in-match picker (W1). */
+                        const isDuplicate = masterRoster.some(
+                          (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
+                        );
+                        if (isDuplicate) {
+                          return t('playerDetailsModal.duplicateNameError', 'A player with this name already exists');
+                        }
+                        const saved = await onAddPlayerToRoster(name, nickname);
+                        if (!saved) {
+                          return t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.');
+                        }
+                        // R1: the picker lists a SNAPSHOT of the roster -
+                        // append the new player so they render immediately
+                        // (the club write already updated the query cache).
+                        setAvailablePlayersForSetup((prev) =>
+                          prev.some((p) => p.id === saved.id) ? prev : [...prev, saved],
+                        );
+                        setSelectedPlayerIds((prev) => [...prev, saved.id]);
+                        return true as const;
+                      }
+                    : undefined
+                }
+                addPlayerLabel={t('gameSettingsModal.addToClubRoster', 'Add new player')}
+                addPlayerConfirmLabel={t('common.add', 'Add')}
+                addPlayerPlaceholder={t('gameSettingsModal.addToClubRosterPlaceholder', 'New player name')}
+                addPlayerNicknamePlaceholder={t('gameSettingsModal.addToClubRosterNickname', 'Nickname (shown on the disc)')}
               />
 
               {/* Personnel Selection */}
@@ -1328,38 +1368,28 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 />
               </div>
 
-              {/* Not Played Yet Checkbox */}
+              {/* Not Played Yet toggle */}
               <div className="mb-4">
-                <label className="inline-flex items-center text-sm text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={!isPlayed}
-                    onChange={(e) => setIsPlayed(!e.target.checked)}
-                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="ml-2">{t('newGameSetupModal.unplayedToggle', 'Not played yet')}</span>
-                </label>
+                <ModalToggleButton pressed={!isPlayed} onToggle={() => setIsPlayed(v => !v)}>
+                  {t('newGameSetupModal.unplayedToggle', 'Not played yet')}
+                </ModalToggleButton>
+              </div>
+
+              {/* Friendly / practice match toggle */}
+              <div className="mb-4">
+                <ModalToggleButton pressed={isFriendly} onToggle={() => setIsFriendly(v => !v)}>
+                  {t('newGameSetupModal.friendlyToggle', 'Friendly match (kept out of competitive stats)')}
+                </ModalToggleButton>
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <ModalFooter>
-            <div className="flex gap-3 w-full">
-              <button
-                onClick={onCancel}
-                className="flex-1 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-slate-600 text-white hover:bg-slate-500 border border-slate-400/30"
-              >
-                {t('common.cancelButton', 'Cancel')}
-              </button>
-              <button
-                onClick={handleStartClick}
-                className="flex-[2] py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-              >
-                {t('newGameSetupModal.createGame', 'Create Game')}
-              </button>
-            </div>
-          </ModalFooter>
+          {/* Chrome slimming: the ONE commit action as a sticky bottom bar
+              (thumb zone); Cancel is the header X / hardware back. */}
+          <ModalStickyPrimary onClick={handleStartClick}>
+            {t('newGameSetupModal.createGame', 'Create Game')}
+          </ModalStickyPrimary>
+
         </div>
       </div>
 

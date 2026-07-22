@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { secondaryButtonStyle, dangerButtonStyle, ModalFooter } from '@/styles/modalStyles';
+import { secondaryButtonStyle, dangerButtonStyle, CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -49,6 +49,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   onManageOrphanedGames,
 }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const queryClient = useQueryClient();
   const { userId, getStore } = useDataStore();
   const { showToast } = useToast();
@@ -289,34 +290,33 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="team-manager-title"
+      aria-label={t('teamManager.title', 'Teams')}
     >
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-          <h1 id="team-manager-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-            {t('teamManager.title', 'Teams')}
-          </h1>
-        </div>
-
-        {/* Fixed Section (Add Team Button) */}
-        <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          {/* Add Team Button */}
-          <button
-            onClick={handleCreateTeam}
-            className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-            aria-label={t('teamManager.createNewTeam', 'Create new team')}
-          >
-            {t('teamManager.addTeam', 'Add Team')}
-          </button>
-        </div>
+        {/* Chrome slimming: X-header (Done→X); Add Team collapses on scroll. */}
+        <CollapsibleModalHeader
+          title={t('teamManager.title', 'Teams')}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+          collapse={headerCollapse}
+        >
+          <div className="px-6 pt-3 pb-4">
+            <button
+              onClick={handleCreateTeam}
+              className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+              aria-label={t('teamManager.createNewTeam', 'Create new team')}
+            >
+              {t('teamManager.addTeam', 'Add Team')}
+            </button>
+          </div>
+        </CollapsibleModalHeader>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6" onScroll={headerCollapse.onScroll}>
           {/* Search Field and Show Archived Toggle */}
           <div className="mb-4 flex flex-col sm:flex-row gap-3">
             <input
@@ -563,22 +563,21 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             </div>
             );
           })()}
-        </div>
 
-        {/* Footer */}
-        <ModalFooter>
+          {/* Utility action, inline at the bottom of the content (chrome
+              slimming): games left behind by deleted teams. */}
           {onManageOrphanedGames && (
-            <button
-              onClick={onManageOrphanedGames}
-              className="px-4 py-2 rounded-md font-medium text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-600/30 transition-colors text-sm"
-              title={t('teamManager.manageOrphanedGames', 'Manage games from deleted teams')}
-            >
-              {t('teamManager.orphanedGames', 'Orphaned Games')}
-            </button>
+            <div className="mt-6 pt-4 border-t border-slate-700/40">
+              <button
+                onClick={onManageOrphanedGames}
+                className="px-4 py-2 rounded-md font-medium text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-600/30 transition-colors text-sm"
+                title={t('teamManager.manageOrphanedGames', 'Manage games from deleted teams')}
+              >
+                {t('teamManager.orphanedGames', 'Orphaned Games')}
+              </button>
+            </div>
           )}
-          <div className="flex-1" />
-          <button onClick={onClose} className="px-10 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30">{t('common.doneButton', 'Done')}</button>
-        </ModalFooter>
+        </div>
 
         {/* Delete Confirmation Modal */}
         {deleteConfirmTeamId && (

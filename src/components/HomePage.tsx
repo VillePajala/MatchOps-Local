@@ -9,18 +9,37 @@ import {
   useGameOrchestration,
   type UseGameOrchestrationProps,
 } from '@/components/HomePage/hooks/useGameOrchestration';
+import { useModalContext } from '@/contexts/ModalProvider';
 import { useAssessmentRatingStyle } from '@/hooks/useAssessmentRatingStyle';
 import { useAssessmentTemplate } from '@/hooks/useAssessmentTemplate';
 
 type HomePageProps = UseGameOrchestrationProps;
 
+/**
+ * Reset gate (L.0b): while useAppSettingsController wipes data (hard reset /
+ * re-sync / factory reset), the ENTIRE game hook chain must stop - not just
+ * the rendered tree. Returning null from inside HomePageInner would keep its
+ * hooks alive (useGameOrchestration -> useTimerManagement -> useGameTimer ->
+ * usePrecisionTimer keeps ticking and autosaving into the storage being
+ * wiped). So the gate lives in a PARENT component: unmounting HomePageInner
+ * runs the timer hooks' cleanups (interval cleared, pending debounced save
+ * cleared - not flushed) and cancels query subscriptions wholesale.
+ * The blocking overlay renders in ClubModalsHost (page level).
+ */
 function HomePage(props: HomePageProps) {
+  const { isAppResetting } = useModalContext();
+  if (isAppResetting) {
+    return null;
+  }
+  return <HomePageInner {...props} />;
+}
+
+function HomePageInner(props: HomePageProps) {
   const { t } = useTranslation();
   const {
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
-    isResetting,
   } = useGameOrchestration(props);
   const assessmentRatingStyle = useAssessmentRatingStyle();
   const assessmentTemplate = useAssessmentTemplate();
@@ -31,7 +50,7 @@ function HomePage(props: HomePageProps) {
   const [layoutReady, setLayoutReady] = useState(false);
 
   useEffect(() => {
-    if (isBootstrapping || isResetting) return;
+    if (isBootstrapping) return;
 
     // Double rAF: first frame renders GameContainer at opacity-0,
     // second frame it has laid out → safe to reveal
@@ -44,37 +63,14 @@ function HomePage(props: HomePageProps) {
     return () => {
       cancelAnimationFrame(outerFrameId);
       cancelAnimationFrame(innerFrameId);
-      // Reset layout flag when re-entering bootstrap/reset state
+      // Reset layout flag when re-entering bootstrap state
       // (cleanup runs before next effect when dependencies change)
       setLayoutReady(false);
     };
-  }, [isBootstrapping, isResetting]);
+  }, [isBootstrapping]);
 
   if (isBootstrapping) {
     return <LoadingScreen message={t('status.loadingGameData', 'Loading Game Data...')} />;
-  }
-
-  if (isResetting) {
-    return (
-      <div
-        className="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center"
-        role="alert"
-        aria-live="assertive"
-        data-testid="reset-overlay"
-      >
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-slate-200 mb-2">
-              {t('reset.resetting', 'Resetting Application...')}
-            </h2>
-            <p className="text-sm text-slate-400">
-              {t('reset.pleaseWait', 'Please wait while we clear all data')}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (

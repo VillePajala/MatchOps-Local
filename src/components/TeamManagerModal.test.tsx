@@ -256,11 +256,12 @@ describe('TeamManagerModal', () => {
   });
 
   describe('Close Functionality', () => {
-    it('calls onClose when Done button clicked', async () => {
+    it('calls onClose when the header close (Done) is clicked', async () => {
       const onClose = jest.fn();
       await renderWithQueryClient(<TeamManagerModal {...defaultProps} onClose={onClose} />);
 
-      fireEvent.click(screen.getByText('Done'));
+      // Chrome slimming: the footer Done became the header X (aria-label "Done").
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });

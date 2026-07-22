@@ -31,7 +31,7 @@ import {
 } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -82,6 +82,14 @@ export interface GameSettingsModalProps {
   selectedPlayerIds: string[];
   selectedPersonnelIds: string[];
   onSelectedPlayersChange: (playerIds: string[]) => void;
+  /**
+   * Roster bridge (3.2): write a new player to the CLUB roster from the
+   * game's picker. On success the modal selects them into the game too -
+   * the added player lands in the club roster AND the game selection.
+   */
+  onAddPlayerToRoster?: (name: string, nickname?: string) => Promise<Player | null>;
+  /** R3: open scrolled to a wrap-up section (set by the stats wrap-up card). */
+  initialScrollSection?: 'roster' | 'report' | 'positions' | 'competition';
   /** Whether this game was created from a plan and can still be re-applied (unplayed). */
   canReapplyPlan?: boolean;
   /** Re-apply the source plan to this game (overwrites the lineup + planned subs). */
@@ -137,6 +145,9 @@ export interface GameSettingsModalProps {
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
   onIsPlayedChange: (played: boolean) => void;
+  /** Whether this game is a friendly / practice match (excluded from
+   *  competitive stat totals by default). Persisted via mutateGameDetails. */
+  isFriendly: boolean;
   wentToOvertime?: boolean;
   wentToPenalties?: boolean;
   onWentToOvertimeChange: (value: boolean) => void;
@@ -228,6 +239,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   selectedPlayerIds,
   selectedPersonnelIds,
   onSelectedPlayersChange,
+  onAddPlayerToRoster,
+  initialScrollSection,
   canReapplyPlan = false,
   onReapplyPlan,
   onSelectedPersonnelChange,
@@ -249,6 +262,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSetHomeOrAway,
   isPlayed,
   onIsPlayedChange,
+  isFriendly,
   wentToOvertime = false,
   wentToPenalties = false,
   onWentToOvertimeChange,
@@ -273,6 +287,19 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
+
+  // R3: land scrolled to the wrap-up section the coach tapped.
+  useEffect(() => {
+    if (!isOpen || !initialScrollSection) return;
+    // Query INSIDE the frame callback: the section anchors may not exist on
+    // the first commit (async-gated sections lay out a frame later).
+    const frame = requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-wrapup-section="${initialScrollSection}"]`);
+      el?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, initialScrollSection]);
+
 
 
   // Memoize valid series from selected tournament (filter by valid levels)
@@ -474,6 +501,17 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // State for event editing within the modal
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
+  // Optimistic echo for the Friendly-match toggle (the persisted value arrives a
+  // tick later via the mutation's savedGames update). Re-syncs to the prop on a
+  // GAME SWITCH - keyed on currentGameId, NOT the boolean value, so switching
+  // from a just-toggled game to another game that happens to share the same
+  // value still resets the echo (sanctioned adjust-during-render).
+  const [isFriendlyLocal, setIsFriendlyLocal] = useState(isFriendly);
+  const [prevFriendlyGameId, setPrevFriendlyGameId] = useState(currentGameId);
+  if (prevFriendlyGameId !== currentGameId) {
+    setPrevFriendlyGameId(currentGameId);
+    setIsFriendlyLocal(isFriendly);
+  }
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const [editGoalTime, setEditGoalTime] = useState<string>('');
@@ -1570,7 +1608,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }
 
   return (
-    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettings.title', 'Game Settings')}>
+    <div ref={modalRef} className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('gameSettingsModal.title', 'Match details')}>
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
         {/* Background effects */}
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
@@ -1580,12 +1618,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col h-full">
-          {/* Fixed Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-              {t('gameSettingsModal.title', 'Game Settings')}
-            </h2>
-          </div>
+          {/* Chrome slimming: X-header (Done->X). The X stays locked while a
+              re-apply is in flight (was the footer Done's `disabled`) so the
+              async chain can't overwrite a newly-loaded game's lineup. */}
+          <CollapsibleModalHeader
+            title={t('gameSettingsModal.title', 'Match details')}
+            onClose={onClose}
+            closeLabel={t('common.doneButton', 'Done')}
+            closeDisabled={isReapplying}
+          />
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
@@ -1661,6 +1702,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
 
               {/* Player Selection Section */}
+              <div data-wrapup-section="roster" />
               <PlayerSelectionSection
                 availablePlayers={availablePlayers}
                 selectedPlayerIds={selectedPlayerIds}
@@ -1676,6 +1718,39 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 selectAllText={t('gameSettingsModal.selectAll', 'Select All')}
                 noPlayersText={t('gameSettingsModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
                 disabled={isProcessing}
+                onAddPlayer={
+                  onAddPlayerToRoster
+                    ? async (name: string, nickname?: string) => {
+                        /* Roster bridge (3.2): duplicate gate first (same
+                           case-insensitive rule as PlayerDetailsModal - the
+                           two add-player paths must not diverge), then the
+                           club write; on success select the new player into
+                           THIS game through the same persist path the
+                           checkboxes use. */
+                        const isDuplicate = availablePlayers.some(
+                          (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
+                        );
+                        if (isDuplicate) {
+                          return t('playerDetailsModal.duplicateNameError', 'A player with this name already exists');
+                        }
+                        const saved = await onAddPlayerToRoster(name, nickname);
+                        if (!saved) {
+                          return t('gameSettingsModal.addToClubRosterFailed', 'Adding the player failed. Please try again.');
+                        }
+                        const nextIds = [...selectedPlayerIds, saved.id];
+                        onSelectedPlayersChange(nextIds);
+                        mutateGameDetails(
+                          { selectedPlayerIds: nextIds, gameDate },
+                          { source: 'stateSync', expectedState: { selectedPlayerIds: nextIds, gameDate } }
+                        );
+                        return true as const;
+                      }
+                    : undefined
+                }
+                addPlayerLabel={t('gameSettingsModal.addToClubRoster', 'Add new player')}
+                addPlayerConfirmLabel={t('common.add', 'Add')}
+                addPlayerPlaceholder={t('gameSettingsModal.addToClubRosterPlaceholder', 'New player name')}
+                addPlayerNicknamePlaceholder={t('gameSettingsModal.addToClubRosterNickname', 'Nickname (shown on the disc)')}
               />
 
               {/* Personnel Selection Section */}
@@ -1724,6 +1799,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {/* CARD 2: Game Details */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
+                <span data-wrapup-section="competition" />
                 {t('gameSettingsModal.gameDetailsLabel', 'Game Details')}
               </h3>
 
@@ -2360,6 +2436,27 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 >
                   {t('gameSettingsModal.unplayedToggle', 'Not played yet')}
                 </button>
+                {/* Friendly / practice match: reclassify an existing game. Kept
+                    out of competitive stat totals by default. */}
+                <button
+                  type="button"
+                  aria-pressed={isFriendlyLocal}
+                  onClick={() => {
+                    const newValue = !isFriendlyLocal;
+                    setIsFriendlyLocal(newValue);
+                    mutateGameDetails(
+                      { isFriendly: newValue },
+                      { source: 'stateSync' }
+                    );
+                  }}
+                  className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                    isFriendlyLocal
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {t('gameSettingsModal.friendlyToggle', 'Friendly match')}
+                </button>
                 {/* Overtime / penalties as toggle buttons (matching the timer's chip). */}
                 <div className="flex gap-2">
                   <button
@@ -2552,6 +2649,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {/* Game Notes Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
+                <span data-wrapup-section="report" />
                 {t('gameSettingsModal.notesTitle', 'Game Notes')}
               </h3>
               {inlineEditingField === 'notes' ? (
@@ -2604,6 +2702,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             {/* Line-up / Positions Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 mt-4">
               <h3 className="text-lg font-semibold text-slate-200 mb-1">
+                <span data-wrapup-section="positions" />
                 {t('gameSettingsModal.lineupTitle', 'Positions played')}
               </h3>
               <p className="text-xs text-slate-400 mb-4">
@@ -2622,26 +2721,26 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 }}
               />
             </div>
+            {/* Chrome slimming: Re-apply plan is a utility action, moved
+                inline at the bottom of the content (Done is now the header
+                X). R3 scroll anchors are id-based and unaffected. */}
+            {(error || (canReapplyPlan && onReapplyPlan)) && (
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                {error && (
+                  <div className="text-red-400 text-sm mr-auto">{error}</div>
+                )}
+                {canReapplyPlan && onReapplyPlan && (
+                  <button
+                    onClick={() => setShowReapplyConfirm(true)}
+                    className={secondaryButtonStyle}
+                    disabled={isReapplying}
+                  >
+                    {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Footer */}
-          <ModalFooter>
-            {error && (
-              <div className="text-red-400 text-sm mr-auto">{error}</div>
-            )}
-            {canReapplyPlan && onReapplyPlan && (
-              <button
-                onClick={() => setShowReapplyConfirm(true)}
-                className={secondaryButtonStyle}
-                disabled={isReapplying}
-              >
-                {t('gameSettingsModal.reapplyPlan.button', 'Re-apply plan')}
-              </button>
-            )}
-            <button onClick={onClose} className={primaryButtonStyle} disabled={isReapplying}>
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
 
