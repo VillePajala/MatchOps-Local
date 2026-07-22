@@ -439,6 +439,29 @@
       "teamStats": "Joukkuetilastot",
       "seasonTrends": "Kauden trendit"
     },
+    "spotlights": {
+      "planner": {
+        "eyebrow": "Peliaikasuunnittelija",
+        "title": "Suunnittele pelisi etukäteen",
+        "desc": "Aseta vaihdot ja rotaatiot tuleviin peleihin jo etukäteen - päätä kuka pelaa missäkin ja milloin ennen kuin edes saavut kentälle, niin ottelupäivä sujuu kuin itsestään. Samalla peliaika pysyy tasaisena läpi kauden."
+      },
+      "development": {
+        "eyebrow": "Pelaajan kehitys",
+        "title": "Kasvun kompassi jokaiselle pelaajalle",
+        "desc": "Arvioi pelaajia kehittävissä ominaisuuksissa pelin jälkeen ja rakenna jokaisesta kuva ajan myötä - nykyvire, kehityksen suunta, vahvuudet ja kehityskohteet sekä jaettava raporttikortti. Vertaa lasta hänen omaan menneisyyteensä, ei muihin lapsiin."
+      },
+      "dashboard": {
+        "eyebrow": "Kausi yhdellä silmäyksellä",
+        "title": "Avaa koko kuvaan",
+        "desc": "Alkunäkymä tervehtii sinua sillä mikä on juuri nyt tärkeää - jatka peliä jota seurasit, kauden tulokset, viimeisimmät ottelut ja maalintekijäsi, jo ennen kuin painat mitään."
+      }
+    },
+    "bands": {
+      "gameDay": "Ottelupäivä",
+      "development": "Pelaajan kehitys",
+      "club": "Seura",
+      "statsSharing": "Tilastot, jakaminen & kaikkialla"
+    },
     "ui": {
       "plan": "Suunnittele",
       "track": "Kirjaa",
@@ -527,7 +550,9 @@
       "matchReport": "Otteluraportti",
       "matchReportDesc": "Kirjoita oma näkemyksesi ottelusta valmiilla otsikkopohjalla — yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Sisältyy jaettavaan koosteeseen.",
       "overtime": "Jatkoaika ja rangaistuslaukaukset",
-      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin."
+      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin.",
+      "friendlies": "Harjoitusottelut",
+      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi. Ota ne mukaan milloin tahansa yhdellä kytkimellä."
     },
     "techCards": {
       "development": "KEHITYS",
