@@ -1336,6 +1336,7 @@ export type TranslationKey =
   | 'newGameSetupModal.newSeasonPlaceholder'
   | 'newGameSetupModal.newTournamentNameRequired'
   | 'newGameSetupModal.newTournamentPlaceholder'
+  | 'newGameSetupModal.noPlayersAddInline'
   | 'newGameSetupModal.noPlayersInRoster'
   | 'newGameSetupModal.noPlayersSelected'
   | 'newGameSetupModal.noTeamMasterRoster'
