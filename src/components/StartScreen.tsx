@@ -102,9 +102,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onOpenGameById,
 }) => {
   const { t } = useTranslation();
-  // Opt-in dashboard: only for a returning user who actually has games, so the
-  // first-run / empty state always gets the clean welcome hero.
+  // Dashboard is the default view, but it only renders once there are games to
+  // summarise - a brand-new coach (no games yet) still gets the simple launcher.
   const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
+  // With nothing to resume, "New Game" is the day-one hero: it's the single
+  // action a new coach needs (players are added inside the new-game flow). When
+  // there's a game to resume, Continue is the hero and New Game steps back to a row.
+  const newGamePrimary = !canResume && !dashboardOn;
   const { user, mode } = useAuth();
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
   // HTML and the first client render produce identical markup. Reading i18n.language
@@ -249,7 +253,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : dashboardOn ? 'justify-start pt-[6vh]' : 'justify-start pt-[6vh]'}`}>
+        <div className="flex-1 flex flex-col justify-start pt-[6vh]">
           <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-6'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
@@ -265,11 +269,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </h1>
             </div>
 
-            {/* Tagline - full-hero states only, and NOT on first run: the
-                first-run panel shows its own "welcome + two steps" line, so
-                showing the brand tagline too would stack two texts under the
-                logo (owner feedback). First-timers get the guiding line instead. */}
-            {!dashboardOn && !isFirstTimeUser && (
+            {/* Tagline - shown in the simple launcher (the dashboard packs its
+                own summary under the logo, so a tagline there would crowd it). */}
+            {!dashboardOn && (
               <p className="text-lg text-slate-400">
                 {t('startScreen.tagline', 'Plan · Track · Discover')}
               </p>
@@ -278,9 +280,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
           {/* === HOME TABS (two-level restructure PR 1.2, strangler stage):
               Pelit is this page; the other tabs OPEN THE EXISTING MODALS
-              unchanged. Phase 2 dissolves the modals into real tab content. === */}
-          {!isFirstTimeUser && (
-            <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-3' : 'mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
+              unchanged. Phase 2 dissolves the modals into real tab content.
+              Shown to everyone now - a brand-new coach learns the real Home
+              from the start (no separate first-run mode). === */}
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-3' : 'mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
               <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
                 <button
                   type="button"
@@ -339,46 +342,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   {t('startScreen.tabStats', 'Stats')}
                 </button>
               </div>
-            </div>
-          )}
+          </div>
 
           {/* === ACTION BUTTONS === */}
           <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-2.5' : 'space-y-3'}`}>
-            {isFirstTimeUser ? (
-              /* First-run (two-level onboarding): route the new coach into the
-                 Home hub to SET UP first - add players, then create their first
-                 game - instead of dropping them onto an empty demo field. The
-                 field comes when they create a game (the right moment). "Explore
-                 first" preserves the old demo-field path as an opt-in. */
-              <>
-                <p className="text-center text-slate-300 text-sm mb-1">
-                  {t('startScreen.firstRunWelcome', 'Welcome! Set up your team in two steps.')}
-                </p>
-                <button
-                  type="button"
-                  onClick={onManageRoster ?? onGetStarted}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-                >
-                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-slate-900/20 flex items-center justify-center text-base font-black">1</span>
-                  {t('startScreen.firstRunAddPlayers', 'Add your players')}
-                </button>
-                <button
-                  type="button"
-                  onClick={onNewGame ?? onGetStarted}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                >
-                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold text-white">2</span>
-                  <span className="text-sm font-semibold text-white">{t('startScreen.firstRunCreateGame', 'Create your first game')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onGetStarted}
-                  className="w-full text-center text-sm text-slate-400 hover:text-white transition-colors pt-1"
-                >
-                  {t('startScreen.firstRunExplore', 'Just explore first')}
-                </button>
-              </>
-            ) : activeTab === 'team' ? (
+            {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
               <>
@@ -386,76 +354,71 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeCountsBar counts={homeSummary.counts} t={t} />
                 )}
                 {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
-                  <p className="text-sm text-slate-400 px-1 pb-1">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
+                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
                 )}
-                <button
-                  type="button"
-                  onClick={onManageRoster}
-                  disabled={!onManageRoster}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    onManageRoster
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.rowPlayers', 'Players')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onManageTeams}
-                  disabled={!onManageTeams}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    onManageTeams
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.rowTeams', 'Teams')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={onManagePersonnel}
-                  disabled={!onManagePersonnel}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    onManagePersonnel
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.rowPersonnel', 'Personnel')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-                {/* Valmennus group (dashboard mode): pulls the prep/content
-                    items out of the loose "who" rows into their own labelled
-                    section. */}
-                {dashboardOn && (
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 pt-2 px-0.5">
-                    {t('startScreen.dashCoachingGroup', 'Coaching')}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={onOpenTraining}
-                  disabled={!onOpenTraining}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    onOpenTraining
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.rowTraining', 'Warmup Plan')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
+                {/* 2-across tiles keep the Team tab from scrolling on small
+                    phones (owner feedback): the "who" pair on top, coaching
+                    items next, external materials full-width below. */}
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={onManageRoster}
+                    disabled={!onManageRoster}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onManageRoster
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowPlayers', 'Players')}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onManageTeams}
+                    disabled={!onManageTeams}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onManageTeams
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowTeams', 'Teams')}
+                    </span>
+                  </button>
+                </div>
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={onManagePersonnel}
+                    disabled={!onManagePersonnel}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onManagePersonnel
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowPersonnel', 'Personnel')}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenTraining}
+                    disabled={!onOpenTraining}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onOpenTraining
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowTraining', 'Warmup Plan')}
+                    </span>
+                  </button>
+                </div>
                 {/* Training CONTENT scope: the coaching materials link lives
                     with the team, not under the gear. Solid row like its
                     siblings (3.1b - bare link text looked out of place);
@@ -485,7 +448,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   />
                 )}
                 {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
-                  <p className="text-sm text-slate-400 px-1 pb-1">{t('startScreen.emptyCompetitions', 'Create a season or tournament to group your games.')}</p>
+                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a season or tournament to group your games.')}</p>
                 )}
                 <button
                   type="button"
@@ -527,7 +490,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <HomeStatsTiles vuosi={homeSummary.vuosi} topScorer={homeSummary.topScorer} t={t} />
                 )}
                 {!hasSavedGames && (
-                  <p className="text-sm text-slate-400 px-1 pb-1">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
+                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
                 )}
                 {([
                   ['season', t('startScreen.statsSeason', 'Season stats')],
@@ -576,31 +539,58 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     {t('startScreen.resumeCard', 'Continue')}
                   </button>
                 ) : null}
-                {/* New Game + Saved games: paired side-by-side in dashboard mode
-                    to reclaim a row (the dashboard is taller); stacked full-width
-                    in the simple launcher. */}
-                <div className={dashboardOn ? 'flex gap-2.5' : 'space-y-3'}>
-                  <button
-                    type="button"
-                    onClick={onNewGame ?? onGetStarted}
-                    className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
-                  >
-                    <span className="text-sm font-semibold text-white">
+                {/* New Game is the hero when there's nothing to resume (the new
+                    coach adds players inside this flow); otherwise a standard
+                    row - paired with Saved games in dashboard mode, stacked in
+                    the simple launcher. Saved games hides when there are none. */}
+                {newGamePrimary ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onNewGame ?? onGetStarted}
+                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center"
+                    >
                       {t('startScreen.newGame', 'New Game')}
-                    </span>
-                    {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onLoadGame}
-                    className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
-                  >
-                    <span className="text-sm font-semibold text-white">
-                      {t('startScreen.savedGames', 'Saved games')}
-                    </span>
-                    {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
-                  </button>
-                </div>
+                    </button>
+                    {hasSavedGames && (
+                      <button
+                        type="button"
+                        onClick={onLoadGame}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                      >
+                        <span className="text-sm font-semibold text-white">
+                          {t('startScreen.savedGames', 'Saved games')}
+                        </span>
+                        <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className={dashboardOn ? 'flex gap-2.5' : 'space-y-3'}>
+                    <button
+                      type="button"
+                      onClick={onNewGame ?? onGetStarted}
+                      className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                    >
+                      <span className="text-sm font-semibold text-white">
+                        {t('startScreen.newGame', 'New Game')}
+                      </span>
+                      {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
+                    </button>
+                    {hasSavedGames && (
+                      <button
+                        type="button"
+                        onClick={onLoadGame}
+                        className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                      >
+                        <span className="text-sm font-semibold text-white">
+                          {t('startScreen.savedGames', 'Saved games')}
+                        </span>
+                        {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {onOpenPlanner && (
                   <button
@@ -660,12 +650,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => onSetHomeView(homeView === 'dashboard' ? 'simple' : 'dashboard')}
-                  aria-pressed={homeView === 'dashboard'}
+                  aria-pressed={homeView === 'simple'}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
                 >
-                  <span>{t('startScreen.gearDashboardView', 'Show summary on home')}</span>
-                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'dashboard' ? 'bg-indigo-500' : 'bg-slate-600'}`} aria-hidden="true">
-                    <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'dashboard' ? 'translate-x-5' : ''}`} />
+                  <span>{t('startScreen.gearSimplifiedView', 'Simplified view')}</span>
+                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'simple' ? 'bg-indigo-500' : 'bg-slate-600'}`} aria-hidden="true">
+                    <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
                   </span>
                 </button>
               )}
