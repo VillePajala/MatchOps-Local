@@ -400,143 +400,14 @@
   },
   "instructionsModal": {
     "title": "Näin se toimii",
-    "closeButton": "Sulje",
-    "preGame": {
-      "title": "Ennen peliä",
-      "intro": "MatchOps Local auttaa sinua seuraamaan joukkueidesi suoritusta peleissä:",
-      "step1Title": "1. Luo kokoonpano",
-      "step1Desc": "Lisää kaikki käytettävissä olevat pelaajat nimillä. Tämä on perusrekisteri josta valitset pelaajat peleihin. Voit lisätä pelaajia milloin tahansa.",
-      "step2Title": "2. Luo joukkue (valinnainen)",
-      "step2Desc": "Järjestä pelaajat joukkueisiin jos sinulla on useita kokoonpanoja (esim. A-joukkue, B-joukkue, ikäluokat). Joukkueita voi käyttää useissa peleissä.",
-      "step3Title": "3. Luo turnaus / kausi (valinnainen)",
-      "step3Desc": "Luo kausi pitkäaikaiselle seurannalle tai turnaus tietylle kilpailulle. Saat erilliset tilastot jokaiselle turnaukselle/kaudelle.",
-      "step4Title": "4. Aloita uusi peli",
-      "step4Desc": "Aseta vastustaja, päivämäärä, aika ja peliformaatti. Liitä peli joukkueeseen ja turnaukseen/kauteen jos haluat järjestää tilastoja.",
-      "step5Title": "5. Suunnittele kokoonpano",
-      "step5Desc": "Vedä pelaajat yläpalkista kentälle haluamaasi muodostelmaan. Voit asettaa maalivahdin, siirtää pelaajia ja suunnitella sijoitukset."
-    },
-    "duringGame": {
-      "title": "Pelin aikana"
-    },
-    "afterGameSection": {
-      "title": "Pelin jälkeen",
-      "saveGame": "Tallenna peli automaattisesti tai manuaalisesti myöhempää tarkastelua varten",
-      "assessPlayers": "Kirjaa pelaajien suoritus ja lisää muistiinpanoja kunkin pelaajan kehityksestä",
-      "viewStats": "Tarkastele yksityiskohtaisia tilastoja: maalit, syötöt, peliajat, arvosanat",
-      "exportData": "Vie kaikki datasi CSV-muodossa jatkoanalyysiä tai varmuuskopiointia varten",
-      "reviewGame": "Käy läpi pelin tapahtumat, taktisia piirroksia ja kokoonpanoja"
-    },
-    "afterGame": {
-      "title": "Pelin jälkeen",
-      "saveGame": "Tallenna pelisi myöhempää tarkastelua tai jatkamista varten",
-      "assessPlayers": "Kirjaa pelaajien suoritus ja lisää muistiinpanoja",
-      "viewStats": "Katsele yksilö- ja joukkuetilastoja pelien välillä",
-      "exportData": "Vie datasi jatkoanalyysiä varten"
-    },
-    "mainConcepts": {
-      "title": "Keskeiset käsitteet",
-      "game": "Peli",
-      "gameDesc": "Yksittäinen ottelu tilastoineen, kokoonpanoineen ja tapahtumineen",
-      "team": "Joukkue",
-      "teamDesc": "Pelaajaryhmä jota voi käyttää useissa peleissä",
-      "roster": "Kokoonpano",
-      "rosterDesc": "Kaikki käytettävissä olevat pelaajat",
-      "season": "Kausi",
-      "seasonDesc": "Pidemmän ajan pelikokonaisuus tilastoseurannalla",
-      "tournament": "Turnaus",
-      "tournamentDesc": "Tietty kilpailu tai tapahtuma erillisine tilastoineen",
-      "statistics": "Tilastot",
-      "statisticsDesc": "Pelaajakohtaiset ja joukkuekohtaiset suorituskyvyn mittarit"
-    },
-    "keyFeatures": {
-      "title": "Keskeisiä ominaisuuksia",
-      "tacticsBoard": "Taktiikkatila",
-      "tacticsBoardDesc": "Suunnittele muodostelmia ja strategioita ilman pelin seurantaa",
-      "offlineFirst": "Offline-ensisijainen",
-      "offlineFirstDesc": "Kaikki tallentuu paikallisesti - internet-yhteyttä ei tarvita"
-    },
     "tips": {
       "title": "Ammattilaisvinkit",
       "tip1": "Kaksoisnapauta pelaajia kentällä poistaaksesi ne nopeasti",
       "tip2": "Ottelun valikko (hampurilainen) sisältää ottelupäivän toiminnot — seura, kilpailut ja tilastot löytyvät etusivun välilehdiltä",
       "tip3": "Pelit tallentuvat automaattisesti selaimen muistiin - tiliä ei tarvita"
     },
-    "menuActionsSection": {
-      "gameManagement": "Ottelun hallinta",
-      "save": "Tallenna - Pikatallenna nykyinen peli",
-      "loadGame": "Lataa peli - Avaa tallennettu peli",
-      "newGame": "Uusi peli - Aloita uusi ottelu",
-      "setupConfig": "Asetukset ja määritykset",
-      "gameSettings": "Peliasetukset - Muokkaa ottelun tietoja",
-      "manageRoster": "Hallitse kokoonpanoa - Lisää/muokkaa pelaajia",
-      "manageTeams": "Hallitse joukkueita - Järjestä joukkueet",
-      "personnelManager": "Henkilöstöhallinta - Hallitse henkilöstöä",
-      "manageSeasonsAndTournaments": "Hallitse kausia ja turnauksia",
-      "analysisTools": "Analysointi ja työkalut",
-      "stats": "Tilastot - Näytä pelitilastot",
-      "assessPlayers": "Kirjaa ottelusuoritukset",
-      "training": "Harjoittelu - Harjoitukset ja resurssit",
-      "backupRestore": "Varmuuskopio ja palautus - Tallenna/lataa data",
-      "resources": "Resurssit",
-      "howItWorks": "Näin se toimii - Tämä opas",
-      "coachingMaterials": "Valmennusmateriaalit - Ulkoinen linkki",
-      "taso": "Taso - Ulkoinen linkki",
-      "docsFeatures": "Dokumentaatio ja ominaisuudet - Ulkoinen linkki",
-      "settings": "Asetukset",
-      "appSettings": "Sovelluksen asetukset - Kieli, varmuuskopiot jne."
-    },
-    "advanced": {
-      "title": "Edistyneet ominaisuudet",
-      "saveLoad": "Pikatallenna ja avaa tallennettu peli valikosta",
-      "teams": "Hallinnoi joukkueita ja kokoonpanoja joukkuehallinnassa",
-      "seasonsTournaments": "Luo ja hallinnoi kausia ja turnauksia tilastointia varten",
-      "assessments": "Kirjaa ottelusuoritukset ja kehitysmuistiinpanot",
-      "backupRestore": "Varmuuskopioi ja palauta data varmuuden vuoksi",
-      "exportData": "Vie pelit CSV/JSON-muodossa jatkoanalyysiin",
-      "training": "Avaa harjoitusmateriaalit inspiraatiota varten",
-      "language": "Vaihda kieltä lennossa",
-      "fullscreen": "Siirry koko näyttöön parempaa näkyvyyttä varten",
-      "settings": "Säädä sovelluksen asetuksia tarpeidesi mukaan"
-    },
-    "controlBarTitle": "Ohjauspalkki (Alaosa)",
     "controlBar": {
-      "undoRedo": "Peruuta/tee uudelleen toimintosi.",
-      "toggleNames": "Näytä/piilota pelaajien nimet kentällä.",
-      "placeAllPlayers": "Sijoita automaattisesti kaikki valitut pelaajat kentälle peliformaatioon.",
-      "clearDrawings": "Poista kaikki piirretyt viivat.",
-      "addOpponent": "Lisää vastustajamerkki kentän keskelle.",
-      "resetField": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
-      "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
-      "resetFieldTactics": "Tyhjennä kaikki taktiset kiekot, piirustukset ja pallon sijainti taktiselta taulusta.",
-      "toggleTimerOverlay": "Näytä/piilota iso ottelukello ja vaihtonäkymä.",
-      "timerControls": "Käynnistä/pysäytä/nollaa otteluajastin.",
-      "help": "Näytä/piilota nämä ohjeet.",
-      "languageToggle": "Vaihda kieli englannin (EN) ja suomen (FI) välillä.",
-      "hardReset": "Nollaa Sovellus",
-      "hardResetConfirmation": "Haluatko varmasti nollata koko sovelluksen? Kaikki tallennetut tiedot (pelaajat, tilastot, sijainnit) menetetään pysyvästi.",
-      "saveGameAs": "Tallenna Peli Nimellä...",
-      "loadGame": "Lataa Peli...",
-      "saveGame": "Pikatallennus nykyinen peli.",
-      "stats": "Avaa ottelu- ja kausitilastot.",
-      "manageRoster": "Muokkaa kokoonpanoa ja muistiinpanoja.",
-      "gameSettingsButton": "Säädä otteluasetuksia.",
-      "manageSeasonsAndTournaments": "Hallinnoi kilpailuja.",
-      "exportData": "Vie tallennetut pelit ja tilastot.",
-      "assessPlayers": "Avaa pelaaja-arviointi pelin päätyttyä.",
-      "noPlayersForNewGame": "Tarvitset vähintään yhden pelaajan kokoonpanoon luodaksesi pelin. Haluatko lisätä pelaajia nyt?",
-      "howItWorks": "Näin se toimii"
-    },
-    "timerOverlayTitle": "Ottelukello",
-    "timerOverlay": {
-      "setInterval": "Säädä vaihtointervallia: Käytä +/- -painikkeita.",
-      "subAlerts": "Vaihtohälytykset: Keltainen = 1 min varoitus, Punainen = Aika.",
-      "confirmSub": "Vahvista vaihto: Paina \"Vaihto tehty\".",
-      "playTimeHistory": "Näytä peliaika: Listaa suoritetut intervallit ja viimeisen vahvistusajan."
-    },
-    "generalTitle": "Yleistä",
-    "general": {
-      "touchInteractions": "Kosketus: Kaksoisnapautusta käytetään poistamiseen/muokkaamiseen.",
-      "saving": "Tallennus: Kaikki muutokset tallennetaan automaattisesti selaimeesi."
+      "assessPlayers": "Avaa pelaaja-arviointi pelin päätyttyä."
     }
   },
   "warmup": {
@@ -995,7 +866,6 @@
     "dashSeasons": "kautta",
     "dashTournaments": "turnausta",
     "dashClubSeason": "Tämä seurakausi",
-    "dashCoachingGroup": "Valmennus",
     "dashTileResults": "Tulokset",
     "dashTileGoalDiff": "Maaliero",
     "dashTileScorer": "Maalintekijä",
@@ -1020,10 +890,6 @@
     "emptyCompetitions": "Luo kausi tai turnaus pelien ryhmittelyyn.",
     "emptyStats": "Tilastot ilmestyvät, kun olet pelannut pelejä.",
     "gearGuide": "Näin se toimii",
-    "firstRunWelcome": "Tervetuloa! Ota joukkueesi käyttöön kahdessa vaiheessa.",
-    "firstRunAddPlayers": "Lisää pelaajat",
-    "firstRunCreateGame": "Luo ensimmäinen ottelu",
-    "firstRunExplore": "Tutustu ensin",
     "gearSetup": "Käyttöönotto ({{done}}/4)"
   },
   "workspace": {

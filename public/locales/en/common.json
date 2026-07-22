@@ -496,143 +496,14 @@
   },
   "instructionsModal": {
     "title": "How It Works",
-    "closeButton": "Close",
-    "preGame": {
-      "title": "Pre-Game Setup",
-      "intro": "MatchOps Local helps you track your teams' performance during games:",
-      "step1Title": "1. Create Your Roster",
-      "step1Desc": "Add all available players with names. This is your master registry to select players from for games. You can add players at any time.",
-      "step2Title": "2. Create Team (optional)",
-      "step2Desc": "Organize players into teams if you have multiple squads (e.g., A-team, B-team, age groups). Teams can be reused across multiple games.",
-      "step3Title": "3. Create Tournament / Season (optional)",
-      "step3Desc": "Create a season for long-term tracking or tournament for specific competitions. Get separate statistics for each tournament/season.",
-      "step4Title": "4. Start a New Game",
-      "step4Desc": "Set opponent, date, time, and game format. Link game to team and tournament/season if you want organized statistics.",
-      "step5Title": "5. Plan Formation",
-      "step5Desc": "Drag players from top bar onto field in your desired formation. Set goalkeeper, move players around, and plan positions."
-    },
-    "duringGame": {
-      "title": "During the Game"
-    },
-    "afterGameSection": {
-      "title": "After the Game",
-      "saveGame": "Save game automatically or manually for later review",
-      "assessPlayers": "Rate player performance and add notes about each player's development",
-      "viewStats": "Review detailed statistics: goals, assists, playing time, ratings",
-      "exportData": "Export all your data in CSV format for further analysis or backup",
-      "reviewGame": "Review game events, tactical drawings, and formations"
-    },
-    "afterGame": {
-      "title": "After the Game",
-      "saveGame": "Save your game to review later or continue tracking",
-      "assessPlayers": "Rate player performance and add notes",
-      "viewStats": "View individual and team statistics across games",
-      "exportData": "Export your data for further analysis"
-    },
-    "mainConcepts": {
-      "title": "Main Concepts",
-      "game": "Game",
-      "gameDesc": "Individual match with stats, lineups, and events",
-      "team": "Team",
-      "teamDesc": "Group of players that can be used across multiple games",
-      "roster": "Roster",
-      "rosterDesc": "All available players you can choose from",
-      "season": "Season",
-      "seasonDesc": "Extended period of games with statistical tracking",
-      "tournament": "Tournament",
-      "tournamentDesc": "Specific competition or event with separate statistics",
-      "statistics": "Statistics",
-      "statisticsDesc": "Player-specific and team-specific performance metrics"
-    },
-    "keyFeatures": {
-      "title": "Key Features",
-      "tacticsBoard": "Tactics Mode",
-      "tacticsBoardDesc": "Plan formations and strategies without game tracking",
-      "offlineFirst": "Offline First",
-      "offlineFirstDesc": "Everything saves locally - no internet required"
-    },
     "tips": {
       "title": "Pro Tips",
       "tip1": "Double-tap players on the field to remove them quickly",
       "tip2": "The match menu (hamburger) holds match-day actions — your club, competitions and stats live on the Home tabs",
       "tip3": "Games auto-save to browser storage - no account needed"
     },
-    "menuActionsSection": {
-      "gameManagement": "Game Management",
-      "save": "Save - Quick save current game",
-      "loadGame": "Load Game - Open a saved game",
-      "newGame": "New Game - Start a new match",
-      "setupConfig": "Setup & Configuration",
-      "gameSettings": "Game Settings - Edit match details",
-      "manageRoster": "Manage Roster - Add/edit players",
-      "manageTeams": "Manage Teams - Organize teams",
-      "personnelManager": "Personnel Manager - Manage staff",
-      "manageSeasonsAndTournaments": "Manage Seasons & Tournaments",
-      "analysisTools": "Analysis & Tools",
-      "stats": "Stats - View game statistics",
-      "assessPlayers": "Record Performance",
-      "training": "Training - Access drills & resources",
-      "backupRestore": "Backup & Restore - Save/load data",
-      "resources": "Resources",
-      "howItWorks": "How It Works - This help guide",
-      "coachingMaterials": "Coaching Materials - External link",
-      "taso": "Taso - External link",
-      "docsFeatures": "Docs & Features - External link",
-      "settings": "Settings",
-      "appSettings": "App Settings - Language, backup, etc."
-    },
-    "controlBarTitle": "Control Bar (Bottom)",
     "controlBar": {
-      "undoRedo": "Step backward/forward through your actions.",
-      "toggleNames": "Show/hide player names on the field.",
-      "placeAllPlayers": "Automatically place all selected players on the field in a formation.",
-      "clearDrawings": "Remove all drawn lines.",
-      "addOpponent": "Add an opponent marker to the center of the field.",
-      "resetField": "Clear all players, opponents, and drawings from the field.",
-      "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
-      "resetFieldTactics": "Clear all tactical discs, drawings, and ball position from the tactics board.",
-      "toggleTimerOverlay": "Show/hide the large timer/substitution overlay.",
-      "timerControls": "Start/Pause/Reset the match timer.",
-      "help": "Show/hide these instructions.",
-      "languageToggle": "Switch between English (EN) and Finnish (FI).",
-      "hardReset": "Hard Reset App",
-      "hardResetConfirmation": "Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.",
-      "saveGameAs": "Save Game As...",
-      "loadGame": "Load Game...",
-      "saveGame": "Quick Save the current match.",
-      "stats": "Open match and season statistics.",
-      "manageRoster": "Edit player roster and notes.",
-      "gameSettingsButton": "Adjust match settings.",
-      "manageSeasonsAndTournaments": "Manage seasons and tournaments.",
-      "exportData": "Export saved matches and stats.",
-      "assessPlayers": "Open the player assessment modal after a game.",
-      "noPlayersForNewGame": "You need at least one player in your roster to create a game. Would you like to add players now?",
-      "howItWorks": "How It Works"
-    },
-    "timerOverlayTitle": "Match Clock Overlay",
-    "timerOverlay": {
-      "setInterval": "Adjust Sub Interval: Use +/- buttons.",
-      "subAlerts": "Sub Alerts: Yellow = 1 min warning, Red = Due.",
-      "confirmSub": "Confirm Substitution: Press \"Substitution Made\".",
-      "playTimeHistory": "View Play Time: Lists completed intervals and last confirmation time."
-    },
-    "generalTitle": "General",
-    "general": {
-      "touchInteractions": "Touch: Double-tap is used for removing/editing.",
-      "saving": "Saving: All changes are saved automatically to your browser."
-    },
-    "advanced": {
-      "title": "Advanced Features",
-      "saveLoad": "Quick-save and open saved games from the menu",
-      "teams": "Manage teams and rosters in team management",
-      "seasonsTournaments": "Create and manage seasons and tournaments for stats",
-      "assessments": "Record match performance and development notes",
-      "backupRestore": "Back up and restore your data for safety",
-      "exportData": "Export games as CSV/JSON for further analysis",
-      "training": "Open training resources for inspiration",
-      "language": "Switch language on the fly",
-      "fullscreen": "Enter fullscreen for better visibility",
-      "settings": "Adjust app settings to fit your workflow"
+      "assessPlayers": "Open the player assessment modal after a game."
     }
   },
   "warmup": {
@@ -1130,7 +1001,6 @@
     "dashSeasons": "seasons",
     "dashTournaments": "tournaments",
     "dashClubSeason": "This season",
-    "dashCoachingGroup": "Coaching",
     "dashTileResults": "Results",
     "dashTileGoalDiff": "Goal diff",
     "dashTileScorer": "Top scorer",
@@ -1155,10 +1025,6 @@
     "emptyCompetitions": "Create a season or tournament to group your games.",
     "emptyStats": "Statistics appear once you've played games.",
     "gearGuide": "How it works",
-    "firstRunWelcome": "Welcome! Set up your team in two steps.",
-    "firstRunAddPlayers": "Add your players",
-    "firstRunCreateGame": "Create your first game",
-    "firstRunExplore": "Just explore first",
     "gearSetup": "Getting started ({{done}}/4)"
   },
   "workspace": {
