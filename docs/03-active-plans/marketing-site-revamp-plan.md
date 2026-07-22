@@ -64,6 +64,14 @@ Each shot is an EN + FI pair. Naming convention: `MatchOps_main_<feature>_<lang>
 
 Capture method (decided): controlled browser / emulator at a fixed viewport, so every shot shares the same framing and pixel dimensions. Set a consistent device width, load a realistic data state, capture EN, toggle to FI, capture the pair. (Not ad-hoc device screenshots - uniformity across the gallery matters.)
 
+### Preserve the old screenshots (non-negotiable)
+
+The current 72 feature screenshots (~66MB) must never be lost. Three guarantees, no wasteful duplication:
+
+1. The `marketing-pre-revamp` git tag freezes `site/public/screenshots/` exactly as it is today. Retrievable anytime: `git checkout marketing-pre-revamp -- site/public/screenshots/`.
+2. HARD RULE during the reshoot: never overwrite or delete an existing screenshot file. New and refreshed shots use NEW filenames. The old files stay physically in the repo through the whole revamp - nothing is replaced in place.
+3. At Phase 3 (cleanup), the now-orphaned old feature shots are `git mv`'d (moved, never `rm`'d) into `site/public/screenshots/archive/pre-revamp/` - a clearly labeled, browsable archive that stays in the repo. If we later want them out of the deploy, move that folder outside `public/`; either way they remain versioned and accessible.
+
 New (must shoot):
 - Playing-Time Planner
 - Dashboard Home (season overview)
