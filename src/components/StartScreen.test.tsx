@@ -445,16 +445,16 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   it('renders the four club-level tabs with Games active', () => {
     render(<StartScreen {...shellProps()} />);
     const tabs = screen.getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['Games', 'Team', 'Competitions', 'Stats']);
+    expect(tabs.map((t) => t.textContent)).toEqual(['Games', 'Club', 'Competitions', 'Stats']);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
   });
 
   it('Team tab switches to the club panel; its rows open the existing modals', () => {
     const props = { ...shellProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
     render(<StartScreen {...props} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     // Real tab semantics: selection moves, the body becomes the club rows.
-    expect(screen.getByRole('tab', { name: 'Team' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Club' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'false');
     // Owner decision (2026-07-15, screenshot feedback): Jatka and New Game
     // live ONLY on the Pelit panel - other tabs show just their own rows.
@@ -531,7 +531,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
 
   it('the Coaching Materials link sits on the Team panel (training scope)', () => {
     render(<StartScreen {...shellProps()} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     const coaching = screen.getByRole('link', { name: /Coaching Materials/ });
     expect(coaching).toHaveAttribute('href', 'https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo');
     expect(coaching).toHaveAttribute('target', '_blank');
@@ -540,7 +540,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
   it('unwired Team-panel rows render DISABLED - never silently dead-clickable', () => {
     const props = { ...shellProps(), onManageRoster: undefined };
     render(<StartScreen {...props} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     expect(screen.getByRole('button', { name: 'Players' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Teams' })).toBeDisabled(); // onManageTeams not passed
   });
@@ -629,10 +629,10 @@ describe('Home dashboard view (opt-in)', () => {
     expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
   });
 
-  it('Joukkue tab shows the counts header when the dashboard is on', () => {
+  it('Club tab shows the counts header when the dashboard is on', () => {
     const props = { ...dashProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
     render(<StartScreen {...props} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     expect(screen.getByText(/18 players/)).toBeInTheDocument();
     expect(screen.getByText(/3 teams/)).toBeInTheDocument();
   });
@@ -687,19 +687,19 @@ describe('Home guide + empty-state guidance', () => {
 
   it('Team tab shows the add-players hint when the roster is empty', () => {
     render(<StartScreen {...props({ homeSummary: emptySummary() })} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     expect(screen.getByText('Start by adding your players.')).toBeInTheDocument();
   });
 
   it('Team hint is hidden once players exist', () => {
     render(<StartScreen {...props({ homeSummary: emptySummary({ counts: { players: 5, teams: 0, personnel: 0, seasons: 0, tournaments: 0 } }) })} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     expect(screen.queryByText('Start by adding your players.')).not.toBeInTheDocument();
   });
 
   it('Team hint is suppressed until counts are ready (no flash for existing users)', () => {
     render(<StartScreen {...props({ homeSummary: emptySummary({ countsReady: false }) })} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
     expect(screen.queryByText('Start by adding your players.')).not.toBeInTheDocument();
   });
 
