@@ -309,7 +309,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
                   }`}
                 >
-                  {t('startScreen.tabTeam', 'Team')}
+                  {t('startScreen.tabTeam', 'Club')}
                 </button>
                 {/* 3.1b (owner feedback 2026-07-17): Kaudet & Tilastot are
                     REAL tabs now - same panel-switching behavior as the
