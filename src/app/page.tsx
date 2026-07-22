@@ -98,7 +98,7 @@ export default function Home() {
   const [hasTeamLinkedGame, setHasTeamLinkedGame] = useState(false);
   // Home dashboard (opt-in): the view preference + the computed Pelit-tab summary.
   const [homeSummary, setHomeSummary] = useState<HomeSummary | null>(null);
-  const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('simple');
+  const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
@@ -302,7 +302,8 @@ export default function Home() {
       const today = new Date().toISOString().slice(0, 10);
       try {
         homeSettings = await getAppSettings(userId);
-        setHomeView(homeSettings.homeView === 'dashboard' ? 'dashboard' : 'simple');
+        // Dashboard is the default; only an explicit 'simple' preference opts out.
+        setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
         setHomeSummary(buildHomeSummary(games, {
           today,
           clubSeasonStartDate: homeSettings.clubSeasonStartDate,
