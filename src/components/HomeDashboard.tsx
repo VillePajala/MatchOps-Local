@@ -123,7 +123,7 @@ export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t:
     `${counts.personnel} ${t('startScreen.dashPersonnel', 'staff')}`,
   ];
   return (
-    <div className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-4">
+    <div className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-[13px] text-slate-300 mb-4">
       {parts.map((p, i) => (
         <React.Fragment key={p}>
           {i > 0 && <span className="text-slate-600" aria-hidden="true">·</span>}
@@ -194,7 +194,7 @@ export function HomeStatsTiles({ vuosi, topScorer, t }: {
         t('startScreen.dashTileGoalDiff', 'Goal diff'),
       )}
       {tile(
-        topScorer ? <span className="text-sm">{topScorer.name} {topScorer.goals}⚽</span> : '–',
+        topScorer ? <span className="text-sm">{topScorer.name} {topScorer.goals}</span> : '–',
         t('startScreen.dashTileScorer', 'Top scorer'),
       )}
     </div>
