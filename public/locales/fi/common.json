@@ -458,7 +458,7 @@
     "tips": {
       "title": "Ammattilaisvinkit",
       "tip1": "Kaksoisnapauta pelaajia kentällä poistaaksesi ne nopeasti",
-      "tip2": "Käytä hampurilaisvalikkoa päästäksesi nopeasti kaikkiin ominaisuuksiin",
+      "tip2": "Ottelun valikko (hampurilainen) sisältää ottelupäivän toiminnot — seura, kilpailut ja tilastot löytyvät etusivun välilehdiltä",
       "tip3": "Pelit tallentuvat automaattisesti selaimen muistiin - tiliä ei tarvita"
     },
     "menuActionsSection": {
@@ -3363,11 +3363,11 @@
   "appGuide": {
     "homeTitle": "Etusivu — seurasi keskus",
     "homeIntro": "Etusivulla on neljä välilehteä ja ratas-valikko. Kaikki seuraasi liittyvä on täällä; ottelu avautuu omalle kentälleen.",
-    "homeGamesTab": "Pelit: aloita uusi ottelu, jatka keskeneräistä, avaa tallennetut pelit ja ottelusuunnittelu.",
-    "homeTeamTab": "Joukkue: pelaajat, joukkueet, taustahenkilöt ja lämmittelysuunnitelma.",
+    "homeGamesTab": "Pelit: aloitusnäkymä, jossa kauden yhteenveto ja viimeisimmät pelit — aloita uusi ottelu, jatka keskeneräistä, avaa tallennetut pelit ja ottelusuunnittelu.",
+    "homeTeamTab": "Seura: pelaajat, joukkueet, taustahenkilöt, lämmittely ja valmennusmateriaalit.",
     "homeCompetitionsTab": "Kilpailut: luo kaudet ja turnaukset pelien ryhmittelyyn.",
-    "homeStatsTab": "Tilastot: kausi-, turnaus-, kokonais- ja pelaajatilastot.",
-    "homeGear": "Ratas-kuvake (vasen yläkulma): asetukset, varmuuskopiot, tili ja tämä opas.",
+    "homeStatsTab": "Tilastot: kausi-, turnaus-, kokonais- ja pelaajatilastot (käytettävissä, kun olet pelannut pelin).",
+    "homeGear": "Ratas-kuvake (vasen yläkulma): kotinäkymän vaihto (yhteenveto tai yksinkertaistettu), asetukset, varmuuskopiot, tili ja tämä opas.",
     "matchMenuTitle": "Ottelun valikko",
     "matchMenuNote": "Ottelun aikana valikko sisältää ottelupäivän toiminnot:"
   }

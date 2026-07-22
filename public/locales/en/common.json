@@ -554,7 +554,7 @@
     "tips": {
       "title": "Pro Tips",
       "tip1": "Double-tap players on the field to remove them quickly",
-      "tip2": "Use the hamburger menu for quick access to all features",
+      "tip2": "The match menu (hamburger) holds match-day actions — your club, competitions and stats live on the Home tabs",
       "tip3": "Games auto-save to browser storage - no account needed"
     },
     "menuActionsSection": {
@@ -3363,11 +3363,11 @@
   "appGuide": {
     "homeTitle": "Home — your club hub",
     "homeIntro": "The Home screen has four tabs plus the gear menu. Everything about your club lives here; a match opens on its own field.",
-    "homeGamesTab": "Games: start a new match, continue where you left off, open saved games and the match planner.",
-    "homeTeamTab": "Team: your players, teams, staff, and the warmup plan.",
+    "homeGamesTab": "Games: your landing view with a summary of your season and recent games — start a new match, continue where you left off, open saved games and the match planner.",
+    "homeTeamTab": "Club: your players, teams, staff, warmup and coaching materials.",
     "homeCompetitionsTab": "Competitions: set up seasons and tournaments to group your games.",
-    "homeStatsTab": "Stats: season, tournament, overall and player statistics.",
-    "homeGear": "The gear icon (top-left): settings, backups, your account, and this guide.",
+    "homeStatsTab": "Stats: season, tournament, overall and player statistics (available once you've played a game).",
+    "homeGear": "The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, and this guide.",
     "matchMenuTitle": "The match menu",
     "matchMenuNote": "While in a match, the menu holds match-day actions:"
   }

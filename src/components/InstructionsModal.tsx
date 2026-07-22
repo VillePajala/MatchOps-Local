@@ -67,11 +67,11 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <p className="text-sm text-slate-300">{t('appGuide.homeIntro', 'The Home screen has four tabs plus the gear menu. Everything about your club lives here; a match opens on its own field.')}</p>
             <div className={sectionBox}>
               <ul className={list}>
-                <li>{t('appGuide.homeGamesTab', 'Games: start a new match, continue where you left off, open saved games and the match planner.')}</li>
-                <li>{t('appGuide.homeTeamTab', 'Team: your players, teams, staff, and the warmup plan.')}</li>
+                <li>{t('appGuide.homeGamesTab', 'Games: your landing view with a summary of your season and recent games — start a new match, continue where you left off, open saved games and the match planner.')}</li>
+                <li>{t('appGuide.homeTeamTab', 'Club: your players, teams, staff, warmup and coaching materials.')}</li>
                 <li>{t('appGuide.homeCompetitionsTab', 'Competitions: set up seasons and tournaments to group your games.')}</li>
-                <li>{t('appGuide.homeStatsTab', 'Stats: season, tournament, overall and player statistics.')}</li>
-                <li>{t('appGuide.homeGear', 'The gear icon (top-left): settings, backups, your account, and this guide.')}</li>
+                <li>{t('appGuide.homeStatsTab', 'Stats: season, tournament, overall and player statistics (available once you\'ve played a game).')}</li>
+                <li>{t('appGuide.homeGear', 'The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, and this guide.')}</li>
               </ul>
             </div>
           </section>
