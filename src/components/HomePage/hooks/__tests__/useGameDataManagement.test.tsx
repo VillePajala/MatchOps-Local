@@ -32,8 +32,6 @@ jest.mock('@/utils/logger', () => ({
 jest.mock('@/hooks/useGameDataQueries');
 jest.mock('@/hooks/useTeamQueries');
 jest.mock('@/hooks/usePersonnelManager');
-jest.mock('@/utils/seasons');
-jest.mock('@/utils/tournaments');
 
 // Mock useDataStore for user-scoped storage
 const TEST_USER_ID = 'test-user-123';
@@ -59,26 +57,10 @@ import type { Player, Season, Tournament, SavedGamesCollection } from '@/types';
 import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
-import {
-  addSeason as utilAddSeason,
-  updateSeason as utilUpdateSeason,
-  deleteSeason as utilDeleteSeason,
-} from '@/utils/seasons';
-import {
-  addTournament as utilAddTournament,
-  updateTournament as utilUpdateTournament,
-  deleteTournament as utilDeleteTournament,
-} from '@/utils/tournaments';
 
 const mockedUseGameDataQueries = useGameDataQueries as jest.MockedFunction<typeof useGameDataQueries>;
 const mockedUseTeamsQuery = useTeamsQuery as jest.MockedFunction<typeof useTeamsQuery>;
 const mockedUsePersonnelManager = usePersonnelManager as jest.MockedFunction<typeof usePersonnelManager>;
-const mockedAddSeason = utilAddSeason as jest.MockedFunction<typeof utilAddSeason>;
-const mockedUpdateSeason = utilUpdateSeason as jest.MockedFunction<typeof utilUpdateSeason>;
-const mockedDeleteSeason = utilDeleteSeason as jest.MockedFunction<typeof utilDeleteSeason>;
-const mockedAddTournament = utilAddTournament as jest.MockedFunction<typeof utilAddTournament>;
-const mockedUpdateTournament = utilUpdateTournament as jest.MockedFunction<typeof utilUpdateTournament>;
-const mockedDeleteTournament = utilDeleteTournament as jest.MockedFunction<typeof utilDeleteTournament>;
 
 // Test data factories
 const createPlayer = (overrides: Partial<Player> = {}): Player => ({
@@ -481,149 +463,8 @@ describe('useGameDataManagement', () => {
   // ============================================
   // Season Mutations
   // ============================================
-  describe('season mutations', () => {
-    it('should expose addSeason mutation', async () => {
-      const newSeason = createSeason({ id: 'new-season', name: 'New Season' });
-      mockedAddSeason.mockResolvedValue(newSeason);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      expect(result.current.mutationResults.addSeason).toBeDefined();
-      expect(typeof result.current.mutationResults.addSeason.mutateAsync).toBe('function');
-
-      await act(async () => {
-        const addedSeason = await result.current.mutationResults.addSeason.mutateAsync({
-          name: 'New Season',
-        });
-        expect(addedSeason).toEqual(newSeason);
-      });
-
-      expect(mockedAddSeason).toHaveBeenCalledWith('New Season', {}, TEST_USER_ID);
-    });
-
-    it('should expose updateSeason mutation', async () => {
-      const season = createSeason({ id: 'season-1', name: 'Updated Season' });
-      mockedUpdateSeason.mockResolvedValue(season);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      await act(async () => {
-        await result.current.mutationResults.updateSeason.mutateAsync(season);
-      });
-
-      expect(mockedUpdateSeason).toHaveBeenCalledWith(season, TEST_USER_ID);
-    });
-
-    it('should expose deleteSeason mutation', async () => {
-      mockedDeleteSeason.mockResolvedValue(true);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      await act(async () => {
-        const deleted = await result.current.mutationResults.deleteSeason.mutateAsync('season-1');
-        expect(deleted).toBe(true);
-      });
-
-      expect(mockedDeleteSeason).toHaveBeenCalledWith('season-1', TEST_USER_ID);
-    });
-
-    it('should handle addSeason returning null', async () => {
-      mockedAddSeason.mockResolvedValue(null);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      await act(async () => {
-        const addedSeason = await result.current.mutationResults.addSeason.mutateAsync({
-          name: 'Failed Season',
-        });
-        expect(addedSeason).toBeNull();
-      });
-    });
-  });
-
-  // ============================================
-  // Tournament Mutations
-  // ============================================
-  describe('tournament mutations', () => {
-    it('should expose addTournament mutation', async () => {
-      const newTournament = createTournament({ id: 'new-tournament', name: 'New Cup' });
-      mockedAddTournament.mockResolvedValue(newTournament);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      await act(async () => {
-        const addedTournament = await result.current.mutationResults.addTournament.mutateAsync({
-          name: 'New Cup',
-        });
-        expect(addedTournament).toEqual(newTournament);
-      });
-
-      expect(mockedAddTournament).toHaveBeenCalledWith('New Cup', {}, TEST_USER_ID);
-    });
-
-    it('should expose updateTournament mutation', async () => {
-      const tournament = createTournament({ id: 'tournament-1', name: 'Updated Cup' });
-      mockedUpdateTournament.mockResolvedValue(tournament);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      await act(async () => {
-        await result.current.mutationResults.updateTournament.mutateAsync(tournament);
-      });
-
-      expect(mockedUpdateTournament).toHaveBeenCalledWith(tournament, TEST_USER_ID);
-    });
-
-    it('should expose deleteTournament mutation', async () => {
-      mockedDeleteTournament.mockResolvedValue(true);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      await act(async () => {
-        const deleted = await result.current.mutationResults.deleteTournament.mutateAsync('tournament-1');
-        expect(deleted).toBe(true);
-      });
-
-      expect(mockedDeleteTournament).toHaveBeenCalledWith('tournament-1', TEST_USER_ID);
-    });
-
-    it('should handle addTournament returning null', async () => {
-      mockedAddTournament.mockResolvedValue(null);
-
-      const { result } = renderHook(
-        () => useGameDataManagement(defaultParams),
-        { wrapper: createWrapper() }
-      );
-
-      await act(async () => {
-        const addedTournament = await result.current.mutationResults.addTournament.mutateAsync({
-          name: 'Failed Tournament',
-        });
-        expect(addedTournament).toBeNull();
-      });
-    });
-  });
+  // Season/tournament mutation tests MOVED to
+  // src/hooks/useSeasonTournamentManagement.test.tsx (L.1 lift).
 
   // ============================================
   // Teams and Personnel

@@ -1,20 +1,22 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from './ModalManager';
+import { useModalHardwareBack, __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
-import { TestFixtures } from '../../../../tests/fixtures';
 import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
 import type { ModalManagerProps } from './ModalManager';
-import type { UseMutationResult } from '@tanstack/react-query';
 
-function SeasonModalMock() {
-  return <div data-testid="season-modal" />;
+// L.1: this suite previously targeted SeasonTournamentManagementModal, which
+// lifted to ClubModalsHost - GameStats is a dynamic ModalManager modal that
+// exercises the same open/closed render gating.
+function StatsModalMock() {
+  return <div data-testid="stats-modal" />;
 }
 
-jest.mock('@/components/SeasonTournamentManagementModal', () => ({
+jest.mock('@/components/GameStatsModal', () => ({
   __esModule: true,
-  default: SeasonModalMock,
+  default: StatsModalMock,
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({
@@ -31,11 +33,7 @@ jest.mock('@/contexts/ModalProvider', () => ({
   useModalContext: () => ({
     isGoalLogModalOpen: false,
     isGameStatsModalOpen: false,
-    isTrainingResourcesOpen: false,
-    isLoadGameModalOpen: false,
     isNewGameSetupModalOpen: false,
-    isRosterModalOpen: false,
-    isSeasonTournamentModalOpen: false,
     isGameSettingsModalOpen: false,
     isSettingsModalOpen: false,
     isPlayerAssessmentModalOpen: false,
@@ -66,50 +64,20 @@ jest.mock('@/contexts/AuthProvider', () => ({
 }));
 
 const noop = () => {};
-const noopAsync = async () => {};
 
 
-const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
-  ({
-    mutate: jest.fn(),
-    mutateAsync: jest.fn(),
-    reset: jest.fn(),
-    status: 'idle',
-  } as unknown as UseMutationResult<T, Error, V, unknown>);
 
 const createProps = (): ModalManagerProps => ({
   state: {
-    isTrainingResourcesOpen: false,
-    isRulesDirectoryOpen: false,
-    isInstructionsModalOpen: false,
-    isPersonnelManagerOpen: false,
-    isTeamManagerOpen: false,
     isGoalLogModalOpen: false,
     isGameStatsModalOpen: false,
-    isLoadGameModalOpen: false,
-    isNewGameSetupModalOpen: false,
-    isRosterModalOpen: false,
-    isSeasonTournamentModalOpen: false,
     isGameSettingsModalOpen: false,
-    isSettingsModalOpen: false,
     isPlayerAssessmentModalOpen: false,
     isTeamReassignModalOpen: false,
     showNoPlayersConfirm: false,
-    showHardResetConfirm: false,
-    showSaveBeforeNewConfirm: false,
-    showStartNewConfirm: false,
     showResetFieldConfirm: false,
   },
   data: {
-    loadGameState: {
-      isLoadingGamesList: false,
-      loadGamesListError: null,
-      isGameLoading: false,
-      gameLoadError: null,
-      isGameDeleting: false,
-      gameDeleteError: null,
-      processingGameId: null,
-    },
     gameSessionState: initialGameSessionStatePlaceholder,
     availablePlayers: [],
     playersForCurrentGame: [],
@@ -121,32 +89,12 @@ const createProps = (): ModalManagerProps => ({
     tournaments: [] as Tournament[],
     masterRoster: [],
     personnel: [],
-    personnelManager: {
-      addPersonnel: async () => TestFixtures.personnel.headCoach({ name: 'Test' }),
-      updatePersonnel: async () => null,
-      removePersonnel: async () => {},
-      isLoading: false,
-    },
     playerAssessments: {} as Record<string, PlayerAssessment>,
-    selectedPlayerForStats: null,
-    playerIdsForNewGame: null,
-    newGameDemandFactor: 1,
     availableTeams: [],
     orphanedGameInfo: null,
-    appLanguage: 'en',
-    defaultTeamNameSetting: '',
-    isRosterUpdating: false,
-    rosterError: null,
-    gameIdentifierForSave: '',
     isPlayed: false,
-    seasonTournamentMutations: {},
   },
   handlers: {
-    toggleTrainingResources: noop,
-    toggleRulesDirectory: noop,
-    toggleInstructionsModal: noop,
-    closePersonnelManager: noop,
-    closeTeamManagerModal: noop,
     toggleGoalLogModal: noop,
     addGoalEvent: noop,
     logOpponentGoal: noop,
@@ -155,27 +103,8 @@ const createProps = (): ModalManagerProps => ({
     deleteGameEvent: async () => true,
     toggleGameStatsModal: noop,
     exportOneExcel: noop,
-    exportAggregateExcel: noop,
-    exportPlayerExcel: noop,
-    gameLogClick: noop,
-    closeLoadGameModal: noop,
-    loadGame: noop,
-    deleteGame: noop,
     exportOneJson: noop,
-    setSelectedTeamForRoster: noop,
-    startNewGameWithSetup: noopAsync,
-    cancelNewGameSetup: noop,
-    setNewGameDemandFactor: noop,
-    closeRosterModal: noop,
-    updatePlayerForModal: async () => {},
-    renamePlayerForModal: noop,
-    setJerseyNumberForModal: noop,
-    setPlayerNotesForModal: noop,
-    removePlayerForModal: noop,
-    addPlayerForModal: noop,
-    openPlayerStats: noop,
-    closeSeasonTournamentModal: noop,
-    closeGameSettingsModal: noop,
+    closeGameSettingsModal: jest.fn(),
     teamNameChange: noop,
     opponentNameChange: noop,
     gameDateChange: noop,
@@ -203,15 +132,11 @@ const createProps = (): ModalManagerProps => ({
     setHomeOrAway: noop,
     setIsPlayed: noop,
     updateSelectedPlayers: noop,
+    addPlayerToClubRoster: async () => null,
+    wrapUpToGameSettings: noop,
+    wrapUpToAssessments: noop,
     reapplyPlan: noop,
     setGamePersonnel: noop,
-    closeSettingsModal: noop,
-    setAppLanguage: noop,
-    setDefaultTeamName: noop,
-    showAppGuide: noop,
-    hardResetApp: noop,
-    resyncFromCloud: noop,
-    factoryReset: noop,
     closePlayerAssessmentModal: noop,
     savePlayerAssessment: noop,
     deletePlayerAssessment: noop,
@@ -219,18 +144,9 @@ const createProps = (): ModalManagerProps => ({
     setIsTeamReassignModalOpen: noop,
     confirmNoPlayers: noop,
     setShowNoPlayersConfirm: noop,
-    confirmHardReset: noop,
-    setShowHardResetConfirm: noop,
-    saveBeforeNewConfirmed: noop,
-    saveBeforeNewCancelled: noop,
-    setShowStartNewConfirm: noop,
-    startNewConfirmed: noop,
     setShowResetFieldConfirm: noop,
     resetFieldConfirmed: noop,
     openSettingsModal: noop,
-    onCreateBackup: noop,
-    onDataImportSuccess: noop,
-    manageTeamRosterFromNewGame: noop,
   },
 });
 
@@ -242,8 +158,19 @@ describe('ModalManager', () => {
     },
   });
 
+  let backSpy: jest.SpyInstance;
+
   beforeEach(() => {
     queryClient.clear();
+    __resetModalHardwareBackForTests();
+    // No-op implementation: jsdom's real back() fires an ASYNC popstate that
+    // races the next test's assertions (a tracked modal unmounting in RTL
+    // cleanup calls it) - same guard as ClubModalsHost.test.tsx.
+    backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    backSpy.mockRestore();
   });
 
   const renderWithProvider = (component: React.ReactElement) => {
@@ -256,25 +183,51 @@ describe('ModalManager', () => {
     );
   };
 
-  it('does not render season modal when mutations are missing', () => {
+  it('does not render stats modal when closed', () => {
     renderWithProvider(<ModalManager {...createProps()} />);
-    expect(screen.queryByTestId('season-modal')).toBeNull();
+    expect(screen.queryByTestId('stats-modal')).toBeNull();
   });
 
-  it('renders season modal when all mutations provided', async () => {
+  it('renders stats modal when open', async () => {
     const props = createProps();
-    props.data.seasonTournamentMutations = {
-      addSeason: createMutation<Season | null, Partial<Season> & { name: string }>(),
-      addTournament: createMutation<Tournament | null, Partial<Tournament> & { name: string }>(),
-      updateSeason: createMutation<Season | null, Season>(),
-      deleteSeason: createMutation<boolean, string>(),
-      updateTournament: createMutation<Tournament | null, Tournament>(),
-      deleteTournament: createMutation<boolean, string>(),
-    };
-    props.state.isSeasonTournamentModalOpen = true;
+    props.state.isGameStatsModalOpen = true;
 
     renderWithProvider(<ModalManager {...props} />);
 
-    expect(await screen.findByTestId('season-modal')).toBeInTheDocument();
+    expect(await screen.findByTestId('stats-modal')).toBeInTheDocument();
+  });
+
+  /**
+   * 3.1 hardware-back contract: with the page-level "back exits to Home"
+   * entry at the BOTTOM of the stack, an open MATCH-scope modal must
+   * consume the back press - back closes the modal, it never exits the
+   * match while one is open. Regression test for the 3.1 review Bug.
+   * @critical
+   */
+  it('hardware back closes an open match-scope modal INSTEAD of exiting the match', async () => {
+    const goHome = jest.fn();
+    // Simulate page.tsx's match-level registration (bottom of the stack).
+    const { result: _pageEntry } = renderHook(() => useModalHardwareBack(true, goHome));
+
+    const props = createProps();
+    props.state.isGameSettingsModalOpen = true;
+    renderWithProvider(<ModalManager {...props} />);
+
+    // Back press #1: the OPEN modal (registered above the match entry)
+    // closes; the match stays. Flush the macrotask that re-arms the sentinel
+    // (setTimeout(0)) so the next back is guarded.
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+    expect(props.handlers.closeGameSettingsModal).toHaveBeenCalledTimes(1);
+    expect(goHome).not.toHaveBeenCalled();
+
+    // Back press #2 (no modal left): NOW back exits to Home.
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+    expect(goHome).toHaveBeenCalledTimes(1);
   });
 });

@@ -59,6 +59,9 @@ describe('GameContainer', () => {
     });
   });
 
+  // The direct match->Home exit moved to the ControlBar as a first-class
+  // bar button (3.1 follow-up) - covered in ControlBar.menuScope.test.tsx.
+
   it('renders even when no game session state (renders shell)', () => {
     const props = createGameContainerProps();
     // GameSessionState is now in fieldProps

@@ -15,18 +15,21 @@ import { render, waitFor } from '../../utils/test-utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from '@/components/HomePage/containers/ModalManager';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
-import type { Season, Tournament, Team, PlayerAssessment, Personnel } from '@/types';
+import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
-// Stub a modal to make it easy to select in DOM without require()
-function SeasonModalPortalMock() {
-  return <div data-testid="season-modal-portal" />;
+// Stub a modal to make it easy to select in DOM without require().
+// L.1 note: this regression previously targeted SeasonTournamentManagementModal,
+// which lifted to ClubModalsHost - GameStats is a dynamic ModalManager modal
+// that still exercises the same ModalPortal path.
+function StatsModalPortalMock() {
+  return <div data-testid="stats-modal-portal" />;
 }
 
-jest.mock('@/components/SeasonTournamentManagementModal', () => ({
+jest.mock('@/components/GameStatsModal', () => ({
   __esModule: true,
-  default: SeasonModalPortalMock,
+  default: StatsModalPortalMock,
 }));
 
 jest.mock('@/contexts/ModalProvider', () => {
@@ -37,10 +40,7 @@ jest.mock('@/contexts/ModalProvider', () => {
     useModalContext: () => ({
       isGoalLogModalOpen: false,
       isGameStatsModalOpen: false,
-      isTrainingResourcesOpen: false,
-      isLoadGameModalOpen: false,
       isNewGameSetupModalOpen: false,
-      isRosterModalOpen: false,
       isSeasonTournamentModalOpen: true, // OPEN THIS MODAL
       isGameSettingsModalOpen: false,
       isSettingsModalOpen: false,
@@ -72,25 +72,12 @@ const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
 
 const createProps = (): ModalManagerProps => ({
   state: {
-    isTrainingResourcesOpen: false,
-    isRulesDirectoryOpen: false,
-    isInstructionsModalOpen: false,
-    isPersonnelManagerOpen: false,
-    isTeamManagerOpen: false,
     isGoalLogModalOpen: false,
     isGameStatsModalOpen: false,
-    isLoadGameModalOpen: false,
-    isNewGameSetupModalOpen: false,
-    isRosterModalOpen: false,
-    isSeasonTournamentModalOpen: false,
     isGameSettingsModalOpen: false,
-    isSettingsModalOpen: false,
     isPlayerAssessmentModalOpen: false,
     isTeamReassignModalOpen: false,
     showNoPlayersConfirm: false,
-    showHardResetConfirm: false,
-    showSaveBeforeNewConfirm: false,
-    showStartNewConfirm: false,
     showResetFieldConfirm: false,
   },
   data: {
@@ -105,42 +92,13 @@ const createProps = (): ModalManagerProps => ({
     tournaments: [] as Tournament[],
     masterRoster: [],
     personnel: [],
-    personnelManager: {
-      addPersonnel: async () => ({ id: 'test', name: 'Test', role: 'head_coach', createdAt: '', updatedAt: '' } as Personnel),
-      updatePersonnel: async () => null,
-      removePersonnel: async () => {},
-      isLoading: false,
-    },
     playerAssessments: {} as Record<string, PlayerAssessment>,
-    selectedPlayerForStats: null,
-    playerIdsForNewGame: null,
-    newGameDemandFactor: 1,
     availableTeams: [],
     orphanedGameInfo: null,
-    appLanguage: 'en',
-    defaultTeamNameSetting: '',
-    gameIdentifierForSave: '',
     isPlayed: false,
-    isRosterUpdating: false,
-    rosterError: null,
-    loadGameState: {
-      isLoadingGamesList: false,
-      loadGamesListError: null,
-      isGameLoading: false,
-      gameLoadError: null,
-      isGameDeleting: false,
-      gameDeleteError: null,
-      processingGameId: null,
-    },
-    seasonTournamentMutations: {},
     updateGameDetailsMutation: createMutation(),
   },
   handlers: {
-    toggleTrainingResources: noop,
-    toggleRulesDirectory: noop,
-    toggleInstructionsModal: noop,
-    closePersonnelManager: noop,
-    closeTeamManagerModal: noop,
     toggleGoalLogModal: noop,
     addGoalEvent: noop,
     logOpponentGoal: noop,
@@ -149,26 +107,7 @@ const createProps = (): ModalManagerProps => ({
     deleteGameEvent: async () => true,
     toggleGameStatsModal: noop,
     exportOneExcel: noop,
-    exportAggregateExcel: noop,
-    exportPlayerExcel: noop,
-    gameLogClick: noop,
-    closeLoadGameModal: noop,
-    loadGame: noop,
-    deleteGame: noop,
     exportOneJson: noop,
-    setSelectedTeamForRoster: noop,
-    setNewGameDemandFactor: noop,
-    startNewGameWithSetup: noop,
-    cancelNewGameSetup: noop,
-    closeRosterModal: noop,
-    updatePlayerForModal: async () => {},
-    renamePlayerForModal: noop,
-    setJerseyNumberForModal: noop,
-    setPlayerNotesForModal: noop,
-    removePlayerForModal: noop,
-    addPlayerForModal: noop,
-    openPlayerStats: noop,
-    closeSeasonTournamentModal: noop,
     closeGameSettingsModal: noop,
     teamNameChange: noop,
     opponentNameChange: noop,
@@ -194,15 +133,11 @@ const createProps = (): ModalManagerProps => ({
     setHomeOrAway: noop,
     setIsPlayed: noop,
     updateSelectedPlayers: noop,
+    addPlayerToClubRoster: async () => null,
+    wrapUpToGameSettings: noop,
+    wrapUpToAssessments: noop,
     reapplyPlan: noop,
     setGamePersonnel: noop,
-    closeSettingsModal: noop,
-    setAppLanguage: noop,
-    setDefaultTeamName: noop,
-    showAppGuide: noop,
-    hardResetApp: noop,
-    resyncFromCloud: noop,
-    factoryReset: noop,
     closePlayerAssessmentModal: noop,
     savePlayerAssessment: noop,
     deletePlayerAssessment: noop,
@@ -210,18 +145,9 @@ const createProps = (): ModalManagerProps => ({
     setIsTeamReassignModalOpen: noop,
     confirmNoPlayers: noop,
     setShowNoPlayersConfirm: noop,
-    confirmHardReset: noop,
-    setShowHardResetConfirm: noop,
-    saveBeforeNewConfirmed: noop,
-    saveBeforeNewCancelled: noop,
-    setShowStartNewConfirm: noop,
-    startNewConfirmed: noop,
     setShowResetFieldConfirm: noop,
     resetFieldConfirmed: noop,
     openSettingsModal: noop,
-    onCreateBackup: noop,
-    onDataImportSuccess: noop,
-    manageTeamRosterFromNewGame: noop,
     setWentToOvertime: noop,
     setWentToPenalties: noop,
     setShootoutKicks: noop,
@@ -231,20 +157,11 @@ const createProps = (): ModalManagerProps => ({
 // NOTE: Skipped in CI/jsdom due to occasional ESM interop issues when layering providers.
 // Manual verification and focused component tests cover portalization behavior.
 describe('Modal portalization (renders to document.body)', () => {
-  it('renders season modal outside the RTL container (via portal)', async () => {
+  it('renders a ModalManager modal outside the RTL container (via portal)', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const props = createProps();
-    // Open the season/tournament modal
-    props.state.isSeasonTournamentModalOpen = true;
-    // Provide all mutations so modal renders
-    props.data.seasonTournamentMutations = {
-      addSeason: createMutation<Season | null, Partial<Season> & { name: string }>(),
-      addTournament: createMutation<Tournament | null, Partial<Tournament> & { name: string }>(),
-      updateSeason: createMutation<Season | null, Season>(),
-      deleteSeason: createMutation<boolean, string>(),
-      updateTournament: createMutation<Tournament | null, Tournament>(),
-      deleteTournament: createMutation<boolean, string>(),
-    };
+    // Open the (mocked) Game Stats modal - a dynamic ModalManager modal
+    props.state.isGameStatsModalOpen = true;
 
     const { container } = render(
       <QueryClientProvider client={queryClient}>
@@ -255,7 +172,7 @@ describe('Modal portalization (renders to document.body)', () => {
     // next/dynamic loads components asynchronously — wait for resolution
     let modal: HTMLElement | null = null;
     await waitFor(() => {
-      modal = document.querySelector('[data-testid="season-modal-portal"]') as HTMLElement | null;
+      modal = document.querySelector('[data-testid="stats-modal-portal"]') as HTMLElement | null;
       expect(modal).not.toBeNull();
     });
 

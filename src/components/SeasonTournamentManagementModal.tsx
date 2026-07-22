@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { Season, Tournament, Player } from '@/types';
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -20,6 +20,8 @@ import logger from '@/utils/logger';
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
     onClose: () => void;
+    /** Which competition list this manager shows: Kaudet or Turnaukset. */
+    kind: 'season' | 'tournament';
     seasons: Season[];
     tournaments: Tournament[];
     masterRoster: Player[];
@@ -33,13 +35,18 @@ interface SeasonTournamentManagementModalProps {
 }
 
 const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalProps> = ({
-    isOpen, onClose, seasons, tournaments, masterRoster,
+    isOpen, onClose, kind, seasons, tournaments, masterRoster,
     addSeasonMutation, addTournamentMutation,
     updateSeasonMutation, deleteSeasonMutation,
     updateTournamentMutation, deleteTournamentMutation,
     onOpenSettings
 }) => {
     const { t } = useTranslation();
+    const headerCollapse = useCollapsingHeader();
+    // Title/aria label track the kind (Kaudet / Turnaukset).
+    const managerTitle = kind === 'season'
+        ? t('seasonTournamentModal.seasons', 'Seasons')
+        : t('seasonTournamentModal.tournaments', 'Tournaments');
     const { getStore } = useDataStore();
 
     // Premium limit checks (count non-archived items)
@@ -80,23 +87,27 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     React.useEffect(() => {
         const loadStats = async () => {
             const { getFilteredGames } = await import('@/utils/savedGames');
-            const seasonStats: Record<string, { games: number; goals: number }> = {};
-            for (const s of seasons) {
-                const games = await getFilteredGames({ seasonId: s.id });
-                const goals = games.reduce((sum, [, g]) => sum + (g.gameEvents?.filter(e => e.type === 'goal').length || 0), 0);
-                seasonStats[s.id] = { games: games.length, goals };
+            const nextStats: Record<string, { games: number; goals: number }> = {};
+            // Only the shown kind needs stats (this manager renders one list).
+            if (kind === 'season') {
+                for (const s of seasons) {
+                    const games = await getFilteredGames({ seasonId: s.id });
+                    const goals = games.reduce((sum, [, g]) => sum + (g.gameEvents?.filter(e => e.type === 'goal').length || 0), 0);
+                    nextStats[s.id] = { games: games.length, goals };
+                }
+            } else {
+                for (const tourn of tournaments) {
+                    const games = await getFilteredGames({ tournamentId: tourn.id });
+                    const goals = games.reduce((sum, [, g]) => sum + (g.gameEvents?.filter(e => e.type === 'goal').length || 0), 0);
+                    nextStats[tourn.id] = { games: games.length, goals };
+                }
             }
-            for (const t of tournaments) {
-                const games = await getFilteredGames({ tournamentId: t.id });
-                const goals = games.reduce((sum, [, g]) => sum + (g.gameEvents?.filter(e => e.type === 'goal').length || 0), 0);
-                seasonStats[t.id] = { games: games.length, goals };
-            }
-            setStats(seasonStats);
+            setStats(nextStats);
         };
         if (isOpen) {
             loadStats();
         }
-    }, [isOpen, seasons, tournaments]);
+    }, [isOpen, kind, seasons, tournaments]);
 
     // Close actions menu when clicking outside
     React.useEffect(() => {
@@ -237,7 +248,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
         return (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
-                <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
                 <div className="space-y-3">
                     {filtered.length === 0 && (
                         <p className="text-sm text-slate-400 py-2">
@@ -348,43 +358,33 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={t('seasonTournament.title', 'Seasons & Tournaments')}>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={managerTitle}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex flex-col flex-shrink-0">
-          {/* Title Section */}
-          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-              {t('seasonTournamentModal.title')}
-            </h2>
+        {/* Chrome slimming: X-header; the (single) Add button collapses on scroll. */}
+        <CollapsibleModalHeader
+          title={managerTitle}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+          collapse={headerCollapse}
+        >
+          <div className="px-6 pt-3 pb-4">
+            <button
+              onClick={kind === 'season' ? handleAddSeason : handleAddTournament}
+              className="w-full px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
+            >
+              {kind === 'season'
+                ? t('seasonTournamentModal.addSeason', 'Add Season')
+                : t('seasonTournamentModal.addTournament', 'Add Tournament')}
+            </button>
           </div>
-
-          {/* Fixed Section (Add Buttons) */}
-          <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-            {/* Add Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={handleAddSeason}
-                className="px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-              >
-                {t('seasonTournamentModal.addSeason', 'Add Season')}
-              </button>
-              <button
-                onClick={handleAddTournament}
-                className="px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
-              >
-                {t('seasonTournamentModal.addTournament', 'Add Tournament')}
-              </button>
-            </div>
-          </div>
-        </div>
+        </CollapsibleModalHeader>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
             {/* Search Field and Show Archived Toggle */}
             <div className="mb-4 flex flex-col sm:flex-row gap-3">
               <input
@@ -407,18 +407,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderList('season')}
-                {renderList('tournament')}
-            </div>
+            {renderList(kind)}
         </div>
 
-        {/* Footer */}
-        <ModalFooter>
-          <button onClick={onClose} className={primaryButtonStyle}>
-            {t('common.doneButton', 'Done')}
-          </button>
-        </ModalFooter>
       </div>
 
       {/* Season Create Modal */}

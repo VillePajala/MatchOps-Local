@@ -61,6 +61,7 @@ const mockGetFilteredGames = getFilteredGames as jest.MockedFunction<typeof getF
 const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
+  kind: 'season' as 'season' | 'tournament',
   seasons: [{ id: 's1', name: 'Season 1' }] as Season[],
   tournaments: [{ id: 't1', name: 'Tournament 1' }] as Tournament[],
   masterRoster: [{ id: 'p1', name: 'Test Player', jerseyNumber: '10' }],
@@ -93,13 +94,19 @@ describe('SeasonTournamentManagementModal', () => {
     mockGetFilteredGames.mockResolvedValue([]);
   });
 
-  it('renders seasons and tournaments lists', async () => {
-    await act(async () => {
-      renderWithProviders();
-    });
+  it('renders the season list for kind=season and the tournament list for kind=tournament', async () => {
+    // The manager is now kind-scoped (Kaudet vs Turnaukset), so each list shows
+    // only in its own instance.
+    const { unmount } = renderWithProviders({ kind: 'season' });
     await act(async () => {});
     expect(screen.getByText('Season 1')).toBeInTheDocument();
+    expect(screen.queryByText('Tournament 1')).toBeNull();
+    unmount();
+
+    renderWithProviders({ kind: 'tournament' });
+    await act(async () => {});
     expect(screen.getByText('Tournament 1')).toBeInTheDocument();
+    expect(screen.queryByText('Season 1')).toBeNull();
   });
 
   it('allows creating a new season', async () => {
@@ -136,7 +143,7 @@ describe('SeasonTournamentManagementModal', () => {
   it('allows creating a new tournament', async () => {
     const user = userEvent.setup();
     await act(async () => {
-      renderWithProviders();
+      renderWithProviders({ kind: 'tournament' });
     });
     await act(async () => {});
 
@@ -198,7 +205,7 @@ describe('SeasonTournamentManagementModal', () => {
   it('opens tournament details modal when clicking tournament item', async () => {
     const user = userEvent.setup();
     await act(async () => {
-      renderWithProviders();
+      renderWithProviders({ kind: 'tournament' });
     });
     await act(async () => {});
 
@@ -212,7 +219,7 @@ describe('SeasonTournamentManagementModal', () => {
   it('opens tournament details modal when clicking edit in actions menu', async () => {
     const user = userEvent.setup();
     await act(async () => {
-      renderWithProviders();
+      renderWithProviders({ kind: 'tournament' });
     });
     await act(async () => {});
 
@@ -255,7 +262,7 @@ describe('SeasonTournamentManagementModal', () => {
   it('allows deleting a tournament', async () => {
     const user = userEvent.setup();
     await act(async () => {
-      renderWithProviders();
+      renderWithProviders({ kind: 'tournament' });
     });
     await act(async () => {});
 
@@ -350,7 +357,7 @@ describe('SeasonTournamentManagementModal', () => {
   it('allows archiving a tournament', async () => {
     const user = userEvent.setup();
     await act(async () => {
-      renderWithProviders();
+      renderWithProviders({ kind: 'tournament' });
     });
     await act(async () => {});
 
@@ -371,6 +378,7 @@ describe('SeasonTournamentManagementModal', () => {
     const user = userEvent.setup();
     await act(async () => {
       renderWithProviders({
+        kind: 'tournament',
         tournaments: [{ id: 't1', name: 'Tournament 1', archived: true }],
       });
     });
@@ -402,6 +410,7 @@ describe('SeasonTournamentManagementModal', () => {
       const user = userEvent.setup();
       await act(async () => {
         renderWithProviders({
+          kind: 'tournament',
           tournaments: [{ id: 't1', name: 'Championship Cup' }],
           masterRoster: [
             { id: 'p1', name: 'Alice', jerseyNumber: '10' },
@@ -426,6 +435,7 @@ describe('SeasonTournamentManagementModal', () => {
       const user = userEvent.setup();
       await act(async () => {
         renderWithProviders({
+          kind: 'tournament',
           tournaments: [{ id: 't1', name: 'Championship Cup', awardedPlayerId: 'p1' } as Tournament],
           masterRoster: [{ id: 'p1', name: 'Alice', jerseyNumber: '10' }],
         });
@@ -450,6 +460,7 @@ describe('SeasonTournamentManagementModal', () => {
     it('should handle deleted player gracefully (no trophy displayed)', async () => {
       await act(async () => {
         renderWithProviders({
+          kind: 'tournament',
           tournaments: [{ id: 't1', name: 'Championship Cup', awardedPlayerId: 'deleted-player' } as Tournament],
           masterRoster: [{ id: 'p1', name: 'Alice', jerseyNumber: '10' }], // deleted-player not in roster
         });
@@ -566,6 +577,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
 
     await act(async () => {
       renderWithProviders({
+        kind: 'tournament',
         seasons: [],
         tournaments: [{ id: 't1', name: 'Existing Tournament' }],
       });
@@ -619,6 +631,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     const user = userEvent.setup();
     await act(async () => {
       renderWithProviders({
+        kind: 'tournament',
         seasons: [],
         tournaments: [],
       });
@@ -734,6 +747,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
 
     await act(async () => {
       renderWithProviders({
+        kind: 'tournament',
         seasons: [],
         tournaments: [
           { id: 't1', name: 'Active Tournament' },

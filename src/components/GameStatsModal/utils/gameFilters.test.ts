@@ -3,7 +3,8 @@
  * @integration - Tests core filtering logic used across GameStatsModal
  */
 
-import { filterGameIds, getPlayedGamesByTeam } from './gameFilters';
+import { filterGameIds } from './gameFilters';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { SavedGamesCollection, AppState } from '@/types';
 
 // Helper to create minimal game state for testing
@@ -48,6 +49,39 @@ describe('gameFilters', () => {
         expect(result).toContain('game1');
         expect(result).toContain('game2');
         expect(result).toContain('game3');
+      });
+    });
+
+    describe('friendly matches (isFriendly)', () => {
+      const games: SavedGamesCollection = {
+        league: createGame({ seasonId: 's1' }),
+        cup: createGame({ tournamentId: 't1' }),
+        friendly: createGame({ isFriendly: true }),
+        friendlyWithSeason: createGame({ seasonId: 's1', isFriendly: true }),
+      };
+
+      it('season scope excludes a friendly even when it carries the season tag', () => {
+        const r = filterGameIds(games, { activeTab: 'season', seasonFilter: 's1' });
+        expect(r).toContain('league');
+        expect(r).not.toContain('friendlyWithSeason');
+      });
+
+      it('tournament scope excludes friendlies', () => {
+        const r = filterGameIds(games, { activeTab: 'tournament', tournamentFilter: 't1' });
+        expect(r).toContain('cup');
+        expect(r).not.toContain('friendly');
+      });
+
+      it('overall excludes friendlies by default', () => {
+        const r = filterGameIds(games, { activeTab: 'overall' });
+        expect(r).toEqual(expect.arrayContaining(['league', 'cup']));
+        expect(r).not.toContain('friendly');
+        expect(r).not.toContain('friendlyWithSeason');
+      });
+
+      it('overall includes friendlies when includeFriendlies is set', () => {
+        const r = filterGameIds(games, { activeTab: 'overall', includeFriendlies: true });
+        expect(r).toEqual(expect.arrayContaining(['league', 'cup', 'friendly', 'friendlyWithSeason']));
       });
     });
 
@@ -617,33 +651,30 @@ describe('gameFilters', () => {
     });
   });
 
-  describe('getPlayedGamesByTeam', () => {
-    it('is a convenience wrapper for filterGameIds', () => {
+  describe('club season filter', () => {
+    it('excludes an undated game when a specific club season is selected', () => {
+      const datedGameDate = '2024-09-01';
       const games: SavedGamesCollection = {
-        'played_team1': createGame({ isPlayed: true, teamId: 'team1' }),
-        'unplayed_team1': createGame({ isPlayed: false, teamId: 'team1' }),
-        'played_team2': createGame({ isPlayed: true, teamId: 'team2' }),
+        dated: createGame({ gameDate: datedGameDate }),
+        undated: createGame({ gameDate: '' }),
       };
 
-      const result = getPlayedGamesByTeam(games, 'team1');
-      expect(result).toHaveLength(1);
-      expect(result).toContain('played_team1');
+      // Select the exact club season the dated game falls in. The undated game
+      // has no date to place, so it must be excluded - not silently counted as
+      // it was before this filter was consolidated into filterGameIds.
+      const clubSeason = getClubSeasonForDate(datedGameDate);
+      const r = filterGameIds(games, { clubSeasonFilter: clubSeason });
+      expect(r).toContain('dated');
+      expect(r).not.toContain('undated');
     });
 
-    it('defaults to all teams', () => {
+    it('keeps undated games when club season is "all"', () => {
       const games: SavedGamesCollection = {
-        'played1': createGame({ isPlayed: true, teamId: 'team1' }),
-        'played2': createGame({ isPlayed: true, teamId: 'team2' }),
-        'unplayed': createGame({ isPlayed: false }),
+        undated: createGame({ gameDate: '' }),
       };
 
-      const result = getPlayedGamesByTeam(games);
-      expect(result).toHaveLength(2);
-    });
-
-    it('handles null games', () => {
-      const result = getPlayedGamesByTeam(null);
-      expect(result).toEqual([]);
+      const r = filterGameIds(games, { clubSeasonFilter: 'all' });
+      expect(r).toContain('undated');
     });
   });
 });

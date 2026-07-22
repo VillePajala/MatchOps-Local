@@ -70,6 +70,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.home': 'Koti',
         'gameSettingsModal.away': 'Vieras',
         'gameSettingsModal.unplayedToggle': 'Ei vielä pelattu',
+        'gameSettingsModal.friendlyToggle': 'Harjoitusottelu',
         'gameSettingsModal.confirmDeleteEvent': 'Are you sure you want to delete this event? This cannot be undone.',
         'gameSettingsModal.eventActions': 'Event actions',
         'common.doneButton': 'Done',
@@ -176,6 +177,7 @@ const defaultProps: GameSettingsModalProps = {
   onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
+  isFriendly: false,
   onWentToOvertimeChange: jest.fn(),
   onWentToPenaltiesChange: jest.fn(),
   onShootoutKicksChange: jest.fn(),
@@ -236,6 +238,17 @@ describe('<GameSettingsModal />', () => {
     const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  test('the Friendly-match toggle reclassifies the game via a mutation', async () => {
+    const user = userEvent.setup();
+    (defaultProps.updateGameDetailsMutation.mutate as jest.Mock).mockClear();
+    renderModal();
+    await user.click(screen.getByRole('button', { name: 'Harjoitusottelu' }));
+    expect(defaultProps.updateGameDetailsMutation.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ gameId: 'game123', updates: { isFriendly: true } }),
+      expect.anything(),
+    );
   });
 
   describe('Re-apply plan', () => {
@@ -454,6 +467,113 @@ describe('<GameSettingsModal />', () => {
         }),
         expect.any(Object)
       );
+    });
+  });
+
+  describe('R3: wrap-up scroll targets', () => {
+    it('scrolls to the requested section anchor on open; none without the prop', async () => {
+      const scrollSpy = jest.fn();
+      window.HTMLElement.prototype.scrollIntoView = scrollSpy;
+      const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { setTimeout(() => cb(0), 0); return 0; });
+      try {
+        renderModal({ ...defaultProps, initialScrollSection: 'roster' });
+        await screen.findByText(t('gameSettingsModal.selectPlayers'));
+        await waitFor(() => expect(scrollSpy).toHaveBeenCalled());
+        scrollSpy.mockClear();
+        renderModal();
+        await waitFor(() => expect(scrollSpy).not.toHaveBeenCalled());
+      } finally {
+        raf.mockRestore();
+      }
+    });
+  });
+
+  describe('Roster bridge (3.2): inline add to club roster', () => {
+    /**
+     * Acceptance (two-level restructure 3.2): the added player lands in the
+     * CLUB roster (the onAddPlayerToRoster club-write) AND the game
+     * selection (onSelectedPlayersChange + the persist mutation).
+     * @critical
+     */
+    it('club-write succeeds -> the new player is selected into the game and persisted', async () => {
+      const user = userEvent.setup();
+      const saved = { id: 'new-p9', name: 'Uusi Pelaaja', isGoalie: false, receivedFairPlayCard: false };
+      const onAddPlayerToRoster = jest.fn().mockResolvedValue(saved);
+      const onSelectedPlayersChange = jest.fn();
+      const mutate = jest.fn();
+      renderModal({
+        ...defaultProps,
+        onAddPlayerToRoster,
+        onSelectedPlayersChange,
+        updateGameDetailsMutation: {
+          mutate,
+          mutateAsync: jest.fn().mockResolvedValue({ id: 'game123' }),
+        } as unknown as typeof defaultProps.updateGameDetailsMutation,
+      });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), '  Uusi Pelaaja  ');
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
+
+      await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalledWith('Uusi Pelaaja', undefined));
+      await waitFor(() =>
+        expect(onSelectedPlayersChange).toHaveBeenCalledWith(['p1', 'p2', 'new-p9']),
+      );
+      // Persisted through the same path the selection checkboxes use.
+      expect(mutate).toHaveBeenCalled();
+      // The add row clears + closes on success.
+      await waitFor(() =>
+        expect(screen.queryByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder'))).not.toBeInTheDocument(),
+      );
+    });
+
+    it('failed club-write selects nothing and keeps the input open for retry', async () => {
+      const user = userEvent.setup();
+      const onAddPlayerToRoster = jest.fn().mockResolvedValue(null);
+      const onSelectedPlayersChange = jest.fn();
+      renderModal({ ...defaultProps, onAddPlayerToRoster, onSelectedPlayersChange });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'Uusi');
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
+
+      await waitFor(() => expect(onAddPlayerToRoster).toHaveBeenCalled());
+      expect(onSelectedPlayersChange).not.toHaveBeenCalled();
+      expect(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder'))).toBeInTheDocument();
+      // Review fix: the failure SAYS why nothing happened...
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        t('gameSettingsModal.addToClubRosterFailed'),
+      );
+      // ...and typing clears the message for the retry.
+      await user.type(screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')), 'X');
+      await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    });
+
+    it('blocks a case-insensitive duplicate name BEFORE the club write (parity with PlayerDetailsModal)', async () => {
+      const user = userEvent.setup();
+      const onAddPlayerToRoster = jest.fn();
+      const onSelectedPlayersChange = jest.fn();
+      renderModal({ ...defaultProps, onAddPlayerToRoster, onSelectedPlayersChange });
+
+      await user.click(await screen.findByRole('button', { name: `+ ${t('gameSettingsModal.addToClubRoster')}` }));
+      // defaultProps.availablePlayers contains 'Player One' (id p1).
+      await user.type(
+        screen.getByPlaceholderText(t('gameSettingsModal.addToClubRosterPlaceholder')),
+        `  ${defaultProps.availablePlayers[0].name.toUpperCase()}  `,
+      );
+      await user.click(screen.getByRole('button', { name: t('common.add') }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        t('playerDetailsModal.duplicateNameError'),
+      );
+      expect(onAddPlayerToRoster).not.toHaveBeenCalled();
+      expect(onSelectedPlayersChange).not.toHaveBeenCalled();
+    });
+
+    it('renders no add affordance without the bridge handler', async () => {
+      renderModal();
+      expect(await screen.findByText(t('gameSettingsModal.selectPlayers'))).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: new RegExp(t('gameSettingsModal.addToClubRoster')) })).not.toBeInTheDocument();
     });
   });
 

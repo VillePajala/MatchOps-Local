@@ -6,15 +6,46 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // Note: Do NOT import updateAppSettings here. StartScreen is for local mode,
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
+import type { HomeSummary } from '@/utils/homeSummary';
+import { HomeDashboard, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { isAndroid } from '@/utils/platform';
+import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 
 interface StartScreenProps {
   onLoadGame: () => void;
   onResumeGame?: () => void;
   onGetStarted: () => void;
+  /** New Game row: opens the lifted NewGameSetup in place (L.3b). Falls back
+   *  to onGetStarted (the old enter-the-workspace behavior) when absent. */
+  onNewGame?: () => void;
   onViewStats: () => void;
+  /** Stats panel rows mirror the aggregate tabs (W8): open club stats on one. */
+  onViewStatsTab?: (tab: 'season' | 'tournament' | 'overall' | 'player') => void;
+  /** Gear sheet: direct sign out (cloud mode only). */
+  onSignOut?: () => void;
   onOpenSettings: () => void;
+  /** Home tab: master roster / teams / personnel (opens the existing modal). */
+  onManageRoster?: () => void;
+  /** Home tab: seasons & tournaments (opens the existing modal). */
+  onManageSeasons?: () => void;
+  onManageTournaments?: () => void;
+  /** Front-page entry: open the Playing-Time Planner. */
+  onOpenPlanner?: () => void;
+  /** Team panel: teams manager (opens the existing modal). */
+  onManageTeams?: () => void;
+  /** Team panel: personnel manager (opens the existing modal). */
+  onManagePersonnel?: () => void;
+  /** Team panel: warmup/training resources (opens the existing modal). */
+  onOpenTraining?: () => void;
+  /** Gear sheet: settings straight onto the Backup & Restore tab. */
+  onOpenBackup?: () => void;
+  /** Gear sheet: settings straight onto the cloud Account tab (cloud mode). */
+  onOpenAccount?: () => void;
+  /** Gear sheet: the rules directory. */
+  onOpenRules?: () => void;
+  /** Gear sheet: the in-app "How it works" guide. */
+  onOpenGuide?: () => void;
   /** Called on Android to enable cloud sync (shows upgrade modal if not premium) */
   onEnableCloudSync?: () => void;
   /** Called on desktop for existing subscribers to sign in (bypasses premium check) */
@@ -27,14 +58,36 @@ interface StartScreenProps {
   isCloudAvailable?: boolean;
   /** Completion signals for the recommended full-setup workflow card. */
   setupProgress?: SetupProgress;
+  /** Home presentation: 'simple' launcher (default) or the info-rich dashboard. */
+  homeView?: 'simple' | 'dashboard';
+  /** Computed Pelit-tab dashboard data (resume, Vuosi record, recent games). */
+  homeSummary?: HomeSummary | null;
+  /** Gear-sheet toggle for the view above. */
+  onSetHomeView?: (view: 'simple' | 'dashboard') => void;
+  /** Recent-strip deep-link: open a specific saved game by id. */
+  onOpenGameById?: (id: string) => void;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
   onLoadGame,
   onResumeGame,
   onGetStarted,
+  onNewGame,
   onViewStats,
+  onViewStatsTab,
+  onSignOut,
   onOpenSettings,
+  onManageRoster,
+  onManageSeasons,
+  onManageTournaments,
+  onOpenPlanner,
+  onManageTeams,
+  onManagePersonnel,
+  onOpenTraining,
+  onOpenBackup,
+  onOpenAccount,
+  onOpenRules,
+  onOpenGuide,
   onEnableCloudSync,
   onSignInExistingSubscriber,
   onShowWelcome,
@@ -43,15 +96,33 @@ const StartScreen: React.FC<StartScreenProps> = ({
   isFirstTimeUser = false,
   isCloudAvailable = false,
   setupProgress,
+  homeView = 'simple',
+  homeSummary,
+  onSetHomeView,
+  onOpenGameById,
 }) => {
   const { t } = useTranslation();
-  const { user, mode, signOut } = useAuth();
+  // Dashboard is the default view, but it only renders once there are games to
+  // summarise - a brand-new coach (no games yet) still gets the simple launcher.
+  const dashboardOn = homeView === 'dashboard' && !isFirstTimeUser && hasSavedGames;
+  // With nothing to resume, "New Game" is the day-one hero: it's the single
+  // action a new coach needs (players are added inside the new-game flow). When
+  // there's a game to resume, Continue is the hero and New Game steps back to a row.
+  const newGamePrimary = !canResume && !dashboardOn;
+  const { user, mode } = useAuth();
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
   // HTML and the first client render produce identical markup. Reading i18n.language
   // here directly causes a hydration mismatch when localStorage holds a non-default
   // language (MATCHOPS-LOCAL-8K / MATCHOPS-LOCAL-3). The real value is adopted
   // post-hydration via useEffect below.
   const [language, setLanguage] = useState<string>('fi');
+  // Which Home panel the body shows (restructure 1.3b): the tabs became REAL
+  // tabs - Games (front page) and Team (club entry rows) switch panels here;
+  // Seasons/Stats stay one-tap openers for their single-purpose scopes.
+  const [activeTab, setActiveTab] = useState<'games' | 'team' | 'seasons' | 'stats'>('games');
+  // Gear sheet (restructure PR 1.4): the app/account bucket. Everything
+  // device- or account-scoped lives here, off the front page.
+  const [showGearSheet, setShowGearSheet] = useState(false);
 
   // Recommended-setup card dismissal. Read post-hydration (SSR-safe, like language):
   // both server and first client render show nothing until setupHydrated flips true.
@@ -83,7 +154,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   const setupComplete = !!setupProgress &&
     setupProgress.players && setupProgress.competition && setupProgress.team && setupProgress.teamLinkedGame;
-  const showSetupCard = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
+  // The setup tracker moved OFF the (space-tight) home tabs into an on-demand
+  // gear-sheet entry - the contextual empty-states already nudge setup inline
+  // where there's room. This entry shows its progress and opens the checklist.
+  const showSetupEntry = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
+  const setupDoneCount = setupProgress
+    ? [setupProgress.players, setupProgress.competition, setupProgress.team, setupProgress.teamLinkedGame].filter(Boolean).length
+    : 0;
+  const [showSetupSheet, setShowSetupSheet] = useState(false);
 
   // Adopt the real i18n language once on the client, after hydration has completed.
   useEffect(() => {
@@ -102,7 +180,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   }, [language]);
 
   return (
-    <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
+    <div className="relative flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden">
       {/* === AMBIENT BACKGROUND GLOWS === */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Blue glow - top right */}
@@ -112,26 +190,43 @@ const StartScreen: React.FC<StartScreenProps> = ({
       </div>
 
       {/* === MAIN CONTENT === */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe">
+      {/* Scrolls when content exceeds the viewport (e.g. the dashboard's extra
+          cards) so the lower action rows are never clipped; the bg glows above
+          stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 py-8 pb-safe">
 
-        {/* === TOP: Welcome Link + Language Switcher === */}
+        {/* === TOP: gear (upper-left) + language switcher (upper-right) ===
+            Split to opposite corners (owner feedback: the gear looked cramped
+            next to the language pill); frees the hero for a slightly larger logo. */}
         <div className="flex justify-between items-center mb-4">
-          {/* Welcome screen link - local mode only */}
-          {!isCloudMode && onShowWelcome ? (
+          {/* Upper-left: Settings gear, plus the Welcome back-link (local mode). */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onShowWelcome}
-              className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
+              onClick={() => setShowGearSheet(true)}
+              aria-label={t('startScreen.appSettings', 'Settings')}
+              className="p-1.5 rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm text-slate-300 hover:text-white hover:bg-slate-700/70 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {t('startScreen.welcomeScreen', 'Welcome')}
             </button>
-          ) : (
-            <div />
-          )}
+            {!isCloudMode && onShowWelcome && (
+              <button
+                type="button"
+                onClick={onShowWelcome}
+                className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors text-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                {t('startScreen.welcomeScreen', 'Welcome')}
+              </button>
+            )}
+          </div>
 
+          {/* Upper-right: language switcher (alone now). */}
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               onClick={() => setLanguage('en')}
@@ -156,176 +251,506 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
         </div>
 
-        {/* === HERO: App Name === */}
-        <div className={`flex-1 flex flex-col ${isFirstTimeUser ? 'justify-start pt-[20vh]' : 'justify-center'}`}>
-          <div className="text-center mb-6">
-            {/* App Name as Logo */}
-            <div className="relative inline-block mb-3">
-              <h1 className="relative text-5xl sm:text-6xl font-bold tracking-tight">
+        {/* === HERO: App Name (top-anchored - the Home shell of the two-level
+            restructure; the tab bar below is the club-level navigation) === */}
+        <div className="flex-1 flex flex-col justify-start pt-[6vh]">
+          <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-6'}`}>
+            {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
+                so the reclaimed hero space becomes the dashboard (the hero stays
+                full-size on first-run / empty state). */}
+            <div className={`relative inline-block ${dashboardOn ? '' : 'mb-3'}`}>
+              {/* Fluid logo: clamp(min, vw, max) scales the wordmark with the
+                  screen width (bigger phones -> bigger logo) instead of a fixed
+                  px size, bounded so it never gets silly on very small/large
+                  screens. Dashboard mode is a touch larger now that the tighter
+                  cards freed room. */}
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
 
-            {/* Tagline */}
-            <p className="text-lg text-slate-400">
-              {t('startScreen.tagline', 'Plan · Track · Discover')}
-            </p>
+            {/* Tagline - shown in the simple launcher (the dashboard packs its
+                own summary under the logo, so a tagline there would crowd it). */}
+            {!dashboardOn && (
+              <p className="text-lg text-slate-400">
+                {t('startScreen.tagline', 'Plan · Track · Discover')}
+              </p>
+            )}
+          </div>
+
+          {/* === HOME TABS (two-level restructure PR 1.2, strangler stage):
+              Pelit is this page; the other tabs OPEN THE EXISTING MODALS
+              unchanged. Phase 2 dissolves the modals into real tab content.
+              Shown to everyone now - a brand-new coach learns the real Home
+              from the start (no separate first-run mode). === */}
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-3' : 'mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
+              <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'games'}
+                  onClick={() => setActiveTab('games')}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === 'games'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                  }`}
+                >
+                  {t('startScreen.tabGames', 'Games')}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'team'}
+                  onClick={() => setActiveTab('team')}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === 'team'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                  }`}
+                >
+                  {t('startScreen.tabTeam', 'Club')}
+                </button>
+                {/* 3.1b (owner feedback 2026-07-17): Kaudet & Tilastot are
+                    REAL tabs now - same panel-switching behavior as the
+                    first two; their panels hold the entry rows. A tab that
+                    popped a modal directly broke the tab contract. */}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'seasons'}
+                  onClick={() => setActiveTab('seasons')}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === 'seasons'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                  }`}
+                >
+                  {t('startScreen.tabSeasons', 'Competitions')}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'stats'}
+                  onClick={() => setActiveTab('stats')}
+                  className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                    activeTab === 'stats'
+                      ? 'bg-indigo-600 text-white shadow-inner'
+                      : 'text-slate-300 hover:bg-slate-700/70 hover:text-white'
+                  }`}
+                >
+                  {t('startScreen.tabStats', 'Stats')}
+                </button>
+              </div>
           </div>
 
           {/* === ACTION BUTTONS === */}
-          <div className="max-w-sm mx-auto w-full space-y-3">
-            {isFirstTimeUser ? (
-              /* First-time user: single prominent button */
-              <button
-                type="button"
-                onClick={onGetStarted}
-                className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-              >
-                {t('startScreen.getStarted', 'Get Started')}
-              </button>
-            ) : (
-              /* Returning user: menu */
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-2.5' : 'space-y-3'}`}>
+            {activeTab === 'team' ? (
+              /* Team panel (restructure 1.3b): every club-people item gets a
+                 Home entry - the rows open the EXISTING modals (strangler). */
               <>
-                {/* Primary action: Continue or New Game */}
-                {canResume ? (
+                {dashboardOn && homeSummary && (
+                  <HomeCountsBar counts={homeSummary.counts} t={t} />
+                )}
+                {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
+                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
+                )}
+                {/* 2-across tiles keep the Team tab from scrolling on small
+                    phones (owner feedback): the "who" pair on top, coaching
+                    items next, external materials full-width below. */}
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={onManageRoster}
+                    disabled={!onManageRoster}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onManageRoster
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowPlayers', 'Players')}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onManageTeams}
+                    disabled={!onManageTeams}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onManageTeams
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowTeams', 'Teams')}
+                    </span>
+                  </button>
+                </div>
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={onManagePersonnel}
+                    disabled={!onManagePersonnel}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onManagePersonnel
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowPersonnel', 'Personnel')}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenTraining}
+                    disabled={!onOpenTraining}
+                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                      onOpenTraining
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowTraining', 'Warmup Plan')}
+                    </span>
+                  </button>
+                </div>
+                {/* Training CONTENT scope: the coaching materials link lives
+                    with the team, not under the gear. Solid row like its
+                    siblings (3.1b - bare link text looked out of place);
+                    the corner icon is honest about leaving the app. */}
+                <a
+                  href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('controlBar.coachingMaterials', 'Coaching Materials')}
+                  </span>
+                  <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
+                </a>
+              </>
+            ) : activeTab === 'seasons' ? (
+              /* Competitions panel: separate Kaudet and Turnaukset entries,
+                 each opening the manager scoped to that kind. */
+              <>
+                {dashboardOn && homeSummary && (
+                  <HomeSeasonCard
+                    vuosi={homeSummary.vuosi}
+                    counts={homeSummary.counts}
+                    onOpen={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
+                    t={t}
+                  />
+                )}
+                {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
+                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a season or tournament to group your games.')}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={onManageSeasons}
+                  disabled={!onManageSeasons}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageSeasons
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('seasonTournamentModal.seasons', 'Seasons')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onManageTournaments}
+                  disabled={!onManageTournaments}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    onManageTournaments
+                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-white">
+                    {t('seasonTournamentModal.tournaments', 'Tournaments')}
+                  </span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+              </>
+            ) : activeTab === 'stats' ? (
+              /* Stats panel (W8): one row per aggregate stats tab - the rows
+                 name exactly the surfaces that exist. Disabled until there
+                 is a game to aggregate - never silently dead-clickable. */
+              <>
+                {dashboardOn && homeSummary && (
+                  <HomeStatsTiles vuosi={homeSummary.vuosi} topScorer={homeSummary.topScorer} t={t} />
+                )}
+                {!hasSavedGames && (
+                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
+                )}
+                {([
+                  ['season', t('startScreen.statsSeason', 'Season stats')],
+                  ['tournament', t('startScreen.statsTournament', 'Tournament stats')],
+                  ['overall', t('startScreen.statsOverall', 'Overall stats')],
+                  ['player', t('startScreen.statsPlayer', 'Player stats')],
+                ] as const).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
+                    disabled={!hasSavedGames}
+                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      hasSavedGames
+                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
+                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-white">{label}</span>
+                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                  </button>
+                ))}
+              </>
+            ) : (
+              /* Returning user: the Pelit front page (two-level restructure
+                 PR 1.3) - resume card, one pinned primary, and full-width
+                 entry rows. The Stats/Load grid buttons are gone: the tab bar
+                 and the rows below cover both. */
+              <>
+                {dashboardOn && homeSummary ? (
+                  /* Opt-in dashboard: informative resume card + Vuosi record +
+                     recent strip, in place of the plain Continue button. */
+                  <HomeDashboard
+                    summary={homeSummary}
+                    onResume={onResumeGame}
+                    onOpenVuosi={onViewStatsTab ? () => onViewStatsTab('overall') : onViewStats}
+                    onOpenGame={onOpenGameById}
+                    t={t}
+                  />
+                ) : canResume ? (
                   <button
                     type="button"
                     onClick={onResumeGame}
                     className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
                   >
-                    {t('startScreen.continue', 'Continue')}
+                    {t('startScreen.resumeCard', 'Continue')}
                   </button>
+                ) : null}
+                {/* New Game is the hero when there's nothing to resume (the new
+                    coach adds players inside this flow); otherwise a standard
+                    row - paired with Saved games in dashboard mode, stacked in
+                    the simple launcher. Saved games hides when there are none. */}
+                {newGamePrimary ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={onNewGame ?? onGetStarted}
+                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center"
+                    >
+                      {t('startScreen.newGame', 'New Game')}
+                    </button>
+                    {hasSavedGames && (
+                      <button
+                        type="button"
+                        onClick={onLoadGame}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                      >
+                        <span className="text-sm font-semibold text-white">
+                          {t('startScreen.savedGames', 'Saved games')}
+                        </span>
+                        <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                      </button>
+                    )}
+                  </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={onGetStarted}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
-                  >
-                    {t('startScreen.newGame', 'New Game')}
-                  </button>
+                  <div className={dashboardOn ? 'flex gap-2.5' : 'space-y-3'}>
+                    <button
+                      type="button"
+                      onClick={onNewGame ?? onGetStarted}
+                      className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                    >
+                      <span className="text-sm font-semibold text-white">
+                        {t('startScreen.newGame', 'New Game')}
+                      </span>
+                      {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
+                    </button>
+                    {hasSavedGames && (
+                      <button
+                        type="button"
+                        onClick={onLoadGame}
+                        className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                      >
+                        <span className="text-sm font-semibold text-white">
+                          {t('startScreen.savedGames', 'Saved games')}
+                        </span>
+                        {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
+                      </button>
+                    )}
+                  </div>
                 )}
 
-                {/* Secondary actions: 2-column grid */}
-                <div className="grid grid-cols-2 gap-3">
+                {onOpenPlanner && (
                   <button
                     type="button"
-                    onClick={onLoadGame}
-                    className="p-4 rounded-xl bg-slate-800/90 border-2 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50 transition-all"
+                    onClick={onOpenPlanner}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                   >
                     <span className="text-sm font-semibold text-white">
-                      {t('startScreen.loadGame', 'Load Game')}
+                      {t('controlBar.planner', 'Match planner')}
                     </span>
+                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={hasSavedGames ? onViewStats : undefined}
-                    disabled={!hasSavedGames}
-                    className={`p-4 rounded-xl border-2 transition-all ${
-                      hasSavedGames
-                        ? 'bg-slate-800/90 border-sky-500/30 hover:bg-slate-700/90 hover:border-sky-400/50'
-                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <span className={`text-sm font-semibold ${hasSavedGames ? 'text-white' : 'text-slate-500'}`}>
-                      {t('startScreen.viewStats', 'Statistics')}
-                    </span>
-                  </button>
-                </div>
-
-              </>
-            )}
-          </div>
-
-          {/* Recommended setup card — teaches the fuller workflow to quick-path users */}
-          {showSetupCard && setupProgress && (
-            <RecommendedSetupCard progress={setupProgress} onDismiss={handleDismissSetup} />
-          )}
-
-          {/* Footer links: Settings + User Guide side by side. The Start Screen is where
-              every reload lands, so the full guide stays one tap away here. */}
-          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
-            {!isFirstTimeUser && (
-              <>
-                <button
-                  type="button"
-                  onClick={onOpenSettings}
-                  className="text-slate-400 hover:text-slate-200 transition-colors"
+                )}
+                {/* Taso is a game-day workflow tool (submit the lineup before,
+                    report the result after) - it earns a games-tab row, not a
+                    burial under the gear. Solid row like its siblings (3.1b). */}
+                <a
+                  href="https://taso.palloliitto.fi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                 >
-                  {t('startScreen.appSettings', 'Settings')}
-                </button>
-                <span className="text-slate-600" aria-hidden="true">·</span>
+                  <span className="text-sm font-semibold text-white">
+                    {t('startScreen.tasoLink', 'Taso - lineups & results')}
+                  </span>
+                  <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
+                </a>
               </>
             )}
-            <a
-              href="https://www.match-ops.com/guide"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-400 hover:text-amber-400 transition-colors"
-            >
-              {t('controlBar.userGuide', 'User Guide')}
-            </a>
           </div>
 
-          {/* Mode footer */}
-          {isCloudMode ? (
-            <div className="mt-8 text-center text-sm text-slate-500">
-              <span>{t('startScreen.signedInAs', 'Signed in as')} </span>
-              <span className="text-slate-400">{user.email}</span>
-              <span className="mx-2">·</span>
-              <button
-                type="button"
-                onClick={signOut}
-                className="text-amber-400 hover:text-amber-300 transition-colors"
-              >
-                {t('controlBar.signOut', 'Sign Out')}
-              </button>
-            </div>
-          ) : isCloudAvailable && (onEnableCloudSync || onSignInExistingSubscriber) ? (
-            isAndroid() ? (
-              // Android: Show enable cloud sync (triggers upgrade modal → purchase)
-              <div className="mt-8 text-center text-sm text-slate-500">
-                <span>{t('startScreen.usingLocalStorage', 'Using local storage')}</span>
-                <span className="mx-2">·</span>
+        </div>
+      </div>
+
+      {/* ⚙ sheet (restructure PR 1.4): every device/account-scope item in one
+          bucket - settings, backup, cloud account, guide, rules, external
+          links. Entries open the EXISTING modals/links (strangler). */}
+      {showGearSheet && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60"
+          onClick={() => setShowGearSheet(false)}
+          data-testid="gear-sheet-backdrop"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('startScreen.gearTitle', 'App & account')}
+            className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
+            <h4 className="text-base font-semibold text-slate-100 mb-3">{t('startScreen.gearTitle', 'App & account')}</h4>
+            <div className="space-y-1.5">
+              {/* Home view toggle - keeps the sheet open so the switch is
+                  visibly reactive; the Home body updates behind it. */}
+              {onSetHomeView && (
                 <button
                   type="button"
-                  onClick={onEnableCloudSync}
-                  className="text-amber-400 hover:text-amber-300 transition-colors"
+                  onClick={() => onSetHomeView(homeView === 'dashboard' ? 'simple' : 'dashboard')}
+                  aria-pressed={homeView === 'simple'}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                >
+                  <span>{t('startScreen.gearSimplifiedView', 'Simplified view')}</span>
+                  <span className={`inline-flex items-center h-6 w-11 rounded-full p-0.5 transition-colors flex-shrink-0 ${homeView === 'simple' ? 'bg-indigo-500' : 'bg-slate-600'}`} aria-hidden="true">
+                    <span className={`h-5 w-5 rounded-full bg-white transition-transform ${homeView === 'simple' ? 'translate-x-5' : ''}`} />
+                  </span>
+                </button>
+              )}
+              <button type="button" onClick={() => { setShowGearSheet(false); onOpenSettings(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                {t('startScreen.appSettings', 'Settings')}
+              </button>
+              {onOpenBackup && (
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenBackup(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  {t('startScreen.gearBackup', 'Backup & Restore')}
+                </button>
+              )}
+              {isCloudMode ? (
+                onOpenAccount && (
+                  <button type="button" onClick={() => { setShowGearSheet(false); onOpenAccount(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                    {t('startScreen.gearAccount', 'Cloud account')}
+                    <span className="block text-xs text-slate-500">{user.email}</span>
+                  </button>
+                )
+              ) : isCloudAvailable && (onEnableCloudSync || onSignInExistingSubscriber) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowGearSheet(false);
+                    (isAndroid() ? onEnableCloudSync : onSignInExistingSubscriber ?? onEnableCloudSync)?.();
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
                 >
                   {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
                 </button>
+              ) : null}
+              {onOpenRules && (
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenRules(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  {t('startScreen.gearRules', 'Rules')}
+                </button>
+              )}
+              {/* Setup tracker (moved off the home tabs) - on-demand, shows N/4. */}
+              {showSetupEntry && (
+                <button type="button" onClick={() => { setShowGearSheet(false); setShowSetupSheet(true); }} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  <span>{t('startScreen.gearSetup', 'Getting started ({{done}}/4)', { done: setupDoneCount })}</span>
+                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
+                </button>
+              )}
+              {/* In-app "How it works" guide (rebuilt for the two-level UI). */}
+              {onOpenGuide && (
+                <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                  {t('startScreen.gearGuide', 'How it works')}
+                </button>
+              )}
+              <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
+                {t('controlBar.userGuide', 'User Guide')}
+                <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
+              </a>
+              {/* Direct sign out (3.1b, owner decision 2026-07-17): account-
+                  scope action, so it lives in the gear - no longer buried
+                  behind Settings -> Account. Cloud mode only. */}
+              {isCloudMode && onSignOut && (
+                <button
+                  type="button"
+                  onClick={() => { setShowGearSheet(false); onSignOut(); }}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                >
+                  {t('startScreen.gearSignOut', 'Sign out')}
+                </button>
+              )}
+              <div className="pt-2 mt-1 border-t border-slate-700/60 px-3 text-xs">
+                <a href="https://www.match-ops.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-amber-400 transition-colors">match-ops.com</a>
               </div>
-            ) : (
-              // Desktop: Show sign in for existing subscribers + Play Store link for new users
-              <div className="mt-8 text-center text-sm">
-                <div className="text-slate-500 mb-2">
-                  {t('startScreen.usingLocalStorage', 'Using local storage')}
-                </div>
-                {onSignInExistingSubscriber && (
-                  <button
-                    type="button"
-                    onClick={onSignInExistingSubscriber}
-                    className="text-amber-400 hover:text-amber-300 transition-colors"
-                  >
-                    {t('startScreen.existingSubscriber', 'Already a subscriber? Sign in →')}
-                  </button>
-                )}
-                <div className="mt-3 text-slate-500 text-xs">
-                  <span>{t('startScreen.newToCloud', 'New here? Subscribe via the Android app.')}</span>
-                  <a
-                    href="https://play.google.com/store/apps/details?id=com.matchops.local"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-amber-400/80 hover:text-amber-300 ml-1"
-                  >
-                    {t('startScreen.getAndroidApp', 'Get on Google Play')}
-                  </a>
-                </div>
-              </div>
-            )
-          ) : null}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Setup tracker sheet (opened from the gear entry). Backdrop tap just
+          closes it; the card's × permanently dismisses (hides the gear entry). */}
+      {showSetupSheet && setupProgress && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60"
+          onClick={() => setShowSetupSheet(false)}
+          data-testid="setup-sheet-backdrop"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('recommendedSetup.title', 'Get the most out of MatchOps')}
+            className="w-full max-w-sm bg-slate-800 border border-slate-600 border-b-0 rounded-t-2xl p-4 pb-6 shadow-2xl max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 rounded-full bg-slate-600 mx-auto mb-3" aria-hidden="true" />
+            <RecommendedSetupCard
+              progress={setupProgress}
+              onDismiss={() => { handleDismissSetup(); setShowSetupSheet(false); }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  ModalFooter,
+  CollapsibleModalHeader,
+  useCollapsingHeader,
   primaryButtonStyle,
-  titleStyle,
   cardStyle,
   iconButtonBaseStyle,
   modalContainerStyle
@@ -70,6 +70,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   onOpenPlayerStats,
 }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   // Legacy props kept for backward compatibility
   void onRenamePlayer;
   void onSetJerseyNumber;
@@ -198,16 +199,15 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
         {/* Content wrapper */}
         <div className="relative z-10 flex flex-col min-h-0 flex-1">
-          {/* Header */}
-          <div className="flex flex-col">
-            {/* Title Section */}
-            <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-              <h2 className={`${titleStyle} drop-shadow-lg`}>{t('rosterSettingsModal.title', 'Manage Roster')}</h2>
-            </div>
-
-            {/* Fixed Section (Add Player Button) */}
+          {/* Modal-chrome slimming: X-header replaces the header + the
+              close-only footer; the Add Player button collapses on scroll. */}
+          <CollapsibleModalHeader
+            title={t('rosterSettingsModal.title', 'Manage Roster')}
+            onClose={onClose}
+            closeLabel={t('common.doneButton', 'Done')}
+            collapse={headerCollapse}
+          >
             <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-              {/* Add Player Button - Always visible */}
               <button
                 onClick={handleAddPlayer}
                 className={`${primaryButtonStyle} w-full`}
@@ -216,10 +216,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 {t('rosterSettingsModal.addPlayerButton', 'Add Player')}
               </button>
             </div>
-          </div>
+          </CollapsibleModalHeader>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-2 pb-6">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-2 pb-6" onScroll={headerCollapse.onScroll}>
             <div className="mt-0.5 mb-3 flex items-center gap-2">
               <input
                 type="text"
@@ -304,12 +304,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Footer */}
-          <ModalFooter>
-            <button onClick={onClose} className={primaryButtonStyle}>
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
 

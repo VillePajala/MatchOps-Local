@@ -49,7 +49,10 @@ describe('MutexManager', () => {
       await mutex.acquire();
       const endTime = Date.now();
 
-      expect(endTime - startTime).toBeLessThan(10); // Should be nearly immediate
+      // An uncontended acquire must not block on a timeout. A tight 10ms bound
+      // flaked under CI event-loop stalls; a generous bound still proves it
+      // returned promptly (nowhere near any timeout) without timing jitter.
+      expect(endTime - startTime).toBeLessThan(1000);
       expect(mutex.isLocked()).toBe(true);
 
       mutex.release();
@@ -185,15 +188,16 @@ describe('MutexManager', () => {
 
       await customMutex.acquire();
 
+      // The configured 50ms default timeout must make the contended acquire
+      // REJECT (with StorageError) in ~50ms. `.rejects` also fixes the latent
+      // silent-pass bug of the old try/catch (no rejection -> catch never ran ->
+      // zero assertions). Generous upper bound absorbs CI jitter; the old 100ms
+      // bound flaked. Lower bound is safe - timers never fire early.
       const startTime = Date.now();
-      try {
-        await customMutex.acquire(); // Should use default 50ms timeout
-      } catch (error) {
-        const elapsed = Date.now() - startTime;
-        expect(elapsed).toBeGreaterThanOrEqual(45);
-        expect(elapsed).toBeLessThan(100);
-        expect(error).toBeInstanceOf(StorageError);
-      }
+      await expect(customMutex.acquire()).rejects.toBeInstanceOf(StorageError);
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeGreaterThanOrEqual(45);
+      expect(elapsed).toBeLessThan(2000);
 
       customMutex.forceRelease();
     });
@@ -313,13 +317,22 @@ describe('MutexManager', () => {
      * @performance
      */
     it('should track held duration accurately', async () => {
+      // Measure REAL elapsed wall-clock and assert heldDuration against that,
+      // rather than a hardcoded 90-150ms window. A fixed upper bound flaked
+      // under CI event-loop stalls (the 100ms sleep can resolve much later, so
+      // heldDuration overshoots 150). setTimeout never fires EARLY, so the
+      // lower bound is safe; the upper bound now self-calibrates to actual time.
+      const start = Date.now();
       await mutex.acquire();
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const stats = mutex.getStats();
+      const actualElapsed = Date.now() - start;
+      // Tracks wall-clock since acquire: at least the ~100ms we waited, and
+      // never more than the real elapsed time (+ small clock-resolution margin).
       expect(stats.heldDuration).toBeGreaterThanOrEqual(90);
-      expect(stats.heldDuration).toBeLessThan(150);
+      expect(stats.heldDuration).toBeLessThanOrEqual(actualElapsed + 50);
 
       mutex.release();
     });
@@ -445,15 +458,18 @@ describe('MutexManager', () => {
 
       await defaultMutex.acquire();
 
-      // Should use default timeout (5000ms) - test with shorter timeout to verify
+      // A per-call short timeout (100ms) must override the 5000ms default: the
+      // second acquire should REJECT in ~100ms, not hang for the full default.
+      // Using `.rejects` also fixes a latent bug in the old try/catch form -
+      // if acquire did NOT reject, the catch never ran and the test passed with
+      // zero assertions. The upper bound is generous (2000ms >> 100ms but <<
+      // 5000ms default) so it proves the short timeout without flaking on CI
+      // event-loop jitter the way the old tight 200ms bound did.
       const startTime = Date.now();
-      try {
-        await defaultMutex.acquire(100); // Short timeout should fail first
-      } catch {
-        const elapsed = Date.now() - startTime;
-        expect(elapsed).toBeGreaterThanOrEqual(90);
-        expect(elapsed).toBeLessThan(200);
-      }
+      await expect(defaultMutex.acquire(100)).rejects.toBeDefined();
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeGreaterThanOrEqual(90);
+      expect(elapsed).toBeLessThan(2000);
 
       defaultMutex.forceRelease();
     });

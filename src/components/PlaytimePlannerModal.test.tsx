@@ -2,6 +2,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor, fireEvent, act, cleanup, within } from '@testing-library/react';
 import PlaytimePlannerModal from './PlaytimePlannerModal';
+import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import type { Player } from '@/types';
 
 // Interpolating t mock: resolves the default string and substitutes {{vars}}
@@ -178,7 +179,28 @@ const enterPlan = async (name: string | RegExp = /Saved Cup/) => {
   });
 };
 
+// Stepping back to the manager is now hardware-back only (the on-screen Back
+// button was removed in the chrome sweep). Flush the sentinel re-arm macrotask.
+const hardwareBack = async () => {
+  await act(async () => {
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  });
+};
+
 describe('PlaytimePlannerModal', () => {
+  // Deep-review F1: the planner registers on the hardware-back stack now;
+  // jsdom's REAL history.back() fires an ASYNC popstate that races the next
+  // test (same guard as ClubModalsHost.test / ModalManager.test).
+  let hwBackSpy: jest.SpyInstance;
+  beforeEach(() => {
+    __resetModalHardwareBackForTests();
+    hwBackSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    hwBackSpy.mockRestore();
+  });
+
   it('renders nothing when closed', () => {
     const { container } = render(<PlaytimePlannerModal isOpen={false} onClose={jest.fn()} />);
     expect(container).toBeEmptyDOMElement();
@@ -253,10 +275,8 @@ describe('PlaytimePlannerModal', () => {
     // Lands on the Games tab of the remembered plan - no manager row tap.
     await screen.findByLabelText('Game name');
     expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
-    // Back to the manager clears the resume key.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    });
+    // Hardware back to the manager clears the resume key.
+    await hardwareBack();
     expect(sessionStorage.getItem('matchops_planner_active_plan')).toBeNull();
   });
 
@@ -352,10 +372,8 @@ describe('PlaytimePlannerModal', () => {
     // Inside: the Games tab with the editable game-name header and the tabs.
     expect(screen.getByLabelText('Game name')).toHaveValue('Game 1');
     expect(screen.getByRole('tab', { name: 'Settings' })).toBeInTheDocument();
-    // Back returns to the manager.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    });
+    // Hardware back returns to the manager.
+    await hardwareBack();
     expect(screen.getAllByRole('button', { name: /Saved Cup/ }).length).toBeGreaterThan(0);
   });
 
@@ -662,7 +680,7 @@ describe('PlaytimePlannerModal', () => {
     expect(screen.getByLabelText('Game name')).toBeInTheDocument();
   });
 
-  it('suggests fair lineups behind a confirm, and undo restores the old state', async () => {
+  it('suggests fair lineups behind a confirm', async () => {
     // Plan has one game with an empty lineup; the generator fills it.
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
@@ -684,86 +702,12 @@ describe('PlaytimePlannerModal', () => {
       'Fair lineups suggested - check the balance view.',
       'success',
     );
-
-    // Generated overwrite is one undo away - undo lives on the Games tab.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('tab', { name: 'Games' }));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    });
-    await openPlanTab();
-    expect(screen.getByText(/0\/\d+ placed/)).toBeInTheDocument();
   });
 
-  it('does NOT coalesce renames of two different games into one undo step', async () => {
-    const twoGamePlan = {
-      ...existingPlan,
-      games: [existingPlan.games[0], { ...existingPlan.games[0], id: 'g2', label: 'Game 2' }],
-    };
-    mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
-    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await enterPlan();
-    await screen.findByLabelText('Game name');
-
-    await act(async () => {
-      fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final A' } });
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /^G2 .*Game 2$/ }));
-    });
-    await act(async () => {
-      fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final B' } });
-    });
-
-    // One undo reverts ONLY the second rename (different coalesce keys).
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    });
-    expect(screen.getByLabelText('Game name')).toHaveValue('Game 2');
-    expect(screen.getByRole('button', { name: /^G1 .*Final A$/ })).toBeInTheDocument();
-  });
-
-  it('undo reverts the last edit and redo restores it', async () => {
-    mockGetPlans.mockResolvedValue({ existing: existingPlan });
-    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await enterPlan();
-    await screen.findByLabelText('Game name');
-
-    await act(async () => {
-      fireEvent.change(screen.getByLabelText('Game name'), { target: { value: 'Final' } });
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    });
-    expect(screen.getByLabelText('Game name')).toHaveValue('Game 1');
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
-    });
-    expect(screen.getByLabelText('Game name')).toHaveValue('Final');
-  });
-
-  it('coalesces consecutive keystrokes into ONE undo step', async () => {
-    mockGetPlans.mockResolvedValue({ existing: existingPlan });
-    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await enterPlan();
-
-    // Three keystrokes of a game rename in the header...
-    const nameInput = await screen.findByLabelText('Game name');
-    for (const v of ['Game 1 A', 'Game 1 AB', 'Game 1 ABC']) {
-      await act(async () => {
-        fireEvent.change(nameInput, { target: { value: v } });
-      });
-    }
-    expect(screen.getByDisplayValue('Game 1 ABC')).toBeInTheDocument();
-    // ...revert with a SINGLE undo (not one per keystroke).
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-    });
-    expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-  });
+  // NOTE: the undo/redo buttons were removed from the planner (owner: not
+  // needed, and the chrome row was reclaimed). The former undo/redo coverage
+  // (edit revert/redo, keystroke coalescing, cross-plan isolation) was deleted
+  // with the feature.
 
   it('swiping ON the game-tab strip does not ALSO flip via the swipe handler', async () => {
     const threeGamePlan = {
@@ -787,15 +731,6 @@ describe('PlaytimePlannerModal', () => {
       fireEvent.touchEnd(tabs, { changedTouches: [{ clientX: 100, clientY: 100 }] });
     });
     expect(screen.getByDisplayValue('Game 1')).toBeInTheDocument();
-  });
-
-  it('undo is disabled on a freshly opened plan (history never crosses plans)', async () => {
-    mockGetPlans.mockResolvedValue({ existing: existingPlan });
-    render(<PlaytimePlannerModal isOpen onClose={jest.fn()} />);
-    await enterPlan();
-    await screen.findByLabelText('Game name');
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Redo' })).toBeDisabled();
   });
 
   it('overview roster checkboxes add instantly and route impacted removals through the confirm', async () => {
@@ -1594,10 +1529,8 @@ describe('PlaytimePlannerModal', () => {
     await act(async () => {
       fireEvent.change(nameInput, { target: { value: 'Edited Cup' } });
     });
-    // Back to the manager flushes the pending edit before anything reloads.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    });
+    // Hardware back to the manager flushes the pending edit before anything reloads.
+    await hardwareBack();
     await waitFor(() => expect(mockSavePlan).toHaveBeenCalled());
     expect(mockSavePlan.mock.calls[mockSavePlan.mock.calls.length - 1][0].name).toBe('Edited Cup');
     await enterPlan(/Plan B/);

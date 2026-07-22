@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 
@@ -76,12 +76,12 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col min-h-0 h-full">
-          {/* Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-              {t('rulesDirectory.title', 'Säännöt')}
-            </h2>
-          </div>
+          {/* Chrome slimming: X-header replaces the header + close-only footer. */}
+          <CollapsibleModalHeader
+            title={t('rulesDirectory.title', 'Säännöt')}
+            onClose={onClose}
+            closeLabel={t('common.doneButton', 'Done')}
+          />
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
@@ -114,12 +114,6 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
             </div>
           </div>
 
-          {/* Footer */}
-          <ModalFooter>
-            <button onClick={onClose} className={primaryButtonStyle}>
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
       </div>
     </div>

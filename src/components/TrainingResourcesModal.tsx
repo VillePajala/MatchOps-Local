@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle, secondaryButtonStyle, CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useWarmupPlan } from '@/hooks/useWarmupPlan';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
@@ -14,6 +14,7 @@ interface TrainingResourcesModalProps {
 
 const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const { plan, isLoading, savePlan, resetToDefault, isSaving, isResetting } = useWarmupPlan();
   const [isEditMode, setIsEditMode] = useState(false);
   const [editedPlan, setEditedPlan] = useState<WarmupPlan | null>(null);
@@ -179,15 +180,52 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         <div className="relative z-10 flex flex-col min-h-0 h-full">
-          {/* Header */}
-          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-              {t('controlBar.training', 'Warmup Plan')}
-            </h2>
-          </div>
+          {/* Chrome slimming: X-header. The action buttons live in one row
+              inside the collapse region and fold away on scroll. The X
+              absorbs Done (view) / Cancel (edit). */}
+          <CollapsibleModalHeader
+            title={t('warmupPlanModal.title', 'Warmup')}
+            onClose={isEditMode ? cancelEditing : onClose}
+            closeLabel={isEditMode ? t('warmupPlanModal.cancelButton', 'Cancel') : t('common.doneButton', 'Done')}
+            collapse={headerCollapse}
+          >
+            {/* House header buttons: full-width, stretching across the row -
+                alone (Edit) or split evenly with a sibling (Reset + Save). */}
+            <div className="px-6 pt-1 pb-3 flex gap-2">
+              {isEditMode ? (
+                <>
+                  <button
+                    onClick={() => setShowResetConfirm(true)}
+                    disabled={isResetting}
+                    className={`${secondaryButtonStyle} flex-1 flex items-center justify-center gap-2 disabled:opacity-50`}
+                  >
+                    <FaUndo className="w-3 h-3" />
+                    {t('warmupPlanModal.resetToDefaultButton', 'Reset to Default')}
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className={`${primaryButtonStyle} flex-1 disabled:opacity-50`}
+                  >
+                    {isSaving
+                      ? t('common.saving', 'Saving...')
+                      : t('warmupPlanModal.saveButton', 'Save')}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={startEditing}
+                  className={`${secondaryButtonStyle} flex-1 flex items-center justify-center gap-2`}
+                >
+                  <FaPen className="w-3 h-3" />
+                  {t('warmupPlanModal.editButton', 'Edit')}
+                </button>
+              )}
+            </div>
+          </CollapsibleModalHeader>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
             {isLoading ? (
               <div className="flex items-center justify-center h-32 text-slate-400">
                 {t('common.loading', 'Loading...')}
@@ -212,50 +250,6 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
             ) : null}
           </div>
 
-          {/* Footer */}
-          {/* Custom footer with responsive wrapping for edit mode (3 buttons) */}
-          <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex flex-wrap justify-end items-center gap-2 sm:gap-4 flex-shrink-0">
-            {isEditMode ? (
-              <>
-                <button
-                  onClick={() => setShowResetConfirm(true)}
-                  disabled={isResetting}
-                  className={`${secondaryButtonStyle} flex items-center gap-2 disabled:opacity-50 text-xs sm:text-sm px-3 sm:px-6`}
-                >
-                  <FaUndo className="w-3 h-3" />
-                  {t('warmupPlanModal.resetToDefaultButton', 'Reset to Default')}
-                </button>
-                <button
-                  onClick={cancelEditing}
-                  className={`${secondaryButtonStyle} text-xs sm:text-sm px-3 sm:px-6`}
-                >
-                  {t('warmupPlanModal.cancelButton', 'Cancel')}
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className={`${primaryButtonStyle} disabled:opacity-50 text-xs sm:text-sm px-3 sm:px-6`}
-                >
-                  {isSaving
-                    ? t('common.saving', 'Saving...')
-                    : t('warmupPlanModal.saveButton', 'Save')}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={startEditing}
-                  className={`${secondaryButtonStyle} flex items-center gap-2`}
-                >
-                  <FaPen className="w-3 h-3" />
-                  {t('warmupPlanModal.editButton', 'Edit')}
-                </button>
-                <button onClick={onClose} className={primaryButtonStyle}>
-                  {t('common.doneButton', 'Done')}
-                </button>
-              </>
-            )}
-          </div>
         </div>
 
         {/* Reset Confirmation Dialog */}

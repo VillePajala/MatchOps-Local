@@ -7,8 +7,11 @@ import type { GameCompleteness, CountCheck } from '@/utils/gameCompleteness';
 
 interface GameWrapUpCardProps {
   completeness: GameCompleteness;
-  /** Routes the settings-backed rows (report, positions, competition/team). */
-  onOpenSettings?: () => void;
+  /** Routes the settings-backed rows to GAME settings (Ottelun tiedot),
+   *  scrolled to the row's own section (W6 + R3). */
+  onOpenSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  /** Routes the assessments row to the player-assessment editor. */
+  onOpenAssessments?: () => void;
 }
 
 type RowStatus = 'done' | 'todo';
@@ -21,7 +24,7 @@ const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.to
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenAssessments }) => {
   const { t } = useTranslation();
 
   interface Row {
@@ -34,32 +37,33 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
 
   const rows: Row[] = [];
   if (!completeness.roster) {
-    rows.push({ key: 'roster', label: t('gameStatsModal.wrapUpRoster', 'Squad selected'), status: 'todo', onClick: onOpenSettings });
+    rows.push({ key: 'roster', label: t('gameStatsModal.wrapUpRoster', 'Squad selected'), status: 'todo', onClick: onOpenSettings && (() => onOpenSettings('roster')) });
   }
   rows.push({
     key: 'report',
     label: t('gameStatsModal.wrapUpReport', 'Match report'),
     status: completeness.report ? 'done' : 'todo',
-    onClick: onOpenSettings,
+    onClick: onOpenSettings && (() => onOpenSettings('report')),
   });
   rows.push({
     key: 'positions',
     label: t('gameStatsModal.wrapUpPositions', 'Positions played'),
     status: countStatus(completeness.positions),
     count: completeness.positions,
-    onClick: onOpenSettings,
+    onClick: onOpenSettings && (() => onOpenSettings('positions')),
   });
   rows.push({
     key: 'assessments',
     label: t('gameStatsModal.wrapUpAssessments', 'Player assessments'),
     status: countStatus(completeness.assessments),
     count: completeness.assessments,
+    onClick: onOpenAssessments,
   });
   rows.push({
     key: 'competition',
     label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
     status: completeness.competition && completeness.team ? 'done' : 'todo',
-    onClick: onOpenSettings,
+    onClick: onOpenSettings && (() => onOpenSettings('competition')),
   });
 
   const done = completeness.coreComplete;

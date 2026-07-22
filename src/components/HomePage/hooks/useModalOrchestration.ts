@@ -21,7 +21,7 @@
  * @category HomePage Hooks
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useModalContext } from '@/contexts/ModalProvider';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
 import type { UseGameDataManagementReturn } from './useGameDataManagement';
@@ -60,35 +60,15 @@ export interface ModalUIState {
   currentGameId: string | null;
   canReapplyPlan: boolean;
   playerAssessments: Record<string, PlayerAssessment>;
-  selectedPlayerForStats: Player | null;
-  setSelectedPlayerForStats: (player: Player | null) => void;
-  playerIdsForNewGame: string[] | null;
-  newGameDemandFactor: number;
-  setNewGameDemandFactor: (factor: number) => void;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
-  appLanguage: string;
-  setAppLanguage: (language: string) => void;
-  defaultTeamNameSetting: string;
-  setDefaultTeamNameSetting: (name: string) => void;
-  gameIdentifierForSave: string;
   isPlayed: boolean;
   setIsPlayed: (played: boolean) => void;
-  isRosterUpdating: boolean;
-  rosterError: string | null;
-  isLoadingGamesList: boolean;
-  loadGamesListError: string | null;
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, UpdateGameDetailsMutationVariables, unknown>;
   isTeamReassignModalOpen: boolean;
   setIsTeamReassignModalOpen: (open: boolean) => void;
-  setSelectedTeamForRoster: (teamId: string | null) => void;
-  showSaveBeforeNewConfirm: boolean;
-  showHardResetConfirm: boolean;
-  setShowHardResetConfirm: (open: boolean) => void;
   showNoPlayersConfirm: boolean;
   setShowNoPlayersConfirm: (open: boolean) => void;
-  showStartNewConfirm: boolean;
-  setShowStartNewConfirm: (open: boolean) => void;
 }
 
 /**
@@ -97,43 +77,9 @@ export interface ModalUIState {
 export interface ModalHandlers {
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
   handleExportOneExcel: (gameId: string) => void;
-  handleExportAggregateExcel: (gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => void;
-  handleExportPlayerExcel: (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => Promise<void>;
-  handleGameLogClick: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
-  handleStartNewGameWithSetup: (
-    initialSelectedPlayerIds: string[],
-    homeTeamName: string,
-    opponentName: string,
-    gameDate: string,
-    gameLocation: string,
-    gameTime: string,
-    seasonId: string | null,
-    tournamentId: string | null,
-    numPeriods: 1 | 2,
-    periodDuration: number,
-    homeOrAway: 'home' | 'away',
-    demandFactor: number,
-    ageGroup: string,
-    tournamentLevel: string,
-    tournamentSeriesId: string | null,
-    isPlayedParam: boolean,
-    teamId: string | null,
-    availablePlayersForGame: Player[],
-    selectedPersonnelIds: string[],
-    leagueId: string,
-    customLeagueName: string,
-    gameType: import('@/types').GameType,
-    gender: import('@/types').Gender | undefined
-  ) => void;
-  handleCancelNewGameSetup: () => void;
-  handleUpdatePlayerForModal: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
-  handleRenamePlayerForModal: (playerId: string, playerData: { name: string; nickname?: string }) => void;
-  handleSetJerseyNumberForModal: (playerId: string, jerseyNumber: string) => void;
-  handleSetPlayerNotesForModal: (playerId: string, notes: string) => void;
-  handleRemovePlayerForModal: (playerId: string) => void;
-  handleAddPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
-  handleOpenPlayerStats: (playerId: string) => void;
+  // New-game handlers LIFTED to useNewGameSetupController (L.3b).
+  // Roster modal handlers LIFTED to useRosterSettingsController (L.2).
   handleTeamNameChange: (name: string) => void;
   handleOpponentNameChange: (name: string) => void;
   handleGameDateChange: (date: string) => void;
@@ -160,24 +106,14 @@ export interface ModalHandlers {
   handleSetShootoutKicks: (kicks: ShootoutKick[]) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
+  /** 3.2 roster bridge: club write from the game picker; returns the saved player. */
+  handleAddPlayerToClubRoster: (name: string, nickname?: string) => Promise<import('@/types').Player | null>;
   handleReapplyPlan: () => void | Promise<void>;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
-  handleShowAppGuide: () => void;
-  handleHardResetApp: () => void;
-  handleResyncFromCloud: () => void;
-  handleFactoryReset: () => void;
   handleSavePlayerAssessment: (playerId: string, assessment: Partial<import('@/types').PlayerAssessment>) => void;
   handleDeletePlayerAssessment: (playerId: string) => void;
   handleTeamReassignment: (teamId: string | null) => void;
-  handleCreateBackup: () => void;
-  handleCloudDataDownload: () => Promise<void>;
-  onDataImportSuccess?: () => void;
-  handleManageTeamRosterFromNewGame: (teamId?: string) => void;
   handleNoPlayersConfirmed: () => void;
-  handleHardResetConfirmed: () => Promise<void>;
-  handleSaveBeforeNewConfirmed: () => void;
-  handleSaveBeforeNewCancelled: () => void;
-  handleStartNewConfirmed: () => void;
 }
 
 /**
@@ -204,12 +140,6 @@ export interface UseModalOrchestrationReturn {
   modalManagerProps: ModalManagerProps;
 
   // Modal state and setters for control bar handlers
-  isInstructionsModalOpen: boolean;
-  setIsInstructionsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  isPersonnelManagerOpen: boolean;
-  setIsPersonnelManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  isTeamManagerOpen: boolean;
-  setIsTeamManagerOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 /**
@@ -240,54 +170,22 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     currentGameId,
     canReapplyPlan,
     playerAssessments,
-    selectedPlayerForStats,
-    // setSelectedPlayerForStats not used locally - passed through to modalManagerProps
-    playerIdsForNewGame,
-    newGameDemandFactor,
-    setNewGameDemandFactor,
     availableTeams,
     orphanedGameInfo,
-    appLanguage,
-    setAppLanguage,
-    defaultTeamNameSetting,
-    setDefaultTeamNameSetting,
-    gameIdentifierForSave,
     isPlayed,
     setIsPlayed,
-    isRosterUpdating,
-    rosterError,
-    isLoadingGamesList,
-    loadGamesListError,
     updateGameDetailsMutation,
     isTeamReassignModalOpen,
     setIsTeamReassignModalOpen,
-    setSelectedTeamForRoster,
-    showSaveBeforeNewConfirm,
-    showHardResetConfirm,
-    setShowHardResetConfirm,
     showNoPlayersConfirm,
     setShowNoPlayersConfirm,
-    showStartNewConfirm,
-    setShowStartNewConfirm,
   } = ui;
 
   // Destructure handlers
   const {
     handleUpdateGameEvent,
     handleExportOneExcel,
-    handleExportAggregateExcel,
-    handleExportPlayerExcel,
-    handleGameLogClick,
     handleExportOneJson,
-    handleStartNewGameWithSetup,
-    handleCancelNewGameSetup,
-    handleUpdatePlayerForModal,
-    handleRenamePlayerForModal,
-    handleSetJerseyNumberForModal,
-    handleSetPlayerNotesForModal,
-    handleRemovePlayerForModal,
-    handleAddPlayerForModal,
-    handleOpenPlayerStats,
     handleTeamNameChange,
     handleOpponentNameChange,
     handleGameDateChange,
@@ -314,106 +212,63 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetShootoutKicks,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
+    handleAddPlayerToClubRoster,
     handleReapplyPlan,
     handleSetGamePersonnel,
-    handleShowAppGuide,
-    handleHardResetApp,
-    handleResyncFromCloud,
-    handleFactoryReset,
     handleSavePlayerAssessment,
     handleDeletePlayerAssessment,
     handleTeamReassignment,
-    handleCreateBackup,
-    handleCloudDataDownload,
-    onDataImportSuccess,
-    handleManageTeamRosterFromNewGame,
     handleNoPlayersConfirmed,
-    handleHardResetConfirmed,
-    handleSaveBeforeNewConfirmed,
-    handleSaveBeforeNewCancelled,
-    handleStartNewConfirmed,
   } = handlers;
 
   // --- Modal State from Context ---
   const {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
-    isLoadGameModalOpen,
-    setIsLoadGameModalOpen,
-    isRosterModalOpen,
-    setIsRosterModalOpen,
-    isSeasonTournamentModalOpen,
-    setIsSeasonTournamentModalOpen,
-    isTrainingResourcesOpen,
-    setIsTrainingResourcesOpen,
-    isRulesDirectoryOpen,
-    setIsRulesDirectoryOpen,
+    // isLoadGameModalOpen lifted to ClubModalsHost (L.3a)
+    // isRosterModalOpen lifted to ClubModalsHost (L.2)
+    // isSeasonTournamentModalOpen lifted to ClubModalsHost (L.1)
     isGoalLogModalOpen,
     // setIsGoalLogModalOpen not used - modal controlled by timer management
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
-    isNewGameSetupModalOpen,
-    // setIsNewGameSetupModalOpen not used - modal controlled by game orchestration
-    isSettingsModalOpen,
+    // isSettingsModalOpen/settingsInitialTab not needed - SettingsModal renders
+    // in ClubModalsHost (L.0b); the setter stays for openSettingsModal below.
     setIsSettingsModalOpen,
-    settingsInitialTab,
+    // L.2: set by the lifted roster modal's stats shortcut; read by GameStats.
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
 
+  // R3: which wrap-up section GameSettings should open scrolled to (cleared
+  // when the modal closes so a plain open starts at the top).
+  const [gameSettingsInitialSection, setGameSettingsInitialSection] = useState<
+    'roster' | 'report' | 'positions' | 'competition' | undefined
+  >(undefined);
+
   // --- Local Modal State ---
-  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
-  const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState(false);
-  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState(false);
+  // isInstructionsModalOpen LIFTED to ModalProvider (L.0b) - the modal renders
+  // in ClubModalsHost and Settings' "show app guide" chain drives it from there.
+  // isPersonnelManagerOpen LIFTED to ModalProvider (L.1) - renders in ClubModalsHost.
+  // isTeamManagerOpen LIFTED to ModalProvider (L.2) - renders in ClubModalsHost.
 
   // showNoPlayersConfirm, showStartNewConfirm: Passed from useGameOrchestration via ui
-  // showHardResetConfirm, showSaveBeforeNewConfirm: Passed from useGameOrchestration via ui
+  // showSaveBeforeNewConfirm: Passed from useGameOrchestration via ui
 
   // --- Modal Handlers ---
-
-  const handleToggleTrainingResources = useCallback(() => {
-    setIsTrainingResourcesOpen((prev) => !prev);
-  }, [setIsTrainingResourcesOpen]);
-
-  const handleToggleRulesDirectory = useCallback(() => {
-    setIsRulesDirectoryOpen((prev) => !prev);
-  }, [setIsRulesDirectoryOpen]);
-
-  const handleToggleInstructionsModal = useCallback(() => {
-    setIsInstructionsModalOpen((prev) => !prev);
-  }, []);
-
-  const handleCloseTeamManagerModal = useCallback(() => {
-    setIsTeamManagerOpen(false);
-  }, []);
 
   const handleToggleGameStatsModal = useCallback(() => {
     setIsGameStatsModalOpen((prev) => !prev);
   }, [setIsGameStatsModalOpen]);
 
-  const handleCloseLoadGameModal = useCallback(() => {
-    setIsLoadGameModalOpen(false);
-  }, [setIsLoadGameModalOpen]);
-
-  const handleCloseSeasonTournamentModal = useCallback(() => {
-    setIsSeasonTournamentModalOpen(false);
-  }, [setIsSeasonTournamentModalOpen]);
-
   const handleCloseGameSettingsModal = useCallback(() => {
     setIsGameSettingsModalOpen(false);
+    setGameSettingsInitialSection(undefined);
   }, [setIsGameSettingsModalOpen]);
 
   const handleOpenSettingsModal = useCallback(() => {
     setIsSettingsModalOpen(true);
   }, [setIsSettingsModalOpen]);
-
-  const handleCloseSettingsModal = useCallback(() => {
-    setIsSettingsModalOpen(false);
-  }, [setIsSettingsModalOpen]);
-
-  const closeRosterModal = useCallback(() => {
-    setIsRosterModalOpen(false);
-  }, [setIsRosterModalOpen]);
 
   const closePlayerAssessmentModal = useCallback(() => {
     setIsPlayerAssessmentModalOpen(false);
@@ -500,26 +355,13 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
 
   const modalManagerProps: ModalManagerProps = {
     state: {
-      isTrainingResourcesOpen,
-      isRulesDirectoryOpen,
-      isInstructionsModalOpen,
-      isPersonnelManagerOpen,
-      isTeamManagerOpen,
       isGoalLogModalOpen,
       isGameStatsModalOpen,
-      isLoadGameModalOpen,
-      isNewGameSetupModalOpen,
-      isRosterModalOpen,
-      isSeasonTournamentModalOpen,
       isGameSettingsModalOpen,
-      isSettingsModalOpen,
-      settingsInitialTab,
+      gameSettingsInitialSection,
       isPlayerAssessmentModalOpen,
       isTeamReassignModalOpen,
       showNoPlayersConfirm,
-      showHardResetConfirm,
-      showSaveBeforeNewConfirm,
-      showStartNewConfirm,
       showResetFieldConfirm: fieldCoordination.showResetFieldConfirm,
     },
     data: {
@@ -534,49 +376,13 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       tournaments: gameDataManagement.tournaments,
       masterRoster: gameDataManagement.masterRoster,
       personnel: gameDataManagement.personnel,
-      personnelManager: {
-        addPersonnel: gameDataManagement.personnelManager.addPersonnel,
-        updatePersonnel: gameDataManagement.personnelManager.updatePersonnel,
-        removePersonnel: gameDataManagement.personnelManager.removePersonnel,
-        isLoading: gameDataManagement.personnelManager.isLoading,
-      },
       playerAssessments,
-      selectedPlayerForStats,
-      playerIdsForNewGame,
-      newGameDemandFactor,
       availableTeams,
       orphanedGameInfo,
-      appLanguage,
-      defaultTeamNameSetting,
-      gameIdentifierForSave,
       isPlayed,
-      isRosterUpdating,
-      rosterError,
-      loadGameState: {
-        isLoadingGamesList,
-        loadGamesListError,
-        isGameLoading: persistence.isGameLoading,
-        gameLoadError: persistence.gameLoadError,
-        isGameDeleting: persistence.isGameDeleting,
-        gameDeleteError: persistence.gameDeleteError,
-        processingGameId: persistence.processingGameId,
-      },
-      seasonTournamentMutations: {
-        addSeason: gameDataManagement.mutationResults.addSeason,
-        addTournament: gameDataManagement.mutationResults.addTournament,
-        updateSeason: gameDataManagement.mutationResults.updateSeason,
-        deleteSeason: gameDataManagement.mutationResults.deleteSeason,
-        updateTournament: gameDataManagement.mutationResults.updateTournament,
-        deleteTournament: gameDataManagement.mutationResults.deleteTournament,
-      },
       updateGameDetailsMutation,
     },
     handlers: {
-      toggleTrainingResources: handleToggleTrainingResources,
-      toggleRulesDirectory: handleToggleRulesDirectory,
-      toggleInstructionsModal: handleToggleInstructionsModal,
-      closePersonnelManager: () => setIsPersonnelManagerOpen(false),
-      closeTeamManagerModal: handleCloseTeamManagerModal,
       toggleGoalLogModal: timerManagement.handleToggleGoalLogModal,
       addGoalEvent: timerManagement.handleAddGoalEvent,
       logOpponentGoal: timerManagement.handleLogOpponentGoal,
@@ -585,26 +391,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       deleteGameEvent: persistence.handleDeleteGameEvent,
       toggleGameStatsModal: handleToggleGameStatsModal,
       exportOneExcel: handleExportOneExcel,
-      exportAggregateExcel: handleExportAggregateExcel,
-      exportPlayerExcel: handleExportPlayerExcel,
-      gameLogClick: handleGameLogClick,
-      closeLoadGameModal: handleCloseLoadGameModal,
-      loadGame: persistence.handleLoadGame,
-      deleteGame: persistence.handleDeleteGame,
       exportOneJson: handleExportOneJson,
-      setSelectedTeamForRoster,
-      setNewGameDemandFactor,
-      startNewGameWithSetup: handleStartNewGameWithSetup,
-      cancelNewGameSetup: handleCancelNewGameSetup,
-      closeRosterModal,
-      updatePlayerForModal: handleUpdatePlayerForModal,
-      renamePlayerForModal: handleRenamePlayerForModal,
-      setJerseyNumberForModal: handleSetJerseyNumberForModal,
-      setPlayerNotesForModal: handleSetPlayerNotesForModal,
-      removePlayerForModal: handleRemovePlayerForModal,
-      addPlayerForModal: handleAddPlayerForModal,
-      openPlayerStats: handleOpenPlayerStats,
-      closeSeasonTournamentModal: handleCloseSeasonTournamentModal,
       closeGameSettingsModal: handleCloseGameSettingsModal,
       teamNameChange: handleTeamNameChange,
       opponentNameChange: handleOpponentNameChange,
@@ -633,15 +420,9 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
+      addPlayerToClubRoster: handleAddPlayerToClubRoster,
       reapplyPlan: handleReapplyPlan,
       setGamePersonnel: handleSetGamePersonnel,
-      closeSettingsModal: handleCloseSettingsModal,
-      setAppLanguage,
-      setDefaultTeamName: setDefaultTeamNameSetting,
-      showAppGuide: handleShowAppGuide,
-      hardResetApp: handleHardResetApp,
-      resyncFromCloud: handleResyncFromCloud,
-      factoryReset: handleFactoryReset,
       closePlayerAssessmentModal,
       savePlayerAssessment: handleSavePlayerAssessment,
       deletePlayerAssessment: handleDeletePlayerAssessment,
@@ -649,30 +430,25 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setIsTeamReassignModalOpen,
       confirmNoPlayers: handleNoPlayersConfirmed,
       setShowNoPlayersConfirm,
-      confirmHardReset: handleHardResetConfirmed,
-      setShowHardResetConfirm,
-      saveBeforeNewConfirmed: handleSaveBeforeNewConfirmed,
-      saveBeforeNewCancelled: handleSaveBeforeNewCancelled,
-      setShowStartNewConfirm,
-      startNewConfirmed: handleStartNewConfirmed,
       setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
       openSettingsModal: handleOpenSettingsModal,
-      onCreateBackup: handleCreateBackup,
-      onCloudDataDownload: handleCloudDataDownload,
-      onDataImportSuccess,
-      manageTeamRosterFromNewGame: handleManageTeamRosterFromNewGame,
+      // W6 + R3: leave the stats modal and land where the item is
+      // completed, scrolled to its section.
+      wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => {
+        setGameSettingsInitialSection(section);
+        setIsGameStatsModalOpen(false);
+        setIsGameSettingsModalOpen(true);
+      },
+      wrapUpToAssessments: () => {
+        setIsGameStatsModalOpen(false);
+        setIsPlayerAssessmentModalOpen(true);
+      },
     },
   };
 
   return {
     modalManagerProps,
-    isInstructionsModalOpen,
-    setIsInstructionsModalOpen,
-    isPersonnelManagerOpen,
-    setIsPersonnelManagerOpen,
-    isTeamManagerOpen,
-    setIsTeamManagerOpen,
     // handleToggleGameStatsModal, handleToggleInstructionsModal, handleOpenSettingsModal
     // removed - these are no longer needed as useGameOrchestration uses inline functions for controlBarProps
   };

@@ -20,7 +20,7 @@ import {
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 
 /**
@@ -46,13 +46,6 @@ export interface LoadGameModalProps {
   onExportOneJson: (gameId: string) => void;
   onExportOneExcel: (gameId: string) => void;
   currentGameId?: string;
-  /**
-   * Optional live score override for the currently loaded game.
-   * This ensures the current game's card reflects unsaved in-memory score
-   * while autosave is paused for open modals.
-   */
-  currentSessionHomeScore?: number;
-  currentSessionAwayScore?: number;
 
   isLoadingGamesList?: boolean;
   loadGamesListError?: string | null;
@@ -80,8 +73,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   onExportOneJson,
   onExportOneExcel,
   currentGameId,
-  currentSessionHomeScore,
-  currentSessionAwayScore,
   isLoadingGamesList = false,
   loadGamesListError = null,
   isGameLoading = false,
@@ -389,13 +380,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const isLoadActionActive = isGameLoading && isProcessingThisGame;
             const disableActions = isGameLoading || isGameDeleting || isGamesImporting;
 
-            // Score display: use live session score for the current game if provided
-            const displayHomeScore = isCurrent && typeof currentSessionHomeScore === 'number'
-              ? currentSessionHomeScore
-              : (game.homeScore ?? 0);
-            const displayAwayScore = isCurrent && typeof currentSessionAwayScore === 'number'
-              ? currentSessionAwayScore
-              : (game.awayScore ?? 0);
+            // Score display comes from the SAVED game. The old live-session
+            // override was retired with the L.3a lift (the modal renders at
+            // page level with no session in scope): mid-match the current
+            // game's row may trail the live score by one autosave debounce -
+            // an accepted, documented trade-off.
+            const displayHomeScore = game.homeScore ?? 0;
+            const displayAwayScore = game.awayScore ?? 0;
 
             // Calculate score display color using display scores
             // Determine win/loss/draw state via the shared resolver (shootout-aware),
@@ -649,13 +640,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
-        {/* Header */}
-        <div className="flex flex-col">
-          {/* Title Section */}
-          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">{t('loadGameModal.title', 'Load Game')}</h2>
-          </div>
-        </div>
+        {/* Modal-chrome slimming: X-header replaces the header + the
+            close-only footer. Filter/checkbox stay in the scroll body. */}
+        <CollapsibleModalHeader
+          title={t('loadGameModal.title', 'Load Game')}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+        />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-4 pb-6">
@@ -663,25 +654,23 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           <div className="relative mb-4">
             <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
           </div>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
-                checked={showUnplayedOnly}
-                onChange={(e) => setShowUnplayedOnly(e.target.checked)}
-                className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-              />
+          <div className="mb-4">
+            {/* Filter toggle button - matches the "Show archived" toggles in
+                the Team/Season managers (aria-pressed, indigo when active). */}
+            <button
+              type="button"
+              onClick={() => setShowUnplayedOnly(v => !v)}
+              aria-pressed={showUnplayedOnly}
+              className={`w-full px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                showUnplayedOnly ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
               {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}
-            </label>
+            </button>
           </div>
 
           {mainContent}
         </div>
-        <ModalFooter>
-          <button onClick={onClose} className={primaryButtonStyle}>
-            {t('common.doneButton', 'Done')}
-          </button>
-        </ModalFooter>
       </div>
 
       {/* Confirmation Modal */}

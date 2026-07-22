@@ -24,30 +24,14 @@
  * // Access data
  * <RosterModal roster={dataManager.masterRoster} />
  *
- * // Perform mutations via mutationResults
- * await dataManager.mutationResults.addSeason.mutateAsync({ name: 'Spring 2024' });
- * await dataManager.mutationResults.updateTournament.mutateAsync(tournament);
  * ```
  */
 
 import { useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
-import { queryKeys } from '@/config/queryKeys';
-import { useDataStore } from '@/hooks/useDataStore';
-import {
-  addSeason as utilAddSeason,
-  updateSeason as utilUpdateSeason,
-  deleteSeason as utilDeleteSeason,
-} from '@/utils/seasons';
-import {
-  addTournament as utilAddTournament,
-  updateTournament as utilUpdateTournament,
-  deleteTournament as utilDeleteTournament,
-} from '@/utils/tournaments';
 import type {
   Player,
   Season,
@@ -116,15 +100,8 @@ export interface UseGameDataManagementReturn {
   /** Error from any failed query */
   error: Error | null;
 
-  /** Mutation result objects for season and tournament CRUD operations */
-  mutationResults: {
-    addSeason: import('@tanstack/react-query').UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
-    updateSeason: import('@tanstack/react-query').UseMutationResult<Season | null, Error, Season, unknown>;
-    deleteSeason: import('@tanstack/react-query').UseMutationResult<boolean, Error, string, unknown>;
-    addTournament: import('@tanstack/react-query').UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
-    updateTournament: import('@tanstack/react-query').UseMutationResult<Tournament | null, Error, Tournament, unknown>;
-    deleteTournament: import('@tanstack/react-query').UseMutationResult<boolean, Error, string, unknown>;
-  };
+  // Season/tournament CRUD mutations LIFTED to useSeasonTournamentManagement
+  // (L.1) - SeasonTournamentManagementModal was their only consumer.
 }
 
 /**
@@ -139,8 +116,6 @@ export function useGameDataManagement(
   const { currentGameId, setAvailablePlayers, setSeasons, setTournaments } = params;
 
   // --- Initialize React Query client and user-scoped storage ---
-  const queryClient = useQueryClient();
-  const { userId } = useDataStore();
 
   // --- Load game data via hooks ---
   const {
@@ -171,81 +146,6 @@ export function useGameDataManagement(
   const masterRosterQueryErrorData = gameDataError;
   const seasonsQueryErrorData = gameDataError;
   const tournamentsQueryErrorData = gameDataError;
-
-  // --- Mutations for Adding a new Season (user-scoped) ---
-  const addSeasonMutation = useMutation<
-    Season | null,
-    Error,
-    Partial<Season> & { name: string }
-  >({
-    mutationFn: async (data) => {
-      const { name, ...extra } = data;
-      return utilAddSeason(name, extra, userId);
-    },
-    onSuccess: (newSeason, variables) => {
-      if (newSeason) {
-        logger.log('[Mutation Success] Season added:', newSeason.name, newSeason.id);
-        queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
-      } else {
-        logger.warn('[Mutation Non-Success] utilAddSeason returned null for season:', variables.name);
-      }
-    },
-    onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add season ${variables.name}:`, error);
-    },
-  });
-
-  const updateSeasonMutation = useMutation<Season | null, Error, Season>({
-    mutationFn: async (season) => utilUpdateSeason(season, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
-    },
-  });
-
-  const deleteSeasonMutation = useMutation<boolean, Error, string>({
-    mutationFn: async (id) => utilDeleteSeason(id, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.seasons, userId] });
-    },
-  });
-
-  // --- Mutations for Tournaments (user-scoped) ---
-  const addTournamentMutation = useMutation<
-    Tournament | null,
-    Error,
-    Partial<Tournament> & { name: string }
-  >({
-    mutationFn: async (data) => {
-      const { name, ...extra } = data;
-      return utilAddTournament(name, extra, userId);
-    },
-    onSuccess: (newTournament, variables) => {
-      if (newTournament) {
-        logger.log('[Mutation Success] Tournament added:', newTournament.name, newTournament.id);
-        queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
-      } else {
-        logger.warn('[Mutation Non-Success] utilAddTournament returned null for tournament:', variables.name);
-      }
-    },
-    onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add tournament ${variables.name}:`, error);
-    },
-  });
-
-  const updateTournamentMutation = useMutation<Tournament | null, Error, Tournament>({
-    mutationFn: async (tournament) => utilUpdateTournament(tournament, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
-    },
-  });
-
-  const deleteTournamentMutation = useMutation({
-    mutationFn: (id: string) => utilDeleteTournament(id, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.tournaments, userId] });
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.savedGames, userId] });
-    },
-  });
 
   // --- Data Synchronization Effects ---
 
@@ -287,7 +187,7 @@ export function useGameDataManagement(
           });
 
           // Merge: use master roster data but preserve per-game isGoalie
-          return masterRosterQueryResultData.map(masterPlayer => {
+          const merged = masterRosterQueryResultData.map(masterPlayer => {
             const hasPerGameGoalie = perGameGoalieMap.has(masterPlayer.id);
             // If player exists in current game with explicit goalie status, preserve it
             if (hasPerGameGoalie) {
@@ -296,6 +196,16 @@ export function useGameDataManagement(
             // New player from master roster - use master's isGoalie
             return masterPlayer;
           });
+          // Deep-review I3: PRESERVE per-game players who are no longer in
+          // the club roster. The per-game availablePlayers is this game's
+          // HISTORICAL record - mapping only over the master roster silently
+          // deleted departed players from old games on load (breaking stats
+          // name resolution and writing selectedPlayerIds ⊄ availablePlayers
+          // back to storage). Live deletions still prune field/selection via
+          // rosterRemovalDiff; the roster snapshot keeps the name.
+          const masterIds = new Set(masterRosterQueryResultData.map(p => p.id));
+          const departed = currentPlayers.filter((p: Player) => !masterIds.has(p.id));
+          return departed.length > 0 ? [...merged, ...departed] : merged;
         });
       }
     }
@@ -383,14 +293,5 @@ export function useGameDataManagement(
     isLoading: isGameDataLoading || personnelManager.isLoading,
     error: gameDataError,
 
-    // Mutation result objects for components requiring UseMutationResult
-    mutationResults: {
-      addSeason: addSeasonMutation,
-      updateSeason: updateSeasonMutation,
-      deleteSeason: deleteSeasonMutation,
-      addTournament: addTournamentMutation,
-      updateTournament: updateTournamentMutation,
-      deleteTournament: deleteTournamentMutation,
-    },
   };
 }

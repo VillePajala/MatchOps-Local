@@ -55,6 +55,14 @@ export interface GameFilterOptions {
   activeTab?: StatsTab;
 
   /**
+   * Include friendly (harjoitusottelut) games in the Overall / Player scopes.
+   * Friendlies are excluded from competitive totals by default; this re-includes
+   * them ONLY for overall/player (never for a specific season/tournament).
+   * @default false
+   */
+  includeFriendlies?: boolean;
+
+  /**
    * Club season filter - 'all' or specific season label (e.g., '24/25')
    */
   clubSeasonFilter?: string | 'all';
@@ -105,6 +113,7 @@ export function filterGameIds(
     gameTypeFilter = 'all',
     genderFilter = 'all',
     activeTab,
+    includeFriendlies = false,
     clubSeasonFilter = 'all',
     clubSeasonStartDate = DEFAULT_CLUB_SEASON_START_DATE,
     clubSeasonEndDate = DEFAULT_CLUB_SEASON_END_DATE,
@@ -155,6 +164,17 @@ export function filterGameIds(
       if (gameSeason !== clubSeasonFilter) return false;
     }
 
+    // Friendly-match handling (harjoitusottelut). Runs after the shared filters
+    // (team/type/gender/club-season) so those still apply.
+    const isFriendly = game.isFriendly === true;
+    if (isFriendly) {
+      // Season & Tournament are strictly competitive - a friendly never counts
+      // there, even if it carries a season/tournament tag.
+      if (activeTab === 'season' || activeTab === 'tournament') return false;
+      // Overall & Player exclude friendlies unless the coach opts them in.
+      if ((activeTab === 'overall' || activeTab === 'player') && !includeFriendlies) return false;
+    }
+
     // Season filter (based on activeTab context)
     if (activeTab === 'season') {
       if (seasonFilter === 'all') {
@@ -198,22 +218,4 @@ export function filterGameIds(
   });
 
   return gameIds;
-}
-
-/**
- * Get all played game IDs filtered by team
- * Convenience wrapper for common use case
- *
- * @param games - Collection of saved games
- * @param teamFilter - Team filter ('all', 'legacy', or team ID)
- * @returns Array of filtered game IDs
- */
-export function getPlayedGamesByTeam(
-  games: SavedGamesCollection | null,
-  teamFilter: string | 'all' | 'legacy' = 'all'
-): string[] {
-  return filterGameIds(games, {
-    playedOnly: true,
-    teamFilter
-  });
 }

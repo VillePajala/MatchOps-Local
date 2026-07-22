@@ -8,12 +8,12 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team, Personnel, PlayerStatAdjustment } from '@/types';
-import { GameEvent, SavedGamesCollection } from '@/types';
+import { GameEvent, SavedGamesCollection, AppState } from '@/types';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally } from '@/utils/shootout';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
-import { resolveGameResult } from '@/utils/gameResult';
+import { computeTeamRecord } from '@/utils/teamRecord';
 import { getTeams as utilGetTeams } from '@/utils/teams';
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
@@ -26,7 +26,7 @@ import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { queryKeys } from '@/config/queryKeys';
 
 // Import extracted hooks
@@ -36,7 +36,7 @@ import { useGoalEditor } from './GameStatsModal/hooks/useGoalEditor';
 import { useStatsFilters } from './GameStatsModal/hooks/useStatsFilters';
 
 // Import shared utilities
-import { getPlayedGamesByTeam } from './GameStatsModal/utils/gameFilters';
+import { filterGameIds } from './GameStatsModal/utils/gameFilters';
 
 // Import extracted components
 import {
@@ -101,9 +101,28 @@ interface GameStatsModalProps {
   onExportAggregateExcel?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
   initialSelectedPlayerId?: string | null;
+  /** Tab to land on when opening (menu match-vs-team stats entries). */
+  initialTab?: StatsTab;
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
   onOpenSettings?: () => void;
+  /** W6/W7: the wrap-up rows open GAME settings (Ottelun tiedot), NOT app
+   *  settings - tapping a row lands where the item can be completed. */
+  onOpenGameSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  onOpenAssessments?: () => void;
+  /**
+   * Club-level surface (L.4): hide the current-game tab entirely and land on
+   * the aggregate side. The host renders this with NO live match behind it,
+   * so the current-game props are neutral placeholders there.
+   */
+  aggregateOnly?: boolean;
+  /**
+   * Match-side surface (deep-review B2): current-game tab ONLY. The
+   * aggregate tabs live on the club-stats surface ("Joukkueen tilastot ->"
+   * in the menu / Home Tilastot); duplicating them here kept the RETIRED
+   * in-place game switch reachable through the aggregate game log.
+   */
+  currentGameOnly?: boolean;
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -138,11 +157,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportAggregateExcel,
   onExportPlayerExcel,
   initialSelectedPlayerId = null,
+  initialTab,
   onGameClick = NOOP,
+  aggregateOnly = false,
+  currentGameOnly = false,
   masterRoster = [],
   onOpenSettings,
+  onOpenGameSettings,
+  onOpenAssessments,
 }) => {
   const { t, i18n } = useTranslation();
+  const headerCollapse = useCollapsingHeader();
   const { showToast } = useToast();
   const { userId, getStore } = useDataStore();
 
@@ -217,7 +242,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [activeTab, setActiveTab] = useState<StatsTab>(initialSelectedPlayerId ? 'player' : 'currentGame');
+  // Landing tab: an explicit initialTab (the menu's "Team stats" entry) beats
+  // the player deep-link, which beats the current-game default. The modal is
+  // conditionally mounted, so the initializer runs fresh on every open.
+  const [activeTab, setActiveTab] = useState<StatsTab>(
+    initialTab ?? (initialSelectedPlayerId ? 'player' : aggregateOnly ? 'season' : 'currentGame'),
+  );
+  // Fold friendly/practice games into the Overall & Player totals (off = the
+  // competitive record). Only meaningful on those two scopes.
+  const [includeFriendlies, setIncludeFriendlies] = useState(false);
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
@@ -376,14 +409,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       }
     } else if (!isOpen) {
       // Only reset when modal is closed to avoid flashing
-      setActiveTab('currentGame');
+      setActiveTab(aggregateOnly ? 'season' : 'currentGame');
       setSelectedPlayer(null);
     }
-  }, [initialSelectedPlayerId, playerPool, isOpen]);
+  }, [initialSelectedPlayerId, playerPool, isOpen, aggregateOnly]);
 
   // --- Use extracted hooks ---
   const { stats: playerStats, gameIds: processedGameIds, totals } = useGameStats({
     activeTab,
+    includeFriendlies,
     savedGames,
     availablePlayers,
     selectedPlayerIds,
@@ -447,62 +481,39 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     t,
   });
 
-  // Calculate overall team stats (for overall tab)
+  // Calculate overall team stats (Overall tab).
+  // Friendly-aware: Overall excludes friendlies unless the coach opts them in
+  // via the "include friendlies" toggle.
   const overallTeamStats = useMemo(() => {
     if (activeTab !== 'overall') return null;
 
-    const playedGameIds = getPlayedGamesByTeam(savedGames, selectedTeamIdFilter);
-
-    let gamesPlayed = 0, wins = 0, losses = 0, ties = 0, goalsFor = 0, goalsAgainst = 0;
-
-    playedGameIds.forEach(gameId => {
-      const game = savedGames?.[gameId];
-      if (!game) return;
-
-      // Filter by club season if one is selected
-      if (selectedClubSeason !== 'all' && game.gameDate) {
-        const gameSeason = getClubSeasonForDate(game.gameDate, clubSeasonStartDate, clubSeasonEndDate);
-        if (gameSeason !== selectedClubSeason) return; // Skip games not in selected club season
-      }
-
-      // Filter by game type if one is selected
-      if (selectedGameTypeFilter !== 'all') {
-        const gameType = game.gameType || 'soccer'; // Default to soccer for legacy games
-        if (gameType !== selectedGameTypeFilter) return;
-      }
-
-      // Filter by gender if one is selected
-      if (selectedGenderFilter !== 'all') {
-        if (game.gender !== selectedGenderFilter) return;
-      }
-
-      gamesPlayed++;
-      const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-      const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-
-      goalsFor += ourScore;
-      goalsAgainst += theirScore;
-
-      // W/L/D via the shared resolver (shootout-aware); goalsFor/Against stay raw.
-      const result = resolveGameResult(game);
-      if (result === 'W') wins++;
-      else if (result === 'L') losses++;
-      else ties++;
+    // Reuse the single filtering source of truth (team/type/gender/club-season +
+    // the friendly rule for this scope) rather than re-implementing it here.
+    const scopedGameIds = filterGameIds(savedGames, {
+      playedOnly: true,
+      teamFilter: selectedTeamIdFilter,
+      gameTypeFilter: selectedGameTypeFilter,
+      genderFilter: selectedGenderFilter,
+      clubSeasonFilter: selectedClubSeason,
+      clubSeasonStartDate,
+      clubSeasonEndDate,
+      activeTab,
+      includeFriendlies,
     });
 
+    // Shared tally (also used by the Home Vuosi bar) so the two never drift.
+    const scopedGames = scopedGameIds
+      .map(id => savedGames?.[id])
+      .filter(Boolean) as AppState[];
+    const rec = computeTeamRecord(scopedGames);
+
     return {
-      gamesPlayed,
-      wins,
-      losses,
-      ties,
-      goalsFor,
-      goalsAgainst,
-      goalDifference: goalsFor - goalsAgainst,
-      winPercentage: gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0,
-      averageGoalsFor: gamesPlayed > 0 ? goalsFor / gamesPlayed : 0,
-      averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
+      ...rec,
+      winPercentage: rec.gamesPlayed > 0 ? (rec.wins / rec.gamesPlayed) * 100 : 0,
+      averageGoalsFor: rec.gamesPlayed > 0 ? rec.goalsFor / rec.gamesPlayed : 0,
+      averageGoalsAgainst: rec.gamesPlayed > 0 ? rec.goalsAgainst / rec.gamesPlayed : 0,
     };
-  }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, includeFriendlies, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Tab counter memoized for performance
   // Calculate team assessment averages (applying same filters as overallTeamStats)
@@ -512,6 +523,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     const filteredGames: SavedGamesCollection = {};
     Object.entries(savedGames || {}).forEach(([id, game]) => {
       if (game.isPlayed === false) return;
+      // Friendlies are excluded from the competitive Overall read unless the
+      // coach opts them in - mirror overallTeamStats so assessment averages
+      // and performance stats agree.
+      if (game.isFriendly === true && !includeFriendlies) return;
       if (selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' && game.teamId !== selectedTeamIdFilter) return;
       if (selectedTeamIdFilter === 'legacy' && game.teamId) return;
       if (selectedGameTypeFilter !== 'all') {
@@ -526,7 +541,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       filteredGames[id] = game;
     });
     return calculateTeamAssessmentAverages(filteredGames);
-  }, [activeTab, savedGames, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, includeFriendlies, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Sorted goals for current game
   const sortedGoals = useMemo(() => {
@@ -688,22 +703,22 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
         <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        {/* Header */}
-        <div className="flex flex-col items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-            {getTabTitle()}
-          </h2>
-        </div>
-
-        {/* Controls Section */}
-        <div className="px-4 sm:px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Tabs */}
+        {/* Chrome slimming: X-header (Done->X); the tab strip collapses on scroll. */}
+        <CollapsibleModalHeader
+          title={getTabTitle()}
+          onClose={onClose}
+          closeLabel={t('common.doneButton', 'Done')}
+          collapse={headerCollapse}
+        >
+          <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center gap-2 flex-wrap flex-1">
               <div className="flex w-full gap-2" role="tablist">
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
-              {t('gameStatsModal.tabs.currentGame')}
-            </button>
+            {!aggregateOnly && (
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
+                {t('gameStatsModal.tabs.currentGame')}
+              </button>
+            )}
+            {!currentGameOnly && (<>
             <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
               {t('gameStatsModal.tabs.season')}
             </button>
@@ -716,13 +731,29 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
               {t('gameStatsModal.tabs.player', 'Player')}
             </button>
+            </>)}
               </div>
             </div>
+            {/* Include friendlies in the competitive read (Overall / Player only). */}
+            {(activeTab === 'overall' || activeTab === 'player') && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setIncludeFriendlies(v => !v)}
+                  aria-pressed={includeFriendlies}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                    includeFriendlies ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {t('gameStatsModal.includeFriendlies', 'Include friendly matches')}
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        </CollapsibleModalHeader>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0" onScroll={headerCollapse.onScroll}>
           {activeTab === 'player' ? (
             <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Player filter with collapsible Game Type and Season filters */}
@@ -789,6 +820,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 clubSeasonEndDate={clubSeasonEndDate}
                 selectedGameTypeFilter={selectedGameTypeFilter}
                 selectedGenderFilter={selectedGenderFilter}
+                includeFriendlies={includeFriendlies}
               />
             </div>
           ) : (
@@ -973,7 +1005,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {activeTab === 'currentGame' && currentGameCompleteness?.applicable && (
                     <GameWrapUpCard
                       completeness={currentGameCompleteness}
-                      onOpenSettings={onOpenSettings}
+                      onOpenSettings={onOpenGameSettings}
+                      onOpenAssessments={onOpenAssessments}
                     />
                   )}
                   {activeTab === 'currentGame' && (
@@ -1081,12 +1114,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               )}
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <ModalFooter>
-          {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) ? (
-            <>
+          {/* Chrome slimming: Export Excel moved inline, per active tab,
+              below that tab's content (was a fixed footer). */}
+          {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) && (
+            <div className="px-4 sm:px-6 pb-6">
               {activeTab === 'currentGame' && currentGameId && onExportOneExcel && (
                 <button
                   onClick={() => onExportOneExcel(currentGameId)}
@@ -1119,13 +1151,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
               )}
-              <div className="flex-1" />
-            </>
-          ) : null}
-          <button onClick={onClose} className={primaryButtonStyle}>
-            {t('common.doneButton', 'Done')}
-          </button>
-        </ModalFooter>
+            </div>
+          )}
+        </div>
 
         {/* Confirmation Modal for Delete Event */}
         <ConfirmationModal

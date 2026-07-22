@@ -41,6 +41,9 @@ const renderWithProviders = (props: Partial<PersonnelDetailsModalProps> = {}) =>
 describe('PersonnelDetailsModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The modal now registers with the module-level hardware-back stack; reset
+    // it between tests so pushed sentinels/entries don't leak across cases.
+    jest.requireActual('@/hooks/useModalHardwareBack').__resetModalHardwareBackForTests();
   });
 
   describe('Rendering', () => {
@@ -297,10 +300,11 @@ describe('PersonnelDetailsModal', () => {
       // Dropdown should be visible
       expect(screen.getByRole('combobox', { name: /Select certification/i })).toBeInTheDocument();
 
-      // Click Cancel in the certification dropdown (first Cancel button, modal footer is second)
+      // Click Cancel in the certification dropdown. The modal's own Cancel is
+      // now the header X (aria-label "Cancel"), first in DOM order after the
+      // chrome slimming - the cert dropdown's Cancel is the LAST one.
       const cancelButtons = screen.getAllByRole('button', { name: /Cancel/i });
-      // The CertificationManager Cancel button is the first one in DOM order
-      await user.click(cancelButtons[0]);
+      await user.click(cancelButtons[cancelButtons.length - 1]);
 
       // Dropdown should be hidden, Add Certification button should be visible
       expect(screen.queryByRole('combobox', { name: /Select certification/i })).not.toBeInTheDocument();
@@ -331,6 +335,25 @@ describe('PersonnelDetailsModal', () => {
       expect(onUpdatePersonnel).toHaveBeenCalledWith('per1', {
         name: 'Updated Coach',
       });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('cancels via hardware back (Android, where the header X is hidden)', async () => {
+      // Back must cancel THIS nested dialog, not fall through to the parent
+      // Personnel Manager and close it (discarding the edit).
+      const { __resetModalHardwareBackForTests } = jest.requireActual('@/hooks/useModalHardwareBack');
+      __resetModalHardwareBackForTests();
+      const onClose = jest.fn();
+
+      await act(async () => {
+        renderWithProviders({ onClose });
+      });
+
+      await act(async () => {
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      });
+
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 

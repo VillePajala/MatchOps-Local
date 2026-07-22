@@ -48,7 +48,7 @@ describe('R0 Baseline: Core modals render and close', () => {
       />
     );
 
-    expect(await screen.findByText(/App Settings/i)).toBeInTheDocument();
+    expect(await screen.findByText(/^Settings$/i)).toBeInTheDocument();
     const done = screen.getByRole('button', { name: /Done/i });
     fireEvent.click(done);
     await waitFor(() => expect(onClose).toHaveBeenCalled());

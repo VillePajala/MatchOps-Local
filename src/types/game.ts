@@ -118,6 +118,11 @@ export interface AppState {
   gameStatus: 'notStarted' | 'inProgress' | 'periodEnd' | 'gameEnd';
   /** Indicates if the game has been fully played */
   isPlayed?: boolean;
+  /** Explicit "this is a friendly / practice match" flag. Friendlies are
+   *  recorded like any game but excluded from competitive (Overall/player)
+   *  stat totals by default. Absent/false = a competitive game. Never inferred
+   *  from a missing season/tournament - the coach sets it on purpose. */
+  isFriendly?: boolean;
   selectedPlayerIds: string[];
   assessments?: { [playerId: string]: PlayerAssessment };
   seasonId: string;

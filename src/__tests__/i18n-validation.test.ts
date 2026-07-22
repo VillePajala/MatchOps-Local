@@ -339,6 +339,20 @@ describe('Translation File Validation', () => {
       //     lineup.benchHeading, overview.newPlan)
       // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
       //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      // -3/+2 net -1: menu groups regrouped by scope (two-level restructure
+      //     PR 0.1): gameManagement/setupConfig/analysisTools -> thisMatch/teamAndApp
+      // +1: controlBar.teamStats (PR 0.2: stats menu entry split match vs team)
+      // +5: startScreen.homeTabs/tabGames/tabTeam/tabSeasons/tabStats (PR 1.2:
+      //     the Home shell's club-level tab bar)
+      // +2: startScreen.resumeCard/savedGames (PR 1.3: the Pelit front page)
+      // -3: startScreen.continue/loadGame/viewStats orphaned by the front-page
+      //     rebuild (old Continue / Load Game / Statistics buttons removed)
+      // +3: startScreen.rowPlayers/rowTeams/rowPersonnel (1.3b: Team tab panel)
+      // +5: startScreen.rowTraining + gearTitle/gearBackup/gearAccount/gearRules
+      //     (PR 1.4: the gear bucket)
+      // -5: startScreen footer keys orphaned by the gear bucket (usingLocal
+      //     Storage/signedInAs/existingSubscriber/newToCloud/getAndroidApp)
+      // +1: startScreen.tasoLink (Taso promoted to the games tab - game-day tool)
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
@@ -350,7 +364,52 @@ describe('Translation File Validation', () => {
       // +1: lineup.benchLabel (sideline strip heading on the planner field)
       // +6: plan-wide field reset (lineup.clearAllGames + confirm
       //     title/message/warning/label + clearedAllGames announcement)
-      expect(enKeys.length).toBe(2843);
+      // +1: controlBar.home (3.1: the one way back to club scope - menu
+      //     "Koti" entry + the top-bar house icon share the label)
+      // -17/+1 net -16: 3.1 menu shrink review - dead controlBar keys of the
+      //     removed menu entries and the deleted save-before-new chain
+      //     (discard, saveAndContinue, saveBeforeNew*, startNewMatch*,
+      //     startScreen, loadGame, newGameButton, manage*, rulesDirectory,
+      //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
+      //     house icon's own accessible name - distinguishes it from the
+      //     menu's "Koti" entry for screen readers)
+      // -2: controlBar.menu.teamAndApp/.settings - the section headings of
+      //     the menu groups the 3.1 shrink deleted (review round 2 catch)
+      // +3: startScreen.rowCompetitions/rowPlayerStats/gearSignOut (3.1b Home
+      //     polish: Kaudet & Tilastot become REAL panels with entry rows;
+      //     direct sign out in the gear sheet)
+      // +2: gameSettingsModal.addToClubRoster(+Placeholder) - the 3.2 roster
+      //     bridge: inline club-roster add in the game's player picker
+      // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
+      //     club-write must say why nothing happened)
+      // -2/+2 net 0: firstGameGuide.startNewGameTip/loadGameTip retired (the
+      //     3.1 menu shrink moved those actions Home; final-PR review catch)
+      //     -> assessPlayersTip/backHomeTip describe the menu that exists
+      // +1: gameSettingsModal.addToClubRosterNickname (walkthrough W1: the
+      //     disc shows the nickname - the inline add must capture it)
+      // -1: startScreen.rowPlayerStats - W8 replaced the two stats rows with
+      //     one row per aggregate tab, reusing gameStatsModal.tabs.* labels
+      // +4: startScreen.statsSeason/-Tournament/-Overall/-Player (walkthrough
+      //     round 2 R4: the stats rows get their own compound names -
+      //     Kausitilastot/Turnaustilastot/Kokonaistilastot/Pelaajatilastot)
+      // +1: controlBar.rulesDirectory restored - R6 put Rules back in the
+      //     match menu after the 3.1 cleanup had removed the then-dead key
+      //     (fi 'Säännöt' was falling back to English)
+      // -1: controlBar.stats - the menu's "Match stats" entry was identical
+      //     to Game report (same modal, same landing) and was collapsed
+      //     (deep-review); aggregate stats live behind "Team stats ->"
+      // +8: deep-review i18n batch - keys used in code but missing from BOTH
+      //     locales (Finnish users saw English fallbacks): controlBar.
+      //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
+      //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
+      //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
+      // -2: gameStatsModal.tabs.friendlies/.titleFriendlies - the dedicated
+      //     friendlies stats tab was removed (overflowed the tab row); friendly
+      //     stats stay behind the "include friendlies" toggle
+      // Merged master: the planner Balance PRs (#682/#683) added their own keys.
+      // -1: seasonTournamentModal.title - orphaned when Kaudet/Turnaukset split
+      //     off its own kind-scoped managerTitle; net branch count lands at 2855.
+      expect(enKeys.length).toBe(2762);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -413,6 +472,15 @@ describe('Translation File Validation', () => {
       //     lineup.benchHeading, overview.newPlan)
       // +2: balance.sitsOut_one/_other (zero-minutes warning split: red = no
       //     minutes ANYWHERE, amber = sits out a full game but plays elsewhere)
+      // -3/+2 net -1: menu groups regrouped by scope (see the en note above)
+      // +1: controlBar.teamStats (PR 0.2: stats menu entry split match vs team)
+      // +5: startScreen home tab bar (see the en note above)
+      // +2: startScreen front page (see the en note above)
+      // -3: orphaned start-screen button keys pruned (see the en note above)
+      // +3: Team tab panel rows (see the en note above)
+      // +5: gear bucket keys (see the en note above)
+      // -5: orphaned footer keys pruned (see the en note above)
+      // +1: startScreen.tasoLink (see the en note above)
       // +9: planner rotations & swaps (subs.inGameGroup, lineup.swapAction,
       //     swapSheet.title/hint/who/withLabel/noTargets, swap.done,
       //     conflicts.row) - any-player subs + whole-game player swap
@@ -424,7 +492,52 @@ describe('Translation File Validation', () => {
       // +1: lineup.benchLabel (sideline strip heading on the planner field)
       // +6: plan-wide field reset (lineup.clearAllGames + confirm
       //     title/message/warning/label + clearedAllGames announcement)
-      expect(fiKeys.length).toBe(2843);
+      // +1: controlBar.home (3.1: the one way back to club scope - menu
+      //     "Koti" entry + the top-bar house icon share the label)
+      // -17/+1 net -16: 3.1 menu shrink review - dead controlBar keys of the
+      //     removed menu entries and the deleted save-before-new chain
+      //     (discard, saveAndContinue, saveBeforeNew*, startNewMatch*,
+      //     startScreen, loadGame, newGameButton, manage*, rulesDirectory,
+      //     backupRestore, signOut); +1 controlBar.backToHome (the top-bar
+      //     house icon's own accessible name - distinguishes it from the
+      //     menu's "Koti" entry for screen readers)
+      // -2: controlBar.menu.teamAndApp/.settings - the section headings of
+      //     the menu groups the 3.1 shrink deleted (review round 2 catch)
+      // +3: startScreen.rowCompetitions/rowPlayerStats/gearSignOut (3.1b Home
+      //     polish: Kaudet & Tilastot become REAL panels with entry rows;
+      //     direct sign out in the gear sheet)
+      // +2: gameSettingsModal.addToClubRoster(+Placeholder) - the 3.2 roster
+      //     bridge: inline club-roster add in the game's player picker
+      // +1: gameSettingsModal.addToClubRosterFailed (3.2 review: a failed
+      //     club-write must say why nothing happened)
+      // -2/+2 net 0: firstGameGuide.startNewGameTip/loadGameTip retired (the
+      //     3.1 menu shrink moved those actions Home; final-PR review catch)
+      //     -> assessPlayersTip/backHomeTip describe the menu that exists
+      // +1: gameSettingsModal.addToClubRosterNickname (walkthrough W1: the
+      //     disc shows the nickname - the inline add must capture it)
+      // -1: startScreen.rowPlayerStats - W8 replaced the two stats rows with
+      //     one row per aggregate tab, reusing gameStatsModal.tabs.* labels
+      // +4: startScreen.statsSeason/-Tournament/-Overall/-Player (walkthrough
+      //     round 2 R4: the stats rows get their own compound names -
+      //     Kausitilastot/Turnaustilastot/Kokonaistilastot/Pelaajatilastot)
+      // +1: controlBar.rulesDirectory restored - R6 put Rules back in the
+      //     match menu after the 3.1 cleanup had removed the then-dead key
+      //     (fi 'Säännöt' was falling back to English)
+      // -1: controlBar.stats - the menu's "Match stats" entry was identical
+      //     to Game report (same modal, same landing) and was collapsed
+      //     (deep-review); aggregate stats live behind "Team stats ->"
+      // +8: deep-review i18n batch - keys used in code but missing from BOTH
+      //     locales (Finnish users saw English fallbacks): controlBar.
+      //     noPlayersForNewGame/openTimer/toggleTacticsBoardShow,
+      //     gameStatsModal.noGoals/deleteEventFailed, common.futsal,
+      //     gameSettingsModal.errors.seasonUpdateFailed/tournamentUpdateFailed
+      // -2: gameStatsModal.tabs.friendlies/.titleFriendlies - the dedicated
+      //     friendlies stats tab was removed (overflowed the tab row); friendly
+      //     stats stay behind the "include friendlies" toggle
+      // Merged master: the planner Balance PRs (#682/#683) added their own keys.
+      // -1: seasonTournamentModal.title - orphaned when Kaudet/Turnaukset split
+      //     off its own kind-scoped managerTitle; net branch count lands at 2855.
+      expect(fiKeys.length).toBe(2762);
     });
   });
 });

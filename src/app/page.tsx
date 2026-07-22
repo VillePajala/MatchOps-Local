@@ -2,13 +2,13 @@
 
 import ModalProvider from '@/contexts/ModalProvider';
 import HomePage from '@/components/HomePage';
-import StartScreen from '@/components/StartScreen';
+import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
 import LoginScreen from '@/components/LoginScreen';
 import MigrationWizard from '@/components/MigrationWizard';
 import WelcomeScreen from '@/components/WelcomeScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import BackupReminderBanner from '@/components/BackupReminderBanner';
-import { PLANNER_OPEN_KEY } from '@/components/HomePage/containers/GameContainer';
+import ClubModalsHost from '@/components/ClubModalsHost';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import UpgradePromptModal from '@/components/UpgradePromptModal';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -18,18 +18,23 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAppResume } from '@/hooks/useAppResume';
 import { useMultiTabPrevention } from '@/hooks/useMultiTabPrevention';
 import { useDeepLinkHandler } from '@/hooks/useDeepLinkHandler';
+import DeepLinkClubRouter from '@/components/DeepLinkClubRouter';
+import { useModalHardwareBack } from '@/hooks/useModalHardwareBack';
 import type { AppAction } from '@/hooks/useDeepLinkHandler';
 import { usePremium } from '@/hooks/usePremium';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
-import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
+import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import { getTeams } from '@/utils/teams';
+import { getAllPersonnel } from '@/utils/personnelManager';
 import { runMigration } from '@/utils/migration';
 import {
   hasMigrationCompleted,
@@ -59,7 +64,30 @@ const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
-  const { initialAction, hasDeepLink, setAction } = useDeepLinkHandler();
+
+  // W5: restore the VIEW you left. The auto-resume guard only fires for a
+  // live game; when the OS recreates the WebView with the match on screen
+  // but the clock not running, the user used to land on Home. This session
+  // marker records "the match was the visible view" and boot re-enters it.
+  const prevScreenRef = useRef<'start' | 'home' | null>(null);
+  useEffect(() => {
+    const prev = prevScreenRef.current;
+    prevScreenRef.current = screen;
+    try {
+      if (screen === 'home') {
+        sessionStorage.setItem('matchops_was_in_match', '1');
+      } else if (prev === 'home') {
+        // Deep-review fix: clear ONLY on a real match->Home exit. The old
+        // unconditional else cleared the marker on the very first mount
+        // (screen starts as 'start'), before boot could read it - making
+        // the whole restore-the-view feature dead code.
+        sessionStorage.removeItem('matchops_was_in_match');
+      }
+    } catch {
+      // sessionStorage unavailable - resume falls back to the live-game rule.
+    }
+  }, [screen]);
+  const { initialAction, hasDeepLink, setAction, clearAction } = useDeepLinkHandler();
   const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
@@ -68,6 +96,9 @@ export default function Home() {
   const [hasCompetition, setHasCompetition] = useState(false);
   const [hasTeam, setHasTeam] = useState(false);
   const [hasTeamLinkedGame, setHasTeamLinkedGame] = useState(false);
+  // Home dashboard (opt-in): the view preference + the computed Pelit-tab summary.
+  const [homeSummary, setHomeSummary] = useState<HomeSummary | null>(null);
+  const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
@@ -99,7 +130,7 @@ export default function Home() {
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
@@ -112,6 +143,20 @@ export default function Home() {
 
   // Extract userId to avoid effect re-runs when user object reference changes
   const userId = user?.id;
+
+  // Toggle the Home view (gear sheet). Optimistic: flip immediately, persist
+  // in the background so the switch feels instant.
+  const handleSetHomeView = useCallback(async (view: 'simple' | 'dashboard') => {
+    setHomeView(view);
+    try {
+      await updateAppSettings({ homeView: view }, userId);
+    } catch (err) {
+      // Roll back the optimistic flip so the UI never disagrees with what was
+      // actually persisted.
+      logger.warn('Failed to persist home view preference', { error: err });
+      setHomeView(view === 'dashboard' ? 'simple' : 'dashboard');
+    }
+  }, [userId]);
 
   // Play Store context: cloud mode is required, local-mode entry points are hidden.
   // Computed once on mount — both checks are environment-stable and never change at runtime.
@@ -179,7 +224,10 @@ export default function Home() {
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
-  const isFirstTimeUser = !hasPlayers || !hasSavedGames;
+  // Deep-review fix: first-time mode only when TRULY empty - a coach with a
+  // roster but no saved game (or who deleted them) must still reach the
+  // Joukkue/Kaudet/Tilastot tabs; the || form locked them out of Home.
+  const isFirstTimeUser = !hasPlayers && !hasSavedGames;
 
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
@@ -197,17 +245,27 @@ export default function Home() {
       // Without userId, DataStore queries anonymous/legacy storage instead of user's data
       const lastId = await getCurrentGameIdSetting(userId);
       const games = await getSavedGames(userId);
+      // The game a "Continue"/resume actually opens: lastId when valid, else the
+      // latest game the fallback below selects. The dashboard resume card must
+      // use THIS, not the stale lastId.
+      let resolvedCurrentId: string | null = null;
 
       if (lastId && games[lastId]) {
+        resolvedCurrentId = lastId;
         setCanResume(true);
         // Extract gameType from last game to prevent field color flash on mount
         // (avoids defaulting to soccer green when last game was futsal blue)
         setLastGameType(games[lastId].gameType);
         // On the first check after launch (boot / OS WebView recreation mid-game),
-        // restore straight into an in-progress match instead of dropping the user
-        // on the start screen with a "Continue" button.
-        if (isFirstCheck && games[lastId].gameStatus === 'inProgress') {
-          logger.info('[page.tsx] In-progress game detected on launch — restoring into the game view');
+        // restore straight into a LIVE match (in progress OR at a period break -
+        // half-time backgrounding is the common case) instead of dropping the
+        // user on the start screen with a "Continue" button.
+        let wasInMatch = false;
+        try {
+          wasInMatch = sessionStorage.getItem('matchops_was_in_match') === '1';
+        } catch { /* fall back to the live-game rule */ }
+        if (shouldAutoResumeOnLaunch(isFirstCheck, games[lastId]) || (isFirstCheck && wasInMatch)) {
+          logger.info('[page.tsx] Live game detected on launch — restoring into the game view');
           setAction('resumeGame');
           setScreen('home');
         }
@@ -217,6 +275,7 @@ export default function Home() {
         if (ids.length > 0) {
           const latestId = getLatestGameId(games);
           if (latestId) {
+            resolvedCurrentId = latestId;
             await utilSaveCurrentGameIdSetting(latestId, userId);
             setCanResume(true);
             setLastGameType(games[latestId].gameType);
@@ -229,7 +288,32 @@ export default function Home() {
       }
 
       // Check if user has any saved games
-      setHasSavedGames(Object.keys(games).length > 0);
+      // Deep-review fix: the scratch workspace (unsaved_game) is not a saved
+      // game - counting it enabled stats rows and flipped first-time mode
+      // on a phantom.
+      setHasSavedGames(Object.keys(games).filter(id => id !== 'unsaved_game').length > 0);
+
+      // Home view preference + dashboard summary (opt-in dashboard).
+      // The Pelit-tab summary (resume/vuosi/recent) derives from settings + the
+      // games we just fetched, so build it FAST here; the other tabs' counts +
+      // top scorer are enriched a beat later from the fire-and-forget entity
+      // fetch below. Recomputed on every Home re-entry via the checkAppState re-run.
+      let homeSettings: Awaited<ReturnType<typeof getAppSettings>> | null = null;
+      const today = new Date().toISOString().slice(0, 10);
+      try {
+        homeSettings = await getAppSettings(userId);
+        // Dashboard is the default; only an explicit 'simple' preference opts out.
+        setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
+        setHomeSummary(buildHomeSummary(games, {
+          today,
+          clubSeasonStartDate: homeSettings.clubSeasonStartDate,
+          clubSeasonEndDate: homeSettings.clubSeasonEndDate,
+          hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
+          currentGameId: resolvedCurrentId,
+        }));
+      } catch (summaryErr) {
+        logger.warn('Failed to build home summary', { error: summaryErr });
+      }
 
       // Check if user has any players in roster
       // CRITICAL: Pass userId for user-scoped storage (cloud mode)
@@ -245,10 +329,30 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
-      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId)])
-        .then(([seasonsList, tournamentsList, teamsList]) => {
+      void Promise.all([getSeasons(userId), getTournaments(userId), getTeams(userId), getAllPersonnel(userId)])
+        .then(([seasonsList, tournamentsList, teamsList, personnel]) => {
           setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
           setHasTeam(teamsList.length > 0);
+          // Enrich the dashboard summary with entity counts + top scorer (for the
+          // Joukkue/Kilpailut/Tilastot tabs). Rebuilt with the same inputs as the
+          // fast Pelit build above, plus the entity data now available.
+          // Closes over roster/resolvedCurrentId/today/homeSettings from THIS
+          // checkAppState call; single-tab usage means no interleave race in
+          // practice (a stale enrichment would at worst show counts a beat old).
+          if (homeSettings) {
+            setHomeSummary(buildHomeSummary(games, {
+              today,
+              clubSeasonStartDate: homeSettings.clubSeasonStartDate,
+              clubSeasonEndDate: homeSettings.clubSeasonEndDate,
+              hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
+              currentGameId: resolvedCurrentId,
+              roster,
+              teamsCount: teamsList.length,
+              personnelCount: personnel.length,
+              seasonsCount: seasonsList.length,
+              tournamentsCount: tournamentsList.length,
+            }));
+          }
         })
         .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
     } catch (error) {
@@ -266,11 +370,15 @@ export default function Home() {
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
-  const handleDataImportSuccess = useCallback(() => {
-    // Trigger app state refresh after data import
-    setRefreshTrigger(prev => prev + 1);
-    // Stay in current screen - modal will close naturally after user clicks Continue
-  }, []);
+  // 3.1: hardware back mirrors "Koti" - with the match on screen and no
+  // modal open, back returns to Home instead of leaving the app. Registered
+  // at PAGE level (not inside HomePage) so enterMatch's key-bump remounts
+  // don't re-push history entries; modals opened later stack ABOVE this
+  // entry, so back still closes the topmost modal first.
+  useModalHardwareBack(screen === 'home', handleGoToStartScreen);
+
+  // handleDataImportSuccess removed (L.0b): the SettingsModal prop it fed was
+  // dead - backup restore uses a full page reload, not a state refresh.
 
   // ============================================================================
   // WELCOME SCREEN HANDLERS (First-Install Onboarding)
@@ -528,6 +636,20 @@ export default function Home() {
     checkAppState();
   }, [checkAppState, refreshTrigger, isAuthenticated, isAuthLoading, mode, userId]);
 
+  // Deep-review fix (stale Home): all Home flags (canResume, hasPlayers,
+  // hasSavedGames, first-time mode, setup card) were computed once at boot;
+  // returning via Koti showed the BOOT-time Home - most visibly, a brand-new
+  // user's first game left Home in first-time mode until a reload. Re-check
+  // whenever the user lands back on the start screen after a match.
+  const hasVisitedMatchRef = useRef(false);
+  useEffect(() => {
+    if (screen === 'home') {
+      hasVisitedMatchRef.current = true;
+    } else if (hasVisitedMatchRef.current) {
+      void checkAppState();
+    }
+  }, [screen, checkAppState]);
+
   // Reset state when user signs out
   // This ensures the loading screen and start screen show again on next sign-in
   useEffect(() => {
@@ -535,10 +657,8 @@ export default function Home() {
       setPostLoginCheckComplete(false);
       checkAppStateTriggeredRef.current = false;
       setScreen('start');
-      // Sign-out unmounts the game view without the planner's own close handler
-      // running; clear its persisted open-flag so it doesn't auto-reopen over the
-      // next game the user enters.
-      if (typeof window !== 'undefined') window.sessionStorage.removeItem(PLANNER_OPEN_KEY);
+      // Planner open-state lives in ModalProvider now (L.3c); the provider's
+      // own sign-out effect (keyed on currentUserId) closes it.
     }
   }, [userId]);
 
@@ -803,16 +923,49 @@ export default function Home() {
           // Mark post-login check complete even on failure (user can use app)
           setPostLoginCheckComplete(true);
         } else if (result.hasData) {
-          // Local data found - show simplified migration wizard
-          // (No need to fetch cloud counts - wizard always uses merge mode)
-          logger.info('[page.tsx] Local data found, showing migration wizard');
-          setShowMigrationWizard(true);
-          // Mark post-login check complete - wizard handles its own loading
-          setPostLoginCheckComplete(true);
+          // W11 guard: the gate reads the USER-scoped local store, which
+          // after a sign-out still holds this user's own already-synced
+          // local-first cache - but the wizard MIGRATES the anonymous
+          // (local-mode) store and previews ITS counts. Offer the wizard
+          // only when the store it would migrate actually has something;
+          // otherwise fall through to the cloud-hydration path.
+          const { getLocalDataSummary } = await import('@/services/migrationService');
+          const summary = await getLocalDataSummary().catch(() => null);
+          if (summary === null) {
+            // M8: a failed anonymous-store read must not silently decide
+            // anything - same treatment as the local-data check failing:
+            // tell the user, allow retry, set no flag.
+            logger.warn('[page.tsx] Migratable-count summary read failed - will retry');
+            showToast(
+              t('page.couldNotCheckLocalData', 'Could not check for local data. Please refresh the page to try again.'),
+              'info'
+            );
+            migrationCheckInitiatedRef.current = false;
+            setPostLoginCheckComplete(true);
+            return;
+          }
+          const migratableCount = Object.values(summary).reduce(
+            (acc: number, v) => acc + (typeof v === 'number' ? v : 0), 0);
+          if (migratableCount > 0) {
+            logger.info('[page.tsx] Local data found, showing migration wizard');
+            setShowMigrationWizard(true);
+            // Mark post-login check complete - wizard handles its own loading
+            setPostLoginCheckComplete(true);
+            return;
+          }
+          // Deep-review B1: the skip branch must still run the cloud check -
+          // sync is push-only, so this hydration is the ONLY cloud->local
+          // pull. Skipping it here (and never re-setting the migration flag)
+          // left a device permanently blind to changes made elsewhere after
+          // a sign-out. Hydration is merge-safe (skips entities whose local
+          // version is newer), so falling through with a synced local cache
+          // is correct.
+          logger.info('[page.tsx] Local store hit was already-synced user data (nothing migratable) - running cloud check instead of the wizard');
         } else {
           // No local data - check if cloud has data that needs to be loaded
           logger.info('[page.tsx] No local data, checking if cloud has data...');
-
+        }
+        {
           const { hasCloudData, hydrateLocalFromCloud } = await import('@/services/reverseMigrationService');
           const cloudResult = await hasCloudData();
           if (cloudResult.checkFailed) {
@@ -1164,10 +1317,13 @@ export default function Home() {
 
   // Skip start screen when a PWA shortcut deep link was detected
   useEffect(() => {
-    if (hasDeepLink) {
+    // Deep-review: only MATCH-BOUND deep links mount the match; club-scope
+    // shortcuts (new game, stats, roster, ...) open their host modal over
+    // Home via DeepLinkClubRouter - closing lands on Home, not the pitch.
+    if (hasDeepLink && (initialAction === 'resumeGame' || initialAction === 'explore')) {
       setScreen('home');
     }
-  }, [hasDeepLink]);
+  }, [hasDeepLink, initialAction]);
 
   const handleAction = useCallback((
     action: AppAction | 'getStarted'
@@ -1175,6 +1331,39 @@ export default function Home() {
     setAction(action);
     setScreen('home');
   }, [setAction, setScreen]);
+
+  // The two-level LEVEL CROSSING (restructure L.3): freshly mount the match
+  // view and let its existing boot path load the PERSISTED current game (the
+  // caller persists the id first - see useLoadGameController). The key bump
+  // guarantees a clean remount even when a match is already on screen, so
+  // switching games never mutates a live session in place.
+  const [matchInstance, setMatchInstance] = useState(0);
+  const enterMatch = useCallback(() => {
+    setAction('resumeGame');
+    setMatchInstance((n) => n + 1);
+    setScreen('home');
+  }, [setAction, setScreen]);
+
+  // Open a specific game (Home dashboard recent strip). Same level-crossing as
+  // the Load Game modal: persist the id first, then freshly mount the match,
+  // whose boot loads the persisted current game.
+  const handleOpenGameById = useCallback(async (id: string) => {
+    try {
+      await utilSaveCurrentGameIdSetting(id, userId);
+    } catch (err) {
+      logger.warn('Failed to persist current game id before opening', { error: err });
+    }
+    enterMatch();
+  }, [userId, enterMatch]);
+  // A live match whose game was just deleted must remount (its boot falls
+  // back to the persisted next-latest game); on the start screen this is a
+  // no-op - deleting from Home must not navigate.
+  const handleActiveGameDeleted = useCallback(() => {
+    if (screen === 'home') enterMatch();
+  }, [screen, enterMatch]);
+
+  // Front-page planner entry LIFTED (L.3c): the bridge opens the host-level
+  // planner in place - no game mount, no session-key arming.
 
   // Show login screen in cloud mode when not authenticated
   const needsAuth = mode === 'cloud' && !isAuthenticated;
@@ -1193,7 +1382,23 @@ export default function Home() {
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
-      <ModalProvider>
+      <ModalProvider currentUserId={userId}>
+        {/* Club/app-scope modals render at PAGE level (two-level restructure
+            L-waves): opening them from Home never mounts the match view.
+            Gated behind the SAME readiness checks as the app screens below:
+            useAppSettingsController's storage effects (language persist,
+            team-name read) must not fire on the multi-tab-block, loading,
+            welcome, auth or migration screens - matching where these effects
+            lived (post-gates) before the L.0b lift. */}
+        {!isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
+          !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard && (
+          <>
+            <ClubModalsHost onEnterMatch={enterMatch} onActiveGameDeleted={handleActiveGameDeleted} />
+            {screen === 'start' && hasDeepLink && initialAction && (
+              <DeepLinkClubRouter action={initialAction} onConsumed={clearAction} />
+            )}
+          </>
+        )}
         {/* Compensate for fixed grace period banner height so content isn't obscured on mobile.
             pt-10 = 2.5rem = 40px, matching banner: py-2 (0.5rem×2) + text-sm line-height (~1.25rem) ≈ 2.25rem.
             Valid for single-line banner text. If banner wraps on very narrow screens (<320px),
@@ -1299,12 +1504,12 @@ export default function Home() {
           </ErrorBoundary>
         ) : screen === 'start' ? (
           <ErrorBoundary>
-            <StartScreen
-              onLoadGame={() => handleAction('loadGame')}
+            {/* L.2: lifted-modal entries open IN PLACE via the bridge (no
+                screen switch, no game mount); only match-bound actions still
+                route through handleAction. */}
+            <StartScreenLiftedBridge
               onResumeGame={() => handleAction('resumeGame')}
               onGetStarted={() => handleAction('getStarted')}
-              onViewStats={() => handleAction('stats')}
-              onOpenSettings={() => handleAction('settings')}
               canResume={canResume}
               hasSavedGames={hasSavedGames}
               isFirstTimeUser={isFirstTimeUser}
@@ -1317,7 +1522,27 @@ export default function Home() {
               onEnableCloudSync={handleEnableCloudSync}
               onSignInExistingSubscriber={handleSignInExistingSubscriber}
               onShowWelcome={() => setShowWelcome(true)}
+              onSignOut={signOut}
               isCloudAvailable={isCloudAvailable()}
+              homeView={homeView}
+              homeSummary={homeSummary}
+              onSetHomeView={handleSetHomeView}
+              onOpenGameById={handleOpenGameById}
+              onSetupModalsClosed={async () => {
+                // A first-time user who just added players in a setup modal must
+                // graduate off the first-run panel. Refresh ONLY hasPlayers -
+                // targeted, so it flips isFirstTimeUser WITHOUT the full
+                // checkAppState round-trip (which flashes the loading screen).
+                // Gated to first-timers: everyday setup-modal closes for existing
+                // users need no refresh at all.
+                if (!isFirstTimeUser) return;
+                try {
+                  const roster = await getMasterRoster(userId);
+                  setHasPlayers(roster.length > 0);
+                } catch (err) {
+                  logger.warn('Failed to refresh players after setup', { error: err });
+                }
+              }}
             />
           </ErrorBoundary>
         ) : (
@@ -1325,9 +1550,9 @@ export default function Home() {
             <BackupReminderBanner hasSavedGames={hasSavedGames} />
             <ErrorBoundary>
               <HomePage
+                key={matchInstance}
                 initialAction={initialAction ?? undefined}
                 skipInitialSetup
-                onDataImportSuccess={handleDataImportSuccess}
                 isFirstTimeUser={isFirstTimeUser}
                 onGoToStartScreen={handleGoToStartScreen}
                 initialGameType={lastGameType}

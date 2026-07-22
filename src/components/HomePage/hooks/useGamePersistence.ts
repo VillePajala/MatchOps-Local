@@ -49,7 +49,7 @@
  * @category HomePage Hooks
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
@@ -60,16 +60,11 @@ import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSession
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import {
   saveGame as utilSaveGame,
-  deleteGame as utilDeleteGame,
   removeGameEvent,
-  getLatestGameId,
   createGame as utilCreateGame,
+  getGame as utilGetGame,
 } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
-import { clearTimerState } from '@/utils/timerStateManager';
-import { clearTimerAnchor } from '@/utils/timerAnchor';
-import { deleteGameSubs } from '@/utils/playtimePlanner/gameSubs';
-import { deletePlanLink } from '@/utils/playtimePlanner/planLinks';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -99,12 +94,9 @@ export interface UseGamePersistenceParams {
   resetHistory: (state: AppState) => void;
 
   // Initial state for resets
-  initialState: AppState;
-  initialGameSessionData: GameSessionState;
 
   // Callbacks
   dispatchGameSession: React.Dispatch<GameSessionAction>;
-  loadGameStateFromData: (data: AppState) => Promise<void>;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   t: TFunction;
 
@@ -112,7 +104,6 @@ export interface UseGamePersistenceParams {
   queryClient: QueryClient;
 
   // Modal control
-  handleCloseLoadGameModal: () => void;
 }
 
 /**
@@ -120,19 +111,12 @@ export interface UseGamePersistenceParams {
  */
 export interface UseGamePersistenceReturn {
   // Load game state
-  isGameLoading: boolean;
-  gameLoadError: string | null;
-  processingGameId: string | null;
 
   // Delete game state
-  isGameDeleting: boolean;
-  gameDeleteError: string | null;
 
   // Handlers
   // Returns true only if the game is now persisted (see implementation note).
   handleQuickSaveGame: (silent?: boolean, suppressErrorToast?: boolean) => Promise<boolean>;
-  handleLoadGame: (gameId: string) => Promise<void>;
-  handleDeleteGame: (gameId: string) => Promise<void>;
   handleDeleteGameEvent: (goalId: string) => Promise<boolean>;
 }
 
@@ -156,14 +140,10 @@ export interface UseGamePersistenceReturn {
  *   savedGames,
  *   setSavedGames,
  *   resetHistory,
- *   initialState,
- *   initialGameSessionData,
  *   dispatchGameSession,
- *   loadGameStateFromData,
  *   showToast,
  *   t,
  *   queryClient,
- *   handleCloseLoadGameModal,
  * });
  *
  * // Use the hook's exports
@@ -182,28 +162,16 @@ export function useGamePersistence({
   savedGames,
   setSavedGames,
   resetHistory,
-  initialState,
-  initialGameSessionData,
   dispatchGameSession,
-  loadGameStateFromData,
   showToast,
   t,
   queryClient,
-  handleCloseLoadGameModal,
 }: UseGamePersistenceParams): UseGamePersistenceReturn {
   // --- User-Scoped Storage ---
   const { userId } = useDataStore();
 
-  // Extract stable setters from fieldCoordination to avoid using the whole
-  // (non-memoized) object in useCallback dep arrays
-  const { setPlayersOnField, setOpponents, setDrawings } = fieldCoordination;
 
   // --- Load/Delete Game UI State ---
-  const [isGameLoading, setIsGameLoading] = useState(false);
-  const [gameLoadError, setGameLoadError] = useState<string | null>(null);
-  const [isGameDeleting, setIsGameDeleting] = useState(false);
-  const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
-  const [processingGameId, setProcessingGameId] = useState<string | null>(null);
   // CR-H6: in-flight guard for event deletion. A double-tapped delete confirm could
   // call handleDeleteGameEvent twice while the first await is pending; the second
   // call used the (now stale) index and deleted the WRONG event + double-decremented
@@ -250,6 +218,11 @@ export function useGamePersistence({
 
       // Override/add additional fields not in gameSessionState
       isPlayed,
+      // isFriendly is game metadata, not part of the live session reducer, so a
+      // full-overwrite autosave would otherwise silently drop it. Preserve it
+      // from the persisted record - it is only ever set at creation or via the
+      // reclassify toggle, both of which update savedGames first.
+      isFriendly: savedGames[currentGameId ?? '']?.isFriendly ?? false,
       assessments: playerAssessments,
 
       // From fieldCoordination
@@ -267,6 +240,8 @@ export function useGamePersistence({
   }, [
     gameSessionState,
     isPlayed,
+    savedGames,
+    currentGameId,
     playerAssessments,
     fieldCoordination.playersOnField,
     fieldCoordination.opponents,
@@ -311,18 +286,40 @@ export function useGamePersistence({
       });
 
       try {
+        // Deep-review race guards (silent/auto-save path only):
+        // 1) A save landing AFTER a club-side level crossing (load/create/
+        //    delete changed the persisted current id) must not act on a
+        //    game that no longer exists - check existence first, so a
+        //    just-deleted game cannot be resurrected by a late debounce.
+        if (silent) {
+          const stillExists = await utilGetGame(currentGameId, userId);
+          if (!stillExists) {
+            logger.log('[handleQuickSaveGame] Skipping auto-save: game no longer exists (deleted mid-flight)');
+            return false;
+          }
+        }
         // Update savedGames state and storage
         const updatedSavedGames = { ...savedGames, [currentGameId]: currentSnapshot };
         setSavedGames(updatedSavedGames);
         await utilSaveGame(currentGameId, currentSnapshot, userId);
-        await utilSaveCurrentGameIdSetting(currentGameId, userId);
+        // 2) The AUTO-save must never rewrite the persisted current-game-id
+        //    setting: it cannot change while this match is mounted, and a
+        //    late write raced the level crossings (reverting the id the
+        //    club side had just persisted, booting the WRONG game on the
+        //    fresh mount). Manual saves keep the write for legacy parity.
+        if (!silent) {
+          await utilSaveCurrentGameIdSetting(currentGameId, userId);
+        }
 
-        // CR-H7: Keep the saved-games cache fresh by writing the data we just
-        // persisted, instead of invalidateQueries (which refetched storage on
-        // EVERY save — needless churn during a match, since auto-save fires on
-        // each meaningful change). The queryFn just reads storage, so setQueryData
-        // with the in-memory snapshot matches a refetch.
-        queryClient.setQueryData<SavedGamesCollection>([...queryKeys.savedGames, userId], updatedSavedGames);
+        // CR-H7 + deep-review: keep the saved-games cache fresh by MERGING
+        // this game's snapshot into the CURRENT cache (functional update) -
+        // replacing the whole collection from this mount's local state
+        // erased games created by the club side after this mount's snapshot
+        // of `savedGames` was taken.
+        queryClient.setQueryData<SavedGamesCollection>(
+          [...queryKeys.savedGames, userId],
+          (prev) => ({ ...(prev ?? updatedSavedGames), [currentGameId]: currentSnapshot }),
+        );
 
         // CR-H7: Only clear undo/redo on an explicit (manual) save — "saved = clean
         // baseline". Silent auto-saves must NOT wipe undo, or the user can never undo
@@ -553,167 +550,9 @@ export function useGamePersistence({
     currentGameId,
   });
 
-  // --- Load Game Handler ---
-  /**
-   * Load a saved game by ID
-   *
-   * Clears timer state, loads game data via reducer, updates current game ID.
-   * Closes load game modal on success.
-   *
-   * @param gameId - ID of game to load
-   */
-  const handleLoadGame = useCallback(async (gameId: string) => {
-    logger.log(`[handleLoadGame] Attempting to load game: ${gameId}`);
-
-    // Clear any existing timer state before loading a new game
-    // Note: clearTimerState() handles errors internally (non-critical), so no try/catch needed
-    await clearTimerState(userId);
-    // Also clear the localStorage wall-clock anchor. Otherwise a stale anchor from the
-    // previously-loaded game survives the switch and, on next boot, replays the inter-session
-    // gap as elapsed match time - auto-resuming the wrong clock.
-    clearTimerAnchor();
-
-    setProcessingGameId(gameId);
-    setIsGameLoading(true);
-    setGameLoadError(null);
-
-    const gameDataToLoad = savedGames[gameId] as AppState | undefined;
-
-    if (gameDataToLoad) {
-      try {
-        // Pre-set gameType BEFORE loading full game state to prevent field flash
-        // (field briefly shows soccer before switching to futsal without this)
-        const gameType = gameDataToLoad.gameType ?? 'soccer';
-        dispatchGameSession({ type: 'SET_GAME_TYPE', payload: gameType });
-
-        // Dispatch to reducer to load the game state
-        await loadGameStateFromData(gameDataToLoad);
-
-        // Update current game ID and save settings
-        setCurrentGameId(gameId);
-        await utilSaveCurrentGameIdSetting(gameId, userId);
-
-        logger.log(`Game ${gameId} load dispatched to reducer.`);
-        handleCloseLoadGameModal();
-
-      } catch(error) {
-        logger.error("Error processing game load:", error);
-        setGameLoadError(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'));
-      } finally {
-        setIsGameLoading(false);
-        setProcessingGameId(null);
-      }
-    } else {
-      logger.error(`Game state not found for ID: ${gameId}`);
-      setGameLoadError(t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', { gameId }));
-      setIsGameLoading(false);
-      setProcessingGameId(null);
-    }
-  }, [
-    savedGames,
-    setCurrentGameId,
-    dispatchGameSession,
-    loadGameStateFromData,
-    handleCloseLoadGameModal,
-    t,
-    userId,
-  ]);
-
-  // --- Delete Game Handler ---
-  /**
-   * Delete a saved game by ID
-   *
-   * Cannot delete the default game. If deleting the currently loaded game,
-   * loads the latest remaining game or resets to initial state.
-   *
-   * @param gameId - ID of game to delete
-   */
-  const handleDeleteGame = useCallback(async (gameId: string) => {
-    logger.log(`Deleting game with ID: ${gameId}`);
-
-    if (gameId === DEFAULT_GAME_ID) {
-      logger.warn("Cannot delete the default unsaved state.");
-      setGameDeleteError(t('loadGameModal.errors.cannotDeleteDefault', 'Cannot delete the current unsaved game progress.'));
-      return;
-    }
-
-    setGameDeleteError(null);
-    setIsGameDeleting(true);
-    setProcessingGameId(gameId);
-
-    try {
-      const deletedGameId = await utilDeleteGame(gameId, userId);
-
-      if (deletedGameId) {
-        // Planner bookkeeping: drop the game's planned-sub schedule and plan link
-        // (local-only stores keyed by game id) so they don't accumulate as orphans.
-        // Best-effort - a failure here must never fail an already-deleted game.
-        try {
-          await Promise.all([deleteGameSubs(gameId), deletePlanLink(gameId)]);
-        } catch (cleanupError) {
-          logger.warn('[useGamePersistence] Planner cleanup after game delete failed (non-fatal):', cleanupError);
-        }
-
-        const updatedSavedGames = { ...savedGames };
-        delete updatedSavedGames[gameId];
-
-        // Calculate next game ID BEFORE any state updates to enable batching
-        const needsNewCurrentGame = currentGameId === gameId;
-        const nextGameId = needsNewCurrentGame ? getLatestGameId(updatedSavedGames) : null;
-
-        // Batch all state updates together to prevent flicker
-        // React 18+ batches synchronous setState calls in the same event handler
-        queryClient.setQueryData<SavedGamesCollection>([...queryKeys.savedGames, userId], updatedSavedGames);
-        setSavedGames(updatedSavedGames);
-
-        if (needsNewCurrentGame) {
-          if (nextGameId) {
-            logger.log(`Deleted active game. Loading latest game ${nextGameId}.`);
-            setCurrentGameId(nextGameId);
-          } else {
-            logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
-            dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
-            setPlayersOnField(initialState.playersOnField || []);
-            setOpponents(initialState.opponents || []);
-            setDrawings(initialState.drawings || []);
-            resetHistory(initialState as AppState);
-            setCurrentGameId(DEFAULT_GAME_ID);
-          }
-        }
-
-        logger.log(`Game ${gameId} deleted from state and persistence.`);
-
-        // Persist currentGameId setting AFTER state updates (async, non-blocking)
-        if (needsNewCurrentGame) {
-          await utilSaveCurrentGameIdSetting(nextGameId || DEFAULT_GAME_ID, userId);
-        }
-      } else {
-        logger.warn(`handleDeleteGame: utilDeleteGame returned null for gameId: ${gameId}. Game might not have been found or ID was invalid.`);
-        setGameDeleteError(t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}. Game not found or ID was invalid.', { gameId }));
-      }
-    } catch (error) {
-      logger.error('[useGamePersistence] Game delete failed:', error);
-      setGameDeleteError(t('loadGameModal.errors.deleteFailedCatch', 'Failed to delete game. Please try again.'));
-    } finally {
-      setIsGameDeleting(false);
-      setProcessingGameId(null);
-    }
-  }, [
-    savedGames,
-    setSavedGames,
-    currentGameId,
-    setCurrentGameId,
-    dispatchGameSession,
-    initialGameSessionData,
-    setPlayersOnField,
-    setOpponents,
-    setDrawings,
-    initialState,
-    resetHistory,
-    queryClient,
-    t,
-    userId,
-  ]);
+  // handleLoadGame + handleDeleteGame LIFTED to useLoadGameController (L.3a):
+  // LoadGameModal renders in ClubModalsHost; picking a game persists the id and
+  // freshly mounts the match (enterMatch), replacing in-place game switching.
 
   // --- Delete Game Event Handler ---
   /**
@@ -783,18 +622,11 @@ export function useGamePersistence({
 
   return {
     // Load game state
-    isGameLoading,
-    gameLoadError,
-    processingGameId,
 
     // Delete game state
-    isGameDeleting,
-    gameDeleteError,
 
     // Handlers
     handleQuickSaveGame,
-    handleLoadGame,
-    handleDeleteGame,
     handleDeleteGameEvent,
   };
 }

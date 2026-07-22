@@ -508,7 +508,7 @@ describe('useAutoSave', () => {
      * Cleanup should clear all pending timers to prevent memory leaks
      * @critical
      */
-    it('should cleanup timers on unmount', () => {
+    it('flushes a pending debounce on unmount, then stays quiet', () => {
       const { unmount, rerender } = renderHook(
         ({ teamName, playersOnField }) =>
           useAutoSave({
@@ -534,15 +534,18 @@ describe('useAutoSave', () => {
         rerender({ teamName: 'Team B', playersOnField: [createPlayer('1', 'Player 1', 0.5, 0.5)] });
       });
 
-      // Unmount before timers fire
+      // Unmount before timers fire: the pending change is FLUSHED once
+      // (deep-review fix - since 3.1 the match unmounts on every exit, so
+      // cancelling would lose the last ~2s of edits), and the cleared
+      // timers add nothing more afterwards.
       unmount();
+      expect(mockSaveFunction).toHaveBeenCalledTimes(1);
 
-      // Advance time - should not save because timers were cleared
       act(() => {
         jest.advanceTimersByTime(3000);
       });
 
-      expect(mockSaveFunction).not.toHaveBeenCalled();
+      expect(mockSaveFunction).toHaveBeenCalledTimes(1);
     });
 
     /**

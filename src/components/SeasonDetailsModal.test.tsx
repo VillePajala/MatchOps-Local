@@ -71,6 +71,9 @@ const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
 describe('SeasonDetailsModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // The modal now registers with the module-level hardware-back stack; reset
+    // it between tests so pushed sentinels/entries don't leak across cases.
+    jest.requireActual('@/hooks/useModalHardwareBack').__resetModalHardwareBackForTests();
   });
 
   it('renders season details when open', async () => {
@@ -99,6 +102,26 @@ describe('SeasonDetailsModal', () => {
 
     const cancelButton = screen.getByRole('button', { name: i18n.t('common.cancel', 'Cancel') });
     await user.click(cancelButton);
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels via hardware back (Android, where the header X is hidden)', async () => {
+    // The nested dialog registers with the hardware-back stack so Android's back
+    // button cancels IT, instead of falling through to the parent manager's
+    // sentinel and closing the whole manager (discarding the edit).
+    const { __resetModalHardwareBackForTests } = jest.requireActual('@/hooks/useModalHardwareBack');
+    __resetModalHardwareBackForTests();
+    const onClose = jest.fn();
+
+    await act(async () => {
+      renderWithProviders({ onClose });
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -194,18 +217,19 @@ describe('SeasonDetailsModal', () => {
     expect(saveButton).toBeDisabled();
   });
 
-  it('handles archived checkbox toggle', async () => {
+  it('handles archived toggle', async () => {
     const user = userEvent.setup();
 
     await act(async () => {
       renderWithProviders();
     });
 
-    const archivedCheckbox = screen.getByRole('checkbox', { name: i18n.t('seasonDetailsModal.archivedLabel', 'Archived') });
-    expect(archivedCheckbox).not.toBeChecked();
+    // The archived setting is a house-style toggle button (aria-pressed), not a checkbox.
+    const archivedToggle = screen.getByRole('button', { name: i18n.t('seasonDetailsModal.archivedLabel', 'Archived') });
+    expect(archivedToggle).toHaveAttribute('aria-pressed', 'false');
 
-    await user.click(archivedCheckbox);
-    expect(archivedCheckbox).toBeChecked();
+    await user.click(archivedToggle);
+    expect(archivedToggle).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('handles date inputs correctly', async () => {
