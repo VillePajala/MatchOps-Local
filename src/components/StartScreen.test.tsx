@@ -122,7 +122,7 @@ describe('StartScreen', () => {
     expect(screen.queryByRole('button', { name: 'Match planner' })).not.toBeInTheDocument();
   });
 
-  it('first-run routes the new coach into Home setup (add players, then first game)', () => {
+  it('a brand-new coach lands on the real Home hub with New Game as the primary action', () => {
     const handlers = {
       onLoadGame: jest.fn(),
       onResumeGame: jest.fn(),
@@ -148,33 +148,24 @@ describe('StartScreen', () => {
       />
     );
 
-    // The two-step setup path replaces the old single "Get Started → demo field".
-    expect(screen.queryByRole('button', { name: 'Get Started' })).not.toBeInTheDocument();
-    const addPlayers = screen.getByRole('button', { name: /Add your players/ });
-    const createGame = screen.getByRole('button', { name: /Create your first game/ });
-    const explore = screen.getByRole('button', { name: 'Just explore first' });
+    // The old separate first-run mode (two-step panel) is gone.
+    expect(screen.queryByRole('button', { name: /Add your players/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Create your first game/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Just explore first' })).not.toBeInTheDocument();
 
-    // Step 1 opens the roster (Home setup), NOT the demo field.
-    fireEvent.click(addPlayers);
-    expect(handlers.onManageRoster).toHaveBeenCalled();
-    expect(handlers.onGetStarted).not.toHaveBeenCalled();
+    // A new coach sees the real Home hub - the tab bar is present from the start.
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
 
-    // Step 2 opens new-game setup.
-    fireEvent.click(createGame);
+    // New Game is the day-one primary action (players are added inside that flow).
+    fireEvent.click(screen.getByRole('button', { name: 'New Game' }));
     expect(handlers.onNewGame).toHaveBeenCalled();
 
-    // "Explore first" preserves the old demo-field opt-in.
-    fireEvent.click(explore);
-    expect(handlers.onGetStarted).toHaveBeenCalled();
+    // Nothing to load yet, so Saved games is hidden.
+    expect(screen.queryByRole('button', { name: 'Saved games' })).not.toBeInTheDocument();
 
-    // Still no full-interface buttons / tabs for a first-timer.
-    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
-    expect(screen.queryAllByRole('tab')).toHaveLength(0);
+    // The gear is still reachable, and the simple launcher shows the tagline.
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument();
-
-    // The brand tagline is hidden for first-timers - the first-run panel already
-    // shows its own guiding line, so both would stack under the logo.
-    expect(screen.queryByText('Plan · Track · Discover')).not.toBeInTheDocument();
+    expect(screen.getByText('Plan · Track · Discover')).toBeInTheDocument();
   });
 
   it('shows the brand tagline for a returning coach (not a first-timer)', () => {
@@ -196,7 +187,7 @@ describe('StartScreen', () => {
     expect(screen.getByText('Plan · Track · Discover')).toBeInTheDocument();
   });
 
-  it('first-run buttons fall back to onGetStarted when the setup handlers are unwired', () => {
+  it('the primary New Game falls back to onGetStarted when onNewGame is unwired', () => {
     const onGetStarted = jest.fn();
     render(
       <StartScreen
@@ -208,13 +199,11 @@ describe('StartScreen', () => {
         canResume={false}
         hasSavedGames={false}
         isFirstTimeUser={true}
-        // onManageRoster / onNewGame intentionally omitted
+        // onNewGame intentionally omitted
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: /Add your players/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Create your first game/ }));
-    // Both steps + Explore all route to onGetStarted when their handler is absent.
-    expect(onGetStarted).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'New Game' }));
+    expect(onGetStarted).toHaveBeenCalledTimes(1);
   });
 
   it('cloud mode: the gear sheet shows the account entry with the email (footer is gone)', () => {
@@ -570,10 +559,11 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(screen.getAllByRole('button', { name: 'Settings' })).toHaveLength(1);
   });
 
-  it('hides the tab bar for first-time users (focused first-run setup panel)', () => {
+  it('shows the tab bar to first-time users too (they learn the real Home from the start)', () => {
     render(<StartScreen {...shellProps()} isFirstTimeUser={true} />);
-    expect(screen.queryAllByRole('tab')).toHaveLength(0);
-    expect(screen.getByRole('button', { name: /Add your players/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    // No separate first-run panel any more.
+    expect(screen.queryByRole('button', { name: /Add your players/ })).not.toBeInTheDocument();
   });
 });
 
@@ -635,17 +625,16 @@ describe('Home dashboard view (opt-in)', () => {
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' })); // opens gear sheet
     const sheet = screen.getByRole('dialog', { name: 'App & account' });
-    fireEvent.click(within(sheet).getByRole('button', { name: /Show summary on home/ }));
+    fireEvent.click(within(sheet).getByRole('button', { name: /Simplified view/ }));
     expect(props.onSetHomeView).toHaveBeenCalledWith('simple'); // was 'dashboard'
   });
 
-  it('Joukkue tab shows the counts header + Valmennus group when on', () => {
+  it('Joukkue tab shows the counts header when the dashboard is on', () => {
     const props = { ...dashProps(), onManageTeams: jest.fn(), onManagePersonnel: jest.fn(), onOpenTraining: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Team' }));
     expect(screen.getByText(/18 players/)).toBeInTheDocument();
     expect(screen.getByText(/3 teams/)).toBeInTheDocument();
-    expect(screen.getByText('Coaching')).toBeInTheDocument(); // Valmennus group label
   });
 
   it('Kilpailut tab shows the club-season card; it opens OVERALL stats (not a Kausi)', () => {

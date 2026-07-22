@@ -2415,6 +2415,7 @@ export type TranslationKey =
   | 'startScreen.gearRules'
   | 'startScreen.gearSetup'
   | 'startScreen.gearSignOut'
+  | 'startScreen.gearSimplifiedView'
   | 'startScreen.gearTitle'
   | 'startScreen.homeTabs'
   | 'startScreen.howItWorks'

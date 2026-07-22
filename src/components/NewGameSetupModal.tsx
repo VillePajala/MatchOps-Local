@@ -888,7 +888,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 title={t('newGameSetupModal.selectPlayers', 'Select Players')}
                 playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
                 selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
-                noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
+                noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players yet - add your first player below.')}
                 onAddPlayer={
                   onAddPlayerToRoster
                     ? async (name: string, nickname?: string) => {
