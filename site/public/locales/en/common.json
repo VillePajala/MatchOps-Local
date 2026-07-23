@@ -439,6 +439,29 @@
       "teamStats": "Team Stats",
       "seasonTrends": "Season Trends"
     },
+    "spotlights": {
+      "planner": {
+        "eyebrow": "Playing-Time Planner",
+        "title": "Plan your games ahead",
+        "desc": "Set your substitutions and rotations for upcoming games in advance - decide who plays where and when before you ever reach the pitch, so game day runs itself. Playing time stays balanced across the season as a result."
+      },
+      "development": {
+        "eyebrow": "Player Development",
+        "title": "A growth compass for every player",
+        "desc": "Rate players on developmental qualities after a game and build each player's picture over time - current form, trend arrows, strengths and focus areas, plus a shareable report card. Compare each child to their own past, not to other kids."
+      },
+      "dashboard": {
+        "eyebrow": "Your season at a glance",
+        "title": "Open to the whole picture",
+        "desc": "The home screen greets you with what matters right now - pick up the game you were tracking, your season record, recent results and your top scorer, all before you tap anything."
+      }
+    },
+    "bands": {
+      "gameDay": "Game day",
+      "development": "Player development",
+      "club": "Your club",
+      "statsSharing": "Stats, sharing & anywhere"
+    },
     "ui": {
       "plan": "Plan",
       "track": "Track",
@@ -527,7 +550,9 @@
       "matchReport": "Match Report",
       "matchReportDesc": "Write your account of the game from a ready template of headings — overview, what went well, what to work on, highlights, next step. Included in the shareable recap.",
       "overtime": "Overtime & Penalties",
-      "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats and exports."
+      "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats and exports.",
+      "friendlies": "Friendly matches",
+      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats. Fold them back in anytime with a single toggle."
     },
     "techCards": {
       "development": "DEVELOPMENT",

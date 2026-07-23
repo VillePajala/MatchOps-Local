@@ -83,6 +83,15 @@ const getScreenshots = (locale: string | undefined) => {
     teamstats: isEnglish
       ? '/screenshots/MatchOps_main_teamstats_en.jpg'
       : '/screenshots/MatchOps_main_teamstats_fi.jpg',
+    // NEW features (planner / dashboard / friendlies) — Phase 2 replaces these
+    // placeholders with real shots. Kept as existing images so Phase 1 renders.
+    planner: '/screenshots/MatchOps_main_soccerfield_new_en_fi.jpg',
+    dashboard: isEnglish
+      ? '/screenshots/MatchOps_main_teamstats_en.jpg'
+      : '/screenshots/MatchOps_main_teamstats_fi.jpg',
+    friendlies: isEnglish
+      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
+      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
   };
 };
 
@@ -426,57 +435,99 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURE CARDS (15 features) ===== */}
+      {/* ===== FLAGSHIP SPOTLIGHTS ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-10 text-center">
-              {isEnglish ? 'More Features' : 'Lisää ominaisuuksia'}
-            </h2>
+          <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
+            {[
+              { key: 'planner', screenshot: screenshots.planner },
+              { key: 'development', screenshot: screenshots.assessment },
+              { key: 'dashboard', screenshot: screenshots.dashboard },
+            ].map((s, i) => (
+              <div
+                key={s.key}
+                className={`flex flex-col items-center gap-8 md:gap-16 ${
+                  i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'
+                }`}
+              >
+                <div className="md:w-1/2 text-center md:text-left">
+                  <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
+                    {t(`marketing.spotlights.${s.key}.eyebrow`)}
+                  </div>
+                  <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
+                    {t(`marketing.spotlights.${s.key}.title`)}
+                  </h2>
+                  <p className="text-slate-300 text-base md:text-lg leading-relaxed">
+                    {t(`marketing.spotlights.${s.key}.desc`)}
+                  </p>
+                </div>
+                <div className="md:w-1/2 flex justify-center">
+                  <PhoneMockup screenshot={s.screenshot} size="3xl" zIndex={10} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="grid grid-cols-1 gap-6 md:gap-8">
-              {[
+      {/* ===== FEATURE BANDS (grouped, replaces the old flat card list) ===== */}
+      <section className="section section-divider bg-slate-800/40">
+        <div className="container-custom">
+          <div className="max-w-6xl mx-auto space-y-16">
+            {[
+              { band: 'gameDay', cards: [
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
-                { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
-                // New post-game features — screenshots pending the refreshed shoot.
-                { key: 'assessment', screenshot: screenshots.assessment },
-                { key: 'recap', screenshot: screenshots.recap },
-                { key: 'positions', screenshot: screenshots.positions },
-                { key: 'positionBalance', screenshot: screenshots.positionBalance },
-                { key: 'trends', screenshot: screenshots.trends },
-                { key: 'matchReport', screenshot: screenshots.matchReport },
                 { key: 'overtime', screenshot: screenshots.overtime },
                 { key: 'formations', screenshot: screenshots.formations },
-                { key: 'excelExport', screenshot: screenshots.excelExport },
+                { key: 'recap', screenshot: screenshots.recap },
+              ] },
+              { band: 'development', cards: [
+                { key: 'trends', screenshot: screenshots.trends },
+                { key: 'positions', screenshot: screenshots.positions },
+                { key: 'positionBalance', screenshot: screenshots.positionBalance },
+                { key: 'matchReport', screenshot: screenshots.matchReport },
+              ] },
+              { band: 'club', cards: [
                 { key: 'roster', screenshot: screenshots.roster },
-                { key: 'archive', screenshot: screenshots.archive },
                 { key: 'teams', screenshot: screenshots.teams },
+                { key: 'personnel', screenshot: screenshots.personnel },
                 { key: 'seasons', screenshot: screenshots.seasons },
                 { key: 'tournaments', screenshot: screenshots.tournaments },
+                { key: 'friendlies', screenshot: screenshots.friendlies },
                 { key: 'futsal', screenshot: screenshots.futsal },
-                { key: 'personnel', screenshot: screenshots.personnel },
+              ] },
+              { band: 'statsSharing', cards: [
+                { key: 'excelExport', screenshot: screenshots.excelExport },
+                { key: 'archive', screenshot: screenshots.archive },
+                { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'officialRules', screenshot: screenshots.officialRules },
-              ].map((card, i) => (
-                <div
-                  key={card.key}
-                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 sm:p-6 md:p-8 flex gap-6 md:gap-24 md:items-center md:justify-center ${
-                    i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
-                  }`}
-                >
-                  <div className="w-1/2 md:w-auto md:max-w-md flex flex-col justify-center items-start md:rounded-2xl md:bg-white/5 md:ring-1 md:ring-white/10 md:p-8 md:shadow-lg">
-                    <div className="text-primary text-xs sm:text-sm font-semibold mb-1 sm:mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-lg sm:text-xl md:text-3xl font-bold mb-2 sm:mb-3">
-                      {t(`marketing.featureCards.${card.key}`)}
-                    </h3>
-                    <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
-                  </div>
-                  <div className="w-1/2 md:w-auto md:shrink-0 flex items-center justify-center">
-                    <PhoneMockup screenshot={card.screenshot} size="3xl" zIndex={10} />
-                  </div>
+              ] },
+            ].map((group) => (
+              <div key={group.band}>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
+                  {t(`marketing.bands.${group.band}`)}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+                  {group.cards.map((card) => (
+                    <div
+                      key={card.key}
+                      className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-5 md:p-6 border border-slate-700/40 flex flex-col items-center text-center"
+                    >
+                      <div className="flex justify-center mb-4">
+                        <PhoneMockup screenshot={card.screenshot} size="xl" zIndex={10} />
+                      </div>
+                      <h3 className="text-white text-lg font-bold mb-2">
+                        {t(`marketing.featureCards.${card.key}`)}
+                      </h3>
+                      <p className="text-gray-400 text-sm">
+                        {t(`marketing.featureCards.${card.key}Desc`)}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
