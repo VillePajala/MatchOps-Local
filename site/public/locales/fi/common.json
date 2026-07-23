@@ -452,7 +452,7 @@
       },
       "dashboard": {
         "eyebrow": "Kausi yhdellä silmäyksellä",
-        "title": "Avaa koko kuvaan",
+        "title": "Hallintapaneeli",
         "desc": "Alkunäkymä tervehtii sinua sillä mikä on juuri nyt tärkeää - jatka peliä jota seurasit, kauden tulokset, viimeisimmät ottelut ja maalintekijäsi, jo ennen kuin painat mitään."
       }
     },
