@@ -128,10 +128,17 @@ async function captureLang(page: Page, lang: 'en' | 'fi') {
     await setLang(page, lang);
     const T = L[lang];
 
+    // Planner FIRST (freshest state — the drill-in is flaky when run late)
+    await tab(page, T.games); await openRow(page, T.planner, `planner_${lang}`, true);
+    await ensureHome(page);
+
     await tab(page, T.games); await shot(page, `dashboard_${lang}`);
     await tab(page, T.club); await shot(page, `club_${lang}`);
     await tab(page, T.comps); await shot(page, `competitions_${lang}`); await dump(page, `${lang}-comps`);
     await tab(page, T.stats); await shot(page, `stats_${lang}`); await dump(page, `${lang}-stats`);
+
+    // New game setup (depicts the friendly / harjoitusottelu option) — for the friendlies card
+    await tab(page, T.games); await openRow(page, /^New Game$|^Uusi ottelu$/, `newgame_${lang}`);
 
     // Club-tab modals
     await tab(page, T.club);

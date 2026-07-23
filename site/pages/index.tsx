@@ -29,8 +29,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
       : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
     roster: isEnglish
-      ? '/screenshots/MatchOps_v2_roster_en.png'
-      : '/screenshots/MatchOps_v2_roster_fi.png',
+      ? '/screenshots/MatchOps_v2_roster_en.jpg'
+      : '/screenshots/MatchOps_v2_roster_fi.jpg',
     assessment: isEnglish
       ? '/screenshots/MatchOps_main_playerdevelopment_en.jpg'
       : '/screenshots/MatchOps_main_playerdevelopment_fi.jpg',
@@ -53,14 +53,14 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_main_overtime_en.jpg'
       : '/screenshots/MatchOps_main_overtime_fi.jpg',
     seasons: isEnglish
-      ? '/screenshots/MatchOps_v2_seasons_en.png'
-      : '/screenshots/MatchOps_v2_seasons_fi.png',
+      ? '/screenshots/MatchOps_v2_seasons_en.jpg'
+      : '/screenshots/MatchOps_v2_seasons_fi.jpg',
     tournaments: isEnglish
-      ? '/screenshots/MatchOps_v2_tournaments_en.png'
-      : '/screenshots/MatchOps_v2_tournaments_fi.png',
+      ? '/screenshots/MatchOps_v2_tournaments_en.jpg'
+      : '/screenshots/MatchOps_v2_tournaments_fi.jpg',
     teams: isEnglish
-      ? '/screenshots/MatchOps_v2_teams_en.png'
-      : '/screenshots/MatchOps_v2_teams_fi.png',
+      ? '/screenshots/MatchOps_v2_teams_en.jpg'
+      : '/screenshots/MatchOps_v2_teams_fi.jpg',
     archive: isEnglish
       ? '/screenshots/MatcOps_main_savedgames_en.jpg'
       : '/screenshots/MatchOps_main_savedgames_fi.jpg',
@@ -71,8 +71,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatcOps_main_excelexport_en.jpg'
       : '/screenshots/MatchOps_main_excelexport_fi.jpg',
     personnel: isEnglish
-      ? '/screenshots/MatchOps_v2_personnel_en.png'
-      : '/screenshots/MatchOps_v2_personnel_fi.png',
+      ? '/screenshots/MatchOps_v2_personnel_en.jpg'
+      : '/screenshots/MatchOps_v2_personnel_fi.jpg',
     futsal: '/screenshots/MatchOps_main_futsal_new_en_fi.jpg',
     officialRules: isEnglish
       ? '/screenshots/MatchOps_main_rules_en.jpg'
@@ -86,14 +86,14 @@ const getScreenshots = (locale: string | undefined) => {
     // NEW features (planner / dashboard / friendlies) — Phase 2 replaces these
     // placeholders with real shots. Kept as existing images so Phase 1 renders.
     planner: isEnglish
-      ? '/screenshots/MatchOps_v2_planner_fi.png'
-      : '/screenshots/MatchOps_v2_planner_fi.png',
+      ? '/screenshots/MatchOps_v2_planner_en.jpg'
+      : '/screenshots/MatchOps_v2_planner_fi.jpg',
     dashboard: isEnglish
-      ? '/screenshots/MatchOps_v2_dashboard_en.png'
-      : '/screenshots/MatchOps_v2_dashboard_fi.png',
+      ? '/screenshots/MatchOps_v2_dashboard_en.jpg'
+      : '/screenshots/MatchOps_v2_dashboard_fi.jpg',
     friendlies: isEnglish
-      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
-      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
+      ? '/screenshots/MatchOps_v2_newgame_en.jpg'
+      : '/screenshots/MatchOps_v2_newgame_fi.jpg',
   };
 };
 
