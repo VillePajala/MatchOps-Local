@@ -443,8 +443,8 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
             {[
               { key: 'planner', screenshot: screenshots.planner },
-              { key: 'development', screenshot: screenshots.assessment },
-              { key: 'dashboard', screenshot: screenshots.dashboard },
+              { key: 'gameday', screenshot: screenshots.soccerfield },
+              { key: 'stats', screenshot: screenshots.playerstats },
             ].map((s, i) => (
               <div
                 key={s.key}
@@ -485,6 +485,7 @@ export default function HomePage() {
                 { key: 'recap', screenshot: screenshots.recap },
               ] },
               { band: 'development', cards: [
+                { key: 'assessment', screenshot: screenshots.assessment },
                 { key: 'trends', screenshot: screenshots.trends },
                 { key: 'positions', screenshot: screenshots.positions },
                 { key: 'positionBalance', screenshot: screenshots.positionBalance },
@@ -500,6 +501,7 @@ export default function HomePage() {
                 { key: 'futsal', screenshot: screenshots.futsal },
               ] },
               { band: 'statsSharing', cards: [
+                { key: 'dashboard', screenshot: screenshots.dashboard },
                 { key: 'excelExport', screenshot: screenshots.excelExport },
                 { key: 'archive', screenshot: screenshots.archive },
                 { key: 'cloudSync', screenshot: screenshots.cloudSync },

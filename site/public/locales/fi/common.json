@@ -454,6 +454,16 @@
         "eyebrow": "Kausi yhdellä silmäyksellä",
         "title": "Hallintapaneeli",
         "desc": "Alkunäkymä tervehtii sinua sillä mikä on juuri nyt tärkeää - jatka peliä jota seurasit, kauden tulokset, viimeisimmät ottelut ja maalintekijäsi, jo ennen kuin painat mitään."
+      },
+      "gameday": {
+        "eyebrow": "Ottelupäivä",
+        "title": "Seuraa peliä reaaliajassa",
+        "desc": "Aseta kokoonpano kentälle, käynnistä ajastin ja kirjaa maalit, syötöt ja vaihdot sitä mukaa kun ne tapahtuvat - offline, suoraan kentän laidalla."
+      },
+      "stats": {
+        "eyebrow": "Tilastot",
+        "title": "Tilastot syntyvät itsestään",
+        "desc": "Jokainen seuraamasi peli kartuttaa kausi-, pelaaja- ja joukkuetilastoja automaattisesti - ei taulukkolaskentaa. Näet miten kausi etenee, kuka tekee maaleja ja miten kutakin pelaajaa käytetään."
       }
     },
     "bands": {
@@ -552,7 +562,9 @@
       "overtime": "Jatkoaika ja rangaistuslaukaukset",
       "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin.",
       "friendlies": "Harjoitusottelut",
-      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi. Ota ne mukaan milloin tahansa yhdellä kytkimellä."
+      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi. Ota ne mukaan milloin tahansa yhdellä kytkimellä.",
+      "dashboard": "Hallintapaneeli",
+      "dashboardDesc": "Avaa sovellus ja näet tilannekuvan kaudesta - peli johon palata, tuloksesi, viimeisimmät ottelut ja maalintekijäsi."
     },
     "techCards": {
       "development": "KEHITYS",

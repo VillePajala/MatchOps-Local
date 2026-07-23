@@ -454,6 +454,16 @@
         "eyebrow": "Your season at a glance",
         "title": "Dashboard",
         "desc": "The home screen greets you with what matters right now - pick up the game you were tracking, your season record, recent results and your top scorer, all before you tap anything."
+      },
+      "gameday": {
+        "eyebrow": "Game day",
+        "title": "Track the whole game, live",
+        "desc": "Place your lineup on the field, run the timer, and log goals, assists and substitutions as they happen - offline, right at the pitch."
+      },
+      "stats": {
+        "eyebrow": "Statistics",
+        "title": "Stats that build themselves",
+        "desc": "Every game you track feeds season, player and team statistics automatically - no spreadsheets. See how the season's going, who's scoring, and how each player is used."
       }
     },
     "bands": {
@@ -552,7 +562,9 @@
       "overtime": "Overtime & Penalties",
       "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats and exports.",
       "friendlies": "Friendly matches",
-      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats. Fold them back in anytime with a single toggle."
+      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats. Fold them back in anytime with a single toggle.",
+      "dashboard": "Dashboard",
+      "dashboardDesc": "Open the app to a snapshot of your season - the game to jump back into, your record, recent results and top scorer."
     },
     "techCards": {
       "development": "DEVELOPMENT",
