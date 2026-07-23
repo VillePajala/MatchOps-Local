@@ -443,7 +443,7 @@
       "planner": {
         "eyebrow": "Peliaikasuunnittelija",
         "title": "Suunnittele pelisi etukäteen",
-        "desc": "Aseta vaihdot ja rotaatiot tuleviin peleihin jo etukäteen - päätä kuka pelaa missäkin ja milloin ennen kuin edes saavut kentälle, niin ottelupäivä sujuu kuin itsestään. Samalla peliaika pysyy tasaisena läpi kauden."
+        "desc": "Suunnittele aloituskokoonpanot ja rotaatiot tuleviin ottelukokonaisuuksiin, kuten turnauksiin. Hahmotat helposti pelaajakohtaiset peliaikakertymät ja hajonnan pelipaikoista. Toiminnallisuus mahdollistaa suunnitelmien muokkauksen myös kesken pelisarjan ja näet heti muutosten vaikutuksen kokonaisuuteen."
       },
       "development": {
         "eyebrow": "Pelaajan kehitys",
