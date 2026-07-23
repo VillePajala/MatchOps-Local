@@ -109,8 +109,8 @@ export default function HomePage() {
 
   // Mobile carousel labels (5 items now)
   const carouselLabels = isEnglish
-    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Development']
-    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Kehitys'];
+    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Plan']
+    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Suunnittele'];
 
   useEffect(() => {
     const container = mobileCarouselRef.current;
@@ -227,7 +227,7 @@ export default function HomePage() {
                   { src: screenshots.timer, alt: 'Timer view' },
                   { src: screenshots.playerstats, alt: 'Stats view' },
                   { src: screenshots.tacticalBoard, alt: 'Tactics view' },
-                  { src: screenshots.assessment, alt: 'Development view' },
+                  { src: screenshots.planner, alt: 'Planner view' },
                 ].map((screen, i) => (
                   <div key={i} className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
                     <div className="phone-frame phone-frame-full">
@@ -338,9 +338,9 @@ export default function HomePage() {
                   }}
                   zIndex={2}
                 />
-                {/* Phone 5: Goal Timeline - far right */}
+                {/* Phone 5: Planner - far right */}
                 <PhoneMockup
-                  screenshot={screenshots.assessment}
+                  screenshot={screenshots.planner}
                   size="md"
                   style={{
                     position: 'absolute',
