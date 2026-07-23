@@ -464,6 +464,11 @@
         "eyebrow": "Tilastot",
         "title": "Tilastot syntyvät itsestään",
         "desc": "Jokainen seuraamasi peli kartuttaa kausi-, pelaaja- ja joukkuetilastoja automaattisesti - ei taulukkolaskentaa. Näet miten kausi etenee, kuka tekee maaleja ja miten kutakin pelaajaa käytetään."
+      },
+      "positionBalance": {
+        "eyebrow": "Pelipaikkojen tasapaino",
+        "title": "Näe kuka on jäänyt yhteen rooliin",
+        "desc": "Näet koko kauden ajalta, missä pelipaikoissa kukin pelaaja on todella pelannut - linjoittain tai tarkalla paikalla. Yhteen rooliin jääneet erottuvat selvästi, joten voit laajentaa heidän peliään ja antaa jokaiselle lapselle aikaa useammassa paikassa."
       }
     },
     "bands": {

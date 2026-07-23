@@ -464,6 +464,11 @@
         "eyebrow": "Statistics",
         "title": "Stats that build themselves",
         "desc": "Every game you track feeds season, player and team statistics automatically - no spreadsheets. See how the season's going, who's scoring, and how each player is used."
+      },
+      "positionBalance": {
+        "eyebrow": "Position balance",
+        "title": "See who's stuck in one role",
+        "desc": "Across a whole season, see which positions each player has actually played - by line or exact spot. Players kept in one role stand out, so you can deliberately broaden their game and give every child time in more than one place."
       }
     },
     "bands": {

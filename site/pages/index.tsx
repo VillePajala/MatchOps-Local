@@ -443,8 +443,8 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
             {[
               { key: 'planner', screenshot: screenshots.planner },
-              { key: 'gameday', screenshot: screenshots.soccerfield },
-              { key: 'stats', screenshot: screenshots.playerstats },
+              { key: 'positionBalance', screenshot: screenshots.positionBalance },
+              { key: 'development', screenshot: screenshots.assessment },
             ].map((s, i) => (
               <div
                 key={s.key}
@@ -485,10 +485,8 @@ export default function HomePage() {
                 { key: 'recap', screenshot: screenshots.recap },
               ] },
               { band: 'development', cards: [
-                { key: 'assessment', screenshot: screenshots.assessment },
                 { key: 'trends', screenshot: screenshots.trends },
                 { key: 'positions', screenshot: screenshots.positions },
-                { key: 'positionBalance', screenshot: screenshots.positionBalance },
                 { key: 'matchReport', screenshot: screenshots.matchReport },
               ] },
               { band: 'club', cards: [
