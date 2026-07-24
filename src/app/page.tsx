@@ -27,6 +27,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
+import { queryKeys } from '@/config/queryKeys';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
@@ -1350,11 +1351,17 @@ export default function Home() {
   const handleOpenGameById = useCallback(async (id: string) => {
     try {
       await utilSaveCurrentGameIdSetting(id, userId);
+      // Invalidate the cached current-game-id so the fresh match mount boots
+      // the game we just persisted - without this the remount reads the STALE
+      // cached id and every recent card opens the previously-loaded game.
+      await queryClient.invalidateQueries({
+        queryKey: [...queryKeys.appSettingsCurrentGameId, userId],
+      });
     } catch (err) {
       logger.warn('Failed to persist current game id before opening', { error: err });
     }
     enterMatch();
-  }, [userId, enterMatch]);
+  }, [userId, queryClient, enterMatch]);
   // A live match whose game was just deleted must remount (its boot falls
   // back to the persisted next-latest game); on the start screen this is a
   // no-op - deleting from Home must not navigate.

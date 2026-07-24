@@ -69,6 +69,11 @@ export interface SoccerFieldHandle {
 
 // Constants
 const PLAYER_RADIUS = 20;
+// Player/opponent tokens on the live field (and the formation/sub-slot snap
+// circles that mirror them) read better a touch larger. The tactical-board
+// discs and the tactical hit-test deliberately keep PLAYER_RADIUS so the
+// tactics view stays at its current size.
+const FIELD_PLAYER_RADIUS = 24;
 const BALL_IMAGE_OVERSCAN = 2.1; // Slightly oversized to eliminate edge artifacts when clipping
 const DOUBLE_TAP_TIME_THRESHOLD = 300; // ms
 const DOUBLE_TAP_POS_THRESHOLD = 15; // pixels
@@ -155,9 +160,12 @@ const createFieldBackgroundCached = (
   W: number,
   H: number,
   isTacticsView: boolean,
-  gameType: GameType = 'soccer'
+  gameType: GameType = 'soccer',
+  dpr: number = 1
 ): HTMLCanvasElement => {
-  const cacheKey = `${W}x${H}-${isTacticsView ? 'tactics' : 'normal'}-${gameType}`;
+  // dpr is part of the key: the cache holds a device-resolution bitmap, so a
+  // DPR change (e.g. moving to an external display) must miss and re-render.
+  const cacheKey = `${W}x${H}@${dpr}-${isTacticsView ? 'tactics' : 'normal'}-${gameType}`;
 
   // Check if we have a cached version (uses LRU cache)
   const cached = getFromCache(cacheKey);
@@ -168,12 +176,16 @@ const createFieldBackgroundCached = (
   // Get field configuration for the game type
   const fieldConfig = getFieldConfig(gameType);
 
-  // Create offscreen canvas for background
+  // Create offscreen canvas for background at PHYSICAL resolution so the field
+  // lines stay crisp - a CSS-pixel (1x) cache blitted onto the DPR-scaled main
+  // canvas gets upscaled and looks smudgy on 2x/3x phone screens.
   const offscreenCanvas = document.createElement('canvas');
-  offscreenCanvas.width = W;
-  offscreenCanvas.height = H;
+  offscreenCanvas.width = W * dpr;
+  offscreenCanvas.height = H * dpr;
   const offscreenCtx = offscreenCanvas.getContext('2d');
   if (!offscreenCtx) throw new Error('Could not get offscreen context');
+  // Draw in CSS-pixel coordinates; the scale maps them to physical pixels.
+  offscreenCtx.scale(dpr, dpr);
 
   // Draw field background (surface color, texture, lighting)
   drawFieldBackground(offscreenCtx, W, H, fieldConfig);
@@ -338,7 +350,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       const dxPx = (p.relX - snapTarget.relX) * rect.width;
       const dyPx = (p.relY - snapTarget.relY) * rect.height;
       const distSq = dxPx * dxPx + dyPx * dyPx;
-      return distSq <= PLAYER_RADIUS * PLAYER_RADIUS;
+      return distSq <= FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
     });
 
     if (occupied) {
@@ -404,8 +416,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // Scale factor for elements
     const scale = exportScale;
-    const playerRadius = PLAYER_RADIUS * scale;
-    const opponentRadius = PLAYER_RADIUS * 0.9 * scale;
+    const playerRadius = FIELD_PLAYER_RADIUS * scale;
+    const opponentRadius = FIELD_PLAYER_RADIUS * 0.9 * scale;
 
     // Draw drawings
     ctx.strokeStyle = '#FB923C';
@@ -732,8 +744,11 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Draw Cached Background ---
     // Use prerendered background for performance
-    const backgroundCanvas = createFieldBackgroundCached(context, W, H, isTacticsBoardView, gameType);
-    context.drawImage(backgroundCanvas, 0, 0);
+    const backgroundCanvas = createFieldBackgroundCached(context, W, H, isTacticsBoardView, gameType, dpr);
+    // The cache is a physical-resolution bitmap - blit it into the CSS-pixel
+    // box (drawImage honours the current dpr scale) so it maps 1:1 to device
+    // pixels and the lines render crisp.
+    context.drawImage(backgroundCanvas, 0, 0, W, H);
 
     // --- Draw Tactical Mode Overlays ---
     if (isTacticsBoardView) {
@@ -799,7 +814,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Draw Opponents --- (No manual scaling needed)
     context.lineWidth = 1.5;
-    const opponentRadius = PLAYER_RADIUS * 0.9; // Use original radius
+    const opponentRadius = FIELD_PLAYER_RADIUS * 0.9;
     if (!isTacticsBoardView) {
     opponents.forEach(opponent => {
       if (typeof opponent.relX !== 'number' || typeof opponent.relY !== 'number') {
@@ -935,7 +950,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Draw Field Formation Positions (solid circles where players snap) ---
     if (formationSnapPoints && formationSnapPoints.length > 0 && !isTacticsBoardView) {
-      const positionRadius = PLAYER_RADIUS;
+      const positionRadius = FIELD_PLAYER_RADIUS;
 
       formationSnapPoints.forEach(point => {
         // Skip GK position (at bottom) and sideline positions
@@ -962,7 +977,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Draw Sub Slots (before players so they appear behind) ---
     if (subSlots && subSlots.length > 0 && !isTacticsBoardView) {
-      const slotRadius = PLAYER_RADIUS;
+      const slotRadius = FIELD_PLAYER_RADIUS;
 
       subSlots.forEach(slot => {
         const absX = slot.relX * W;
@@ -1005,7 +1020,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     // --- Draw Players ---
-    const playerRadius = PLAYER_RADIUS;
+    const playerRadius = FIELD_PLAYER_RADIUS;
     if (!isTacticsBoardView) {
     players.forEach(player => {
       if (typeof player.relX !== 'number' || typeof player.relY !== 'number') {
@@ -1267,8 +1282,8 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const dx = absEventX - absPlayerX;
     const dy = absEventY - absPlayerY;
     // Compare distance squared to radius squared
-    return dx * dx + dy * dy <= PLAYER_RADIUS * PLAYER_RADIUS;
-  }, []); // No dependencies needed as PLAYER_RADIUS is constant and rect is read inside
+    return dx * dx + dy * dy <= FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
+  }, []); // No dependencies needed as FIELD_PLAYER_RADIUS is constant and rect is read inside
 
   // Helper to check if a point (clientX, clientY) is within an opponent disk - Corrected Canvas Logic
   const isPointInOpponent = useCallback((eventClientX: number, eventClientY: number, opponent: Opponent): boolean => {
@@ -1285,7 +1300,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const dx = absEventX - absOpponentX;
     const dy = absEventY - absOpponentY;
     // Compare distance squared to radius squared (opponent radius is slightly smaller)
-    const opponentRadiusSq = (PLAYER_RADIUS * 0.9) * (PLAYER_RADIUS * 0.9);
+    const opponentRadiusSq = (FIELD_PLAYER_RADIUS * 0.9) * (FIELD_PLAYER_RADIUS * 0.9);
     return dx * dx + dy * dy <= opponentRadiusSq;
   }, []); // No dependencies needed
 
@@ -1324,7 +1339,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const rect = canvas.getBoundingClientRect();
     const absEventX = eventClientX - rect.left;
     const absEventY = eventClientY - rect.top;
-    const hitRadiusSq = PLAYER_RADIUS * PLAYER_RADIUS;
+    const hitRadiusSq = FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
 
     // Check formation snap points first
     if (formationSnapPoints && formationSnapPoints.length > 0) {

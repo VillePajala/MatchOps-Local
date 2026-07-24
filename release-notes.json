@@ -2,6 +2,19 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-24",
+      "en": [
+        "Sharper field: the pitch lines now render crisply on high-resolution phone screens instead of looking slightly smudged.",
+        "Bigger player discs on the field make them easier to see and drag; the tactics board keeps its current disc size.",
+        "The recent-games cards on your Home screen now open the game you tapped, instead of always reopening the last game."
+      ],
+      "fi": [
+        "Terävämpi kenttä: kentän viivat piirtyvät nyt tarkasti tarkkanäyttöisillä puhelimilla eivätkä näytä enää hieman sumeilta.",
+        "Kentän pelaajakiekot ovat hieman suuremmat, joten niitä on helpompi nähdä ja siirtää; taktiikkataulun kiekot pysyvät nykyisen kokoisina.",
+        "Kotinäkymän viimeisimmät pelit -kortit avaavat nyt napauttamasi pelin sen sijaan, että avaisivat aina viimeksi avatun pelin."
+      ]
+    },
+    {
       "date": "2026-07-17",
       "en": [
         "A clearer two-level app: the Home screen is now your club hub (Games / Team / Competitions / Stats tabs plus the gear menu) and the field is a focused match view - opening rosters, seasons, stats, settings or the planner from Home no longer flashes the pitch behind them.",
