@@ -32,8 +32,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_v2_roster_en.jpg'
       : '/screenshots/MatchOps_v2_roster_fi.jpg',
     assessment: isEnglish
-      ? '/screenshots/MatchOps_main_playerdevelopment_en.jpg'
-      : '/screenshots/MatchOps_main_playerdevelopment_fi.jpg',
+      ? '/screenshots/MatchOps_v2_development_en.jpg'
+      : '/screenshots/MatchOps_v2_development_fi.jpg',
     trends: isEnglish
       ? '/screenshots/MatchOps_main_developmenttrends_en.jpg'
       : '/screenshots/MatchOps_main_developmenttrends_fi.jpg',
