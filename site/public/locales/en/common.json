@@ -443,7 +443,7 @@
       "planner": {
         "eyebrow": "Playing-Time Planner",
         "title": "Plan your games ahead",
-        "desc": "Set your substitutions and rotations for upcoming games in advance - decide who plays where and when before you ever reach the pitch, so game day runs itself. Playing time stays balanced across the season as a result."
+        "desc": "Plan starting lineups and rotations for upcoming fixtures - a tournament, a run of games. See each player's accumulated playing time and their spread across positions at a glance. Adjust plans mid-series and instantly see how the changes affect the whole."
       },
       "development": {
         "eyebrow": "Player Development",
@@ -452,8 +452,23 @@
       },
       "dashboard": {
         "eyebrow": "Your season at a glance",
-        "title": "Open to the whole picture",
+        "title": "Dashboard",
         "desc": "The home screen greets you with what matters right now - pick up the game you were tracking, your season record, recent results and your top scorer, all before you tap anything."
+      },
+      "gameday": {
+        "eyebrow": "Game day",
+        "title": "Track the whole game, live",
+        "desc": "Place your lineup on the field, run the timer, and log goals, assists and substitutions as they happen - offline, right at the pitch."
+      },
+      "stats": {
+        "eyebrow": "Statistics",
+        "title": "Stats that build themselves",
+        "desc": "Every game you track feeds season, player and team statistics automatically - no spreadsheets. See how the season's going, who's scoring, and how each player is used."
+      },
+      "positionBalance": {
+        "eyebrow": "Position balance",
+        "title": "See who's stuck in one role",
+        "desc": "Across a whole season, see which positions each player has actually played - by line or exact spot. Players kept in one role stand out, so you can deliberately broaden their game and give every child time in more than one place."
       }
     },
     "bands": {
@@ -552,7 +567,9 @@
       "overtime": "Overtime & Penalties",
       "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats and exports.",
       "friendlies": "Friendly matches",
-      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats. Fold them back in anytime with a single toggle."
+      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats. Fold them back in anytime with a single toggle.",
+      "dashboard": "Dashboard",
+      "dashboardDesc": "Open the app to a snapshot of your season - the game to jump back into, your record, recent results and top scorer."
     },
     "techCards": {
       "development": "DEVELOPMENT",

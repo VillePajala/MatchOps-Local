@@ -443,7 +443,7 @@
       "planner": {
         "eyebrow": "Peliaikasuunnittelija",
         "title": "Suunnittele pelisi etukäteen",
-        "desc": "Aseta vaihdot ja rotaatiot tuleviin peleihin jo etukäteen - päätä kuka pelaa missäkin ja milloin ennen kuin edes saavut kentälle, niin ottelupäivä sujuu kuin itsestään. Samalla peliaika pysyy tasaisena läpi kauden."
+        "desc": "Suunnittele aloituskokoonpanot ja rotaatiot tuleviin ottelukokonaisuuksiin, kuten turnauksiin. Hahmotat helposti pelaajakohtaiset peliaikakertymät ja hajonnan pelipaikoista. Toiminnallisuus mahdollistaa suunnitelmien muokkauksen myös kesken pelisarjan ja näet heti muutosten vaikutuksen kokonaisuuteen."
       },
       "development": {
         "eyebrow": "Pelaajan kehitys",
@@ -452,8 +452,23 @@
       },
       "dashboard": {
         "eyebrow": "Kausi yhdellä silmäyksellä",
-        "title": "Avaa koko kuvaan",
+        "title": "Hallintapaneeli",
         "desc": "Alkunäkymä tervehtii sinua sillä mikä on juuri nyt tärkeää - jatka peliä jota seurasit, kauden tulokset, viimeisimmät ottelut ja maalintekijäsi, jo ennen kuin painat mitään."
+      },
+      "gameday": {
+        "eyebrow": "Ottelupäivä",
+        "title": "Seuraa peliä reaaliajassa",
+        "desc": "Aseta kokoonpano kentälle, käynnistä ajastin ja kirjaa maalit, syötöt ja vaihdot sitä mukaa kun ne tapahtuvat - offline, suoraan kentän laidalla."
+      },
+      "stats": {
+        "eyebrow": "Tilastot",
+        "title": "Tilastot syntyvät itsestään",
+        "desc": "Jokainen seuraamasi peli kartuttaa kausi-, pelaaja- ja joukkuetilastoja automaattisesti - ei taulukkolaskentaa. Näet miten kausi etenee, kuka tekee maaleja ja miten kutakin pelaajaa käytetään."
+      },
+      "positionBalance": {
+        "eyebrow": "Pelipaikkojen tasapaino",
+        "title": "Näe kuka on jäänyt yhteen rooliin",
+        "desc": "Näet koko kauden ajalta, missä pelipaikoissa kukin pelaaja on todella pelannut - linjoittain tai tarkalla paikalla. Yhteen rooliin jääneet erottuvat selvästi, joten voit laajentaa heidän peliään ja antaa jokaiselle lapselle aikaa useammassa paikassa."
       }
     },
     "bands": {
@@ -552,7 +567,9 @@
       "overtime": "Jatkoaika ja rangaistuslaukaukset",
       "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin.",
       "friendlies": "Harjoitusottelut",
-      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi. Ota ne mukaan milloin tahansa yhdellä kytkimellä."
+      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi. Ota ne mukaan milloin tahansa yhdellä kytkimellä.",
+      "dashboard": "Hallintapaneeli",
+      "dashboardDesc": "Avaa sovellus ja näet tilannekuvan kaudesta - peli johon palata, tuloksesi, viimeisimmät ottelut ja maalintekijäsi."
     },
     "techCards": {
       "development": "KEHITYS",
