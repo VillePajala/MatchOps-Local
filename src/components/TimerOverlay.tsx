@@ -216,13 +216,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const homeScoreDisplayColor = homeOrAway === 'home' ? userTeamColor : opponentTeamColor;
   const awayScoreDisplayColor = homeOrAway === 'away' ? userTeamColor : opponentTeamColor;
 
-  // Compact period label for pill UI
-  let periodPillLabel: string | null = null;
-  if (gameStatus === 'gameEnd') {
-    periodPillLabel = t('timerOverlay.fullTime', 'FT');
-  } else {
-    periodPillLabel = `${currentPeriod}/${numberOfPeriods}`;
-  }
+  // Compact period label for pill UI. At full time we show no pill - the
+  // stopped clock and game-over state already convey the end, and a terse
+  // "FT"/"LP" marker read unclearly (esp. in Finnish).
+  const periodPillLabel: string | null =
+    gameStatus === 'gameEnd' ? null : `${currentPeriod}/${numberOfPeriods}`;
 
   const handleOpponentGoalClick = () => {
     setShowOpponentGoalConfirm(true);
@@ -493,18 +491,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         )}
       </div>
 
-      {/* ADD CLOSE BUTTON HERE */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
-          aria-label={t('common.close', 'Close')}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      )}
+      {/* Close affordance removed: the overlay is dismissed via the bottom-bar
+          timer button (same toggle as onClose) and the Android back button, so
+          the corner X was a redundant control. onClose stays wired for the
+          internal "close then open assessments" path. */}
 
       {/* Confirmation Modals */}
       <ConfirmationModal
