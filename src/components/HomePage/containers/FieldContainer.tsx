@@ -10,6 +10,7 @@ import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { exportFieldAsImage, isExportSupported } from '@/utils/export';
 import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
+import { isSidelinePosition } from '@/utils/positionLabels';
 import { useToast } from '@/contexts/ToastProvider';
 import type {
   Player,
@@ -248,8 +249,19 @@ export function FieldContainer({
   const tmInitialLoad = timerVM.initialLoadComplete;
 
   // Playing-Time Planner (Phase 2): surface the due planned sub in the timer overlay.
-  // On-field ids suppress prompts already satisfied by an early manual sub.
-  const onFieldIds = useMemo(() => new Set(fcPlayersOnField.map((p) => p.id)), [fcPlayersOnField]);
+  // On-field ids suppress prompts already satisfied by an early manual sub - but
+  // ONLY players actually on the pitch count. A game created from a plan parks its
+  // waiting subs INSIDE playersOnField at the sideline (relX ~0.96); counting those
+  // as "on field" made every planned sub's incoming player look already-played, so
+  // the nudge was suppressed for essentially every plan-created game. Exclude them.
+  const onFieldIds = useMemo(
+    () => new Set(
+      fcPlayersOnField
+        .filter((p) => typeof p.relX !== 'number' || !isSidelinePosition(p.relX))
+        .map((p) => p.id),
+    ),
+    [fcPlayersOnField],
+  );
   const { prompt: plannedSubPrompt, dismiss: dismissPlannedSub } = usePlannedSubPrompts(
     currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
     tmTime,

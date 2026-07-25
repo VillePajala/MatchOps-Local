@@ -465,6 +465,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // L.3c: planner renders in ClubModalsHost; the match registers its
     // live-game hooks (flush + post-bulk-re-apply refresh) while mounted.
     setPlannerLiveGameHooks,
+    isPlaytimePlannerOpen,
     setIsPlaytimePlannerOpen,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isSettingsModalOpen,
@@ -1739,8 +1740,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [dispatchGameSession, setPlayersOnField]);
 
   // Load the current game's plan link from the local-only store whenever the game
-  // changes. On creation-from-plan the link is persisted before setCurrentGameId
-  // fires (newGameHandlers awaits setPlanLink first), so this read never races it.
+  // changes, AND whenever the planner opens/closes. The planner is where links get
+  // created, edited (source plan changed) or removed (plan deleted) for the current
+  // game; without the planner-open dependency those changes only surfaced after a
+  // full reload, leaving the "Re-apply plan" button stale (disabled when a link now
+  // exists, or vice-versa). Re-reading on close is idempotent and cheap.
   // The link only counts if the plan AND its planned game still exist - otherwise
   // the "Re-apply plan" button would be a dead affordance that errors after the
   // confirm dialog. (Plan deletion also purges its links, so a dangling link is
@@ -1766,7 +1770,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     return () => {
       cancelled = true;
     };
-  }, [currentGameId]);
+  }, [currentGameId, isPlaytimePlannerOpen]);
 
   // Live mirror of currentGameId for the async re-apply guards below: a re-apply
   // captured against game A must never push its lineup into a game B the coach
