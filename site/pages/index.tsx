@@ -18,8 +18,8 @@ const getScreenshots = (locale: string | undefined) => {
     // Main hero screenshots
     soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en_fi.jpg',
     timer: isEnglish
-      ? '/screenshots/MatchOps_main_timer_en.jpg'
-      : '/screenshots/MatchOps_Main_timer_full.jpg',
+      ? '/screenshots/MatchOps_v2_timer_en.jpg'
+      : '/screenshots/MatchOps_v2_timer_fi.jpg',
     playerstats: isEnglish
       ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
       : '/screenshots/MatchOps_Main_playerstats_full.jpg',
