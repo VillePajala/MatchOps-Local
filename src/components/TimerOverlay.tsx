@@ -239,13 +239,18 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   return (
     <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
       <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
-        {/* Game Score Display - MOVED TO TOP ABOVE TIMER */}
-        <div className="mb-4">
-          <div className="flex items-center justify-center gap-3 text-xl font-semibold">
-            <span className="text-slate-400">{displayHomeTeamName}</span>
-            <span className={`text-2xl font-bold ${homeScoreDisplayColor}`}>{homeScore}</span>
-            <span className="text-slate-400">-</span>
-            <span className={`text-2xl font-bold ${awayScoreDisplayColor}`}>{awayScore}</span>
+        {/* Game Score Display - MOVED TO TOP ABOVE TIMER.
+            3-column grid so long team names wrap inside their own column while
+            the score stays fixed in the centre and vertically centred against
+            both names (a plain flex row let the score drift when a name wrapped). */}
+        <div className="mb-4 w-full">
+          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 text-xl font-semibold">
+            <span className="text-slate-400 text-right leading-tight">{displayHomeTeamName}</span>
+            <span className="flex items-center justify-center gap-2 whitespace-nowrap">
+              <span className={`text-2xl font-bold ${homeScoreDisplayColor}`}>{homeScore}</span>
+              <span className="text-slate-400">-</span>
+              <span className={`text-2xl font-bold ${awayScoreDisplayColor}`}>{awayScore}</span>
+            </span>
             {/* --- Opponent Name Display/Edit --- */}
             {isEditingOpponentName ? (
                 <input
@@ -255,12 +260,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                     onChange={handleOpponentInputChange}
                     onBlur={handleSaveOpponentName} // Save on blur
                     onKeyDown={handleOpponentKeyDown}
-                    className="bg-slate-700 text-slate-100 text-xl font-semibold outline-none rounded px-2 py-0.5 w-28" // Adjust width as needed
+                    className="bg-slate-700 text-slate-100 text-xl font-semibold outline-none rounded px-2 py-0.5 w-28 justify-self-start" // Adjust width as needed
                     onClick={(e) => e.stopPropagation()} // Prevent triggering underlying handlers
                 />
             ) : (
                 <span
-                    className="text-slate-400 cursor-pointer hover:text-slate-300"
+                    className="text-slate-400 text-left leading-tight cursor-pointer hover:text-slate-300"
                     onClick={handleStartEditingOpponent} // Click to edit
                     title={t('timerOverlay.editOpponentNameTitle', 'Click to edit opponent name') ?? undefined}
                 >
@@ -268,7 +273,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 </span>
             )}
             {/* --- End Opponent Name --- */}
-          </div> 
+          </div>
         </div>
       
         {/* Timer Display */}
