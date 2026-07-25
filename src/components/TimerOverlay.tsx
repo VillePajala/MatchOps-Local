@@ -216,13 +216,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const homeScoreDisplayColor = homeOrAway === 'home' ? userTeamColor : opponentTeamColor;
   const awayScoreDisplayColor = homeOrAway === 'away' ? userTeamColor : opponentTeamColor;
 
-  // Compact period label for pill UI
-  let periodPillLabel: string | null = null;
-  if (gameStatus === 'gameEnd') {
-    periodPillLabel = t('timerOverlay.fullTime', 'FT');
-  } else {
-    periodPillLabel = `${currentPeriod}/${numberOfPeriods}`;
-  }
+  // Compact period label for pill UI. At full time we show no pill - the
+  // stopped clock and game-over state already convey the end, and a terse
+  // "FT"/"LP" marker read unclearly (esp. in Finnish).
+  const periodPillLabel: string | null =
+    gameStatus === 'gameEnd' ? null : `${currentPeriod}/${numberOfPeriods}`;
 
   const handleOpponentGoalClick = () => {
     setShowOpponentGoalConfirm(true);
@@ -241,13 +239,18 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   return (
     <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
       <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
-        {/* Game Score Display - MOVED TO TOP ABOVE TIMER */}
-        <div className="mb-4">
-          <div className="flex items-center justify-center gap-3 text-xl font-semibold">
-            <span className="text-slate-400">{displayHomeTeamName}</span>
-            <span className={`text-2xl font-bold ${homeScoreDisplayColor}`}>{homeScore}</span>
-            <span className="text-slate-400">-</span>
-            <span className={`text-2xl font-bold ${awayScoreDisplayColor}`}>{awayScore}</span>
+        {/* Game Score Display - MOVED TO TOP ABOVE TIMER.
+            3-column grid so long team names wrap inside their own column while
+            the score stays fixed in the centre and vertically centred against
+            both names (a plain flex row let the score drift when a name wrapped). */}
+        <div className="mb-4 w-full">
+          <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 text-xl font-semibold">
+            <span className="text-slate-400 text-right leading-tight">{displayHomeTeamName}</span>
+            <span className="flex items-center justify-center gap-2 whitespace-nowrap">
+              <span className={`text-2xl font-bold ${homeScoreDisplayColor}`}>{homeScore}</span>
+              <span className="text-slate-400">-</span>
+              <span className={`text-2xl font-bold ${awayScoreDisplayColor}`}>{awayScore}</span>
+            </span>
             {/* --- Opponent Name Display/Edit --- */}
             {isEditingOpponentName ? (
                 <input
@@ -257,12 +260,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                     onChange={handleOpponentInputChange}
                     onBlur={handleSaveOpponentName} // Save on blur
                     onKeyDown={handleOpponentKeyDown}
-                    className="bg-slate-700 text-slate-100 text-xl font-semibold outline-none rounded px-2 py-0.5 w-28" // Adjust width as needed
+                    className="bg-slate-700 text-slate-100 text-xl font-semibold outline-none rounded px-2 py-0.5 w-28 justify-self-start" // Adjust width as needed
                     onClick={(e) => e.stopPropagation()} // Prevent triggering underlying handlers
                 />
             ) : (
                 <span
-                    className="text-slate-400 cursor-pointer hover:text-slate-300"
+                    className="text-slate-400 text-left leading-tight cursor-pointer hover:text-slate-300"
                     onClick={handleStartEditingOpponent} // Click to edit
                     title={t('timerOverlay.editOpponentNameTitle', 'Click to edit opponent name') ?? undefined}
                 >
@@ -270,7 +273,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 </span>
             )}
             {/* --- End Opponent Name --- */}
-          </div> 
+          </div>
         </div>
       
         {/* Timer Display */}
@@ -493,18 +496,10 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
         )}
       </div>
 
-      {/* ADD CLOSE BUTTON HERE */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
-          aria-label={t('common.close', 'Close')}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      )}
+      {/* Close affordance removed: the overlay is dismissed via the bottom-bar
+          timer button (same toggle as onClose) and the Android back button, so
+          the corner X was a redundant control. onClose stays wired for the
+          internal "close then open assessments" path. */}
 
       {/* Confirmation Modals */}
       <ConfirmationModal

@@ -2,6 +2,19 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-26",
+      "en": [
+        "Tidier match timer: the score and team names now line up cleanly, the stray close button is gone, and the unclear end-of-game marker was removed.",
+        "Playing-Time Planner: linking or editing a plan now updates the game right away - no app reload needed to re-apply it.",
+        "Planned substitution reminders now actually appear during the match at the minute you set them, for games started from a plan."
+      ],
+      "fi": [
+        "Siistimpi ottelun ajastin: tulos ja joukkueiden nimet asettuvat nyt siististi, ylimääräinen sulkupainike poistui ja epäselvä pelin päättymismerkki poistettiin.",
+        "Peliaikasuunnittelu: suunnitelman liittäminen tai muokkaaminen päivittää pelin heti - sovellusta ei tarvitse ladata uudelleen.",
+        "Suunnitellut vaihtomuistutukset ilmestyvät nyt ottelun aikana asettamallasi minuutilla, suunnitelmasta aloitetuissa peleissä."
+      ]
+    },
+    {
       "date": "2026-07-24",
       "en": [
         "Sharper field: the pitch lines now render crisply on high-resolution phone screens instead of looking slightly smudged.",
