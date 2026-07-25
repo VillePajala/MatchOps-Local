@@ -26,8 +26,8 @@ const getScreenshots = (locale: string | undefined) => {
     // Feature card screenshots
     tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi_en.jpg',
     formations: isEnglish
-      ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
-      : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
+      ? '/screenshots/MatchOps_v2_formations_en.jpg'
+      : '/screenshots/MatchOps_v2_formations_fi.jpg',
     roster: isEnglish
       ? '/screenshots/MatchOps_v2_roster_en.jpg'
       : '/screenshots/MatchOps_v2_roster_fi.jpg',
@@ -38,20 +38,20 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_main_developmenttrends_en.jpg'
       : '/screenshots/MatchOps_main_developmenttrends_fi.jpg',
     recap: isEnglish
-      ? '/screenshots/MatchOps_main_recap_en.jpg'
-      : '/screenshots/MatchOps_main_recap_fi.jpg',
+      ? '/screenshots/MatchOps_v2_recap_en.jpg'
+      : '/screenshots/MatchOps_v2_recap_fi.jpg',
     positions: isEnglish
       ? '/screenshots/MatchOps_main_positions_en.jpg'
       : '/screenshots/MatchOps_main_positions_fi.jpg',
     positionBalance: isEnglish
-      ? '/screenshots/MatchOps_main_positionbalance_en.jpg'
-      : '/screenshots/MatchOps_main_positionbalance_fi.jpg',
+      ? '/screenshots/MatchOps_v2_positionbalance_en.jpg'
+      : '/screenshots/MatchOps_v2_positionbalance_fi.jpg',
     matchReport: isEnglish
       ? '/screenshots/MatchOps_main_matchreport_en.jpg'
       : '/screenshots/MatchOps_main_matchreport_fi.jpg',
     overtime: isEnglish
-      ? '/screenshots/MatchOps_main_overtime_en.jpg'
-      : '/screenshots/MatchOps_main_overtime_fi.jpg',
+      ? '/screenshots/MatchOps_v2_overtime_en.jpg'
+      : '/screenshots/MatchOps_v2_overtime_fi.jpg',
     seasons: isEnglish
       ? '/screenshots/MatchOps_v2_seasons_en.jpg'
       : '/screenshots/MatchOps_v2_seasons_fi.jpg',
@@ -65,8 +65,8 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatcOps_main_savedgames_en.jpg'
       : '/screenshots/MatchOps_main_savedgames_fi.jpg',
     goalTimeline: isEnglish
-      ? '/screenshots/MatchOps_main_goallogs_en.jpg'
-      : '/screenshots/MatchOps_main_goallogs_fi.jpg',
+      ? '/screenshots/MatchOps_v2_goallog_en.jpg'
+      : '/screenshots/MatchOps_v2_goallog_fi.jpg',
     excelExport: isEnglish
       ? '/screenshots/MatcOps_main_excelexport_en.jpg'
       : '/screenshots/MatchOps_main_excelexport_fi.jpg',
