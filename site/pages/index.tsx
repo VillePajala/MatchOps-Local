@@ -16,15 +16,15 @@ const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en_fi.jpg',
+    soccerfield: '/screenshots/MatchOps_v2_soccerfield_en_fi.jpg',
     timer: isEnglish
       ? '/screenshots/MatchOps_v2_timer_en.jpg'
       : '/screenshots/MatchOps_v2_timer_fi.jpg',
     playerstats: isEnglish
-      ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
-      : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+      ? '/screenshots/MatchOps_v2_playerstats_en.jpg'
+      : '/screenshots/MatchOps_v2_playerstats_fi.jpg',
     // Feature card screenshots
-    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi_en.jpg',
+    tacticalBoard: '/screenshots/MatchOps_v2_tacticalboard_en_fi.jpg',
     formations: isEnglish
       ? '/screenshots/MatchOps_v2_formations_en.jpg'
       : '/screenshots/MatchOps_v2_formations_fi.jpg',
@@ -62,27 +62,27 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_v2_teams_en.jpg'
       : '/screenshots/MatchOps_v2_teams_fi.jpg',
     archive: isEnglish
-      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
-      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
+      ? '/screenshots/MatchOps_v2_archive_en.jpg'
+      : '/screenshots/MatchOps_v2_archive_fi.jpg',
     goalTimeline: isEnglish
       ? '/screenshots/MatchOps_v2_goallog_en.jpg'
       : '/screenshots/MatchOps_v2_goallog_fi.jpg',
     excelExport: isEnglish
-      ? '/screenshots/MatcOps_main_excelexport_en.jpg'
-      : '/screenshots/MatchOps_main_excelexport_fi.jpg',
+      ? '/screenshots/MatchOps_v2_excelexport_en.jpg'
+      : '/screenshots/MatchOps_v2_excelexport_fi.jpg',
     personnel: isEnglish
       ? '/screenshots/MatchOps_v2_personnel_en.jpg'
       : '/screenshots/MatchOps_v2_personnel_fi.jpg',
-    futsal: '/screenshots/MatchOps_main_futsal_new_en_fi.jpg',
+    futsal: '/screenshots/MatchOps_v2_futsal_en_fi.jpg',
     officialRules: isEnglish
-      ? '/screenshots/MatchOps_main_rules_en.jpg'
-      : '/screenshots/MatchOps_main_rules_fi.jpg',
+      ? '/screenshots/MatchOps_v2_rules_en.jpg'
+      : '/screenshots/MatchOps_v2_rules_fi.jpg',
     cloudSync: isEnglish
-      ? '/screenshots/MatchOps_main_cloudSync_en.jpg'
-      : '/screenshots/MatchOps_main_CloudSync_fi.jpg',
+      ? '/screenshots/MatchOps_v2_cloudsync_en.jpg'
+      : '/screenshots/MatchOps_v2_cloudsync_fi.jpg',
     teamstats: isEnglish
-      ? '/screenshots/MatchOps_main_teamstats_en.jpg'
-      : '/screenshots/MatchOps_main_teamstats_fi.jpg',
+      ? '/screenshots/MatchOps_v2_teamstats_en.jpg'
+      : '/screenshots/MatchOps_v2_teamstats_fi.jpg',
     // NEW features (planner / dashboard / friendlies) — Phase 2 replaces these
     // placeholders with real shots. Kept as existing images so Phase 1 renders.
     planner: isEnglish
