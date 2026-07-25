@@ -35,20 +35,20 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_v2_development_en.jpg'
       : '/screenshots/MatchOps_v2_development_fi.jpg',
     trends: isEnglish
-      ? '/screenshots/MatchOps_main_developmenttrends_en.jpg'
-      : '/screenshots/MatchOps_main_developmenttrends_fi.jpg',
+      ? '/screenshots/MatchOps_v2_trends_en.jpg'
+      : '/screenshots/MatchOps_v2_trends_fi.jpg',
     recap: isEnglish
       ? '/screenshots/MatchOps_v2_recap_en.jpg'
       : '/screenshots/MatchOps_v2_recap_fi.jpg',
     positions: isEnglish
-      ? '/screenshots/MatchOps_main_positions_en.jpg'
-      : '/screenshots/MatchOps_main_positions_fi.jpg',
+      ? '/screenshots/MatchOps_v2_positions_en.jpg'
+      : '/screenshots/MatchOps_v2_positions_fi.jpg',
     positionBalance: isEnglish
       ? '/screenshots/MatchOps_v2_positionbalance_en.jpg'
       : '/screenshots/MatchOps_v2_positionbalance_fi.jpg',
     matchReport: isEnglish
-      ? '/screenshots/MatchOps_main_matchreport_en.jpg'
-      : '/screenshots/MatchOps_main_matchreport_fi.jpg',
+      ? '/screenshots/MatchOps_v2_matchreport_en.jpg'
+      : '/screenshots/MatchOps_v2_matchreport_fi.jpg',
     overtime: isEnglish
       ? '/screenshots/MatchOps_v2_overtime_en.jpg'
       : '/screenshots/MatchOps_v2_overtime_fi.jpg',
