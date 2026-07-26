@@ -529,7 +529,7 @@
       "tacticalBoard": "Taktiikkataulu",
       "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Kommunikoi pelisuunnitelma ja havainnollista pelillisiä konsepteja visuaalisesti.",
       "formations": "Pikamuodostelmat",
-      "formationsDesc": "Aseta joukkue valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
+      "formationsDesc": "Aseta pelimuodostelma valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Pelaajan kehitys",
