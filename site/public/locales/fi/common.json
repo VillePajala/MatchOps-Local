@@ -475,7 +475,7 @@
       "gameDay": "Ottelupäivä",
       "development": "Pelaajan kehitys",
       "club": "Seura",
-      "statsSharing": "Tilastot ja jakaminen kaikkialla"
+      "statsSharing": "Tilastot ja jakaminen"
     },
     "ui": {
       "plan": "Suunnittele",
@@ -569,7 +569,7 @@
       "friendlies": "Harjoitusottelut",
       "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi.",
       "dashboard": "Hallintapaneeli",
-      "dashboardDesc": "Avaa sovellus ja näet tilannekuvan kaudesta - peli johon palata, tuloksesi, viimeisimmät ottelut ja maalintekijäsi."
+      "dashboardDesc": "Avaa sovellus ja näet heti tilannekuvan."
     },
     "techCards": {
       "development": "KEHITYS",
