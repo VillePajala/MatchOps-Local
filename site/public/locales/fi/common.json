@@ -557,7 +557,7 @@
       "cloudSync": "Pilvisynkronointi",
       "cloudSyncDesc": "Kirjaudu sisään ja synkronoi tietosi laitteiden välillä. Tietosi pysyvät turvassa pilvessä ja synkronoituvat automaattisesti.",
       "recap": "Ottelukooste",
-      "recapDesc": "Yhdellä napautuksella valmis, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
+      "recapDesc": "Automaattisesti rakentuva, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
       "positions": "Toteutuneet pelipaikat",
       "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi. Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
       "positionBalance": "Pelipaikkojen tasapaino",
