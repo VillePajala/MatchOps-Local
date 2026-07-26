@@ -448,7 +448,7 @@
       "development": {
         "eyebrow": "Player Development",
         "title": "Track development over time",
-        "desc": "Rate players on developmental qualities after a game and build each player's picture over time - current form, trend arrows, strengths and focus areas, plus a shareable report card. Compare each child to their own past, not to other kids."
+        "desc": "After a game, note how each player is developing - strengths, growing areas, and the direction they're heading. Over time those notes build into an overall picture you can share as a summary."
       },
       "dashboard": {
         "eyebrow": "Your season at a glance",
@@ -533,7 +533,7 @@
       "roster": "Player Roster",
       "rosterDesc": "Add players with names, jersey numbers, and nicknames. The nickname is shown on the disc on the field.",
       "assessment": "Player Development",
-      "assessmentDesc": "Rate players on developmental qualities after a game and build each player's picture over time — current form, trend arrows, strengths and focus areas, plus a shareable development report card.",
+      "assessmentDesc": "Note how each player is developing on the qualities that matter - what's strong, what's growing, and which direction they're heading. Your notes build into an overall picture you can share as a summary.",
       "trends": "Development Trends",
       "trendsDesc": "Follow each player's progress over the season and see how they're developing as a whole. The long-term view shows how each player is developing overall.",
       "seasons": "Leagues",
