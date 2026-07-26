@@ -531,7 +531,7 @@
       "formations": "Pikamuodostelmat",
       "formationsDesc": "Aseta pelimuodostelma valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
-      "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
+      "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja kutsumanimillä. Kutsumanimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Pelaajan kehitys",
       "assessmentDesc": "Näe yhdellä silmäyksellä, miten jokainen pelaaja kehittyy: mikä on jo vahvaa, missä on vielä opittavaa ja mihin suuntaan kehitys kulkee. Kirjaa lyhyet havaintosi ottelun jälkeen, niin niistä rakentuu ajan myötä kokonaiskuva, jonka voit jakaa yhteenvetona.",
       "trends": "Kehitystrendit",
