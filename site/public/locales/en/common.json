@@ -545,7 +545,7 @@
       "archive": "Game Archive",
       "archiveDesc": "Browse all your saved games. Search by opponent, filter by season or tournament.",
       "goalTimeline": "Match Log",
-      "goalTimelineDesc": "Tap to log goals with scorer and assister. Timestamps and match records build automatically.",
+      "goalTimelineDesc": "Log goal scorers and assisters. Match events form a timeline, and comprehensive statistics build automatically.",
       "excelExport": "Reports",
       "excelExportDesc": "Export statistics to Excel. Reports by players, competitions, single matches, or teams.",
       "personnel": "Coaching Staff",

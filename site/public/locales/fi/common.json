@@ -545,7 +545,7 @@
       "archive": "Pelihistoria",
       "archiveDesc": "Selaa kaikkia tallennettuja pelejä. Hae vastustajan nimellä, suodata kauden tai turnauksen mukaan.",
       "goalTimeline": "Otteluloki",
-      "goalTimelineDesc": "Napauta kirjataksesi maalintekijät ja syöttäjät. Aikaleimat ja ottelutiedot rakentuvat automaattisesti.",
+      "goalTimelineDesc": "Kirjaa maalien tekijät ja syöttäjät. Ottelutapahtumista koostuu aikajana ja monipuoliset tilastot rakentuvat automaattisesti.",
       "excelExport": "Raportit",
       "excelExportDesc": "Vie tilastot Exceliin. Raportit pelaajista, kilpailuista, yksittäisistä otteluista tai joukkueista.",
       "personnel": "Taustat",
