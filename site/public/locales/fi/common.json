@@ -527,7 +527,7 @@
     },
     "featureCards": {
       "tacticalBoard": "Taktiikkataulu",
-      "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Lisää vastustajan kiekot taktiseen suunnitteluun. Kommunikoi pelisuunnitelma visuaalisesti.",
+      "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Kommunikoi pelisuunnitelma ja havainnollista pelillisiä konsepteja visuaalisesti.",
       "formations": "Pikamuodostelmat",
       "formationsDesc": "Aseta joukkue valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
