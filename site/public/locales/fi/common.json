@@ -541,7 +541,7 @@
       "tournaments": "Turnauskeskus",
       "tournamentsDesc": "Hallitse monitasoisia turnauksia. Kirjaa joukkueiden sijoitukset ja tarkastele turnauksen tilastoja.",
       "teams": "Joukkueet",
-      "teamsDesc": "Luo ja hallitse useita joukkueita. Liitä joukkueet kausiin ja turnauksiin järjestelmällistä tilastointia varten.",
+      "teamsDesc": "Luo ja hallinnoi useita joukkueita. Liitä joukkueet kausiin ja turnauksiin järjestelmällistä tilastointia varten.",
       "archive": "Pelihistoria",
       "archiveDesc": "Selaa kaikkia tallennettuja pelejä. Hae vastustajan nimellä, suodata kauden tai turnauksen mukaan.",
       "goalTimeline": "Otteluloki",
