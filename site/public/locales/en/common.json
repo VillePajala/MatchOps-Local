@@ -475,7 +475,7 @@
       "gameDay": "Game day",
       "development": "Player development",
       "club": "Your club",
-      "statsSharing": "Stats, sharing & anywhere"
+      "statsSharing": "Stats & sharing"
     },
     "ui": {
       "plan": "Plan",
@@ -569,7 +569,7 @@
       "friendlies": "Friendly matches",
       "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats.",
       "dashboard": "Dashboard",
-      "dashboardDesc": "Open the app to a snapshot of your season - the game to jump back into, your record, recent results and top scorer."
+      "dashboardDesc": "Open the app and instantly see a snapshot."
     },
     "techCards": {
       "development": "DEVELOPMENT",
