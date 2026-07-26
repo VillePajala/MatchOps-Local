@@ -4,6 +4,15 @@
     {
       "date": "2026-07-26",
       "en": [
+        "Behind-the-scenes improvements."
+      ],
+      "fi": [
+        "Taustaparannuksia."
+      ]
+    },
+    {
+      "date": "2026-07-26",
+      "en": [
         "Tidier match timer: the score and team names now line up cleanly, the stray close button is gone, and the unclear end-of-game marker was removed.",
         "Playing-Time Planner: linking or editing a plan now updates the game right away - no app reload needed to re-apply it.",
         "Planned substitution reminders now actually appear during the match at the minute you set them, for games started from a plan."

@@ -16,73 +16,82 @@ const getScreenshots = (locale: string | undefined) => {
   const isEnglish = locale === 'en';
   return {
     // Main hero screenshots
-    soccerfield: '/screenshots/MatchOps_main_soccerfield_new_en_fi.jpg',
+    soccerfield: '/screenshots/MatchOps_v2_soccerfield_en_fi.jpg',
     timer: isEnglish
-      ? '/screenshots/MatchOps_main_timer_en.jpg'
-      : '/screenshots/MatchOps_Main_timer_full.jpg',
+      ? '/screenshots/MatchOps_v2_timer_en.jpg'
+      : '/screenshots/MatchOps_v2_timer_fi.jpg',
     playerstats: isEnglish
-      ? '/screenshots/MatchOps_main_playerstatistics_en.jpg'
-      : '/screenshots/MatchOps_Main_playerstats_full.jpg',
+      ? '/screenshots/MatchOps_v2_playerstats_en.jpg'
+      : '/screenshots/MatchOps_v2_playerstats_fi.jpg',
     // Feature card screenshots
-    tacticalBoard: '/screenshots/MatcOps_main_tacticaldrawingstate_fi_en.jpg',
+    tacticalBoard: '/screenshots/MatchOps_v2_tacticalboard_en_fi.jpg',
     formations: isEnglish
-      ? '/screenshots/MatcOps_main_formationsmodal_en.jpg'
-      : '/screenshots/MatchOps_main_formationsmodal_fi.jpg',
+      ? '/screenshots/MatchOps_v2_formations_en.jpg'
+      : '/screenshots/MatchOps_v2_formations_fi.jpg',
     roster: isEnglish
-      ? '/screenshots/MatcOps_main_masterrostermodal_en.jpg'
-      : '/screenshots/MatcOps_main_mainrostermodal_fi.jpg',
+      ? '/screenshots/MatchOps_v2_roster_en.jpg'
+      : '/screenshots/MatchOps_v2_roster_fi.jpg',
     assessment: isEnglish
-      ? '/screenshots/MatchOps_main_playerdevelopment_en.jpg'
-      : '/screenshots/MatchOps_main_playerdevelopment_fi.jpg',
+      ? '/screenshots/MatchOps_v2_development_en.jpg'
+      : '/screenshots/MatchOps_v2_development_fi.jpg',
     trends: isEnglish
-      ? '/screenshots/MatchOps_main_developmenttrends_en.jpg'
-      : '/screenshots/MatchOps_main_developmenttrends_fi.jpg',
+      ? '/screenshots/MatchOps_v2_trends_en.jpg'
+      : '/screenshots/MatchOps_v2_trends_fi.jpg',
     recap: isEnglish
-      ? '/screenshots/MatchOps_main_recap_en.jpg'
-      : '/screenshots/MatchOps_main_recap_fi.jpg',
+      ? '/screenshots/MatchOps_v2_recap_en.jpg'
+      : '/screenshots/MatchOps_v2_recap_fi.jpg',
     positions: isEnglish
-      ? '/screenshots/MatchOps_main_positions_en.jpg'
-      : '/screenshots/MatchOps_main_positions_fi.jpg',
+      ? '/screenshots/MatchOps_v2_positions_en.jpg'
+      : '/screenshots/MatchOps_v2_positions_fi.jpg',
     positionBalance: isEnglish
-      ? '/screenshots/MatchOps_main_positionbalance_en.jpg'
-      : '/screenshots/MatchOps_main_positionbalance_fi.jpg',
+      ? '/screenshots/MatchOps_v2_positionbalance_en.jpg'
+      : '/screenshots/MatchOps_v2_positionbalance_fi.jpg',
     matchReport: isEnglish
-      ? '/screenshots/MatchOps_main_matchreport_en.jpg'
-      : '/screenshots/MatchOps_main_matchreport_fi.jpg',
+      ? '/screenshots/MatchOps_v2_matchreport_en.jpg'
+      : '/screenshots/MatchOps_v2_matchreport_fi.jpg',
     overtime: isEnglish
-      ? '/screenshots/MatchOps_main_overtime_en.jpg'
-      : '/screenshots/MatchOps_main_overtime_fi.jpg',
+      ? '/screenshots/MatchOps_v2_overtime_en.jpg'
+      : '/screenshots/MatchOps_v2_overtime_fi.jpg',
     seasons: isEnglish
-      ? '/screenshots/MatcOps_main_seasoncreationmodal_en.jpg'
-      : '/screenshots/MatchOps_main_seasoncreationmodal_fi.jpg',
+      ? '/screenshots/MatchOps_v2_seasons_en.jpg'
+      : '/screenshots/MatchOps_v2_seasons_fi.jpg',
     tournaments: isEnglish
-      ? '/screenshots/MatcOps_main_tournamentcreationmodal_en.jpg'
-      : '/screenshots/MatchOps_main_tournamentcreationmodel_fi.jpg',
+      ? '/screenshots/MatchOps_v2_tournaments_en.jpg'
+      : '/screenshots/MatchOps_v2_tournaments_fi.jpg',
     teams: isEnglish
-      ? '/screenshots/MatcOps_main_teamcreatiommodal_en.jpg'
-      : '/screenshots/MatchOps_main_teamcreatingmodal_fi.jpg',
+      ? '/screenshots/MatchOps_v2_teams_en.jpg'
+      : '/screenshots/MatchOps_v2_teams_fi.jpg',
     archive: isEnglish
-      ? '/screenshots/MatcOps_main_savedgames_en.jpg'
-      : '/screenshots/MatchOps_main_savedgames_fi.jpg',
+      ? '/screenshots/MatchOps_v2_archive_en.jpg'
+      : '/screenshots/MatchOps_v2_archive_fi.jpg',
     goalTimeline: isEnglish
-      ? '/screenshots/MatchOps_main_goallogs_en.jpg'
-      : '/screenshots/MatchOps_main_goallogs_fi.jpg',
+      ? '/screenshots/MatchOps_v2_goallog_en.jpg'
+      : '/screenshots/MatchOps_v2_goallog_fi.jpg',
     excelExport: isEnglish
-      ? '/screenshots/MatcOps_main_excelexport_en.jpg'
-      : '/screenshots/MatchOps_main_excelexport_fi.jpg',
+      ? '/screenshots/MatchOps_v2_excelexport_en.jpg'
+      : '/screenshots/MatchOps_v2_excelexport_fi.jpg',
     personnel: isEnglish
-      ? '/screenshots/MatcOps_main_personnel_en.jpg'
-      : '/screenshots/MatchOps_main_personnel_fi.jpg',
-    futsal: '/screenshots/MatchOps_main_futsal_new_en_fi.jpg',
+      ? '/screenshots/MatchOps_v2_personnel_en.jpg'
+      : '/screenshots/MatchOps_v2_personnel_fi.jpg',
+    futsal: '/screenshots/MatchOps_v2_futsal_en_fi.jpg',
     officialRules: isEnglish
-      ? '/screenshots/MatchOps_main_rules_en.jpg'
-      : '/screenshots/MatchOps_main_rules_fi.jpg',
+      ? '/screenshots/MatchOps_v2_rules_en.jpg'
+      : '/screenshots/MatchOps_v2_rules_fi.jpg',
     cloudSync: isEnglish
-      ? '/screenshots/MatchOps_main_cloudSync_en.jpg'
-      : '/screenshots/MatchOps_main_CloudSync_fi.jpg',
+      ? '/screenshots/MatchOps_v2_cloudsync_en.jpg'
+      : '/screenshots/MatchOps_v2_cloudsync_fi.jpg',
     teamstats: isEnglish
-      ? '/screenshots/MatchOps_main_teamstats_en.jpg'
-      : '/screenshots/MatchOps_main_teamstats_fi.jpg',
+      ? '/screenshots/MatchOps_v2_teamstats_en.jpg'
+      : '/screenshots/MatchOps_v2_teamstats_fi.jpg',
+    planner: isEnglish
+      ? '/screenshots/MatchOps_v2_planner_en.jpg'
+      : '/screenshots/MatchOps_v2_planner_fi.jpg',
+    dashboard: isEnglish
+      ? '/screenshots/MatchOps_v2_dashboard_en.jpg'
+      : '/screenshots/MatchOps_v2_dashboard_fi.jpg',
+    friendlies: isEnglish
+      ? '/screenshots/MatchOps_v2_newgame_en.jpg'
+      : '/screenshots/MatchOps_v2_newgame_fi.jpg',
   };
 };
 
@@ -98,8 +107,8 @@ export default function HomePage() {
 
   // Mobile carousel labels (5 items now)
   const carouselLabels = isEnglish
-    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Development']
-    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Kehitys'];
+    ? ['Lineup', 'Timer', 'Stats', 'Tactics', 'Plan']
+    : ['Kenttä', 'Ajastin', 'Tilastot', 'Taktiikka', 'Suunnittele'];
 
   useEffect(() => {
     const container = mobileCarouselRef.current;
@@ -216,7 +225,7 @@ export default function HomePage() {
                   { src: screenshots.timer, alt: 'Timer view' },
                   { src: screenshots.playerstats, alt: 'Stats view' },
                   { src: screenshots.tacticalBoard, alt: 'Tactics view' },
-                  { src: screenshots.assessment, alt: 'Development view' },
+                  { src: screenshots.planner, alt: 'Planner view' },
                 ].map((screen, i) => (
                   <div key={i} className="relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center px-4">
                     <div className="phone-frame phone-frame-full">
@@ -327,9 +336,9 @@ export default function HomePage() {
                   }}
                   zIndex={2}
                 />
-                {/* Phone 5: Goal Timeline - far right */}
+                {/* Phone 5: Planner - far right */}
                 <PhoneMockup
-                  screenshot={screenshots.assessment}
+                  screenshot={screenshots.planner}
                   size="md"
                   style={{
                     position: 'absolute',
@@ -426,57 +435,99 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURE CARDS (15 features) ===== */}
+      {/* ===== FLAGSHIP SPOTLIGHTS ===== */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-10 text-center">
-              {isEnglish ? 'More Features' : 'Lisää ominaisuuksia'}
-            </h2>
+          <div className="max-w-6xl mx-auto space-y-16 md:space-y-24">
+            {[
+              { key: 'planner', screenshot: screenshots.planner },
+              { key: 'positionBalance', screenshot: screenshots.positionBalance },
+              { key: 'development', screenshot: screenshots.assessment },
+            ].map((s, i) => (
+              <div
+                key={s.key}
+                className={`flex flex-col items-center gap-8 md:gap-16 ${
+                  i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'
+                }`}
+              >
+                <div className="md:w-1/2 text-center md:text-left">
+                  <div className="text-primary text-sm font-semibold uppercase tracking-wider mb-2">
+                    {t(`marketing.spotlights.${s.key}.eyebrow`)}
+                  </div>
+                  <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
+                    {t(`marketing.spotlights.${s.key}.title`)}
+                  </h2>
+                  <p className="text-slate-300 text-base md:text-lg leading-relaxed">
+                    {t(`marketing.spotlights.${s.key}.desc`)}
+                  </p>
+                </div>
+                <div className="md:w-1/2 flex justify-center">
+                  <PhoneMockup screenshot={s.screenshot} size="3xl" zIndex={10} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="grid grid-cols-1 gap-6 md:gap-8">
-              {[
+      {/* ===== FEATURE BANDS (grouped, replaces the old flat card list) ===== */}
+      <section className="section section-divider bg-slate-800/40">
+        <div className="container-custom">
+          <div className="max-w-6xl mx-auto space-y-16">
+            {[
+              { band: 'gameDay', cards: [
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
-                { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
-                // New post-game features — screenshots pending the refreshed shoot.
-                { key: 'assessment', screenshot: screenshots.assessment },
-                { key: 'recap', screenshot: screenshots.recap },
-                { key: 'positions', screenshot: screenshots.positions },
-                { key: 'positionBalance', screenshot: screenshots.positionBalance },
-                { key: 'trends', screenshot: screenshots.trends },
-                { key: 'matchReport', screenshot: screenshots.matchReport },
                 { key: 'overtime', screenshot: screenshots.overtime },
                 { key: 'formations', screenshot: screenshots.formations },
-                { key: 'excelExport', screenshot: screenshots.excelExport },
+                { key: 'recap', screenshot: screenshots.recap },
+              ] },
+              { band: 'development', cards: [
+                { key: 'trends', screenshot: screenshots.trends },
+                { key: 'positions', screenshot: screenshots.positions },
+                { key: 'matchReport', screenshot: screenshots.matchReport },
+              ] },
+              { band: 'club', cards: [
                 { key: 'roster', screenshot: screenshots.roster },
-                { key: 'archive', screenshot: screenshots.archive },
                 { key: 'teams', screenshot: screenshots.teams },
+                { key: 'personnel', screenshot: screenshots.personnel },
                 { key: 'seasons', screenshot: screenshots.seasons },
                 { key: 'tournaments', screenshot: screenshots.tournaments },
+                { key: 'friendlies', screenshot: screenshots.friendlies },
                 { key: 'futsal', screenshot: screenshots.futsal },
-                { key: 'personnel', screenshot: screenshots.personnel },
+              ] },
+              { band: 'statsSharing', cards: [
+                { key: 'dashboard', screenshot: screenshots.dashboard },
+                { key: 'excelExport', screenshot: screenshots.excelExport },
+                { key: 'archive', screenshot: screenshots.archive },
+                { key: 'cloudSync', screenshot: screenshots.cloudSync },
                 { key: 'officialRules', screenshot: screenshots.officialRules },
-              ].map((card, i) => (
-                <div
-                  key={card.key}
-                  className={`bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-4 sm:p-6 md:p-8 flex gap-6 md:gap-24 md:items-center md:justify-center ${
-                    i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
-                  }`}
-                >
-                  <div className="w-1/2 md:w-auto md:max-w-md flex flex-col justify-center items-start md:rounded-2xl md:bg-white/5 md:ring-1 md:ring-white/10 md:p-8 md:shadow-lg">
-                    <div className="text-primary text-xs sm:text-sm font-semibold mb-1 sm:mb-2">{t('marketing.ui.feature')}</div>
-                    <h3 className="text-white text-lg sm:text-xl md:text-3xl font-bold mb-2 sm:mb-3">
-                      {t(`marketing.featureCards.${card.key}`)}
-                    </h3>
-                    <p className="text-gray-400 text-sm sm:text-base">{t(`marketing.featureCards.${card.key}Desc`)}</p>
-                  </div>
-                  <div className="w-1/2 md:w-auto md:shrink-0 flex items-center justify-center">
-                    <PhoneMockup screenshot={card.screenshot} size="3xl" zIndex={10} />
-                  </div>
+              ] },
+            ].map((group) => (
+              <div key={group.band}>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
+                  {t(`marketing.bands.${group.band}`)}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+                  {group.cards.map((card) => (
+                    <div
+                      key={card.key}
+                      className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-5 md:p-6 border border-slate-700/40 flex flex-col items-center text-center"
+                    >
+                      <div className="flex justify-center mb-4">
+                        <PhoneMockup screenshot={card.screenshot} size="xl" zIndex={10} />
+                      </div>
+                      <h3 className="text-white text-lg font-bold mb-2">
+                        {t(`marketing.featureCards.${card.key}`)}
+                      </h3>
+                      <p className="text-gray-400 text-sm">
+                        {t(`marketing.featureCards.${card.key}Desc`)}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
