@@ -83,8 +83,6 @@ const getScreenshots = (locale: string | undefined) => {
     teamstats: isEnglish
       ? '/screenshots/MatchOps_v2_teamstats_en.jpg'
       : '/screenshots/MatchOps_v2_teamstats_fi.jpg',
-    // NEW features (planner / dashboard / friendlies) — Phase 2 replaces these
-    // placeholders with real shots. Kept as existing images so Phase 1 renders.
     planner: isEnglish
       ? '/screenshots/MatchOps_v2_planner_en.jpg'
       : '/screenshots/MatchOps_v2_planner_fi.jpg',
