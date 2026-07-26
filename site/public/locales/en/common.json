@@ -557,7 +557,7 @@
       "cloudSync": "Cloud Sync",
       "cloudSyncDesc": "Sign in to sync your data across devices. Your data stays safe in the cloud and syncs automatically.",
       "recap": "Game Recap",
-      "recapDesc": "One tap turns a finished game into a ready-to-paste summary for the team chat — score, scorers, assists, lineup and your match report. Share as text or copy.",
+      "recapDesc": "An automatically built summary you can paste into the team chat — score, scorers, assists, lineup and your match report. Share as text or copy.",
       "positions": "Positions Played",
       "positionsDesc": "After the game, tag which position(s) each player actually played. Shown in the recap grouped by position, so other coaches see who played where.",
       "positionBalance": "Position Balance",
