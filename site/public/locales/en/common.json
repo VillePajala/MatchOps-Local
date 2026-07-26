@@ -559,7 +559,7 @@
       "recap": "Game Recap",
       "recapDesc": "An automatically built summary you can paste into the team chat — score, scorers, assists, lineup and your match report. Share as text or copy.",
       "positions": "Positions Played",
-      "positionsDesc": "After the game, record where each player played. The data builds a position breakdown by line or exact spot - from a single game to a whole season - and the positions also appear in the match recap.",
+      "positionsDesc": "After the game, record where each player played. The data builds each player's position breakdown by line and by position.",
       "positionBalance": "Position Balance",
       "positionBalanceDesc": "See across a whole season which positions each player has played - by line or by exact spot. Players kept in one role stand out clearly, so you can deliberately broaden how you use them.",
       "matchReport": "Match Report",
