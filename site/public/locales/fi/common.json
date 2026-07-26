@@ -235,7 +235,7 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
-      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Ennen peliä suunnittele kokoonpano, muodostelma ja alkulämmittely. Pelin aikana kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä. Pelin jälkeen merkitse toteutuneet pelipaikat, kirjaa otteluraportti ja jaa valmis ottelukooste. Seuraa jokaisen pelaajan kehitystä kauden mittaan, jotta osaat tukea jokaista lasta yksilöllisesti. Tilastot kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailutasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa virallisten pöytäkirjojen ja tulosten kirjaamista.",
+      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Ennen peliä suunnittele kokoonpano, muodostelma ja alkulämmittely. Pelin aikana kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä. Pelin jälkeen merkitse toteutuneet pelipaikat, kirjaa otteluraportti ja jaa valmis ottelukooste. Seuraa jokaisen pelaajan kehitystä kauden mittaan. Tilastot kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailutasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa virallisten pöytäkirjojen ja tulosten kirjaamista.",
       "oneLine": "Ilmainen, turvallinen pilvisynkronointi kaikilla laitteillasi. Seuraa otteluita ja rakenna tilastot kentällä, myös ilman internetiä."
     },
     "whoIsThisFor": {
@@ -439,6 +439,44 @@
       "teamStats": "Joukkuetilastot",
       "seasonTrends": "Kauden trendit"
     },
+    "spotlights": {
+      "planner": {
+        "eyebrow": "Peliaikasuunnittelija",
+        "title": "Suunnittele pelisi etukäteen",
+        "desc": "Suunnittele aloituskokoonpanot ja rotaatiot tuleviin ottelukokonaisuuksiin, kuten turnauksiin. Näet pelaajakohtaiset peliaikakertymät ja pelipaikkajakauman. Voit muokata suunnitelmia kesken pelisarjan ja nähdä muutosten vaikutuksen kokonaisuuteen."
+      },
+      "development": {
+        "eyebrow": "Pelaajan kehitys",
+        "title": "Seuraa kehitystä ajan myötä",
+        "desc": "Arvioi pelaajia kehittävissä ominaisuuksissa pelin jälkeen ja rakenna jokaisesta kuva ajan myötä - nykyvire, kehityksen suunta, vahvuudet ja kehityskohteet sekä jaettava raporttikortti. Vertaa lasta hänen omaan menneisyyteensä, ei muihin lapsiin."
+      },
+      "dashboard": {
+        "eyebrow": "Kausi yhdellä silmäyksellä",
+        "title": "Hallintapaneeli",
+        "desc": "Alkunäkymä kokoaa kauden tilanteen yhteen: jatka seuraamaasi peliä, kauden tulokset, viimeisimmät ottelut ja maalintekijäsi."
+      },
+      "gameday": {
+        "eyebrow": "Ottelupäivä",
+        "title": "Seuraa peliä reaaliajassa",
+        "desc": "Aseta kokoonpano kentälle, käynnistä ajastin ja kirjaa maalit, syötöt ja vaihdot sitä mukaa kun ne tapahtuvat - ilman verkkoa, suoraan kentän laidalla."
+      },
+      "stats": {
+        "eyebrow": "Tilastot",
+        "title": "Tilastot syntyvät itsestään",
+        "desc": "Jokainen seuraamasi peli kartuttaa kausi-, pelaaja- ja joukkuetilastoja automaattisesti - ei taulukkolaskentaa. Näet miten kausi etenee, kuka tekee maaleja ja miten kutakin pelaajaa käytetään."
+      },
+      "positionBalance": {
+        "eyebrow": "Pelipaikkojen tasapaino",
+        "title": "Pelipaikat koko kaudelta",
+        "desc": "Näet koko kauden ajalta, missä pelipaikoissa kukin pelaaja on todella pelannut - linjoittain tai tarkalla paikalla. Yhteen rooliin jääneet erottuvat selvästi, joten peluutusta voi monipuolistaa tietoisesti."
+      }
+    },
+    "bands": {
+      "gameDay": "Ottelupäivä",
+      "development": "Pelaajan kehitys",
+      "club": "Seura",
+      "statsSharing": "Tilastot, jakaminen & kaikkialla"
+    },
     "ui": {
       "plan": "Suunnittele",
       "track": "Kirjaa",
@@ -491,13 +529,13 @@
       "tacticalBoard": "Taktiikkataulu",
       "tacticalBoardDesc": "Piirrä pelikuvioita ja muodostelmia. Lisää vastustajan kiekot taktiseen suunnitteluun. Kommunikoi pelisuunnitelma visuaalisesti.",
       "formations": "Pikamuodostelmat",
-      "formationsDesc": "Aseta joukkue sekunneissa valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
+      "formationsDesc": "Aseta joukkue valmiilla muodostelmapohjilla. Valitse muodostelma ja pelaajat asettuvat paikoilleen.",
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Pelaajan kehitys",
-      "assessmentDesc": "Näe yhdellä silmäyksellä, miten jokainen pelaaja kehittyy: mikä on jo vahvaa, missä on vielä opittavaa ja mihin suuntaan kehitys kulkee. Kirjaa lyhyet havaintosi ottelun jälkeen, niin niistä muodostuu vähitellen kehityskompassi ja jaettava kehitysraporttikortti. Vertaa pelaajaa aina vain hänen omaan kehitykseensä, älä muihin lapsiin.",
+      "assessmentDesc": "Näe yhdellä silmäyksellä, miten jokainen pelaaja kehittyy: mikä on jo vahvaa, missä on vielä opittavaa ja mihin suuntaan kehitys kulkee. Kirjaa lyhyet havaintosi ottelun jälkeen, niin niistä muodostuu vähitellen kehityskompassi ja jaettava kehitysraporttikortti.",
       "trends": "Kehitystrendit",
-      "trendsDesc": "Seuraa jokaisen pelaajan edistymistä läpi kauden ja näe, miten hän kehittyy kokonaisuutena. Pitkän aikavälin kuva auttaa antamaan jokaiselle lapselle juuri hänelle sopivaa tukea.",
+      "trendsDesc": "Seuraa jokaisen pelaajan edistymistä läpi kauden. Pitkän aikavälin kuva näyttää, miten pelaaja kehittyy kokonaisuutena.",
       "seasons": "Kausikeskus",
       "seasonsDesc": "Luo ja hallitse sarjoja. Yhdistä pelit sarjoihin ja seuraa sarjan tilastoja.",
       "tournaments": "Turnauskeskus",
@@ -505,7 +543,7 @@
       "teams": "Joukkueet",
       "teamsDesc": "Luo ja hallitse useita joukkueita. Liitä joukkueet kausiin ja turnauksiin järjestelmällistä tilastointia varten.",
       "archive": "Pelihistoria",
-      "archiveDesc": "Selaa kaikkia tallennettuja pelejä. Hae vastustajan nimellä, suodata kauden tai turnauksen mukaan. Täydellinen pelihistoriasi.",
+      "archiveDesc": "Selaa kaikkia tallennettuja pelejä. Hae vastustajan nimellä, suodata kauden tai turnauksen mukaan.",
       "goalTimeline": "Otteluloki",
       "goalTimelineDesc": "Napauta kirjataksesi maalintekijät ja syöttäjät. Aikaleimat ja ottelutiedot rakentuvat automaattisesti.",
       "excelExport": "Raportit",
@@ -517,17 +555,21 @@
       "officialRules": "Viralliset säännöt",
       "officialRulesDesc": "Pikalinkit Palloliiton virallisiin jalkapallo- ja futsal-sääntöihin.",
       "cloudSync": "Pilvisynkronointi",
-      "cloudSyncDesc": "Kirjaudu sisään ja synkronoi datasi laitteiden välillä. Datasi pysyy turvassa pilvessä ja synkronoituu automaattisesti.",
+      "cloudSyncDesc": "Kirjaudu sisään ja synkronoi tietosi laitteiden välillä. Tietosi pysyvät turvassa pilvessä ja synkronoituvat automaattisesti.",
       "recap": "Ottelukooste",
       "recapDesc": "Yhdellä napautuksella valmis, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
       "positions": "Toteutuneet pelipaikat",
       "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi. Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
       "positionBalance": "Pelipaikkojen tasapaino",
-      "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on pelannut - linjoittain tai tarkat pelipaikat. Yhteen rooliin jääneet pelaajat erottuvat selvästi, joten voit monipuolistaa heidän peluutustaan tietoisesti ja antaa jokaiselle lapselle kokemusta useammasta paikasta kentällä.",
+      "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on pelannut - linjoittain tai tarkat pelipaikat. Yhteen rooliin jääneet pelaajat erottuvat selvästi, joten voit monipuolistaa heidän peluutustaan tietoisesti.",
       "matchReport": "Otteluraportti",
       "matchReportDesc": "Kirjoita oma näkemyksesi ottelusta valmiilla otsikkopohjalla — yleiskuva, mikä toimi, kehityskohteet, erityismaininnat, seuraava askel. Sisältyy jaettavaan koosteeseen.",
       "overtime": "Jatkoaika ja rangaistuslaukaukset",
-      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin."
+      "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin ja vienteihin.",
+      "friendlies": "Harjoitusottelut",
+      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi. Ota ne mukaan milloin tahansa yhdellä kytkimellä.",
+      "dashboard": "Hallintapaneeli",
+      "dashboardDesc": "Avaa sovellus ja näet tilannekuvan kaudesta - peli johon palata, tuloksesi, viimeisimmät ottelut ja maalintekijäsi."
     },
     "techCards": {
       "development": "KEHITYS",

@@ -235,7 +235,7 @@
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps?",
-      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Before the game, plan your lineup, formation, and warm-up. During the match, log goals, assists, and substitution intervals with a tap. After the game, record who actually played where, write a match report, and share a ready recap. Follow each player's development over the season so you can support every child individually. Your statistics build automatically at individual, game, team, and competition level. A direct link to the Finnish FA's Taso system makes it easy to register lineups and submit results.",
+      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Before the game, plan your lineup, formation, and warm-up. During the match, log goals, assists, and substitution intervals with a tap. After the game, record who actually played where, write a match report, and share a ready recap. Follow each player's development over the season. Your statistics build automatically at individual, game, team, and competition level. A direct link to the Finnish FA's Taso system makes it easy to register lineups and submit results.",
       "oneLine": "Free with secure cloud sync across your devices. Track games and build statistics right at the field, even without internet."
     },
     "whoIsThisFor": {
@@ -439,6 +439,44 @@
       "teamStats": "Team Stats",
       "seasonTrends": "Season Trends"
     },
+    "spotlights": {
+      "planner": {
+        "eyebrow": "Playing-Time Planner",
+        "title": "Plan your games ahead",
+        "desc": "Plan starting lineups and rotations for upcoming fixtures - a tournament, a run of games. See each player's accumulated playing time and their spread across positions. Adjust plans mid-series and see how the changes affect the whole."
+      },
+      "development": {
+        "eyebrow": "Player Development",
+        "title": "Track development over time",
+        "desc": "Rate players on developmental qualities after a game and build each player's picture over time - current form, trend arrows, strengths and focus areas, plus a shareable report card. Compare each child to their own past, not to other kids."
+      },
+      "dashboard": {
+        "eyebrow": "Your season at a glance",
+        "title": "Dashboard",
+        "desc": "The home screen shows your current season at a glance - the game you were tracking, your season record, recent results and top scorer."
+      },
+      "gameday": {
+        "eyebrow": "Game day",
+        "title": "Track the whole game, live",
+        "desc": "Place your lineup on the field, run the timer, and log goals, assists and substitutions as they happen - offline, right at the pitch."
+      },
+      "stats": {
+        "eyebrow": "Statistics",
+        "title": "Stats that build themselves",
+        "desc": "Every game you track feeds season, player and team statistics automatically - no spreadsheets. See how the season's going, who's scoring, and how each player is used."
+      },
+      "positionBalance": {
+        "eyebrow": "Position balance",
+        "title": "Positions played across the season",
+        "desc": "Across a whole season, see which positions each player has actually played - by line or exact spot. Players kept in one role stand out, so you can deliberately broaden how each player is used."
+      }
+    },
+    "bands": {
+      "gameDay": "Game day",
+      "development": "Player development",
+      "club": "Your club",
+      "statsSharing": "Stats, sharing & anywhere"
+    },
     "ui": {
       "plan": "Plan",
       "track": "Track",
@@ -491,13 +529,13 @@
       "tacticalBoard": "Tactical Board",
       "tacticalBoardDesc": "Draw plays and formations. Add opponent discs for tactical planning. Communicate your game plan visually.",
       "formations": "Quick Formations",
-      "formationsDesc": "Set up your team in seconds with formation templates. Snap players to position with one tap.",
+      "formationsDesc": "Set up your team with formation templates. Snap players to position with one tap.",
       "roster": "Player Roster",
       "rosterDesc": "Add players with names, jersey numbers, and nicknames. The nickname is shown on the disc on the field.",
       "assessment": "Player Development",
-      "assessmentDesc": "Rate players on developmental qualities after a game and build each player's compass over time — current form, trend arrows, strengths and focus areas, plus a shareable development report card. Compare to their own past, not to other kids.",
+      "assessmentDesc": "Rate players on developmental qualities after a game and build each player's picture over time — current form, trend arrows, strengths and focus areas, plus a shareable development report card.",
       "trends": "Development Trends",
-      "trendsDesc": "Follow each player's progress over the season and see how they're developing as a whole. The long-term picture helps you give every child the support that fits them best.",
+      "trendsDesc": "Follow each player's progress over the season and see how they're developing as a whole. The long-term view shows how each player is developing overall.",
       "seasons": "Leagues",
       "seasonsDesc": "Create and manage leagues. Link games to leagues and track league statistics.",
       "tournaments": "Tournament Hub",
@@ -505,7 +543,7 @@
       "teams": "Team Builder",
       "teamsDesc": "Create and manage multiple teams. Link teams to seasons and tournaments for organized statistics.",
       "archive": "Game Archive",
-      "archiveDesc": "Browse all your saved games. Search by opponent, filter by season or tournament. Your complete game history.",
+      "archiveDesc": "Browse all your saved games. Search by opponent, filter by season or tournament.",
       "goalTimeline": "Match Log",
       "goalTimelineDesc": "Tap to log goals with scorer and assister. Timestamps and match records build automatically.",
       "excelExport": "Reports",
@@ -523,11 +561,15 @@
       "positions": "Positions Played",
       "positionsDesc": "After the game, tag which position(s) each player actually played. Shown in the recap grouped by position, so other coaches see who played where.",
       "positionBalance": "Position Balance",
-      "positionBalanceDesc": "See across a whole season which positions each player has played - by line or by exact spot. Players kept in one role stand out clearly, so you can deliberately broaden how you use them and give every child experience in more than one place on the pitch.",
+      "positionBalanceDesc": "See across a whole season which positions each player has played - by line or by exact spot. Players kept in one role stand out clearly, so you can deliberately broaden how you use them.",
       "matchReport": "Match Report",
       "matchReportDesc": "Write your account of the game from a ready template of headings — overview, what went well, what to work on, highlights, next step. Included in the shareable recap.",
       "overtime": "Overtime & Penalties",
-      "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats and exports."
+      "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats and exports.",
+      "friendlies": "Friendly matches",
+      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats. Fold them back in anytime with a single toggle.",
+      "dashboard": "Dashboard",
+      "dashboardDesc": "Open the app to a snapshot of your season - the game to jump back into, your record, recent results and top scorer."
     },
     "techCards": {
       "development": "DEVELOPMENT",
