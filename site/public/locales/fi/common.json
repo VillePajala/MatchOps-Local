@@ -448,7 +448,7 @@
       "development": {
         "eyebrow": "Pelaajan kehitys",
         "title": "Seuraa kehitystä ajan myötä",
-        "desc": "Arvioi pelaajia kehittävissä ominaisuuksissa pelin jälkeen ja rakenna jokaisesta kuva ajan myötä - nykyvire, kehityksen suunta, vahvuudet ja kehityskohteet sekä jaettava raporttikortti. Vertaa lasta hänen omaan menneisyyteensä, ei muihin lapsiin."
+        "desc": "Kirjaa ottelun jälkeen lyhyet havainnot siitä, miten pelaaja kehittyy - vahvuudet, kehittyvät alueet ja kehityksen suunta. Havainnoista rakentuu ajan myötä kokonaiskuva, jonka voit jakaa yhteenvetona."
       },
       "dashboard": {
         "eyebrow": "Kausi yhdellä silmäyksellä",
@@ -533,7 +533,7 @@
       "roster": "Pelaajarekisteri",
       "rosterDesc": "Lisää pelaajat nimillä, pelinumeroilla ja lempinimillä. Lempinimi näkyy kentällä pelaajan kiekossa.",
       "assessment": "Pelaajan kehitys",
-      "assessmentDesc": "Näe yhdellä silmäyksellä, miten jokainen pelaaja kehittyy: mikä on jo vahvaa, missä on vielä opittavaa ja mihin suuntaan kehitys kulkee. Kirjaa lyhyet havaintosi ottelun jälkeen, niin niistä muodostuu vähitellen kehityskompassi ja jaettava kehitysraporttikortti.",
+      "assessmentDesc": "Näe yhdellä silmäyksellä, miten jokainen pelaaja kehittyy: mikä on jo vahvaa, missä on vielä opittavaa ja mihin suuntaan kehitys kulkee. Kirjaa lyhyet havaintosi ottelun jälkeen, niin niistä rakentuu ajan myötä kokonaiskuva, jonka voit jakaa yhteenvetona.",
       "trends": "Kehitystrendit",
       "trendsDesc": "Seuraa jokaisen pelaajan edistymistä läpi kauden. Pitkän aikavälin kuva näyttää, miten pelaaja kehittyy kokonaisuutena.",
       "seasons": "Kausikeskus",
