@@ -567,7 +567,7 @@
       "overtime": "Jatkoaika ja rangaistuslaukaukset",
       "overtimeDesc": "Kirjaa jatkoaika ja rangaistuslaukauskilpailut. Rangaistuslaukausten tulos ratkaisee tasapelin ja siirtyy suoraan tilastoihin.",
       "friendlies": "Harjoitusottelut",
-      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi. Ota ne mukaan milloin tahansa yhdellä kytkimellä.",
+      "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi.",
       "dashboard": "Hallintapaneeli",
       "dashboardDesc": "Avaa sovellus ja näet tilannekuvan kaudesta - peli johon palata, tuloksesi, viimeisimmät ottelut ja maalintekijäsi."
     },
