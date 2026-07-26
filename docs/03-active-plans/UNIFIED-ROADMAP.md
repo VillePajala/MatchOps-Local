@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: 2026-07-01
+**Last Updated**: 2026-07-27
 **Status**: 🚀 **LIVE IN PRODUCTION** (Google Play, released 2026-06-09) · **Free** (no billing)
 **Purpose**: Single, prioritized source of truth for remaining work.
 
@@ -128,8 +128,8 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 
 ## 🔵 P4 — Big bets (need planning before any code)
 
-- [ ] **Two-level app structure (Club Home vs Match Mode)** 📋 *planned 2026-07-13* — fixes the root "app feels complicated" issue: menus mix club-level and match-level items, and the app boots INTO a match. Target: StartScreen evolves into a tabbed Club Home (Pelit / Joukkue / Kaudet / Tilastot + ⚙), the field becomes an explicit Match Mode with a match-only menu, auto-resume protects the game-day path. Phases 0–3 ≈ 4–7 weeks (strangler pattern, low→medium risk); phase 4 (retire `unsaved_game`) is a separate later decision. **ALL CODE WAVES COMPLETE 2026-07-17 (L.0a-L.4 modal lifts, 3.1 menu shrink + home exit, 3.1b Home polish, 3.2 roster bridge - 18 sub-PRs on `feature/two-level-structure`); final PR to master awaiting owner review/merge.** Plan: `two-level-app-structure.md` §6-7.
-- [x] **Playing-Time Planner** ✅ *feature complete 2026-07-13; merge to master pending (PR #649, prod migrations 036–038 first)* — plan a **tournament's** kokoonpanot + subs across all games at once so **playing time comes out equal**. Shipped: three-tab planner (Games / Minutes / Settings), fairness-ramped discs + totals strip, "Suggest fair lineups", per-game availability, game creation from plans + re-apply (per-game and bulk), live-timer sub prompts, and **plan cloud sync** (Supabase + per-plan LWW). Re-anchored after a failed 92k-line big-bang attempt (`archive/planner-integration`); standalone MVP `~/projects/matchops-planner` mined for algorithm/UX. **Absorbs the Tournament Planner (#369) and #381.** Plan: `playing-time-fairness-and-planner.md`.
+- [x] **Two-level app structure (Club Home vs Match Mode)** ✅ **MERGED TO MASTER + LIVE (#681, 2026-07)** — fixed the root "app feels complicated" issue: StartScreen is now a tabbed Club Home (Pelit / Seura / Kaudet / Tilastot + ⚙), the field is an explicit Match Mode with a match-only menu, auto-resume protects the game-day path. Home dashboard (resume card, season record, recent strip, top scorer) shipped as the default with a "Simplified view" toggle. Post-merge polish also landed (onboarding simplification, guide reconciliation, hotfixes). Plan: `two-level-app-structure.md` §6-7.
+- [x] **Playing-Time Planner** ✅ **MERGED TO MASTER + LIVE (2026-07; prod migrations 036–038 applied)** — plan a **tournament's** kokoonpanot + subs across all games at once so **playing time comes out equal**. Shipped: three-tab planner (Games / Minutes / Settings), fairness-ramped discs + totals strip, "Suggest fair lineups", per-game availability, game creation from plans + re-apply (per-game and bulk), live-timer sub prompts, and **plan cloud sync** (Supabase + per-plan LWW). Re-anchored after a failed 92k-line big-bang attempt (`archive/planner-integration`); standalone MVP `~/projects/matchops-planner` mined for algorithm/UX. **Absorbs the Tournament Planner (#369) and #381.** Plan: `playing-time-fairness-and-planner.md`.
 - [ ] ~~**Tournament Planner — full replan** (#369)~~ — folded into "Playing-Time Fairness & Multi-Game Sub Planner" above (it's the forward/planner half). Old code at tag `archive/planner-integration`.
 - [ ] **Actual playing time — segments on the game record** 📋 *planned 2026-07-13* — per-player played segments (player, position, from, to) stored on the GAME (plan = intent, game = record); planner pre-fills a post-game "Toteutuiko suunnitelma?" confirm; generalizes the existing `playerPositions` tags (kept, auto-derived); unlocks minutes-per-season/competition and minutes-by-position stats. Prerequisite for the AI-assistant bet ("richer data collection"); shares its data shape with the timer-hardening refactor. After planner finalization + plan cloud sync. Plan: `playing-time-fairness-and-planner.md` §12.
 - [ ] **Modal chrome modernization** 📋 *parked 2026-07-13* — decide app-wide on the planner's two pilot patterns: bare list items (no dark-card wrapper) and collapse-on-scroll pinned chrome (tabs/add buttons hide on scroll down, return on scroll up — shipped in the planner, `ScrollableContent` already supports it). Applies to every modal with pinned navigation/actions (GameStats tabs, TeamManager/Roster add buttons, SeasonTournament). One pass so modals don't fork into visual generations. Details: `playing-time-fairness-and-planner.md` §10 item 1. Natural companion to the two-level app structure work.
@@ -175,6 +175,7 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 
 | Date | Update |
 |------|--------|
+| 2026-07-27 | 🧹 **Roadmap refresh + marketing revamp.** Marked two-level app structure (#681) and the Playing-Time Planner as merged/live (roadmap was stale). Shipped a **full marketing-site revamp**: all screens on v2 screenshots with unified chrome (recaptured on current UI or re-chromed), and a copy pass across hero/spotlights/feature-cards for a neutral, feature-describing tone with natural Finnish. Also fixed a real planner bug found while capturing (planned-sub nudge was suppressed for plan-created games) and small timer-overlay polish (removed the corner X + confusing "LP" full-time pill, aligned the score header), all live. **Next priority: ⏰ Play compliance deadline 2026-08-31 (TWA target API + Play Billing).** |
 | 2026-07-01 | 📋 **Post-game workflow push (PRs #569–#595).** Shipped: **positions played** (per-player, cloud-synced, sport/size-aware selector 5v5/8v8/11v11 + All, formation-covering palettes), **game recap generator** + polish (full-width generate button, header colons, penalties-only result, near-full-height preview), **game lifecycle & completeness** (model + "Finish this game" checklist + Load Game readiness dot + "Game report" menu entry), **match report + "Use template" scaffold** + unified resizable editors, and UI consistency (blue toggle buttons for not-played/OT/penalties, report line-break display fix). Explored + parked: TASO in-app embed (blocked by Custom-Tab/iframe security; a "TASO helper" copy view remains buildable). |
 | 2026-07-01 | 🧭 Player-development assessment feature built & merged (#545–#568). Roadmap: added P3 "ship the assessment publicly" (match-ops.com copy + new screenshots + Play Store update); reframed the assessment plan's backlog item 7 from "external-game assessments" into a **standalone / point-in-time assessment** primitive with report-editing + external-games as the two consumers (+ "considered vs observed" trend caution). |
 | 2026-06-11 | 🧨 **Whole-app code review (7-agent) → P0.** 4 critical (mid-game reload clock corruption, IndexedDB read-error wipe path, cloud entity-delete FK failure, stale-snapshot re-migration), 9 high, 8 medium clusters added as CR-C/H/M items. Also: account-deletion hardening shipped (`77ac8034`), Play badge links live (`944509fe`), P2 items added for Play Store data-deletion declaration + local device-data wipe. |
@@ -185,9 +186,13 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 
 ---
 
-**Current Focus**: P0/P1 are cleared (launch criticals, sync/auth/observability all done). The big
-recent push (assessment + positions + recap + completeness + match report) is shipped. **Next up:**
-🟡 P2 — **ship the assessment/positions/recap features publicly** (match-ops.com copy + new
-screenshots + Play Store update) is the highest-value remaining item; plus the two small P2 UX ideas
-(undo toast, repeat-last-game). Then 🟢 P3 low-effort wins (game captains, moment capture) and the
-🔵 P4 big bets (playing-time planner, desktop UI, AI assistant, timer-hardening) when ready.
+**Current Focus**: P0/P1 cleared, and the big feature waves are all **shipped + live** — assessment,
+positions, recap, match report, completeness, overtime/penalties, the **Playing-Time Planner**, the
+**two-level app structure**, and (2026-07-27) a **full marketing-site revamp** (all-new v2 screenshots
+with unified chrome + neutral, natural EN/FI copy). **The one time-critical item is** 🟡 P2 —
+⏰ **Play compliance (HARD DEADLINE 2026-08-31)**: bump the TWA target API level + disable the
+deprecated Play Billing library, in the **Bubblewrap/PWABuilder wrapper (not in this repo)** — locate
+or regenerate it, build one AAB, upload. After that, everything remaining is optional backlog: 🔵 P4
+big bets (actual playing-time segments, modal-chrome modernization, desktop UI, AI assistant,
+timer-hardening) and small 🟢 P3 wins (game captains, moment capture), plus the in-context
+**new-user onboarding funnel** and an in-app **guide re-check** against the new UI.
