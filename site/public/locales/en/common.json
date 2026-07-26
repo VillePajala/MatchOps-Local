@@ -567,7 +567,7 @@
       "overtime": "Overtime & Penalties",
       "overtimeDesc": "Record extra time and penalty shootouts. The shootout result decides a level game and flows straight into stats.",
       "friendlies": "Friendly matches",
-      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats. Fold them back in anytime with a single toggle.",
+      "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats.",
       "dashboard": "Dashboard",
       "dashboardDesc": "Open the app to a snapshot of your season - the game to jump back into, your record, recent results and top scorer."
     },
