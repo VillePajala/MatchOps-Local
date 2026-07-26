@@ -559,7 +559,7 @@
       "recap": "Ottelukooste",
       "recapDesc": "Automaattisesti rakentuva, joukkueen chattiin liitettävä yhteenveto — tulos, maalintekijät, syötöt, kokoonpano ja otteluraporttisi. Jaa tekstinä tai kopioi.",
       "positions": "Toteutuneet pelipaikat",
-      "positionsDesc": "Ottelun jälkeen merkitse mitä pelipaikkoja kukin pelaaja pelasi. Näkyy koosteessa pelipaikoittain, joten muut valmentajat näkevät kuka pelasi missäkin.",
+      "positionsDesc": "Merkitse ottelun jälkeen, missä pelipaikoissa kukin pelaaja pelasi. Tiedoista rakentuu pelipaikkajakauma linjoittain tai tarkan paikan mukaan - ottelusta koko kauteen - ja pelipaikat näkyvät myös ottelukoosteessa.",
       "positionBalance": "Pelipaikkojen tasapaino",
       "positionBalanceDesc": "Näe koko kauden ajalta, mitä pelipaikkoja kukin pelaaja on pelannut - linjoittain tai tarkat pelipaikat. Yhteen rooliin jääneet pelaajat erottuvat selvästi, joten voit monipuolistaa heidän peluutustaan tietoisesti.",
       "matchReport": "Otteluraportti",
