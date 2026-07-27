@@ -10,6 +10,7 @@
  */
 
 import { getPositionLabelForFormationPosition } from './positionLabels';
+import type { Player, Point } from '@/types';
 
 /**
  * Position on the soccer field using relative coordinates
@@ -408,4 +409,84 @@ function generateDynamicFormation(playerCount: number): FieldPosition[] {
   }
 
   return positions;
+}
+
+/**
+ * Result of {@link buildAutoPlacement}: a placed field plus the snap points the
+ * match view uses to rebuild sub-slot circles + position labels on load.
+ */
+export interface AutoPlacement {
+  /** Selected squad placed on the field (GK at the keeper spot, rest in the
+   *  auto formation, overflow parked on sub slots / sideline). */
+  playersOnField: Player[];
+  /** GK spot + field positions + sub slots, persisted so a loaded game rebuilds
+   *  the formation overlay (same as a manually-placed or plan-prefilled game). */
+  formationSnapPoints: Point[];
+  /** The player placed as goalie (single-goalie invariant), or null when the
+   *  squad is empty. Callers should mirror this onto availablePlayers too. */
+  goalieId: string | null;
+}
+
+/**
+ * Pure auto-formation placement used at GAME-CREATION time so a fresh game opens
+ * with the squad already on the pitch (no blank field for a new coach). This is
+ * the persist-side twin of the match-side "Place all players" Auto path in
+ * useFieldCoordination.handlePlaceAllPlayers - it MUST stay behaviourally in
+ * sync with it (goalie = designated goalie or first player, placed at 0.5/0.95;
+ * outfielders spread by calculateFormationPositions; overflow parked on sub
+ * slots then generic sideline slots). It deliberately performs NO React state
+ * side effects - the caller writes the result into the persisted AppState.
+ */
+export function buildAutoPlacement(playersToPlace: Player[]): AutoPlacement {
+  if (playersToPlace.length === 0) {
+    return { playersOnField: [], formationSnapPoints: [], goalieId: null };
+  }
+
+  // Goalie = the designated goalie, else the first player - placed at the keeper
+  // spot and flagged isGoalie; everyone else is cleared (single-goalie invariant).
+  const designatedGoalie = playersToPlace.find(p => p.isGoalie);
+  const goalie = designatedGoalie ?? playersToPlace[0];
+  const outfielders = playersToPlace.filter(p => p.id !== goalie.id);
+
+  const placed: Player[] = [{ ...goalie, relX: 0.5, relY: 0.95, isGoalie: true }];
+
+  const positions = calculateFormationPositions(outfielders.length);
+  outfielders.forEach((player, index) => {
+    if (index < positions.length) {
+      placed.push({ ...player, relX: positions[index].relX, relY: positions[index].relY, isGoalie: false });
+    }
+  });
+
+  const subSlots = generateSubSlots(positions);
+
+  // Overflow players (more outfielders than formation slots) go onto sub slots,
+  // then generic sideline positions once the sub slots run out. NOTE: for THIS
+  // auto-only caller overflow is always 0 - calculateFormationPositions returns
+  // exactly outfielders.length positions - so this branch is defensive parity
+  // with the match-side twin (handlePlaceAllPlayers), where a fixed-size preset
+  // CAN be smaller than the squad. Kept so the two stay structurally in sync.
+  const overflow = Math.max(0, outfielders.length - positions.length);
+  if (overflow > 0) {
+    const overflowPlayers = outfielders.slice(positions.length);
+    const fallbackCount = Math.max(0, overflow - subSlots.length);
+    const fallbackPositions = fallbackCount > 0 ? generateSidelinePositions(fallbackCount) : [];
+    overflowPlayers.forEach((player, index) => {
+      if (index < subSlots.length) {
+        placed.push({ ...player, relX: subSlots[index].relX, relY: subSlots[index].relY, isGoalie: false });
+      } else {
+        const fallbackIndex = index - subSlots.length;
+        if (fallbackIndex < fallbackPositions.length) {
+          placed.push({ ...player, relX: fallbackPositions[fallbackIndex].relX, relY: fallbackPositions[fallbackIndex].relY, isGoalie: false });
+        }
+      }
+    });
+  }
+
+  const formationSnapPoints: Point[] = [
+    { relX: 0.5, relY: 0.95 },
+    ...positions.map(p => ({ relX: p.relX, relY: p.relY })),
+    ...subSlots.map(s => ({ relX: s.relX, relY: s.relY })),
+  ];
+
+  return { playersOnField: placed, formationSnapPoints, goalieId: goalie.id };
 }

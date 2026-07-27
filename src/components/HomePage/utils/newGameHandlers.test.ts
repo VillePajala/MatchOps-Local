@@ -114,6 +114,44 @@ describe('newGameHandlers', () => {
     expect(setQueryData.mock.calls.some((c: unknown[]) => c[1] === result!.gameId)).toBe(true);
   });
 
+  it('auto-places the selected squad on the field for a normal (non-prefill) game', async () => {
+    const result = await buildAndPersistNewGame(createTestDeps(), createBaseRequest());
+    const state = result!.gameState;
+
+    // Both players are placed on the field with coordinates - no blank field.
+    expect(state.playersOnField).toHaveLength(2);
+    state.playersOnField.forEach((p) => {
+      expect(typeof p.relX).toBe('number');
+      expect(typeof p.relY).toBe('number');
+    });
+    // Snap points seeded so the match view rebuilds the formation overlay.
+    expect(state.formationSnapPoints?.length ?? 0).toBeGreaterThan(0);
+    // The designated goalie (p2) is the single goalie, mirrored onto BOTH arrays.
+    const onFieldGoalies = state.playersOnField.filter((p) => p.isGoalie);
+    expect(onFieldGoalies).toHaveLength(1);
+    expect(onFieldGoalies[0].id).toBe('p2');
+    expect(state.availablePlayers.filter((p) => p.isGoalie).map((p) => p.id)).toEqual(['p2']);
+    // Rule 3: playersOnField ⊆ selectedPlayerIds still holds.
+    state.playersOnField.forEach((p) => expect(state.selectedPlayerIds).toContain(p.id));
+  });
+
+  it('leaves the field to the plan when prefilled (no auto-placement override)', async () => {
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        prefill: {
+          playersOnField: [{ id: 'p1', name: 'Player 1', isGoalie: false, relX: 0.5, relY: 0.5 }],
+          plannedSubs: [],
+          formationSnapPoints: [],
+        },
+      }),
+    );
+    // Exactly the planned XI (one player), NOT the whole auto-placed squad.
+    expect(result!.gameState.playersOnField).toHaveLength(1);
+    expect(result!.gameState.playersOnField[0].id).toBe('p1');
+  });
+
   it('threads the isFriendly flag onto the built game (default false, explicit true)', async () => {
     const def = await buildAndPersistNewGame(createTestDeps(), createBaseRequest());
     expect(def!.gameState.isFriendly).toBe(false);

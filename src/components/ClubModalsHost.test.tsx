@@ -87,9 +87,10 @@ jest.mock('@/hooks/usePersonnelManager', () => ({
 
 jest.mock('@/components/RosterSettingsModal', () => ({
   __esModule: true,
-  default: ({ onOpenPlayerStats }: { onOpenPlayerStats: (id: string) => void }) => (
+  default: ({ onOpenPlayerStats, onClose }: { onOpenPlayerStats: (id: string) => void; onClose: () => void }) => (
     <div data-testid="roster-modal">
       <button onClick={() => onOpenPlayerStats('p1')}>player-stats-p1</button>
+      <button onClick={onClose}>close-roster</button>
     </div>
   ),
 }));
@@ -408,6 +409,52 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
       try {
         fireEvent.click(screen.getByText('Add Players'));
         await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
+        expect(screen.queryByText('No Players in Roster')).not.toBeInTheDocument();
+      } finally {
+        nowSpy.mockRestore();
+      }
+    } finally {
+      mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
+    }
+  });
+
+  it('returns to New Game setup after a player is added via the empty-roster detour (L.3b)', async () => {
+    mockNewGameSetupController.masterRoster = [];
+    try {
+      renderHost();
+      fireEvent.click(screen.getByText('open-new-game'));
+      await waitFor(() => expect(screen.getByText('No Players in Roster')).toBeInTheDocument());
+      const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 300);
+      try {
+        fireEvent.click(screen.getByText('Add Players'));
+        await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
+        // Coach adds a player → roster is now non-empty.
+        mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
+        // Closing the roster brings them BACK into New Game setup, not to Home.
+        fireEvent.click(screen.getByText('close-roster'));
+        await waitFor(() => expect(screen.getByTestId('new-game-setup-modal')).toBeInTheDocument());
+      } finally {
+        nowSpy.mockRestore();
+      }
+    } finally {
+      mockNewGameSetupController.masterRoster = [{ id: 'p1', name: 'Testaaja', isGoalie: false }];
+    }
+  });
+
+  it('does NOT reopen New Game if the roster is closed still empty (no add) (L.3b)', async () => {
+    mockNewGameSetupController.masterRoster = [];
+    try {
+      renderHost();
+      fireEvent.click(screen.getByText('open-new-game'));
+      await waitFor(() => expect(screen.getByText('No Players in Roster')).toBeInTheDocument());
+      const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 300);
+      try {
+        fireEvent.click(screen.getByText('Add Players'));
+        await waitFor(() => expect(screen.getByTestId('roster-modal')).toBeInTheDocument());
+        // Coach adds nothing and closes → back to Home, no confirm/setup loop.
+        fireEvent.click(screen.getByText('close-roster'));
+        await waitFor(() => expect(screen.queryByTestId('roster-modal')).not.toBeInTheDocument());
+        expect(screen.queryByTestId('new-game-setup-modal')).not.toBeInTheDocument();
         expect(screen.queryByText('No Players in Roster')).not.toBeInTheDocument();
       } finally {
         nowSpy.mockRestore();

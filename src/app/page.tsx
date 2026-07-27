@@ -177,6 +177,12 @@ export default function Home() {
   );
   const hideLocalModeEntry = hideLocalModeEntryRef.current;
 
+  // When local-mode entry points are hidden (cloud-only web OR Play build),
+  // WelcomeScreen degenerates to a single "Use Cloud Sync" button — a choice
+  // screen with no choice. Skip it and auto-enable cloud → sign-in. isPlayStoreCtx
+  // preserves the original Play skip even under NEXT_PUBLIC_INTERNAL_TESTING.
+  const skipWelcomeScreen = hideLocalModeEntry || isPlayStoreCtx;
+
   // Compute post-login loading state synchronously (not via effect) to avoid race conditions
   // This ensures the loading screen shows immediately when conditions are met, not one render cycle later
   // NOTE: Do NOT require !!userId here - user/session might be set at slightly different times
@@ -393,25 +399,26 @@ export default function Home() {
     // Only check on client side
     if (typeof window === 'undefined') return;
 
-    // Play Store context: skip WelcomeScreen, auto-enable cloud mode.
-    // On success: setWelcomeSeen() + reload. On failure (shouldn't happen —
-    // isPlayStoreCtx requires isCloudAvailable()): fall through to show welcome screen.
-    if (!hasSeenWelcome() && isPlayStoreCtx) {
-      logger.info('[page.tsx] Play Store first install - auto-enabling cloud mode');
+    // Cloud-only build (web or Play): skip the dead WelcomeScreen, auto-enable
+    // cloud mode. On success: setWelcomeSeen() + reload (→ LoginScreen). On
+    // failure (shouldn't happen — skipWelcomeScreen requires isCloudAvailable()):
+    // fall through to show the welcome screen (with hideLocalModeOptions).
+    if (!hasSeenWelcome() && skipWelcomeScreen) {
+      logger.info('[page.tsx] Cloud-only first install - auto-enabling cloud mode');
       const enabled = enableCloudMode();
       if (enabled) {
         const welcomed = setWelcomeSeen();
         if (!welcomed) {
           // setWelcomeSeen() localStorage write failed — do NOT reload or we'd loop.
           // Fall through to welcome screen with hideLocalModeOptions.
-          logger.error('[page.tsx] Play Store first install - setWelcomeSeen() failed, skipping reload to prevent loop');
+          logger.error('[page.tsx] Cloud-only first install - setWelcomeSeen() failed, skipping reload to prevent loop');
         } else {
           window.location.reload();
           return; // Reload initiated — skip further checks
         }
       } else {
-        // enableCloudMode() failed — unexpected since isPlayStoreCtx requires isCloudAvailable()
-        logger.error('[page.tsx] Play Store first install - enableCloudMode() failed unexpectedly');
+        // enableCloudMode() failed — unexpected since skipWelcomeScreen requires isCloudAvailable()
+        logger.error('[page.tsx] Cloud-only first install - enableCloudMode() failed unexpectedly');
       }
       // Fall through to welcome screen below
     }
@@ -421,7 +428,7 @@ export default function Home() {
       logger.info('[page.tsx] First install detected - showing welcome screen');
       setShowWelcome(true);
     }
-  }, [isPlayStoreCtx]);
+  }, [skipWelcomeScreen]);
 
   // Handle "Start Fresh" (local mode) from welcome screen
   const handleWelcomeStartLocal = useCallback(() => {
@@ -1478,7 +1485,7 @@ export default function Home() {
                     >
                       {t('page.tryAgain', 'Try Again')}
                     </button>
-                    {!isPlayStoreCtx && (
+                    {!skipWelcomeScreen && (
                       <button
                         onClick={handleLoginUseLocalMode}
                         className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"
@@ -1495,7 +1502,7 @@ export default function Home() {
           // Cloud mode: show login screen when not authenticated
           <ErrorBoundary>
             <LoginScreen
-              onBack={isPlayStoreCtx ? undefined : handleLoginBack}
+              onBack={skipWelcomeScreen ? undefined : handleLoginBack}
               onUseLocalMode={hideLocalModeEntry ? undefined : handleLoginUseLocalMode}
               allowRegistration={true}  // Account creation is free on all platforms
             />
