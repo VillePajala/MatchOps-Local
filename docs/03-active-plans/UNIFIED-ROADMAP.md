@@ -140,6 +140,15 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 
 ---
 
+## 🎯 Growth & business (gated — not engineering priorities)
+
+Business activities, tracked so the strategy is visible alongside the product work. Both are deliberately **gated**: don't market into a weak first-run, don't monetize without traction.
+
+- [ ] **Go-to-market / marketing push** — active user acquisition (app-store optimization, coaching communities, outreach, content), *after* the first-run is strong. **Gated behind the onboarding funnel (P2)** — driving acquisition into an unguided new-user experience is a leaky bucket. The marketing *site* is done; this is the promotion/acquisition effort itself. Needs a plan: channels, messaging, target coach segments, launch beats.
+- [ ] **Monetization — revisit when there's traction** — currently **parked (free)**. Billing infrastructure is built but disabled (`PREMIUM_ENFORCEMENT_ENABLED=false`); the plan is archived. Replan only once there's a growing, retained user base worth monetizing — not before; it blocks nothing now. When revived: deploy `verify-subscription` and fold in the dormant CR-M8 billing items (purchase-token unique index, `is_active` expiry, Google purchase acknowledgement).
+
+---
+
 ## 🧪 Post-launch QA (verification pass, not features)
 
 Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are unexecuted — run as a verification sweep when convenient. Specific gaps to confirm: session-expiry handling, auth-init timeout recovery, post-login marketing-consent prompt. ⚠️ The "Free Limits" test is stale (premium enforcement is off / app is free).
