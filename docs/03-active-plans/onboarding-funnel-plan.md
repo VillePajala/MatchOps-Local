@@ -45,7 +45,7 @@ This **demotes the guide** (was "Fix A"): with the field pre-filled there's no b
 
 When `hideLocalModeEntry` is true, WelcomeScreen has no job. Boot the new user straight to `LoginScreen` (sign-up), where "Use Cloud Sync" sends them anyway.
 - **Language toggle is safe** — `LoginScreen` has its own FI/EN switch (`LoginScreen.tsx:48-65`), so nothing is lost.
-- **Wiring notes:** hide `LoginScreen`'s `onBack` ("back to Welcome") in forced-cloud (nowhere back to); do the cloud-mode enable at startup so there's **no reload** (today "Use Cloud Sync" enables-mode→reload→login).
+- **Wiring notes:** hide `LoginScreen`'s `onBack` ("back to Welcome") in forced-cloud (nowhere back to). Implementation reuses the existing tested Play-Store skip path (auto-`enableCloudMode()` → `setWelcomeSeen()` → `reload` → LoginScreen), just broadened to the whole cloud build — so the one-time reload is **retained** (it's the proven mechanism; removing it was optional polish, not done).
 - **Keep WelcomeScreen** in the code for the non-cloud / `NEXT_PUBLIC_INTERNAL_TESTING` config where local mode *is* offered — gate the skip on the same `hideLocalModeEntry`.
 
 ### Fix 3 — Return to New Game after adding players

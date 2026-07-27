@@ -1485,7 +1485,7 @@ export default function Home() {
                     >
                       {t('page.tryAgain', 'Try Again')}
                     </button>
-                    {!isPlayStoreCtx && (
+                    {!skipWelcomeScreen && (
                       <button
                         onClick={handleLoginUseLocalMode}
                         className="w-full h-12 px-4 py-2 rounded-md text-base font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all"

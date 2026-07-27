@@ -183,7 +183,10 @@ export async function buildAndPersistNewGame(
     ? (prefill.formationSnapPoints ?? [])
     : (autoPlacement?.formationSnapPoints ?? []);
   // The match side enforces the single-goalie invariant across BOTH arrays
-  // (see applyGoalieStatus), so mirror the auto-placed goalie onto the roster too.
+  // (see applyGoalieStatus), so mirror the auto-placed goalie onto the roster.
+  // This intentionally clears isGoalie on every OTHER player - including ones
+  // not selected for this game - so the game has exactly one goalie, matching
+  // applyGoalieStatus's per-game override behaviour.
   const availablePlayersWithGoalie = autoPlacement?.goalieId
     ? availablePlayersForGame.map((p) => ({ ...p, isGoalie: p.id === autoPlacement.goalieId }))
     : availablePlayersForGame;

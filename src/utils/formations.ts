@@ -460,7 +460,11 @@ export function buildAutoPlacement(playersToPlace: Player[]): AutoPlacement {
   const subSlots = generateSubSlots(positions);
 
   // Overflow players (more outfielders than formation slots) go onto sub slots,
-  // then generic sideline positions once the sub slots run out.
+  // then generic sideline positions once the sub slots run out. NOTE: for THIS
+  // auto-only caller overflow is always 0 - calculateFormationPositions returns
+  // exactly outfielders.length positions - so this branch is defensive parity
+  // with the match-side twin (handlePlaceAllPlayers), where a fixed-size preset
+  // CAN be smaller than the squad. Kept so the two stay structurally in sync.
   const overflow = Math.max(0, outfielders.length - positions.length);
   if (overflow > 0) {
     const overflowPlayers = outfielders.slice(positions.length);

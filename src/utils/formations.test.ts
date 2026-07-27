@@ -748,11 +748,12 @@ describe('buildAutoPlacement', () => {
     expect(result.goalieId).toBe('p1');
   });
 
-  it('parks overflow players (more than the formation holds) off the field rows', () => {
-    // A large squad still places everyone (overflow goes to sub slots / sideline).
+  it('places a large squad in full with a single goalie', () => {
+    // The auto path sizes the formation to the squad, so everyone is placed
+    // (the sub-slot/sideline overflow branch is defensive parity with the
+    // match-side twin and is unreachable here - see buildAutoPlacement note).
     const result = buildAutoPlacement(mkPlayers(16));
     expect(result.playersOnField).toHaveLength(16);
-    // Single-goalie invariant holds regardless of size.
     expect(result.playersOnField.filter((p) => p.isGoalie)).toHaveLength(1);
   });
 
