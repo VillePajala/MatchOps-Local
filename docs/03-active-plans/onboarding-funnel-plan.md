@@ -1,68 +1,90 @@
-# In-context resource-creation funnel (new-user onboarding) — plan
+# New-user experience — execution plan
 
-**Status:** planned (design pass) · **Roadmap:** P2 · **Created:** 2026-07-27
-**Prerequisite:** none blocking — the two-level structure, dashboard, and marketing revamp are shipped. Build on its own branch.
+**Status:** ready to build · **Roadmap:** P2 · **Created:** 2026-07-27 (revised same day)
+**Prerequisite:** none blocking. Small, mostly-reuse changes; each ships independently.
 
-## 1. Problem & goal
+> **This doc replaced the "in-context resource-creation funnel" plan.** A code walk of the actual
+> new-user path (see §1) showed the funnel was oversized for the real problem: there are **no
+> dead-ends** today — a new coach can reach a playable game. What exists is a few small rough spots.
+> The funnel is **parked** as an appendix (§6), to revisit only if real usage shows people stalling.
 
-When a brand-new coach signs up, they land in the two-level Home with an empty club. The old first-run walkthrough was removed during the dashboard/two-level work, and nothing guided replaced it. Result: a functional but **unguided** first run — exactly the wrong first impression right before any marketing push.
+## 1. What a new user actually hits today (the evidence)
 
-**Goal:** make **game creation itself the onboarding funnel.** The coach just wants to create a game; the flow surfaces each missing prerequisite (team, players, competition, personnel) at the moment it's relevant, with an inline way to create it. Setup happens as a byproduct; concepts are introduced in context, never as upfront prep. This is a leaky-bucket fix that gates the go-to-market work.
+Traced empty-club → first playable game. Findings:
 
-## 2. Decided design (from the 2026-07-22 stress-tested notes — these are settled)
+- **No genuine dead-ends.** Every required step is enforced with a toast or an explicit confirm. A new coach *can* get to a game by pressing the obvious amber "New Game".
+- **Rough spot A — a dead first screen.** In the cloud build (`hideLocalModeEntry`, `page.tsx:175-178`), `WelcomeScreen` renders a "Choose how you want to get started" hero above **one** button ("Use Cloud Sync"). Local-mode button, backup link, and settings note are all hidden. It's a choice screen with no choice → a wasted tap **plus a reload** before the real first screen (`LoginScreen`).
+- **Rough spot B — a clunky bounce.** New Game with zero players is intercepted by a "No Players" confirm → "Add Players" → roster modal. After adding, the user is dumped back to **Home**, with nothing telling them to re-tap New Game. The good inline "add your first player" input that already exists in the setup modal (`NewGameSetupModal.tsx:891`) is unreachable for the truly-empty user.
+- **Rough spot C — the blank field.** The one genuinely unguided moment: after Start, the coach faces an empty green field with discs in the top bar and no cue that you **tap a disc, then tap the field** to place it (and that dragging works only for discs *already on* the field — there is no drag-from-bar; see §3 note).
 
-- **Game creation IS the funnel.** No separate onboarding screen or forced wizard.
-- **Inline create is ALWAYS available** on every selector — not first-time-only (first-time-only reintroduces the "disappearing button" confusion). **Prominence adapts:** a hero call ("Create your first team") when the picker is empty; a quiet "+ Add new" when populated. The empty state is just the zero case of a capability that always exists.
-- **Render as inline panels WITHIN the New Game modal** (an internal panel/wizard stack), NEVER as detours that open the full manager modals. This is what keeps state-preservation and hardware-back safe.
-- **Nesting bottoms out at depth 2:** game → create team → create competition (team creation can bind a competition). Players / competition / personnel are leaf panels.
-- **Home tabs stay** the full management surface (edit/delete/bulk/advanced/prep-ahead). Two doors to the same room: **create in context (game flow), manage in bulk (Home).**
-- **Everything past the true minimum is skippable** — the flow introduces, never blocks. Only players are near-essential (need a lineup); even those are inline-added.
-- **One shared create-form component per resource** used by BOTH the Home manager and the funnel panel, so both produce identical artifacts.
+## 2. The three fixes (smallest to largest)
 
-## 3. Resources & funnel behavior
-
-| Resource | Depth | Manager modal (bulk) | Funnel panel | Notes |
+| # | Fix | Effort | Risk | Kills |
 |---|---|---|---|---|
-| **Team** | 1 (can push competition → 2) | `TeamManagerModal` / `UnifiedTeamModal` | `TeamCreateForm` panel | A team can bind a season/tournament → this is the only depth-2 path. Prototype this first. |
-| **Players** | 1 (leaf) | `RosterSettingsModal` | inline add-player (**already exists**: `NewGameSetupModal.onAddPlayerToRoster`) | Near-essential; generalize the existing POC into the shared form. |
-| **Competition** (season / tournament) | 1 (leaf; also reachable at depth 2 from team) | `SeasonTournamentManagementModal` | `CompetitionCreateForm` panel | Fully skippable. Decide: expose both season + tournament create, or one entry that picks. |
-| **Personnel** | 1 (leaf) | `PersonnelManagerModal` | `PersonnelCreateForm` panel | Fully skippable. Lowest priority. |
+| 1 | **Auto-place the team on new-game start** | S | Low | Rough spot C (the blank field) |
+| 2 | **Skip WelcomeScreen in the cloud build** | S | Low | Rough spot A (dead first screen) |
+| 3 | **Return to New Game after adding players** | S-M | Low-Med | Rough spot B (the bounce) |
 
-## 4. Open specifics — proposed answers (the actual design pass)
+No feature flag, no panel stack, no home-screen real-estate cost.
 
-### 4a. Missing-prerequisite detection + prompt
-No heavy "prerequisite engine." The New Game modal already has the resource counts (via the existing React Query reads). Each section drives **adaptive prominence** off emptiness:
-- **No team** → team section leads with a hero "Create your first team" inline panel.
-- **No players** → roster/selection section leads with "Add your first player."
-- **Competition / personnel** → always the quiet "+ Add", never hero (skippable).
+### Fix 1 — Auto-place the team on new-game start (primary)
 
-The "guidance" is emergent: a first-timer opening New Game is naturally walked name → team → players → (optional competition) → start, because each empty step is prominent. **Decision to confirm:** passive adaptive-prominence only, or ALSO a one-line gentle stepper header for the fully-empty club ("Let's set up your first game — 1. team, 2. players")? Recommend starting passive; add the stepper only if testing shows people stall.
+**The whole placement engine already exists.** `handlePlaceAllPlayers(presetId | null)` (`useFieldCoordination.ts:594`) with `null` = the "Auto" path, which calls `calculateFormationPositions(playerCount)` (`utils/formations.ts:73`) to spread **any** number of selected players into sensible defense→attack rows. It's exposed up as `onPlaceAllPlayers` (`useGameOrchestration.ts:2229`). `getRecommendedFieldSize()` already maps player count → field size.
 
-### 4b. Panel stack + hardware-back
-- The New Game modal owns an **internal panel stack** (array). Opening a create panel pushes; save/cancel/back pops.
-- Each panel depth registers `useHardwareBackSubLevel(active, onBack)` (exists: `src/hooks/useModalHardwareBack.ts:233`), `active` when that depth is the top of the stack. Back pops the top panel; when the stack is empty, the modal's own back closes → Home.
-- Depth-2 (game → team → competition) = two stacked panels, each with its own sub-level hook. No global sentinel juggling (mirrors the two-level hardware-back approach).
+**The change:** on a **fresh** game start, automatically invoke the Auto placement once, using the selected players. The coach hits Start and their team is already on the pitch — the blank-field moment stops existing.
 
-### 4c. Cloud-sync / data
-Inline creates call the **same DataStore methods** as the managers (`createTeam`, `createSeason`/`createTournament`, add-player/roster, `createPersonnelMember`) → `SyncedDataStore` handles local-first write + background cloud sync automatically. After a create, invalidate/refetch the relevant query so the new resource appears in the funnel's selector immediately (optimistic insert acceptable). No special data path.
+Rules:
+- **Auto (`null`)** — works for any selected-player count; no formation choice to make.
+- **Fresh games only.** Resumed/loaded games keep their saved positions — never overwrite them.
+- **Non-sticky.** It's a starting arrangement, not a lock: the coach can tap a specific formation, or drag/swap, immediately. Players beyond the field size stay on the bar as subs (existing place-all behavior).
+- Default-on (non-destructive + instantly changeable). A toggle can come later only if any coach dislikes it.
 
-### 4d. Shared create-form extraction
-Extract `TeamCreateForm`, `CompetitionCreateForm`, `PlayerCreateForm`, `PersonnelCreateForm` from their manager modals; render the same component in the manager (bulk) and the funnel panel. The existing inline add-player (`NewGameSetupModal` + `onAddPlayerToRoster`, `addToClubRoster*` i18n) is the proof-of-concept to generalize.
+This **demotes the guide** (was "Fix A"): with the field pre-filled there's no blank-field gap to explain, so auto-opening/reordering the guide is no longer needed. Leave the guide manual-open.
 
-## 5. Build order (phased, low-risk)
-1. **Team picker inline-create** — the hardest case (depth-2 competition binding + hardware-back). Proves the whole pattern. Extract `TeamCreateForm`.
-2. **Players** — formalize the existing POC into `PlayerCreateForm`; wire adaptive prominence.
-3. **Competition** — `CompetitionCreateForm` panel (leaf + the depth-2 entry from team).
-4. **Personnel** — `PersonnelCreateForm` panel.
-5. **Adaptive-prominence polish** — hero-when-empty across all sections; optional first-run stepper (per 4a decision).
+### Fix 2 — Skip WelcomeScreen in the cloud build
 
-## 6. Non-goals / scope guards
-- Not a forced wizard, not blocking — introduces, never gates.
-- Does not remove or duplicate Home management (bulk stays in Home).
-- No separate onboarding screen.
-- Reuses existing create logic — no parallel create paths that could drift from the managers.
+When `hideLocalModeEntry` is true, WelcomeScreen has no job. Boot the new user straight to `LoginScreen` (sign-up), where "Use Cloud Sync" sends them anyway.
+- **Language toggle is safe** — `LoginScreen` has its own FI/EN switch (`LoginScreen.tsx:48-65`), so nothing is lost.
+- **Wiring notes:** hide `LoginScreen`'s `onBack` ("back to Welcome") in forced-cloud (nowhere back to). Implementation reuses the existing tested Play-Store skip path (auto-`enableCloudMode()` → `setWelcomeSeen()` → `reload` → LoginScreen), just broadened to the whole cloud build — so the one-time reload is **retained** (it's the proven mechanism; removing it was optional polish, not done).
+- **Keep WelcomeScreen** in the code for the non-cloud / `NEXT_PUBLIC_INTERNAL_TESTING` config where local mode *is* offered — gate the skip on the same `hideLocalModeEntry`.
 
-## 7. Decisions needed from owner
-1. Competition panel: expose **both** season + tournament create, or a single entry that asks which?
-2. Fully-empty club: **passive** adaptive prominence only, or add a gentle **first-run stepper** header?
-3. Fate of the earlier onboarding leftovers — the demo-field overlay + gear "getting started" tracker: keep alongside the funnel, or retire them once the funnel lands?
+### Fix 3 — Return to New Game after adding players
+
+After the "No Players" → "Add Players" → roster detour completes, return the user **into New Game setup**, not to Home. The detour becomes a step, not a bounce. (Alternatively/additionally, make the modal's existing inline add-player reachable in the truly-empty case so there's no detour at all — but the return-to-setup fix is the minimum.)
+
+## 3. The resulting new-user path
+
+**Sign up (LoginScreen) → Home / Games tab (amber New Game hero) → tap New Game → prompted to add players → back into setup → Start → team is already on the pitch → play.**
+
+No dead taps, no blank field, no unexplained bounce.
+
+> **Placement contract (for any guide/help copy):** the bar→field action is **tap-to-activate then tap-the-field**. Dragging only repositions discs **already on the field**. There is **no drag-from-bar** and we are **not** adding it (cross-surface canvas drag = real engineering + new touch-bug class, for a path the formation button already covers). Copy must never say "drag a player from the bar".
+
+## 4. Build order
+
+1. **Fix 1 (auto-place)** — highest payoff, pure reuse. Ship first.
+2. **Fix 2 (skip Welcome)** — independent; every new user benefits.
+3. **Fix 3 (return to setup)** — independent.
+
+Each is its own small PR to master (real code → branch + review per repo rules). None depend on the others.
+
+## 5. Non-goals
+
+- Not building the resource-creation funnel (parked, §6).
+- Not adding drag-from-bar placement.
+- Not adding a first-run wizard/stepper or a Home-screen setup checklist (the checklist was already dropped — it can't earn its vertical space without making Home scrollable).
+- Not auto-opening the how-it-works guide (Fix 1 removes the need).
+
+## 6. Parked — the in-context resource-creation funnel (revisit only if data shows stalls)
+
+Kept so the design work isn't lost. Build only if real new-user telemetry/feedback shows coaches stalling on setup that these three fixes don't resolve.
+
+**Idea:** make game creation itself the onboarding — surface each missing prerequisite (team, players, competition, personnel) at the moment it's relevant with an **always-available** inline create, rendered as panels *within* the New Game modal (never detours to the manager modals). Home stays the bulk-management surface. Everything past the true minimum (players) is skippable.
+
+**Code reality found during design (why it'd be cheaper than first thought):**
+- Create forms are **already extracted** as reusable `mode="create"` detail modals (`UnifiedTeamModal`, `PlayerDetailsModal`, `SeasonDetailsModal`, `TournamentDetailsModal`, `PersonnelDetailsModal`) — embed, don't rebuild.
+- Emptiness/counts are already in `NewGameSetupModal` props — adaptive prominence is free.
+- The multi-depth hardware-back pattern exists (`PlaytimePlannerModal:1488`, `UnifiedTeamModal:512`).
+- **Defer depth-2** (create-a-competition-while-creating-a-team doesn't exist today and an empty club has none to bind) → the "panel stack" collapses to a single active-create-panel slot + one `useHardwareBackSubLevel`.
+
+**If revived, resolved design decisions (owner, 2026-07-27):** competition = single entry that asks season/tournament; passive adaptive prominence only (no stepper); retire the old demo-field overlay + gear tracker when it lands. Build order: team panel first (first real pushed panel), then players, competition, personnel, polish.
