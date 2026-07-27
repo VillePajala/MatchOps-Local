@@ -2,6 +2,17 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-07-27",
+      "en": [
+        "Smoother start for new games: your selected squad is now placed on the field automatically in a formation, so you kick off from a set line-up instead of an empty pitch (tap the formation button any time to rearrange).",
+        "Adding players when you have none yet now takes you straight back into New Game setup, instead of dropping you back on the home screen."
+      ],
+      "fi": [
+        "Sujuvampi aloitus uusille peleille: valitsemasi kokoonpano asetetaan nyt kentälle automaattisesti muodostelmaan, joten aloitat valmiista rivistöstä tyhjän kentän sijaan (voit järjestää uudelleen milloin tahansa muodostelmapainikkeesta).",
+        "Kun lisäät pelaajia tyhjästä ryhmästä, palaat nyt suoraan uuden pelin asetuksiin sen sijaan, että putoaisit takaisin alkunäkymään."
+      ]
+    },
+    {
       "date": "2026-07-26",
       "en": [
         "Minor behind-the-scenes updates."

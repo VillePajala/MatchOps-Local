@@ -169,6 +169,22 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     setPlayerIdsForNewGame(null);
   };
 
+  // New-user experience: when the empty-roster guard sends the coach to the
+  // roster to "Add Players", remember to bring them BACK to New Game setup on
+  // close instead of dropping them on Home. Only resume if they actually added
+  // a player (roster now non-empty, same value the guard checks) - otherwise
+  // reopening would just re-trigger the "No Players" confirm.
+  const [resumeNewGameAfterRoster, setResumeNewGameAfterRoster] = React.useState(false);
+  const handleCloseRosterModal = () => {
+    setIsRosterModalOpen(false);
+    if (resumeNewGameAfterRoster) {
+      setResumeNewGameAfterRoster(false);
+      if (newGameSetup.masterRoster.length > 0) {
+        setIsNewGameSetupModalOpen(true);
+      }
+    }
+  };
+
   // Empty club roster: creating a game is meaningless - swap the setup modal
   // for the add-players confirm (mirrors the match-side pre-open guard, and
   // covers the Home entry which opens the flag directly via the bridge).
@@ -185,6 +201,10 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   const handleOpenPlayerStats = (playerId: string) => {
     const player = rosterSettings.availablePlayers.find((p) => p.id === playerId);
     if (!player) return;
+    // Leaving the roster sideways (into player stats) abandons the add-players
+    // detour, so drop any pending "resume New Game" intent to avoid a stale
+    // reopen the next time the roster is closed.
+    setResumeNewGameAfterRoster(false);
     setSelectedPlayerForStats(player);
     setIsRosterModalOpen(false);
     openClubStatsToTab('player');
@@ -210,7 +230,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
   useModalHardwareBack(isSettingsModalOpen, () => setIsSettingsModalOpen(false));
   useModalHardwareBack(isSeasonTournamentModalOpen, () => setIsSeasonTournamentModalOpen(false));
   useModalHardwareBack(isPersonnelManagerOpen, () => setIsPersonnelManagerOpen(false));
-  useModalHardwareBack(isRosterModalOpen, () => setIsRosterModalOpen(false));
+  useModalHardwareBack(isRosterModalOpen, handleCloseRosterModal);
   useModalHardwareBack(isTeamManagerOpen, () => setIsTeamManagerOpen(false));
   useModalHardwareBack(isLoadGameModalOpen, () => setIsLoadGameModalOpen(false));
   useModalHardwareBack(isNewGameSetupModalOpen, handleCloseNewGameSetup);
@@ -329,6 +349,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
         message={t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')}
         onConfirm={() => {
           handleCloseNewGameSetup();
+          setResumeNewGameAfterRoster(true);
           setIsRosterModalOpen(true);
         }}
         onCancel={handleCloseNewGameSetup}
@@ -381,7 +402,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
       {isRosterModalOpen && (
         <RosterSettingsModal
           isOpen
-          onClose={() => setIsRosterModalOpen(false)}
+          onClose={handleCloseRosterModal}
           availablePlayers={rosterSettings.availablePlayers}
           onUpdatePlayer={rosterSettings.handleUpdatePlayerForModal}
           onRenamePlayer={rosterSettings.handleRenamePlayerForModal}

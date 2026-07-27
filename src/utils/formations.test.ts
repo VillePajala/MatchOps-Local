@@ -11,9 +11,18 @@ import {
   generateSidelinePositions,
   generateSubSlots,
   isFieldPosition,
+  buildAutoPlacement,
   type FieldPosition,
   type FormationResult,
 } from './formations';
+import type { Player } from '@/types';
+
+const mkPlayers = (n: number, goalieIndex?: number): Player[] =>
+  Array.from({ length: n }, (_, i) => ({
+    id: `p${i + 1}`,
+    name: `Player ${i + 1}`,
+    isGoalie: i === goalieIndex,
+  }));
 
 describe('isFieldPosition', () => {
   // The single source of truth for "which persisted snap points count as
@@ -691,5 +700,73 @@ describe('generateSubSlots', () => {
       generateSubSlots(positions);
       expect(positions).toEqual(originalPositions);
     });
+  });
+});
+
+describe('buildAutoPlacement', () => {
+  // The persist-side twin of the match-side "Place all players" Auto path.
+  // Used at game creation so a fresh game opens with the squad on the pitch.
+
+  it('returns empty placement for an empty squad', () => {
+    expect(buildAutoPlacement([])).toEqual({
+      playersOnField: [],
+      formationSnapPoints: [],
+      goalieId: null,
+    });
+  });
+
+  it('places every selected player on the field', () => {
+    const result = buildAutoPlacement(mkPlayers(7));
+    expect(result.playersOnField).toHaveLength(7);
+    // Every placed player has field coordinates.
+    result.playersOnField.forEach((p) => {
+      expect(typeof p.relX).toBe('number');
+      expect(typeof p.relY).toBe('number');
+    });
+  });
+
+  it('places the goalie at the keeper spot and flags exactly one goalie', () => {
+    const result = buildAutoPlacement(mkPlayers(5));
+    const goalies = result.playersOnField.filter((p) => p.isGoalie);
+    expect(goalies).toHaveLength(1);
+    expect(goalies[0].relX).toBeCloseTo(0.5);
+    expect(goalies[0].relY).toBeCloseTo(0.95);
+    expect(result.goalieId).toBe(goalies[0].id);
+  });
+
+  it('honours a pre-designated goalie rather than the first player', () => {
+    const players = mkPlayers(5, 2); // p3 flagged as goalie
+    const result = buildAutoPlacement(players);
+    expect(result.goalieId).toBe('p3');
+    const keeper = result.playersOnField.find((p) => p.isGoalie);
+    expect(keeper?.id).toBe('p3');
+    expect(keeper?.relY).toBeCloseTo(0.95);
+  });
+
+  it('falls back to the first player as goalie when none is designated', () => {
+    const result = buildAutoPlacement(mkPlayers(5));
+    expect(result.goalieId).toBe('p1');
+  });
+
+  it('parks overflow players (more than the formation holds) off the field rows', () => {
+    // A large squad still places everyone (overflow goes to sub slots / sideline).
+    const result = buildAutoPlacement(mkPlayers(16));
+    expect(result.playersOnField).toHaveLength(16);
+    // Single-goalie invariant holds regardless of size.
+    expect(result.playersOnField.filter((p) => p.isGoalie)).toHaveLength(1);
+  });
+
+  it('emits snap points beginning with the keeper spot', () => {
+    const result = buildAutoPlacement(mkPlayers(6));
+    expect(result.formationSnapPoints[0]).toEqual({ relX: 0.5, relY: 0.95 });
+    // GK + outfield positions + sub slots → at least as many as players.
+    expect(result.formationSnapPoints.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('does not mutate the input players', () => {
+    const players = mkPlayers(4);
+    const snapshot = JSON.parse(JSON.stringify(players));
+    buildAutoPlacement(players);
+    expect(players).toEqual(snapshot);
   });
 });

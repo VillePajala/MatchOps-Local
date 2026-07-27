@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/nextjs';
 import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } from '@/types';
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
+import { buildAutoPlacement } from '@/utils/formations';
 import type { ResourceType } from '@/config/premiumLimits';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -167,6 +168,26 @@ export async function buildAndPersistNewGame(
     : finalSelectedPlayerIds
   ).filter((id) => availableIdSet.has(id));
 
+  // New-user experience: auto-place the selected squad on the field at creation
+  // so a fresh game opens with players already on the pitch — no blank field for
+  // a new coach to puzzle over. This is the persist-side twin of the match-side
+  // "Place all players" Auto path (buildAutoPlacement). Skipped when the game is
+  // prefilled from a Playing-Time Planner plan, which already places its XI.
+  const autoPlacement = prefill
+    ? null
+    : buildAutoPlacement(
+        availablePlayersForGame.filter((p) => reconciledSelectedPlayerIds.includes(p.id)),
+      );
+  const playersOnFieldForGame = prefill ? reconciledOnField : (autoPlacement?.playersOnField ?? []);
+  const formationSnapPointsForGame = prefill
+    ? (prefill.formationSnapPoints ?? [])
+    : (autoPlacement?.formationSnapPoints ?? []);
+  // The match side enforces the single-goalie invariant across BOTH arrays
+  // (see applyGoalieStatus), so mirror the auto-placed goalie onto the roster too.
+  const availablePlayersWithGoalie = autoPlacement?.goalieId
+    ? availablePlayersForGame.map((p) => ({ ...p, isGoalie: p.id === autoPlacement.goalieId }))
+    : availablePlayersForGame;
+
   // Sentry breadcrumb: Game creation started
   const newGameId = `game_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   Sentry.addBreadcrumb({
@@ -189,7 +210,7 @@ export async function buildAndPersistNewGame(
     teamId: teamId || '(none)',
     selectedPlayersCount: finalSelectedPlayerIds.length,
     availablePlayersCount: availablePlayersForGame.length,
-    playersOnFieldCount: prefill?.playersOnField.length ?? 0, // >0 only when prefilled from a plan
+    playersOnFieldCount: playersOnFieldForGame.length, // prefill XI, or the auto-placed squad
   });
 
   const newGameState: AppState = {
@@ -220,13 +241,14 @@ export async function buildAndPersistNewGame(
     gameType,
     // gender flows from modal → handler → AppState storage (optional)
     gender,
-    availablePlayers: availablePlayersForGame,
+    availablePlayers: availablePlayersWithGoalie,
     selectedPlayerIds: reconciledSelectedPlayerIds,
-    // Planner prefill places the planned XI on the field at creation; otherwise empty.
-    playersOnField: reconciledOnField,
+    // Planner prefill places the planned XI; otherwise the squad is auto-placed
+    // in a formation at creation so the field is never blank for a new coach.
+    playersOnField: playersOnFieldForGame,
     // Snap points let the game rebuild the dotted sub-slot circles + position labels
-    // (a manually-placed game persists these too). Empty for a normal new game.
-    formationSnapPoints: prefill?.formationSnapPoints ?? [],
+    // (a manually-placed / auto-placed / plan-prefilled game all persist these).
+    formationSnapPoints: formationSnapPointsForGame,
     opponents: [],
     showPlayerNames: true,
     drawings: [],
