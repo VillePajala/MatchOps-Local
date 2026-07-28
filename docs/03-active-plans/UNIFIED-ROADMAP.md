@@ -140,11 +140,11 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 
 ---
 
-## 🎯 Growth & business (gated — not engineering priorities)
+## 🎯 Growth & business
 
-Business activities, tracked so the strategy is visible alongside the product work. Both are deliberately **gated**: don't market into a weak first-run, don't monetize without traction.
+Business activities, tracked so the strategy is visible alongside the product work. **Marketing is now ACTIVE** (the first-run gate cleared with #701); **monetization stays parked** until there's a retained base worth monetizing.
 
-- [ ] **Go-to-market / marketing push** — active user acquisition (app-store optimization, coaching communities, outreach, content), *after* the first-run is strong. **Gated behind the P2 new-user experience fixes** — driving acquisition into an unguided new-user experience is a leaky bucket. The marketing *site* is done; this is the promotion/acquisition effort itself. Needs a plan: channels, messaging, target coach segments, launch beats.
+- [ ] **Go-to-market / marketing push** 🟢 *ACTIVE 2026-07-28 — gate cleared* — the P2 new-user experience fixes shipped (#701), so the leaky first-run no longer blocks this. Strategy = grow **bit by bit** to battle-test the app and stay ahead of Supabase limits, via **video-led introductions** in Finnish youth-coaching communities (FB coaching groups → Palloliitto course instructors → a club's valmennuspäällikkö), one channel at a time, each widening gated on stability (crash-free >99%, Supabase under limits, coaches returning for a 2nd/3rd game). **Pre-flight:** (1) upgrade Supabase to **Pro** pre-emptively (data-safety backstop + DB headroom + no inactivity pause), (2) upload the compliance AAB 1.0.8, (3) instrument the 4 dashboards with pre-set thresholds. **Key asset:** a ~30 s captioned hero video ("one match, start to finish") first, then a weekly series of 10–15 s feature spotlights. **Plan: `go-to-market-plan.md`** (rollout + full video set + hero-video beat/caption package + reusable demo-game setup).
 - [ ] **Monetization — revisit when there's traction** — currently **parked (free)**. Billing infrastructure is built but disabled (`PREMIUM_ENFORCEMENT_ENABLED=false`); the plan is archived. Replan only once there's a growing, retained user base worth monetizing — not before; it blocks nothing now. When revived: deploy `verify-subscription` and fold in the dormant CR-M8 billing items (purchase-token unique index, `is_active` expiry, Google purchase acknowledgement).
 
 ---
@@ -201,9 +201,11 @@ positions, recap, match report, completeness, overtime/penalties, the **Playing-
 **two-level app structure**, and (2026-07-27) a **full marketing-site revamp** (all-new v2 screenshots
 with unified chrome + neutral, natural EN/FI copy). ⏰ **Play compliance (deadline 2026-08-31)** is
 **built and waiting to upload** — a signed AAB (v1.0.8 / code 16, targetSdk 35, Play Billing removed)
-is on the owner's desktop; only the Play Console upload remains. **Next feature priority:** the 🟡 P2
-**new-user experience fixes** — three small, mostly-reuse changes (auto-place team on game start, skip
-the dead WelcomeScreen in the cloud build, return to New Game after adding players); the heavier
-resource-creation funnel is **parked** as oversized for the real problem. After that: small 🟢 P3 wins (game captains, moment capture)
-and 🔵 P4 big bets (playing-time segments, modal-chrome modernization, desktop UI, AI assistant,
-timer-hardening); plus an in-app **guide re-check** against the new two-level UI.
+is on the owner's desktop; only the Play Console upload remains. The 🟡 P2 **new-user experience
+fixes** (auto-place team on game start, skip the dead WelcomeScreen, return to New Game after adding
+players) **shipped in #701** — the heavier resource-creation funnel is **parked** as oversized. **Focus
+now shifts to 🎯 go-to-market** (gate cleared): grow bit-by-bit via video-led intros in Finnish
+coaching communities, pre-flighted by a Supabase **Pro** upgrade + the AAB upload + dashboards —
+see `go-to-market-plan.md`. Remaining product backlog: small 🟢 P3 wins (game captains, moment
+capture) and 🔵 P4 big bets (playing-time segments, modal-chrome modernization, desktop UI, AI
+assistant, timer-hardening); plus an in-app **guide re-check** against the new two-level UI.
