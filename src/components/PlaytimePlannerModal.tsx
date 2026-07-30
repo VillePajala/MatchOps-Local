@@ -913,6 +913,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
           {
             getAllGames: () => getSavedGames(user?.id),
             getAllPlanLinks,
+            getMasterRoster: () => getMasterRoster(user?.id),
             saveGame: (id, g) => utilSaveGame(id, g, user?.id),
             setGameSubs,
           },

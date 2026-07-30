@@ -6,6 +6,7 @@ import {
   reapplyPlanToLinkedGames,
   type ReapplyDeps,
 } from './reapply';
+import { replacePlayerInPlan, removePlayerFromPlan } from './roster';
 import type { PlaytimePlan, PlanGame } from './types';
 import type { AppState, Player } from '@/types';
 
@@ -108,27 +109,62 @@ describe('buildReapplyPatch', () => {
     ]);
   });
 
-  it('keeps Rule 3 when the roster drifted (planned player left the game roster)', () => {
-    // Game roster lost Kai (id 'e', a planned starter) since creation.
+  it('re-adds a planned player missing from the game roster (plan is authoritative)', () => {
+    // Game roster drifted - lost Kai (id 'e', a planned starter) since creation.
+    // The plan still has Kai, so re-apply re-adds him to the squad and places him
+    // (the old behaviour silently dropped him; that was the same bug class).
     const g = planGame();
     const res = buildReapplyPatch(makeGame({ availablePlayers: roster.filter((p) => p.id !== 'e') }), plan(g), g);
     expect(res.ok).toBe(true);
     const onFieldIds = res.patch!.playersOnField.map((p) => p.id);
     const selected = res.patch!.selectedPlayerIds;
-    expect(onFieldIds).not.toContain('e'); // dropped - not in the roster
-    // playersOnField ⊆ selectedPlayerIds, and selected excludes the missing player.
+    const available = res.patch!.availablePlayers!.map((p) => p.id);
+    expect(available).toContain('e'); // re-added from the plan
+    expect(onFieldIds).toContain('e'); // now placeable
+    expect(res.missingPlayerIds).toHaveLength(0); // nothing dropped
+    // Rule 3: playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers.
     for (const id of onFieldIds) expect(selected).toContain(id);
-    expect(selected).not.toContain('e');
-    expect(res.missingPlayerIds).toContain('e');
-    // The toast can NAME who was skipped (resolved from the plan roster).
-    expect(res.missingNames).toContain('Kai');
+    for (const id of selected) expect(available).toContain(id);
   });
 
-  it('only touches lineup fields - the patch has no "what happened" keys', () => {
+  it('replacing a starter with a NEW player adds them to the game roster and places them', () => {
+    const g = planGame();
+    const edited = replacePlayerInPlan(plan(g), 'b', { id: 'z', name: 'Zeb' }); // 'z' not in the game roster
+    const res = buildReapplyPatch(makeGame(), edited, edited.games[0]);
+    const available = res.patch!.availablePlayers!.map((p) => p.id);
+    const onField = res.patch!.playersOnField.map((p) => p.id);
+    expect(available).toContain('z'); // added to the squad
+    expect(available).not.toContain('b'); // replaced-out player gone
+    expect(onField).toContain('z'); // placed in b's slot
+    expect(onField).not.toContain('b');
+  });
+
+  it('enriches a newly-added plan player from the master roster (nickname + number kept)', () => {
+    const g = planGame();
+    const edited = replacePlayerInPlan(plan(g), 'b', { id: 'z', name: 'Zeb' });
+    const master: Player[] = [{ id: 'z', name: 'Zeb', nickname: 'Z', jerseyNumber: '7' }];
+    const res = buildReapplyPatch(makeGame(), edited, edited.games[0], master);
+    const z = res.patch!.availablePlayers!.find((p) => p.id === 'z')!;
+    expect(z.nickname).toBe('Z'); // the disc label survives, not stripped to bare name
+    expect(z.jerseyNumber).toBe('7');
+  });
+
+  it('removing a player from the plan removes them from the linked game', () => {
+    const g = planGame();
+    const edited = removePlayerFromPlan(plan(g), 'c'); // 'c' was a starter
+    const res = buildReapplyPatch(makeGame(), edited, edited.games[0]);
+    const available = res.patch!.availablePlayers!.map((p) => p.id);
+    const onField = res.patch!.playersOnField.map((p) => p.id);
+    expect(available).not.toContain('c'); // gone from the squad
+    expect(onField).not.toContain('c'); // gone from the field
+    expect(res.patch!.selectedPlayerIds).not.toContain('c');
+  });
+
+  it('syncs the roster + lineup fields, and no "what happened" keys', () => {
     const g = planGame();
     const res = buildReapplyPatch(makeGame(), plan(g), g);
     expect(Object.keys(res.patch!).sort()).toEqual(
-      ['formationSnapPoints', 'playersOnField', 'selectedPlayerIds'].sort(),
+      ['availablePlayers', 'formationSnapPoints', 'playersOnField', 'selectedPlayerIds'].sort(),
     );
   });
 });
@@ -140,6 +176,7 @@ describe('reapplyPlanToGame', () => {
     const deps: ReapplyDeps = {
       getPlan: async (id) => (id === 'plan-1' ? plan(planGame()) : null),
       getPlanLink: async () => LINK,
+      getMasterRoster: async () => roster,
       saveGame,
       setGameSubs,
       ...over,
@@ -213,11 +250,23 @@ describe('reapplyPlanToGame', () => {
     expect(saveGame.mock.calls[1]).toEqual(['game-1', game]);
   });
 
-  it('blocks a game with an empty roster (would wipe the lineup to blank)', async () => {
-    const { deps, saveGame } = makeDeps();
-    const res = await reapplyPlanToGame(deps, 'game-1', makeGame({ availablePlayers: [] }));
+  it('blocks when the PLAN roster is empty (nothing to build a lineup from)', async () => {
+    // Roster is now synced FROM the plan, so an empty game roster is restored, not
+    // blocked - the only "empty" that blocks is an empty plan roster.
+    const emptyPlan: PlaytimePlan = { ...plan(planGame()), players: [] };
+    const { deps, saveGame } = makeDeps({ getPlan: async () => emptyPlan });
+    const res = await reapplyPlanToGame(deps, 'game-1', makeGame());
     expect(res).toEqual({ ok: false, reason: 'empty-roster' });
     expect(saveGame).not.toHaveBeenCalled();
+  });
+
+  it('restores an empty game roster from the plan (roster is re-synced)', async () => {
+    const { deps, saveGame } = makeDeps();
+    const res = await reapplyPlanToGame(deps, 'game-1', makeGame({ availablePlayers: [] }));
+    expect(res.ok).toBe(true);
+    const savedGame = saveGame.mock.calls[0][1];
+    expect(savedGame.availablePlayers.map((p: Player) => p.id).sort()).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
+    expect(savedGame.playersOnField.length).toBeGreaterThan(0);
   });
 });
 
@@ -254,6 +303,7 @@ describe('reapplyPlanToLinkedGames', () => {
       deps: {
         getAllGames: async () => games,
         getAllPlanLinks: async () => links,
+        getMasterRoster: async () => roster,
         saveGame,
         setGameSubs,
       },
@@ -292,7 +342,7 @@ describe('reapplyPlanToLinkedGames', () => {
     expect(setGameSubs).toHaveBeenCalledTimes(2);
   });
 
-  it('counts an empty-roster linked game as skipped - every matched game lands in a counter', async () => {
+  it('restores an empty-roster linked game from the plan instead of skipping it', async () => {
     const games: Record<string, AppState> = {
       a: makeGame(),
       empty: makeGame({ availablePlayers: [] }),
@@ -305,13 +355,13 @@ describe('reapplyPlanToLinkedGames', () => {
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
 
     expect(summary.matched).toBe(2);
-    expect(summary.updated).toBe(1);
-    expect(summary.skippedNoRoster).toBe(1);
+    expect(summary.updated).toBe(2); // the empty-roster game is now restored from the plan
+    expect(summary.skippedNoRoster).toBe(0);
     // The accounting invariant the toast relies on.
     expect(summary.matched).toBe(
       summary.updated + summary.skippedPlayed + summary.skippedNoRoster + summary.failed,
     );
-    expect(saveGame).toHaveBeenCalledTimes(1); // the empty-roster game is untouched
+    expect(saveGame).toHaveBeenCalledTimes(2);
   });
 
   it('isolates a failing write: the rest of the batch still updates and failures are counted', async () => {
@@ -353,19 +403,23 @@ describe('reapplyPlanToLinkedGames', () => {
     expect(saveGame.mock.calls[1]).toEqual(['a', gameA]);
   });
 
-  it('tallies missing planned players across updated games (roster drift)', async () => {
-    // Both linked games are missing Kai (a planned starter) from their roster.
+  it('re-adds planned players missing from linked game rosters (plan is authoritative)', async () => {
+    // Both linked games drifted - missing Kai (a planned starter). Re-apply now
+    // re-adds him from the plan to each game's roster and field, so nothing is
+    // "missing" any more.
     const drifted = () => makeGame({ availablePlayers: roster.filter((p) => p.id !== 'e') });
     const links = {
       a: { planId: 'plan-1', planGameId: 'g1' },
       b: { planId: 'plan-1', planGameId: 'g1' },
     };
-    const { deps } = makeBulkDeps({ a: drifted(), b: drifted() }, links);
+    const { deps, saveGame } = makeBulkDeps({ a: drifted(), b: drifted() }, links);
     const summary = await reapplyPlanToLinkedGames(deps, plan(planGame()), 'g1');
     expect(summary.updated).toBe(2);
-    expect(summary.missingTotal).toBe(2); // one missing player per updated game
-    // Same player missing in both games -> ONE unique name for the toast.
-    expect(summary.missingNames).toEqual(['Kai']);
+    expect(summary.missingTotal).toBe(0); // nothing missing - re-added from the plan
+    expect(summary.missingNames).toEqual([]);
+    const savedA = saveGame.mock.calls.find((c) => c[0] === 'a')![1];
+    expect(savedA.availablePlayers.map((p: Player) => p.id)).toContain('e');
+    expect(savedA.playersOnField.map((p: Player) => p.id)).toContain('e');
   });
 
   it('does nothing when the planned game is not in the plan', async () => {
