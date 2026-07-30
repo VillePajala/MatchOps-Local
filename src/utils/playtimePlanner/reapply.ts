@@ -4,7 +4,7 @@
 // is reused from `buildPrefillFromPlan` - a re-apply is just: recompute the
 // prefill against the *current* plan + planned game, overwrite ONLY the lineup
 // fields, and preserve everything that is "what happened" (score, events, etc.).
-import type { AppState } from '@/types';
+import type { AppState, Player } from '@/types';
 import type { PlaytimePlan, PlanGame } from './types';
 import type { PlannedGameSub } from './gameSubs';
 import type { PlanLink, PlanLinksCollection } from './planLinks';
@@ -22,8 +22,9 @@ export interface ReapplyResult {
   ok: boolean;
   /** Set when `ok` is false. */
   reason?: ReapplyBlockedReason;
-  /** Lineup-only patch to merge onto the game (set when `ok`). */
-  patch?: Pick<AppState, 'playersOnField' | 'selectedPlayerIds' | 'formationSnapPoints'>;
+  /** Lineup + roster patch to merge onto the game (set when `ok`). `availablePlayers`
+   *  is re-synced to the plan roster so plan add/replace/remove edits propagate. */
+  patch?: Pick<AppState, 'availablePlayers' | 'playersOnField' | 'selectedPlayerIds' | 'formationSnapPoints'>;
   /** Planned sub schedule to store for the game (set when `ok`). */
   plannedSubs?: PlannedGameSub[];
   /** Planned players not in the game's roster (surfaced in the toast). */
@@ -42,9 +43,16 @@ export function isGamePlayed(game: AppState): boolean {
 }
 
 /**
- * Pure: recompute the lineup from the current plan and return a lineup-only patch,
- * or a blocked result. No IO. Uses the game's OWN roster (`availablePlayers`) so a
- * roster that drifted since creation stays valid and Rule 3 keeps holding
+ * Pure: recompute the lineup from the current plan and return a lineup + roster
+ * patch, or a blocked result. No IO.
+ *
+ * The game's squad (`availablePlayers`) is re-synced to the PLAN's roster so plan
+ * edits propagate BOTH ways to a linked, unplayed game: a player added or
+ * replaced-in in the plan JOINS the game (so re-apply can actually place them,
+ * not silently skip them as "missing"), and a player removed from the plan LEAVES
+ * the game. The plan is authoritative for a linked game - that is what "re-apply
+ * the plan" means. Existing game Player objects are preserved (jersey/nickname/…);
+ * plan players the game never had get a minimal {id,name} entry. Rule 3 still holds
  * (playersOnField ⊆ selectedPlayerIds ⊆ availablePlayers).
  */
 export function buildReapplyPatch(
@@ -54,10 +62,15 @@ export function buildReapplyPatch(
 ): ReapplyResult {
   if (isGamePlayed(game)) return { ok: false, reason: 'played' };
 
-  const roster = game.availablePlayers ?? [];
-  // Defensive: an empty roster would resolve zero starters and silently wipe the
-  // on-field lineup to a blank field. Shouldn't happen for a plan-linked game,
-  // but block explicitly rather than "succeed" into an empty lineup.
+  // Roster = the plan's current players, keeping the game's richer Player object
+  // (jersey/nickname/…) wherever it already had that player, and minting a
+  // minimal {id,name} for newcomers. Players in the game but NOT in the plan are
+  // dropped - that is the removal half of the sync.
+  const existingById = new Map((game.availablePlayers ?? []).map((p) => [p.id, p]));
+  const roster: Player[] = plan.players.map((pp) => existingById.get(pp.id) ?? { id: pp.id, name: pp.name });
+  // Defensive: an empty plan roster would resolve zero starters and silently wipe
+  // the on-field lineup to a blank field. Block explicitly rather than "succeed"
+  // into an empty lineup.
   if (roster.length === 0) return { ok: false, reason: 'empty-roster' };
   const prefill = buildPrefillFromPlan(plan, planGame, roster);
 
@@ -75,6 +88,7 @@ export function buildReapplyPatch(
   return {
     ok: true,
     patch: {
+      availablePlayers: roster,
       playersOnField: mergedOnField,
       selectedPlayerIds,
       formationSnapPoints: prefill.formationSnapPoints,

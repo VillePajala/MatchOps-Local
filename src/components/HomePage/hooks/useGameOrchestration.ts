@@ -1785,8 +1785,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // autosave snapshot persists the NEW lineup instead of writing the stale one back
   // over the storage update.
   const applyReappliedLineup = useCallback(
-    (patch: Pick<AppState, 'playersOnField' | 'selectedPlayerIds' | 'formationSnapPoints'>) => {
+    (patch: Pick<AppState, 'availablePlayers' | 'playersOnField' | 'selectedPlayerIds' | 'formationSnapPoints'>) => {
       const snapPoints = patch.formationSnapPoints ?? [];
+      // The roster is now re-synced to the plan (players added/replaced-in join,
+      // removed ones leave), so push it into live state too - both so the PlayerBar
+      // reflects it immediately AND so the next autosave persists the new roster
+      // instead of writing the stale one back over the storage update.
+      if (patch.availablePlayers) setAvailablePlayers(patch.availablePlayers);
       setPlayersOnField(patch.playersOnField);
       setFormationSnapPoints(snapPoints);
       dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: patch.selectedPlayerIds });
@@ -1805,7 +1810,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         formationSnapPoints: snapPoints,
       });
     },
-    [setPlayersOnField, setFormationSnapPoints, dispatchGameSession, setSubSlots, saveStateToHistory],
+    [setAvailablePlayers, setPlayersOnField, setFormationSnapPoints, dispatchGameSession, setSubSlots, saveStateToHistory],
   );
 
   // Playing-Time Planner (Phase 3.3): re-apply the source plan to the CURRENT game.
@@ -1932,6 +1937,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         // the game this refresh was captured for is still the loaded one.
         if (reapplyGameIdRef.current === currentGameId) {
           applyReappliedLineup({
+            availablePlayers: stored.availablePlayers ?? [],
             playersOnField: stored.playersOnField ?? [],
             selectedPlayerIds: stored.selectedPlayerIds ?? [],
             formationSnapPoints: stored.formationSnapPoints ?? [],
