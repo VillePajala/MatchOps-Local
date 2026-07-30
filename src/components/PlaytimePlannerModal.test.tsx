@@ -455,12 +455,14 @@ describe('PlaytimePlannerModal', () => {
     );
   });
 
-  it('bulk re-apply names plan players missing from a game roster', async () => {
+  it('bulk re-apply re-adds a plan player missing from a game roster (no "skipped" toast)', async () => {
     mockGetPlans.mockResolvedValue({ existing: existingPlan });
     mockGetAllPlanLinks.mockResolvedValue({
       game_1: { planId: 'existing', planGameId: 'g1' },
     });
-    // The game's roster does NOT contain plan player Alex (p1) - roster drift.
+    // The game's roster does NOT contain plan player Alex (p1) - roster drift. The
+    // re-apply now re-syncs the roster from the plan, so Alex is re-added and placed
+    // rather than skipped as "missing".
     mockGetSavedGames.mockResolvedValue({
       game_1: {
         gameStatus: 'notStarted',
@@ -488,10 +490,7 @@ describe('PlaytimePlannerModal', () => {
     });
 
     await waitFor(() =>
-      expect(mockShowToast).toHaveBeenCalledWith(
-        'Updated 1 games. Not in a game roster, skipped: Alex.',
-        'success',
-      ),
+      expect(mockShowToast).toHaveBeenCalledWith('Updated 1 games from the plan.', 'success'),
     );
   });
 
