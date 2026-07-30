@@ -44,6 +44,7 @@ import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 import { generateSubSlots, isFieldPosition } from '@/utils/formations';
 import { reapplyPlanToGame, type ReapplyResult } from '@/utils/playtimePlanner/reapply';
+import { getMasterRoster } from '@/utils/masterRosterManager';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
 import { getPlanLink, type PlanLink } from '@/utils/playtimePlanner/planLinks';
@@ -1851,7 +1852,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     let result: ReapplyResult;
     try {
       result = await reapplyPlanToGame(
-        { getPlan, getPlanLink, saveGame: (id, g) => utilSaveGame(id, g, userId), setGameSubs },
+        { getPlan, getPlanLink, getMasterRoster: () => getMasterRoster(userId), saveGame: (id, g) => utilSaveGame(id, g, userId), setGameSubs },
         currentGameId,
         game,
       );

@@ -16,7 +16,7 @@ export type ReapplyBlockedReason =
   | 'no-link' // game was not created from a plan
   | 'plan-missing' // the source plan (or planned game) was deleted
   | 'played' // game already started / has events - never clobber it
-  | 'empty-roster'; // game has no roster - re-applying would wipe the lineup to empty
+  | 'empty-roster'; // the PLAN roster is empty - nothing to build a lineup from
 
 export interface ReapplyResult {
   ok: boolean;
@@ -59,15 +59,21 @@ export function buildReapplyPatch(
   game: AppState,
   plan: PlaytimePlan,
   planGame: PlanGame,
+  masterRoster: Player[] = [],
 ): ReapplyResult {
   if (isGamePlayed(game)) return { ok: false, reason: 'played' };
 
-  // Roster = the plan's current players, keeping the game's richer Player object
-  // (jersey/nickname/…) wherever it already had that player, and minting a
-  // minimal {id,name} for newcomers. Players in the game but NOT in the plan are
-  // dropped - that is the removal half of the sync.
+  // Roster = the plan's current players. For each, keep the game's richer Player
+  // object (jersey/nickname/color/…) if it already had that player, else pull the
+  // full object from the master roster (so a replaced-in / newly-added player keeps
+  // their nickname - the disc label - and number), else fall back to a minimal
+  // {id,name}. Players in the game but NOT in the plan are dropped - the removal
+  // half of the sync.
   const existingById = new Map((game.availablePlayers ?? []).map((p) => [p.id, p]));
-  const roster: Player[] = plan.players.map((pp) => existingById.get(pp.id) ?? { id: pp.id, name: pp.name });
+  const enrichById = new Map(masterRoster.map((p) => [p.id, p]));
+  const roster: Player[] = plan.players.map(
+    (pp) => existingById.get(pp.id) ?? enrichById.get(pp.id) ?? { id: pp.id, name: pp.name },
+  );
   // Defensive: an empty plan roster would resolve zero starters and silently wipe
   // the on-field lineup to a blank field. Block explicitly rather than "succeed"
   // into an empty lineup.
@@ -105,6 +111,8 @@ export function buildReapplyPatch(
 export interface ReapplyDeps {
   getPlan: (id: string) => Promise<PlaytimePlan | null>;
   getPlanLink: (gameId: string) => Promise<PlanLink | null>;
+  /** Master roster - enriches plan players newly joining the game (nickname/number). */
+  getMasterRoster: () => Promise<Player[]>;
   saveGame: (id: string, game: AppState) => Promise<AppState>;
   setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
 }
@@ -128,7 +136,8 @@ export async function reapplyPlanToGame(
   const planGame = plan?.games.find((g) => g.id === link.planGameId);
   if (!plan || !planGame) return { ok: false, reason: 'plan-missing' };
 
-  const result = buildReapplyPatch(game, plan, planGame);
+  const masterRoster = await deps.getMasterRoster();
+  const result = buildReapplyPatch(game, plan, planGame, masterRoster);
   if (!result.ok || !result.patch) return result;
 
   const patched: AppState = { ...game, ...result.patch };
@@ -173,6 +182,8 @@ export interface BulkReapplyResult {
 export interface BulkReapplyDeps {
   getAllGames: () => Promise<Record<string, AppState>>;
   getAllPlanLinks: () => Promise<PlanLinksCollection>;
+  /** Master roster - enriches plan players newly joining a game (nickname/number). */
+  getMasterRoster: () => Promise<Player[]>;
   saveGame: (id: string, game: AppState) => Promise<AppState>;
   setGameSubs: (gameId: string, subs: PlannedGameSub[]) => Promise<boolean>;
 }
@@ -203,13 +214,17 @@ export async function reapplyPlanToLinkedGames(
   const planGame = plan.games.find((g) => g.id === planGameId);
   if (!planGame) return summary;
 
-  const [all, links] = await Promise.all([deps.getAllGames(), deps.getAllPlanLinks()]);
+  const [all, links, masterRoster] = await Promise.all([
+    deps.getAllGames(),
+    deps.getAllPlanLinks(),
+    deps.getMasterRoster(),
+  ]);
   for (const [gameId, game] of Object.entries(all)) {
     const link = links[gameId];
     if (link?.planId !== plan.id || link.planGameId !== planGameId) continue;
     summary.matched += 1;
 
-    const result = buildReapplyPatch(game, plan, planGame);
+    const result = buildReapplyPatch(game, plan, planGame, masterRoster);
     if (!result.ok || !result.patch) {
       // Every matched-but-not-updated game lands in SOME counter, so
       // matched === updated + skippedPlayed + skippedNoRoster + failed holds

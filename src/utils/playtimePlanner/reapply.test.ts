@@ -139,6 +139,16 @@ describe('buildReapplyPatch', () => {
     expect(onField).not.toContain('b');
   });
 
+  it('enriches a newly-added plan player from the master roster (nickname + number kept)', () => {
+    const g = planGame();
+    const edited = replacePlayerInPlan(plan(g), 'b', { id: 'z', name: 'Zeb' });
+    const master: Player[] = [{ id: 'z', name: 'Zeb', nickname: 'Z', jerseyNumber: '7' }];
+    const res = buildReapplyPatch(makeGame(), edited, edited.games[0], master);
+    const z = res.patch!.availablePlayers!.find((p) => p.id === 'z')!;
+    expect(z.nickname).toBe('Z'); // the disc label survives, not stripped to bare name
+    expect(z.jerseyNumber).toBe('7');
+  });
+
   it('removing a player from the plan removes them from the linked game', () => {
     const g = planGame();
     const edited = removePlayerFromPlan(plan(g), 'c'); // 'c' was a starter
@@ -166,6 +176,7 @@ describe('reapplyPlanToGame', () => {
     const deps: ReapplyDeps = {
       getPlan: async (id) => (id === 'plan-1' ? plan(planGame()) : null),
       getPlanLink: async () => LINK,
+      getMasterRoster: async () => roster,
       saveGame,
       setGameSubs,
       ...over,
@@ -292,6 +303,7 @@ describe('reapplyPlanToLinkedGames', () => {
       deps: {
         getAllGames: async () => games,
         getAllPlanLinks: async () => links,
+        getMasterRoster: async () => roster,
         saveGame,
         setGameSubs,
       },
