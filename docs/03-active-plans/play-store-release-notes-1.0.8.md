@@ -1,4 +1,4 @@
-# Play Store release — MatchOps 1.0.8 (versionCode 16)
+# Play Store release — MatchOps 1.0.8 (versionCode 18)
 
 **Why this upload:** Play compliance (deadline **2026-08-31**) — the new AAB targets **API 35** (Android 15) and removes the deprecated **Play Billing** library. Both warnings clear with this build.
 
@@ -64,7 +64,7 @@ Paljon uutta (suurin osa jo käytössäsi verkkosovelluksen kautta):
 ---
 
 ## Upload checklist
-1. Build: `bubblewrap build` in `~/projects/Archive/matchops-twa/` → signed AAB (v1.0.8 / code 16, targetSdk 35, no billing).
+1. Build: `bubblewrap build` in `~/projects/Archive/matchops-twa/` → signed AAB (v1.0.8 / code 18, targetSdk 35, no billing). Note: codes 16 and 17 were consumed by earlier upload attempts; each Play upload needs a fresh, higher versionCode.
 2. Play Console → Production (or a test track) → create release → upload the AAB.
 3. Paste the "What's new" text above (EN + FI).
 4. Confirm the two Play warnings (target API, Play Billing) clear after review.
