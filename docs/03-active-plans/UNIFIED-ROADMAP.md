@@ -160,6 +160,7 @@ Manual checklists `TESTING-PLAN.md` (root) + `user-flow-testing-plan.md` are une
 | Purpose | Location |
 |---------|----------|
 | This roadmap | `docs/03-active-plans/UNIFIED-ROADMAP.md` |
+| New-user funnel fix (in progress, phased) | `docs/03-active-plans/new-user-funnel-fix-plan.md` |
 | Post-launch QA checklists | `docs/03-active-plans/user-flow-testing-plan.md`, `TESTING-PLAN.md` |
 | Speculative feature ideas | `docs/04-features/future-vision.md` |
 | Supabase implementation reference | `docs/02-technical/supabase-implementation-guide.md` |
