@@ -15,12 +15,13 @@ import type { PlayerStatAdjustment } from '@/types';
 import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection, type AssessmentScope } from '@/utils/assessmentStats';
 import { ModalToggleButton } from '@/styles/modalStyles';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import { useAssessmentRatingStyle } from '@/hooks/useAssessmentRatingStyle';
+import { useAssessmentTemplate } from '@/hooks/useAssessmentTemplate';
 import { format } from 'date-fns';
 import { fi, enUS } from 'date-fns/locale';
 import SparklineChart from './SparklineChart';
 import RatingBar from './RatingBar';
 import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber, templateMetricIds } from '@/config/assessmentMetrics';
-import type { AssessmentRatingStyle, AssessmentTemplate } from '@/types/settings';
 import MetricTrendChart from './MetricTrendChart';
 import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar';
 import { exportPlayerDevelopmentCard, isCardExportSupported } from '@/utils/export/exportPlayerDevelopmentCard';
@@ -62,8 +63,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [recencyWeighted, setRecencyWeighted] = useState(true);
   const [scope, setScope] = useState<AssessmentScope>('all');
   const [assessmentSeason, setAssessmentSeason] = useState<'all' | 'season'>('all');
-  const [ratingStyle, setRatingStyle] = useState<AssessmentRatingStyle>('words');
-  const [assessmentTemplate, setAssessmentTemplate] = useState<AssessmentTemplate>('balanced');
+  // Read live from the shared settings query (same source SettingsModal invalidates)
+  // so a change to the rating style / metric template shows without an app reload.
+  const ratingStyle = useAssessmentRatingStyle();
+  const assessmentTemplate = useAssessmentTemplate();
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
   const [adjSeasonId, setAdjSeasonId] = useState('');
@@ -103,8 +106,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     // Pass userId to avoid DataStore initialization conflicts (MATCHOPS-LOCAL-2N)
     getAppSettings(userId).then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
-      setRatingStyle(s.assessmentRatingStyle ?? 'words');
-      setAssessmentTemplate(s.assessmentTemplate ?? 'balanced');
     });
   }, [userId]);
 

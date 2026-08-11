@@ -311,6 +311,13 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
   // Anything to clear at all (drives the whole-field Tyhjennä button).
   const anyPlacement = assignments.some((a) => a.playerId !== null) || game.subs.length > 0;
 
+  // Tapping empty grass (anywhere on the pitch that isn't a disc/pill/button)
+  // clears the current selection - a faster deselect than re-tapping the disc.
+  const handlePitchBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    if (selection) setSelection(null);
+  };
+
   return (
     <div className="space-y-4">
       {/* Pitch - the REAL field: the live game's grass + markings painted by
@@ -318,6 +325,7 @@ const PlanFieldView: React.FC<PlanFieldViewProps> = ({
       <div
         className="relative w-full max-w-sm mx-auto rounded-lg overflow-hidden border border-green-900/60 shadow-inner"
         style={{ aspectRatio: '3 / 4', background: '#427B44' }}
+        onClick={handlePitchBackgroundClick}
       >
         <PlanFieldBackdrop />
 
