@@ -157,7 +157,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // The setup tracker moved OFF the (space-tight) home tabs into an on-demand
   // gear-sheet entry - the contextual empty-states already nudge setup inline
   // where there's room. This entry shows its progress and opens the checklist.
-  const showSetupEntry = !isFirstTimeUser && setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
+  // Shown to brand-new users too: an empty account most needs the "here are the
+  // steps" overview, alongside the inline nudges.
+  const showSetupEntry = setupHydrated && !setupDismissed && !!setupProgress && !setupComplete;
   const setupDoneCount = setupProgress
     ? [setupProgress.players, setupProgress.competition, setupProgress.team, setupProgress.teamLinkedGame].filter(Boolean).length
     : 0;

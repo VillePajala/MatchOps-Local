@@ -700,7 +700,7 @@ export default function AuthForm({
               disabled={isLoading}
             />
             <p className="text-slate-500 text-xs">
-              {t('auth.passwordRequirements', 'Password must be at least 12 characters and include 3 of: uppercase, lowercase, numbers, special characters.')}
+              {t('auth.passwordRequirements', 'Password must be at least 8 characters.')}
             </p>
 
             {/* GDPR Consent Checkbox */}
