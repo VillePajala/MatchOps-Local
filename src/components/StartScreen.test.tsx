@@ -348,7 +348,7 @@ describe('StartScreen', () => {
       expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
     });
 
-    it('shows the setup entry to first-time users (an empty account most needs the steps)', () => {
+    it('has no setup entry for first-time users', () => {
       render(
         <StartScreen
           {...baseHandlers()}
@@ -360,7 +360,7 @@ describe('StartScreen', () => {
       );
       openGear();
       const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).getByRole('button', { name: /Getting started/ })).toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
     });
 
     it('the checklist × dismisses the gear entry across renders', async () => {
