@@ -108,6 +108,10 @@ export interface UseGameOrchestrationReturn {
   gameContainerProps: GameContainerProps;
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
+  /** Guided-tour match signals (funnel Phase 2 PR3): the page-level tour reads
+   *  these to auto-advance the start-timer and log-goal steps. */
+  isTimerRunning: boolean;
+  hasLoggedGoal: boolean;
 }
 
 /**
@@ -2356,5 +2360,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
+    isTimerRunning: gameSessionState.isTimerRunning,
+    hasLoggedGoal: (gameSessionState.gameEvents ?? []).some(
+      (e) => e.type === 'goal' || e.type === 'opponentGoal',
+    ),
   };
 }

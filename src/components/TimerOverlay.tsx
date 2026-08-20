@@ -301,8 +301,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
         {/* Timer Controls */}
         <div className="flex items-center gap-3 mb-3"> 
-          <button 
-            onClick={onStartPauseTimer} 
+          <button
+            onClick={onStartPauseTimer}
+            data-testid="tour-timer-startpause"
             disabled={gameStatus === 'gameEnd' || !isLoaded} // Disable when game ended OR NOT LOADED
             className={`${timerButtonStyle} ${isTimerRunning ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-400' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'} ${gameStatus === 'gameEnd' || !isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.startButton', 'Start')}
@@ -406,8 +407,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             
             {/* Goal Buttons - Side by side layout */}
             <div className="flex gap-2 pt-1">
-              <button 
-                onClick={onToggleGoalLogModal} 
+              <button
+                onClick={onToggleGoalLogModal}
+                data-testid="tour-log-goal"
                 className={`${secondaryActionStyle} flex-1`}
                 title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >

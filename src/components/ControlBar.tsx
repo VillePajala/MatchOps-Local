@@ -371,6 +371,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             {/* Clickable Timer Display - Fixed height and width */}
             <button
               onClick={onToggleLargeTimerOverlay}
+              data-testid="tour-timer-button"
               className={`${DESIGN_TOKENS.BUTTON_HEIGHT} w-28 bg-slate-700/80 hover:bg-slate-600/80 px-6 rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900`}
               title={t('controlBar.openTimer', 'Open Timer')}
               aria-label={t('controlBar.openTimer', 'Open Timer')}

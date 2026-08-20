@@ -14,14 +14,13 @@ interface GuidedTourControllerProps {
   ready: boolean;
   /** Truly-empty account: no roster and no saved games. */
   isFirstTimeUser: boolean;
-  // Live app-state signals that drive auto-advancing steps. Optional so tests and
-  // the first-run trigger work without threading every signal.
+  // Live Home-screen signals that drive the Home-half steps. Optional so tests and
+  // the first-run trigger work without threading every signal. The match-view
+  // signals (timer/goal) are owned by GuidedTourMatchReporter, not this component.
   hasPlayers?: boolean;
   hasTeam?: boolean;
   hasTeamLinkedGame?: boolean;
   screen?: 'start' | 'home';
-  isTimerRunning?: boolean;
-  hasLoggedGoal?: boolean;
 }
 
 /**
@@ -36,8 +35,6 @@ const GuidedTourController: FC<GuidedTourControllerProps> = ({
   hasTeam = false,
   hasTeamLinkedGame = false,
   screen = 'start',
-  isTimerRunning = false,
-  hasLoggedGoal = false,
 }) => {
   const { startTour, isTourCompleted, reportSignals } = useGuidedTour();
   const triggeredRef = useRef(false);
@@ -50,11 +47,11 @@ const GuidedTourController: FC<GuidedTourControllerProps> = ({
     startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps);
   }, [ready, isFirstTimeUser, isTourCompleted, startTour]);
 
-  // Report signals whenever one changes; the tour advances the current step if
-  // its predicate is now satisfied (no-op when no tour is running).
+  // Report Home-screen signals whenever one changes; the tour advances the
+  // current step if its predicate is now satisfied (no-op when no tour is running).
   useEffect(() => {
-    reportSignals({ hasPlayers, hasTeam, hasTeamLinkedGame, screen, isTimerRunning, hasLoggedGoal });
-  }, [hasPlayers, hasTeam, hasTeamLinkedGame, screen, isTimerRunning, hasLoggedGoal, reportSignals]);
+    reportSignals({ hasPlayers, hasTeam, hasTeamLinkedGame, screen });
+  }, [hasPlayers, hasTeam, hasTeamLinkedGame, screen, reportSignals]);
 
   return null;
 };
