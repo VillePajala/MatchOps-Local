@@ -1,4 +1,19 @@
 {
+  "guidedTour": {
+    "welcome": {
+      "title": "Tervetuloa MatchOpsiin",
+      "body": "Viedään sinut ensimmäiseen otteluusi - se vie noin minuutin."
+    },
+    "done": {
+      "title": "Kaikki valmista",
+      "body": "Siinä perusteet. Kaikki tekemäsi tallentuu automaattisesti."
+    },
+    "buttons": {
+      "next": "Seuraava",
+      "skip": "Ohita",
+      "finish": "Valmis"
+    }
+  },
   "recap": {
     "button": "Luo ottelukooste",
     "title": "Ottelukooste",
