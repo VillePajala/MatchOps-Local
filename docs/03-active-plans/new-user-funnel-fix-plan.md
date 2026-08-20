@@ -3,9 +3,10 @@
 **Goal:** stop new-install churn before spending energy on growth. Evidence shows
 installs are lost at the front door (the signup wall), not to bugs.
 
-**Status as of 2026-08-20:** Phase 1 (auth quick wins) implemented in PR #704.
-No real users yet, so there is no retention baseline to measure against - phases are
-judged by whether the funnel feels right, not by metrics. Phases 2, 3, 4, 5 not started.
+**Status as of 2026-08-20:** Phase 1 (auth quick wins) merged into `feat/new-user-funnel`
+(PR #704). Phase 4 investigated and found already-resolved (no live bug). No real users
+yet, so there is no retention baseline to measure against - phases are judged by whether
+the funnel feels right, not by metrics. Phases 2, 3, 5 not started.
 
 **Branching model:** long-lived integration branch `feat/new-user-funnel` off master.
 Each phase is a sub-branch -> PR into `feat/new-user-funnel`. The whole thing lands on
@@ -28,7 +29,7 @@ master only when all phases are done and tested. Plan + roadmap docs live on mas
 cloud-only or reopen the local<->cloud migration (the demo uses throwaway data;
 Google sign-in is auth-only); keep each phase small, reversible, its own sub-branch/PR.
 
-**Sequence:** 1 + 4 -> 2 -> 3 -> 5.
+**Sequence:** 1 + 4 (done) -> 2 -> 3 -> 5.
 
 ---
 
@@ -55,11 +56,19 @@ Status: implemented, Claude review **Approved**, all CI green. Re-targeted onto
 
 ---
 
-## TODO
+### Phase 4 - Delete-account bug  (investigated 2026-08-20 - already resolved, no code change)
+The premise was stale. Traced the full flow - `delete-account` edge function,
+`SupabaseAuthService.deleteAccount`, the `AuthProvider` wrapper, and the SettingsModal
+handler - and it is already exhaustively hardened from prior Sentry-driven iterations:
+session refresh before the call, retry on transient network errors, explicit
+401 / lost-response classification, rate-limiting fail-closed, and full GDPR erasure
+(RPC -> auth user -> local mirror DB + sync-queue DB + backups DB, DataStore closed
+first). **Sentry: 0 delete-account errors in 90 days** - the historical issues its own
+comments reference no longer occur. No fix needed; nothing to ship.
 
-### Phase 4 - Fix delete-account bug
-Sentry shows account deletion failing for some users (delete-account edge function /
-`SupabaseAuthService` path). Correctness + churn hygiene. Own sub-branch.
+---
+
+## TODO
 
 ### Phase 2 - Demo sandbox (try before signup)
 An in-memory demo (seed team/games, banner, "sign up to save your team") so a coach
