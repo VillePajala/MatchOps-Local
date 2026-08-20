@@ -22,6 +22,13 @@ const baseSignals: TourSignals = {
   hasLoggedGoal: false,
 };
 
+// A minimal two-step tour for testing finish/persistence independent of the
+// real tour's length.
+const twoStep: TourStep[] = [
+  { id: 'one', titleKey: 'k.1', title: 'Step One', bodyKey: 'k.1b', body: 'body one' },
+  { id: 'two', titleKey: 'k.2', title: 'Step Two', bodyKey: 'k.2b', body: 'body two' },
+];
+
 function StartButton({ steps = firstRunTourSteps }: { steps?: TourStep[] }) {
   const { startTour } = useGuidedTour();
   return <button onClick={() => startTour(FIRST_RUN_TOUR_ID, steps)}>start-tour</button>;
@@ -48,10 +55,9 @@ describe('GuidedTour engine', () => {
     fireEvent.click(screen.getByText('start-tour'));
     expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
-    expect(screen.getByTestId('guided-tour-next')).toHaveTextContent('Next');
   });
 
-  it('advances with Next and finishes (marking completed) on the last step', () => {
+  it('Next advances from welcome to the first action step', () => {
     render(
       <GuidedTourProvider>
         <StartButton />
@@ -59,7 +65,19 @@ describe('GuidedTour engine', () => {
     );
     fireEvent.click(screen.getByText('start-tour'));
     fireEvent.click(screen.getByTestId('guided-tour-next'));
-    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent("You're all set");
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Add your players');
+  });
+
+  it('Next on the last step finishes and marks the tour completed', () => {
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={twoStep} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    expect(screen.getByTestId('guided-tour-next')).toHaveTextContent('Next');
+    fireEvent.click(screen.getByTestId('guided-tour-next'));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Step Two');
     expect(screen.getByTestId('guided-tour-next')).toHaveTextContent('Done');
     fireEvent.click(screen.getByTestId('guided-tour-next'));
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
@@ -74,6 +92,18 @@ describe('GuidedTour engine', () => {
     );
     fireEvent.click(screen.getByText('start-tour'));
     fireEvent.click(screen.getByTestId('guided-tour-skip'));
+    expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
+    expect(localStorage.getItem(COMPLETED_KEY)).toBe('1');
+  });
+
+  it('Escape key skips the tour', () => {
+    render(
+      <GuidedTourProvider>
+        <StartButton />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.keyDown(screen.getByTestId('guided-tour-overlay'), { key: 'Escape' });
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
     expect(localStorage.getItem(COMPLETED_KEY)).toBe('1');
   });
@@ -95,15 +125,23 @@ describe('GuidedTour engine', () => {
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Step B');
   });
 
-  it('renders a spotlight ring when the step targets a visible element', () => {
-    const target = document.createElement('button');
-    target.setAttribute('data-testid', 'tour-target');
-    target.getBoundingClientRect = () =>
+  it('spotlights via a multi-selector target, using whichever is present', () => {
+    // Only the fallback ("opener") selector is in the DOM.
+    const opener = document.createElement('button');
+    opener.setAttribute('data-testid', 'tour-opener');
+    opener.getBoundingClientRect = () =>
       ({ top: 50, left: 50, width: 100, height: 40, right: 150, bottom: 90, x: 50, y: 50, toJSON() {} }) as DOMRect;
-    document.body.appendChild(target);
+    document.body.appendChild(opener);
 
     const steps: TourStep[] = [
-      { id: 's', titleKey: 'k', title: 'Spotlight', bodyKey: 'kb', body: 'b', targetSelector: '[data-testid="tour-target"]' },
+      {
+        id: 's',
+        titleKey: 'k',
+        title: 'Spotlight',
+        bodyKey: 'kb',
+        body: 'b',
+        targetSelector: ['[data-testid="tour-inner"]', '[data-testid="tour-opener"]'],
+      },
     ];
     render(
       <GuidedTourProvider>
@@ -113,15 +151,15 @@ describe('GuidedTour engine', () => {
     fireEvent.click(screen.getByText('start-tour'));
     expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
 
-    document.body.removeChild(target);
+    document.body.removeChild(opener);
   });
 });
 
-describe('GuidedTourController first-run trigger', () => {
+describe('GuidedTourController', () => {
   it('starts the first-run tour when ready, first-time, and not completed', () => {
     render(
       <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser />
+        <GuidedTourController ready isFirstTimeUser {...baseSignals} />
       </GuidedTourProvider>,
     );
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
@@ -131,7 +169,7 @@ describe('GuidedTourController first-run trigger', () => {
     localStorage.setItem(COMPLETED_KEY, '1');
     render(
       <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser />
+        <GuidedTourController ready isFirstTimeUser {...baseSignals} />
       </GuidedTourProvider>,
     );
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
@@ -140,7 +178,7 @@ describe('GuidedTourController first-run trigger', () => {
   it('does not start for a returning (non-first-time) user', () => {
     render(
       <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser={false} />
+        <GuidedTourController ready isFirstTimeUser={false} {...baseSignals} />
       </GuidedTourProvider>,
     );
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
@@ -149,9 +187,44 @@ describe('GuidedTourController first-run trigger', () => {
   it('does not start until ready', () => {
     render(
       <GuidedTourProvider>
-        <GuidedTourController ready={false} isFirstTimeUser />
+        <GuidedTourController ready={false} isFirstTimeUser {...baseSignals} />
       </GuidedTourProvider>,
     );
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
+  });
+
+  it('auto-advances the Home steps as signals flip', () => {
+    const { rerender } = render(
+      <GuidedTourProvider>
+        <GuidedTourController ready isFirstTimeUser {...baseSignals} />
+      </GuidedTourProvider>,
+    );
+    // Welcome -> tap Next to reach the first action step.
+    fireEvent.click(screen.getByTestId('guided-tour-next'));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Add your players');
+
+    // hasPlayers flips -> advances to create-team.
+    rerender(
+      <GuidedTourProvider>
+        <GuidedTourController ready isFirstTimeUser {...baseSignals} hasPlayers />
+      </GuidedTourProvider>,
+    );
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Create your team');
+
+    // hasTeam flips -> advances to create-game.
+    rerender(
+      <GuidedTourProvider>
+        <GuidedTourController ready isFirstTimeUser {...baseSignals} hasPlayers hasTeam />
+      </GuidedTourProvider>,
+    );
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Start your first game');
+
+    // Entering the match (screen === 'home') -> advances to the done step.
+    rerender(
+      <GuidedTourProvider>
+        <GuidedTourController ready isFirstTimeUser {...baseSignals} hasPlayers hasTeam screen="home" />
+      </GuidedTourProvider>,
+    );
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent("You're all set");
   });
 });

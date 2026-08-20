@@ -26,15 +26,19 @@ interface GuidedTourOverlayProps {
 const SPOTLIGHT_PADDING = 6;
 const CARD_WIDTH = 320;
 
-function readRect(selector: string | undefined): Rect | null {
+function readRect(selector: string | string[] | undefined): Rect | null {
   if (!selector || typeof document === 'undefined') return null;
-  const el = document.querySelector(selector);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  // jsdom and not-yet-laid-out elements report a zero box - treat as "not found"
-  // so the step falls back to a centered card instead of a broken spotlight.
-  if (r.width === 0 && r.height === 0) return null;
-  return { top: r.top, left: r.left, width: r.width, height: r.height };
+  const selectors = Array.isArray(selector) ? selector : [selector];
+  for (const sel of selectors) {
+    const el = document.querySelector(sel);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    // A zero box means the control is present but not laid out / collapsed (or
+    // jsdom): skip it and try the next selector, else fall back to a centered card.
+    if (r.width === 0 && r.height === 0) continue;
+    return { top: r.top, left: r.left, width: r.width, height: r.height };
+  }
+  return null;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -112,9 +116,8 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const card = (
     <div
       data-testid="guided-tour-card"
-      className="pointer-events-auto w-full rounded-2xl border border-slate-600 bg-slate-800 p-5 text-white shadow-2xl"
+      className="pointer-events-auto max-h-[70vh] w-full overflow-y-auto rounded-2xl border border-slate-600 bg-slate-800 p-5 text-white shadow-2xl"
       role="dialog"
-      aria-modal="true"
       aria-label={title}
     >
       <h2 data-testid="guided-tour-title" className="mb-2 text-lg font-bold tracking-tight">

@@ -364,6 +364,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     type="button"
                     onClick={onManageRoster}
                     disabled={!onManageRoster}
+                    data-testid="tour-players"
                     className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
                       onManageRoster
                         ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
@@ -378,6 +379,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     type="button"
                     onClick={onManageTeams}
                     disabled={!onManageTeams}
+                    data-testid="tour-teams"
                     className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
                       onManageTeams
                         ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
@@ -548,6 +550,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
+                      data-testid="tour-new-game"
                       className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center"
                     >
                       {t('startScreen.newGame', 'New Game')}
@@ -570,6 +573,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
+                      data-testid="tour-new-game"
                       className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
                     >
                       <span className="text-sm font-semibold text-white">
