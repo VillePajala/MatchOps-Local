@@ -35,12 +35,12 @@ export const firstRunTourSteps: TourStep[] = [
       {
         selector: '[data-testid="tour-save-player"]',
         hintKey: 'guidedTour.hints.savePlayer',
-        hint: "Type the player's name and save. Add a few, then close the list.",
+        hint: "Type the player's name - it shows on their disc on the field (or a nickname, if you set one). Save, and add a few players the same way.",
       },
       {
         selector: '[data-testid="tour-add-player"]',
         hintKey: 'guidedTour.hints.addPlayer',
-        hint: 'Tap Add Player.',
+        hint: 'Tap Add Player. Once your squad is in, close the list to continue.',
       },
       {
         selector: '[data-testid="tour-players"]',

@@ -49,6 +49,13 @@ function isUncovered(el: Element, r: DOMRect): boolean {
   if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) return false;
   const hit = document.elementFromPoint(cx, cy);
   if (!hit) return true;
+  // Our own card must never count as cover: hitting it would declare the target
+  // occluded, drop to the bottom-pinned fallback card, and that card would keep
+  // sitting on the target - a self-fulfilling loop (owner-reported: the card
+  // parked on top of the player form's save bar). Treat overlay hits as
+  // visible; the placement rule then pins the card to the OPPOSITE half from
+  // the target, moving it out of the way on the next render.
+  if (hit.closest('[data-testid="guided-tour-overlay"]')) return true;
   return el === hit || el.contains(hit) || hit.contains(el);
 }
 

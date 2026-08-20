@@ -193,6 +193,37 @@ describe('GuidedTour engine', () => {
       expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('fallback body copy');
     });
 
+    it('does NOT treat the tour card itself as cover (no self-occlusion loop)', () => {
+      const specific = mountAnchor('anchor-specific', 120);
+      const orig = document.elementFromPoint;
+      // Emulate the tour's own card sitting over the target's center - the
+      // resolver must still consider the target visible (the placement rule
+      // moves the card to the opposite half), not fall back and park on it.
+      document.elementFromPoint = jest.fn(() =>
+        document.querySelector('[data-testid="guided-tour-card"]'),
+      );
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        // The initial resolve runs before the card is committed (mock returns
+        // null there), so the meaningful check is the RECOMPUTE below, where
+        // elementFromPoint really returns the now-mounted card node - the exact
+        // self-occlusion scenario. Without the overlay-exclusion fix this
+        // recompute would mark the target covered and drop the ring.
+        expect(screen.getByTestId('guided-tour-card')).toBeInTheDocument();
+        fireEvent(window, new Event('resize'));
+        expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Do the specific thing');
+      } finally {
+        document.elementFromPoint = orig;
+        specific.remove();
+      }
+    });
+
     it('treats a target covered by another surface (e.g. a modal) as not visible', () => {
       const specific = mountAnchor('anchor-specific', 120);
       const cover = document.createElement('div'); // unrelated element on top
