@@ -333,6 +333,50 @@ describe('StartScreen', () => {
       expect(screen.getByText('Build a team')).toBeInTheDocument();
     });
 
+    it('shows a getting-started banner on the home surface that opens the checklist', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      const banner = await screen.findByTestId('setup-banner');
+      expect(banner).toHaveTextContent(/Getting started/);
+      fireEvent.click(banner);
+      expect(await screen.findByText('Get the most out of MatchOps')).toBeInTheDocument();
+    });
+
+    it('has no getting-started banner for first-time users', () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={false}
+          hasSavedGames={false}
+          isFirstTimeUser={true}
+          setupProgress={{ players: false, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
+    });
+
+    it('has no getting-started banner once setup is complete', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
+        />
+      );
+      // Allow the post-hydration effect to run, then assert the banner never appears.
+      await screen.findByRole('button', { name: 'Settings' });
+      expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
+    });
+
     it('has no setup entry once all steps are complete', async () => {
       render(
         <StartScreen
