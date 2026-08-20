@@ -1,58 +1,96 @@
-# New-user funnel fix plan
+# New-user funnel fix - status & plan
 
 **Goal:** stop new-install churn before spending energy on growth. Evidence shows
-installs are being lost at the front door, not to bugs.
+installs are lost at the front door (the signup wall), not to bugs.
+
+**Status as of 2026-08-20:** Phase 1 (auth quick wins) implemented in PR #704.
+No real users yet, so there is no retention baseline to measure against - phases are
+judged by whether the funnel feels right, not by metrics. Phases 2, 3, 4, 5 not started.
+
+**Branching model:** long-lived integration branch `feat/new-user-funnel` off master.
+Each phase is a sub-branch -> PR into `feat/new-user-funnel`. The whole thing lands on
+master only when all phases are done and tested. Plan + roadmap docs live on master
+(edited directly); phase PRs are code-only.
+
+---
 
 ## Diagnosis (2026-08-11)
 
 - **Sentry (production, 30 days):** no crash wall - 9 tiny issues, 1-5 events each,
-  nothing systemic. Churn is not caused by crashes.
-- **First-run audit:** the Play build is a stack of walls before any value is seen:
-  account required with zero preview - form defaults to Sign In (Sign Up buried) -
-  a 12-char / 3-of-4-character password rule - a production email OTP round-trip -
-  GDPR consent - and then an under-guided empty screen. A casual installer bails
-  long before reaching the (good) in-app helpers.
+  nothing systemic. Churn is **not** caused by crashes.
+- **First-run audit:** the Play build is a stack of walls before any value is seen -
+  account required with zero preview; the form defaulted to Sign In (Sign Up buried);
+  a 12-char / 3-of-4-character password rule; a production email-OTP round-trip; GDPR
+  consent; and then an under-guided empty screen. A casual installer bails long before
+  reaching the (good) in-app helpers.
 
-## Plan
+**Guiding constraints for every phase:** fix the leak before growth; never reverse
+cloud-only or reopen the local<->cloud migration (the demo uses throwaway data;
+Google sign-in is auth-only); keep each phase small, reversible, its own sub-branch/PR.
 
-**Sequence: 0 (Ville) -> 1 + 4 -> 2 -> 3 -> 5.** Each phase is its own branch/PR
-(tested, lint, build, Claude review). Nothing here reverses cloud-only or reopens
-the local<->cloud migration - the demo uses throwaway data; Google sign-in is
-auth-only.
+**Sequence:** 1 + 4 -> 2 -> 3 -> 5.
 
-### Phase 0 - Baseline (Ville)
-Pull Play Console retention / acquisition funnel: how many retain day 1 vs day 7,
-and *when* people uninstall. The "before" number; day-0 drop confirms the wall.
+---
 
-### Phase 1 - Quick wins  (branch: feat/onboarding-quick-wins) - DONE, in review
-- Default the production cloud funnel to **Sign Up** (returning users get a clear
-  "Sign in" link). LoginScreen keeps `signIn` as its own default; page.tsx passes
-  `initialMode="signUp"`.
-- **Soften the password rule** to a plain 8-character minimum, no character-type
-  requirement (NIST 800-63B; server policy is min 6, so client stays >= server).
-- **Show the setup checklist to first-time users** (was gated off for exactly the
-  people who need it).
-- Upgrade-modal item dropped: `isSubscriptionActive` already always returns true
-  (free sync for all), so the post-login upgrade modal can't fire. No change needed.
+## DONE
+
+### Phase 1 - Auth quick wins  (PR #704)
+Status: implemented, Claude review **Approved**, all CI green. Re-targeted onto
+`feat/new-user-funnel`; code-only (docs stripped). **Not merged.**
+
+- **Funnel opens on Sign Up.** `page.tsx` passes `initialMode="signUp"` to the
+  production LoginScreen; LoginScreen keeps `signIn` as its own default so other
+  call sites and returning users are unaffected (they get a clear "Sign in" link).
+- **Softer password rule.** 12 chars + 3-of-4 character types -> plain 8-character
+  minimum, no composition (NIST 800-63B). Verified Supabase server policy is min 6 /
+  no character rule on both staging and prod, so the client rule stays >= server.
+  Updated EN/FI copy, both `passwordRequirements` fallbacks, and tests.
+- **Upgrade modal:** no change needed - `isSubscriptionActive` already always returns
+  `true` (free sync for all), so the post-login upgrade modal can't fire.
+
+> The getting-started checklist was originally bundled here as a one-line visibility
+> toggle. It was stripped out (commit `b08a47c6`) because the entry only lives in the
+> gear sheet - buried for a first-timer - and an inline version pushes the primary
+> actions below the scroll fold. It needs a designed home, so it moved to **Phase 5**.
+
+---
+
+## TODO
 
 ### Phase 4 - Fix delete-account bug
-Sentry shows account deletion failing for some users (delete-account edge function
-/ SupabaseAuthService path). Correctness + churn hygiene. Own PR.
+Sentry shows account deletion failing for some users (delete-account edge function /
+`SupabaseAuthService` path). Correctness + churn hygiene. Own sub-branch.
 
 ### Phase 2 - Demo sandbox (try before signup)
 An in-memory demo (seed team/games, banner, "sign up to save your team") so a coach
-sees value before any account. Discarded on signup - no migration. Reuses existing
+sees value before any account; discarded on signup - no migration. Reuses existing
 local mode + test fixtures. Fixes the "can't try it" wall and the "empty app" first
 impression at once.
 
 ### Phase 3 - Google sign-in
-Google OAuth via Supabase - removes the password rules AND the email-OTP round-trip
-in one move. Auth-only, no storage impact. Needs Supabase provider config + testing
-on the real TWA (OAuth redirect).
+Google OAuth via Supabase - removes the password rules AND the email-OTP round-trip in
+one move. Auth-only, no storage impact. Needs Supabase provider config + testing on
+the real TWA (OAuth redirect).
 
-### Phase 5 - Guided empty-state polish
-A light first-run pointer once the walls are down. Lowest priority.
+### Phase 5 - Getting-started + guided empty-state (designed properly)
+The getting-started checklist needs a real home in the UI, not just an unhidden gear-sheet
+entry. `StartScreen` is a fixed `h-[100dvh]` flex column with one `overflow-y-auto`
+content area, so anything added competes with the logo, Home tabs, and action buttons -
+which is exactly why the naive version fell below the scroll fold. Treatment options:
+
+- **Slim banner** pinned above the Home tabs - one line ("Getting started 1/4 >"),
+  always visible, opens the sheet. Minimal vertical cost.
+- **Compact card** shown only on the empty Games tab, collapses once there is data -
+  prime real estate exactly when a new coach needs it, gone once they don't.
+- **Gear badge** - keep the entry in the gear sheet but add a dot/badge on the gear so
+  first-timers notice it. Smallest change, least discoverable.
+
+Plus a light first-run pointer once the walls are down. Mock a couple of the treatments
+before building.
+
+---
 
 ## Measurement
-No in-app analytics (by design). After each phase, watch Play Console retention over
-a week or two and compare to the Phase 0 baseline; reorder or stop at any phase.
+No in-app analytics (by design) and no user base yet, so there is no "before" number.
+Judge each phase by whether the first-run flow feels right on a real TWA install; once
+there are users, watch Play Console retention and reorder or stop at any phase.
