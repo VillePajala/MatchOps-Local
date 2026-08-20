@@ -192,6 +192,51 @@ describe('GuidedTour engine', () => {
       expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
       expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('fallback body copy');
     });
+
+    it('treats a target covered by another surface (e.g. a modal) as not visible', () => {
+      const specific = mountAnchor('anchor-specific', 120);
+      const cover = document.createElement('div'); // unrelated element on top
+      document.body.appendChild(cover);
+      const orig = document.elementFromPoint;
+      // jsdom has no layout, so emulate a modal covering the target's center.
+      document.elementFromPoint = jest.fn(() => cover);
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        // Covered target is skipped; nothing else on screen -> body fallback, no ring.
+        expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('fallback body copy');
+      } finally {
+        document.elementFromPoint = orig;
+        cover.remove();
+        specific.remove();
+      }
+    });
+  });
+
+  it('action steps (advanceWhen) show only Skip - the highlighted control is the way forward', () => {
+    const steps: TourStep[] = [
+      {
+        id: 'action',
+        titleKey: 'k.a',
+        title: 'Action Step',
+        bodyKey: 'k.ab',
+        body: 'do the thing in the app',
+        advanceWhen: (s) => s.hasPlayers,
+      },
+    ];
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={steps} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    expect(screen.queryByTestId('guided-tour-next')).not.toBeInTheDocument();
+    expect(screen.getByTestId('guided-tour-skip')).toBeInTheDocument();
   });
 });
 

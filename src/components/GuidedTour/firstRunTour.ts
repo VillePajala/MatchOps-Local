@@ -13,8 +13,9 @@ export const FIRST_RUN_TOUR_ID = 'first-run';
  * declares a TAP CHAIN (most specific first): the overlay spotlights the first
  * control currently on screen and shows that stage's hint, so the coach is
  * guided one tap at a time - including the tab switch that gets them there.
- * Steps auto-advance when the matching app-state signal flips; Next/Skip are
- * always available.
+ * Action steps auto-advance when the matching app-state signal flips and offer
+ * only Skip (the highlighted control is the way forward); the welcome/done
+ * bookends advance with Next/Done.
  */
 export const firstRunTourSteps: TourStep[] = [
   {
