@@ -934,6 +934,7 @@ export type TranslationKey =
   | 'goalLogModal.title'
   | 'goalLogModal.unknownScorer'
   | 'guidedTour.addPlayers.body'
+  | 'guidedTour.addPlayers.format'
   | 'guidedTour.addPlayers.title'
   | 'guidedTour.buttons.finish'
   | 'guidedTour.buttons.next'

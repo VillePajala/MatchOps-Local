@@ -22,6 +22,8 @@ interface GuidedTourOverlayProps {
   step: TourStep;
   /** Latest merged app-state signals (for live progress like "3 / 8 added"). */
   signals: TourSignals;
+  /** Merge a chip's `apply` into the signals (the step's one-tap choices). */
+  onApplyChoice: (partial: Partial<TourSignals>) => void;
   stepIndex: number;
   stepCount: number;
   isFinal: boolean;
@@ -95,6 +97,7 @@ function resolveTarget(targets: TourTarget[] | undefined): ResolvedTarget | null
 const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   step,
   signals,
+  onApplyChoice,
   stepIndex,
   stepCount,
   isFinal,
@@ -202,6 +205,35 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       <p data-testid="guided-tour-body" className="mb-3 text-sm text-slate-300">
         {message}
       </p>
+      {step.choices && (
+        <div className="mb-3 flex items-center justify-center gap-2">
+          {step.choicesLabelKey && (
+            <span className="text-xs text-slate-400">
+              {t(step.choicesLabelKey, step.choicesLabel ?? '')}
+            </span>
+          )}
+          {step.choices.map((choice) => {
+            const selected = (Object.keys(choice.apply) as Array<keyof TourSignals>).every(
+              (k) => signals[k] === choice.apply[k],
+            );
+            return (
+              <button
+                key={choice.id}
+                type="button"
+                data-testid={`guided-tour-choice-${choice.id}`}
+                onClick={() => onApplyChoice(choice.apply)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  selected
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                {choice.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {step.progress && (
         <p data-testid="guided-tour-progress" className="mb-3 text-center text-sm font-semibold text-indigo-300">
           {(() => {

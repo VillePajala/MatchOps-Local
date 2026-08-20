@@ -8,12 +8,12 @@ import type { TourStep } from './tourTypes';
 export const FIRST_RUN_TOUR_ID = 'first-run';
 
 /**
- * The add-players goal. A first match only feels real with enough players for
- * lines and subs; 8 covers futsal (5+3) and small-sided soccer well. A GOAL,
- * not a gate: the step shows live progress toward it and auto-advances when
- * reached, but closing the roster list earlier (with any players) advances too.
+ * The add-players goal is the on-field size of the coach's format - 5v5, 8v8,
+ * or 11v11, picked with one tap on the step's chips (default 8, the middle
+ * ground). A GOAL, not a gate: the step shows live progress toward it and
+ * auto-advances when reached, but closing the roster list earlier (with any
+ * players) advances too.
  */
-export const TOUR_TARGET_PLAYERS = 8;
 
 /**
  * The post-signup coached tour: add players -> create team -> create game ->
@@ -38,7 +38,7 @@ export const firstRunTourSteps: TourStep[] = [
     titleKey: 'guidedTour.addPlayers.title',
     title: 'Add your players',
     bodyKey: 'guidedTour.addPlayers.body',
-    body: 'Open the Club tab, tap Players, and add your squad - about 8 players makes a real first match.',
+    body: 'Open the Club tab, tap Players, and add your squad - enough to field a full team in your format.',
     targets: [
       {
         selector: '[data-testid="tour-save-player"]',
@@ -49,7 +49,7 @@ export const firstRunTourSteps: TourStep[] = [
       {
         selector: '[data-testid="tour-add-player"]',
         hintKey: 'guidedTour.hints.addPlayer',
-        hint: 'Tap Add Player. Aim for 8 - or close the list when your squad is in.',
+        hint: 'Tap Add Player. Fill your lineup - or close the list when your squad is in.',
       },
       {
         selector: '[data-testid="tour-players"]',
@@ -62,14 +62,21 @@ export const firstRunTourSteps: TourStep[] = [
         hint: 'Open the Club tab.',
       },
     ],
+    choices: [
+      { id: '5v5', label: '5v5', apply: { targetPlayers: 5 } },
+      { id: '8v8', label: '8v8', apply: { targetPlayers: 8 } },
+      { id: '11v11', label: '11v11', apply: { targetPlayers: 11 } },
+    ],
+    choicesLabelKey: 'guidedTour.addPlayers.format',
+    choicesLabel: 'Format',
     progress: {
       key: 'guidedTour.progress.playersAdded',
       fallback: '{{done}} / {{target}} players added',
-      compute: (s) => ({ done: s.playersCount, target: TOUR_TARGET_PLAYERS }),
+      compute: (s) => ({ done: s.playersCount, target: s.targetPlayers }),
     },
     // Reaching the goal advances immediately; closing the list with any players
     // advances too (hasPlayers refreshes on modal close) - a goal, not a gate.
-    advanceWhen: (s) => s.playersCount >= TOUR_TARGET_PLAYERS || s.hasPlayers,
+    advanceWhen: (s) => s.playersCount >= s.targetPlayers || s.hasPlayers,
   },
   {
     id: 'create-team',

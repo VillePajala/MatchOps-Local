@@ -6,7 +6,8 @@
     },
     "addPlayers": {
       "title": "Lisää pelaajat",
-      "body": "Avaa Seura-välilehti, napauta Pelaajat ja lisää joukkueesi pelaajat - noin 8 pelaajaa tekee ensimmäisestä ottelusta aidon."
+      "body": "Avaa Seura-välilehti, napauta Pelaajat ja lisää joukkueesi pelaajat - vähintään kenttäjoukkueen verran pelimuodossanne.",
+      "format": "Pelimuoto"
     },
     "progress": {
       "playersAdded": "{{done}} / {{target}} pelaajaa lisätty"
@@ -39,7 +40,7 @@
     "hints": {
       "openClubTab": "Avaa Seura-välilehti.",
       "tapPlayers": "Napauta Pelaajat.",
-      "addPlayer": "Napauta Lisää Pelaaja. Tavoittele kahdeksaa - tai sulje lista, kun joukkue on koossa.",
+      "addPlayer": "Napauta Lisää Pelaaja. Kokoa kokoonpano - tai sulje lista, kun joukkue on koossa.",
       "savePlayer": "Kirjoita pelaajan nimi - se näkyy pelaajan kiekossa kentällä (tai kutsumanimi, jos annat sellaisen).",
       "tapTeams": "Napauta Joukkueet.",
       "addTeam": "Napauta Lisää joukkue.",
