@@ -3,10 +3,15 @@
 **Goal:** stop new-install churn before spending energy on growth. Evidence shows
 installs are lost at the front door, not to bugs.
 
-**Status as of 2026-08-20:** Phase 1 (auth quick wins) merged into `feat/new-user-funnel`
-(PR #704). Phase 4 investigated and found already-resolved (no live bug). Phases 2 + 3
-designed and PR-chopped (below); execution in progress. No real users yet, so phases are
-judged by whether the first-run flow feels right, not by metrics.
+**Status as of 2026-08-20:** Phase 1 (auth quick wins, #704) and **Phase 2 (guided
+onboarding) complete** - all four Phase-2 PRs merged into `feat/new-user-funnel` (#705
+engine, #706 Home steps, #707 match steps, #708 getting-started banner), each CI-green and
+Claude-approved. Phase 4 investigated and found already-resolved (no live bug). A no-merge
+PR of `feat/new-user-funnel -> master` is open for review. **Phase 3 (Google sign-in) is
+deferred** - it needs a Google OAuth client created in Google Cloud + Supabase provider
+config + real-TWA redirect testing, none of which are self-contained code changes; it will
+be a separate follow-up. No real users yet, so phases are judged by whether the first-run
+flow feels right, not by metrics.
 
 **Branching model:** long-lived integration branch `feat/new-user-funnel` off master.
 Each phase/PR is a sub-branch -> PR into `feat/new-user-funnel`, merged after CI green +
@@ -115,6 +120,10 @@ redirect).
 All PRs target `feat/new-user-funnel`; each merges after CI green + Claude review approves.
 When all are merged, open `feat/new-user-funnel -> master` and do **NOT** merge (loop CI +
 review, stop when review-ready).
+
+**Progress:** PR 1 (#705) ✅ merged, PR 2 (#706) ✅ merged, PR 3 (#707) ✅ merged, PR 4 (#708)
+✅ merged - Phase 2 done. PR 5 (Google sign-in) deferred (external deps, see status above).
+Master PR opened (no merge).
 
 **Engine design.** The tour is a small **state machine**, not a fixed coachmark reel,
 because the target controls live inside modals. Each step declares a target (DOM
