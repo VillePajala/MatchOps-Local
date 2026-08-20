@@ -138,13 +138,16 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     };
   }, [step.targets]);
 
-  // Move focus to the primary action when the step appears (keyboard users).
-  // The card is the only interactive part of the overlay, so this also makes
-  // Escape-to-skip work without a document-level listener (which would hijack
-  // Escape presses meant for the app's own modals).
+  // Move focus to the primary action when a BOOKEND step appears (keyboard
+  // users can Enter through welcome/done). Action steps deliberately do NOT
+  // autofocus: their only button is Skip, and focusing it would make an
+  // accidental Enter abandon the whole tour. The card is the only interactive
+  // part of the overlay, so focus here also makes Escape-to-skip work without
+  // a document-level listener (which would hijack a modal's own Escape).
+  const hasPrimary = !step.advanceWhen;
   useEffect(() => {
-    primaryRef.current?.focus();
-  }, []);
+    if (hasPrimary) primaryRef.current?.focus();
+  }, [hasPrimary]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -191,7 +194,6 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       </p>
       <div className="flex items-center gap-2">
         <button
-          ref={isActionStep ? primaryRef : undefined}
           type="button"
           data-testid="guided-tour-skip"
           onClick={onSkip}
