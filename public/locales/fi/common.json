@@ -32,6 +32,21 @@
       "next": "Seuraava",
       "skip": "Ohita",
       "finish": "Valmis"
+    },
+    "hints": {
+      "openClubTab": "Avaa Seura-välilehti.",
+      "tapPlayers": "Napauta Pelaajat.",
+      "addPlayer": "Napauta Lisää Pelaaja.",
+      "savePlayer": "Kirjoita pelaajan nimi ja tallenna. Lisää muutama ja sulje sitten lista.",
+      "tapTeams": "Napauta Joukkueet.",
+      "addTeam": "Napauta Lisää joukkue.",
+      "saveTeam": "Nimeä joukkue, valitse sen pelaajat ja tallenna.",
+      "openGamesTab": "Avaa Pelit-välilehti.",
+      "tapNewGame": "Napauta Uusi ottelu.",
+      "chooseTeamStart": "Valitse joukkueesi ja aloita ottelu.",
+      "openTimer": "Napauta ajastinta.",
+      "tapStart": "Napauta Käynnistä, kun ottelu alkaa.",
+      "tapGoal": "Napauta maalipainiketta - tilastot päivittyvät heti."
     }
   },
   "recap": {
