@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import useModalHardwareBack from '@/hooks/useModalHardwareBack';
-import type { TourStep, TourTarget } from './tourTypes';
+import type { TourSignals, TourStep, TourTarget } from './tourTypes';
 
 interface Rect {
   top: number;
@@ -20,6 +20,8 @@ interface ResolvedTarget {
 
 interface GuidedTourOverlayProps {
   step: TourStep;
+  /** Latest merged app-state signals (for live progress like "3 / 8 added"). */
+  signals: TourSignals;
   stepIndex: number;
   stepCount: number;
   isFinal: boolean;
@@ -92,6 +94,7 @@ function resolveTarget(targets: TourTarget[] | undefined): ResolvedTarget | null
  */
 const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   step,
+  signals,
   stepIndex,
   stepCount,
   isFinal,
@@ -199,6 +202,14 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       <p data-testid="guided-tour-body" className="mb-3 text-sm text-slate-300">
         {message}
       </p>
+      {step.progress && (
+        <p data-testid="guided-tour-progress" className="mb-3 text-center text-sm font-semibold text-indigo-300">
+          {(() => {
+            const { done, target } = step.progress.compute(signals);
+            return t(step.progress.key, { done, target, defaultValue: step.progress.fallback });
+          })()}
+        </p>
+      )}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -239,9 +250,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     );
   }
 
-  // Spotlight: dim panels around the control (all decoration - pointer-events
-  // pass through everywhere) + a highlight ring. The card pins to whichever
-  // vertical half the control is NOT in, so it never covers the target.
+  // Spotlight geometry, shared by both spotlight modes.
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const hole = {
@@ -253,6 +262,42 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const holeBottom = hole.top + hole.height;
   const holeRight = hole.left + hole.width;
   const targetInTopHalf = hole.top + hole.height / 2 < vh / 2;
+
+  // Compact (in-form) stage: ring + a slim text-only pill, NOTHING else - no
+  // dimming (the form must stay fully readable) and no interactive card (on a
+  // phone a full card inevitably covers form fields; the pill is entirely
+  // pointer-events-none so it cannot block typing or taps).
+  if (resolved.target.compact) {
+    // Keep live progress visible even mid-form (review #713): append a terse
+    // done/target counter so the coach sees momentum while typing.
+    let pillText = message;
+    if (step.progress) {
+      const { done, target } = step.progress.compute(signals);
+      pillText = `${message} · ${done}/${target}`;
+    }
+    return createPortal(
+      <div data-testid="guided-tour-overlay" className="pointer-events-none fixed inset-0 z-[80]">
+        <div
+          data-testid="guided-tour-ring"
+          className="pointer-events-none absolute rounded-lg border-2 border-indigo-400"
+          style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
+        />
+        <div className={`absolute inset-x-0 px-4 ${targetInTopHalf ? 'bottom-6' : 'top-6'}`}>
+          <div
+            data-testid="guided-tour-pill"
+            className="pointer-events-none mx-auto w-fit max-w-sm rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
+          >
+            {pillText}
+          </div>
+        </div>
+      </div>,
+      document.body,
+    );
+  }
+
+  // Full spotlight: dim panels around the control (all decoration - pointer
+  // events pass through everywhere) + a highlight ring. The card pins to
+  // whichever vertical half the control is NOT in, so it never covers the target.
   const panelClass = 'absolute bg-black/60 pointer-events-none';
 
   return createPortal(

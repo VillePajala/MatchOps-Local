@@ -959,6 +959,7 @@ export type TranslationKey =
   | 'guidedTour.hints.tapTeams'
   | 'guidedTour.logGoal.body'
   | 'guidedTour.logGoal.title'
+  | 'guidedTour.progress.playersAdded'
   | 'guidedTour.startTimer.body'
   | 'guidedTour.startTimer.title'
   | 'guidedTour.welcome.body'

@@ -53,15 +53,20 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [tourId, setTourId] = useState<string | null>(null);
   const [steps, setSteps] = useState<TourStep[]>([]);
   const [index, setIndex] = useState(0);
-  // Merged latest signals across all reporters (page + match view).
-  const signalsRef = useRef<TourSignals>({
+  // Merged latest signals across all reporters (page + match view + roster).
+  // Kept in BOTH a ref (synchronous merge base for advance checks) and state
+  // (so the overlay re-renders live progress like "3 / 8 players added").
+  const initialSignals: TourSignals = {
     hasPlayers: false,
     hasTeam: false,
     hasTeamLinkedGame: false,
     screen: 'start',
     isTimerRunning: false,
     hasLoggedGoal: false,
-  });
+    playersCount: 0,
+  };
+  const signalsRef = useRef<TourSignals>(initialSignals);
+  const [signals, setSignals] = useState<TourSignals>(initialSignals);
 
   const isTourCompleted = useCallback((id: string): boolean => {
     try {
@@ -114,10 +119,17 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const reportSignals = useCallback(
     (partial: Partial<TourSignals>) => {
-      signalsRef.current = { ...signalsRef.current, ...partial };
+      const merged = { ...signalsRef.current, ...partial };
+      // Skip no-op reports entirely - reporters fire on every render of their
+      // hosts, and a state write per report would churn.
+      const changed = (Object.keys(merged) as Array<keyof TourSignals>).some(
+        (k) => merged[k] !== signalsRef.current[k],
+      );
+      signalsRef.current = merged;
+      if (changed) setSignals(merged);
       if (tourId === null) return;
       const step = steps[index];
-      if (step?.advanceWhen?.(signalsRef.current)) {
+      if (step?.advanceWhen?.(merged)) {
         advance();
       }
     },
@@ -148,6 +160,7 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         <GuidedTourOverlay
           key={activeStep.id}
           step={activeStep}
+          signals={signals}
           stepIndex={index}
           stepCount={steps.length}
           isFinal={index + 1 >= steps.length}

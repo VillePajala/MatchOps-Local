@@ -28,6 +28,9 @@ export interface TourSignals {
   screen: 'start' | 'home';
   isTimerRunning: boolean;
   hasLoggedGoal: boolean;
+  /** Live master-roster size (from the shared React Query cache), for the
+   *  add-players progress/goal. */
+  playersCount: number;
 }
 
 /** One stage of a step's tap chain: a control to spotlight + what to do there. */
@@ -38,6 +41,23 @@ export interface TourTarget {
   hintKey: string;
   /** English fallback for the hint (also what tests assert on). */
   hint: string;
+  /**
+   * Compact mode for IN-FORM stages: instead of the full card (which on a phone
+   * inevitably covers form fields - owner-reported: it sat on the player name
+   * input), render only the ring plus a slim text-only pill that is entirely
+   * pointer-events-none, so it can never block typing or taps. No dimming
+   * either - the form must stay fully visible.
+   */
+  compact?: boolean;
+}
+
+/** Optional live progress shown on a step's card (e.g. "3 / 8 players added"). */
+export interface TourProgress {
+  /** i18n key for the progress label; interpolates {{done}} and {{target}}. */
+  key: string;
+  /** English fallback template (same placeholders). */
+  fallback: string;
+  compute: (signals: TourSignals) => { done: number; target: number };
 }
 
 export interface TourStep {
@@ -57,6 +77,8 @@ export interface TourStep {
    * a card with the body copy and no spotlight (welcome/done bookends).
    */
   targets?: TourTarget[];
+  /** Optional live progress line on the card ("3 / 8 players added"). */
+  progress?: TourProgress;
   /**
    * When this predicate returns true for the current signals, the step
    * auto-advances. Omitted = advance only when the user taps Next.

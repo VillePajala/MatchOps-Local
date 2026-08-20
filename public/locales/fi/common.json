@@ -6,7 +6,10 @@
     },
     "addPlayers": {
       "title": "Lisää pelaajat",
-      "body": "Avaa Seura-välilehti, napauta Pelaajat ja lisää joukkueesi pelaajat."
+      "body": "Avaa Seura-välilehti, napauta Pelaajat ja lisää joukkueesi pelaajat - noin 8 pelaajaa tekee ensimmäisestä ottelusta aidon."
+    },
+    "progress": {
+      "playersAdded": "{{done}} / {{target}} pelaajaa lisätty"
     },
     "createTeam": {
       "title": "Luo joukkue",
@@ -36,8 +39,8 @@
     "hints": {
       "openClubTab": "Avaa Seura-välilehti.",
       "tapPlayers": "Napauta Pelaajat.",
-      "addPlayer": "Napauta Lisää Pelaaja. Kun joukkue on koossa, sulje lista jatkaaksesi.",
-      "savePlayer": "Kirjoita pelaajan nimi - se näkyy pelaajan kiekossa kentällä (tai kutsumanimi, jos annat sellaisen). Tallenna ja lisää samalla tavalla muutama pelaaja.",
+      "addPlayer": "Napauta Lisää Pelaaja. Tavoittele kahdeksaa - tai sulje lista, kun joukkue on koossa.",
+      "savePlayer": "Kirjoita pelaajan nimi - se näkyy pelaajan kiekossa kentällä (tai kutsumanimi, jos annat sellaisen).",
       "tapTeams": "Napauta Joukkueet.",
       "addTeam": "Napauta Lisää joukkue.",
       "saveTeam": "Nimeä joukkue, valitse sen pelaajat ja tallenna.",
