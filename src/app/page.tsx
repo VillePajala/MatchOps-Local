@@ -1,6 +1,8 @@
 'use client';
 
 import ModalProvider from '@/contexts/ModalProvider';
+import GuidedTourProvider from '@/contexts/GuidedTourProvider';
+import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
 import LoginScreen from '@/components/LoginScreen';
@@ -1397,6 +1399,17 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider currentUserId={userId}>
+        <GuidedTourProvider>
+        {/* First-run guided tour trigger (headless): starts the coached tour once
+            for a brand-new account, only when the real Start Screen is showing. */}
+        <GuidedTourController
+          ready={
+            !isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
+            !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
+            screen === 'start'
+          }
+          isFirstTimeUser={isFirstTimeUser}
+        />
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
             Gated behind the SAME readiness checks as the app screens below:
@@ -1598,6 +1611,7 @@ export default function Home() {
         />
 
         {transitionMessage && <TransitionOverlay message={transitionMessage} />}
+        </GuidedTourProvider>
       </ModalProvider>
     </ErrorBoundary>
   );

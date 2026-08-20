@@ -411,7 +411,8 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(enKeys.length).toBe(2761);
+      // +7: guidedTour.* keys added (funnel Phase 2, guided first-run tour engine).
+      expect(enKeys.length).toBe(2768);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -541,7 +542,7 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(fiKeys.length).toBe(2761);
+      expect(fiKeys.length).toBe(2768);
     });
   });
 });
