@@ -37,7 +37,7 @@
       "openClubTab": "Avaa Seura-välilehti.",
       "tapPlayers": "Napauta Pelaajat.",
       "addPlayer": "Napauta Lisää Pelaaja. Kun joukkue on koossa, sulje lista jatkaaksesi.",
-      "savePlayer": "Kirjoita pelaajan nimi - kutsumanimi näkyy pelaajan kiekossa kentällä. Tallenna ja lisää samalla tavalla muutama pelaaja.",
+      "savePlayer": "Kirjoita pelaajan nimi - se näkyy pelaajan kiekossa kentällä (tai kutsumanimi, jos annat sellaisen). Tallenna ja lisää samalla tavalla muutama pelaaja.",
       "tapTeams": "Napauta Joukkueet.",
       "addTeam": "Napauta Lisää joukkue.",
       "saveTeam": "Nimeä joukkue, valitse sen pelaajat ja tallenna.",

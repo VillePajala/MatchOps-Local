@@ -209,6 +209,13 @@ describe('GuidedTour engine', () => {
           </GuidedTourProvider>,
         );
         fireEvent.click(screen.getByText('start-tour'));
+        // The initial resolve runs before the card is committed (mock returns
+        // null there), so the meaningful check is the RECOMPUTE below, where
+        // elementFromPoint really returns the now-mounted card node - the exact
+        // self-occlusion scenario. Without the overlay-exclusion fix this
+        // recompute would mark the target covered and drop the ring.
+        expect(screen.getByTestId('guided-tour-card')).toBeInTheDocument();
+        fireEvent(window, new Event('resize'));
         expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
         expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Do the specific thing');
       } finally {

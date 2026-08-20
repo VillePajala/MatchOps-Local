@@ -35,7 +35,7 @@ export const firstRunTourSteps: TourStep[] = [
       {
         selector: '[data-testid="tour-save-player"]',
         hintKey: 'guidedTour.hints.savePlayer',
-        hint: "Type the player's name - a nickname shows on their disc on the field. Save, and add a few players the same way.",
+        hint: "Type the player's name - it shows on their disc on the field (or a nickname, if you set one). Save, and add a few players the same way.",
       },
       {
         selector: '[data-testid="tour-add-player"]',
