@@ -2403,7 +2403,7 @@
     "password": "Salasana",
     "confirmPassword": "Vahvista salasana",
     "passwordMismatch": "Salasanat eivät täsmää",
-    "passwordRequirements": "Salasanan on oltava vähintään 12 merkkiä ja sisällettävä 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit.",
+    "passwordRequirements": "Salasanan on oltava vähintään 8 merkkiä.",
     "checkEmail": "Tarkista sähköpostisi vahvistaaksesi tilisi",
     "emailMayExist": "Jos tämä sähköposti ei ole vielä rekisteröity, tarkista postilaatikkosi vahvistusviestiltä. Jos sinulla on jo tili, kirjaudu sen sijaan sisään.",
     "resetEmailSent": "Tarkista sähköpostistasi nollausohjeet",
@@ -2444,8 +2444,7 @@
     "passwordUpdated": "Salasana päivitetty onnistuneesti. Kirjaudu sisään uudella salasanallasi.",
     "unexpectedError": "Tapahtui odottamaton virhe",
     "errors": {
-      "passwordTooShort": "Salasanan on oltava vähintään 12 merkkiä",
-      "passwordTooWeak": "Salasanan on sisällettävä vähintään 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit",
+      "passwordTooShort": "Salasanan on oltava vähintään 8 merkkiä",
       "invalidEmail": "Virheellinen sähköpostiosoite",
       "emailTooLong": "Sähköpostiosoite on liian pitkä",
       "authInProgress": "Todennus on jo käynnissä. Odota hetki.",

@@ -93,6 +93,14 @@ describe('LoginScreen', () => {
       expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument();
     });
 
+    it('opens directly in Sign Up when initialMode is signUp (production funnel default)', () => {
+      render(<LoginScreen initialMode="signUp" />);
+
+      expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument();
+      // Returning users still get a one-tap path back to sign in.
+      expect(screen.getByText('Sign in')).toBeInTheDocument();
+    });
+
     it('should call signIn with email and password', async () => {
       render(<LoginScreen />);
 

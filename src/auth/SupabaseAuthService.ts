@@ -33,20 +33,17 @@ import { getCachedFullSession } from '@/auth/cachedSession';
  * Enforced client-side for immediate user feedback.
  *
  * SERVER-SIDE ENFORCEMENT:
- * Supabase Auth enforces password rules server-side via project settings.
- * Direct API calls that bypass the UI will still be validated by Supabase.
+ * Supabase Auth enforces a password minimum server-side via project settings.
+ * Direct API calls that bypass the UI are still validated by Supabase.
  * Client validation is UX optimization, not security - server is the authority.
  *
- * DEPLOYMENT CHECKLIST (Supabase Dashboard > Authentication > Policies):
- * - [ ] Minimum password length: 12
- * - [ ] Required character types: 3 of 4 (upper, lower, digit, special)
- *
- * If server and client rules diverge, users may see confusing error messages
- * (client passes, server rejects). Keep them in sync.
+ * Server policy (staging + prod): minimum length 6, no character-type rule.
+ * Our client rule (min 8, no composition) is intentionally >= the server rule,
+ * so the client never accepts a password the server would reject.
  *
  * @see docs/03-active-plans/supabase-implementation-guide.md Section 6
  */
-const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MIN_LENGTH = 8;
 
 /**
  * Map Supabase auth events to our AuthState type.
@@ -148,26 +145,15 @@ function transformSession(supabaseSession: SupabaseSession): Session {
 }
 
 /**
- * Validate password complexity.
- * @throws AuthError if password doesn't meet requirements
+ * Validate password length. Length is the primary strength lever (NIST
+ * 800-63B); we intentionally impose no character-composition rules - they add
+ * signup friction without meaningfully improving security for this app's
+ * non-sensitive data.
+ * @throws AuthError if the password is too short
  */
 function validatePassword(password: string): void {
   if (password.length < PASSWORD_MIN_LENGTH) {
     throw new AuthError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters`);
-  }
-
-  // Check for at least 3 of 4 character types
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasDigit = /\d/.test(password);
-  const hasSpecial = /[^a-zA-Z0-9\s]/.test(password);
-
-  const typeCount = [hasUppercase, hasLowercase, hasDigit, hasSpecial].filter(Boolean).length;
-
-  if (typeCount < 3) {
-    throw new AuthError(
-      'Password must contain at least 3 of: uppercase, lowercase, number, special character'
-    );
   }
 }
 

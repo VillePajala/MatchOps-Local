@@ -317,11 +317,16 @@ describe('SupabaseAuthService', () => {
       ).rejects.toThrow(AuthError);
     });
 
-    it('should validate password complexity', async () => {
-      // Only lowercase - missing uppercase, number, special
-      await expect(
-        authService.signUp('test@example.com', 'passwordonly1234')
-      ).rejects.toThrow(AuthError);
+    it('accepts a long password without character-type rules', async () => {
+      // Composition rules were removed - length (>= 8) is the only requirement.
+      mockAuth.signUp.mockResolvedValue({
+        data: { user: mockUser, session: mockSession },
+        error: null,
+      });
+
+      const result = await authService.signUp('test@example.com', 'passwordonly1234');
+
+      expect(result.user).toBeDefined();
     });
 
     it('should validate email format', async () => {
@@ -1249,22 +1254,25 @@ describe('SupabaseAuthService', () => {
       });
     });
 
-    it('should validate password complexity (too short)', async () => {
+    it('should reject a password shorter than the minimum', async () => {
       await expect(
         authService.updatePassword('Short1!')
       ).rejects.toThrow(AuthError);
       await expect(
         authService.updatePassword('Short1!')
-      ).rejects.toThrow('at least 12 characters');
+      ).rejects.toThrow('at least 8 characters');
     });
 
-    it('should validate password complexity (insufficient character types)', async () => {
+    it('accepts a long password without character-type rules', async () => {
+      // Composition rules were removed - length (>= 8) is the only requirement.
+      mockAuth.updateUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
       await expect(
         authService.updatePassword('passwordonly1234')
-      ).rejects.toThrow(AuthError);
-      await expect(
-        authService.updatePassword('passwordonly1234')
-      ).rejects.toThrow('at least 3 of');
+      ).resolves.not.toThrow();
     });
 
     it('should throw AuthError on Supabase error', async () => {

@@ -41,9 +41,8 @@ describe('authHelpers', () => {
   describe('translateAuthError', () => {
     describe('exact match entries from AUTH_ERROR_MAP', () => {
       const exactMatchCases: Array<{ message: string; expectedKey: string }> = [
-        // Password validation
-        { message: 'Password must be at least 12 characters', expectedKey: 'auth.errors.passwordTooShort' },
-        { message: 'Password must contain at least 3 of: uppercase, lowercase, number, special character', expectedKey: 'auth.errors.passwordTooWeak' },
+        // Password validation - must match the exact string SupabaseAuthService.validatePassword throws
+        { message: 'Password must be at least 8 characters', expectedKey: 'auth.errors.passwordTooShort' },
         // Email validation
         { message: 'Invalid email format', expectedKey: 'auth.errors.invalidEmail' },
         { message: 'Email address is too long', expectedKey: 'auth.errors.emailTooLong' },

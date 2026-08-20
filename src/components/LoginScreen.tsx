@@ -24,6 +24,9 @@ interface LoginScreenProps {
   onUseLocalMode?: () => void;
   /** Whether to allow registration (false on desktop - must subscribe via Android app) */
   allowRegistration?: boolean;
+  /** Which auth mode the form opens in. Defaults to 'signIn'; the production
+   *  cloud funnel passes 'signUp' so new users land on Create Account. */
+  initialMode?: 'signIn' | 'signUp';
 }
 
 /**
@@ -36,7 +39,7 @@ interface LoginScreenProps {
  * - Sign up with email/password (with password requirements)
  * - Password reset via email
  */
-export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration = true }: LoginScreenProps) {
+export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration = true, initialMode = 'signIn' }: LoginScreenProps) {
   const { t } = useTranslation();
 
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
@@ -132,7 +135,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
               </h1>
             </div>
 
-            <AuthForm allowRegistration={allowRegistration} />
+            <AuthForm allowRegistration={allowRegistration} initialMode={initialMode} />
 
             {/* Use without account option */}
             {onUseLocalMode && (

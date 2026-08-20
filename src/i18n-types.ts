@@ -65,7 +65,6 @@ export type TranslationKey =
   | 'auth.errors.notInitialized'
   | 'auth.errors.otpInvalid'
   | 'auth.errors.passwordTooShort'
-  | 'auth.errors.passwordTooWeak'
   | 'auth.errors.rateLimited'
   | 'auth.errors.resendFailed'
   | 'auth.errors.resendRateLimited'
