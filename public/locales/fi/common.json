@@ -4,6 +4,18 @@
       "title": "Tervetuloa MatchOpsiin",
       "body": "Viedään sinut ensimmäiseen otteluusi - se vie noin minuutin."
     },
+    "addPlayers": {
+      "title": "Lisää pelaajat",
+      "body": "Avaa Seura-välilehti, napauta Pelaajat ja lisää joukkueesi pelaajat."
+    },
+    "createTeam": {
+      "title": "Luo joukkue",
+      "body": "Napauta Seura-välilehdellä Joukkueet luodaksesi joukkueen ja lisätäksesi siihen pelaajat."
+    },
+    "createGame": {
+      "title": "Aloita ensimmäinen ottelu",
+      "body": "Napauta Uusi ottelu ja valitse joukkueesi. Pelaatteko sarjassa tai turnauksessa? Voit lisätä sen tästä tai myöhemmin."
+    },
     "done": {
       "title": "Kaikki valmista",
       "body": "Siinä perusteet. Kaikki tekemäsi tallentuu automaattisesti."

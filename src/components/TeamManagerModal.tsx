@@ -307,6 +307,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           <div className="px-6 pt-3 pb-4">
             <button
               onClick={handleCreateTeam}
+              data-testid="tour-add-team"
               className="w-full py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
               aria-label={t('teamManager.createNewTeam', 'Create new team')}
             >

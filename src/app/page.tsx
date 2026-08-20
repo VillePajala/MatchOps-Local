@@ -1409,6 +1409,10 @@ export default function Home() {
             screen === 'start'
           }
           isFirstTimeUser={isFirstTimeUser}
+          hasPlayers={hasPlayers}
+          hasTeam={hasTeam}
+          hasTeamLinkedGame={hasTeamLinkedGame}
+          screen={screen}
         />
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
