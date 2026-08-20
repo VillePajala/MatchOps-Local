@@ -28,10 +28,12 @@ interface GuidedTourContextValue {
   /** Abandon the tour and mark it completed so it never re-triggers. */
   skip: () => void;
   /**
-   * Report the latest app-state signals. If the current step declares an
-   * `advanceWhen` predicate that these signals satisfy, the tour auto-advances.
+   * Merge in the latest app-state signals (a partial update - callers own
+   * different slices: the page owns Home signals, the match view owns
+   * timer/goal). If the current step's `advanceWhen` predicate is now satisfied
+   * by the merged signals, the tour auto-advances.
    */
-  reportSignals: (signals: TourSignals) => void;
+  reportSignals: (signals: Partial<TourSignals>) => void;
   /** Whether the given tour was already completed/skipped for the current user. */
   isTourCompleted: (tourId: string) => boolean;
 }
@@ -51,6 +53,15 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [tourId, setTourId] = useState<string | null>(null);
   const [steps, setSteps] = useState<TourStep[]>([]);
   const [index, setIndex] = useState(0);
+  // Merged latest signals across all reporters (page + match view).
+  const signalsRef = useRef<TourSignals>({
+    hasPlayers: false,
+    hasTeam: false,
+    hasTeamLinkedGame: false,
+    screen: 'start',
+    isTimerRunning: false,
+    hasLoggedGoal: false,
+  });
 
   const isTourCompleted = useCallback((id: string): boolean => {
     try {
@@ -102,10 +113,11 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [tourId, endTour]);
 
   const reportSignals = useCallback(
-    (signals: TourSignals) => {
+    (partial: Partial<TourSignals>) => {
+      signalsRef.current = { ...signalsRef.current, ...partial };
       if (tourId === null) return;
       const step = steps[index];
-      if (step?.advanceWhen?.(signals)) {
+      if (step?.advanceWhen?.(signalsRef.current)) {
         advance();
       }
     },
@@ -153,6 +165,15 @@ export function useGuidedTour(): GuidedTourContextValue {
     throw new Error('useGuidedTour must be used within GuidedTourProvider');
   }
   return ctx;
+}
+
+/**
+ * Non-throwing variant for components that may render outside the provider (e.g.
+ * the match-view reporter, which is also mounted in HomePage's own tests). Returns
+ * undefined when there is no GuidedTourProvider above.
+ */
+export function useGuidedTourOptional(): GuidedTourContextValue | undefined {
+  return useContext(GuidedTourContext);
 }
 
 export default GuidedTourProvider;

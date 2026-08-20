@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import GuidedTourProvider, { useGuidedTour } from '@/contexts/GuidedTourProvider';
 import GuidedTourController from '../GuidedTourController';
+import GuidedTourMatchReporter from '../GuidedTourMatchReporter';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '../firstRunTour';
 import type { TourSignals, TourStep } from '../tourTypes';
 import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
@@ -193,38 +194,53 @@ describe('GuidedTourController', () => {
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
   });
 
-  it('auto-advances the Home steps as signals flip', () => {
-    const { rerender } = render(
+  it('auto-advances through Home and match steps as signals flip', () => {
+    // The controller owns Home signals; the match reporter owns timer/goal.
+    const tree = (p: Partial<TourSignals>) => (
       <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser {...baseSignals} />
-      </GuidedTourProvider>,
+        <GuidedTourController
+          ready
+          isFirstTimeUser
+          hasPlayers={p.hasPlayers}
+          hasTeam={p.hasTeam}
+          hasTeamLinkedGame={p.hasTeamLinkedGame}
+          screen={p.screen}
+        />
+        <GuidedTourMatchReporter
+          isTimerRunning={p.isTimerRunning ?? false}
+          hasLoggedGoal={p.hasLoggedGoal ?? false}
+        />
+      </GuidedTourProvider>
     );
+    const { rerender } = render(tree({ screen: 'start' }));
+
     // Welcome -> tap Next to reach the first action step.
     fireEvent.click(screen.getByTestId('guided-tour-next'));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Add your players');
 
-    // hasPlayers flips -> advances to create-team.
-    rerender(
-      <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser {...baseSignals} hasPlayers />
-      </GuidedTourProvider>,
-    );
+    rerender(tree({ screen: 'start', hasPlayers: true }));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Create your team');
 
-    // hasTeam flips -> advances to create-game.
-    rerender(
-      <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser {...baseSignals} hasPlayers hasTeam />
-      </GuidedTourProvider>,
-    );
+    rerender(tree({ screen: 'start', hasPlayers: true, hasTeam: true }));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Start your first game');
 
-    // Entering the match (screen === 'home') -> advances to the done step.
-    rerender(
-      <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser {...baseSignals} hasPlayers hasTeam screen="home" />
-      </GuidedTourProvider>,
-    );
+    // Entering the match -> start-timer step.
+    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true }));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Start the clock');
+
+    // Timer starts -> log-goal step.
+    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true, isTimerRunning: true }));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Log a goal');
+
+    // Goal logged -> done step.
+    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true, isTimerRunning: true, hasLoggedGoal: true }));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent("You're all set");
+  });
+});
+
+describe('GuidedTourMatchReporter', () => {
+  it('renders nothing and does not throw without a provider', () => {
+    const { container } = render(<GuidedTourMatchReporter isTimerRunning={false} hasLoggedGoal={false} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

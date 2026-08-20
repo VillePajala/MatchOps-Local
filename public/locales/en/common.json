@@ -16,6 +16,14 @@
       "title": "Start your first game",
       "body": "Tap New Game, then choose your team. Playing in a league or tournament? You can add it here or later."
     },
+    "startTimer": {
+      "title": "Start the clock",
+      "body": "Tap the timer, then Start, when the match kicks off."
+    },
+    "logGoal": {
+      "title": "Log a goal",
+      "body": "Open the timer and tap the goal button - your stats update live."
+    },
     "done": {
       "title": "You're all set",
       "body": "That is the basics. Everything you do saves automatically."

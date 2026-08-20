@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { GameContainer } from '@/components/HomePage/containers/GameContainer';
 import { ModalManager } from '@/components/HomePage/containers/ModalManager';
+import GuidedTourMatchReporter from '@/components/GuidedTour/GuidedTourMatchReporter';
 import {
   useGameOrchestration,
   type UseGameOrchestrationProps,
@@ -40,6 +41,8 @@ function HomePageInner(props: HomePageProps) {
     gameContainerProps,
     modalManagerProps,
     isBootstrapping,
+    isTimerRunning,
+    hasLoggedGoal,
   } = useGameOrchestration(props);
   const assessmentRatingStyle = useAssessmentRatingStyle();
   const assessmentTemplate = useAssessmentTemplate();
@@ -89,6 +92,7 @@ function HomePageInner(props: HomePageProps) {
         <GameContainer {...gameContainerProps} />
       </div>
       <ModalManager {...modalManagerProps} ratingStyle={assessmentRatingStyle} assessmentTemplate={assessmentTemplate} />
+      <GuidedTourMatchReporter isTimerRunning={isTimerRunning} hasLoggedGoal={hasLoggedGoal} />
     </>
   );
 }
