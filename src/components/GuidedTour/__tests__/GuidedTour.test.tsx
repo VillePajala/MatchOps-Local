@@ -24,6 +24,7 @@ const baseSignals: TourSignals = {
   isTimerRunning: false,
   hasLoggedGoal: false,
   playersCount: 0,
+  targetPlayers: 8,
 };
 
 // A minimal two-step tour for testing finish/persistence independent of the
@@ -321,6 +322,42 @@ describe('GuidedTour engine', () => {
     fireEvent.click(screen.getByText('report'));
     expect(screen.getByTestId('guided-tour-progress')).toHaveTextContent('3 / 8');
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Goal Step');
+  });
+
+  it('format chips change the goal: picking 5v5 sets the target and the advance threshold', () => {
+    const steps: TourStep[] = [
+      {
+        id: 'goal',
+        titleKey: 'k.g',
+        title: 'Goal Step',
+        bodyKey: 'k.gb',
+        body: 'add players',
+        choices: [
+          { id: '5v5', label: '5v5', apply: { targetPlayers: 5 } },
+          { id: '8v8', label: '8v8', apply: { targetPlayers: 8 } },
+        ],
+        progress: {
+          key: 'guidedTour.progress.playersAdded',
+          fallback: '{{done}} / {{target}} players added',
+          compute: (s) => ({ done: s.playersCount, target: s.targetPlayers }),
+        },
+        advanceWhen: (s) => s.playersCount >= s.targetPlayers,
+      },
+      { id: 'after', titleKey: 'k.n', title: 'After Goal', bodyKey: 'k.nb', body: 'next body' },
+    ];
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={steps} />
+        <ReportButton signals={{ ...baseSignals, playersCount: 5, targetPlayers: 8 }} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    // 5 players against the default 8 target: not advanced, progress shows 5 / 8.
+    fireEvent.click(screen.getByText('report'));
+    expect(screen.getByTestId('guided-tour-progress')).toHaveTextContent('5 / 8');
+    // Pick 5v5: target becomes 5 - the 5 players now satisfy it and advance.
+    fireEvent.click(screen.getByTestId('guided-tour-choice-5v5'));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Goal');
   });
 
   it('reaching the players goal advances the step', () => {

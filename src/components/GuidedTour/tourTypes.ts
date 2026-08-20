@@ -31,6 +31,9 @@ export interface TourSignals {
   /** Live master-roster size (from the shared React Query cache), for the
    *  add-players progress/goal. */
   playersCount: number;
+  /** The add-players goal - the on-field size of the coach's format (5v5 /
+   *  8v8 / 11v11), chosen via the step's chips. Default 8. */
+  targetPlayers: number;
 }
 
 /** One stage of a step's tap chain: a control to spotlight + what to do there. */
@@ -49,6 +52,18 @@ export interface TourTarget {
    * either - the form must stay fully visible.
    */
   compact?: boolean;
+}
+
+/**
+ * A one-tap choice rendered as a chip on the step's card (e.g. the 5v5 / 8v8 /
+ * 11v11 format picker). Tapping merges `apply` into the tour signals; a chip
+ * reads as selected when every entry of `apply` matches the current signals.
+ */
+export interface TourChoice {
+  id: string;
+  /** Literal label (format strings like "5v5" need no translation). */
+  label: string;
+  apply: Partial<TourSignals>;
 }
 
 /** Optional live progress shown on a step's card (e.g. "3 / 8 players added"). */
@@ -79,6 +94,11 @@ export interface TourStep {
   targets?: TourTarget[];
   /** Optional live progress line on the card ("3 / 8 players added"). */
   progress?: TourProgress;
+  /** Optional one-tap chips on the card (e.g. the format picker); each merges
+   *  its `apply` into the signals. Optionally titled via choicesLabelKey. */
+  choices?: TourChoice[];
+  choicesLabelKey?: string;
+  choicesLabel?: string;
   /**
    * When this predicate returns true for the current signals, the step
    * auto-advances. Omitted = advance only when the user taps Next.
