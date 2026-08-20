@@ -64,6 +64,7 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     isTimerRunning: false,
     hasLoggedGoal: false,
     playersCount: 0,
+    targetPlayers: 8, // default format goal; the step's chips override (5/8/11)
   };
   const signalsRef = useRef<TourSignals>(initialSignals);
   const [signals, setSignals] = useState<TourSignals>(initialSignals);
@@ -161,6 +162,7 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           key={activeStep.id}
           step={activeStep}
           signals={signals}
+          onApplyChoice={reportSignals}
           stepIndex={index}
           stepCount={steps.length}
           isFinal={index + 1 >= steps.length}

@@ -6,7 +6,8 @@
     },
     "addPlayers": {
       "title": "Add your players",
-      "body": "Open the Club tab, tap Players, and add your squad - about 8 players makes a real first match."
+      "body": "Open the Club tab, tap Players, and add your squad - enough to field a full team in your format.",
+      "format": "Format"
     },
     "progress": {
       "playersAdded": "{{done}} / {{target}} players added"
@@ -39,7 +40,7 @@
     "hints": {
       "openClubTab": "Open the Club tab.",
       "tapPlayers": "Tap Players.",
-      "addPlayer": "Tap Add Player. Aim for 8 - or close the list when your squad is in.",
+      "addPlayer": "Tap Add Player. Fill your lineup - or close the list when your squad is in.",
       "savePlayer": "Type the player's name - it shows on their disc on the field (or a nickname, if you set one).",
       "tapTeams": "Tap Teams.",
       "addTeam": "Tap Add Team.",
