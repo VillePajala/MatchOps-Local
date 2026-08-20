@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthProvider';
 import logger from '@/utils/logger';
 import GuidedTourOverlay from '@/components/GuidedTour/GuidedTourOverlay';
@@ -41,9 +41,12 @@ const GuidedTourContext = createContext<GuidedTourContextValue | undefined>(unde
 export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  // Keep the latest userId reachable from stable callbacks without re-creating them.
+  // Keep the latest userId reachable from stable callbacks without re-creating
+  // them. Synced in an effect (never mutate a ref during render).
   const userIdRef = useRef(userId);
-  userIdRef.current = userId;
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   const [tourId, setTourId] = useState<string | null>(null);
   const [steps, setSteps] = useState<TourStep[]>([]);
@@ -131,6 +134,7 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       {children}
       {activeStep && (
         <GuidedTourOverlay
+          key={activeStep.id}
           step={activeStep}
           stepIndex={index}
           stepCount={steps.length}

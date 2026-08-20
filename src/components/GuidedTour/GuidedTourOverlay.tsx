@@ -66,11 +66,12 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     onSkip();
   });
 
-  // Recompute the spotlight rect on step change, and while a target is set, on
-  // resize/scroll and DOM mutations - the target's modal may open only after the
-  // step becomes active, so we watch for it appearing.
+  // While a target is set, keep the spotlight rect current: on resize/scroll and
+  // DOM mutations - the target's modal may open only after the step becomes
+  // active, so we watch for it appearing. The initial rect comes from the
+  // useState initializer (the overlay is remounted per step via a `key`), so the
+  // effect only wires up listeners and never sets state synchronously.
   useEffect(() => {
-    setRect(readRect(step.targetSelector));
     if (!step.targetSelector) return;
     const recompute = () => setRect(readRect(step.targetSelector));
     window.addEventListener('resize', recompute);
@@ -82,12 +83,12 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       window.removeEventListener('scroll', recompute, true);
       observer.disconnect();
     };
-  }, [step.targetSelector, step.id]);
+  }, [step.targetSelector]);
 
-  // Move focus to the primary action when the step changes (keyboard users).
+  // Move focus to the primary action when the step appears (keyboard users).
   useEffect(() => {
     primaryRef.current?.focus();
-  }, [step.id]);
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
