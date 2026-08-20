@@ -309,6 +309,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   type="button"
                   role="tab"
                   aria-selected={activeTab === 'games'}
+                  data-testid="tour-tab-games"
                   onClick={() => setActiveTab('games')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'games'
@@ -322,6 +323,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   type="button"
                   role="tab"
                   aria-selected={activeTab === 'team'}
+                  data-testid="tour-tab-club"
                   onClick={() => setActiveTab('team')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'team'

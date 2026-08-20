@@ -30,6 +30,17 @@ const twoStep: TourStep[] = [
   { id: 'two', titleKey: 'k.2', title: 'Step Two', bodyKey: 'k.2b', body: 'body two' },
 ];
 
+/** Put a laid-out element with the given testid into the DOM (jsdom reports a
+ *  zero rect by default, which the chain treats as "not visible"). */
+function mountAnchor(testid: string, top = 50): HTMLButtonElement {
+  const el = document.createElement('button');
+  el.setAttribute('data-testid', testid);
+  el.getBoundingClientRect = () =>
+    ({ top, left: 50, width: 100, height: 40, right: 150, bottom: top + 40, x: 50, y: top, toJSON() {} }) as DOMRect;
+  document.body.appendChild(el);
+  return el;
+}
+
 function StartButton({ steps = firstRunTourSteps }: { steps?: TourStep[] }) {
   const { startTour } = useGuidedTour();
   return <button onClick={() => startTour(FIRST_RUN_TOUR_ID, steps)}>start-tour</button>;
@@ -58,15 +69,17 @@ describe('GuidedTour engine', () => {
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
   });
 
-  it('Next advances from welcome to the first action step', () => {
+  it('never blocks the app: the overlay root passes pointer events through', () => {
     render(
       <GuidedTourProvider>
         <StartButton />
       </GuidedTourProvider>,
     );
     fireEvent.click(screen.getByText('start-tour'));
-    fireEvent.click(screen.getByTestId('guided-tour-next'));
-    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Add your players');
+    const overlay = screen.getByTestId('guided-tour-overlay');
+    expect(overlay.className).toContain('pointer-events-none');
+    // Only the card itself is interactive.
+    expect(screen.getByTestId('guided-tour-card').className).toContain('pointer-events-auto');
   });
 
   it('Next on the last step finishes and marks the tour completed', () => {
@@ -97,14 +110,14 @@ describe('GuidedTour engine', () => {
     expect(localStorage.getItem(COMPLETED_KEY)).toBe('1');
   });
 
-  it('Escape key skips the tour', () => {
+  it('Escape key (within the card) skips the tour', () => {
     render(
       <GuidedTourProvider>
         <StartButton />
       </GuidedTourProvider>,
     );
     fireEvent.click(screen.getByText('start-tour'));
-    fireEvent.keyDown(screen.getByTestId('guided-tour-overlay'), { key: 'Escape' });
+    fireEvent.keyDown(screen.getByTestId('guided-tour-card'), { key: 'Escape' });
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
     expect(localStorage.getItem(COMPLETED_KEY)).toBe('1');
   });
@@ -126,33 +139,59 @@ describe('GuidedTour engine', () => {
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Step B');
   });
 
-  it('spotlights via a multi-selector target, using whichever is present', () => {
-    // Only the fallback ("opener") selector is in the DOM.
-    const opener = document.createElement('button');
-    opener.setAttribute('data-testid', 'tour-opener');
-    opener.getBoundingClientRect = () =>
-      ({ top: 50, left: 50, width: 100, height: 40, right: 150, bottom: 90, x: 50, y: 50, toJSON() {} }) as DOMRect;
-    document.body.appendChild(opener);
-
-    const steps: TourStep[] = [
+  describe('tap-chain resolution', () => {
+    const chainStep: TourStep[] = [
       {
-        id: 's',
-        titleKey: 'k',
-        title: 'Spotlight',
-        bodyKey: 'kb',
-        body: 'b',
-        targetSelector: ['[data-testid="tour-inner"]', '[data-testid="tour-opener"]'],
+        id: 'chain',
+        titleKey: 'k.c',
+        title: 'Chain Step',
+        bodyKey: 'k.cb',
+        body: 'fallback body copy',
+        targets: [
+          { selector: '[data-testid="anchor-specific"]', hintKey: 'h.s', hint: 'Do the specific thing' },
+          { selector: '[data-testid="anchor-opener"]', hintKey: 'h.o', hint: 'Open the thing' },
+        ],
       },
     ];
-    render(
-      <GuidedTourProvider>
-        <StartButton steps={steps} />
-      </GuidedTourProvider>,
-    );
-    fireEvent.click(screen.getByText('start-tour'));
-    expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
 
-    document.body.removeChild(opener);
+    it('spotlights the most specific on-screen target and shows its hint', () => {
+      const opener = mountAnchor('anchor-opener');
+      const specific = mountAnchor('anchor-specific', 120);
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={chainStep} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
+      expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Do the specific thing');
+      specific.remove();
+      opener.remove();
+    });
+
+    it('falls through to the opener when the specific target is absent', () => {
+      const opener = mountAnchor('anchor-opener');
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={chainStep} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
+      expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Open the thing');
+      opener.remove();
+    });
+
+    it('shows the step body with no ring when no target is on screen', () => {
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={chainStep} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
+      expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('fallback body copy');
+    });
   });
 });
 
@@ -185,7 +224,7 @@ describe('GuidedTourController', () => {
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
   });
 
-  it('does not start until ready', () => {
+  it('does not start until ready (e.g. the marketing prompt is still up)', () => {
     render(
       <GuidedTourProvider>
         <GuidedTourController ready={false} isFirstTimeUser {...baseSignals} />
@@ -195,7 +234,6 @@ describe('GuidedTourController', () => {
   });
 
   it('auto-advances through Home and match steps as signals flip', () => {
-    // The controller owns Home signals; the match reporter owns timer/goal.
     const tree = (p: Partial<TourSignals>) => (
       <GuidedTourProvider>
         <GuidedTourController

@@ -216,7 +216,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <ModalStickyPrimary onClick={handleSave} disabled={!name.trim() || isPending}>
+        <ModalStickyPrimary onClick={handleSave} disabled={!name.trim() || isPending} dataTestId="tour-save-player">
           {isPending
             ? t('common.saving', 'Saving...')
             : mode === 'create'

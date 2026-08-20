@@ -4,13 +4,18 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import useModalHardwareBack from '@/hooks/useModalHardwareBack';
-import type { TourStep } from './tourTypes';
+import type { TourStep, TourTarget } from './tourTypes';
 
 interface Rect {
   top: number;
   left: number;
   width: number;
   height: number;
+}
+
+interface ResolvedTarget {
+  rect: Rect;
+  target: TourTarget;
 }
 
 interface GuidedTourOverlayProps {
@@ -24,33 +29,35 @@ interface GuidedTourOverlayProps {
 
 /** Extra px of breathing room around a spotlighted control. */
 const SPOTLIGHT_PADDING = 6;
-const CARD_WIDTH = 320;
 
-function readRect(selector: string | string[] | undefined): Rect | null {
-  if (!selector || typeof document === 'undefined') return null;
-  const selectors = Array.isArray(selector) ? selector : [selector];
-  for (const sel of selectors) {
-    const el = document.querySelector(sel);
+/**
+ * Resolve a step's tap chain: the first target (most specific first) whose
+ * element is present AND laid out wins. A zero-size box means the control is
+ * not actually visible (collapsed, or jsdom) - skip it so the chain falls
+ * through to the control that opens it.
+ */
+function resolveTarget(targets: TourTarget[] | undefined): ResolvedTarget | null {
+  if (!targets || typeof document === 'undefined') return null;
+  for (const target of targets) {
+    const el = document.querySelector(target.selector);
     if (!el) continue;
     const r = el.getBoundingClientRect();
-    // A zero box means the control is present but not laid out / collapsed (or
-    // jsdom): skip it and try the next selector, else fall back to a centered card.
     if (r.width === 0 && r.height === 0) continue;
-    return { top: r.top, left: r.left, width: r.width, height: r.height };
+    return { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, target };
   }
   return null;
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
 /**
- * The tour's visual layer: dims the app and either spotlights one control (a
- * cutout the user can still click through) or shows a centered card. Rendered
- * via a portal to document.body so it floats above every app surface. It never
- * makes the app inert (unlike modal focus traps) - the whole point is that the
- * user can interact with the highlighted control to advance.
+ * The tour's visual layer - a GUIDANCE overlay, never a gate. The root and the
+ * dim/spotlight decorations are all pointer-events-none, so the app underneath
+ * stays fully interactive (the coach must be able to tap the highlighted
+ * control - and anything else). Only the tour card itself takes pointer events.
+ *
+ * Each step declares a tap chain; the first on-screen control is spotlighted
+ * and its stage hint shown, so the card always tells the coach the literal
+ * next tap ("Open the Club tab" -> "Tap Players" -> ...). With no on-screen
+ * target the card shows the step body, pinned to the bottom, with no dimming.
  */
 const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   step,
@@ -62,22 +69,40 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
 }) => {
   const { t } = useTranslation();
   const primaryRef = useRef<HTMLButtonElement>(null);
-  const [rect, setRect] = useState<Rect | null>(() => readRect(step.targetSelector));
+  const [resolved, setResolved] = useState<ResolvedTarget | null>(() => resolveTarget(step.targets));
 
-  // Hardware / browser back = skip the tour (no inert, no history desync issues:
-  // useModalHardwareBack owns a single sentinel entry).
+  // Hardware / browser back = skip the tour (single-sentinel hook, no inert).
   useModalHardwareBack(true, () => {
     onSkip();
   });
 
-  // While a target is set, keep the spotlight rect current: on resize/scroll and
-  // DOM mutations - the target's modal may open only after the step becomes
-  // active, so we watch for it appearing. The initial rect comes from the
-  // useState initializer (the overlay is remounted per step via a `key`), so the
-  // effect only wires up listeners and never sets state synchronously.
+  // Keep the resolved target current while this step is mounted: the chain's
+  // most-specific control may appear/disappear as modals open and close, and
+  // rects move on resize/scroll. The initial value comes from the useState
+  // initializer (the overlay is remounted per step via `key`), so this effect
+  // only wires listeners - it never sets state synchronously.
   useEffect(() => {
-    if (!step.targetSelector) return;
-    const recompute = () => setRect(readRect(step.targetSelector));
+    if (!step.targets || step.targets.length === 0) return;
+    const recompute = () =>
+      setResolved((prev) => {
+        const next = resolveTarget(step.targets);
+        // Identity-stable when nothing changed: our own portal DOM also lives in
+        // document.body, so the MutationObserver sees our renders - without this
+        // guard each render would schedule another, churning forever.
+        if (
+          prev !== null &&
+          next !== null &&
+          prev.target.selector === next.target.selector &&
+          prev.rect.top === next.rect.top &&
+          prev.rect.left === next.rect.left &&
+          prev.rect.width === next.rect.width &&
+          prev.rect.height === next.rect.height
+        ) {
+          return prev;
+        }
+        if (prev === null && next === null) return prev;
+        return next;
+      });
     window.addEventListener('resize', recompute);
     window.addEventListener('scroll', recompute, true);
     const observer = new MutationObserver(recompute);
@@ -87,9 +112,12 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       window.removeEventListener('scroll', recompute, true);
       observer.disconnect();
     };
-  }, [step.targetSelector]);
+  }, [step.targets]);
 
   // Move focus to the primary action when the step appears (keyboard users).
+  // The card is the only interactive part of the overlay, so this also makes
+  // Escape-to-skip work without a document-level listener (which would hijack
+  // Escape presses meant for the app's own modals).
   useEffect(() => {
     primaryRef.current?.focus();
   }, []);
@@ -107,7 +135,9 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   if (typeof document === 'undefined') return null;
 
   const title = t(step.titleKey, step.title);
-  const body = t(step.bodyKey, step.body);
+  const message = resolved
+    ? t(resolved.target.hintKey, resolved.target.hint)
+    : t(step.bodyKey, step.body);
   const nextLabel = isFinal
     ? t('guidedTour.buttons.finish', 'Done')
     : t('guidedTour.buttons.next', 'Next');
@@ -116,78 +146,73 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const card = (
     <div
       data-testid="guided-tour-card"
-      className="pointer-events-auto max-h-[70vh] w-full overflow-y-auto rounded-2xl border border-slate-600 bg-slate-800 p-5 text-white shadow-2xl"
+      className="pointer-events-auto mx-auto w-full max-w-sm rounded-2xl border border-slate-600 bg-slate-800 p-4 text-white shadow-2xl"
       role="dialog"
       aria-label={title}
+      onKeyDown={handleKeyDown}
     >
-      <h2 data-testid="guided-tour-title" className="mb-2 text-lg font-bold tracking-tight">
+      <h2 data-testid="guided-tour-title" className="mb-1 text-base font-bold tracking-tight">
         {title}
       </h2>
-      <p data-testid="guided-tour-body" className="mb-4 text-sm text-slate-300">
-        {body}
+      <p data-testid="guided-tour-body" className="mb-3 text-sm text-slate-300">
+        {message}
       </p>
-      <div className="flex flex-col gap-2 sm:flex-row-reverse">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          data-testid="guided-tour-skip"
+          onClick={onSkip}
+          className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600"
+        >
+          {skipLabel}
+        </button>
         <button
           ref={primaryRef}
           type="button"
           data-testid="guided-tour-next"
           onClick={onNext}
-          className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-500 sm:w-auto"
+          className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
         >
           {nextLabel}
         </button>
-        <button
-          type="button"
-          data-testid="guided-tour-skip"
-          onClick={onSkip}
-          className="w-full rounded-lg bg-slate-700 px-4 py-2.5 font-medium text-slate-200 transition-colors hover:bg-slate-600 sm:w-auto"
-        >
-          {skipLabel}
-        </button>
       </div>
       {stepCount > 1 && (
-        <div className="mt-3 text-center text-xs text-slate-500">
+        <div className="mt-2 text-center text-xs text-slate-500">
           {stepIndex + 1} / {stepCount}
         </div>
       )}
     </div>
   );
 
-  // Centered card: no target (or target not found) - dim the whole screen.
-  if (rect === null) {
+  // No on-screen target: bottom-pinned card, no dimming - the coach may need to
+  // see and use the whole screen to get where the step points.
+  if (resolved === null) {
     return createPortal(
-      <div
-        data-testid="guided-tour-overlay"
-        className="fixed inset-0 z-[80]"
-        onKeyDown={handleKeyDown}
-      >
-        <div className="absolute inset-0 bg-black/70" />
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="w-full max-w-sm">{card}</div>
-        </div>
+      <div data-testid="guided-tour-overlay" className="pointer-events-none fixed inset-0 z-[80]">
+        <div className="absolute inset-x-0 bottom-0 p-4 pb-6">{card}</div>
       </div>,
       document.body,
     );
   }
 
-  // Spotlight: four dim panels around the target leave a click-through hole, plus
-  // a highlight ring and the card placed just above or below the control.
+  // Spotlight: dim panels around the control (all decoration - pointer-events
+  // pass through everywhere) + a highlight ring. The card pins to whichever
+  // vertical half the control is NOT in, so it never covers the target.
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const hole = {
-    top: rect.top - SPOTLIGHT_PADDING,
-    left: rect.left - SPOTLIGHT_PADDING,
-    width: rect.width + SPOTLIGHT_PADDING * 2,
-    height: rect.height + SPOTLIGHT_PADDING * 2,
+    top: resolved.rect.top - SPOTLIGHT_PADDING,
+    left: resolved.rect.left - SPOTLIGHT_PADDING,
+    width: resolved.rect.width + SPOTLIGHT_PADDING * 2,
+    height: resolved.rect.height + SPOTLIGHT_PADDING * 2,
   };
   const holeBottom = hole.top + hole.height;
   const holeRight = hole.left + hole.width;
-  const placeBelow = holeBottom + 180 < vh;
-  const cardLeft = clamp(hole.left, 8, Math.max(8, vw - CARD_WIDTH - 8));
-  const panelClass = 'absolute bg-black/70 pointer-events-auto';
+  const targetInTopHalf = hole.top + hole.height / 2 < vh / 2;
+  const panelClass = 'absolute bg-black/60 pointer-events-none';
 
   return createPortal(
-    <div data-testid="guided-tour-overlay" className="fixed inset-0 z-[80]" onKeyDown={handleKeyDown}>
+    <div data-testid="guided-tour-overlay" className="pointer-events-none fixed inset-0 z-[80]">
       <div className={panelClass} style={{ top: 0, left: 0, width: '100%', height: Math.max(0, hole.top) }} />
       <div
         className={panelClass}
@@ -201,20 +226,12 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
         className={panelClass}
         style={{ top: hole.top, left: holeRight, width: Math.max(0, vw - holeRight), height: hole.height }}
       />
-      {/* Highlight ring - never blocks the control underneath. */}
       <div
         data-testid="guided-tour-ring"
         className="pointer-events-none absolute rounded-lg border-2 border-indigo-400"
         style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
       />
-      <div
-        className="absolute"
-        style={
-          placeBelow
-            ? { top: holeBottom + 12, left: cardLeft, width: CARD_WIDTH }
-            : { bottom: vh - hole.top + 12, left: cardLeft, width: CARD_WIDTH }
-        }
-      >
+      <div className={`absolute inset-x-0 p-4 ${targetInTopHalf ? 'bottom-0 pb-6' : 'top-0 pt-6'}`}>
         {card}
       </div>
     </div>,
