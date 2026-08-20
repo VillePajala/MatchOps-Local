@@ -4,6 +4,15 @@
     {
       "date": "2026-08-11",
       "en": [
+        "Signing up is easier: the app now opens on Create Account for new users, and a password just needs 8 or more characters."
+      ],
+      "fi": [
+        "Rekisteröityminen on helpompaa: sovellus avautuu uusille käyttäjille suoraan tilin luontiin, ja salasanaksi riittää vähintään 8 merkkiä."
+      ]
+    },
+    {
+      "date": "2026-08-11",
+      "en": [
         "Playing-Time Planner: tap any empty part of the field to clear the selected player - a quicker way to deselect than tapping the disc again.",
         "Player development report now reflects changes to your assessment style and metric set right away, instead of only after reloading the app."
       ],

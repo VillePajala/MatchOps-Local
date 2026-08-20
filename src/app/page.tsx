@@ -1505,6 +1505,7 @@ export default function Home() {
               onBack={skipWelcomeScreen ? undefined : handleLoginBack}
               onUseLocalMode={hideLocalModeEntry ? undefined : handleLoginUseLocalMode}
               allowRegistration={true}  // Account creation is free on all platforms
+              initialMode="signUp"  // New users dominate the funnel; returning users get a "Sign in" link
             />
           </ErrorBoundary>
         ) : showMigrationWizard ? (

@@ -42,8 +42,7 @@ export function normalizeEmail(email: string): string {
  */
 const AUTH_ERROR_MAP: Record<string, string> = {
   // Password validation (SupabaseAuthService.validatePassword)
-  'Password must be at least 12 characters': 'auth.errors.passwordTooShort',
-  'Password must contain at least 3 of: uppercase, lowercase, number, special character': 'auth.errors.passwordTooWeak',
+  'Password must be at least 8 characters': 'auth.errors.passwordTooShort',
   // Email validation (SupabaseAuthService.validateEmail)
   'Invalid email format': 'auth.errors.invalidEmail',
   'Email address is too long': 'auth.errors.emailTooLong',
