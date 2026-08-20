@@ -4,6 +4,18 @@
       "title": "Welcome to MatchOps",
       "body": "Let's get you to your first game - it takes about a minute."
     },
+    "addPlayers": {
+      "title": "Add your players",
+      "body": "Open the Club tab, tap Players, and add your squad."
+    },
+    "createTeam": {
+      "title": "Create your team",
+      "body": "In the Club tab, tap Teams to create your team and add your players to it."
+    },
+    "createGame": {
+      "title": "Start your first game",
+      "body": "Tap New Game, then choose your team. Playing in a league or tournament? You can add it here or later."
+    },
     "done": {
       "title": "You're all set",
       "body": "That is the basics. Everything you do saves automatically."

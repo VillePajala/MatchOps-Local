@@ -36,10 +36,12 @@ export interface TourStep {
   /** English fallback for the body copy. */
   body: string;
   /**
-   * CSS selector (e.g. `[data-testid="..."]` or `#id`) of the control to
-   * spotlight. Omitted = a centered card with no spotlight.
+   * CSS selector(s) of the control to spotlight (e.g. `[data-testid="..."]` or
+   * `#id`). An array is tried in order and the first control currently present in
+   * the DOM wins - this lets one step spotlight the modal-opener while the modal
+   * is closed and the inner control once it opens. Omitted = a centered card.
    */
-  targetSelector?: string;
+  targetSelector?: string | string[];
   /**
    * When this predicate returns true for the current signals, the step
    * auto-advances. Omitted = advance only when the user taps Next.

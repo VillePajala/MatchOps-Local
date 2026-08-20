@@ -379,6 +379,35 @@ export default function Home() {
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
+  // Targeted refresh of the recommended-setup / guided-tour signals after a setup
+  // modal closes. Reads directly and sets state WITHOUT the full checkAppState
+  // round-trip (no loading-screen flash). NOT gated on isFirstTimeUser: the guided
+  // tour keeps advancing past the point where the account stops being empty (add
+  // players -> the account is no longer "first-time", but the tour still needs
+  // hasTeam / hasTeamLinkedGame to refresh so its later steps auto-advance), and
+  // the Start Screen recommended-setup card wants fresh signals too.
+  const refreshSetupSignals = useCallback(async () => {
+    try {
+      const [roster, games, seasonsList, tournamentsList, teamsList] = await Promise.all([
+        getMasterRoster(userId),
+        getSavedGames(userId),
+        getSeasons(userId),
+        getTournaments(userId),
+        getTeams(userId),
+      ]);
+      setHasPlayers(roster.length > 0);
+      setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
+      setHasTeam(teamsList.length > 0);
+      setHasTeamLinkedGame(
+        Object.values(games || {}).some(
+          (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
+        )
+      );
+    } catch (err) {
+      logger.warn('Failed to refresh setup signals', { error: err });
+    }
+  }, [userId]);
+
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered
   // at PAGE level (not inside HomePage) so enterMatch's key-bump remounts
@@ -1409,6 +1438,10 @@ export default function Home() {
             screen === 'start'
           }
           isFirstTimeUser={isFirstTimeUser}
+          hasPlayers={hasPlayers}
+          hasTeam={hasTeam}
+          hasTeamLinkedGame={hasTeamLinkedGame}
+          screen={screen}
         />
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
@@ -1556,21 +1589,7 @@ export default function Home() {
               homeSummary={homeSummary}
               onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
-              onSetupModalsClosed={async () => {
-                // A first-time user who just added players in a setup modal must
-                // graduate off the first-run panel. Refresh ONLY hasPlayers -
-                // targeted, so it flips isFirstTimeUser WITHOUT the full
-                // checkAppState round-trip (which flashes the loading screen).
-                // Gated to first-timers: everyday setup-modal closes for existing
-                // users need no refresh at all.
-                if (!isFirstTimeUser) return;
-                try {
-                  const roster = await getMasterRoster(userId);
-                  setHasPlayers(roster.length > 0);
-                } catch (err) {
-                  logger.warn('Failed to refresh players after setup', { error: err });
-                }
-              }}
+              onSetupModalsClosed={refreshSetupSignals}
             />
           </ErrorBoundary>
         ) : (
