@@ -278,6 +278,26 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
           </div>
 
+          {/* Getting-started banner (funnel Phase 2, stage 2): a slim, dismissible
+              one-line nudge to finish setup - after the guided tour the usual
+              remaining step is a season/competition. Sits above the tabs so it is
+              discoverable without the buried gear entry; only shown when setup is
+              incomplete, and dismissed via the sheet's × (shared flag with the
+              gear entry). */}
+          {showSetupEntry && (
+            <div className="max-w-sm mx-auto w-full mb-3">
+              <button
+                type="button"
+                data-testid="setup-banner"
+                onClick={() => setShowSetupSheet(true)}
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-indigo-500/20"
+              >
+                <span>{t('startScreen.gearSetup', 'Getting started ({{done}}/4)', { done: setupDoneCount })}</span>
+                <span aria-hidden="true">&rsaquo;</span>
+              </button>
+            </div>
+          )}
+
           {/* === HOME TABS (two-level restructure PR 1.2, strangler stage):
               Pelit is this page; the other tabs OPEN THE EXISTING MODALS
               unchanged. Phase 2 dissolves the modals into real tab content.
