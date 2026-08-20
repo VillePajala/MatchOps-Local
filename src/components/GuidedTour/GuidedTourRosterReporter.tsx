@@ -4,7 +4,7 @@ import { useEffect, type FC } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { getMasterRoster } from '@/utils/masterRosterManager';
-import { useAuth } from '@/contexts/AuthProvider';
+import { useDataStore } from '@/hooks/useDataStore';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 
 /**
@@ -18,8 +18,10 @@ import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
  */
 const GuidedTourRosterReporter: FC = () => {
   const tour = useGuidedTourOptional();
-  const { user } = useAuth();
-  const userId = user?.id;
+  // useDataStore's userId (NOT raw auth user id): it is undefined when cloud is
+  // unavailable, exactly matching the key useRoster's mutations write and
+  // invalidate - a raw user id would subscribe to a key nothing updates.
+  const { userId } = useDataStore();
   const isActive = tour?.isActive ?? false;
 
   const { data: roster } = useQuery({

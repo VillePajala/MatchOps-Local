@@ -268,6 +268,13 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   // phone a full card inevitably covers form fields; the pill is entirely
   // pointer-events-none so it cannot block typing or taps).
   if (resolved.target.compact) {
+    // Keep live progress visible even mid-form (review #713): append a terse
+    // done/target counter so the coach sees momentum while typing.
+    let pillText = message;
+    if (step.progress) {
+      const { done, target } = step.progress.compute(signals);
+      pillText = `${message} · ${done}/${target}`;
+    }
     return createPortal(
       <div data-testid="guided-tour-overlay" className="pointer-events-none fixed inset-0 z-[80]">
         <div
@@ -280,7 +287,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             data-testid="guided-tour-pill"
             className="pointer-events-none mx-auto w-fit max-w-sm rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
           >
-            {message}
+            {pillText}
           </div>
         </div>
       </div>,

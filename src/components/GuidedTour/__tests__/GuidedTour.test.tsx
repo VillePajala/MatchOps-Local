@@ -264,18 +264,27 @@ describe('GuidedTour engine', () => {
         targets: [
           { selector: '[data-testid="anchor-specific"]', hintKey: 'h.f', hint: 'Fill the form', compact: true },
         ],
+        progress: {
+          key: 'guidedTour.progress.playersAdded',
+          fallback: '{{done}} / {{target}} players added',
+          compute: (s) => ({ done: s.playersCount, target: 8 }),
+        },
       },
     ];
     try {
       render(
         <GuidedTourProvider>
           <StartButton steps={steps} />
+          <ReportButton signals={{ ...baseSignals, playersCount: 3 }} />
         </GuidedTourProvider>,
       );
       fireEvent.click(screen.getByText('start-tour'));
+      fireEvent.click(screen.getByText('report'));
       expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
       const pill = screen.getByTestId('guided-tour-pill');
       expect(pill).toHaveTextContent('Fill the form');
+      // Live progress stays visible even mid-form (terse counter in the pill).
+      expect(pill).toHaveTextContent('3/8');
       expect(pill.className).toContain('pointer-events-none');
       // No interactive card, no buttons, nothing that could cover the form.
       expect(screen.queryByTestId('guided-tour-card')).not.toBeInTheDocument();
