@@ -2444,8 +2444,7 @@
     "passwordUpdated": "Password updated successfully. Please sign in with your new password.",
     "unexpectedError": "An unexpected error occurred",
     "errors": {
-      "passwordTooShort": "Password must be at least 12 characters",
-      "passwordTooWeak": "Password must contain at least 3 of: uppercase, lowercase, number, special character",
+      "passwordTooShort": "Password must be at least 8 characters",
       "invalidEmail": "Invalid email format",
       "emailTooLong": "Email address is too long",
       "authInProgress": "Authentication already in progress. Please wait.",

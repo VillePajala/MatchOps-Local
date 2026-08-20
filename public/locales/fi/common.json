@@ -2444,8 +2444,7 @@
     "passwordUpdated": "Salasana päivitetty onnistuneesti. Kirjaudu sisään uudella salasanallasi.",
     "unexpectedError": "Tapahtui odottamaton virhe",
     "errors": {
-      "passwordTooShort": "Salasanan on oltava vähintään 12 merkkiä",
-      "passwordTooWeak": "Salasanan on sisällettävä vähintään 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit",
+      "passwordTooShort": "Salasanan on oltava vähintään 8 merkkiä",
       "invalidEmail": "Virheellinen sähköpostiosoite",
       "emailTooLong": "Sähköpostiosoite on liian pitkä",
       "authInProgress": "Todennus on jo käynnissä. Odota hetki.",
