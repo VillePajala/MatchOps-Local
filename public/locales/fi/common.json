@@ -16,6 +16,14 @@
       "title": "Aloita ensimmäinen ottelu",
       "body": "Napauta Uusi ottelu ja valitse joukkueesi. Pelaatteko sarjassa tai turnauksessa? Voit lisätä sen tästä tai myöhemmin."
     },
+    "startTimer": {
+      "title": "Käynnistä kello",
+      "body": "Napauta ajastinta ja sitten Käynnistä, kun ottelu alkaa."
+    },
+    "logGoal": {
+      "title": "Kirjaa maali",
+      "body": "Avaa ajastin ja napauta maalipainiketta - tilastot päivittyvät heti."
+    },
     "done": {
       "title": "Kaikki valmista",
       "body": "Siinä perusteet. Kaikki tekemäsi tallentuu automaattisesti."
