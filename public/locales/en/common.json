@@ -32,6 +32,21 @@
       "next": "Next",
       "skip": "Skip",
       "finish": "Done"
+    },
+    "hints": {
+      "openClubTab": "Open the Club tab.",
+      "tapPlayers": "Tap Players.",
+      "addPlayer": "Tap Add Player.",
+      "savePlayer": "Type the player's name and save. Add a few, then close the list.",
+      "tapTeams": "Tap Teams.",
+      "addTeam": "Tap Add Team.",
+      "saveTeam": "Name your team, pick its players, and save.",
+      "openGamesTab": "Open the Games tab.",
+      "tapNewGame": "Tap New Game.",
+      "chooseTeamStart": "Choose your team, then start the game.",
+      "openTimer": "Tap the timer.",
+      "tapStart": "Tap Start when the match kicks off.",
+      "tapGoal": "Tap the goal button - stats update live."
     }
   },
   "recap": {

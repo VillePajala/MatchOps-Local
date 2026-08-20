@@ -897,7 +897,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
             {t('common.doneButton', 'Done')}
           </ModalStickyPrimary>
         ) : (
-          <ModalStickyPrimary onClick={handleSave} disabled={isPending}>
+          <ModalStickyPrimary onClick={handleSave} disabled={isPending} dataTestId="tour-save-team">
             {isPending
               ? t('common.saving', 'Saving...')
               : mode === 'create'
