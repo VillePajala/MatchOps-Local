@@ -1,4 +1,19 @@
 {
+  "guidedTour": {
+    "welcome": {
+      "title": "Welcome to MatchOps",
+      "body": "Let's get you to your first game - it takes about a minute."
+    },
+    "done": {
+      "title": "You're all set",
+      "body": "That is the basics. Everything you do saves automatically."
+    },
+    "buttons": {
+      "next": "Next",
+      "skip": "Skip",
+      "finish": "Done"
+    }
+  },
   "recap": {
     "button": "Generate match recap",
     "title": "Game recap",
