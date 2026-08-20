@@ -8,6 +8,14 @@ import type { TourStep } from './tourTypes';
 export const FIRST_RUN_TOUR_ID = 'first-run';
 
 /**
+ * The add-players goal. A first match only feels real with enough players for
+ * lines and subs; 8 covers futsal (5+3) and small-sided soccer well. A GOAL,
+ * not a gate: the step shows live progress toward it and auto-advances when
+ * reached, but closing the roster list earlier (with any players) advances too.
+ */
+export const TOUR_TARGET_PLAYERS = 8;
+
+/**
  * The post-signup coached tour: add players -> create team -> create game ->
  * start the clock -> log a goal, with welcome/done bookends. Each action step
  * declares a TAP CHAIN (most specific first): the overlay spotlights the first
@@ -30,17 +38,18 @@ export const firstRunTourSteps: TourStep[] = [
     titleKey: 'guidedTour.addPlayers.title',
     title: 'Add your players',
     bodyKey: 'guidedTour.addPlayers.body',
-    body: 'Open the Club tab, tap Players, and add your squad.',
+    body: 'Open the Club tab, tap Players, and add your squad - about 8 players makes a real first match.',
     targets: [
       {
         selector: '[data-testid="tour-save-player"]',
         hintKey: 'guidedTour.hints.savePlayer',
-        hint: "Type the player's name - it shows on their disc on the field (or a nickname, if you set one). Save, and add a few players the same way.",
+        hint: "Type the player's name - it shows on their disc on the field (or a nickname, if you set one).",
+        compact: true,
       },
       {
         selector: '[data-testid="tour-add-player"]',
         hintKey: 'guidedTour.hints.addPlayer',
-        hint: 'Tap Add Player. Once your squad is in, close the list to continue.',
+        hint: 'Tap Add Player. Aim for 8 - or close the list when your squad is in.',
       },
       {
         selector: '[data-testid="tour-players"]',
@@ -53,7 +62,14 @@ export const firstRunTourSteps: TourStep[] = [
         hint: 'Open the Club tab.',
       },
     ],
-    advanceWhen: (s) => s.hasPlayers,
+    progress: {
+      key: 'guidedTour.progress.playersAdded',
+      fallback: '{{done}} / {{target}} players added',
+      compute: (s) => ({ done: s.playersCount, target: TOUR_TARGET_PLAYERS }),
+    },
+    // Reaching the goal advances immediately; closing the list with any players
+    // advances too (hasPlayers refreshes on modal close) - a goal, not a gate.
+    advanceWhen: (s) => s.playersCount >= TOUR_TARGET_PLAYERS || s.hasPlayers,
   },
   {
     id: 'create-team',
@@ -66,6 +82,7 @@ export const firstRunTourSteps: TourStep[] = [
         selector: '[data-testid="tour-save-team"]',
         hintKey: 'guidedTour.hints.saveTeam',
         hint: 'Name your team, pick its players, and save.',
+        compact: true,
       },
       {
         selector: '[data-testid="tour-add-team"]',
@@ -96,6 +113,7 @@ export const firstRunTourSteps: TourStep[] = [
         selector: '#teamSelectTop',
         hintKey: 'guidedTour.hints.chooseTeamStart',
         hint: 'Choose your team, then start the game.',
+        compact: true,
       },
       {
         selector: '[data-testid="tour-new-game"]',

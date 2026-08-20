@@ -1,8 +1,10 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import GuidedTourProvider, { useGuidedTour } from '@/contexts/GuidedTourProvider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import GuidedTourController from '../GuidedTourController';
 import GuidedTourMatchReporter from '../GuidedTourMatchReporter';
+import GuidedTourRosterReporter from '../GuidedTourRosterReporter';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '../firstRunTour';
 import type { TourSignals, TourStep } from '../tourTypes';
 import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
@@ -21,6 +23,7 @@ const baseSignals: TourSignals = {
   screen: 'start',
   isTimerRunning: false,
   hasLoggedGoal: false,
+  playersCount: 0,
 };
 
 // A minimal two-step tour for testing finish/persistence independent of the
@@ -249,6 +252,91 @@ describe('GuidedTour engine', () => {
     });
   });
 
+  it('compact stages render a non-blocking pill: ring + text only, no card, no dim', () => {
+    const specific = mountAnchor('anchor-specific', 120);
+    const steps: TourStep[] = [
+      {
+        id: 'form',
+        titleKey: 'k.f',
+        title: 'Form Step',
+        bodyKey: 'k.fb',
+        body: 'form body',
+        targets: [
+          { selector: '[data-testid="anchor-specific"]', hintKey: 'h.f', hint: 'Fill the form', compact: true },
+        ],
+      },
+    ];
+    try {
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={steps} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
+      const pill = screen.getByTestId('guided-tour-pill');
+      expect(pill).toHaveTextContent('Fill the form');
+      expect(pill.className).toContain('pointer-events-none');
+      // No interactive card, no buttons, nothing that could cover the form.
+      expect(screen.queryByTestId('guided-tour-card')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('guided-tour-skip')).not.toBeInTheDocument();
+    } finally {
+      specific.remove();
+    }
+  });
+
+  it('shows live progress and auto-advances at the players goal', () => {
+    const steps: TourStep[] = [
+      {
+        id: 'goal',
+        titleKey: 'k.g',
+        title: 'Goal Step',
+        bodyKey: 'k.gb',
+        body: 'add players',
+        progress: {
+          key: 'guidedTour.progress.playersAdded',
+          fallback: '{{done}} / {{target}} players added',
+          compute: (s) => ({ done: s.playersCount, target: 8 }),
+        },
+        advanceWhen: (s) => s.playersCount >= 8,
+      },
+      { id: 'after', titleKey: 'k.n', title: 'After Goal', bodyKey: 'k.nb', body: 'next body' },
+    ];
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={steps} />
+        <ReportButton signals={{ ...baseSignals, playersCount: 3 }} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.click(screen.getByText('report'));
+    expect(screen.getByTestId('guided-tour-progress')).toHaveTextContent('3 / 8');
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Goal Step');
+  });
+
+  it('reaching the players goal advances the step', () => {
+    const steps: TourStep[] = [
+      {
+        id: 'goal',
+        titleKey: 'k.g',
+        title: 'Goal Step',
+        bodyKey: 'k.gb',
+        body: 'add players',
+        advanceWhen: (s) => s.playersCount >= 8,
+      },
+      { id: 'after', titleKey: 'k.n', title: 'After Goal', bodyKey: 'k.nb', body: 'next body' },
+    ];
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={steps} />
+        <ReportButton signals={{ ...baseSignals, playersCount: 8 }} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.click(screen.getByText('report'));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Goal');
+  });
+
   it('action steps (advanceWhen) show only Skip - the highlighted control is the way forward', () => {
     const steps: TourStep[] = [
       {
@@ -356,5 +444,18 @@ describe('GuidedTourMatchReporter', () => {
   it('renders nothing and does not throw without a provider', () => {
     const { container } = render(<GuidedTourMatchReporter isTimerRunning={false} hasLoggedGoal={false} />);
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('GuidedTourRosterReporter', () => {
+  it('renders nothing and stays idle without a tour provider (query disabled)', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={client}>
+        <GuidedTourRosterReporter />
+      </QueryClientProvider>,
+    );
+    expect(container).toBeEmptyDOMElement();
+    client.clear();
   });
 });

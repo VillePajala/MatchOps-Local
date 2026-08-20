@@ -3,6 +3,7 @@
 import ModalProvider from '@/contexts/ModalProvider';
 import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
+import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
 import LoginScreen from '@/components/LoginScreen';
@@ -1447,6 +1448,8 @@ export default function Home() {
           hasTeamLinkedGame={hasTeamLinkedGame}
           screen={screen}
         />
+        {/* Live roster-size feed for the tour's add-players progress/goal. */}
+        <GuidedTourRosterReporter />
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
             Gated behind the SAME readiness checks as the app screens below:
