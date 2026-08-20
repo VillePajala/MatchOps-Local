@@ -31,10 +31,33 @@ interface GuidedTourOverlayProps {
 const SPOTLIGHT_PADDING = 6;
 
 /**
+ * A DOM-present element can still be invisible to the user - most commonly a
+ * Start Screen control sitting UNDER an open modal. Hit-test the target's
+ * center: if the topmost element there is unrelated to the target, the target
+ * is covered and must not be spotlighted (a ring floating over a modal reads
+ * as highlighting nothing). Our own overlay never interferes - all its
+ * decoration is pointer-events-none, which elementFromPoint skips.
+ *
+ * A null hit result is treated as visible: jsdom returns null (no layout), and
+ * in a real browser we've already bounds-checked the point, so null is not
+ * evidence of occlusion.
+ */
+function isUncovered(el: Element, r: DOMRect): boolean {
+  if (typeof document.elementFromPoint !== 'function') return true;
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) return false;
+  const hit = document.elementFromPoint(cx, cy);
+  if (!hit) return true;
+  return el === hit || el.contains(hit) || hit.contains(el);
+}
+
+/**
  * Resolve a step's tap chain: the first target (most specific first) whose
- * element is present AND laid out wins. A zero-size box means the control is
- * not actually visible (collapsed, or jsdom) - skip it so the chain falls
- * through to the control that opens it.
+ * element is present, laid out, AND actually visible wins. A zero-size box
+ * means the control is collapsed (or jsdom); a covered center means a modal or
+ * sheet sits on top. Either way the chain falls through - ultimately to the
+ * step body, which tells the coach the route.
  */
 function resolveTarget(targets: TourTarget[] | undefined): ResolvedTarget | null {
   if (!targets || typeof document === 'undefined') return null;
@@ -43,6 +66,7 @@ function resolveTarget(targets: TourTarget[] | undefined): ResolvedTarget | null
     if (!el) continue;
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) continue;
+    if (!isUncovered(el, r)) continue;
     return { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, target };
   }
   return null;
@@ -143,6 +167,14 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     : t('guidedTour.buttons.next', 'Next');
   const skipLabel = t('guidedTour.buttons.skip', 'Skip');
 
+  // Action steps (advanceWhen) progress by DOING the highlighted thing - they
+  // auto-advance when the real action completes. Showing a big "Next" there
+  // created a second competing call-to-action ("tap the tab, or tap Next?")
+  // and let the coach jump steps without doing them, landing the tour in a
+  // mismatched state. So: action steps get ONLY a quiet Skip; the app's own
+  // highlighted control is the primary. Bookend steps keep Next/Done.
+  const isActionStep = !!step.advanceWhen;
+
   const card = (
     <div
       data-testid="guided-tour-card"
@@ -159,22 +191,25 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       </p>
       <div className="flex items-center gap-2">
         <button
+          ref={isActionStep ? primaryRef : undefined}
           type="button"
           data-testid="guided-tour-skip"
           onClick={onSkip}
-          className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600"
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 ${isActionStep ? 'w-full' : 'flex-1'}`}
         >
           {skipLabel}
         </button>
-        <button
-          ref={primaryRef}
-          type="button"
-          data-testid="guided-tour-next"
-          onClick={onNext}
-          className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
-        >
-          {nextLabel}
-        </button>
+        {!isActionStep && (
+          <button
+            ref={primaryRef}
+            type="button"
+            data-testid="guided-tour-next"
+            onClick={onNext}
+            className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+          >
+            {nextLabel}
+          </button>
+        )}
       </div>
       {stepCount > 1 && (
         <div className="mt-2 text-center text-xs text-slate-500">
