@@ -193,6 +193,30 @@ describe('GuidedTour engine', () => {
       expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('fallback body copy');
     });
 
+    it('does NOT treat the tour card itself as cover (no self-occlusion loop)', () => {
+      const specific = mountAnchor('anchor-specific', 120);
+      const orig = document.elementFromPoint;
+      // Emulate the tour's own card sitting over the target's center - the
+      // resolver must still consider the target visible (the placement rule
+      // moves the card to the opposite half), not fall back and park on it.
+      document.elementFromPoint = jest.fn(() =>
+        document.querySelector('[data-testid="guided-tour-card"]'),
+      );
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        expect(screen.getByTestId('guided-tour-ring')).toBeInTheDocument();
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Do the specific thing');
+      } finally {
+        document.elementFromPoint = orig;
+        specific.remove();
+      }
+    });
+
     it('treats a target covered by another surface (e.g. a modal) as not visible', () => {
       const specific = mountAnchor('anchor-specific', 120);
       const cover = document.createElement('div'); // unrelated element on top
