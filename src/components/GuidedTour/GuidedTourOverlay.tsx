@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useModalCloseVisible } from '@/styles/modalStyles';
 import type { TourSignals, TourStep, TourTarget } from './tourTypes';
 
 interface Rect {
@@ -125,6 +126,10 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const primaryRef = useRef<HTMLButtonElement>(null);
   const [result, setResult] = useState<ResolveResult>(() => resolveTarget(step.targets));
   const resolved = result.resolved;
+  // Same signal the modals use to decide whether their X is shown: on phones
+  // the X is hidden and "close" is the DEVICE BACK BUTTON - the occluded hint
+  // must name the gesture that actually exists on this device.
+  const modalCloseVisible = useModalCloseVisible();
 
   // NOTE deliberately NOT registered with useModalHardwareBack: a guidance
   // layer must never own the back button. It used to (back = skip), but the
@@ -205,7 +210,9 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const message = resolved
     ? t(resolved.target.hintKey, resolved.target.hint)
     : result.anyOccluded
-      ? t('guidedTour.hints.closeThisView', 'Close this view to continue.')
+      ? modalCloseVisible
+        ? t('guidedTour.hints.closeThisView', 'Close this view (X) to continue.')
+        : t('guidedTour.hints.goBack', "Press your device's back button to continue.")
       : t(step.bodyKey, step.body);
   const nextLabel = isFinal
     ? t('guidedTour.buttons.finish', 'Done')
