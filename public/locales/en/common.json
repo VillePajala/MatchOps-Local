@@ -34,11 +34,13 @@
     },
     "buttons": {
       "next": "Next",
+      "continue": "Continue",
       "skip": "Skip",
       "finish": "Done"
     },
     "hints": {
       "closeThisView": "Close this view (X) to continue.",
+      "tapContinue": "All done here - tap Continue.",
       "goBack": "Press your device's back button to continue.",
       "openClubTab": "Open the Club tab.",
       "tapPlayers": "Tap Players.",

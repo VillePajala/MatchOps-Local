@@ -21,6 +21,14 @@ jest.mock('@/styles/modalStyles', () => ({
   useModalCloseVisible: () => mockModalCloseVisible,
 }));
 
+// Controls whether a lifted surface (modal) is registered with the hardware-back
+// contract - the precondition for the occluded stage's Continue button.
+let mockHasLiftedSurfaces = false;
+jest.mock('@/hooks/useModalHardwareBack', () => ({
+  ...jest.requireActual('@/hooks/useModalHardwareBack'),
+  hasLiftedSurfaces: () => mockHasLiftedSurfaces,
+}));
+
 const COMPLETED_KEY = 'matchops_tour_completed_first-run_test-user';
 
 const baseSignals: TourSignals = {
@@ -255,6 +263,33 @@ describe('GuidedTour engine', () => {
         expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Close this view (X) to continue.');
       } finally {
         document.elementFromPoint = orig;
+        cover.remove();
+        specific.remove();
+      }
+    });
+
+    it('occluded stage with an open lifted surface offers a Continue button that goes back', () => {
+      const specific = mountAnchor('anchor-specific', 120);
+      const cover = document.createElement('div');
+      document.body.appendChild(cover);
+      const origEfp = document.elementFromPoint;
+      document.elementFromPoint = jest.fn(() => cover);
+      mockHasLiftedSurfaces = true; // a modal is registered with the back contract
+      const backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('All done here - tap Continue.');
+        fireEvent.click(screen.getByTestId('guided-tour-continue'));
+        expect(backSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        backSpy.mockRestore();
+        mockHasLiftedSurfaces = false;
+        document.elementFromPoint = origEfp;
         cover.remove();
         specific.remove();
       }

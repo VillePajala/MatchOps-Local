@@ -34,11 +34,13 @@
     },
     "buttons": {
       "next": "Seuraava",
+      "continue": "Jatka",
       "skip": "Ohita",
       "finish": "Valmis"
     },
     "hints": {
       "closeThisView": "Sulje tämä näkymä (X) jatkaaksesi.",
+      "tapContinue": "Valmista täällä - napauta Jatka.",
       "goBack": "Paina laitteen takaisin-painiketta jatkaaksesi.",
       "openClubTab": "Avaa Seura-välilehti.",
       "tapPlayers": "Napauta Pelaajat.",
