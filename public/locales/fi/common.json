@@ -38,6 +38,7 @@
       "finish": "Valmis"
     },
     "hints": {
+      "closeThisView": "Sulje tämä näkymä jatkaaksesi.",
       "openClubTab": "Avaa Seura-välilehti.",
       "tapPlayers": "Napauta Pelaajat.",
       "addPlayer": "Napauta Lisää Pelaaja. Kokoa kokoonpano - tai sulje lista, kun joukkue on koossa.",
@@ -943,7 +944,8 @@
     "emptyTeam": "Aloita lisäämällä pelaajat.",
     "emptyCompetitions": "Luo kausi tai turnaus pelien ryhmittelyyn.",
     "emptyStats": "Tilastot ilmestyvät, kun olet pelannut pelejä.",
-    "gearGuide": "Näin se toimii",
+    "gearRestartTour": "Aloitusopastus",
+      "gearGuide": "Näin se toimii",
     "gearSetup": "Käyttöönotto ({{done}}/4)"
   },
   "workspace": {

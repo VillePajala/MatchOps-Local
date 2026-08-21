@@ -7,7 +7,6 @@ import GuidedTourMatchReporter from '../GuidedTourMatchReporter';
 import GuidedTourRosterReporter from '../GuidedTourRosterReporter';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '../firstRunTour';
 import type { TourSignals, TourStep } from '../tourTypes';
-import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 
 // The provider reads the user id from useAuth for the per-user completion flag.
 jest.mock('@/contexts/AuthProvider', () => ({
@@ -57,7 +56,6 @@ function ReportButton({ signals }: { signals: TourSignals }) {
 
 beforeEach(() => {
   localStorage.clear();
-  __resetModalHardwareBackForTests();
 });
 
 describe('GuidedTour engine', () => {
@@ -242,14 +240,29 @@ describe('GuidedTour engine', () => {
           </GuidedTourProvider>,
         );
         fireEvent.click(screen.getByText('start-tour'));
-        // Covered target is skipped; nothing else on screen -> body fallback, no ring.
+        // Covered target is skipped (no ring), and because the way forward is
+        // merely covered by an open view, the card names the literal next tap.
         expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
-        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('fallback body copy');
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Close this view to continue.');
       } finally {
         document.elementFromPoint = orig;
         cover.remove();
         specific.remove();
       }
+    });
+
+    it('hardware back never touches the tour (guidance layer owns no history)', () => {
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={chainStep} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
+      // A back navigation must not skip the tour (it operates on the app's own
+      // surfaces - e.g. closing an open modal - never on the guidance layer).
+      fireEvent(window, new PopStateEvent('popstate'));
+      expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
     });
   });
 
