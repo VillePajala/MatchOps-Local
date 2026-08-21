@@ -21,12 +21,13 @@ jest.mock('@/styles/modalStyles', () => ({
   useModalCloseVisible: () => mockModalCloseVisible,
 }));
 
-// Controls whether a lifted surface (modal) is registered with the hardware-back
-// contract - the precondition for the occluded stage's Continue button.
-let mockHasLiftedSurfaces = false;
+// Number of surfaces registered with the hardware-back contract. The occluded
+// stage's Continue button requires a MODAL above the screen's baseline (the
+// match screen itself holds one page-level registration).
+let mockLiftedSurfaceCount = 0;
 jest.mock('@/hooks/useModalHardwareBack', () => ({
   ...jest.requireActual('@/hooks/useModalHardwareBack'),
-  hasLiftedSurfaces: () => mockHasLiftedSurfaces,
+  liftedSurfaceCount: () => mockLiftedSurfaceCount,
 }));
 
 const COMPLETED_KEY = 'matchops_tour_completed_first-run_test-user';
@@ -274,7 +275,7 @@ describe('GuidedTour engine', () => {
       document.body.appendChild(cover);
       const origEfp = document.elementFromPoint;
       document.elementFromPoint = jest.fn(() => cover);
-      mockHasLiftedSurfaces = true; // a modal is registered with the back contract
+      mockLiftedSurfaceCount = 1; // a modal is open (start screen baseline is 0)
       const backSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
       try {
         render(
@@ -288,7 +289,47 @@ describe('GuidedTour engine', () => {
         expect(backSpy).toHaveBeenCalledTimes(1);
       } finally {
         backSpy.mockRestore();
-        mockHasLiftedSurfaces = false;
+        mockLiftedSurfaceCount = 0;
+        document.elementFromPoint = origEfp;
+        cover.remove();
+        specific.remove();
+      }
+    });
+
+    it('no Continue on the match screen when only its own page guard is registered', () => {
+      const specific = mountAnchor('anchor-specific', 120);
+      const cover = document.createElement('div');
+      document.body.appendChild(cover);
+      const origEfp = document.elementFromPoint;
+      document.elementFromPoint = jest.fn(() => cover);
+      // Match screen baseline: the page-level back-to-Home guard counts 1, but
+      // NO modal is open - Continue here would back the coach out of the match.
+      mockLiftedSurfaceCount = 1;
+      try {
+        const first = render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+            <ReportButton signals={{ ...baseSignals, screen: 'home' }} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        fireEvent.click(screen.getByText('report'));
+        expect(screen.queryByTestId('guided-tour-continue')).not.toBeInTheDocument();
+        first.unmount();
+        // With a real modal ABOVE the baseline, Continue is offered again.
+        mockLiftedSurfaceCount = 2;
+        localStorage.clear(); // allow a fresh tour in the second render
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+            <ReportButton signals={{ ...baseSignals, screen: 'home' }} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        fireEvent.click(screen.getByText('report'));
+        expect(screen.getByTestId('guided-tour-continue')).toBeInTheDocument();
+      } finally {
+        mockLiftedSurfaceCount = 0;
         document.elementFromPoint = origEfp;
         cover.remove();
         specific.remove();
