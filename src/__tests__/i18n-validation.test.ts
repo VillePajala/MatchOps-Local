@@ -413,7 +413,7 @@ describe('Translation File Validation', () => {
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
       // +7: guidedTour.* keys added (funnel Phase 2 PR1, tour engine).
       // +6: guidedTour.{addPlayers,createTeam,createGame}.* (Phase 2 PR2, Home steps).
-      expect(enKeys.length).toBe(2793);
+      expect(enKeys.length).toBe(2795);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -543,7 +543,7 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(fiKeys.length).toBe(2793);
+      expect(fiKeys.length).toBe(2795);
     });
   });
 });

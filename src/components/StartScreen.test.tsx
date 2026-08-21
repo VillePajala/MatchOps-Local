@@ -41,6 +41,7 @@ jest.mock('react-i18next', () => ({
 
 import i18n from '@/i18n';
 import StartScreen from './StartScreen';
+import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 
 describe('StartScreen', () => {
   it('renders experienced user interface with all action buttons', () => {
@@ -360,6 +361,38 @@ describe('StartScreen', () => {
         />
       );
       expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
+    });
+
+    it('gear sheet offers a restart-the-guide entry when the tour provider is present', () => {
+      render(
+        <GuidedTourProvider>
+          <StartScreen
+            {...baseHandlers()}
+            canResume={false}
+            hasSavedGames={false}
+            isFirstTimeUser={false}
+            setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
+          />
+        </GuidedTourProvider>
+      );
+      openGear();
+      fireEvent.click(screen.getByTestId('gear-restart-tour'));
+      // The coached tour starts from its first step.
+      expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
+    });
+
+    it('has no restart-the-guide entry without a tour provider', () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={false}
+          hasSavedGames={false}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
+        />
+      );
+      openGear();
+      expect(screen.queryByTestId('gear-restart-tour')).not.toBeInTheDocument();
     });
 
     it('has no getting-started banner once setup is complete', async () => {

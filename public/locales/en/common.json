@@ -38,6 +38,7 @@
       "finish": "Done"
     },
     "hints": {
+      "closeThisView": "Close this view to continue.",
       "openClubTab": "Open the Club tab.",
       "tapPlayers": "Tap Players.",
       "addPlayer": "Tap Add Player. Fill your lineup - or close the list when your squad is in.",
@@ -1078,7 +1079,8 @@
     "emptyTeam": "Start by adding your players.",
     "emptyCompetitions": "Create a season or tournament to group your games.",
     "emptyStats": "Statistics appear once you've played games.",
-    "gearGuide": "How it works",
+    "gearRestartTour": "Getting started guide",
+      "gearGuide": "How it works",
     "gearSetup": "Getting started ({{done}}/4)"
   },
   "workspace": {

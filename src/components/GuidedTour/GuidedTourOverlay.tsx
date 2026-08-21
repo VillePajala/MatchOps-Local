@@ -3,7 +3,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import useModalHardwareBack from '@/hooks/useModalHardwareBack';
 import type { TourSignals, TourStep, TourTarget } from './tourTypes';
 
 interface Rect {
@@ -63,24 +62,42 @@ function isUncovered(el: Element, r: DOMRect): boolean {
   return el === hit || el.contains(hit) || hit.contains(el);
 }
 
+interface ResolveResult {
+  resolved: ResolvedTarget | null;
+  /**
+   * True when at least one chain target exists on the page but is COVERED by
+   * another surface (an open modal/sheet). Nothing to spotlight, but the way
+   * forward is known: close the covering view - the card says exactly that
+   * instead of describing controls the coach cannot currently see.
+   */
+  anyOccluded: boolean;
+}
+
 /**
  * Resolve a step's tap chain: the first target (most specific first) whose
  * element is present, laid out, AND actually visible wins. A zero-size box
  * means the control is collapsed (or jsdom); a covered center means a modal or
  * sheet sits on top. Either way the chain falls through - ultimately to the
- * step body, which tells the coach the route.
+ * step body (or, when covered, a "close this view" hint).
  */
-function resolveTarget(targets: TourTarget[] | undefined): ResolvedTarget | null {
-  if (!targets || typeof document === 'undefined') return null;
+function resolveTarget(targets: TourTarget[] | undefined): ResolveResult {
+  if (!targets || typeof document === 'undefined') return { resolved: null, anyOccluded: false };
+  let anyOccluded = false;
   for (const target of targets) {
     const el = document.querySelector(target.selector);
     if (!el) continue;
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) continue;
-    if (!isUncovered(el, r)) continue;
-    return { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, target };
+    if (!isUncovered(el, r)) {
+      anyOccluded = true;
+      continue;
+    }
+    return {
+      resolved: { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, target },
+      anyOccluded: false,
+    };
   }
-  return null;
+  return { resolved: null, anyOccluded };
 }
 
 /**
@@ -106,12 +123,16 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
 }) => {
   const { t } = useTranslation();
   const primaryRef = useRef<HTMLButtonElement>(null);
-  const [resolved, setResolved] = useState<ResolvedTarget | null>(() => resolveTarget(step.targets));
+  const [result, setResult] = useState<ResolveResult>(() => resolveTarget(step.targets));
+  const resolved = result.resolved;
 
-  // Hardware / browser back = skip the tour (single-sentinel hook, no inert).
-  useModalHardwareBack(true, () => {
-    onSkip();
-  });
+  // NOTE deliberately NOT registered with useModalHardwareBack: a guidance
+  // layer must never own the back button. It used to (back = skip), but the
+  // overlay remounts per step, so advancing while a modal was open re-pushed
+  // the tour ABOVE that modal in the back stack - back then killed the tour
+  // instead of closing the modal, and the re-registration churn could desync
+  // the sentinel into exiting the app (owner-reported on device). Back now
+  // always operates on the app itself; the tour is skipped via its button.
 
   // Keep the resolved target current while this step is mounted: the chain's
   // most-specific control may appear/disappear as modals open and close, and
@@ -121,23 +142,26 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   useEffect(() => {
     if (!step.targets || step.targets.length === 0) return;
     const recompute = () =>
-      setResolved((prev) => {
+      setResult((prev) => {
         const next = resolveTarget(step.targets);
         // Identity-stable when nothing changed: our own portal DOM also lives in
         // document.body, so the MutationObserver sees our renders - without this
         // guard each render would schedule another, churning forever.
+        const p = prev.resolved;
+        const n = next.resolved;
         if (
-          prev !== null &&
-          next !== null &&
-          prev.target.selector === next.target.selector &&
-          prev.rect.top === next.rect.top &&
-          prev.rect.left === next.rect.left &&
-          prev.rect.width === next.rect.width &&
-          prev.rect.height === next.rect.height
+          prev.anyOccluded === next.anyOccluded &&
+          ((p === null && n === null) ||
+            (p !== null &&
+              n !== null &&
+              p.target.selector === n.target.selector &&
+              p.rect.top === n.rect.top &&
+              p.rect.left === n.rect.left &&
+              p.rect.width === n.rect.width &&
+              p.rect.height === n.rect.height))
         ) {
           return prev;
         }
-        if (prev === null && next === null) return prev;
         return next;
       });
     window.addEventListener('resize', recompute);
@@ -175,9 +199,14 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   if (typeof document === 'undefined') return null;
 
   const title = t(step.titleKey, step.title);
+  // Message priority: the resolved stage's hint; else, when the way forward is
+  // merely COVERED by an open view, say to close it (the literal next tap);
+  // else the step body (the route description).
   const message = resolved
     ? t(resolved.target.hintKey, resolved.target.hint)
-    : t(step.bodyKey, step.body);
+    : result.anyOccluded
+      ? t('guidedTour.hints.closeThisView', 'Close this view to continue.')
+      : t(step.bodyKey, step.body);
   const nextLabel = isFinal
     ? t('guidedTour.buttons.finish', 'Done')
     : t('guidedTour.buttons.next', 'Next');

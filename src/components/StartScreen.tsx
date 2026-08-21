@@ -9,6 +9,8 @@ import RecommendedSetupCard, { type SetupProgress } from '@/components/Recommend
 import type { HomeSummary } from '@/utils/homeSummary';
 import { HomeDashboard, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
+import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
+import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
 import { isAndroid } from '@/utils/platform';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 
@@ -110,6 +112,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // there's a game to resume, Continue is the hero and New Game steps back to a row.
   const newGamePrimary = !canResume && !dashboardOn;
   const { user, mode } = useAuth();
+  // Optional: present only when the app mounts the tour provider. Used for the
+  // gear-sheet "restart the guide" entry - the safety net for an accidental
+  // skip (skipping otherwise marks the tour done forever) and a refresher.
+  const guidedTour = useGuidedTourOptional();
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
   // HTML and the first client render produce identical markup. Reading i18n.language
   // here directly causes a hydration mismatch when localStorage holds a non-default
@@ -728,6 +734,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {onOpenGuide && (
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
                   {t('startScreen.gearGuide', 'How it works')}
+                </button>
+              )}
+              {/* Restart the first-run coached tour on demand: the recovery for
+                  an accidental skip and a refresher for returning coaches. */}
+              {guidedTour && (
+                <button
+                  type="button"
+                  data-testid="gear-restart-tour"
+                  onClick={() => { setShowGearSheet(false); guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps); }}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                >
+                  {t('startScreen.gearRestartTour', 'Getting started guide')}
                 </button>
               )}
               <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
