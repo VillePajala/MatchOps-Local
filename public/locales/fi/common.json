@@ -38,6 +38,7 @@
       "finish": "Valmis"
     },
     "hints": {
+      "closeThisView": "Sulje tämä näkymä jatkaaksesi.",
       "openClubTab": "Avaa Seura-välilehti.",
       "tapPlayers": "Napauta Pelaajat.",
       "addPlayer": "Napauta Lisää Pelaaja. Kokoa kokoonpano - tai sulje lista, kun joukkue on koossa.",

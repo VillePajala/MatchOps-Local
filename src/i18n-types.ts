@@ -948,6 +948,7 @@ export type TranslationKey =
   | 'guidedTour.hints.addPlayer'
   | 'guidedTour.hints.addTeam'
   | 'guidedTour.hints.chooseTeamStart'
+  | 'guidedTour.hints.closeThisView'
   | 'guidedTour.hints.openClubTab'
   | 'guidedTour.hints.openGamesTab'
   | 'guidedTour.hints.openTimer'

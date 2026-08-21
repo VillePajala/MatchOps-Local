@@ -38,6 +38,7 @@
       "finish": "Done"
     },
     "hints": {
+      "closeThisView": "Close this view to continue.",
       "openClubTab": "Open the Club tab.",
       "tapPlayers": "Tap Players.",
       "addPlayer": "Tap Add Player. Fill your lineup - or close the list when your squad is in.",
