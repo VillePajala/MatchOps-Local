@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useModalCloseVisible } from '@/styles/modalStyles';
+import { hasLiftedSurfaces } from '@/hooks/useModalHardwareBack';
 import type { TourSignals, TourStep, TourTarget } from './tourTypes';
 
 interface Rect {
@@ -207,12 +208,22 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   // Message priority: the resolved stage's hint; else, when the way forward is
   // merely COVERED by an open view, say to close it (the literal next tap);
   // else the step body (the route description).
+  // Occluded stage escape hatch: when the way forward is behind an open view
+  // AND a lifted surface is registered, the card offers a Continue button that
+  // performs the back navigation itself (guaranteed by the back contract to
+  // close only the topmost view - it cannot navigate the page away). The modals
+  // keep their own design untouched. Without a registered surface, fall back to
+  // naming the platform's own close gesture.
+  const showContinueBack = !resolved && result.anyOccluded && hasLiftedSurfaces();
+
   const message = resolved
     ? t(resolved.target.hintKey, resolved.target.hint)
     : result.anyOccluded
-      ? modalCloseVisible
-        ? t('guidedTour.hints.closeThisView', 'Close this view (X) to continue.')
-        : t('guidedTour.hints.goBack', "Press your device's back button to continue.")
+      ? showContinueBack
+        ? t('guidedTour.hints.tapContinue', 'All done here - tap Continue.')
+        : modalCloseVisible
+          ? t('guidedTour.hints.closeThisView', 'Close this view (X) to continue.')
+          : t('guidedTour.hints.goBack', "Press your device's back button to continue.")
       : t(step.bodyKey, step.body);
   const nextLabel = isFinal
     ? t('guidedTour.buttons.finish', 'Done')
@@ -283,10 +294,20 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
           type="button"
           data-testid="guided-tour-skip"
           onClick={onSkip}
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 ${isActionStep ? 'w-full' : 'flex-1'}`}
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 ${isActionStep && !showContinueBack ? 'w-full' : 'flex-1'}`}
         >
           {skipLabel}
         </button>
+        {showContinueBack && (
+          <button
+            type="button"
+            data-testid="guided-tour-continue"
+            onClick={() => window.history.back()}
+            className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+          >
+            {t('guidedTour.buttons.continue', 'Continue')}
+          </button>
+        )}
         {!isActionStep && (
           <button
             ref={primaryRef}
