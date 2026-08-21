@@ -41,6 +41,14 @@ export function isHandlingHardwareBack(): boolean {
   return handlingHardwareBack;
 }
 
+/** True while at least one lifted surface (modal/sheet) is registered. Lets the
+ *  guided tour offer a "Continue" button that performs a back navigation: with
+ *  a surface registered, the back is guaranteed to be consumed by the sentinel
+ *  (closing only the topmost surface) and can never navigate the page away. */
+export function hasLiftedSurfaces(): boolean {
+  return modalStack.length > 0;
+}
+
 function pushSentinel(): void {
   window.history.pushState({ liftedModal: true }, '');
   sentinelPushed = true;
