@@ -15,7 +15,9 @@ interface Rect {
 }
 
 interface ResolvedTarget {
-  rect: Rect;
+  /** Null when the target exists in the CURRENT view but is scrolled
+   *  off-viewport - guidance continues (hint, no ring), never "go back". */
+  rect: Rect | null;
   target: TourTarget;
 }
 
@@ -36,32 +38,31 @@ interface GuidedTourOverlayProps {
 const SPOTLIGHT_PADDING = 6;
 
 /**
- * A DOM-present element can still be invisible to the user - most commonly a
- * Start Screen control sitting UNDER an open modal. Hit-test the target's
- * center: if the topmost element there is unrelated to the target, the target
- * is covered and must not be spotlighted (a ring floating over a modal reads
- * as highlighting nothing). Our own overlay never interferes - all its
- * decoration is pointer-events-none, which elementFromPoint skips.
+ * How a DOM-present target relates to what the user can see:
+ * - 'visible'   - on-viewport and topmost at its center: spotlight it.
+ * - 'offscreen' - on the current view but its center is scrolled out of the
+ *   viewport (owner-reported: the game-setup team select after scrolling down
+ *   to the create button). The control is REACHABLE - guidance continues with
+ *   its hint; it must never be treated as "behind another surface".
+ * - 'covered'   - an unrelated element sits on top at its center (a modal or
+ *   sheet over a Start Screen control): skip it in the chain; if nothing
+ *   resolves, the card offers the go-back escape.
  *
- * A null hit result is treated as visible: jsdom returns null (no layout), and
- * in a real browser we've already bounds-checked the point, so null is not
- * evidence of occlusion.
+ * A null elementFromPoint result (or jsdom's missing implementation) counts as
+ * visible - it is not evidence of occlusion. Our own overlay never counts as
+ * cover: all its decoration is pointer-events-none (which elementFromPoint
+ * skips), and hitting the interactive card would otherwise create a
+ * self-fulfilling occlusion loop (the card parks where it then "covers").
  */
-function isUncovered(el: Element, r: DOMRect): boolean {
-  if (typeof document.elementFromPoint !== 'function') return true;
+function classifyVisibility(el: Element, r: DOMRect): 'visible' | 'offscreen' | 'covered' {
   const cx = r.left + r.width / 2;
   const cy = r.top + r.height / 2;
-  if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) return false;
+  if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) return 'offscreen';
+  if (typeof document.elementFromPoint !== 'function') return 'visible';
   const hit = document.elementFromPoint(cx, cy);
-  if (!hit) return true;
-  // Our own card must never count as cover: hitting it would declare the target
-  // occluded, drop to the bottom-pinned fallback card, and that card would keep
-  // sitting on the target - a self-fulfilling loop (owner-reported: the card
-  // parked on top of the player form's save bar). Treat overlay hits as
-  // visible; the placement rule then pins the card to the OPPOSITE half from
-  // the target, moving it out of the way on the next render.
-  if (hit.closest('[data-testid="guided-tour-overlay"]')) return true;
-  return el === hit || el.contains(hit) || hit.contains(el);
+  if (!hit) return 'visible';
+  if (hit.closest('[data-testid="guided-tour-overlay"]')) return 'visible';
+  return el === hit || el.contains(hit) || hit.contains(el) ? 'visible' : 'covered';
 }
 
 interface ResolveResult {
@@ -90,9 +91,16 @@ function resolveTarget(targets: TourTarget[] | undefined): ResolveResult {
     if (!el) continue;
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) continue;
-    if (!isUncovered(el, r)) {
+    const visibility = classifyVisibility(el, r);
+    if (visibility === 'covered') {
       anyOccluded = true;
       continue;
+    }
+    if (visibility === 'offscreen') {
+      // The step's own control lives in the current (scrollable) view - STOP
+      // the chain here with a rect-less resolution: hint without a ring, and
+      // never the go-back escape (going back would undo the coach's progress).
+      return { resolved: { rect: null, target }, anyOccluded: false };
     }
     return {
       resolved: { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, target },
@@ -155,16 +163,20 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
         // guard each render would schedule another, churning forever.
         const p = prev.resolved;
         const n = next.resolved;
-        if (
-          prev.anyOccluded === next.anyOccluded &&
-          ((p === null && n === null) ||
-            (p !== null &&
-              n !== null &&
-              p.target.selector === n.target.selector &&
+        const sameRect =
+          p !== null &&
+          n !== null &&
+          ((p.rect === null && n.rect === null) ||
+            (p.rect !== null &&
+              n.rect !== null &&
               p.rect.top === n.rect.top &&
               p.rect.left === n.rect.left &&
               p.rect.width === n.rect.width &&
-              p.rect.height === n.rect.height))
+              p.rect.height === n.rect.height));
+        if (
+          prev.anyOccluded === next.anyOccluded &&
+          ((p === null && n === null) ||
+            (p !== null && n !== null && p.target.selector === n.target.selector && sameRect))
         ) {
           return prev;
         }
@@ -233,6 +245,13 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     ? t('guidedTour.buttons.finish', 'Done')
     : t('guidedTour.buttons.next', 'Next');
   const skipLabel = t('guidedTour.buttons.skip', 'Skip');
+
+  // Pill text keeps live progress visible even mid-form (terse done/target).
+  let pillText = message;
+  if (step.progress) {
+    const { done, target } = step.progress.compute(signals);
+    pillText = `${message} · ${done}/${target}`;
+  }
 
   // Action steps (advanceWhen) progress by DOING the highlighted thing - they
   // auto-advance when the real action completes. Showing a big "Next" there
@@ -344,6 +363,31 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     );
   }
 
+  // Present but scrolled off-viewport: the control is in the current view, just
+  // out of sight - keep guiding with its hint, nothing to ring, and NEVER the
+  // go-back escape. Compact stages keep the non-blocking pill (pinned top,
+  // since off-viewport usually means the coach scrolled down); other stages
+  // keep the card (with Skip) at the bottom.
+  if (resolved.rect === null) {
+    return createPortal(
+      <div data-testid="guided-tour-overlay" className="pointer-events-none fixed inset-0 z-[80]">
+        {resolved.target.compact ? (
+          <div className="absolute inset-x-0 top-6 px-4">
+            <div
+              data-testid="guided-tour-pill"
+              className="pointer-events-none mx-auto w-fit max-w-sm rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
+            >
+              {pillText}
+            </div>
+          </div>
+        ) : (
+          <div className="absolute inset-x-0 bottom-0 p-4 pb-6">{card}</div>
+        )}
+      </div>,
+      document.body,
+    );
+  }
+
   // Spotlight geometry, shared by both spotlight modes.
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -362,13 +406,6 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   // phone a full card inevitably covers form fields; the pill is entirely
   // pointer-events-none so it cannot block typing or taps).
   if (resolved.target.compact) {
-    // Keep live progress visible even mid-form (review #713): append a terse
-    // done/target counter so the coach sees momentum while typing.
-    let pillText = message;
-    if (step.progress) {
-      const { done, target } = step.progress.compute(signals);
-      pillText = `${message} · ${done}/${target}`;
-    }
     return createPortal(
       <div data-testid="guided-tour-overlay" className="pointer-events-none fixed inset-0 z-[80]">
         <div

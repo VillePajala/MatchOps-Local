@@ -269,6 +269,60 @@ describe('GuidedTour engine', () => {
       }
     });
 
+    it('an offscreen (scrolled-away) target keeps guiding with its hint - no ring, no Continue', () => {
+      // Center y = 2020, far below the viewport: present in the current view,
+      // just scrolled out of sight (e.g. the game-setup team select after
+      // scrolling down to the create button).
+      const specific = mountAnchor('anchor-specific', 2000);
+      mockLiftedSurfaceCount = 1; // the open form modal is registered
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Do the specific thing');
+        expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
+        // Crucially NOT the go-back escape: backing out would undo progress.
+        expect(screen.queryByTestId('guided-tour-continue')).not.toBeInTheDocument();
+      } finally {
+        mockLiftedSurfaceCount = 0;
+        specific.remove();
+      }
+    });
+
+    it('an offscreen compact target shows a non-blocking pill pinned top', () => {
+      const specific = mountAnchor('anchor-form', 2000);
+      const steps: TourStep[] = [
+        {
+          id: 'form',
+          titleKey: 'k.f',
+          title: 'Form Step',
+          bodyKey: 'k.fb',
+          body: 'form body',
+          targets: [
+            { selector: '[data-testid="anchor-form"]', hintKey: 'h.f', hint: 'Fill and start', compact: true },
+          ],
+        },
+      ];
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={steps} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        const pill = screen.getByTestId('guided-tour-pill');
+        expect(pill).toHaveTextContent('Fill and start');
+        expect(pill.className).toContain('pointer-events-none');
+        expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('guided-tour-card')).not.toBeInTheDocument();
+      } finally {
+        specific.remove();
+      }
+    });
+
     it('occluded stage with an open lifted surface offers a Continue button that goes back', () => {
       const specific = mountAnchor('anchor-specific', 120);
       const cover = document.createElement('div');
