@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useModalCloseVisible } from '@/styles/modalStyles';
-import { hasLiftedSurfaces } from '@/hooks/useModalHardwareBack';
+import { liftedSurfaceCount } from '@/hooks/useModalHardwareBack';
 import type { TourSignals, TourStep, TourTarget } from './tourTypes';
 
 interface Rect {
@@ -209,12 +209,16 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   // merely COVERED by an open view, say to close it (the literal next tap);
   // else the step body (the route description).
   // Occluded stage escape hatch: when the way forward is behind an open view
-  // AND a lifted surface is registered, the card offers a Continue button that
-  // performs the back navigation itself (guaranteed by the back contract to
-  // close only the topmost view - it cannot navigate the page away). The modals
-  // keep their own design untouched. Without a registered surface, fall back to
-  // naming the platform's own close gesture.
-  const showContinueBack = !resolved && result.anyOccluded && hasLiftedSurfaces();
+  // AND a MODAL is registered above the screen's baseline, the card offers a
+  // Continue button that performs the back navigation itself (guaranteed by the
+  // back contract to close only the topmost view - it cannot navigate the page
+  // away). The modals keep their own design untouched. Baseline matters: the
+  // match screen holds one page-level registration (back-to-Home), so there a
+  // count of 1 means NO modal is open - Continue would exit the live match
+  // (review #709 catch). Without a modal above baseline, fall back to naming
+  // the platform's own close gesture.
+  const backBaseline = signals.screen === 'home' ? 1 : 0;
+  const showContinueBack = !resolved && result.anyOccluded && liftedSurfaceCount() > backBaseline;
 
   const message = resolved
     ? t(resolved.target.hintKey, resolved.target.hint)
