@@ -2331,6 +2331,7 @@ export type TranslationKey =
   | 'startScreen.gearBackup'
   | 'startScreen.gearDashboardView'
   | 'startScreen.gearGuide'
+  | 'startScreen.gearRestartTour'
   | 'startScreen.gearRules'
   | 'startScreen.gearSetup'
   | 'startScreen.gearSignOut'
