@@ -13,6 +13,14 @@ jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: () => ({ user: { id: 'test-user' } }),
 }));
 
+// Controls the occluded hint's platform branch: true = desktop (modal X shown,
+// "close this view"), false = phone (X hidden, "press back").
+let mockModalCloseVisible = true;
+jest.mock('@/styles/modalStyles', () => ({
+  ...jest.requireActual('@/styles/modalStyles'),
+  useModalCloseVisible: () => mockModalCloseVisible,
+}));
+
 const COMPLETED_KEY = 'matchops_tour_completed_first-run_test-user';
 
 const baseSignals: TourSignals = {
@@ -241,10 +249,36 @@ describe('GuidedTour engine', () => {
         );
         fireEvent.click(screen.getByText('start-tour'));
         // Covered target is skipped (no ring), and because the way forward is
-        // merely covered by an open view, the card names the literal next tap.
+        // merely covered by an open view, the card names the literal next tap
+        // (desktop branch: the modal X is visible).
         expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
-        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Close this view to continue.');
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Close this view (X) to continue.');
       } finally {
+        document.elementFromPoint = orig;
+        cover.remove();
+        specific.remove();
+      }
+    });
+
+    it('occluded hint on phones (no modal X) names the device back button', () => {
+      const specific = mountAnchor('anchor-specific', 120);
+      const cover = document.createElement('div');
+      document.body.appendChild(cover);
+      const orig = document.elementFromPoint;
+      document.elementFromPoint = jest.fn(() => cover);
+      mockModalCloseVisible = false; // phone: modal X hidden, back closes views
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={chainStep} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent(
+          "Press your device's back button to continue.",
+        );
+      } finally {
+        mockModalCloseVisible = true;
         document.elementFromPoint = orig;
         cover.remove();
         specific.remove();
