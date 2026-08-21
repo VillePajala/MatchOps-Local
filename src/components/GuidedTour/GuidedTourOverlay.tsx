@@ -308,7 +308,8 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             {t('guidedTour.buttons.continue', 'Continue')}
           </button>
         )}
-        {!isActionStep && (
+        {/* Never two primaries: Continue (occluded escape) supersedes Next. */}
+        {!isActionStep && !showContinueBack && (
           <button
             ref={primaryRef}
             type="button"
