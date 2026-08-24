@@ -535,6 +535,51 @@ describe('SoccerField Component - Interaction Testing', () => {
       const canvasAfter = document.querySelector('canvas');
       expect(canvasAfter).toBeInTheDocument();
     });
+
+    /**
+     * The resume repaint must also fire on restore paths that never produce a
+     * visibilitychange (bfcache pageshow, window focus, the app's own
+     * app-resume event) - some Android restores take exactly those paths.
+     * @critical - Recovery mechanism for the flat-green-field bug
+     */
+    it('registers resume repaint listeners (pageshow, focus, app-resume) and removes them on unmount', () => {
+      const addSpy = jest.spyOn(window, 'addEventListener');
+      const removeSpy = jest.spyOn(window, 'removeEventListener');
+      const { unmount } = render(<SoccerField {...defaultProps} />);
+
+      const added = addSpy.mock.calls.map((c) => c[0]);
+      expect(added).toEqual(expect.arrayContaining(['pageshow', 'focus', 'app-resume']));
+
+      unmount();
+      const removed = removeSpy.mock.calls.map((c) => c[0]);
+      expect(removed).toEqual(expect.arrayContaining(['pageshow', 'focus', 'app-resume']));
+
+      addSpy.mockRestore();
+      removeSpy.mockRestore();
+    });
+
+    /**
+     * The app-resume event (dispatched by useAppResume on window) schedules a
+     * repaint even without any visibilitychange.
+     * @critical - Recovery mechanism for the flat-green-field bug
+     */
+    it('schedules a redraw on the app-resume event', () => {
+      const originalRAF = window.requestAnimationFrame;
+      const rafCallback = jest.fn();
+      window.requestAnimationFrame = jest.fn((cb) => {
+        rafCallback();
+        cb(0);
+        return 0;
+      });
+
+      render(<SoccerField {...defaultProps} />);
+      rafCallback.mockClear();
+
+      window.dispatchEvent(new Event('app-resume'));
+      expect(rafCallback).toHaveBeenCalled();
+
+      window.requestAnimationFrame = originalRAF;
+    });
   });
 
   describe('Ref Exposure for Export', () => {

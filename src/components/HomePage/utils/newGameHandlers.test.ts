@@ -152,6 +152,27 @@ describe('newGameHandlers', () => {
     expect(result!.gameState.playersOnField[0].id).toBe('p1');
   });
 
+  it('mirrors a prefilled goalie onto availablePlayers (single source of truth from creation)', async () => {
+    // Regression: the planner prefill carried isGoalie on playersOnField but
+    // availablePlayers was left unmirrored, so the game opened with the two
+    // arrays disagreeing - which inverted the goalie toggle button.
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({
+        initialSelectedPlayerIds: ['p1', 'p2'],
+        prefill: {
+          playersOnField: [{ id: 'p1', name: 'Player 1', isGoalie: true, relX: 0.5, relY: 0.95 }],
+          plannedSubs: [],
+          formationSnapPoints: [],
+        },
+      }),
+    );
+    const available = result!.gameState.availablePlayers;
+    expect(available.find((pl) => pl.id === 'p1')?.isGoalie).toBe(true);
+    // Everyone else cleared - exactly one goalie per game.
+    expect(available.filter((pl) => pl.isGoalie)).toHaveLength(1);
+  });
+
   it('threads the isFriendly flag onto the built game (default false, explicit true)', async () => {
     const def = await buildAndPersistNewGame(createTestDeps(), createBaseRequest());
     expect(def!.gameState.isFriendly).toBe(false);

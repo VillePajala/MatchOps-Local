@@ -8,7 +8,7 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useGameOrchestration, normalizeSingleGoalie } from '../useGameOrchestration';
+import { useGameOrchestration, normalizeSingleGoalie, goalieChangeIsNoop, displayedGoalieStatus, createGoalieRequestGate } from '../useGameOrchestration';
 import type { Player, AppState } from '@/types';
 
 /** Time needed for React Query initialization and hook bootstrapping */
@@ -380,6 +380,70 @@ describe('useGameOrchestration - Goalie Toggle Save Path', () => {
     expect(invalidateQueriesSpy).toBeDefined();
 
     invalidateQueriesSpy.mockRestore();
+  });
+});
+
+describe('goalieChangeIsNoop (field/roster divergence handling)', () => {
+  const roster = (g1: boolean, g2 = false) => [
+    createMockPlayer({ id: 'p1', isGoalie: g1 }),
+    createMockPlayer({ id: 'p2', isGoalie: g2 }),
+  ];
+
+  it('is a no-op when both arrays already agree and nobody else holds the flag', () => {
+    expect(goalieChangeIsNoop(roster(true), roster(true), 'p1', true)).toBe(true);
+    expect(goalieChangeIsNoop(roster(false), roster(false), 'p1', false)).toBe(true);
+  });
+
+  it('is NOT a no-op when the FIELD disagrees even though the roster agrees (prefill divergence)', () => {
+    // Roster says p1 is goalie, field says not - a fix-up must run.
+    expect(goalieChangeIsNoop(roster(true), roster(false), 'p1', true)).toBe(false);
+  });
+
+  it('is NOT a no-op when promoting while another player still holds the flag in either array', () => {
+    expect(goalieChangeIsNoop(roster(true, true), roster(true), 'p1', true)).toBe(false);
+    expect(goalieChangeIsNoop(roster(true), roster(true, true), 'p1', true)).toBe(false);
+  });
+
+  it('is NOT a no-op for a player missing from the roster', () => {
+    expect(goalieChangeIsNoop([], [], 'missing', true)).toBe(false);
+  });
+});
+
+describe('displayedGoalieStatus (the status the toggle button must flip)', () => {
+  it('prefers the FIELD status when the player is on the field', () => {
+    const available = [createMockPlayer({ id: 'p1', isGoalie: false })];
+    const field = [createMockPlayer({ id: 'p1', isGoalie: true })];
+    // Bar displays field-preferred (orange) -> toggling must target false,
+    // i.e. the displayed status is true. Reading only the roster inverted this.
+    expect(displayedGoalieStatus(available, field, 'p1')).toBe(true);
+  });
+
+  it('falls back to the roster status when the player is not on the field', () => {
+    const available = [createMockPlayer({ id: 'p1', isGoalie: true })];
+    expect(displayedGoalieStatus(available, [], 'p1')).toBe(true);
+    expect(displayedGoalieStatus([createMockPlayer({ id: 'p1', isGoalie: false })], [], 'p1')).toBe(false);
+  });
+});
+
+describe('createGoalieRequestGate (queue instead of drop during in-flight saves)', () => {
+  it('lets the first request proceed and queues one arriving while in flight', () => {
+    const gate = createGoalieRequestGate();
+    expect(gate.tryAcquire('p1', true)).toBe(true);
+    // Second request during the save: queued, not run.
+    expect(gate.tryAcquire('p2', true)).toBe(false);
+    // Release drains the queued request so the caller runs it next.
+    expect(gate.release()).toEqual({ playerId: 'p2', isGoalie: true });
+    // Nothing left after the drain.
+    expect(gate.tryAcquire('p2', true)).toBe(true);
+    expect(gate.release()).toBeNull();
+  });
+
+  it('is last-write-wins: only the newest queued request survives', () => {
+    const gate = createGoalieRequestGate();
+    gate.tryAcquire('p1', true);
+    gate.tryAcquire('p2', true);
+    gate.tryAcquire('p3', false);
+    expect(gate.release()).toEqual({ playerId: 'p3', isGoalie: false });
   });
 });
 

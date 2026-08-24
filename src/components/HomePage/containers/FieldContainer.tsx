@@ -31,7 +31,7 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
  */
 export interface PlayerInteractions {
   move: (playerId: string, relX: number, relY: number) => void;
-  moveEnd: () => void;
+  moveEnd: (movedPlayerIds?: string[]) => void;
   remove: (playerId: string) => void;
   drop: (playerId: string, relX: number, relY: number) => void;
   swap: (playerAId: string, playerBId: string) => void;
