@@ -35,7 +35,7 @@
     "buttons": {
       "next": "Next",
       "continue": "Continue",
-      "skip": "Skip",
+      "skip": "Skip guide",
       "finish": "Done"
     },
     "hints": {
@@ -48,7 +48,10 @@
       "savePlayer": "Type the player's name - it shows on their disc on the field (or a nickname, if you set one).",
       "tapTeams": "Tap Teams.",
       "addTeam": "Tap Add Team.",
-      "saveTeam": "Name your team, pick its players, and save.",
+      "saveTeam": "Tap Create.",
+      "teamName": "Give your team a name.",
+      "editRoster": "Tap Edit Roster to pick your players.",
+      "rosterDone": "Pick the players for your team, then tap Done.",
       "openGamesTab": "Open the Games tab.",
       "tapNewGame": "Tap New Game.",
       "chooseTeamStart": "Choose your team, then start the game.",
