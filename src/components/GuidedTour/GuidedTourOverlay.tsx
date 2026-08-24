@@ -111,6 +111,11 @@ function resolveTarget(targets: TourTarget[] | undefined, seen: Set<string>): Re
       // The step's own control lives in the current (scrollable) view - STOP
       // the chain here with a rect-less resolution: hint without a ring, and
       // never the go-back escape (going back would undo the coach's progress).
+      // A covered higher-priority stage still wins here too - same skip-ahead
+      // class as the visible case below (review #722).
+      if (firstBlocked) {
+        return { resolved: { rect: null, target: firstBlocked }, anyOccluded: false };
+      }
       seen.add(target.selector);
       return { resolved: { rect: null, target }, anyOccluded: false };
     }

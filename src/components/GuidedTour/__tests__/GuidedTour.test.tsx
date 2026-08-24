@@ -368,6 +368,46 @@ describe('GuidedTour engine', () => {
       }
     });
 
+    it('a covered higher-priority stage also wins over an OFFSCREEN later stage', () => {
+      // Same skip-ahead class, offscreen combination (review #722): earlier
+      // covered by a sticky bar, later merely scrolled below the viewport.
+      const earlier = mountAnchor('anchor-earlier2', 120);
+      const later = mountAnchor('anchor-later2', 2000); // center below viewport
+      const cover = document.createElement('div');
+      document.body.appendChild(cover);
+      const orig = document.elementFromPoint;
+      document.elementFromPoint = jest.fn(() => cover); // covers the on-screen earlier
+      const steps: TourStep[] = [
+        {
+          id: 'ordered2',
+          titleKey: 'k.o2',
+          title: 'Ordered Step 2',
+          bodyKey: 'k.o2b',
+          body: 'ordered body 2',
+          targets: [
+            { selector: '[data-testid="anchor-earlier2"]', hintKey: 'h.e2', hint: 'Do the earlier thing' },
+            { selector: '[data-testid="anchor-later2"]', hintKey: 'h.l2', hint: 'Do the later thing' },
+          ],
+        },
+      ];
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={steps} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Do the earlier thing');
+        expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('guided-tour-continue')).not.toBeInTheDocument();
+      } finally {
+        document.elementFromPoint = orig;
+        cover.remove();
+        earlier.remove();
+        later.remove();
+      }
+    });
+
     it('the pill carries a tiny skip control that dismisses the guide', () => {
       const specific = mountAnchor('anchor-form2', 120);
       const steps: TourStep[] = [

@@ -313,8 +313,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [formationApplyCount, setFormationApplyCount] = useState(0);
   const placeAllPlayersHandler = fieldCoordination.handlePlaceAllPlayers;
   const handlePlaceAllPlayersTracked = useCallback((presetId: string | null) => {
-    setFormationApplyCount(c => c + 1);
-    placeAllPlayersHandler(presetId);
+    // Count only ACTUAL applies (review #722): the field handler no-ops on an
+    // empty selection, and a no-op tap must not advance the tour's
+    // set-formation step.
+    if (placeAllPlayersHandler(presetId)) {
+      setFormationApplyCount(c => c + 1);
+    }
   }, [placeAllPlayersHandler]);
 
   // Extract stable setters for use in effects
