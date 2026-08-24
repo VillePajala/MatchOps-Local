@@ -444,6 +444,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                       <button
                         type="button"
                         onClick={handleLogOwnGoalClick}
+                        data-testid="tour-confirm-goal"
                         disabled={!scorerId}
                         className="w-full px-4 py-2 rounded-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-400/30"
                       >

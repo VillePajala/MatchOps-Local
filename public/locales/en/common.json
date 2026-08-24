@@ -20,6 +20,10 @@
       "title": "Start your first game",
       "body": "Tap New Game, then choose your team. Playing in a league or tournament? You can add it here or later."
     },
+    "setFormation": {
+      "title": "Set your formation",
+      "body": "Tap the formation button and pick a template - your players take their positions."
+    },
     "startTimer": {
       "title": "Start the clock",
       "body": "Tap the timer, then Start, when the match kicks off."
@@ -55,6 +59,8 @@
       "openGamesTab": "Open the Games tab.",
       "tapNewGame": "Tap New Game.",
       "chooseTeamStart": "Choose your team, then start the game.",
+      "chooseFormation": "Tap the formation button and pick a template.",
+      "confirmGoal": "Pick the scorer, then tap Log Goal.",
       "openTimer": "Tap the timer.",
       "tapStart": "Tap Start when the match kicks off.",
       "tapGoal": "Tap the goal button - stats update live."

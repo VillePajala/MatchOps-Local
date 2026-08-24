@@ -42,6 +42,7 @@ const baseSignals: TourSignals = {
   playersCount: 0,
   targetPlayers: 8,
   teamsCount: 0,
+  hasAppliedFormation: false,
 };
 
 // A minimal two-step tour for testing finish/persistence independent of the
@@ -319,6 +320,78 @@ describe('GuidedTour engine', () => {
         expect(pill.className).toContain('pointer-events-none');
         expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
         expect(screen.queryByTestId('guided-tour-card')).not.toBeInTheDocument();
+      } finally {
+        specific.remove();
+      }
+    });
+
+    it('a covered higher-priority stage wins over a visible later stage (no skipping ahead)', () => {
+      // The team form case: Edit Roster scrolled under the sticky Create bar
+      // (covered), Create itself visible - the guide must say Edit Roster's
+      // hint (rect-less), NOT jump ahead to "Tap Create".
+      const earlier = mountAnchor('anchor-earlier', 120);
+      const later = mountAnchor('anchor-later', 300);
+      const cover = document.createElement('div');
+      document.body.appendChild(cover);
+      const orig = document.elementFromPoint;
+      // Cover ONLY the earlier target's center (y=140); the later one (y=320)
+      // hit-tests as itself.
+      document.elementFromPoint = jest.fn((x: number, y: number) => (y < 200 ? cover : later));
+      const steps: TourStep[] = [
+        {
+          id: 'ordered',
+          titleKey: 'k.o',
+          title: 'Ordered Step',
+          bodyKey: 'k.ob',
+          body: 'ordered body',
+          targets: [
+            { selector: '[data-testid="anchor-earlier"]', hintKey: 'h.e', hint: 'Do the earlier thing' },
+            { selector: '[data-testid="anchor-later"]', hintKey: 'h.l', hint: 'Do the later thing' },
+          ],
+        },
+      ];
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={steps} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        expect(screen.getByTestId('guided-tour-body')).toHaveTextContent('Do the earlier thing');
+        expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('guided-tour-continue')).not.toBeInTheDocument();
+      } finally {
+        document.elementFromPoint = orig;
+        cover.remove();
+        earlier.remove();
+        later.remove();
+      }
+    });
+
+    it('the pill carries a tiny skip control that dismisses the guide', () => {
+      const specific = mountAnchor('anchor-form2', 120);
+      const steps: TourStep[] = [
+        {
+          id: 'form2',
+          titleKey: 'k.f2',
+          title: 'Form Step 2',
+          bodyKey: 'k.f2b',
+          body: 'form body',
+          targets: [
+            { selector: '[data-testid="anchor-form2"]', hintKey: 'h.f2', hint: 'Fill it', compact: true },
+          ],
+        },
+      ];
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={steps} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        fireEvent.click(screen.getByTestId('guided-tour-pill-skip'));
+        expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
+        expect(localStorage.getItem(COMPLETED_KEY)).toBe('1');
       } finally {
         specific.remove();
       }
@@ -731,6 +804,7 @@ describe('GuidedTourController', () => {
         <GuidedTourMatchReporter
           isTimerRunning={p.isTimerRunning ?? false}
           hasLoggedGoal={p.hasLoggedGoal ?? false}
+          hasAppliedFormation={p.hasAppliedFormation ?? false}
         />
       </GuidedTourProvider>
     );
@@ -746,23 +820,27 @@ describe('GuidedTourController', () => {
     rerender(tree({ screen: 'start', hasPlayers: true, hasTeam: true }));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Start your first game');
 
-    // Entering the match -> start-timer step.
+    // Entering the match -> set-formation step first (field stays visible).
     rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true }));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Set your formation');
+
+    // Formation applied -> start-timer step.
+    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true, hasAppliedFormation: true }));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Start the clock');
 
     // Timer starts -> log-goal step.
-    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true, isTimerRunning: true }));
+    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true, hasAppliedFormation: true, isTimerRunning: true }));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Log a goal');
 
     // Goal logged -> done step.
-    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true, isTimerRunning: true, hasLoggedGoal: true }));
+    rerender(tree({ screen: 'home', hasPlayers: true, hasTeam: true, hasAppliedFormation: true, isTimerRunning: true, hasLoggedGoal: true }));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent("You're all set");
   });
 });
 
 describe('GuidedTourMatchReporter', () => {
   it('renders nothing and does not throw without a provider', () => {
-    const { container } = render(<GuidedTourMatchReporter isTimerRunning={false} hasLoggedGoal={false} />);
+    const { container } = render(<GuidedTourMatchReporter isTimerRunning={false} hasLoggedGoal={false} hasAppliedFormation={false} />);
     expect(container).toBeEmptyDOMElement();
   });
 });
