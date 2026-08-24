@@ -165,6 +165,25 @@ export const firstRunTourSteps: TourStep[] = [
     // don't trap the coach if they choose not to link a team; it's re-linkable later.
     advanceWhen: (s) => s.screen === 'home',
   },
+  // Match-view steps use COMPACT pills throughout: the coach must SEE the
+  // field and the running clock - no dimming, no cards over the timer numbers
+  // (owner feedback rounds 2b/3). Pills carry a tiny x to dismiss the guide.
+  {
+    id: 'set-formation',
+    titleKey: 'guidedTour.setFormation.title',
+    title: 'Set your formation',
+    bodyKey: 'guidedTour.setFormation.body',
+    body: 'Tap the formation button and pick a template - your players take their positions.',
+    targets: [
+      {
+        selector: '[data-testid="tour-formation"]',
+        hintKey: 'guidedTour.hints.chooseFormation',
+        hint: 'Tap the formation button and pick a template.',
+        compact: true,
+      },
+    ],
+    advanceWhen: (s) => s.hasAppliedFormation,
+  },
   {
     id: 'start-timer',
     titleKey: 'guidedTour.startTimer.title',
@@ -176,11 +195,13 @@ export const firstRunTourSteps: TourStep[] = [
         selector: '[data-testid="tour-timer-startpause"]',
         hintKey: 'guidedTour.hints.tapStart',
         hint: 'Tap Start when the match kicks off.',
+        compact: true,
       },
       {
         selector: '[data-testid="tour-timer-button"]',
         hintKey: 'guidedTour.hints.openTimer',
         hint: 'Tap the timer.',
+        compact: true,
       },
     ],
     advanceWhen: (s) => s.isTimerRunning,
@@ -193,14 +214,22 @@ export const firstRunTourSteps: TourStep[] = [
     body: 'Open the timer and tap the goal button - your stats update live.',
     targets: [
       {
+        selector: '[data-testid="tour-confirm-goal"]',
+        hintKey: 'guidedTour.hints.confirmGoal',
+        hint: 'Pick the scorer, then tap Log Goal.',
+        compact: true,
+      },
+      {
         selector: '[data-testid="tour-log-goal"]',
         hintKey: 'guidedTour.hints.tapGoal',
         hint: 'Tap the goal button - stats update live.',
+        compact: true,
       },
       {
         selector: '[data-testid="tour-timer-button"]',
         hintKey: 'guidedTour.hints.openTimer',
         hint: 'Tap the timer.',
+        compact: true,
       },
     ],
     advanceWhen: (s) => s.hasLoggedGoal,

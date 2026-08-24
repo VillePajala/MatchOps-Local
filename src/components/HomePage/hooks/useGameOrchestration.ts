@@ -109,9 +109,10 @@ export interface UseGameOrchestrationReturn {
   modalManagerProps: ModalManagerProps;
   isBootstrapping: boolean;
   /** Guided-tour match signals (funnel Phase 2 PR3): the page-level tour reads
-   *  these to auto-advance the start-timer and log-goal steps. */
+   *  these to auto-advance the set-formation, start-timer and log-goal steps. */
   isTimerRunning: boolean;
   hasLoggedGoal: boolean;
+  hasAppliedFormation: boolean;
 }
 
 /**
@@ -305,6 +306,20 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     t,
     onAssignGoalieByPosition: handleAssignGoalieByPosition,
   });
+
+  // Guided-tour signal: has a formation template been applied in THIS match
+  // view? (Component remounts per match, so it naturally resets.) Wraps the
+  // field handler so the ControlBar keeps a single entry point.
+  const [formationApplyCount, setFormationApplyCount] = useState(0);
+  const placeAllPlayersHandler = fieldCoordination.handlePlaceAllPlayers;
+  const handlePlaceAllPlayersTracked = useCallback((presetId: string | null) => {
+    // Count only ACTUAL applies (review #722): the field handler no-ops on an
+    // empty selection, and a no-op tap must not advance the tour's
+    // set-formation step.
+    if (placeAllPlayersHandler(presetId)) {
+      setFormationApplyCount(c => c + 1);
+    }
+  }, [placeAllPlayersHandler]);
 
   // Extract stable setters for use in effects
   // React useState setters are guaranteed stable (same identity across renders)
@@ -2328,7 +2343,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onResetField: fieldCoordination.handleResetFieldClick,
     onClearDrawings: fieldCoordination.handleClearDrawingsForView,
     onAddOpponent: fieldCoordination.handleAddOpponent,
-    onPlaceAllPlayers: fieldCoordination.handlePlaceAllPlayers,
+    onPlaceAllPlayers: handlePlaceAllPlayersTracked,
     selectedPlayerCount: gameSessionState.selectedPlayerIds.length,
     isTacticsBoardView: fieldCoordination.isTacticsBoardView,
     onToggleTacticsBoard: fieldCoordination.handleToggleTacticsBoard,
@@ -2455,5 +2470,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     hasLoggedGoal: (gameSessionState.gameEvents ?? []).some(
       (e) => e.type === 'goal' || e.type === 'opponentGoal',
     ),
+    hasAppliedFormation: formationApplyCount > 0,
   };
 }

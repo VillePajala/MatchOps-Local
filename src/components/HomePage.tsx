@@ -43,6 +43,7 @@ function HomePageInner(props: HomePageProps) {
     isBootstrapping,
     isTimerRunning,
     hasLoggedGoal,
+    hasAppliedFormation,
   } = useGameOrchestration(props);
   const assessmentRatingStyle = useAssessmentRatingStyle();
   const assessmentTemplate = useAssessmentTemplate();
@@ -92,7 +93,7 @@ function HomePageInner(props: HomePageProps) {
         <GameContainer {...gameContainerProps} />
       </div>
       <ModalManager {...modalManagerProps} ratingStyle={assessmentRatingStyle} assessmentTemplate={assessmentTemplate} />
-      <GuidedTourMatchReporter isTimerRunning={isTimerRunning} hasLoggedGoal={hasLoggedGoal} />
+      <GuidedTourMatchReporter isTimerRunning={isTimerRunning} hasLoggedGoal={hasLoggedGoal} hasAppliedFormation={hasAppliedFormation} />
     </>
   );
 }

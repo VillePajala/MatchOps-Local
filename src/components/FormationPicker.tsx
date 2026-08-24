@@ -326,6 +326,7 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
       <button
         ref={buttonRef}
         onClick={handleButtonClick}
+        data-testid="tour-formation"
         disabled={disabled}
         className={`${BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${
           disabled
