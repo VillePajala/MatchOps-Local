@@ -48,6 +48,15 @@ import {
 } from '@/utils/formations';
 import { getPresetById } from '@/config/formationPresets';
 
+// Keeper-zone geometry for the position-driven goalie rule. Promotion uses the
+// tight zone; demotion uses a wider exit threshold (hysteresis) so a goalie
+// nudged around inside the goalmouth doesn't flap between states at the boundary.
+const GOALIE_X = 0.5;
+const GOALIE_Y = 0.95;
+const PROMOTE_THRESHOLD = 0.05; // enter the keeper spot -> become goalie
+const DEMOTE_THRESHOLD = 0.1;   // clearly leave the goalmouth -> stop being goalie
+
+
 /**
  * Parameters for useFieldCoordination hook
  *
@@ -84,13 +93,14 @@ export interface UseFieldCoordinationParams {
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   t: TFunction;
   /**
-   * Called when dragging a player into the goalkeeper spot promotes them to goalie.
-   * The parent (orchestration) owns the authoritative per-game goalie state, so it
-   * mirrors the change onto availablePlayers + persists it (single source of truth).
-   * Position changes only ever PROMOTE — they never clear a goalie (that's the
-   * explicit toggle button's job).
+   * Called when moving a player changes their goalie status by position: into
+   * the keeper spot promotes them (isGoalie: true), the goalie moving clearly
+   * out of the goalmouth demotes them (isGoalie: false). The parent
+   * (orchestration) owns the authoritative per-game goalie state, so it mirrors
+   * the change onto availablePlayers + persists it (single source of truth).
+   * Only the MOVED player's status ever changes by position.
    */
-  onAssignGoalieByPosition?: (playerId: string) => void;
+  onAssignGoalieByPosition?: (playerId: string, isGoalie: boolean) => void;
 }
 
 /**
@@ -116,7 +126,9 @@ export interface UseFieldCoordinationReturn {
 
   // Player interaction handlers
   handlePlayerMove: (playerId: string, relX: number, relY: number) => void;
-  handlePlayerMoveEnd: () => void;
+  /** movedPlayerIds: the disc(s) the coach just moved - scopes the position-
+   *  driven goalie rule to them. Omitted = history save only, no goalie logic. */
+  handlePlayerMoveEnd: (movedPlayerIds?: string[]) => void;
   handlePlayerRemove: (playerId: string) => void;
   handleDropOnField: (playerId: string, relX: number, relY: number) => void;
   handlePlayersSwap: (playerAId: string, playerBId: string) => void;
@@ -250,9 +262,10 @@ export function useFieldCoordination({
   // Uses a version counter to trigger the effect without changing state
   const [playerMoveEndVersion, setPlayerMoveEndVersion] = useState(0);
   const pendingPlayerMoveEndRef = useRef<Player[] | null>(null);
-  // When a move/swap promotes a player to goalie by position, we record the id
-  // here and notify the parent in the same post-commit effect that saves history.
-  const pendingGoalieAssignRef = useRef<string | null>(null);
+  // When a move/swap changes goalie status by position (promotion or demotion),
+  // we record the change(s) here and notify the parent in the same post-commit
+  // effect that saves history.
+  const pendingGoalieAssignRef = useRef<Array<{ playerId: string; isGoalie: boolean }> | null>(null);
 
   // --- Effect: Save to history after player move ends ---
   // This runs AFTER the state update has fully committed, avoiding race conditions
@@ -261,10 +274,12 @@ export function useFieldCoordination({
     if (playerMoveEndVersion > 0 && pendingPlayerMoveEndRef.current) {
       saveStateToHistory({ playersOnField: pendingPlayerMoveEndRef.current });
       pendingPlayerMoveEndRef.current = null;
-      // Mirror a position-driven goalie promotion onto the authoritative roster
+      // Mirror position-driven goalie changes onto the authoritative roster
       // state (parent persists + enforces single goalie across both arrays).
       if (pendingGoalieAssignRef.current && onAssignGoalieByPosition) {
-        onAssignGoalieByPosition(pendingGoalieAssignRef.current);
+        for (const change of pendingGoalieAssignRef.current) {
+          onAssignGoalieByPosition(change.playerId, change.isGoalie);
+        }
       }
       pendingGoalieAssignRef.current = null;
     }
@@ -365,39 +380,55 @@ export function useFieldCoordination({
 
   // Helper to check if a position is the goalkeeper position
   const isGoalkeeperPosition = useCallback((relX: number, relY: number): boolean => {
-    const GOALIE_X = 0.5;
-    const GOALIE_Y = 0.95;
-    const THRESHOLD = 0.05; // 5% tolerance
-    return Math.abs(relX - GOALIE_X) < THRESHOLD && Math.abs(relY - GOALIE_Y) < THRESHOLD;
+    return Math.abs(relX - GOALIE_X) < PROMOTE_THRESHOLD && Math.abs(relY - GOALIE_Y) < PROMOTE_THRESHOLD;
   }, []);
 
-  // Promote-only goalie assignment by position.
+  // Position-driven goalie rule, SCOPED to the player(s) the coach just moved.
   //
-  // Dragging a player INTO the goalkeeper spot marks them goalie and clears any
-  // other goalie (single-goalie invariant). Crucially, this NEVER demotes a
-  // goalie just because positions changed — only the explicit toggle button can
-  // clear a goalie. This prevents the old bug where moving any player silently
-  // unset a manually-assigned goalie.
+  // History of this mechanism (both prior designs produced owner-reported bugs):
+  // - A global demote-on-any-move silently unset a manually-assigned goalie
+  //   whenever anything moved.
+  // - The promote-only replacement scanned ALL discs on every move/tap end, so
+  //   (a) dragging the goalie out of goal left them orange forever, and (b) a
+  //   player parked near goal by a bar-drop/undo suddenly turned orange when
+  //   some OTHER disc was touched.
   //
-  // Returns the (possibly) updated array and the id of a newly promoted goalie
-  // (or null when nothing changed), so the caller can mirror the change onto the
-  // authoritative roster state.
-  const promoteGoalieByPosition = useCallback((players: Player[]): { players: Player[]; newGoalieId: string | null } => {
-    const inZone = players.filter(
-      p => typeof p.relX === 'number' && typeof p.relY === 'number' && isGoalkeeperPosition(p.relX, p.relY)
-    );
-    // Nobody in the keeper spot, or whoever is there is already the goalie → no change.
-    if (inZone.length === 0 || inZone.some(p => p.isGoalie)) {
-      return { players, newGoalieId: null };
+  // The rule that matches the coach's mental model ("orange = who is in goal")
+  // while keeping manual assignments stable: only the MOVED player's own state
+  // changes by position -
+  //   - moved INTO the keeper spot  -> they become goalie (others cleared);
+  //   - the goalie moved CLEARLY OUT of the goalmouth -> they stop being goalie.
+  // Moving other players never touches the goalie, and untouched discs are
+  // never promoted. Manual toggles are only undone by moving that same player.
+  //
+  // Returns the (possibly) updated array plus the status changes to mirror onto
+  // the authoritative roster state (parent persists + enforces the invariant).
+  const applyPositionGoalieRule = useCallback((
+    players: Player[],
+    movedPlayerIds: string[],
+  ): { players: Player[]; changes: Array<{ playerId: string; isGoalie: boolean }> } => {
+    let updated = players;
+    const changes: Array<{ playerId: string; isGoalie: boolean }> = [];
+    for (const movedId of movedPlayerIds) {
+      const moved = updated.find(p => p.id === movedId);
+      if (!moved || typeof moved.relX !== 'number' || typeof moved.relY !== 'number') continue;
+      const inKeeperSpot = isGoalkeeperPosition(moved.relX, moved.relY);
+      if (inKeeperSpot && !moved.isGoalie) {
+        logger.log(`[Goalie] Player ${moved.name} promoted to goalie by position`);
+        // Set the new goalie, clear everyone else (single goalie per game).
+        updated = updated.map(p => (p.isGoalie === (p.id === movedId) ? p : { ...p, isGoalie: p.id === movedId }));
+        changes.push({ playerId: movedId, isGoalie: true });
+      } else if (
+        !inKeeperSpot &&
+        moved.isGoalie &&
+        (Math.abs(moved.relX - GOALIE_X) > DEMOTE_THRESHOLD || Math.abs(moved.relY - GOALIE_Y) > DEMOTE_THRESHOLD)
+      ) {
+        logger.log(`[Goalie] Player ${moved.name} demoted - moved out of the goalmouth`);
+        updated = updated.map(p => (p.id === movedId ? { ...p, isGoalie: false } : p));
+        changes.push({ playerId: movedId, isGoalie: false });
+      }
     }
-    // Tie-break: if two players somehow occupy the keeper zone at once, the first
-    // in array order becomes goalie (single-goalie invariant). This is rare given
-    // the tight ±0.05 threshold around a single spot.
-    const newGoalieId = inZone[0].id;
-    logger.log(`[Goalie] Player ${inZone[0].name} promoted to goalie by position`);
-    // Set the new goalie, clear everyone else (single goalie per game).
-    const updated = players.map(p => (p.isGoalie === (p.id === newGoalieId) ? p : { ...p, isGoalie: p.id === newGoalieId }));
-    return { players: updated, newGoalieId };
+    return { players: updated, changes };
   }, [isGoalkeeperPosition]);
 
   /**
@@ -412,22 +443,24 @@ export function useFieldCoordination({
    *
    * Also updates goalie status based on final position.
    */
-  const handlePlayerMoveEnd = useCallback(() => {
+  const handlePlayerMoveEnd = useCallback((movedPlayerIds?: string[]) => {
     setPlayersOnField(currentPlayers => {
-      // Promote-only goalie assignment based on final positions (never demotes).
-      const { players: updatedPlayers, newGoalieId } = promoteGoalieByPosition(currentPlayers);
+      // Position-driven goalie rule, scoped to the moved disc(s) only.
+      const { players: updatedPlayers, changes } = movedPlayerIds?.length
+        ? applyPositionGoalieRule(currentPlayers, movedPlayerIds)
+        : { players: currentPlayers, changes: [] };
       // NOTE: writing refs inside a state updater assumes the updater runs once
       // before the playerMoveEndVersion effect fires. That holds in production
       // (React 19, non-Strict). This mirrors the existing pendingPlayerMoveEndRef
       // pattern below and is read by the post-commit effect.
       pendingPlayerMoveEndRef.current = updatedPlayers;
-      // Record a position-driven promotion so the effect can notify the parent.
-      pendingGoalieAssignRef.current = newGoalieId;
+      // Record position-driven status changes so the effect can notify the parent.
+      pendingGoalieAssignRef.current = changes.length ? changes : null;
       // Increment version to trigger the save effect
       setPlayerMoveEndVersion(v => v + 1);
       return updatedPlayers;
     });
-  }, [setPlayersOnField, promoteGoalieByPosition]);
+  }, [setPlayersOnField, applyPositionGoalieRule]);
 
   const handlePlayersSwap = useCallback((playerAId: string, playerBId: string) => {
     if (!playerAId || !playerBId || playerAId === playerBId) return;
@@ -440,8 +473,8 @@ export function useFieldCoordination({
       if (typeof playerA.relX !== 'number' || typeof playerA.relY !== 'number') return prevPlayers;
       if (typeof playerB.relX !== 'number' || typeof playerB.relY !== 'number') return prevPlayers;
 
-      // Swap positions only — goalie promotion is handled by handlePlayerMoveEnd
-      // below (which runs promoteGoalieByPosition on the swapped result).
+      // Swap positions only — goalie status is handled by handlePlayerMoveEnd
+      // below (which applies the position rule to BOTH swapped players).
       return prevPlayers.map(p => {
         if (p.id === playerAId) return { ...p, relX: playerB.relX, relY: playerB.relY };
         if (p.id === playerBId) return { ...p, relX: playerA.relX, relY: playerA.relY };
@@ -449,8 +482,10 @@ export function useFieldCoordination({
       });
     });
 
-    // Record swap as a single history entry (also applies promote-only goalie logic)
-    handlePlayerMoveEnd();
+    // Record swap as a single history entry; both participants moved, so the
+    // position-driven goalie rule considers both (the one entering the keeper
+    // spot is promoted, a goalie leaving it is demoted).
+    handlePlayerMoveEnd([playerAId, playerBId]);
   }, [handlePlayerMoveEnd, setPlayersOnField]);
 
   /**
@@ -693,14 +728,21 @@ export function useFieldCoordination({
       logger.log(`Placed ${overflow} overflow players at sub slot positions`);
     }
 
-    // Promote whoever was placed in the goalkeeper spot to goalie (single-goalie).
-    const { players: playersWithGoalieStatus, newGoalieId } = promoteGoalieByPosition(newFieldPlayers);
+    // Place-all moved EVERY placed player, so the position rule considers them
+    // all: whoever landed in the keeper spot is promoted (single-goalie), a
+    // flagged goalie placed elsewhere is demoted.
+    const { players: playersWithGoalieStatus, changes } = applyPositionGoalieRule(
+      newFieldPlayers,
+      newFieldPlayers.map(p => p.id),
+    );
 
     setPlayersOnField(playersWithGoalieStatus);
     saveStateToHistory({ playersOnField: playersWithGoalieStatus });
-    // Mirror the promotion onto the authoritative roster state + persistence.
-    if (newGoalieId && onAssignGoalieByPosition) {
-      onAssignGoalieByPosition(newGoalieId);
+    // Mirror the status changes onto the authoritative roster state + persistence.
+    if (onAssignGoalieByPosition) {
+      for (const change of changes) {
+        onAssignGoalieByPosition(change.playerId, change.isGoalie);
+      }
     }
 
     // Snap points include: GK position + field positions + sub slot positions
@@ -718,7 +760,7 @@ export function useFieldCoordination({
     selectedPlayerIds,
     setPlayersOnField,
     saveStateToHistory,
-    promoteGoalieByPosition,
+    applyPositionGoalieRule,
     onAssignGoalieByPosition,
   ]);
 

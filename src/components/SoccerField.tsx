@@ -26,7 +26,9 @@ interface SoccerFieldProps {
   gameType?: GameType;
   onPlayerDrop: (playerId: string, relX: number, relY: number) => void; // Use relative coords
   onPlayerMove: (playerId: string, relX: number, relY: number) => void; // Use relative coords
-  onPlayerMoveEnd: () => void;
+  /** movedPlayerIds scopes the position-driven goalie rule to the disc(s)
+   *  the coach actually moved (see useFieldCoordination). */
+  onPlayerMoveEnd: (movedPlayerIds?: string[]) => void;
   onDrawingStart: (point: Point) => void; // Point already uses relative
   onDrawingAddPoint: (point: Point) => void; // Point already uses relative
   onDrawingEnd: () => void;
@@ -117,6 +119,19 @@ export function isPositionOccupied(
 const MAX_CACHE_SIZE = 10;
 const backgroundCache: Map<string, HTMLCanvasElement> = new Map();
 
+// Generation counter folded into every cache key. Android can silently discard
+// the backing store of an offscreen canvas while the page is hidden - the map
+// then holds a same-size but BLANK bitmap, and blitting it paints nothing (the
+// owner-reported "flat green field, no lines"). Bumping the generation on every
+// hide/show transition makes all pre-background entries unreachable, so the
+// first draw after resume must re-render the background from scratch. Race-free
+// versus an in-flight draw (unlike clear(), which an old-key write could undo).
+let backgroundCacheGeneration = 0;
+export const invalidateFieldBackgroundCache = (): void => {
+  backgroundCacheGeneration += 1;
+  backgroundCache.clear();
+};
+
 /**
  * Gets an item from the LRU cache, moving it to "most recently used" position.
  */
@@ -165,7 +180,7 @@ const createFieldBackgroundCached = (
 ): HTMLCanvasElement => {
   // dpr is part of the key: the cache holds a device-resolution bitmap, so a
   // DPR change (e.g. moving to an external display) must miss and re-render.
-  const cacheKey = `${W}x${H}@${dpr}-${isTacticsView ? 'tactics' : 'normal'}-${gameType}`;
+  const cacheKey = `g${backgroundCacheGeneration}-${W}x${H}@${dpr}-${isTacticsView ? 'tactics' : 'normal'}-${gameType}`;
 
   // Check if we have a cached version (uses LRU cache)
   const cached = getFromCache(cacheKey);
@@ -706,6 +721,20 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   }), [renderForExport]);
 
   // --- Drawing Logic ---
+  // Latest draw() reachable from stable listeners/timers (identity-free), so a
+  // pending resume repaint can never be cancelled by a deps-driven cleanup.
+  const drawRef = useRef<() => void>(() => {});
+  // Bounded retry when a draw lands during transient zero-size layout (the
+  // documented 100dvh glitch after returning from background): bailing with no
+  // retry left the field permanently blank when layout settled back to the SAME
+  // size (ResizeObserver then never fires). ~20 frames covers the settle.
+  const zeroSizeRetriesRef = useRef(0);
+  const MAX_ZERO_SIZE_RETRIES = 20;
+  // Resume path requests an unconditional backing-store reallocation: Android
+  // can return the MAIN canvas blank from hibernation with its size unchanged,
+  // and only re-assigning width/height reliably re-creates the store.
+  const forceCanvasReallocRef = useRef(false);
+
   const draw = useCallback(() => { 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -718,10 +747,12 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const cssWidth = rect.width;
     const cssHeight = rect.height;
 
-    // Set the canvas buffer size to match the physical pixels
-    if (canvas.width !== cssWidth * dpr || canvas.height !== cssHeight * dpr) {
+    // Set the canvas buffer size to match the physical pixels. The resume path
+    // forces the assignment even at unchanged size - see forceCanvasReallocRef.
+    if (forceCanvasReallocRef.current || canvas.width !== cssWidth * dpr || canvas.height !== cssHeight * dpr) {
       canvas.width = cssWidth * dpr;
       canvas.height = cssHeight * dpr;
+      forceCanvasReallocRef.current = false;
     }
 
     // Reset transform to default state before applying new scaling
@@ -737,10 +768,18 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     // *** SAFETY CHECK: Ensure calculated CSS dimensions are valid ***
     if (W <= 0 || H <= 0 || !Number.isFinite(W) || !Number.isFinite(H)) {
       if (typeof jest === 'undefined') {
-        logger.warn("Canvas dimensions are invalid, skipping draw:", { W, H });
+        logger.warn("Canvas dimensions are invalid, retrying draw:", { W, H });
+      }
+      // Transient layout (e.g. dvh settling after resume): retry a bounded
+      // number of frames instead of giving up - if the final size equals the
+      // pre-background size, no resize event will ever re-trigger us.
+      if (zeroSizeRetriesRef.current < MAX_ZERO_SIZE_RETRIES && typeof requestAnimationFrame === 'function') {
+        zeroSizeRetriesRef.current += 1;
+        requestAnimationFrame(() => drawRef.current());
       }
       return;
     }
+    zeroSizeRetriesRef.current = 0;
 
     // --- Draw Cached Background ---
     // Use prerendered background for performance
@@ -1174,8 +1213,15 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     const resizeObserver = new ResizeObserver(entries => {
         // We are only observing one element, so entries[0] is fine
         if (entries[0]) {
-            // Call draw whenever the observed element size changes
-            draw();
+            // Call draw whenever the observed element size changes. Guarded:
+            // an exception here (e.g. drawImage from an invalidated source
+            // canvas) would otherwise be swallowed by the observer and leave a
+            // silently empty frame.
+            try {
+              draw();
+            } catch (error) {
+              logger.error('[SoccerField] Draw failed in ResizeObserver callback:', error);
+            }
         }
     });
 
@@ -1189,33 +1235,85 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     };
   }, [draw]); // Dependency on `draw` ensures the observer always uses the latest version
 
-  // Force redraw when app returns from background (Android TWA / iOS Safari bfcache fix)
-  // The ResizeObserver won't fire if the canvas size hasn't changed, but the canvas context
-  // might be stale after a long background period. This ensures a fresh redraw on resume.
+  // Keep drawRef pointing at the latest draw (listeners below are identity-free).
   useEffect(() => {
-    let rafId: number | null = null;
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // Clear the background cache to force fresh rendering
-        // This handles cases where the canvas context became invalid
-        backgroundCache.clear();
-        // Use requestAnimationFrame to ensure layout is complete before drawing
-        rafId = requestAnimationFrame(() => {
-          try {
-            draw();
-          } catch (error) {
-            logger.error('[SoccerField] Failed to redraw canvas after resume:', error);
-          }
-        });
+    drawRef.current = draw;
+  }, [draw]);
+
+  // Force redraw when the app returns from background (Android TWA / iOS Safari
+  // bfcache). The ResizeObserver won't fire if the canvas size hasn't changed,
+  // but both the cached background bitmap AND the main canvas backing store can
+  // come back blank after a background period (owner-reported: flat green field
+  // with no lines). Resilience over the old one-shot rAF:
+  //  - the cache GENERATION is bumped (all pre-background bitmaps unreachable),
+  //  - the main canvas backing store is force-reallocated on the next draw,
+  //  - the repaint runs after a double rAF (layout settled) AND again after a
+  //    delay, surviving a late WebView restore that overwrites the first paint,
+  //  - pageshow (bfcache), window focus, and the app's own 'app-resume' event
+  //    are handled too - some Android restore paths never fire visibilitychange.
+  // Empty deps: everything routes through refs, so a pending repaint can never
+  // be cancelled by a deps-driven effect cleanup mid-resume.
+  useEffect(() => {
+    let rafId1: number | null = null;
+    let rafId2: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const paint = () => {
+      try {
+        drawRef.current();
+      } catch (error) {
+        logger.error('[SoccerField] Failed to redraw canvas after resume:', error);
       }
     };
 
+    const scheduleResumeRedraw = () => {
+      invalidateFieldBackgroundCache();
+      forceCanvasReallocRef.current = true;
+      if (rafId1 !== null) cancelAnimationFrame(rafId1);
+      if (rafId2 !== null) cancelAnimationFrame(rafId2);
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      rafId1 = requestAnimationFrame(() => {
+        rafId2 = requestAnimationFrame(paint);
+      });
+      // Second pass: a late WebView restore can replace the first paint with a
+      // blank hibernation snapshot; repainting shortly after makes it stick.
+      timeoutId = setTimeout(() => {
+        forceCanvasReallocRef.current = true;
+        paint();
+      }, 300);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Entering background: retire the current bitmaps immediately so any
+        // draw racing the freeze can't repopulate the map with doomed entries.
+        invalidateFieldBackgroundCache();
+      } else {
+        scheduleResumeRedraw();
+      }
+    };
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) scheduleResumeRedraw();
+    };
+    const handleFocus = () => {
+      if (!document.hidden) scheduleResumeRedraw();
+    };
+    const handleAppResume = () => scheduleResumeRedraw();
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('app-resume', handleAppResume);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('app-resume', handleAppResume);
+      if (rafId1 !== null) cancelAnimationFrame(rafId1);
+      if (rafId2 !== null) cancelAnimationFrame(rafId2);
+      if (timeoutId !== null) clearTimeout(timeoutId);
     };
-  }, [draw]); // Effect re-runs when `draw` changes, ensuring handler uses latest version
+  }, []);
 
   // --- Event Handlers --- 
 
@@ -1528,7 +1626,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
           const currentPos = lastPlayerDragRelPosRef.current ?? null;
           maybeSnapPlayerToFormation(draggingPlayerId, currentPos);
         }
-        onPlayerMoveEnd();
+        onPlayerMoveEnd(draggingPlayerId ? [draggingPlayerId] : undefined);
         setIsDraggingPlayer(false);
         setDraggingPlayerId(null);
         lastPlayerDragRelPosRef.current = null;
@@ -1801,7 +1899,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         const currentPos = lastPlayerDragRelPosRef.current ?? null;
         maybeSnapPlayerToFormation(playerId, currentPos);
       }
-      onPlayerMoveEnd();
+      onPlayerMoveEnd(playerId ? [playerId] : undefined);
       setIsDraggingPlayer(false);
       setDraggingPlayerId(null);
       lastPlayerDragRelPosRef.current = null;
@@ -1837,7 +1935,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         } else if (touchStartTarget?.targetType === 'emptyPosition' && touchStartTarget.emptyPositionCoords && selectedPlayerForSwapId) {
           // Move selected player to empty position
           onPlayerMove(selectedPlayerForSwapId, touchStartTarget.emptyPositionCoords.relX, touchStartTarget.emptyPositionCoords.relY);
-          onPlayerMoveEnd(); // Trigger goalie detection and history save
+          onPlayerMoveEnd([selectedPlayerForSwapId]); // Trigger goalie detection and history save
           setSelectedPlayerForSwapId(null);
         } else if (!touchStartTarget?.targetType) {
           setSelectedPlayerForSwapId(null);

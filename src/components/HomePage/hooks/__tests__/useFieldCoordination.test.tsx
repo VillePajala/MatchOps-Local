@@ -1318,8 +1318,8 @@ describe('useFieldCoordination', () => {
 
     /**
      * Swapping a player INTO the goalie spot promotes them and clears the previous
-     * goalie (single-goalie). Position changes only PROMOTE; the swap updater moves
-     * positions, then handlePlayerMoveEnd applies the promote-only goalie logic.
+     * goalie (single-goalie). The swap updater moves positions, then
+     * handlePlayerMoveEnd applies the position rule to BOTH swapped players.
      * @critical - Goalie status management
      */
     it('promotes the player swapped into the goalie spot and clears the previous goalie', () => {
@@ -1355,8 +1355,9 @@ describe('useFieldCoordination', () => {
     });
 
     /**
-     * Non-destructive guarantee: moving players around must NEVER unset an existing
-     * goalie. Only the explicit toggle button (or promoting a NEW keeper) clears one.
+     * Non-destructive guarantee: a move-end with NO moved ids (or of OTHER
+     * players) must never unset an existing goalie - only moving the goalie
+     * themselves out of the goalmouth (or the toggle button) clears one.
      * @critical - Goalie status management
      */
     it('does not unset the goalie when a non-keeper player moves (no one new enters the spot)', () => {
@@ -1384,6 +1385,108 @@ describe('useFieldCoordination', () => {
       // Goalie flag preserved despite not being in the keeper spot.
       expect(updatedPlayers.find((p: { id: string }) => p.id === 'p1').isGoalie).toBe(true);
       expect(updatedPlayers.find((p: { id: string }) => p.id === 'p2').isGoalie).toBe(false);
+    });
+
+    /**
+     * Owner-reported bug: dragging the goalie out of goal kept them orange at
+     * the new position. The scoped rule demotes the MOVED goalie once they are
+     * clearly outside the goalmouth, and mirrors (id, false) to the parent.
+     * @critical - Goalie status management
+     */
+    it('demotes the goalie when THEY are moved clearly out of the goalmouth', async () => {
+      const goalie = TestFixtures.players.goalkeeper({ id: 'p1', relX: 0.3, relY: 0.4, isGoalie: true });
+      const other = TestFixtures.players.fieldPlayer({ id: 'p2', relX: 0.6, relY: 0.6, isGoalie: false });
+      const mockSetPlayersOnField = jest.fn((updater: unknown) => {
+        if (typeof updater === 'function') {
+          (updater as (prev: Player[]) => Player[])([goalie, other]);
+        }
+      });
+      const onAssignGoalieByPosition = jest.fn();
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [goalie, other],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result, rerender } = renderHook(() =>
+        useFieldCoordination({ ...mockParams, onAssignGoalieByPosition })
+      );
+
+      await act(async () => {
+        result.current.handlePlayerMoveEnd(['p1']);
+        rerender();
+      });
+
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: Player[]) => Player[];
+      const updatedPlayers = updaterFn([goalie, other]);
+      expect(updatedPlayers.find((p: { id: string }) => p.id === 'p1')?.isGoalie).toBe(false);
+      // Mirrored to the authoritative roster state as a demotion.
+      expect(onAssignGoalieByPosition).toHaveBeenCalledWith('p1', false);
+    });
+
+    /**
+     * Owner-reported bug: a player parked in front of goal (e.g. via bar drop)
+     * suddenly turned orange when some OTHER disc was touched. The rule is
+     * scoped to the moved player - untouched discs are never promoted.
+     * @critical - Goalie status management
+     */
+    it('never promotes an untouched disc parked in the keeper spot when another disc moves', () => {
+      const parked = TestFixtures.players.fieldPlayer({ id: 'p1', relX: 0.5, relY: 0.95, isGoalie: false });
+      const mover = TestFixtures.players.fieldPlayer({ id: 'p2', relX: 0.6, relY: 0.6, isGoalie: false });
+      const mockSetPlayersOnField = jest.fn();
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [parked, mover],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlayerMoveEnd(['p2']);
+      });
+
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: Player[]) => Player[];
+      const updatedPlayers = updaterFn([parked, mover]);
+      expect(updatedPlayers.find((p: { id: string }) => p.id === 'p1')?.isGoalie).toBe(false);
+      expect(updatedPlayers.find((p: { id: string }) => p.id === 'p2')?.isGoalie).toBe(false);
+    });
+
+    /**
+     * The moved player entering the keeper spot is still promoted (and the
+     * mirror carries isGoalie: true).
+     * @critical - Goalie status management
+     */
+    it('promotes the moved player when they end in the keeper spot', async () => {
+      const mover = TestFixtures.players.fieldPlayer({ id: 'p2', relX: 0.5, relY: 0.95, isGoalie: false });
+      const mockSetPlayersOnField = jest.fn((updater: unknown) => {
+        if (typeof updater === 'function') {
+          (updater as (prev: Player[]) => Player[])([mover]);
+        }
+      });
+      const onAssignGoalieByPosition = jest.fn();
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [mover],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      const { result, rerender } = renderHook(() =>
+        useFieldCoordination({ ...mockParams, onAssignGoalieByPosition })
+      );
+
+      await act(async () => {
+        result.current.handlePlayerMoveEnd(['p2']);
+        rerender();
+      });
+
+      const updaterFn = mockSetPlayersOnField.mock.calls[0][0] as (prev: Player[]) => Player[];
+      const updatedPlayers = updaterFn([mover]);
+      expect(updatedPlayers.find((p: { id: string }) => p.id === 'p2')?.isGoalie).toBe(true);
+      expect(onAssignGoalieByPosition).toHaveBeenCalledWith('p2', true);
     });
 
     /**
