@@ -183,12 +183,17 @@ export async function buildAndPersistNewGame(
     ? (prefill.formationSnapPoints ?? [])
     : (autoPlacement?.formationSnapPoints ?? []);
   // The match side enforces the single-goalie invariant across BOTH arrays
-  // (see applyGoalieStatus), so mirror the auto-placed goalie onto the roster.
+  // (see applyGoalieStatus), so mirror the placed goalie onto the roster.
   // This intentionally clears isGoalie on every OTHER player - including ones
   // not selected for this game - so the game has exactly one goalie, matching
-  // applyGoalieStatus's per-game override behaviour.
-  const availablePlayersWithGoalie = autoPlacement?.goalieId
-    ? availablePlayersForGame.map((p) => ({ ...p, isGoalie: p.id === autoPlacement.goalieId }))
+  // applyGoalieStatus's per-game override behaviour. The PREFILL branch needs
+  // this too: the planner's XI carries an isGoalie flag on playersOnField, and
+  // leaving availablePlayers unmirrored opened the game with the two arrays
+  // already disagreeing (which inverted the goalie toggle button).
+  const placedGoalieId =
+    autoPlacement?.goalieId ?? (prefill ? reconciledOnField.find((p) => p.isGoalie)?.id ?? null : null);
+  const availablePlayersWithGoalie = placedGoalieId
+    ? availablePlayersForGame.map((p) => ({ ...p, isGoalie: p.id === placedGoalieId }))
     : availablePlayersForGame;
 
   // Sentry breadcrumb: Game creation started

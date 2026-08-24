@@ -2,7 +2,7 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
-      "date": "2026-08-20",
+      "date": "2026-08-24",
       "en": [
         "New here? A guided walkthrough now takes first-time coaches through their first game step by step - add players, create your team, start a game, run the clock, and log a goal - so you're up and running in about a minute.",
         "A getting-started shortcut on the home screen helps you finish setup, like grouping your games into a season."
@@ -10,6 +10,17 @@
       "fi": [
         "Uusi käyttäjä? Ohjattu esittely vie ensikertalaiset valmentajat vaihe vaiheelta ensimmäiseen otteluun - lisää pelaajat, luo joukkue, aloita ottelu, käynnistä kello ja kirjaa maali - joten pääset alkuun noin minuutissa.",
         "Aloituksen pikakuvake kotinäytöllä auttaa viimeistelemään käyttöönoton, kuten ryhmittelemään ottelusi kaudeksi."
+      ]
+    },
+    {
+      "date": "2026-08-24",
+      "en": [
+        "Goalkeeper fix: moving the goalie away from the goal now clears their goalie status, and other players are never accidentally marked as goalie when you move a different disc.",
+        "Field display fix: the soccer field now redraws its lines and graphics reliably after the app returns from the background - no more flat green field."
+      ],
+      "fi": [
+        "Maalivahtikorjaus: kun siirrät maalivahdin pois maalilta, maalivahtimerkintä poistuu - eikä muita pelaajia enää merkitä vahingossa maalivahdiksi toista kiekkoa siirrettäessä.",
+        "Kenttänäkymän korjaus: kenttä piirtää viivat ja grafiikat luotettavasti uudelleen, kun sovellus palaa taustalta - ei enää pelkkää vihreää kenttää."
       ]
     },
     {
