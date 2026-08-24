@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useModalCloseVisible } from '@/styles/modalStyles';
@@ -83,10 +83,14 @@ interface ResolveResult {
  * sheet sits on top. Either way the chain falls through - ultimately to the
  * step body (or, when covered, a "close this view" hint).
  */
-function resolveTarget(targets: TourTarget[] | undefined): ResolveResult {
+function resolveTarget(targets: TourTarget[] | undefined, seen: Set<string>): ResolveResult {
   if (!targets || typeof document === 'undefined') return { resolved: null, anyOccluded: false };
   let anyOccluded = false;
+  const seenCheck = (selector: string) => seen.has(selector);
   for (const target of targets) {
+    // Stage-order gate for coexisting form controls ("name still empty",
+    // "roster picker not visited yet") - skipped stages don't count as occluded.
+    if (target.when && !target.when(seenCheck)) continue;
     const el = document.querySelector(target.selector);
     if (!el) continue;
     const r = el.getBoundingClientRect();
@@ -96,6 +100,10 @@ function resolveTarget(targets: TourTarget[] | undefined): ResolveResult {
       anyOccluded = true;
       continue;
     }
+    // Step-scoped memory: once a stage has been spotlighted, later `when`
+    // gates can sequence past it (e.g. "Edit Roster" only until the roster
+    // editor's Done has been shown).
+    seen.add(target.selector);
     if (visibility === 'offscreen') {
       // The step's own control lives in the current (scrollable) view - STOP
       // the chain here with a rect-less resolution: hint without a ring, and
@@ -133,7 +141,11 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
 }) => {
   const { t } = useTranslation();
   const primaryRef = useRef<HTMLButtonElement>(null);
-  const [result, setResult] = useState<ResolveResult>(() => resolveTarget(step.targets));
+  // Step-scoped stage memory (the overlay remounts per step, resetting it):
+  // records which stages have been spotlighted so `when` gates can sequence.
+  // A memo (not a ref) so the useState initializer below may read it in render.
+  const seen = useMemo(() => new Set<string>(), []);
+  const [result, setResult] = useState<ResolveResult>(() => resolveTarget(step.targets, seen));
   const resolved = result.resolved;
   // Same signal the modals use to decide whether their X is shown: on phones
   // the X is hidden and "close" is the DEVICE BACK BUTTON - the occluded hint
@@ -157,7 +169,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     if (!step.targets || step.targets.length === 0) return;
     const recompute = () =>
       setResult((prev) => {
-        const next = resolveTarget(step.targets);
+        const next = resolveTarget(step.targets, seen);
         // Identity-stable when nothing changed: our own portal DOM also lives in
         // document.body, so the MutationObserver sees our renders - without this
         // guard each render would schedule another, churning forever.
@@ -184,14 +196,19 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       });
     window.addEventListener('resize', recompute);
     window.addEventListener('scroll', recompute, true);
+    // Typing changes input VALUES (a property, not an attribute), which the
+    // MutationObserver cannot see - but `when` gates like "the name is still
+    // empty" depend on it. Capture-phase input events cover every field.
+    document.addEventListener('input', recompute, true);
     const observer = new MutationObserver(recompute);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true });
     return () => {
       window.removeEventListener('resize', recompute);
       window.removeEventListener('scroll', recompute, true);
+      document.removeEventListener('input', recompute, true);
       observer.disconnect();
     };
-  }, [step.targets]);
+  }, [step.targets, seen]);
 
   // Move focus to the primary action when a BOOKEND step appears (keyboard
   // users can Enter through welcome/done). Action steps deliberately do NOT

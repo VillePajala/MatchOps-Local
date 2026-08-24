@@ -554,6 +554,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        data-testid="tour-team-name"
                         placeholder={t('teamDetailsModal.namePlaceholder', 'Enter team name')}
                         className={`w-full px-3 py-2 bg-slate-700 border ${duplicateError ? 'border-red-500' : 'border-slate-600'} rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500`}
                         required
@@ -837,6 +838,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setIsEditingRoster(true)}
+                          data-testid="tour-edit-roster"
                           className={`${secondaryButtonStyle} px-3 py-1 text-xs`}
                         >
                           {t('unifiedTeamModal.editRoster', 'Edit Roster')} →
@@ -893,7 +895,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
         {/* Footer */}
         {isEditingRoster ? (
-          <ModalStickyPrimary onClick={() => setIsEditingRoster(false)}>
+          <ModalStickyPrimary onClick={() => setIsEditingRoster(false)} dataTestId="tour-roster-done">
             {t('common.doneButton', 'Done')}
           </ModalStickyPrimary>
         ) : (

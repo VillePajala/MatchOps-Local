@@ -34,6 +34,9 @@ export interface TourSignals {
   /** The add-players goal - the on-field size of the coach's format (5v5 /
    *  8v8 / 11v11), chosen via the step's chips. Default 8. */
   targetPlayers: number;
+  /** Live team count (from the shared React Query cache), so the create-team
+   *  step advances the moment the team is created - not only on modal close. */
+  teamsCount: number;
 }
 
 /** One stage of a step's tap chain: a control to spotlight + what to do there. */
@@ -52,6 +55,15 @@ export interface TourTarget {
    * either - the form must stay fully visible.
    */
   compact?: boolean;
+  /**
+   * Extra gate for stages whose controls coexist in the DOM (a form's fields
+   * are all present at once, so presence alone cannot ORDER them). Evaluated at
+   * resolve time; the stage is skipped while it returns false. May read the DOM
+   * (e.g. "the name input is still empty") and receives `seen(selector)` - true
+   * once that selector has been spotlighted during this step - to sequence
+   * "go pick players" before "now create" without app-state wiring.
+   */
+  when?: (seen: (selector: string) => boolean) => boolean;
 }
 
 /**
