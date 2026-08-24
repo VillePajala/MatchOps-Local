@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useModalCloseVisible } from '@/styles/modalStyles';
@@ -143,8 +143,9 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   const primaryRef = useRef<HTMLButtonElement>(null);
   // Step-scoped stage memory (the overlay remounts per step, resetting it):
   // records which stages have been spotlighted so `when` gates can sequence.
-  const seenRef = useRef<Set<string>>(new Set());
-  const [result, setResult] = useState<ResolveResult>(() => resolveTarget(step.targets, seenRef.current));
+  // A memo (not a ref) so the useState initializer below may read it in render.
+  const seen = useMemo(() => new Set<string>(), []);
+  const [result, setResult] = useState<ResolveResult>(() => resolveTarget(step.targets, seen));
   const resolved = result.resolved;
   // Same signal the modals use to decide whether their X is shown: on phones
   // the X is hidden and "close" is the DEVICE BACK BUTTON - the occluded hint
@@ -168,7 +169,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
     if (!step.targets || step.targets.length === 0) return;
     const recompute = () =>
       setResult((prev) => {
-        const next = resolveTarget(step.targets, seenRef.current);
+        const next = resolveTarget(step.targets, seen);
         // Identity-stable when nothing changed: our own portal DOM also lives in
         // document.body, so the MutationObserver sees our renders - without this
         // guard each render would schedule another, churning forever.
@@ -207,7 +208,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       document.removeEventListener('input', recompute, true);
       observer.disconnect();
     };
-  }, [step.targets]);
+  }, [step.targets, seen]);
 
   // Move focus to the primary action when a BOOKEND step appears (keyboard
   // users can Enter through welcome/done). Action steps deliberately do NOT
