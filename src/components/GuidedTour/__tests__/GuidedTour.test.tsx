@@ -41,6 +41,7 @@ const baseSignals: TourSignals = {
   hasLoggedGoal: false,
   playersCount: 0,
   targetPlayers: 8,
+  teamsCount: 0,
 };
 
 // A minimal two-step tour for testing finish/persistence independent of the
@@ -558,6 +559,102 @@ describe('GuidedTour engine', () => {
     fireEvent.click(screen.getByText('start-tour'));
     fireEvent.click(screen.getByText('report'));
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Goal');
+  });
+
+  it('sequences coexisting form stages via `when` gates and step-scoped seen-memory', () => {
+    // Simulates the create-team form: name input + roster button + create
+    // button all exist at once; the roster editor's Done appears/disappears.
+    const nameInput = document.createElement('input');
+    nameInput.setAttribute('data-testid', 't-name');
+    nameInput.getBoundingClientRect = () =>
+      ({ top: 50, left: 50, width: 100, height: 40, right: 150, bottom: 90, x: 50, y: 50, toJSON() {} }) as DOMRect;
+    document.body.appendChild(nameInput);
+    const rosterBtn = mountAnchor('t-roster', 120);
+    const createBtn = mountAnchor('t-create', 190);
+
+    const steps: TourStep[] = [
+      {
+        id: 'team-form',
+        titleKey: 'k.t',
+        title: 'Team Form',
+        bodyKey: 'k.tb',
+        body: 'team form body',
+        targets: [
+          { selector: '[data-testid="t-done"]', hintKey: 'h.d', hint: 'Pick players then Done', compact: true },
+          {
+            selector: '[data-testid="t-name"]',
+            hintKey: 'h.n',
+            hint: 'Name it',
+            compact: true,
+            when: () => {
+              const el = document.querySelector<HTMLInputElement>('[data-testid="t-name"]');
+              return !!el && el.value.trim() === '';
+            },
+          },
+          {
+            selector: '[data-testid="t-roster"]',
+            hintKey: 'h.r',
+            hint: 'Pick players',
+            compact: true,
+            when: (seen) => !seen('[data-testid="t-done"]'),
+          },
+          { selector: '[data-testid="t-create"]', hintKey: 'h.c', hint: 'Tap Create', compact: true },
+        ],
+      },
+    ];
+    try {
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={steps} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      // 1. Name empty -> name stage.
+      expect(screen.getByTestId('guided-tour-pill')).toHaveTextContent('Name it');
+
+      // 2. Name filled -> roster stage (Done not yet seen).
+      nameInput.value = 'FC Test';
+      fireEvent.input(nameInput);
+      expect(screen.getByTestId('guided-tour-pill')).toHaveTextContent('Pick players');
+
+      // 3. Roster editor opens (its Done appears) -> Done stage (and marks seen).
+      const doneBtn = mountAnchor('t-done', 260);
+      fireEvent.input(nameInput); // force a resolve pass deterministically
+      expect(screen.getByTestId('guided-tour-pill')).toHaveTextContent('Pick players then Done');
+
+      // 4. Editor closed (Done gone) -> Create stage (roster stage skipped: seen).
+      doneBtn.remove();
+      fireEvent.input(nameInput);
+      expect(screen.getByTestId('guided-tour-pill')).toHaveTextContent('Tap Create');
+    } finally {
+      nameInput.remove();
+      rosterBtn.remove();
+      createBtn.remove();
+      document.querySelector('[data-testid="t-done"]')?.remove();
+    }
+  });
+
+  it('create-team advances live when the team exists (teamsCount)', () => {
+    const steps: TourStep[] = [
+      {
+        id: 'team',
+        titleKey: 'k.t',
+        title: 'Team Step',
+        bodyKey: 'k.tb',
+        body: 'make a team',
+        advanceWhen: (s) => s.teamsCount > 0 || s.hasTeam,
+      },
+      { id: 'after', titleKey: 'k.n', title: 'After Team', bodyKey: 'k.nb', body: 'next body' },
+    ];
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={steps} />
+        <ReportButton signals={{ ...baseSignals, teamsCount: 1 }} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.click(screen.getByText('report'));
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Team');
   });
 
   it('action steps (advanceWhen) show only Skip - the highlighted control is the way forward', () => {

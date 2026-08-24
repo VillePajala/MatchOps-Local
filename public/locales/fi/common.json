@@ -35,7 +35,7 @@
     "buttons": {
       "next": "Seuraava",
       "continue": "Jatka",
-      "skip": "Ohita",
+      "skip": "Ohita opastus",
       "finish": "Valmis"
     },
     "hints": {
@@ -48,7 +48,10 @@
       "savePlayer": "Kirjoita pelaajan nimi - se näkyy pelaajan kiekossa kentällä (tai kutsumanimi, jos annat sellaisen).",
       "tapTeams": "Napauta Joukkueet.",
       "addTeam": "Napauta Lisää joukkue.",
-      "saveTeam": "Nimeä joukkue, valitse sen pelaajat ja tallenna.",
+      "saveTeam": "Napauta Luo.",
+      "teamName": "Anna joukkueelle nimi.",
+      "editRoster": "Napauta Muokkaa kokoonpanoa valitaksesi pelaajat.",
+      "rosterDone": "Valitse joukkueen pelaajat ja napauta Valmis.",
       "openGamesTab": "Avaa Pelit-välilehti.",
       "tapNewGame": "Napauta Uusi ottelu.",
       "chooseTeamStart": "Valitse joukkueesi ja aloita ottelu.",

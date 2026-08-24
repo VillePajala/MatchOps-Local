@@ -4,6 +4,7 @@ import { useEffect, type FC } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { getMasterRoster } from '@/utils/masterRosterManager';
+import { getTeams } from '@/utils/teams';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 
@@ -30,13 +31,23 @@ const GuidedTourRosterReporter: FC = () => {
     enabled: isActive,
   });
 
+  // Same pattern for teams (mutations invalidate ['teams', userId] in
+  // useTeamQueries), so the create-team step advances the moment the team
+  // exists - not only when the club modals eventually close.
+  const { data: teams } = useQuery({
+    queryKey: [...queryKeys.teams, userId],
+    queryFn: () => getTeams(userId),
+    enabled: isActive,
+  });
+
   const playersCount = roster?.length ?? 0;
+  const teamsCount = teams?.length ?? 0;
   const reportSignals = tour?.reportSignals;
 
   useEffect(() => {
     if (!isActive) return;
-    reportSignals?.({ playersCount });
-  }, [isActive, playersCount, reportSignals]);
+    reportSignals?.({ playersCount, teamsCount });
+  }, [isActive, playersCount, teamsCount, reportSignals]);
 
   return null;
 };

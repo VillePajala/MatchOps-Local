@@ -84,11 +84,37 @@ export const firstRunTourSteps: TourStep[] = [
     title: 'Create your team',
     bodyKey: 'guidedTour.createTeam.body',
     body: 'In the Club tab, tap Teams to create your team and add your players to it.',
+    // In-form sequencing (owner feedback): the team form's controls all exist
+    // at once, so `when` gates order them - name first (while empty), then the
+    // roster picker (until its Done has been shown), then Create.
     targets: [
+      {
+        selector: '[data-testid="tour-roster-done"]',
+        hintKey: 'guidedTour.hints.rosterDone',
+        hint: 'Pick the players for your team, then tap Done.',
+        compact: true,
+      },
+      {
+        selector: '[data-testid="tour-team-name"]',
+        hintKey: 'guidedTour.hints.teamName',
+        hint: 'Give your team a name.',
+        compact: true,
+        when: () => {
+          const el = document.querySelector<HTMLInputElement>('[data-testid="tour-team-name"]');
+          return !!el && el.value.trim() === '';
+        },
+      },
+      {
+        selector: '[data-testid="tour-edit-roster"]',
+        hintKey: 'guidedTour.hints.editRoster',
+        hint: 'Tap Edit Roster to pick your players.',
+        compact: true,
+        when: (seen) => !seen('[data-testid="tour-roster-done"]'),
+      },
       {
         selector: '[data-testid="tour-save-team"]',
         hintKey: 'guidedTour.hints.saveTeam',
-        hint: 'Name your team, pick its players, and save.',
+        hint: 'Tap Create.',
         compact: true,
       },
       {
@@ -107,7 +133,9 @@ export const firstRunTourSteps: TourStep[] = [
         hint: 'Open the Club tab.',
       },
     ],
-    advanceWhen: (s) => s.hasTeam,
+    // Advances the moment the team exists (live teams subscription) - not only
+    // when the club modals close.
+    advanceWhen: (s) => s.teamsCount > 0 || s.hasTeam,
   },
   {
     id: 'create-game',
