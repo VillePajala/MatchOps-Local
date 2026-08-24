@@ -1355,9 +1355,9 @@ describe('useFieldCoordination', () => {
     });
 
     /**
-     * Non-destructive guarantee: a move-end with NO moved ids (or of OTHER
-     * players) must never unset an existing goalie - only moving the goalie
-     * themselves out of the goalmouth (or the toggle button) clears one.
+     * Non-destructive guarantee: a move-end with NO moved ids applies no goalie
+     * logic at all - an existing goalie is never unset. (The scoped other-player
+     * case is covered by 'never promotes an untouched disc...' below.)
      * @critical - Goalie status management
      */
     it('does not unset the goalie when a non-keeper player moves (no one new enters the spot)', () => {

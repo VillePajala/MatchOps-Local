@@ -56,7 +56,6 @@ const GOALIE_Y = 0.95;
 const PROMOTE_THRESHOLD = 0.05; // enter the keeper spot -> become goalie
 const DEMOTE_THRESHOLD = 0.1;   // clearly leave the goalmouth -> stop being goalie
 
-
 /**
  * Parameters for useFieldCoordination hook
  *

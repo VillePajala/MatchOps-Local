@@ -1283,22 +1283,40 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       }, 300);
     };
 
+    // Focus alone (desktop alt-tab, devtools clicks) must NOT invalidate the
+    // cache and reallocate the canvas - only a focus following a real
+    // background period, where the backing stores may have been discarded.
+    let wasHidden = false;
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        wasHidden = true;
         // Entering background: retire the current bitmaps immediately so any
         // draw racing the freeze can't repopulate the map with doomed entries.
         invalidateFieldBackgroundCache();
       } else {
+        wasHidden = false;
         scheduleResumeRedraw();
       }
     };
     const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) scheduleResumeRedraw();
+      if (e.persisted) {
+        wasHidden = false;
+        scheduleResumeRedraw();
+      }
     };
     const handleFocus = () => {
-      if (!document.hidden) scheduleResumeRedraw();
+      // Recovery net for restore paths where visibilitychange never fired
+      // visible again (some Android multi-window/screen-off sequences).
+      if (!document.hidden && wasHidden) {
+        wasHidden = false;
+        scheduleResumeRedraw();
+      }
     };
-    const handleAppResume = () => scheduleResumeRedraw();
+    const handleAppResume = () => {
+      wasHidden = false;
+      scheduleResumeRedraw();
+    };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
