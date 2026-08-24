@@ -37,6 +37,9 @@ export interface TourSignals {
   /** Live team count (from the shared React Query cache), so the create-team
    *  step advances the moment the team is created - not only on modal close. */
   teamsCount: number;
+  /** A formation template was applied in the current match view (resets per
+   *  match) - advances the set-formation step. */
+  hasAppliedFormation: boolean;
 }
 
 /** One stage of a step's tap chain: a control to spotlight + what to do there. */

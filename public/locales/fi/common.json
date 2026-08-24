@@ -20,6 +20,10 @@
       "title": "Aloita ensimmäinen ottelu",
       "body": "Napauta Uusi ottelu ja valitse joukkueesi. Pelaatteko sarjassa tai turnauksessa? Voit lisätä sen tästä tai myöhemmin."
     },
+    "setFormation": {
+      "title": "Valitse muodostelma",
+      "body": "Napauta muodostelmapainiketta ja valitse pohja - pelaajat asettuvat paikoilleen."
+    },
     "startTimer": {
       "title": "Käynnistä kello",
       "body": "Napauta ajastinta ja sitten Käynnistä, kun ottelu alkaa."
@@ -55,6 +59,8 @@
       "openGamesTab": "Avaa Pelit-välilehti.",
       "tapNewGame": "Napauta Uusi ottelu.",
       "chooseTeamStart": "Valitse joukkueesi ja aloita ottelu.",
+      "chooseFormation": "Napauta muodostelmapainiketta ja valitse pohja.",
+      "confirmGoal": "Valitse maalintekijä ja napauta Kirjaa maali.",
       "openTimer": "Napauta ajastinta.",
       "tapStart": "Napauta Käynnistä, kun ottelu alkaa.",
       "tapGoal": "Napauta maalipainiketta - tilastot päivittyvät heti."

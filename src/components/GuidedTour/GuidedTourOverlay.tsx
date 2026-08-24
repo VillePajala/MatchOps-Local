@@ -85,7 +85,14 @@ interface ResolveResult {
  */
 function resolveTarget(targets: TourTarget[] | undefined, seen: Set<string>): ResolveResult {
   if (!targets || typeof document === 'undefined') return { resolved: null, anyOccluded: false };
-  let anyOccluded = false;
+  // A higher-priority stage that is PRESENT but covered must not be skipped in
+  // favour of a visible later stage of the same chain: the team form's sticky
+  // Create bar covered the (scrolled-under) Edit Roster button, and the chain
+  // fell through to "Tap Create" before the roster was ever picked. When a
+  // later stage IS visible, we surface the blocked earlier stage's hint
+  // (rect-less, no ring) instead. The go-back escape still triggers only when
+  // NOTHING in the chain is visible (a foreign surface covering everything).
+  let firstBlocked: TourTarget | null = null;
   const seenCheck = (selector: string) => seen.has(selector);
   for (const target of targets) {
     // Stage-order gate for coexisting form controls ("name still empty",
@@ -97,25 +104,36 @@ function resolveTarget(targets: TourTarget[] | undefined, seen: Set<string>): Re
     if (r.width === 0 && r.height === 0) continue;
     const visibility = classifyVisibility(el, r);
     if (visibility === 'covered') {
-      anyOccluded = true;
+      if (!firstBlocked) firstBlocked = target;
       continue;
+    }
+    if (visibility === 'offscreen') {
+      // The step's own control lives in the current (scrollable) view - STOP
+      // the chain here with a rect-less resolution: hint without a ring, and
+      // never the go-back escape (going back would undo the coach's progress).
+      // A covered higher-priority stage still wins here too - same skip-ahead
+      // class as the visible case below (review #722).
+      if (firstBlocked) {
+        return { resolved: { rect: null, target: firstBlocked }, anyOccluded: false };
+      }
+      seen.add(target.selector);
+      return { resolved: { rect: null, target }, anyOccluded: false };
+    }
+    // Visible - but an earlier, higher-priority stage is present and merely
+    // covered within this view: guide to THAT one (hint only) instead.
+    if (firstBlocked) {
+      return { resolved: { rect: null, target: firstBlocked }, anyOccluded: false };
     }
     // Step-scoped memory: once a stage has been spotlighted, later `when`
     // gates can sequence past it (e.g. "Edit Roster" only until the roster
     // editor's Done has been shown).
     seen.add(target.selector);
-    if (visibility === 'offscreen') {
-      // The step's own control lives in the current (scrollable) view - STOP
-      // the chain here with a rect-less resolution: hint without a ring, and
-      // never the go-back escape (going back would undo the coach's progress).
-      return { resolved: { rect: null, target }, anyOccluded: false };
-    }
     return {
       resolved: { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, target },
       anyOccluded: false,
     };
   }
-  return { resolved: null, anyOccluded };
+  return { resolved: null, anyOccluded: firstBlocked !== null };
 }
 
 /**
@@ -392,9 +410,21 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
           <div className="absolute inset-x-0 top-6 px-4">
             <div
               data-testid="guided-tour-pill"
-              className="pointer-events-none mx-auto w-fit max-w-sm rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
+              className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
             >
-              {pillText}
+              <span>{pillText}</span>
+              {/* The ONLY interactive pixel of a pill: dismiss the guide (e.g. the
+                  log-goal step in a goalless game would otherwise sit on screen for
+                  the whole match). */}
+              <button
+                type="button"
+                data-testid="guided-tour-pill-skip"
+                onClick={onSkip}
+                aria-label={skipLabel}
+                className="pointer-events-auto -mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+              >
+                ×
+              </button>
             </div>
           </div>
         ) : (
@@ -433,9 +463,21 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
         <div className={`absolute inset-x-0 px-4 ${targetInTopHalf ? 'bottom-6' : 'top-6'}`}>
           <div
             data-testid="guided-tour-pill"
-            className="pointer-events-none mx-auto w-fit max-w-sm rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
+            className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
           >
-            {pillText}
+            <span>{pillText}</span>
+            {/* The ONLY interactive pixel of a pill: dismiss the guide (e.g. the
+                log-goal step in a goalless game would otherwise sit on screen for
+                the whole match). */}
+            <button
+              type="button"
+              data-testid="guided-tour-pill-skip"
+              onClick={onSkip}
+              aria-label={skipLabel}
+              className="pointer-events-auto -mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+            >
+              ×
+            </button>
           </div>
         </div>
       </div>,

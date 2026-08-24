@@ -66,6 +66,7 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     playersCount: 0,
     targetPlayers: 8, // default format goal; the step's chips override (5/8/11)
     teamsCount: 0,
+    hasAppliedFormation: false,
   };
   const signalsRef = useRef<TourSignals>(initialSignals);
   const [signals, setSignals] = useState<TourSignals>(initialSignals);

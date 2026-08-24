@@ -8,6 +8,8 @@ interface GuidedTourMatchReporterProps {
   isTimerRunning: boolean;
   /** At least one goal has been logged in the current game. */
   hasLoggedGoal: boolean;
+  /** A formation template was applied in this match view. */
+  hasAppliedFormation: boolean;
 }
 
 /**
@@ -16,14 +18,14 @@ interface GuidedTourMatchReporterProps {
  * so the start-timer and log-goal steps auto-advance. Renders nothing. The Home
  * signals are owned by GuidedTourController; `reportSignals` merges both.
  */
-const GuidedTourMatchReporter: FC<GuidedTourMatchReporterProps> = ({ isTimerRunning, hasLoggedGoal }) => {
+const GuidedTourMatchReporter: FC<GuidedTourMatchReporterProps> = ({ isTimerRunning, hasLoggedGoal, hasAppliedFormation }) => {
   // Optional: the reporter is also mounted in HomePage's own tests, which render
   // without a GuidedTourProvider. No provider -> no-op.
   const reportSignals = useGuidedTourOptional()?.reportSignals;
 
   useEffect(() => {
-    reportSignals?.({ isTimerRunning, hasLoggedGoal });
-  }, [isTimerRunning, hasLoggedGoal, reportSignals]);
+    reportSignals?.({ isTimerRunning, hasLoggedGoal, hasAppliedFormation });
+  }, [isTimerRunning, hasLoggedGoal, hasAppliedFormation, reportSignals]);
 
   return null;
 };
