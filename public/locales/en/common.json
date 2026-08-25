@@ -39,6 +39,7 @@
     "buttons": {
       "next": "Next",
       "continue": "Continue",
+      "enough": "That's enough - continue",
       "skip": "Skip guide",
       "finish": "Done"
     },

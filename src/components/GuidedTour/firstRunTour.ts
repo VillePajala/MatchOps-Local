@@ -74,8 +74,15 @@ export const firstRunTourSteps: TourStep[] = [
       fallback: '{{done}} / {{target}} players added',
       compute: (s) => ({ done: s.playersCount, target: s.targetPlayers }),
     },
-    // Reaching the goal advances immediately; closing the list with any players
-    // advances too (hasPlayers refreshes on modal close) - a goal, not a gate.
+    // A goal, not a gate: reaching it advances immediately, closing the list
+    // with any players advances too, and the card offers a purpose-labeled
+    // early-out ("That's enough - continue") once at least one player exists -
+    // an 8v8 coach may want to add just a couple for now (owner feedback).
+    manualAdvance: {
+      labelKey: 'guidedTour.buttons.enough',
+      label: "That's enough - continue",
+      when: (s) => s.playersCount > 0,
+    },
     advanceWhen: (s) => s.playersCount >= s.targetPlayers || s.hasPlayers,
   },
   {

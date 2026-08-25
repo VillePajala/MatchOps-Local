@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
+import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import logger from '@/utils/logger';
 
 /**
@@ -18,6 +19,11 @@ import logger from '@/utils/logger';
 export default function MarketingConsentPrompt() {
   const { t } = useTranslation();
   const { showMarketingPrompt, setMarketingConsent, dismissMarketingPrompt } = useAuth();
+  // Defer to an active first-run guided tour: the prompt used to appear first
+  // and BLOCK the tour, leaving a dead window where a brand-new coach could
+  // wander off unguided. Now the tour runs immediately and this prompt waits
+  // until it finishes (or is skipped). Optional - no provider means no tour.
+  const tourActive = useGuidedTourOptional()?.isActive ?? false;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -25,7 +31,7 @@ export default function MarketingConsentPrompt() {
   // Delay rendering by 5 seconds after showMarketingPrompt becomes true.
   // This avoids the prompt appearing over auth/start screens during post-login transitions.
   useEffect(() => {
-    if (showMarketingPrompt) {
+    if (showMarketingPrompt && !tourActive) {
       timerRef.current = setTimeout(() => {
         setIsReady(true);
       }, 5000);
@@ -42,7 +48,7 @@ export default function MarketingConsentPrompt() {
         timerRef.current = null;
       }
     };
-  }, [showMarketingPrompt]);
+  }, [showMarketingPrompt, tourActive]);
 
   if (!showMarketingPrompt || !isReady) return null;
 

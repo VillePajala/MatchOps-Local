@@ -295,11 +295,14 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
   // mismatched state. So: action steps get ONLY a quiet Skip; the app's own
   // highlighted control is the primary. Bookend steps keep Next/Done.
   const isActionStep = !!step.advanceWhen;
+  // Purpose-labeled early advance on goal steps ("That's enough - continue").
+  const showManualAdvance =
+    isActionStep && !!step.manualAdvance && (!step.manualAdvance.when || step.manualAdvance.when(signals));
 
   const card = (
     <div
       data-testid="guided-tour-card"
-      className="pointer-events-auto mx-auto w-full max-w-sm rounded-2xl border border-slate-600 bg-slate-800 p-4 text-white shadow-2xl"
+      className="pointer-events-auto mx-auto w-full max-w-sm rounded-2xl border border-amber-400/40 bg-slate-800 p-4 text-white shadow-2xl"
       role="dialog"
       aria-label={title}
       onKeyDown={handleKeyDown}
@@ -352,10 +355,20 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
           type="button"
           data-testid="guided-tour-skip"
           onClick={onSkip}
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 ${isActionStep && !showContinueBack ? 'w-full' : 'flex-1'}`}
+          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 ${isActionStep && !showContinueBack && !showManualAdvance ? 'w-full' : 'flex-1'}`}
         >
           {skipLabel}
         </button>
+        {showManualAdvance && step.manualAdvance && (
+          <button
+            type="button"
+            data-testid="guided-tour-manual-advance"
+            onClick={onNext}
+            className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+          >
+            {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
+          </button>
+        )}
         {showContinueBack && (
           <button
             type="button"
@@ -410,7 +423,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
           <div className="absolute inset-x-0 top-6 px-4">
             <div
               data-testid="guided-tour-pill"
-              className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
+              className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border-2 border-amber-400/80 bg-slate-900/95 px-4 py-2 text-center text-sm font-medium text-slate-100 shadow-[0_0_14px_rgba(251,191,36,0.3)]"
             >
               <span>{pillText}</span>
               {/* The ONLY interactive pixel of a pill: dismiss the guide (e.g. the
@@ -457,13 +470,19 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       <div data-testid="guided-tour-overlay" className="pointer-events-none fixed inset-0 z-[80]">
         <div
           data-testid="guided-tour-ring"
-          className="pointer-events-none absolute rounded-lg border-2 border-indigo-400"
+          className="pointer-events-none absolute rounded-lg border-[3px] border-amber-400 shadow-[0_0_0_4px_rgba(251,191,36,0.25),0_0_18px_rgba(251,191,36,0.45)] animate-pulse motion-reduce:animate-none"
           style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
         />
-        <div className={`absolute inset-x-0 px-4 ${targetInTopHalf ? 'bottom-6' : 'top-6'}`}>
+        {/* Pills NEVER pin to the bottom - the phone keyboard swallows them
+            there (owner feedback). Top of screen, or just below a target that
+            sits at the very top. */}
+        <div
+          className={`absolute inset-x-0 px-4 ${hole.top > 150 ? 'top-6' : ''}`}
+          style={hole.top > 150 ? undefined : { top: holeBottom + 12 }}
+        >
           <div
             data-testid="guided-tour-pill"
-            className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border border-slate-600 bg-slate-800/95 px-4 py-2 text-center text-xs text-slate-200 shadow-lg"
+            className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border-2 border-amber-400/80 bg-slate-900/95 px-4 py-2 text-center text-sm font-medium text-slate-100 shadow-[0_0_14px_rgba(251,191,36,0.3)]"
           >
             <span>{pillText}</span>
             {/* The ONLY interactive pixel of a pill: dismiss the guide (e.g. the
@@ -507,7 +526,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
       />
       <div
         data-testid="guided-tour-ring"
-        className="pointer-events-none absolute rounded-lg border-2 border-indigo-400"
+        className="pointer-events-none absolute rounded-lg border-[3px] border-amber-400 shadow-[0_0_0_4px_rgba(251,191,36,0.25),0_0_18px_rgba(251,191,36,0.45)] animate-pulse motion-reduce:animate-none"
         style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }}
       />
       <div className={`absolute inset-x-0 p-4 ${targetInTopHalf ? 'bottom-0 pb-6' : 'top-0 pt-6'}`}>
