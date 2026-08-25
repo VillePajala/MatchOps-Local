@@ -770,6 +770,42 @@ describe('GuidedTour engine', () => {
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Team');
   });
 
+  it('a goal step with manualAdvance offers a purpose-labeled early-out that advances ONE step', () => {
+    const steps: TourStep[] = [
+      {
+        id: 'goal',
+        titleKey: 'k.g',
+        title: 'Goal Step',
+        bodyKey: 'k.gb',
+        body: 'add players',
+        manualAdvance: {
+          labelKey: 'guidedTour.buttons.enough',
+          label: "That's enough - continue",
+          when: (s) => s.playersCount > 0,
+        },
+        advanceWhen: (s) => s.playersCount >= 8,
+      },
+      { id: 'after', titleKey: 'k.n', title: 'After Goal', bodyKey: 'k.nb', body: 'next body' },
+    ];
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={steps} />
+        <ReportButton signals={{ ...baseSignals, playersCount: 2 }} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    // Gate not met yet (0 players): the early-out is hidden.
+    expect(screen.queryByTestId('guided-tour-manual-advance')).not.toBeInTheDocument();
+    // Two players added: the early-out appears...
+    fireEvent.click(screen.getByText('report'));
+    const btn = screen.getByTestId('guided-tour-manual-advance');
+    expect(btn).toHaveTextContent("That's enough - continue");
+    // ...and advances one step (NOT a whole-tour skip).
+    fireEvent.click(btn);
+    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Goal');
+    expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
+  });
+
   it('action steps (advanceWhen) show only Skip - the highlighted control is the way forward', () => {
     const steps: TourStep[] = [
       {

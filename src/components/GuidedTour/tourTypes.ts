@@ -109,6 +109,17 @@ export interface TourStep {
   targets?: TourTarget[];
   /** Optional live progress line on the card ("3 / 8 players added"). */
   progress?: TourProgress;
+  /**
+   * Optional purpose-labeled advance button for goal steps ("That's enough -
+   * continue"): lets the coach move on before the goal is reached (e.g. an 8v8
+   * team adding only a few players for now). Advances ONE step - never the
+   * whole-tour skip. `when` gates its visibility (e.g. at least one player).
+   */
+  manualAdvance?: {
+    labelKey: string;
+    label: string;
+    when?: (signals: TourSignals) => boolean;
+  };
   /** Optional one-tap chips on the card (e.g. the format picker); each merges
    *  its `apply` into the signals. Optionally titled via choicesLabelKey. */
   choices?: TourChoice[];

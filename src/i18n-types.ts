@@ -937,6 +937,7 @@ export type TranslationKey =
   | 'guidedTour.addPlayers.format'
   | 'guidedTour.addPlayers.title'
   | 'guidedTour.buttons.continue'
+  | 'guidedTour.buttons.enough'
   | 'guidedTour.buttons.finish'
   | 'guidedTour.buttons.next'
   | 'guidedTour.buttons.skip'
