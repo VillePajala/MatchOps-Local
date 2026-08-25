@@ -1,7 +1,6 @@
 'use client';
 
 import ModalProvider from '@/contexts/ModalProvider';
-import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
@@ -134,7 +133,7 @@ export default function Home() {
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
-  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut, showMarketingPrompt } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
   // Cloud subscription status - fetched from Supabase (NOT local storage)
@@ -1429,17 +1428,15 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider currentUserId={userId}>
-        <GuidedTourProvider>
         {/* First-run guided tour trigger (headless): starts the coached tour once
-            for a brand-new account, only when the real Start Screen is showing. */}
+            for a brand-new account, only when the real Start Screen is showing.
+            The provider lives in layout.tsx; the marketing-consent prompt defers
+            to an ACTIVE tour (not the other way round), so there is no dead
+            window where the coach can wander off before guidance starts. */}
         <GuidedTourController
           ready={
             !isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
             !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
-            // Never start under the post-signup marketing-consent prompt: two
-            // stacked surfaces confuse, and the spotlight would ring controls
-            // sitting beneath the prompt. The tour begins once it's answered.
-            !showMarketingPrompt &&
             screen === 'start'
           }
           isFirstTimeUser={isFirstTimeUser}
@@ -1637,7 +1634,6 @@ export default function Home() {
         />
 
         {transitionMessage && <TransitionOverlay message={transitionMessage} />}
-        </GuidedTourProvider>
       </ModalProvider>
     </ErrorBoundary>
   );
