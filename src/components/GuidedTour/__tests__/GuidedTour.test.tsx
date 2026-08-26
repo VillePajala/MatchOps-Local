@@ -294,7 +294,7 @@ describe('GuidedTour engine', () => {
       }
     });
 
-    it('an offscreen compact target shows a non-blocking pill pinned top', () => {
+    it('an offscreen compact target shows a non-blocking pill pinned top (with the early-out)', () => {
       const specific = mountAnchor('anchor-form', 2000);
       const steps: TourStep[] = [
         {
@@ -306,6 +306,8 @@ describe('GuidedTour engine', () => {
           targets: [
             { selector: '[data-testid="anchor-form"]', hintKey: 'h.f', hint: 'Fill and start', compact: true },
           ],
+          manualAdvance: { labelKey: 'guidedTour.buttons.nextPhase', label: 'Next phase' },
+          advanceWhen: (s) => s.playersCount >= 8,
         },
       ];
       try {
@@ -318,6 +320,8 @@ describe('GuidedTour engine', () => {
         const pill = screen.getByTestId('guided-tour-pill');
         expect(pill).toHaveTextContent('Fill and start');
         expect(pill.className).toContain('pointer-events-none');
+        // The rect-less (offscreen) pill branch renders the early-out too.
+        expect(screen.getByTestId('guided-tour-pill-advance')).toHaveTextContent('Next phase');
         expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
         expect(screen.queryByTestId('guided-tour-card')).not.toBeInTheDocument();
       } finally {
