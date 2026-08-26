@@ -294,7 +294,7 @@ describe('GuidedTour engine', () => {
       }
     });
 
-    it('an offscreen compact target shows a non-blocking pill pinned top', () => {
+    it('an offscreen compact target shows a non-blocking pill pinned top (with the early-out)', () => {
       const specific = mountAnchor('anchor-form', 2000);
       const steps: TourStep[] = [
         {
@@ -306,6 +306,8 @@ describe('GuidedTour engine', () => {
           targets: [
             { selector: '[data-testid="anchor-form"]', hintKey: 'h.f', hint: 'Fill and start', compact: true },
           ],
+          manualAdvance: { labelKey: 'guidedTour.buttons.nextPhase', label: 'Next phase' },
+          advanceWhen: (s) => s.playersCount >= 8,
         },
       ];
       try {
@@ -318,6 +320,8 @@ describe('GuidedTour engine', () => {
         const pill = screen.getByTestId('guided-tour-pill');
         expect(pill).toHaveTextContent('Fill and start');
         expect(pill.className).toContain('pointer-events-none');
+        // The rect-less (offscreen) pill branch renders the early-out too.
+        expect(screen.getByTestId('guided-tour-pill-advance')).toHaveTextContent('Next phase');
         expect(screen.queryByTestId('guided-tour-ring')).not.toBeInTheDocument();
         expect(screen.queryByTestId('guided-tour-card')).not.toBeInTheDocument();
       } finally {
@@ -432,6 +436,50 @@ describe('GuidedTour engine', () => {
         fireEvent.click(screen.getByTestId('guided-tour-pill-skip'));
         expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
         expect(localStorage.getItem(COMPLETED_KEY)).toBe('1');
+      } finally {
+        specific.remove();
+      }
+    });
+
+    it('a compact goal stage carries the Next phase early-out inside the pill', () => {
+      const specific = mountAnchor('anchor-form3', 300);
+      const steps: TourStep[] = [
+        {
+          id: 'form3',
+          titleKey: 'k.f3',
+          title: 'Goal Pill Step',
+          bodyKey: 'k.f3b',
+          body: 'add things',
+          targets: [
+            { selector: '[data-testid="anchor-form3"]', hintKey: 'h.f3', hint: 'Keep adding', compact: true },
+          ],
+          manualAdvance: {
+            labelKey: 'guidedTour.buttons.nextPhase',
+            label: 'Next phase',
+            when: (s) => s.playersCount > 0,
+          },
+          advanceWhen: (s) => s.playersCount >= 8,
+        },
+        { id: 'after', titleKey: 'k.n3', title: 'After Pill Goal', bodyKey: 'k.n3b', body: 'next body' },
+      ];
+      try {
+        render(
+          <GuidedTourProvider>
+            <StartButton steps={steps} />
+            <ReportButton signals={{ ...baseSignals, playersCount: 2 }} />
+          </GuidedTourProvider>,
+        );
+        fireEvent.click(screen.getByText('start-tour'));
+        // Gate unmet: pill shows, no advance control.
+        expect(screen.queryByTestId('guided-tour-pill-advance')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByText('report'));
+        // Two added: the coach can keep tapping the highlighted control OR
+        // move on via the pill's explicit Next phase button.
+        const advance = screen.getByTestId('guided-tour-pill-advance');
+        expect(advance).toHaveTextContent('Next phase');
+        fireEvent.click(advance);
+        expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Pill Goal');
+        expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
       } finally {
         specific.remove();
       }
@@ -779,8 +827,8 @@ describe('GuidedTour engine', () => {
         bodyKey: 'k.gb',
         body: 'add players',
         manualAdvance: {
-          labelKey: 'guidedTour.buttons.enough',
-          label: "That's enough - continue",
+          labelKey: 'guidedTour.buttons.nextPhase',
+          label: 'Next phase',
           when: (s) => s.playersCount > 0,
         },
         advanceWhen: (s) => s.playersCount >= 8,
@@ -799,7 +847,7 @@ describe('GuidedTour engine', () => {
     // Two players added: the early-out appears...
     fireEvent.click(screen.getByText('report'));
     const btn = screen.getByTestId('guided-tour-manual-advance');
-    expect(btn).toHaveTextContent("That's enough - continue");
+    expect(btn).toHaveTextContent('Next phase');
     // ...and advances one step (NOT a whole-tour skip).
     fireEvent.click(btn);
     expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('After Goal');
