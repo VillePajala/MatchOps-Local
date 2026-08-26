@@ -39,7 +39,7 @@
     "buttons": {
       "next": "Seuraava",
       "continue": "Jatka",
-      "enough": "Riittää - jatka",
+      "nextPhase": "Seuraava vaihe",
       "skip": "Ohita opastus",
       "finish": "Valmis"
     },
