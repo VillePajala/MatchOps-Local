@@ -50,6 +50,9 @@ export const firstRunTourSteps: TourStep[] = [
         selector: '[data-testid="tour-add-player"]',
         hintKey: 'guidedTour.hints.addPlayer',
         hint: 'Tap Add Player. Fill your lineup - or close the list when your squad is in.',
+        // Pill, not card: a card in the roster list could cover the very
+        // button it points at; the pill carries the "Seuraava vaihe" early-out.
+        compact: true,
       },
       {
         selector: '[data-testid="tour-players"]',
@@ -79,8 +82,8 @@ export const firstRunTourSteps: TourStep[] = [
     // early-out ("That's enough - continue") once at least one player exists -
     // an 8v8 coach may want to add just a couple for now (owner feedback).
     manualAdvance: {
-      labelKey: 'guidedTour.buttons.enough',
-      label: "That's enough - continue",
+      labelKey: 'guidedTour.buttons.nextPhase',
+      label: 'Next phase',
       when: (s) => s.playersCount > 0,
     },
     advanceWhen: (s) => s.playersCount >= s.targetPlayers || s.hasPlayers,

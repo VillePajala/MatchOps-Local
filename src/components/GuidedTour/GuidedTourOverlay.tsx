@@ -426,9 +426,19 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
               className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border-2 border-amber-400/80 bg-slate-900/95 px-4 py-2 text-center text-sm font-medium text-slate-100 shadow-[0_0_14px_rgba(251,191,36,0.3)]"
             >
               <span>{pillText}</span>
-              {/* The ONLY interactive pixel of a pill: dismiss the guide (e.g. the
-                  log-goal step in a goalless game would otherwise sit on screen for
-                  the whole match). */}
+              {/* Interactive pill controls: the explicit "Next phase" early-out on
+                  goal steps (keep tapping the highlighted control to continue, or
+                  move on before the target is reached), and the guide dismisser. */}
+              {showManualAdvance && step.manualAdvance && (
+                <button
+                  type="button"
+                  data-testid="guided-tour-pill-advance"
+                  onClick={onNext}
+                  className="pointer-events-auto -my-1 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-500"
+                >
+                  {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
+                </button>
+              )}
               <button
                 type="button"
                 data-testid="guided-tour-pill-skip"
@@ -485,9 +495,19 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             className="pointer-events-none mx-auto flex w-fit max-w-sm items-center gap-2 rounded-full border-2 border-amber-400/80 bg-slate-900/95 px-4 py-2 text-center text-sm font-medium text-slate-100 shadow-[0_0_14px_rgba(251,191,36,0.3)]"
           >
             <span>{pillText}</span>
-            {/* The ONLY interactive pixel of a pill: dismiss the guide (e.g. the
-                log-goal step in a goalless game would otherwise sit on screen for
-                the whole match). */}
+            {/* Interactive pill controls: the explicit "Next phase" early-out on
+                goal steps (keep tapping the highlighted control to continue, or
+                move on before the target is reached), and the guide dismisser. */}
+            {showManualAdvance && step.manualAdvance && (
+              <button
+                type="button"
+                data-testid="guided-tour-pill-advance"
+                onClick={onNext}
+                className="pointer-events-auto -my-1 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-indigo-500"
+              >
+                {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
+              </button>
+            )}
             <button
               type="button"
               data-testid="guided-tour-pill-skip"
