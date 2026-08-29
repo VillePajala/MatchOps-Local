@@ -3,15 +3,28 @@
 **Goal:** stop new-install churn before spending energy on growth. Evidence shows
 installs are lost at the front door, not to bugs.
 
-**Status as of 2026-08-20:** Phase 1 (auth quick wins, #704) and **Phase 2 (guided
-onboarding) complete** - all four Phase-2 PRs merged into `feat/new-user-funnel` (#705
-engine, #706 Home steps, #707 match steps, #708 getting-started banner), each CI-green and
-Claude-approved. Phase 4 investigated and found already-resolved (no live bug). A no-merge
-PR of `feat/new-user-funnel -> master` is open for review. **Phase 3 (Google sign-in) is
-deferred** - it needs a Google OAuth client created in Google Cloud + Supabase provider
-config + real-TWA redirect testing, none of which are self-contained code changes; it will
-be a separate follow-up. No real users yet, so phases are judged by whether the first-run
-flow feels right, not by metrics.
+**Status as of 2026-08-26 - PAUSED (feature-complete, awaiting owner sign-off).**
+Phase 1 (auth quick wins, #704) and **Phase 2 (guided first-run onboarding) are complete
+and iterated through 13 owner phone-testing rounds** - PRs 1-18 all merged into
+`feat/new-user-funnel`, each CI-green and Claude-review-approved. Phase 4 was found
+already-resolved (no live bug). **Master PR #709 (`feat/new-user-funnel -> master`) is
+open, all CI green, review Approve, synced with master (includes the #721 goalie/field
+fixes) - NOT merged; the owner merges after a final satisfied test pass.** **Phase 3
+(Google sign-in) is deferred** - it needs a Google OAuth client created in Google Cloud +
+Supabase provider config + real-TWA redirect testing; none is a self-contained code
+change. No real users yet, so phases are judged by whether the first-run flow feels right,
+not by metrics.
+
+**Why paused:** the base structure is judged right (owner, round 12-13); remaining work is
+polish found by phone testing, not design. Work resumes with a test round on the preview.
+
+**To resume:** (1) free the test account on staging (delete `vituscastor@gmail.com` via
+the Supabase admin API - staging only, `uncyxrffqrloypgjalzz`); (2) test the preview
+`match-ops-local-git-feat-new-user-funnel-ville-pajalas-projects.vercel.app` as a fresh
+signup, or gear -> "Aloitusopastus" to re-run the tour on an existing account; (3) fix
+findings as PR 19+ into `feat/new-user-funnel` (same loop: CI + Claude review, merge on
+approve); (4) when satisfied, the owner merges #709 (it carries a release-notes entry -
+re-date it to the merge day); (5) then Phase 3.
 
 **Branching model:** long-lived integration branch `feat/new-user-funnel` off master.
 Each phase/PR is a sub-branch -> PR into `feat/new-user-funnel`, merged after CI green +
@@ -121,9 +134,44 @@ All PRs target `feat/new-user-funnel`; each merges after CI green + Claude revie
 When all are merged, open `feat/new-user-funnel -> master` and do **NOT** merge (loop CI +
 review, stop when review-ready).
 
-**Progress:** PR 1 (#705) ✅ merged, PR 2 (#706) ✅ merged, PR 3 (#707) ✅ merged, PR 4 (#708)
-✅ merged - Phase 2 done. PR 5 (Google sign-in) deferred (external deps, see status above).
-Master PR opened (no merge).
+**Progress:** PRs 1-4 (#705-#708) built the engine, Home steps, match steps and the
+getting-started banner. PRs 5-18 (#710-#724) are the phone-testing iterations, each fixing
+what the owner saw on a real device. Google sign-in (Phase 3) deferred. Master PR #709 open,
+green, approved, not merged.
+
+**What shipped in the iterations (PRs 5-18), so nobody re-litigates them:**
+- *Guidance never drives the app.* No Next on action steps (the highlighted control is the
+  way forward); Skip is labeled "Ohita opastus"; no close buttons injected into modals.
+  The one exception is **Jatka** = `history.back()`, shown only when NOTHING in the
+  step's tap chain is visible (a foreign surface covers it), gated so it can never close a
+  live match (lifted-surface count vs a baseline: 0 on Start, 1 in a match).
+- *Tap chains.* Each action step lists targets most-specific-first with a per-stage hint;
+  the overlay spotlights the first one visible. `when(seen)` gates order coexisting form
+  controls (team name while empty -> Muokkaa kokoonpanoa until its Valmis was shown ->
+  Luo). A **covered higher-priority stage wins over a visible or offscreen later stage**
+  (the sticky Luo bar used to make the chain skip the roster button).
+- *Live signals.* Player/team counts come from the shared React Query cache
+  (`GuidedTourRosterReporter`), match signals from orchestration
+  (`GuidedTourMatchReporter`: timer running, goal logged, formation applied - counting
+  REAL placements only). Steps advance the moment state changes, not on modal close.
+- *Player goal, not gate.* Format chips 5v5/8v8/11v11 set the target (default 8); live
+  counter; auto-advance at target or on closing the list with any players; explicit
+  **"Seuraava vaihe"** early-out in the pill once >= 1 player exists.
+- *Compact pills.* Form stages and ALL match stages are non-blocking pills (no dim, so
+  the field and the running clock stay visible). Pills never pin to the bottom (phone
+  keyboard) and carry a tiny x to dismiss the guide.
+- *Match half.* create game -> **set formation** (new step) -> start clock -> log a goal
+  (the goal dialog's own Kirjaa maali button is a guided stage) -> done.
+- *Sequencing.* The tour starts as soon as the Start Screen is ready; the
+  marketing-consent prompt DEFERS while a tour is active (provider hoisted to
+  `layout.tsx`). Restart any time via gear -> "Aloitusopastus".
+- *Visual identity.* Brand amber (logo color), not app indigo: pulsing glow ring,
+  high-contrast pills, amber card accent.
+
+**Known open polish (from the review nits, none blocking):** pill JSX is duplicated across
+the two compact render branches; `set-formation`/`tour-confirm-goal` anchors are only
+referenced as selectors (no test renders the real FormationPicker/GoalLogModal with the
+tour). Fold in when those files are next touched.
 
 **Engine design.** The tour is a small **state machine**, not a fixed coachmark reel,
 because the target controls live inside modals. Each step declares a target (DOM
