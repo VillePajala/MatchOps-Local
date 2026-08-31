@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
-import { useSetupWizardActive } from '@/components/SetupWizard';
+import { useSetupWizardActive } from '@/components/setupWizardActive';
 import logger from '@/utils/logger';
 
 /**

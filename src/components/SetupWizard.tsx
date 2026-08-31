@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
@@ -8,6 +8,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { addPlayer } from '@/utils/masterRosterManager';
 import { addTeam, setTeamRoster } from '@/utils/teams';
+import { setSetupWizardActive } from './setupWizardActive';
 import type { Player, Team, TeamPlayer } from '@/types';
 import logger from '@/utils/logger';
 
@@ -21,31 +22,6 @@ import logger from '@/utils/logger';
  * composition picks the coach up instead. Replaces the auto-started guided
  * tour, which is now opt-in (gear -> "Aloitusopastus").
  */
-
-// --- Wizard-active store (module level) -------------------------------------
-// The marketing-consent prompt lives in layout.tsx OUTSIDE the page tree, so it
-// can't read page state; this tiny external store lets it defer while the
-// wizard is on screen (same role the guided tour's isActive plays for it).
-let wizardActive = false;
-const listeners = new Set<() => void>();
-const setWizardActive = (value: boolean) => {
-  if (wizardActive === value) return;
-  wizardActive = value;
-  listeners.forEach((l) => l());
-};
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-};
-const getSnapshot = () => wizardActive;
-const getServerSnapshot = () => false;
-
-/** True while the setup wizard is mounted - the marketing prompt defers on it. */
-export function useSetupWizardActive(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-}
 
 // --- Per-user one-time flag --------------------------------------------------
 // Same localStorage pattern as the guided tour's completion flag.
@@ -102,8 +78,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const createdTeamRef = useRef<Team | null>(null);
 
   useEffect(() => {
-    setWizardActive(true);
-    return () => setWizardActive(false);
+    setSetupWizardActive(true);
+    return () => setSetupWizardActive(false);
   }, []);
 
   const finish = useCallback(() => {

@@ -28,7 +28,7 @@ jest.mock('@/contexts/GuidedTourProvider', () => ({
 // Wizard-deferral control (Onboarding v2): the prompt must also wait while the
 // first-sign-in setup wizard is on screen.
 let mockWizardActive = false;
-jest.mock('@/components/SetupWizard', () => ({
+jest.mock('@/components/setupWizardActive', () => ({
   useSetupWizardActive: () => mockWizardActive,
 }));
 

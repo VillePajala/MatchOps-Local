@@ -1,7 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import SetupWizard, { isSetupWizardDone, useSetupWizardActive } from '../SetupWizard';
+import SetupWizard, { isSetupWizardDone } from '../SetupWizard';
+import { useSetupWizardActive } from '../setupWizardActive';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
