@@ -159,6 +159,16 @@ export function useAuth(): AuthContextValue {
  * - Cloud available: Manages Supabase auth (user can sign in even in local mode)
  * - Cloud unavailable: Always "authenticated" as local user (no-op)
  */
+/**
+ * Provider-optional variant: returns undefined instead of throwing when no
+ * AuthProvider is mounted (e.g. isolated component tests). Prefer useAuth in
+ * app code; use this only in leaf components that must degrade gracefully
+ * (FirstVisitIntro renders nothing without a settled auth context).
+ */
+export function useAuthOptional(): AuthContextValue | undefined {
+  return useContext(AuthContext) ?? undefined;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authService, setAuthService] = useState<AuthService | null>(null);
   const [user, setUser] = useState<User | null>(null);

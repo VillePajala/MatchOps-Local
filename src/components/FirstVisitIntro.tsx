@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDataStore } from '@/hooks/useDataStore';
+import { useAuthOptional } from '@/contexts/AuthProvider';
+import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 
 /**
  * FirstVisitIntro - Onboarding v2's permanent education layer (PR 21).
@@ -54,10 +55,27 @@ interface FirstVisitIntroProps {
 
 const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overlay = false, className = '' }) => {
   const { t } = useTranslation();
-  const { userId } = useDataStore();
+  // Provider-OPTIONAL on purpose: without a mounted (and settled) auth context
+  // the banner renders nothing - so isolated host tests need no providers, and
+  // a cloud user's dismissal can never be misfiled under the 'local' key while
+  // auth is still resolving (review #728).
+  const auth = useAuthOptional();
+  // While the guided tour is ACTIVE its own hints own these surfaces - never
+  // stack both messages (review #728). The banner simply waits for a later
+  // visit; the seen flag is untouched.
+  const tourActive = useGuidedTourOptional()?.isActive ?? false;
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed || isSeen(surface, userId)) return null;
+  const settled = !!auth && !auth.isLoading;
+  const userId = settled ? (auth?.user?.id ?? null) : undefined;
+  // Memoized: FieldContainer re-renders per drag frame and TimerOverlay per
+  // clock tick - no localStorage read on those hot paths (review #728).
+  const initiallySeen = useMemo(
+    () => (userId === undefined ? true : isSeen(surface, userId)),
+    [surface, userId],
+  );
+
+  if (dismissed || tourActive || userId === undefined || initiallySeen) return null;
 
   const base = overlay
     ? 'absolute inset-x-3 top-3 z-20 rounded-xl border border-indigo-400/40 border-l-[3px] border-l-indigo-400 bg-slate-900/95 px-4 py-3 shadow-xl backdrop-blur-sm'
