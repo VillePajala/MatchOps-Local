@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
+import { useSetupWizardActive } from '@/components/setupWizardActive';
 import logger from '@/utils/logger';
 
 /**
@@ -24,6 +25,9 @@ export default function MarketingConsentPrompt() {
   // wander off unguided. Now the tour runs immediately and this prompt waits
   // until it finishes (or is skipped). Optional - no provider means no tour.
   const tourActive = useGuidedTourOptional()?.isActive ?? false;
+  // Same deferral for the first-sign-in setup wizard (Onboarding v2): the
+  // prompt must never pop over the wizard's two steps.
+  const wizardActive = useSetupWizardActive();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,7 +35,7 @@ export default function MarketingConsentPrompt() {
   // Delay rendering by 5 seconds after showMarketingPrompt becomes true.
   // This avoids the prompt appearing over auth/start screens during post-login transitions.
   useEffect(() => {
-    if (showMarketingPrompt && !tourActive) {
+    if (showMarketingPrompt && !tourActive && !wizardActive) {
       timerRef.current = setTimeout(() => {
         setIsReady(true);
       }, 5000);
@@ -48,7 +52,7 @@ export default function MarketingConsentPrompt() {
         timerRef.current = null;
       }
     };
-  }, [showMarketingPrompt, tourActive]);
+  }, [showMarketingPrompt, tourActive, wizardActive]);
 
   if (!showMarketingPrompt || !isReady) return null;
 
