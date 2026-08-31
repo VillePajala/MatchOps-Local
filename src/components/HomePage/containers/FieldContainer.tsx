@@ -25,6 +25,7 @@ import type {
 import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -272,6 +273,13 @@ export function FieldContainer({
 
   return (
     <div className="flex-grow relative bg-black overflow-hidden">
+      {/* First-visit orientation card (Onboarding v2 PR 21): overlays the top
+          of the pitch once, never blocks it. */}
+      <FirstVisitIntro
+        overlay
+        surface="match-field"
+        text={t('firstVisit.matchField', 'This is your field. Place players with the formation button - the clock and goals live in the timer.')}
+      />
       {/* DELIBERATE: the planned-sub nudge (inside TimerOverlay) is only
           visible while the large timer overlay is open - the same surface the
           existing interval sub-alerts use. On game day the overlay IS the
