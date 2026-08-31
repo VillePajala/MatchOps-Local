@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
-import { useSetupWizardActive } from '@/components/setupWizardActive';
+import { useFirstGameExists, useSetupWizardActive } from '@/components/setupWizardActive';
 import logger from '@/utils/logger';
 
 /**
@@ -28,6 +28,9 @@ export default function MarketingConsentPrompt() {
   // Same deferral for the first-sign-in setup wizard (Onboarding v2): the
   // prompt must never pop over the wizard's two steps.
   const wizardActive = useSetupWizardActive();
+  // Re-gate (Onboarding v2 PR 22): never mid-onboarding - the prompt waits
+  // until the FIRST GAME exists. Existing users with games see no change.
+  const hasFirstGame = useFirstGameExists();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,7 +38,7 @@ export default function MarketingConsentPrompt() {
   // Delay rendering by 5 seconds after showMarketingPrompt becomes true.
   // This avoids the prompt appearing over auth/start screens during post-login transitions.
   useEffect(() => {
-    if (showMarketingPrompt && !tourActive && !wizardActive) {
+    if (showMarketingPrompt && !tourActive && !wizardActive && hasFirstGame) {
       timerRef.current = setTimeout(() => {
         setIsReady(true);
       }, 5000);
@@ -52,7 +55,7 @@ export default function MarketingConsentPrompt() {
         timerRef.current = null;
       }
     };
-  }, [showMarketingPrompt, tourActive, wizardActive]);
+  }, [showMarketingPrompt, tourActive, wizardActive, hasFirstGame]);
 
   if (!showMarketingPrompt || !isReady) return null;
 
