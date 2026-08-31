@@ -76,6 +76,17 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   // Retry safety: a failed finish must not duplicate what already got created.
   const createdPlayersRef = useRef<Player[]>([]);
   const createdTeamRef = useRef<Team | null>(null);
+  // Re-entrancy guard as a REF (state commits too late to stop a double tap)
+  // and an unmount guard for the async save chain (review #725).
+  const savingRef = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     setSetupWizardActive(true);
@@ -89,9 +100,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
 
   /** Quiet skip: creates NOTHING, on either step. "Valmis" is the only creator. */
   const handleSkip = useCallback(() => {
-    if (isSaving) return;
+    if (savingRef.current) return;
     finish();
-  }, [isSaving, finish]);
+  }, [finish]);
 
   const commitDraft = useCallback(() => {
     const trimmed = draft.trim();
@@ -105,7 +116,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   }, []);
 
   const handleFinish = useCallback(async () => {
-    if (isSaving) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setIsSaving(true);
     try {
       // A typed-but-unentered name still counts - losing it on Valmis would
@@ -158,13 +170,17 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         }),
       ]);
 
+      savingRef.current = false;
+      if (!mountedRef.current) return;
       finish();
     } catch (error) {
       logger.error('[SetupWizard] finish failed:', error);
+      savingRef.current = false;
+      if (!mountedRef.current) return;
       showToast(t('setupWizard.error', 'Saving failed - please try again.'), 'error');
       setIsSaving(false);
     }
-  }, [isSaving, draft, names, teamName, format, userId, queryClient, showToast, t, finish]);
+  }, [draft, names, teamName, format, userId, queryClient, showToast, t, finish]);
 
   const skipLabel = t('setupWizard.skip', "Skip, I'll do this later");
 

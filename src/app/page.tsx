@@ -95,9 +95,12 @@ export default function Home() {
   const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
-  // Session-level dismissal of the first-sign-in setup wizard (the durable
-  // per-user flag lives in SetupWizard's localStorage helper).
-  const [setupWizardDismissed, setSetupWizardDismissed] = useState(false);
+  // Session-level dismissal of the first-sign-in setup wizard, scoped to the
+  // USER who dismissed it (review #725: a bare boolean survived sign-out ->
+  // sign-in and wrongly suppressed the wizard for a different fresh account in
+  // the same tab). The durable per-user flag lives in SetupWizard's helper;
+  // this only covers the flag-write-failed case within a session.
+  const [setupWizardDismissedFor, setSetupWizardDismissedFor] = useState<string | null>(null);
   const [hasSavedGames, setHasSavedGames] = useState(false);
   // Recommended-setup signals for the Start Screen card (full-route discovery)
   const [hasCompetition, setHasCompetition] = useState(false);
@@ -1437,14 +1440,14 @@ export default function Home() {
     !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
     screen === 'start' && mode === 'cloud' &&
     isFirstTimeUser && !hasTeam &&
-    !setupWizardDismissed && !isSetupWizardDone(userId);
+    setupWizardDismissedFor !== (userId ?? 'local') && !isSetupWizardDone(userId);
 
   const handleSetupWizardComplete = useCallback(() => {
-    setSetupWizardDismissed(true);
+    setSetupWizardDismissedFor(userId ?? 'local');
     // Refresh Home signals so the start screen reflects what the wizard created
     // (team + roster) without a loading-screen round-trip.
     void refreshSetupSignals();
-  }, [refreshSetupSignals]);
+  }, [userId, refreshSetupSignals]);
 
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
@@ -1583,7 +1586,7 @@ export default function Home() {
               onDiscard={handleMigrationDiscard}
             />
           </ErrorBoundary>
-        ) : screen === 'start' && showSetupWizard ? (
+        ) : showSetupWizard ? (
           <ErrorBoundary>
             <SetupWizard onComplete={handleSetupWizardComplete} />
           </ErrorBoundary>
