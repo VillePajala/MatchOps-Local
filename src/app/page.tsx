@@ -3,6 +3,7 @@
 import ModalProvider from '@/contexts/ModalProvider';
 import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
+import { setFirstGameExists } from '@/components/setupWizardActive';
 import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
@@ -1441,6 +1442,12 @@ export default function Home() {
     screen === 'start' && mode === 'cloud' &&
     isFirstTimeUser && !hasTeam &&
     setupWizardDismissedFor !== (userId ?? 'local') && !isSetupWizardDone(userId);
+
+  // Publish the first-game signal for the marketing-consent prompt's re-gate
+  // (PR 22): the prompt waits until the coach has actually arrived.
+  useEffect(() => {
+    setFirstGameExists(hasSavedGames);
+  }, [hasSavedGames]);
 
   const handleSetupWizardComplete = useCallback(() => {
     setSetupWizardDismissedFor(userId ?? 'local');
