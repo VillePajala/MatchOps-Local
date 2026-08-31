@@ -877,38 +877,15 @@ describe('GuidedTour engine', () => {
 });
 
 describe('GuidedTourController', () => {
-  it('starts the first-run tour when ready, first-time, and not completed', () => {
+  /**
+   * @critical - Onboarding v2: the tour NEVER auto-starts. First-run
+   * onboarding is the SetupWizard + empty-state composition; the tour is
+   * opt-in only (gear -> "Aloitusopastus" calls startTour on the provider).
+   */
+  it('never auto-starts the tour, even for a brand-new account', () => {
     render(
       <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser {...baseSignals} />
-      </GuidedTourProvider>,
-    );
-    expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
-  });
-
-  it('does not start when already completed', () => {
-    localStorage.setItem(COMPLETED_KEY, '1');
-    render(
-      <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser {...baseSignals} />
-      </GuidedTourProvider>,
-    );
-    expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
-  });
-
-  it('does not start for a returning (non-first-time) user', () => {
-    render(
-      <GuidedTourProvider>
-        <GuidedTourController ready isFirstTimeUser={false} {...baseSignals} />
-      </GuidedTourProvider>,
-    );
-    expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
-  });
-
-  it('does not start until ready (e.g. the marketing prompt is still up)', () => {
-    render(
-      <GuidedTourProvider>
-        <GuidedTourController ready={false} isFirstTimeUser {...baseSignals} />
+        <GuidedTourController {...baseSignals} />
       </GuidedTourProvider>,
     );
     expect(screen.queryByTestId('guided-tour-overlay')).not.toBeInTheDocument();
@@ -917,9 +894,8 @@ describe('GuidedTourController', () => {
   it('auto-advances through Home and match steps as signals flip', () => {
     const tree = (p: Partial<TourSignals>) => (
       <GuidedTourProvider>
+        <StartButton />
         <GuidedTourController
-          ready
-          isFirstTimeUser
           hasPlayers={p.hasPlayers}
           hasTeam={p.hasTeam}
           hasTeamLinkedGame={p.hasTeamLinkedGame}
@@ -933,6 +909,9 @@ describe('GuidedTourController', () => {
       </GuidedTourProvider>
     );
     const { rerender } = render(tree({ screen: 'start' }));
+
+    // Opt-in start (auto-start is gone): the gear entry calls startTour.
+    fireEvent.click(screen.getByText('start-tour'));
 
     // Welcome -> tap Next to reach the first action step.
     fireEvent.click(screen.getByTestId('guided-tour-next'));

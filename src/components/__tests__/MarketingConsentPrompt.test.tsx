@@ -25,6 +25,13 @@ jest.mock('@/contexts/GuidedTourProvider', () => ({
   useGuidedTourOptional: () => ({ isActive: mockTourActive }),
 }));
 
+// Wizard-deferral control (Onboarding v2): the prompt must also wait while the
+// first-sign-in setup wizard is on screen.
+let mockWizardActive = false;
+jest.mock('@/components/SetupWizard', () => ({
+  useSetupWizardActive: () => mockWizardActive,
+}));
+
 jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: jest.fn(),
 }));
@@ -84,6 +91,8 @@ describe('MarketingConsentPrompt', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockTourActive = false;
+    mockWizardActive = false;
     mockUseAuth.mockReturnValue(defaultMockAuth);
   });
 
@@ -141,6 +150,27 @@ describe('MarketingConsentPrompt', () => {
     } finally {
       mockTourActive = false;
     }
+  });
+
+  it('defers to the ACTIVE setup wizard (Onboarding v2): hidden until the wizard is gone', () => {
+    mockUseAuth.mockReturnValue({
+      ...defaultMockAuth,
+      showMarketingPrompt: true,
+    });
+    mockWizardActive = true;
+    const { rerender } = render(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+    // Wizard finished/skipped: the normal delayed appearance resumes.
+    mockWizardActive = false;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
   });
 
   it('renders the prompt after the 5-second delay', () => {

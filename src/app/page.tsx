@@ -2,6 +2,7 @@
 
 import ModalProvider from '@/contexts/ModalProvider';
 import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
+import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
 import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
@@ -94,6 +95,9 @@ export default function Home() {
   const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
+  // Session-level dismissal of the first-sign-in setup wizard (the durable
+  // per-user flag lives in SetupWizard's localStorage helper).
+  const [setupWizardDismissed, setSetupWizardDismissed] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
   // Recommended-setup signals for the Start Screen card (full-route discovery)
   const [hasCompetition, setHasCompetition] = useState(false);
@@ -1423,23 +1427,35 @@ export default function Home() {
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
 
+  // Onboarding v2: first-sign-in setup wizard (CLOUD ONLY, owner decision).
+  // Shows exactly once per account, on the same readiness terms the app screens
+  // use, and only for a truly empty account (no roster, no games, no team).
+  // Finishing or skipping sets the durable per-user flag; the session state
+  // hides it immediately without waiting for the signal refresh.
+  const showSetupWizard =
+    !isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
+    !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
+    screen === 'start' && mode === 'cloud' &&
+    isFirstTimeUser && !hasTeam &&
+    !setupWizardDismissed && !isSetupWizardDone(userId);
+
+  const handleSetupWizardComplete = useCallback(() => {
+    setSetupWizardDismissed(true);
+    // Refresh Home signals so the start screen reflects what the wizard created
+    // (team + roster) without a loading-screen round-trip.
+    void refreshSetupSignals();
+  }, [refreshSetupSignals]);
+
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider currentUserId={userId}>
-        {/* First-run guided tour trigger (headless): starts the coached tour once
-            for a brand-new account, only when the real Start Screen is showing.
-            The provider lives in layout.tsx; the marketing-consent prompt defers
-            to an ACTIVE tour (not the other way round), so there is no dead
-            window where the coach can wander off before guidance starts. */}
+        {/* Guided-tour signal feed (headless). Onboarding v2: the tour no longer
+            auto-starts - first-run onboarding is the SetupWizard below, and the
+            tour is opt-in via gear -> "Aloitusopastus". This feed keeps the
+            opt-in tour's steps auto-advancing on real progress. */}
         <GuidedTourController
-          ready={
-            !isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
-            !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
-            screen === 'start'
-          }
-          isFirstTimeUser={isFirstTimeUser}
           hasPlayers={hasPlayers}
           hasTeam={hasTeam}
           hasTeamLinkedGame={hasTeamLinkedGame}
@@ -1566,6 +1582,10 @@ export default function Home() {
               onSkip={handleMigrationSkip}
               onDiscard={handleMigrationDiscard}
             />
+          </ErrorBoundary>
+        ) : screen === 'start' && showSetupWizard ? (
+          <ErrorBoundary>
+            <SetupWizard onComplete={handleSetupWizardComplete} />
           </ErrorBoundary>
         ) : screen === 'start' ? (
           <ErrorBoundary>

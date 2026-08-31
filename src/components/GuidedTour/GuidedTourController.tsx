@@ -1,22 +1,13 @@
 'use client';
 
-import { useEffect, useRef, type FC } from 'react';
+import { useEffect, type FC } from 'react';
 import { useGuidedTour } from '@/contexts/GuidedTourProvider';
-import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from './firstRunTour';
 
 interface GuidedTourControllerProps {
-  /**
-   * True only when the real Start Screen is showing and app state has finished
-   * loading (not on a loading / auth / migration / welcome screen). Gating on
-   * this avoids triggering the tour before `hasPlayers`/`hasSavedGames` are known
-   * (which would misread a returning user as first-time mid-load).
-   */
-  ready: boolean;
-  /** Truly-empty account: no roster and no saved games. */
-  isFirstTimeUser: boolean;
-  // Live Home-screen signals that drive the Home-half steps. Optional so tests and
-  // the first-run trigger work without threading every signal. The match-view
-  // signals (timer/goal) are owned by GuidedTourMatchReporter, not this component.
+  // Live Home-screen signals that drive the tour's Home-half steps. Optional so
+  // tests work without threading every signal. The match-view signals
+  // (timer/goal/formation) are owned by GuidedTourMatchReporter, not this
+  // component.
   hasPlayers?: boolean;
   hasTeam?: boolean;
   hasTeamLinkedGame?: boolean;
@@ -24,28 +15,20 @@ interface GuidedTourControllerProps {
 }
 
 /**
- * Headless controller: starts the post-signup first-run tour once for a
- * brand-new account, and feeds live app-state signals into the tour so
- * action steps auto-advance as the coach makes real progress. Renders nothing.
+ * Headless signal feed for the guided tour. Onboarding v2: the tour no longer
+ * AUTO-STARTS for new accounts - first-run onboarding is the SetupWizard plus
+ * the start screen's empty-state composition, and the tour is opt-in only
+ * (gear -> "Aloitusopastus", which calls startTour directly on the provider).
+ * This component just keeps the running tour's action steps auto-advancing as
+ * the coach makes real progress. Renders nothing.
  */
 const GuidedTourController: FC<GuidedTourControllerProps> = ({
-  ready,
-  isFirstTimeUser,
   hasPlayers = false,
   hasTeam = false,
   hasTeamLinkedGame = false,
   screen = 'start',
 }) => {
-  const { startTour, isTourCompleted, reportSignals } = useGuidedTour();
-  const triggeredRef = useRef(false);
-
-  useEffect(() => {
-    if (triggeredRef.current) return;
-    if (!ready || !isFirstTimeUser) return;
-    if (isTourCompleted(FIRST_RUN_TOUR_ID)) return;
-    triggeredRef.current = true;
-    startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps);
-  }, [ready, isFirstTimeUser, isTourCompleted, startTour]);
+  const { reportSignals } = useGuidedTour();
 
   // Report Home-screen signals whenever one changes; the tour advances the
   // current step if its predicate is now satisfied (no-op when no tour is running).
