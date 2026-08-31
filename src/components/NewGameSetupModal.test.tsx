@@ -240,7 +240,7 @@ describe('NewGameSetupModal', () => {
       'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
       null, // formationPresetId (auto)
     );
   });
@@ -280,7 +280,7 @@ describe('NewGameSetupModal', () => {
         'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
         null, // formationPresetId (auto)
       );
     });
@@ -439,7 +439,7 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
           null, // formationPresetId (auto)
         );
       });
@@ -559,7 +559,7 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
           null, // formationPresetId (auto)
         );
       });
@@ -816,7 +816,7 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
           null, // formationPresetId (auto)
         );
       });
@@ -898,7 +898,7 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
           null, // formationPresetId (auto)
         );
       });
