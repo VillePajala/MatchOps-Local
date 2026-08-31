@@ -284,14 +284,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
 
             {/* Tagline - shown in the simple launcher (the dashboard packs its
                 own summary under the logo, so a tagline there would crowd it). */}
-            {!dashboardOn && (
+            {/* Compose mode uses the compact wordmark and skips the tagline so
+                the welcome strip + hero + step rows fit above the fold (owner
+                round 2: the strip pushed content off-screen). */}
+            {!dashboardOn && !composeOnboarding && (
               <p className="text-lg text-slate-400">
                 {t('startScreen.tagline', 'Plan · Track · Discover')}
               </p>

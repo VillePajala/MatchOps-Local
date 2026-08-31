@@ -943,7 +943,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               {/* Game Type Tabs */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  {t('newGameSetupModal.gameTypeLabel', 'Game Type')}
+                  {t('gameSettingsModal.gameTypeLabel', 'Link to Competition')}
                 </label>
                 <div className="flex gap-2">
                         <button

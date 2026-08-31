@@ -9,7 +9,7 @@ import {
   getBackupReminderDismissedTime,
   setBackupReminderDismissed,
 } from "@/utils/appSettings";
-import { exportFullBackup, prewarmBackup, trySharePrewarmedBackup } from "@/utils/fullBackup";
+import { exportFullBackup } from "@/utils/fullBackup";
 import logger from "@/utils/logger";
 
 /**
@@ -61,25 +61,13 @@ const BackupReminderBanner: React.FC<BackupReminderBannerProps> = ({ hasSavedGam
     evaluate();
   }, [evaluate]);
 
-  // Build the backup ahead of the tap so navigator.share() fires with a fresh
-  // user activation (otherwise it throws NotAllowedError and falls back to a
-  // plain download). Prewarm once the banner is actually shown.
-  useEffect(() => {
-    if (visible) {
-      prewarmBackup(userId);
-    }
-  }, [visible, userId]);
-
   const handleBackupNow = useCallback(async () => {
-    // Synchronous share first (must run before any await to keep the tap's user
-    // activation, which navigator.share() requires). If launched, re-evaluate
-    // once the off-device timestamp is recorded so the banner hides itself.
-    if (trySharePrewarmedBackup(showToast, userId, () => evaluate())) {
-      return;
-    }
+    // Straight to a plain DOWNLOAD (owner round 2): the share sheet made the
+    // backup feel unsaved ("where do I put this?"); a file in Downloads is
+    // predictable and needs no user activation, so no share/prewarm dance.
     setBusy(true);
     try {
-      await exportFullBackup(showToast, userId);
+      await exportFullBackup(showToast, userId, 'download');
     } catch {
       // exportFullBackup surfaces its own error toast.
     } finally {

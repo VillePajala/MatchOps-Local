@@ -72,13 +72,21 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
 
   if (dismissed || tourActive || userId === undefined || initiallySeen) return null;
 
-  const base = overlay
-    ? 'absolute inset-x-3 top-3 z-20 rounded-xl border border-indigo-400/40 border-l-[3px] border-l-indigo-400 bg-slate-900/95 px-4 py-3 shadow-xl backdrop-blur-sm'
-    : 'rounded-xl border border-indigo-400/40 border-l-[3px] border-l-indigo-400 bg-indigo-950/40 px-4 py-3 mb-4';
+  // Visual language borrowed from the app-update banner (owner round 2: the
+  // one-time note should read as a SYSTEM moment, distinct from form chrome):
+  // dark glass shell + the gradient hairline. The field overlay sits BELOW the
+  // field's own top buttons (top-16, z-30) so neither covers the other.
+  const shell =
+    'relative overflow-hidden rounded-2xl bg-slate-900/80 border border-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.45)] backdrop-blur-md';
+  const base = overlay ? `absolute inset-x-3 top-16 z-30 ${shell}` : `${shell} mb-4`;
 
   return (
     <div data-testid={`first-visit-${surface}`} className={`${base} ${className}`.trim()}>
-      <div className="flex items-start gap-3">
+      <div
+        className="absolute left-1/2 top-0 h-[2px] w-[60%] -translate-x-1/2 bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-500 opacity-80"
+        aria-hidden="true"
+      />
+      <div className="flex items-start gap-3 px-4 py-3">
         <p className="flex-1 text-sm leading-snug text-slate-100">{text}</p>
         <button
           type="button"
