@@ -823,6 +823,7 @@
     }
   },
   "newGameSetupModal": {
+    "formationLabel": "Formation",
     "title": "Create New Match",
     "repeatLastGame": "Repeat last game",
     "repeatedLastGame": "Filled from your last game",

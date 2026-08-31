@@ -23,6 +23,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
+import { getPresetsForFieldSize, getRecommendedFieldSize } from '@/config/formationPresets';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -68,6 +69,7 @@ interface NewGameSetupModalProps {
     },
     // Friendly / practice match: excluded from competitive stat totals by default.
     isFriendly?: boolean,
+    formationPresetId?: string | null,
   ) => void;
   onCancel: () => void;
   /** W1 roster bridge in game creation too: club write returning the saved
@@ -139,6 +141,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament
   const [gameType, setGameType] = useState<GameType>('soccer');
+  // Owner round 2: the coach chooses the starting formation at creation
+  // (null = auto). Validated against the CURRENT squad size's presets at use,
+  // so a stale pick from another size silently falls back to auto.
+  const [formationPresetId, setFormationPresetId] = useState<string | null>(null);
 
   // Gender state - optional, can be prefilled from season/tournament
   const [gender, setGender] = useState<Gender | undefined>(undefined);
@@ -695,6 +701,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       gender, // Gender: 'boys' or 'girls' (optional)
       prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
       isFriendly, // Friendly / practice match flag
+      // Formation preset, validated against the final squad size (stale picks
+      // from a different size fall back to auto).
+      getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length)).some(
+        (preset) => preset.id === formationPresetId,
+      )
+        ? formationPresetId
+        : null,
     );
 
     // Modal will be closed by parent component after onStart
@@ -1155,6 +1168,32 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     {t('common.gameTypeFutsal', 'Futsal')}
                   </button>
                 </div>
+              </div>
+
+              {/* Formation (owner round 2): choose the starting shape; options
+                  follow the squad size selected above. */}
+              <div className="mb-4">
+                <label htmlFor="formationSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('newGameSetupModal.formationLabel', 'Formation')}
+                </label>
+                <select
+                  id="formationSelect"
+                  value={(() => {
+                    const presets = getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length));
+                    return presets.some((preset) => preset.id === formationPresetId) ? formationPresetId ?? '' : '';
+                  })()}
+                  onChange={(e) => setFormationPresetId(e.target.value || null)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">
+                    {t('formations.auto', 'Auto')} · {t('formations.autoDescription', 'Based on player count')}
+                  </option>
+                  {getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length)).map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {t(preset.labelKey, preset.name)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Gender (Boys/Girls) */}

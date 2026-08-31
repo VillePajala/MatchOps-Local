@@ -240,7 +240,8 @@ describe('NewGameSetupModal', () => {
       'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+      null, // formationPresetId (auto)
     );
   });
 
@@ -279,7 +280,8 @@ describe('NewGameSetupModal', () => {
         'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+        null, // formationPresetId (auto)
       );
     });
   });
@@ -437,7 +439,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });
@@ -556,7 +559,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });
@@ -812,7 +816,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });
@@ -893,7 +898,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });
@@ -1143,11 +1149,12 @@ describe('NewGameSetupModal', () => {
       });
 
       // Verify onStart was called with gameType: 'futsal'
-      // Positional args: gameType is 4th from the end (gender, optional prefill, isFriendly follow it).
+      // Positional args: gameType is 5th from the end (gender, prefill,
+      // isFriendly, formationPresetId follow it).
       await waitFor(() => {
         expect(mockOnStart).toHaveBeenCalled();
         const args = mockOnStart.mock.calls[0];
-        const gameTypeArg = args[args.length - 4];
+        const gameTypeArg = args[args.length - 5];
         expect(gameTypeArg).toBe('futsal');
       });
     });
@@ -1275,7 +1282,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      const prefillArg = call[call.length - 2]; // isFriendly is now the last arg
+      const prefillArg = call[call.length - 3]; // isFriendly + formationPresetId follow it
       expect(prefillArg).toBeDefined();
       expect(prefillArg.playersOnField).toHaveLength(2); // GK + one field player placed
       const gk = prefillArg.playersOnField.find((p: { id: string }) => p.id === 'player1');
@@ -1319,7 +1326,7 @@ describe('NewGameSetupModal', () => {
       });
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload
+      expect(call[call.length - 3]).toBeUndefined(); // no prefill payload
     });
 
     test('picker stays hidden when there are no plans', async () => {
@@ -1365,7 +1372,7 @@ describe('NewGameSetupModal', () => {
       expect(call[6]).toBe('season1');           // the season binding itself is kept
       expect(call[8]).toBe(2);                   // numPeriods: the plan's...
       expect(call[9]).toBe(12);                  // ...and the plan's 12-minute periods
-      expect(call[call.length - 1]).toBeDefined(); // prefill still rides along
+      expect(call[call.length - 3]).toBeDefined(); // prefill still rides along
     });
 
     test('switching Team after a plan prefill clears the prefill (no cross-team lineup)', async () => {
@@ -1400,7 +1407,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload rode along
+      expect(call[call.length - 3]).toBeUndefined(); // no prefill payload rode along
     });
   });
 });

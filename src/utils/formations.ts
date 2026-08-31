@@ -437,7 +437,14 @@ export interface AutoPlacement {
  * slots then generic sideline slots). It deliberately performs NO React state
  * side effects - the caller writes the result into the persisted AppState.
  */
-export function buildAutoPlacement(playersToPlace: Player[]): AutoPlacement {
+export function buildAutoPlacement(
+  playersToPlace: Player[],
+  // Owner round 2: the coach chooses the starting shape at game creation. When
+  // preset positions are passed (resolved by the caller - this module cannot
+  // import formationPresets without a cycle), outfielders take the preset's
+  // slots; otherwise the generic auto formation spreads them by count.
+  presetPositions?: FieldPosition[],
+): AutoPlacement {
   if (playersToPlace.length === 0) {
     return { playersOnField: [], formationSnapPoints: [], goalieId: null };
   }
@@ -450,7 +457,9 @@ export function buildAutoPlacement(playersToPlace: Player[]): AutoPlacement {
 
   const placed: Player[] = [{ ...goalie, relX: 0.5, relY: 0.95, isGoalie: true }];
 
-  const positions = calculateFormationPositions(outfielders.length);
+  const positions = presetPositions
+    ? applyFormationPreset(presetPositions, outfielders.length).positions
+    : calculateFormationPositions(outfielders.length);
   outfielders.forEach((player, index) => {
     if (index < positions.length) {
       placed.push({ ...player, relX: positions[index].relX, relY: positions[index].relY, isGoalie: false });
@@ -460,11 +469,11 @@ export function buildAutoPlacement(playersToPlace: Player[]): AutoPlacement {
   const subSlots = generateSubSlots(positions);
 
   // Overflow players (more outfielders than formation slots) go onto sub slots,
-  // then generic sideline positions once the sub slots run out. NOTE: for THIS
-  // auto-only caller overflow is always 0 - calculateFormationPositions returns
-  // exactly outfielders.length positions - so this branch is defensive parity
-  // with the match-side twin (handlePlaceAllPlayers), where a fixed-size preset
-  // CAN be smaller than the squad. Kept so the two stay structurally in sync.
+  // then generic sideline positions once the sub slots run out. Reachable in
+  // the PRESET path (a fixed-size preset can be smaller than the squad); in
+  // auto mode overflow is always 0 (calculateFormationPositions returns exactly
+  // outfielders.length positions). Mirrors the match-side twin
+  // (handlePlaceAllPlayers) so the two stay behaviourally in sync.
   const overflow = Math.max(0, outfielders.length - positions.length);
   if (overflow > 0) {
     const overflowPlayers = outfielders.slice(positions.length);

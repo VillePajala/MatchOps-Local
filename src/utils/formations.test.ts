@@ -704,6 +704,31 @@ describe('generateSubSlots', () => {
 });
 
 describe('buildAutoPlacement', () => {
+  it('places outfielders on the chosen preset positions when presetPositions are passed', () => {
+    const players = Array.from({ length: 5 }, (_, i) => ({
+      id: `p${i + 1}`,
+      name: `P${i + 1}`,
+      isGoalie: i === 0,
+      receivedFairPlayCard: false,
+      jerseyNumber: '',
+      notes: '',
+    }));
+    const preset = [
+      { relX: 0.2, relY: 0.7 },
+      { relX: 0.8, relY: 0.7 },
+      { relX: 0.2, relY: 0.3 },
+      { relX: 0.8, relY: 0.3 },
+    ];
+    const result = buildAutoPlacement(players, preset);
+    // Goalie at the keeper spot; the four outfielders take the preset slots in order.
+    expect(result.goalieId).toBe('p1');
+    const outfielders = result.playersOnField.filter((pl) => pl.id !== 'p1');
+    outfielders.forEach((pl, i) => {
+      expect(pl.relX).toBeCloseTo(preset[i].relX);
+      expect(pl.relY).toBeCloseTo(preset[i].relY);
+    });
+  });
+
   // The persist-side twin of the match-side "Place all players" Auto path.
   // Used at game creation so a fresh game opens with the squad on the pitch.
 
