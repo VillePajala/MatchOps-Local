@@ -241,6 +241,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false // isFriendly
+      null, // formationPresetId (auto)
     );
   });
 
@@ -280,6 +281,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false // isFriendly
+        null, // formationPresetId (auto)
       );
     });
   });
@@ -438,6 +440,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });
@@ -557,6 +560,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });
@@ -813,6 +817,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });
@@ -894,6 +899,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false // isFriendly
+          null, // formationPresetId (auto)
         );
       });
     });

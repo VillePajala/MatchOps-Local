@@ -160,10 +160,12 @@ describe('newGameHandlers', () => {
       createTestDeps(),
       createBaseRequest({ initialSelectedPlayerIds: ['p1', 'p2'], formationPresetId: '5v5-2-2' }),
     );
-    // p1 is the goalie (first player); p2 takes the preset's first slot.
-    const p2 = result!.gameState.playersOnField.find((pl) => pl.id === 'p2');
-    expect(p2?.relX).toBeCloseTo(preset!.positions[0].relX);
-    expect(p2?.relY).toBeCloseTo(preset!.positions[0].relY);
+    // The fixture-designated goalie takes the keeper spot; the remaining
+    // outfielder lands on the preset's FIRST slot (goalie-agnostic on purpose:
+    // buildAutoPlacement picks the designated goalie, not positional order).
+    const outfielder = result!.gameState.playersOnField.find((pl) => !pl.isGoalie);
+    expect(outfielder?.relX).toBeCloseTo(preset!.positions[0].relX);
+    expect(outfielder?.relY).toBeCloseTo(preset!.positions[0].relY);
   });
 
   it('mirrors a prefilled goalie onto availablePlayers (single source of truth from creation)', async () => {
