@@ -9,6 +9,7 @@ import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } 
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { buildAutoPlacement } from '@/utils/formations';
+import { getPresetById } from '@/config/formationPresets';
 import type { ResourceType } from '@/config/premiumLimits';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -65,6 +66,8 @@ export interface StartNewGameRequest {
   customLeagueName: string;
   gameType: GameType;
   gender: Gender | undefined;
+  /** Owner round 2: formation preset chosen at creation (null/undefined = auto). */
+  formationPresetId?: string | null;
   /**
    * Optional Playing-Time Planner prefill (Phase 2). When present, the planned XI
    * is placed on the field at creation and the planned subs are stored locally,
@@ -111,6 +114,7 @@ export async function buildAndPersistNewGame(
     customLeagueName,
     gameType,
     gender,
+    formationPresetId,
     prefill,
   } = request;
   const {
@@ -173,10 +177,12 @@ export async function buildAndPersistNewGame(
   // a new coach to puzzle over. This is the persist-side twin of the match-side
   // "Place all players" Auto path (buildAutoPlacement). Skipped when the game is
   // prefilled from a Playing-Time Planner plan, which already places its XI.
+  const chosenPreset = formationPresetId ? getPresetById(formationPresetId) : undefined;
   const autoPlacement = prefill
     ? null
     : buildAutoPlacement(
         availablePlayersForGame.filter((p) => reconciledSelectedPlayerIds.includes(p.id)),
+        chosenPreset?.positions,
       );
   const playersOnFieldForGame = prefill ? reconciledOnField : (autoPlacement?.playersOnField ?? []);
   const formationSnapPointsForGame = prefill

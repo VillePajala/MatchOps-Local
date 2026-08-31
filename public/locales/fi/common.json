@@ -835,6 +835,7 @@
     "playerBarCrashed": "Pelaajapalkki kaatui. Päivitä sivu."
   },
   "newGameSetupModal": {
+    "formationLabel": "Muodostelma",
     "title": "Luo uusi ottelu",
     "repeatLastGame": "Toista edellinen peli",
     "repeatedLastGame": "Täytetty edellisen pelin mukaan",
