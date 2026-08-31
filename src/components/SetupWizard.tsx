@@ -190,7 +190,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   return (
     <div
       data-testid="setup-wizard"
-      className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-y-auto"
+      className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden"
     >
       <div className="w-full max-w-sm mx-auto flex flex-col flex-1 px-6 py-8">
         <h1 className="text-5xl font-bold tracking-tight text-center mt-2">
@@ -207,7 +207,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         </div>
 
         {step === 1 ? (
-          <>
+          /* Soft card, vertically centered in the leftover space (owner round
+             3: the top-packed step floated in dead air). */
+          <div className="my-auto rounded-2xl bg-slate-800/40 border border-slate-700/40 p-5">
             <h2 className="text-2xl font-semibold">
               {t('setupWizard.teamTitle', 'Your team')}
             </h2>
@@ -262,9 +264,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             >
               {t('setupWizard.next', 'Continue')}
             </button>
-          </>
+          </div>
         ) : (
-          <>
+          /* Step 2 never scrolls the PAGE (owner round 3): the card fills the
+             remaining height, the ROWS scroll internally (newest first, so
+             the oldest slide away), and Valmis + the skip link stay pinned on
+             screen at all times. */
+          <div className="flex-1 min-h-0 mt-1 flex flex-col rounded-2xl bg-slate-800/40 border border-slate-700/40 p-5">
             {/* Quiet back link on its own row (owner round 2: the arrow glued
                 to the title read badly). No autofocus on step 1 for the same
                 round: the keyboard covered the format chips before the coach
@@ -318,7 +324,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             <p className="text-right text-xs text-slate-400 mt-2" data-testid="wizard-player-count">
               {t('setupWizard.playersAdded', '{{count}} players added', { count: totalCount })}
             </p>
-            <div className="flex flex-col gap-2 mt-2">
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 mt-2 -mx-1 px-1">
               {[...names].reverse().map((name, i) => {
                 const originalIndex = names.length - 1 - i;
                 return (
@@ -349,7 +355,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               data-testid="wizard-finish"
               onClick={() => void handleFinish()}
               disabled={isSaving}
-              className="w-full mt-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
+              className="w-full flex-none mt-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
             >
               {isSaving
                 ? t('setupWizard.saving', 'Saving…')
@@ -357,7 +363,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   ? t('setupWizard.finishWithCount', 'Done ({{count}} players)', { count: totalCount })
                   : t('setupWizard.finish', 'Done')}
             </button>
-          </>
+          </div>
         )}
 
         {/* Quiet skip (owner decision): a text link, not a button - present for
@@ -367,7 +373,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           type="button"
           data-testid="wizard-skip"
           onClick={handleSkip}
-          className="mt-auto pt-8 pb-1 text-sm text-slate-500 hover:text-slate-300 underline decoration-slate-600 underline-offset-2 text-center w-full"
+          className="flex-none mt-auto pt-5 pb-1 text-sm text-slate-500 hover:text-slate-300 underline decoration-slate-600 underline-offset-2 text-center w-full"
         >
           {skipLabel}
         </button>
