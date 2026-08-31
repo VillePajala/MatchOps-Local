@@ -33,6 +33,43 @@ tested. Plan + roadmap docs now live on the integration branch with the work (no
 
 ---
 
+## Onboarding v2 - decided direction (2026-08-31)
+
+The guided tour (PRs 1-18) works but is the wrong PATTERN for a professional tool:
+auto-launched step-by-step tours are the abandoned 2013-2018 idiom; modern pro tools use
+empty states + contextual first-use education, and team-sport apps specifically use a
+setup wizard at signup. Mockup: https://claude.ai/code/artifact/250a6877-a2c3-429a-b0d3-f77445172aa0
+
+**Components (decisions locked with owner):**
+1. **Setup wizard at first sign-in** - CLOUD/PLAY ONLY. Two steps, one-time: (a) team name
+   + format 5v5/8v8/11v11; (b) rapid roster entry (name per row, Enter adds next). Creates
+   REAL data via existing mutations, no demo data. Skip = QUIET text link ("Ohita, teen
+   taman myohemmin"), not a button. Finish -> start screen with "Uusi ottelu" as hero.
+2. **Start-screen task composition** - reorder, never hide. Signals already exist: no
+   players -> "Lisaa pelaajat" hero; players, no team -> "Luo joukkue"; team, no games ->
+   "Uusi ottelu"; all exist -> normal screen. Done steps show quiet check + count. One-time
+   welcome strip carries the opt-in tour link.
+3. **First-visit banners** - generic FirstVisitIntro component: 1-3 line highlighted note
+   at the TOP of a surface, [Selva] dismisses forever (per-user localStorage keys, tour-flag
+   pattern). Never a pre-modal gate. Surfaces: team form (the 3-step text), game setup,
+   match view/field, timer overlay, goal dialog, stats, planner, seasons.
+4. **Demotions** - tour auto-trigger OFF; tour intact behind gear -> Aloitusopastus + the
+   welcome-strip link (all 18 PRs stay as the opt-in "show me" mode). Marketing-consent
+   prompt re-gated: defer until wizard done AND first game exists. Getting-started
+   banner/sheet (PR 4) superseded by the composed start screen.
+
+**Build strategy - NOT from scratch:** StartScreen keeps its structure (it just got the
+two-level restructure + dashboard); composition is conditional ordering on its existing
+empty-state logic. New code = the wizard screen (reusing team/roster mutations) + the tiny
+FirstVisitIntro. The tour is untouched apart from its trigger.
+
+**Execution:** continue on this branch so the auto-tour NEVER ships to prod; #709
+eventually lands v2 as a whole. PR 19 wizard, PR 20 composition + welcome strip, PR 21
+FirstVisitIntro + copy for 8 surfaces, PR 22 demote tour trigger + prompt re-gate. Same
+loop: CI + Claude review, merge on approve, owner phone-tests on the preview.
+
+---
+
 ## The two walls (reframe, 2026-08-20)
 
 Churn has two distinct causes, and early phases only addressed the first:
