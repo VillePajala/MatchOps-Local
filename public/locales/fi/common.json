@@ -154,6 +154,25 @@
       "abbrev": "PIVO"
     }
   },
+  "setupWizard": {
+    "back": "Takaisin",
+    "error": "Tallennus epäonnistui - yritä uudelleen.",
+    "finish": "Valmis",
+    "formatLabel": "Pelimuoto",
+    "next": "Jatka",
+    "playerPlaceholder": "Pelaajan nimi…",
+    "playersAdded_one": "{{count}} pelaaja lisätty",
+    "playersAdded_other": "{{count}} pelaajaa lisätty",
+    "playersHint": "Yksi nimi riviin - Enter lisää seuraavan.",
+    "playersTitle": "Pelaajat",
+    "removePlayer": "Poista",
+    "saving": "Tallennetaan…",
+    "skip": "Ohita, teen tämän myöhemmin",
+    "teamHint": "Nimeä joukkueesi - lisätiedot voit täydentää myöhemmin.",
+    "teamNameLabel": "Joukkueen nimi",
+    "teamNamePlaceholder": "esim. FC Honka P12",
+    "teamTitle": "Joukkueesi"
+  },
   "undoToast": {
     "goal": "Maali kirjattu",
     "opponentGoal": "Vastustajan maali kirjattu",

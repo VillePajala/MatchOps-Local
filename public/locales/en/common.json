@@ -154,6 +154,25 @@
       "abbrev": "PIVO"
     }
   },
+  "setupWizard": {
+    "back": "Back",
+    "error": "Saving failed - please try again.",
+    "finish": "Done",
+    "formatLabel": "Format",
+    "next": "Continue",
+    "playerPlaceholder": "Player name…",
+    "playersAdded_one": "{{count}} player added",
+    "playersAdded_other": "{{count}} players added",
+    "playersHint": "One name per row - Enter adds the next.",
+    "playersTitle": "Players",
+    "removePlayer": "Remove",
+    "saving": "Saving…",
+    "skip": "Skip, I'll do this later",
+    "teamHint": "Name your team - you can fill in details later.",
+    "teamNameLabel": "Team name",
+    "teamNamePlaceholder": "e.g. FC Honka P12",
+    "teamTitle": "Your team"
+  },
   "undoToast": {
     "goal": "Goal logged",
     "opponentGoal": "Opponent goal logged",
