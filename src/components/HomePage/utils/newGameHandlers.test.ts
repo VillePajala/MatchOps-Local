@@ -18,6 +18,7 @@ import type { TFunction } from 'i18next';
 
 import { buildAndPersistNewGame } from './newGameHandlers';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
+import { getPresetById } from '@/config/formationPresets';
 
 // The plan link is written to a local-only store (not the game blob - autosave and
 // cloud pulls rebuild the blob and would drop it). Mock the store to observe writes.
@@ -150,6 +151,19 @@ describe('newGameHandlers', () => {
     // Exactly the planned XI (one player), NOT the whole auto-placed squad.
     expect(result!.gameState.playersOnField).toHaveLength(1);
     expect(result!.gameState.playersOnField[0].id).toBe('p1');
+  });
+
+  it('places the squad on the CHOSEN formation preset at creation (owner round 2)', async () => {
+    const preset = getPresetById('5v5-2-2');
+    expect(preset).toBeDefined();
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({ initialSelectedPlayerIds: ['p1', 'p2'], formationPresetId: '5v5-2-2' }),
+    );
+    // p1 is the goalie (first player); p2 takes the preset's first slot.
+    const p2 = result!.gameState.playersOnField.find((pl) => pl.id === 'p2');
+    expect(p2?.relX).toBeCloseTo(preset!.positions[0].relX);
+    expect(p2?.relY).toBeCloseTo(preset!.positions[0].relY);
   });
 
   it('mirrors a prefilled goalie onto availablePlayers (single source of truth from creation)', async () => {
