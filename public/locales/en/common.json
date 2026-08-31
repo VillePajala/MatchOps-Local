@@ -155,9 +155,12 @@
     }
   },
   "setupWizard": {
+    "add": "Add",
     "back": "Back",
     "error": "Saving failed - please try again.",
     "finish": "Done",
+    "finishWithCount_one": "Done ({{count}} player)",
+    "finishWithCount_other": "Done ({{count}} players)",
     "formatLabel": "Format",
     "next": "Continue",
     "playerPlaceholder": "Player name…",
