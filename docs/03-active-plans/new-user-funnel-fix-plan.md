@@ -13,6 +13,14 @@ that a leaf rendered by many hosts must import no contexts), and the marketing-p
 re-gate (5s delay + no tour/wizard + first game exists). Tour demoted to opt-in
 (gear -> Aloitusopastus + welcome-strip link). The paused-tour status below is history:
 
+**Round 2 (owner phone test, delivered same day):** PRs 23-24 (#730, #731) merged: no
+step-1 autofocus (keyboard covered the format chips), quiet back link, compact wordmark in
+compose mode (strip overflow), FirstVisitIntro in the app-update visual language, "Linkita
+kilpailuun" label fix, field intro below the field buttons, backup reminder downloads
+directly (exportFullBackup deliveryMode), and the FORMATION CHOICE at game creation
+("Muodostelma" select: Auto + presets for the current squad size, threaded to
+buildAutoPlacement). #709 revalidated all-green + Approve after each round.
+
 **Status as of 2026-08-26 - PAUSED (feature-complete, awaiting owner sign-off).**
 Phase 1 (auth quick wins, #704) and **Phase 2 (guided first-run onboarding) are complete
 and iterated through 13 owner phone-testing rounds** - PRs 1-18 all merged into
