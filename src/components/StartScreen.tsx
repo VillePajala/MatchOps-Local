@@ -111,6 +111,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // action a new coach needs (players are added inside the new-game flow). When
   // there's a game to resume, Continue is the hero and New Game steps back to a row.
   const newGamePrimary = !canResume && !dashboardOn;
+
+  // Onboarding v2 (PR 20): pre-first-game composition. Until the first game
+  // exists, the Pelit page itself is the checklist - the HERO is the next
+  // missing step (players -> team -> game) and the other steps stay visible as
+  // ordered rows (reorder, never hide - owner decision). Once a game exists
+  // (or one is resumable) the screen returns to its normal shape for good.
+  const composeOnboarding = !!setupProgress && !hasSavedGames && !canResume;
+  const heroStep: 'players' | 'team' | 'game' | null = !composeOnboarding
+    ? null
+    : !setupProgress.players
+      ? 'players'
+      : !setupProgress.team
+        ? 'team'
+        : 'game';
   const { user, mode } = useAuth();
   // Optional: present only when the app mounts the tour provider. Used for the
   // gear-sheet "restart the guide" entry - the safety net for an accidental
@@ -284,23 +298,33 @@ const StartScreen: React.FC<StartScreenProps> = ({
             )}
           </div>
 
-          {/* Getting-started banner (funnel Phase 2, stage 2): a slim, dismissible
-              one-line nudge to finish setup - after the guided tour the usual
-              remaining step is a season/competition. Sits above the tabs so it is
-              discoverable without the buried gear entry; only shown when setup is
-              incomplete, and dismissed via the sheet's × (shared flag with the
-              gear entry). */}
-          {showSetupEntry && (
+          {/* Welcome strip (Onboarding v2): a quiet one-liner that names the
+              next step and carries the OPT-IN tour link. Lives only in the
+              pre-first-game phase; it disappears naturally once a game exists.
+              It supersedes the old "Getting started" home banner (the gear
+              entry still covers post-game setup like seasons). */}
+          {composeOnboarding && (
             <div className="max-w-sm mx-auto w-full mb-3">
-              <button
-                type="button"
-                data-testid="setup-banner"
-                onClick={() => setShowSetupSheet(true)}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors shadow-lg shadow-indigo-500/20"
+              <div
+                data-testid="welcome-strip"
+                className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-2.5 text-sm text-slate-100"
               >
-                <span>{t('startScreen.gearSetup', 'Getting started ({{done}}/4)', { done: setupDoneCount })}</span>
-                <span aria-hidden="true">&rsaquo;</span>
-              </button>
+                {heroStep === 'players'
+                  ? t('startScreen.welcomeStripStart', 'Welcome! Start by adding your players.')
+                  : heroStep === 'team'
+                    ? t('startScreen.welcomeStripTeam', 'Good start! Next, create your team.')
+                    : t('startScreen.welcomeStripReady', 'All set! Your team and players are ready for the first game.')}
+                {guidedTour && (
+                  <button
+                    type="button"
+                    data-testid="welcome-strip-tour"
+                    onClick={() => guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps)}
+                    className="block mt-1 text-xs text-amber-400 hover:text-amber-300 underline decoration-amber-400/40 underline-offset-2"
+                  >
+                    {t('startScreen.welcomeStripTour', 'Want a guided walkthrough?')}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -550,6 +574,74 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  entry rows. The Stats/Load grid buttons are gone: the tab bar
                  and the rows below cover both. */
               <>
+                {/* Onboarding v2 composition: amber hero = next missing step
+                    (the game step reuses the existing New Game hero below);
+                    the remaining steps render as ordered rows - done ones get
+                    a quiet check, pending ones a step badge. */}
+                {composeOnboarding && heroStep !== 'game' && (
+                  <button
+                    type="button"
+                    onClick={heroStep === 'players' ? onManageRoster : onManageTeams}
+                    disabled={heroStep === 'players' ? !onManageRoster : !onManageTeams}
+                    data-testid={heroStep === 'players' ? 'hero-add-players' : 'hero-create-team'}
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg text-center shadow-lg transition-transform active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {heroStep === 'players'
+                      ? t('startScreen.heroAddPlayers', 'Add players')
+                      : t('startScreen.heroCreateTeam', 'Create your team')}
+                  </button>
+                )}
+                {composeOnboarding && (
+                  <div className="space-y-2" data-testid="onboarding-steps">
+                    {heroStep !== 'players' && (
+                      <button
+                        type="button"
+                        onClick={onManageRoster}
+                        disabled={!onManageRoster}
+                        className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                      >
+                        <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
+                        {setupProgress?.players ? (
+                          <span className="text-emerald-400" aria-hidden="true">✓</span>
+                        ) : (
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                            {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    {heroStep !== 'team' && (
+                      <button
+                        type="button"
+                        onClick={onManageTeams}
+                        disabled={!onManageTeams}
+                        className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                      >
+                        <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
+                        {setupProgress?.team ? (
+                          <span className="text-emerald-400" aria-hidden="true">✓</span>
+                        ) : (
+                          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                            {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
+                          </span>
+                        )}
+                      </button>
+                    )}
+                    {heroStep !== 'game' && (
+                      <button
+                        type="button"
+                        onClick={onNewGame ?? onGetStarted}
+                        data-testid="tour-new-game"
+                        className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                      >
+                        <span className="text-sm font-semibold text-white">{t('startScreen.newGame', 'New Game')}</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 3 })}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
                 {dashboardOn && homeSummary ? (
                   /* Opt-in dashboard: informative resume card + Vuosi record +
                      recent strip, in place of the plain Continue button. */
@@ -573,7 +665,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     coach adds players inside this flow); otherwise a standard
                     row - paired with Saved games in dashboard mode, stacked in
                     the simple launcher. Saved games hides when there are none. */}
-                {newGamePrimary ? (
+                {(!composeOnboarding || heroStep === 'game') && (newGamePrimary ? (
                   <>
                     <button
                       type="button"
@@ -622,7 +714,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       </button>
                     )}
                   </div>
-                )}
+                ))}
 
                 {onOpenPlanner && (
                   <button

@@ -981,6 +981,13 @@
     "emptyStats": "Tilastot ilmestyvät, kun olet pelannut pelejä.",
     "gearRestartTour": "Aloitusopastus",
       "gearGuide": "Näin se toimii",
+    "heroAddPlayers": "Lisää pelaajat",
+    "heroCreateTeam": "Luo joukkue",
+    "stepBadge": "Vaihe {{n}}",
+    "welcomeStripReady": "Kaikki valmista! Joukkue ja pelaajat odottavat ensimmäistä ottelua.",
+    "welcomeStripStart": "Tervetuloa! Aloita lisäämällä pelaajasi.",
+    "welcomeStripTeam": "Hyvä alku! Luo seuraavaksi joukkue.",
+    "welcomeStripTour": "Haluatko opastetun kierroksen?",
     "gearSetup": "Käyttöönotto ({{done}}/4)"
   },
   "workspace": {
