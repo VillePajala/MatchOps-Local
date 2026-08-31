@@ -63,6 +63,19 @@ two-level restructure + dashboard); composition is conditional ordering on its e
 empty-state logic. New code = the wizard screen (reusing team/roster mutations) + the tiny
 FirstVisitIntro. The tour is untouched apart from its trigger.
 
+**Wizard test round 1 (owner, 2026-08-31, PR 19 on preview):** start "looking really
+good". Findings for the polish pass: (1) steps 1-2 pack everything top with dead air
+below - keyboard-safety reasoning is right (nothing interactive-while-typing below the
+keyboard line) but the space needs composition (bigger wordmark, vertical rhythm, button
+anchored lower); (2) THE find: Enter (invisible) does the frequent thing, Valmis (biggest
+button) does the terminal thing -> coach adds one player and taps Valmis prematurely, and
+pending-draft-counts makes it succeed silently. Fix: visible "+ Lisaa" commit button,
+Valmis shows the count ("Valmis (3 pelaajaa)"), input PINNED under the hint with rows
+growing below newest-first (oldest rows scroll behind the keyboard, harmless); (3) after
+Valmis the plain start screen is an anticlimax - that seam is PR 20 (composed start
+screen); alternative to weigh there: a third "Kaikki valmista" pane with Uusi ottelu
+directly in the wizard. No banners/guidance after the wizard is BY DESIGN until PR 21.
+
 **Execution:** continue on this branch so the auto-tour NEVER ships to prod; #709
 eventually lands v2 as a whole. PR 19 wizard, PR 20 composition + welcome strip, PR 21
 FirstVisitIntro + copy for 8 surfaces, PR 22 demote tour trigger + prompt re-gate. Same
