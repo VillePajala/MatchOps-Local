@@ -3,6 +3,16 @@
 **Goal:** stop new-install churn before spending energy on growth. Evidence shows
 installs are lost at the front door, not to bugs.
 
+**Status as of 2026-08-31 - ONBOARDING v2 DELIVERED. Master PR #709 is the whole
+feature; validate CI + review only - the OWNER merges after phone testing.**
+PRs 19-22 (#725, #726, #727, #728, #729) built, CI-greened, Claude-review-approved and
+merged into `feat/new-user-funnel`: setup wizard (cloud-only, quiet skip, + round-1
+polish), composed start screen + welcome strip (getting-started banner superseded),
+FirstVisitIntro on 8 surfaces (store-fed, zero context imports - two CI rounds taught
+that a leaf rendered by many hosts must import no contexts), and the marketing-prompt
+re-gate (5s delay + no tour/wizard + first game exists). Tour demoted to opt-in
+(gear -> Aloitusopastus + welcome-strip link). The paused-tour status below is history:
+
 **Status as of 2026-08-26 - PAUSED (feature-complete, awaiting owner sign-off).**
 Phase 1 (auth quick wins, #704) and **Phase 2 (guided first-run onboarding) are complete
 and iterated through 13 owner phone-testing rounds** - PRs 1-18 all merged into
