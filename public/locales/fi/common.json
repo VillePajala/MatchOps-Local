@@ -155,9 +155,12 @@
     }
   },
   "setupWizard": {
+    "add": "Lisää",
     "back": "Takaisin",
     "error": "Tallennus epäonnistui - yritä uudelleen.",
     "finish": "Valmis",
+    "finishWithCount_one": "Valmis ({{count}} pelaaja)",
+    "finishWithCount_other": "Valmis ({{count}} pelaajaa)",
     "formatLabel": "Pelimuoto",
     "next": "Jatka",
     "playerPlaceholder": "Pelaajan nimi…",
