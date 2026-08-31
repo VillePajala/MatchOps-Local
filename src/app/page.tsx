@@ -3,7 +3,7 @@
 import ModalProvider from '@/contexts/ModalProvider';
 import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
-import { setFirstGameExists } from '@/components/setupWizardActive';
+import { setFirstGameExists, setOnboardingUserId } from '@/components/setupWizardActive';
 import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
@@ -1448,6 +1448,12 @@ export default function Home() {
   useEffect(() => {
     setFirstGameExists(hasSavedGames);
   }, [hasSavedGames]);
+
+  // Publish the SETTLED user id for the first-visit banners: undefined while
+  // auth is resolving (banners stay hidden - no 'local'-key misfiling).
+  useEffect(() => {
+    setOnboardingUserId(isAuthLoading ? undefined : (userId ?? null));
+  }, [isAuthLoading, userId]);
 
   const handleSetupWizardComplete = useCallback(() => {
     setSetupWizardDismissedFor(userId ?? 'local');

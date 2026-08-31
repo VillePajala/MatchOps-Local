@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthProvider';
 import logger from '@/utils/logger';
 import GuidedTourOverlay from '@/components/GuidedTour/GuidedTourOverlay';
 import type { TourSignals, TourStep } from '@/components/GuidedTour/tourTypes';
+import { setGuidedTourActive } from '@/components/setupWizardActive';
 
 const TOUR_COMPLETED_PREFIX = 'matchops_tour_completed_';
 
@@ -138,6 +139,13 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     },
     [tourId, steps, index, advance],
   );
+
+  // Mirror tour-active into the dependency-free store so leaf components
+  // (FirstVisitIntro) can yield to the tour without importing this context.
+  useEffect(() => {
+    setGuidedTourActive(tourId !== null);
+    return () => setGuidedTourActive(false);
+  }, [tourId]);
 
   const value = useMemo<GuidedTourContextValue>(
     () => ({

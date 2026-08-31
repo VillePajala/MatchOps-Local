@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDataStore } from '@/hooks/useDataStore';
+import { useGuidedTourActive, useOnboardingUserId } from '@/components/setupWizardActive';
 
 /**
  * FirstVisitIntro - Onboarding v2's permanent education layer (PR 21).
@@ -54,10 +54,23 @@ interface FirstVisitIntroProps {
 
 const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overlay = false, className = '' }) => {
   const { t } = useTranslation();
-  const { userId } = useDataStore();
+  // Store-fed, context-FREE on purpose (review #728 rounds 1-2): host-modal
+  // suites partially mock the providers, so any context import here is a
+  // breakage vector. page.tsx publishes the settled user id (undefined while
+  // auth resolves -> banner hidden, no 'local'-key misfiling) and the tour
+  // provider mirrors its active flag - while the tour runs its own hints own
+  // these surfaces, so the banner yields without consuming its one showing.
+  const userId = useOnboardingUserId();
+  const tourActive = useGuidedTourActive();
   const [dismissed, setDismissed] = useState(false);
+  // Memoized: FieldContainer re-renders per drag frame and TimerOverlay per
+  // clock tick - no localStorage read on those hot paths (review #728).
+  const initiallySeen = useMemo(
+    () => (userId === undefined ? true : isSeen(surface, userId)),
+    [surface, userId],
+  );
 
-  if (dismissed || isSeen(surface, userId)) return null;
+  if (dismissed || tourActive || userId === undefined || initiallySeen) return null;
 
   const base = overlay
     ? 'absolute inset-x-3 top-3 z-20 rounded-xl border border-indigo-400/40 border-l-[3px] border-l-indigo-400 bg-slate-900/95 px-4 py-3 shadow-xl backdrop-blur-sm'
