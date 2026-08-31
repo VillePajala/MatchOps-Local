@@ -334,7 +334,7 @@ describe('StartScreen', () => {
       expect(screen.getByText('Build a team')).toBeInTheDocument();
     });
 
-    it('shows a getting-started banner on the home surface that opens the checklist', async () => {
+    it('the home-surface getting-started banner is GONE (superseded by the composed start screen)', async () => {
       render(
         <StartScreen
           {...baseHandlers()}
@@ -344,10 +344,9 @@ describe('StartScreen', () => {
           setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
         />
       );
-      const banner = await screen.findByTestId('setup-banner');
-      expect(banner).toHaveTextContent(/Getting started/);
-      fireEvent.click(banner);
-      expect(await screen.findByText('Get the most out of MatchOps')).toBeInTheDocument();
+      // The gear entry (previous test) remains the post-game setup path.
+      await screen.findByRole('button', { name: 'Settings' });
+      expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
     });
 
     it('has no getting-started banner for first-time users', () => {
@@ -517,6 +516,92 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     canResume: true,
     hasSavedGames: true,
     isFirstTimeUser: false,
+  });
+
+  describe('Onboarding v2 composition (pre-first-game)', () => {
+    beforeEach(() => localStorage.clear());
+
+    const composeProps = (progress: { players: boolean; team: boolean }) => ({
+      onLoadGame: jest.fn(),
+      onResumeGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+      onManageRoster: jest.fn(),
+      onManageTeams: jest.fn(),
+      onNewGame: jest.fn(),
+      canResume: false,
+      hasSavedGames: false,
+      isFirstTimeUser: !progress.players,
+      setupProgress: { ...progress, competition: false, teamLinkedGame: false },
+    });
+
+    /**
+     * @critical - The screen itself is the checklist: no players -> the hero
+     * is Add players, and the later steps stay VISIBLE as ordered rows
+     * (reorder, never hide).
+     */
+    it('empty account: Add players is the hero, team and game are visible ordered rows', () => {
+      const props = composeProps({ players: false, team: false });
+      render(<StartScreen {...props} />);
+
+      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Welcome! Start by adding your players.');
+      fireEvent.click(screen.getByTestId('hero-add-players'));
+      expect(props.onManageRoster).toHaveBeenCalledTimes(1);
+
+      const steps = screen.getByTestId('onboarding-steps');
+      expect(within(steps).getByText('Create your team')).toBeInTheDocument();
+      // New Game stays reachable (and keeps the tour anchor).
+      fireEvent.click(within(steps).getByTestId('tour-new-game'));
+      expect(props.onNewGame).toHaveBeenCalledTimes(1);
+    });
+
+    it('players done: Create your team is the hero, players row shows a check', () => {
+      const props = composeProps({ players: true, team: false });
+      render(<StartScreen {...props} />);
+
+      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Good start! Next, create your team.');
+      fireEvent.click(screen.getByTestId('hero-create-team'));
+      expect(props.onManageTeams).toHaveBeenCalledTimes(1);
+
+      const steps = screen.getByTestId('onboarding-steps');
+      expect(within(steps).getByText('✓')).toBeInTheDocument();
+    });
+
+    /**
+     * @critical - Wizard graduates here: team + players exist, no games ->
+     * the stock amber New Game hero takes over (no duplicate custom hero).
+     */
+    it('team ready: the stock New Game hero leads and the strip says all set', () => {
+      const props = composeProps({ players: true, team: true });
+      render(<StartScreen {...props} />);
+
+      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('All set!');
+      expect(screen.queryByTestId('hero-add-players')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('hero-create-team')).not.toBeInTheDocument();
+      // Exactly ONE tour-new-game element (the stock hero), no step duplicate.
+      expect(screen.getAllByTestId('tour-new-game')).toHaveLength(1);
+      fireEvent.click(screen.getByTestId('tour-new-game'));
+      expect(props.onNewGame).toHaveBeenCalledTimes(1);
+    });
+
+    it('once a game exists the composition and strip are gone', () => {
+      const props = { ...composeProps({ players: true, team: true }), hasSavedGames: true };
+      render(<StartScreen {...props} />);
+      expect(screen.queryByTestId('welcome-strip')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('onboarding-steps')).not.toBeInTheDocument();
+    });
+
+    it('the welcome strip carries the opt-in tour link', () => {
+      const props = composeProps({ players: false, team: false });
+      render(
+        <GuidedTourProvider>
+          <StartScreen {...props} />
+        </GuidedTourProvider>
+      );
+      fireEvent.click(screen.getByTestId('welcome-strip-tour'));
+      expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
+    });
   });
 
   it('renders the four club-level tabs with Games active', () => {

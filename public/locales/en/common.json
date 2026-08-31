@@ -1116,6 +1116,13 @@
     "emptyStats": "Statistics appear once you've played games.",
     "gearRestartTour": "Getting started guide",
       "gearGuide": "How it works",
+    "heroAddPlayers": "Add players",
+    "heroCreateTeam": "Create your team",
+    "stepBadge": "Step {{n}}",
+    "welcomeStripReady": "All set! Your team and players are ready for the first game.",
+    "welcomeStripStart": "Welcome! Start by adding your players.",
+    "welcomeStripTeam": "Good start! Next, create your team.",
+    "welcomeStripTour": "Want a guided walkthrough?",
     "gearSetup": "Getting started ({{done}}/4)"
   },
   "workspace": {
