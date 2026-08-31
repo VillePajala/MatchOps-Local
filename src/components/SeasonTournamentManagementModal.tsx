@@ -16,6 +16,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
 import type { EntityReferences } from '@/interfaces/DataStore';
 import logger from '@/utils/logger';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -385,6 +386,10 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
+            <FirstVisitIntro
+              surface="seasons"
+              text={t('firstVisit.seasons', 'Group games into a season or tournament to get standings and per-competition stats.')}
+            />
             {/* Search Field and Show Archived Toggle */}
             <div className="mb-4 flex flex-col sm:flex-row gap-3">
               <input

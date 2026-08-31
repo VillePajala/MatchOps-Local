@@ -54,6 +54,7 @@ import type { DiversityGame } from '@/utils/positionDiversity';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 /** Stable no-op callback to avoid creating new function references on each render */
 const NOOP = () => {};
@@ -754,6 +755,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto min-h-0" onScroll={headerCollapse.onScroll}>
+          <FirstVisitIntro
+            surface="stats"
+            className="mx-4 mt-4 sm:mx-6"
+            text={t('firstVisit.stats', 'Game stats live here: this game, season, tournament and per-player views from the tabs.')}
+          />
           {activeTab === 'player' ? (
             <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Player filter with collapsible Game Type and Season filters */}
