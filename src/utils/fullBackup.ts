@@ -551,7 +551,12 @@ export const downloadFullBackup = async (
 
 export const exportFullBackup = async (
   showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
-  userId?: string
+  userId?: string,
+  // 'download' skips the share sheet entirely and saves straight to Downloads
+  // (owner decision for the backup REMINDER: a predictable file beats a share
+  // sheet you have to route somewhere). Default 'auto' keeps the share-first
+  // behavior for the Settings export.
+  deliveryMode: 'auto' | 'download' = 'auto'
 ): Promise<string> => {
   logger.log("Starting full backup export...");
   try {
@@ -572,7 +577,13 @@ export const exportFullBackup = async (
 
     const filename = makeBackupFilename();
 
-    const delivery = await shareOrDownloadJson(jsonString, filename);
+    let delivery: BackupDeliveryResult;
+    if (deliveryMode === 'download') {
+      downloadJson(jsonString, filename);
+      delivery = 'downloaded';
+    } else {
+      delivery = await shareOrDownloadJson(jsonString, filename);
+    }
     if (delivery === 'cancelled') {
       logger.log('Full backup export cancelled by user (share dismissed)');
     } else {

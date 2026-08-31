@@ -228,7 +228,6 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t('setupWizard.teamNamePlaceholder', 'e.g. FC Honka P12') ?? undefined}
-              autoFocus
               className="w-full rounded-lg bg-slate-800 border border-slate-600 px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
             />
 
@@ -266,20 +265,21 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           </>
         ) : (
           <>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                data-testid="wizard-back"
-                onClick={() => setStep(1)}
-                aria-label={t('setupWizard.back', 'Back')}
-                className="text-slate-400 hover:text-white text-xl leading-none px-1"
-              >
-                &lsaquo;
-              </button>
-              <h2 className="text-2xl font-semibold">
-                {t('setupWizard.playersTitle', 'Players')}
-              </h2>
-            </div>
+            {/* Quiet back link on its own row (owner round 2: the arrow glued
+                to the title read badly). No autofocus on step 1 for the same
+                round: the keyboard covered the format chips before the coach
+                ever saw them. */}
+            <button
+              type="button"
+              data-testid="wizard-back"
+              onClick={() => setStep(1)}
+              className="self-start -ml-1 mb-1 px-1 text-sm text-slate-500 hover:text-slate-300"
+            >
+              &lsaquo; {t('setupWizard.back', 'Back')}
+            </button>
+            <h2 className="text-2xl font-semibold">
+              {t('setupWizard.playersTitle', 'Players')}
+            </h2>
             <p className="text-sm text-slate-400 mt-1">
               {t('setupWizard.playersHint', 'One name per row - Enter adds the next.')}
             </p>
