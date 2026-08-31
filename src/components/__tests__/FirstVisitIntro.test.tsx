@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import FirstVisitIntro from '../FirstVisitIntro';
+import { setGuidedTourActive, setOnboardingUserId } from '../setupWizardActive';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -8,22 +9,13 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-let mockUser: { id: string } | null = { id: 'user-1' };
-jest.mock('@/contexts/AuthProvider', () => ({
-  useAuthOptional: () => ({ user: mockUser, isLoading: false }),
-}));
-
-let mockTourActive = false;
-jest.mock('@/contexts/GuidedTourProvider', () => ({
-  useGuidedTourOptional: () => ({ isActive: mockTourActive }),
-}));
-
 const KEY = 'matchops_first_visit_team-form_user-1';
 
 beforeEach(() => {
   localStorage.clear();
-  mockUser = { id: 'user-1' };
-  mockTourActive = false;
+  // The component is store-fed (no contexts) - set the stores directly.
+  setOnboardingUserId('user-1');
+  setGuidedTourActive(false);
 });
 
 describe('FirstVisitIntro', () => {
@@ -60,22 +52,28 @@ describe('FirstVisitIntro', () => {
    * must not consume its one showing).
    */
   it('yields to an ACTIVE guided tour without marking itself seen', () => {
-    mockTourActive = true;
-    const { rerender } = render(<FirstVisitIntro surface="team-form" text="Three steps." />);
+    setGuidedTourActive(true);
+    render(<FirstVisitIntro surface="team-form" text="Three steps." />);
     expect(screen.queryByTestId('first-visit-team-form')).not.toBeInTheDocument();
     expect(localStorage.getItem(KEY)).toBeNull();
 
-    // Tour over, next visit: the banner gets its turn.
-    mockTourActive = false;
-    rerender(<FirstVisitIntro surface="team-form" text="Three steps." />);
+    // Tour over: the store change re-renders the subscriber - the banner gets
+    // its turn on the same mount.
+    act(() => setGuidedTourActive(false));
     expect(screen.getByTestId('first-visit-team-form')).toBeInTheDocument();
   });
 
   it('flags are per-user: another account sees the banner fresh', () => {
     localStorage.setItem(KEY, '1');
-    mockUser = { id: 'user-2' };
+    setOnboardingUserId('user-2');
     render(<FirstVisitIntro surface="team-form" text="Three steps." />);
     expect(screen.getByTestId('first-visit-team-form')).toBeInTheDocument();
+  });
+
+  it('renders nothing while auth is still resolving (userId undefined)', () => {
+    setOnboardingUserId(undefined);
+    const { container } = render(<FirstVisitIntro surface="team-form" text="Three steps." />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   /**
@@ -83,7 +81,9 @@ describe('FirstVisitIntro', () => {
    * dismissal we could not persist.
    */
   it('renders nothing when localStorage is unavailable', () => {
-    const spy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+    // Spy on the INSTANCE, not Storage.prototype - the jest environment's
+    // localStorage does not route getItem through the prototype (round-2 CI).
+    const spy = jest.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
       throw new Error('blocked');
     });
     try {

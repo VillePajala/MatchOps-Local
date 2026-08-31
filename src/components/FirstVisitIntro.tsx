@@ -2,8 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuthOptional } from '@/contexts/AuthProvider';
-import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
+import { useGuidedTourActive, useOnboardingUserId } from '@/components/setupWizardActive';
 
 /**
  * FirstVisitIntro - Onboarding v2's permanent education layer (PR 21).
@@ -55,19 +54,15 @@ interface FirstVisitIntroProps {
 
 const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overlay = false, className = '' }) => {
   const { t } = useTranslation();
-  // Provider-OPTIONAL on purpose: without a mounted (and settled) auth context
-  // the banner renders nothing - so isolated host tests need no providers, and
-  // a cloud user's dismissal can never be misfiled under the 'local' key while
-  // auth is still resolving (review #728).
-  const auth = useAuthOptional();
-  // While the guided tour is ACTIVE its own hints own these surfaces - never
-  // stack both messages (review #728). The banner simply waits for a later
-  // visit; the seen flag is untouched.
-  const tourActive = useGuidedTourOptional()?.isActive ?? false;
+  // Store-fed, context-FREE on purpose (review #728 rounds 1-2): host-modal
+  // suites partially mock the providers, so any context import here is a
+  // breakage vector. page.tsx publishes the settled user id (undefined while
+  // auth resolves -> banner hidden, no 'local'-key misfiling) and the tour
+  // provider mirrors its active flag - while the tour runs its own hints own
+  // these surfaces, so the banner yields without consuming its one showing.
+  const userId = useOnboardingUserId();
+  const tourActive = useGuidedTourActive();
   const [dismissed, setDismissed] = useState(false);
-
-  const settled = !!auth && !auth.isLoading;
-  const userId = settled ? (auth?.user?.id ?? null) : undefined;
   // Memoized: FieldContainer re-renders per drag frame and TimerOverlay per
   // clock tick - no localStorage read on those hot paths (review #728).
   const initiallySeen = useMemo(
