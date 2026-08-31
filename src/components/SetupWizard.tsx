@@ -73,6 +73,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   const [draft, setDraft] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Committed rows + a non-empty draft: what Valmis will actually create.
+  const totalCount = names.length + (draft.trim() ? 1 : 0);
+
   // Retry safety: a failed finish must not duplicate what already got created.
   const createdPlayersRef = useRef<Player[]>([]);
   const createdTeamRef = useRef<Team | null>(null);
@@ -190,12 +193,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-y-auto"
     >
       <div className="w-full max-w-sm mx-auto flex flex-col flex-1 px-6 py-8">
-        <h1 className="text-4xl font-bold tracking-tight text-center">
+        <h1 className="text-5xl font-bold tracking-tight text-center mt-2">
           <span className="text-amber-400">MatchOps</span>
         </h1>
+        <p className="text-center text-slate-400 mt-1.5">
+          {t('startScreen.tagline', 'Plan · Track · Discover')}
+        </p>
 
         {/* Step dots */}
-        <div className="flex gap-1.5 justify-center mt-3 mb-6" aria-hidden="true">
+        <div className="flex gap-1.5 justify-center mt-5 mb-8" aria-hidden="true">
           <span className="w-6 h-1 rounded-full bg-amber-400" />
           <span className={`w-6 h-1 rounded-full ${step === 2 ? 'bg-amber-400' : 'bg-slate-700'}`} />
         </div>
@@ -253,7 +259,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               data-testid="wizard-continue"
               onClick={() => setStep(2)}
               disabled={!teamName.trim()}
-              className="w-full mt-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
+              className="w-full mt-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
             >
               {t('setupWizard.next', 'Continue')}
             </button>
@@ -278,23 +284,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               {t('setupWizard.playersHint', 'One name per row - Enter adds the next.')}
             </p>
 
-            <div className="flex flex-col gap-2 mt-5">
-              {names.map((name, index) => (
-                <div
-                  key={`${name}-${index}`}
-                  className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
-                >
-                  <span className="text-sm">{name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeName(index)}
-                    aria-label={`${t('setupWizard.removePlayer', 'Remove')} ${name}`}
-                    className="text-slate-500 hover:text-white px-1"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+            {/* Input PINNED here (keyboard-safe, never moves as the list grows);
+                committed rows stack BELOW it newest-first, so it is the OLD rows
+                that scroll away behind the phone keyboard (owner round 1). The
+                visible "+ Add" button gives Enter's action a discoverable twin -
+                without it, coaches tapped the big Valmis after one name. */}
+            <div className="mt-5 flex gap-2">
               <input
                 data-testid="wizard-player-input"
                 type="text"
@@ -308,23 +303,59 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 }}
                 placeholder={t('setupWizard.playerPlaceholder', 'Player name…') ?? undefined}
                 autoFocus
-                className="w-full rounded-lg bg-slate-800 border border-slate-600 px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                className="flex-1 min-w-0 rounded-lg bg-slate-800 border border-slate-600 px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
+              <button
+                type="button"
+                data-testid="wizard-add-player"
+                onClick={commitDraft}
+                disabled={!draft.trim()}
+                className="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 text-sm font-semibold text-white transition-colors disabled:opacity-40"
+              >
+                {t('setupWizard.add', 'Add')}
+              </button>
             </div>
             <p className="text-right text-xs text-slate-400 mt-2" data-testid="wizard-player-count">
-              {t('setupWizard.playersAdded', '{{count}} players added', {
-                count: names.length + (draft.trim() ? 1 : 0),
-              })}
+              {t('setupWizard.playersAdded', '{{count}} players added', { count: totalCount })}
             </p>
+            <div className="flex flex-col gap-2 mt-2">
+              {[...names].reverse().map((name, i) => {
+                const originalIndex = names.length - 1 - i;
+                return (
+                  <div
+                    key={`${name}-${originalIndex}`}
+                    data-testid="wizard-player-row"
+                    className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
+                  >
+                    <span className="text-sm">{name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeName(originalIndex)}
+                      aria-label={`${t('setupWizard.removePlayer', 'Remove')} ${name}`}
+                      className="text-slate-500 hover:text-white px-1"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
 
+            {/* Valmis announces what it will create, so a premature tap
+                self-identifies ("Done (1 player)") instead of silently
+                finishing a one-player roster. */}
             <button
               type="button"
               data-testid="wizard-finish"
               onClick={() => void handleFinish()}
               disabled={isSaving}
-              className="w-full mt-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
+              className="w-full mt-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
             >
-              {isSaving ? t('setupWizard.saving', 'Saving…') : t('setupWizard.finish', 'Done')}
+              {isSaving
+                ? t('setupWizard.saving', 'Saving…')
+                : totalCount > 0
+                  ? t('setupWizard.finishWithCount', 'Done ({{count}} players)', { count: totalCount })
+                  : t('setupWizard.finish', 'Done')}
             </button>
           </>
         )}
