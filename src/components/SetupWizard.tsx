@@ -190,7 +190,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   return (
     <div
       data-testid="setup-wizard"
-      className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden"
+      className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-y-auto"
     >
       <div className="w-full max-w-sm mx-auto flex flex-col flex-1 px-6 py-8">
         <h1 className="text-5xl font-bold tracking-tight text-center mt-2">
@@ -266,10 +266,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             </button>
           </div>
         ) : (
-          /* Step 2 never scrolls the PAGE (owner round 3): the card fills the
-             remaining height, the ROWS scroll internally (newest first, so
-             the oldest slide away), and Valmis + the skip link stay pinned on
-             screen at all times. */
+          /* Step 2 does not scroll the PAGE in portrait (owner round 3): the
+             card fills the remaining height, the ROWS scroll internally
+             (newest first, oldest slide away), and Valmis + the skip link stay
+             pinned. The page keeps overflow-y-auto as a FALLBACK only - on a
+             short/landscape viewport the fixed-height children exceed 100dvh
+             and the page must scroll rather than clip (review #732). */
           <div className="flex-1 min-h-0 mt-1 flex flex-col rounded-2xl bg-slate-800/40 border border-slate-700/40 p-5">
             {/* Quiet back link on its own row (owner round 2: the arrow glued
                 to the title read badly). No autofocus on step 1 for the same
