@@ -1,4 +1,15 @@
 {
+  "firstVisit": {
+    "gameSetup": "Valitse joukkueesi. Sarjan tai turnauksen voit liittää nyt tai myöhemmin.",
+    "goalLog": "Valitse maalintekijä - ja syöttäjä jos oli - ja napauta Kirjaa maali.",
+    "gotIt": "Selvä",
+    "matchField": "Tämä on kenttäsi. Muodostelmapainikkeella sijoitat pelaajat - kello ja maalit löytyvät ajastimesta.",
+    "planner": "Suunnittele vaihdot ja tasainen peliaika tuleviin otteluihin - suunnitelma esitäyttää uuden ottelun.",
+    "seasons": "Ryhmittele ottelut kaudeksi tai turnaukseksi - saat sarjataulukot ja kilpailukohtaiset tilastot.",
+    "stats": "Tilastot asuvat täällä: tämä ottelu, kausi, turnaus ja pelaajakohtaiset näkymät välilehdiltä.",
+    "teamForm": "Kolme askelta: anna joukkueelle nimi, valitse pelaajat kohdasta Muokkaa kokoonpanoa ja paina Luo.",
+    "timer": "Käynnistä ja pysäytä kello tästä - myös maalit ja vaihdot kirjataan tästä näkymästä."
+  },
   "guidedTour": {
     "welcome": {
       "title": "Tervetuloa MatchOpsiin",

@@ -8,6 +8,7 @@ import type { PlannedSubPrompt } from '@/hooks/usePlannedSubPrompts';
 import { formatTime } from '@/utils/time';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 
 interface TimerOverlayProps {
@@ -239,6 +240,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   return (
     <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
       <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
+        <FirstVisitIntro
+          surface="timer"
+          className="w-full"
+          text={t('firstVisit.timer', 'Start and pause the clock here - goals and substitutions are logged from this view too.')}
+        />
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER.
             3-column grid so long team names wrap inside their own column while
             the score stays fixed in the centre and vertically centred against
