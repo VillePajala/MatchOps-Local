@@ -1,6 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import fs from 'fs';
+import path from 'path';
 import SetupWizard, { isSetupWizardDone } from '../SetupWizard';
 import { useSetupWizardActive } from '../setupWizardActive';
 
@@ -214,6 +216,64 @@ describe('SetupWizard', () => {
     expect(screen.queryByText('Aino')).not.toBeInTheDocument();
     expect(screen.getByText('Eetu')).toBeInTheDocument();
     expect(screen.getByTestId('wizard-player-count')).toHaveTextContent('1 players added');
+  });
+
+  /**
+   * @critical - Owner round 1: the visible "+ Add" button is Enter's
+   * discoverable twin, and Valmis announces what it will create so a
+   * premature tap self-identifies instead of silently finishing.
+   */
+  it('commits rows via the Add button and announces the count on Valmis', () => {
+    renderWizard();
+    toStepTwo();
+
+    const input = screen.getByTestId('wizard-player-input');
+    expect(screen.getByTestId('wizard-add-player')).toBeDisabled();
+    fireEvent.change(input, { target: { value: 'Aino' } });
+    fireEvent.click(screen.getByTestId('wizard-add-player'));
+    expect(screen.getByText('Aino')).toBeInTheDocument();
+    expect(input).toHaveValue('');
+
+    // Valmis self-announces (mocked t interpolates the fallback).
+    expect(screen.getByTestId('wizard-finish')).toHaveTextContent('Done (1 players)');
+    // Empty roster: plain label.
+    fireEvent.click(screen.getByLabelText('Remove Aino'));
+    expect(screen.getByTestId('wizard-finish')).toHaveTextContent('Done');
+  });
+
+  /**
+   * @integration - Owner round 1: the input stays PINNED at the top and rows
+   * grow BELOW it newest-first, so old rows (not the input) scroll behind the
+   * phone keyboard.
+   */
+  it('renders committed rows below the input, newest first', () => {
+    renderWizard();
+    toStepTwo();
+    addPlayerRow('Aino');
+    addPlayerRow('Eetu');
+
+    const rows = screen.getAllByTestId('wizard-player-row');
+    expect(rows[0]).toHaveTextContent('Eetu');
+    expect(rows[1]).toHaveTextContent('Aino');
+    // Input precedes the rows in the DOM.
+    const input = screen.getByTestId('wizard-player-input');
+    expect(input.compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  /**
+   * @integration - Review #725: the plural forms must exist in the REAL locale
+   * files (the mocked t above bypasses them, so this guards the JSON itself).
+   */
+  it('ships i18next plural forms for the count strings in both locales', () => {
+    for (const locale of ['en', 'fi']) {
+      const file = JSON.parse(
+        fs.readFileSync(path.join(process.cwd(), 'public', 'locales', locale, 'common.json'), 'utf-8'),
+      );
+      const wizard = file.setupWizard;
+      for (const key of ['playersAdded_one', 'playersAdded_other', 'finishWithCount_one', 'finishWithCount_other']) {
+        expect(wizard[key]).toEqual(expect.stringContaining('{{count}}'));
+      }
+    }
   });
 
   /**
