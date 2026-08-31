@@ -57,7 +57,7 @@ const FORMAT_PREFIX = 'matchops_setup_format_';
  * On any storage failure we report "done" - never trap a user in a wizard
  * whose dismissal can't persist.
  */
-export function isSetupWizardDone(userId: string | null): boolean {
+export function isSetupWizardDone(userId: string | null | undefined): boolean {
   if (typeof window === 'undefined') return true;
   try {
     // eslint-disable-next-line no-restricted-globals -- one-time onboarding flag, not app data (same pattern as the guided-tour flag)
@@ -67,7 +67,7 @@ export function isSetupWizardDone(userId: string | null): boolean {
   }
 }
 
-function markSetupWizardDone(userId: string | null): void {
+function markSetupWizardDone(userId: string | null | undefined): void {
   try {
     // eslint-disable-next-line no-restricted-globals -- one-time onboarding flag, not app data (same pattern as the guided-tour flag)
     localStorage.setItem(`${DONE_PREFIX}${userId ?? 'local'}`, '1');
