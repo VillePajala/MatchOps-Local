@@ -154,8 +154,8 @@ describe('newGameHandlers', () => {
   });
 
   it('defaults to the size\'s REAL formation when none is chosen (owner round 4: no generic grid)', async () => {
-    // 2 selected players -> recommended size 5v5 -> default 1-2-1 diamond.
-    const preset = getPresetById('5v5-1-2-1');
+    // 2 selected players -> recommended size 3v3 -> default 1-1 formation.
+    const preset = getPresetById('3v3-1-1');
     const result = await buildAndPersistNewGame(
       createTestDeps(),
       createBaseRequest({ initialSelectedPlayerIds: ['p1', 'p2'] }),
