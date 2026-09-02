@@ -23,7 +23,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { getPresetsForFieldSize, getRecommendedFieldSize } from '@/config/formationPresets';
+import { getDefaultPresetIdForSize, getPresetsForFieldSize, getRecommendedFieldSize } from '@/config/formationPresets';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -284,9 +284,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       };
       loadLastTeamName();
 
-      // Focus on home team input
+      // No auto-focus on open (owner round 4): the self-raising keyboard hid
+      // the first-visit card at the top - the keyboard now rises only when a
+      // field is tapped. The init flag keeps its deferred clear.
       setTimeout(() => {
-        homeTeamInputRef.current?.focus();
         initializingRef.current = false;
       }, 100);
     }
@@ -701,13 +702,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       gender, // Gender: 'boys' or 'girls' (optional)
       prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
       isFriendly, // Friendly / practice match flag
-      // Formation preset, validated against the final squad size (stale picks
-      // from a different size fall back to auto).
+      // Formation preset, validated against the final squad size; stale picks
+      // fall back to the size's REAL default (owner round 4), never the grid.
       getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length)).some(
         (preset) => preset.id === formationPresetId,
       )
         ? formationPresetId
-        : null,
+        : getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length)),
     );
 
     // Modal will be closed by parent component after onStart
@@ -1178,19 +1179,26 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </label>
                 <select
                   id="formationSelect"
+                  /* Owner round 4: the select PRESELECTS the size's real
+                     default formation (no more generic-grid Auto option); a
+                     stale pick from another squad size falls back to that
+                     default too. */
                   value={(() => {
-                    const presets = getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length));
-                    return presets.some((preset) => preset.id === formationPresetId) ? formationPresetId ?? '' : '';
+                    const size = getRecommendedFieldSize(selectedPlayerIds.length);
+                    const presets = getPresetsForFieldSize(size);
+                    return presets.some((preset) => preset.id === formationPresetId)
+                      ? (formationPresetId as string)
+                      : getDefaultPresetIdForSize(size);
                   })()}
-                  onChange={(e) => setFormationPresetId(e.target.value || null)}
+                  onChange={(e) => setFormationPresetId(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="">
-                    {t('formations.auto', 'Auto')} · {t('formations.autoDescription', 'Based on player count')}
-                  </option>
                   {getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length)).map((preset) => (
                     <option key={preset.id} value={preset.id}>
                       {t(preset.labelKey, preset.name)}
+                      {preset.id === getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
+                        ? ` · ${t('formations.recommended', 'Recommended')}`
+                        : ''}
                     </option>
                   ))}
                 </select>

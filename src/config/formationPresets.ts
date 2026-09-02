@@ -312,3 +312,19 @@ export const PRESETS_BY_SIZE: Record<FieldSize, FormationPreset[]> = FIELD_SIZES
   },
   {} as Record<FieldSize, FormationPreset[]>
 );
+
+/**
+ * The REAL default formation per field size (owner round 4): a fresh game
+ * should open in a recognizable shape, not the generic evenly-spaced grid.
+ * 5v5 = 1-2-1 diamond, 8v8 = 2-1-2-1-1, 11v11 = 4-3-3 (owner picks).
+ */
+export const DEFAULT_PRESET_ID_BY_SIZE: Record<FieldSize, string> = {
+  '3v3': '3v3-1-1',
+  '5v5': '5v5-1-2-1',
+  '8v8': '8v8-2-1-2-1-1',
+  '11v11': '11v11-4-3-3',
+};
+
+export function getDefaultPresetIdForSize(fieldSize: FieldSize): string {
+  return DEFAULT_PRESET_ID_BY_SIZE[fieldSize];
+}

@@ -9,7 +9,7 @@ import type { AppState, Player, SavedGamesCollection, GameType, Gender, Point } 
 import { setGameSubs, type PlannedGameSub } from '@/utils/playtimePlanner/gameSubs';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
 import { buildAutoPlacement } from '@/utils/formations';
-import { getPresetById } from '@/config/formationPresets';
+import { getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import type { ResourceType } from '@/config/premiumLimits';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -177,7 +177,12 @@ export async function buildAndPersistNewGame(
   // a new coach to puzzle over. This is the persist-side twin of the match-side
   // "Place all players" Auto path (buildAutoPlacement). Skipped when the game is
   // prefilled from a Playing-Time Planner plan, which already places its XI.
-  const chosenPreset = formationPresetId ? getPresetById(formationPresetId) : undefined;
+  // Owner round 4: no explicit pick still lands on a REAL formation for the
+  // squad size (1-2-1 / 2-1-2-1-1 / 4-3-3), never the generic grid.
+  const chosenPreset = getPresetById(
+    formationPresetId ??
+      getDefaultPresetIdForSize(getRecommendedFieldSize(reconciledSelectedPlayerIds.length)),
+  );
   const autoPlacement = prefill
     ? null
     : buildAutoPlacement(

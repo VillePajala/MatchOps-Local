@@ -26,6 +26,7 @@ import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
+import { HiOutlineSquares2X2 } from 'react-icons/hi2';
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -278,7 +279,14 @@ export function FieldContainer({
       <FirstVisitIntro
         overlay
         surface="match-field"
-        text={t('firstVisit.matchField', 'This is your field. Place players with the formation button - the clock and goals live in the timer.')}
+        text={
+          <>
+            {t('firstVisit.matchFieldPlace', 'This is your field. Place your players with the formation button')}{' '}
+            <HiOutlineSquares2X2 className="inline h-4 w-4 -mt-0.5" aria-hidden="true" />
+            {'. '}
+            {t('firstVisit.matchFieldClock', 'The game clock and goal logging open from the 00:00 button below.')}
+          </>
+        }
       />
       {/* DELIBERATE: the planned-sub nudge (inside TimerOverlay) is only
           visible while the large timer overlay is open - the same surface the
