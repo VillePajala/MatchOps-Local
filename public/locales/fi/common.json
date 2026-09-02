@@ -1416,6 +1416,8 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "formationApply": "Aseta pelaajat muodostelmaan…",
+    "formationLabel": "Muodostelma",
     "reapplyPlan": {
       "button": "Päivitä suunnitelmasta",
       "confirmTitle": "Otetaanko suunnitelma uudelleen käyttöön?",

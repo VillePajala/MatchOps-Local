@@ -432,6 +432,9 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setShowNoPlayersConfirm,
       setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
+      // Owner round 4: Game Settings can re-place the squad in a chosen
+      // formation (same engine as the in-match Place All picker).
+      applyFormation: fieldCoordination.handlePlaceAllPlayers,
       openSettingsModal: handleOpenSettingsModal,
       // W6 + R3: leave the stats modal and land where the item is
       // completed, scrolled to its section.

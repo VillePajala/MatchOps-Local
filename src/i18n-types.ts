@@ -745,6 +745,8 @@ export type TranslationKey =
   | 'gameSettingsModal.eventLogTitle'
   | 'gameSettingsModal.fairPlayCardDescription'
   | 'gameSettingsModal.fairPlayCardTitle'
+  | 'gameSettingsModal.formationApply'
+  | 'gameSettingsModal.formationLabel'
   | 'gameSettingsModal.friendlyToggle'
   | 'gameSettingsModal.gameConfigLabel'
   | 'gameSettingsModal.gameDateLabel'

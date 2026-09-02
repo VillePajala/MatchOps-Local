@@ -116,6 +116,8 @@ interface ModalManagerHandlers {
   /** W6: wrap-up rows navigate to where the item is completed. */
   wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
   wrapUpToAssessments: () => void;
+  /** Re-place the squad in a formation preset (returns false on a no-op). */
+  applyFormation: (presetId: string | null) => boolean;
 }
 
 export interface ModalManagerProps {
@@ -218,6 +220,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
           onClose={handlers.closeGameSettingsModal}
+          onApplyFormation={handlers.applyFormation}
           initialScrollSection={state.gameSettingsInitialSection}
           currentGameId={data.currentGameId}
           teamId={data.gameSessionState.teamId}

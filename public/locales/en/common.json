@@ -913,6 +913,8 @@
     "prefillMissingPlayers_other": "{{count}} planned players are not in this roster and were skipped."
   },
   "gameSettingsModal": {
+    "formationApply": "Place players in a formation…",
+    "formationLabel": "Formation",
     "reapplyPlan": {
       "button": "Re-apply plan",
       "confirmTitle": "Re-apply plan?",
