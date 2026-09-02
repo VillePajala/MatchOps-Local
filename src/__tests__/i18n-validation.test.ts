@@ -413,6 +413,15 @@ describe('Translation File Validation', () => {
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
       // +7: guidedTour.* keys added (funnel Phase 2 PR1, tour engine).
       // +6: guidedTour.{addPlayers,createTeam,createGame}.* (Phase 2 PR2, Home steps).
+      // Onboarding v2 waves (funnel PRs 19-27): setupWizard.* +16, wizard
+      //     polish +3 (Add button, plural finishWithCount), startScreen
+      //     composition/welcome strip +7, firstVisit.* banners +9,
+      //     newGameSetupModal.formationLabel +1 -> running total 2843.
+      // +1 net (owner round 4): firstVisit.matchField SPLIT into
+      //     matchFieldClock + matchFieldPlace (the inline formation icon
+      //     renders between the two halves).
+      // +2: gameSettingsModal.formationApply/formationLabel - the Game
+      //     Settings Muodostelma block (owner round 4). Lands at 2846.
       expect(enKeys.length).toBe(2846);
     });
 

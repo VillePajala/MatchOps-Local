@@ -2713,6 +2713,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   {t('gameSettingsModal.formationLabel', 'Formation')}
                 </h3>
                 <select
+                  data-testid="game-settings-formation-select"
                   value=""
                   onChange={(e) => {
                     if (e.target.value) onApplyFormation(e.target.value);
