@@ -284,9 +284,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       };
       loadLastTeamName();
 
-      // Focus on home team input
+      // No auto-focus on open (owner round 4): the self-raising keyboard hid
+      // the first-visit card at the top - the keyboard now rises only when a
+      // field is tapped. The init flag keeps its deferred clear.
       setTimeout(() => {
-        homeTeamInputRef.current?.focus();
         initializingRef.current = false;
       }, 100);
     }

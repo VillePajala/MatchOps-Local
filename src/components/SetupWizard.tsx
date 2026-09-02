@@ -258,7 +258,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             <button
               type="button"
               data-testid="wizard-continue"
-              onClick={() => setStep(2)}
+              onClick={() => {
+                // Owner round 4: close the keyboard before step 2 so the whole
+                // card (input, Lisaa, Valmis, skip) is visible first.
+                (document.activeElement as HTMLElement | null)?.blur?.();
+                setStep(2);
+              }}
               disabled={!teamName.trim()}
               className="w-full mt-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
             >
@@ -310,7 +315,6 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   }
                 }}
                 placeholder={t('setupWizard.playerPlaceholder', 'Player name…') ?? undefined}
-                autoFocus
                 className="flex-1 min-w-0 rounded-lg bg-slate-800 border border-slate-600 px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
               <button
