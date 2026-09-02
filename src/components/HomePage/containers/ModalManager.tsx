@@ -116,8 +116,8 @@ interface ModalManagerHandlers {
   /** W6: wrap-up rows navigate to where the item is completed. */
   wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
   wrapUpToAssessments: () => void;
-  /** Re-place the squad in a formation preset (returns false on a no-op). */
-  applyFormation: (presetId: string | null) => boolean;
+  /** Re-place the squad in a formation preset (tracked for the guided tour). */
+  applyFormation: (presetId: string | null) => void;
 }
 
 export interface ModalManagerProps {

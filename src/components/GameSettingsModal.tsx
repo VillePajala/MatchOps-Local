@@ -58,7 +58,7 @@ export interface GameSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** Re-place the squad in a formation preset (owner round 4). */
-  onApplyFormation?: (presetId: string | null) => boolean;
+  onApplyFormation?: (presetId: string | null) => void;
   // --- Data for the current game ---
   currentGameId: string | null;
   teamId?: string;
