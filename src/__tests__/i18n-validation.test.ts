@@ -413,7 +413,16 @@ describe('Translation File Validation', () => {
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
       // +7: guidedTour.* keys added (funnel Phase 2 PR1, tour engine).
       // +6: guidedTour.{addPlayers,createTeam,createGame}.* (Phase 2 PR2, Home steps).
-      expect(enKeys.length).toBe(2843);
+      // Onboarding v2 waves (funnel PRs 19-27): setupWizard.* +16, wizard
+      //     polish +3 (Add button, plural finishWithCount), startScreen
+      //     composition/welcome strip +7, firstVisit.* banners +9,
+      //     newGameSetupModal.formationLabel +1 -> running total 2843.
+      // +1 net (owner round 4): firstVisit.matchField SPLIT into
+      //     matchFieldClock + matchFieldPlace (the inline formation icon
+      //     renders between the two halves).
+      // +2: gameSettingsModal.formationApply/formationLabel - the Game
+      //     Settings Muodostelma block (owner round 4). Lands at 2846.
+      expect(enKeys.length).toBe(2846);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -543,7 +552,7 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(fiKeys.length).toBe(2843);
+      expect(fiKeys.length).toBe(2846);
     });
   });
 });

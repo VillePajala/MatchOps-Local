@@ -241,7 +241,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false, // isFriendly
-      null, // formationPresetId (auto)
+      '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
     );
   });
 
@@ -281,7 +281,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false, // isFriendly
-        null, // formationPresetId (auto)
+        '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
       );
     });
   });
@@ -440,7 +440,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false, // isFriendly
-          null, // formationPresetId (auto)
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });
@@ -560,7 +560,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false, // isFriendly
-          null, // formationPresetId (auto)
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });
@@ -817,7 +817,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false, // isFriendly
-          null, // formationPresetId (auto)
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });
@@ -899,7 +899,7 @@ describe('NewGameSetupModal', () => {
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
       false, // isFriendly
-          null, // formationPresetId (auto)
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });

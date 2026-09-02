@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@/i18n', () => ({
@@ -564,8 +564,23 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
       fireEvent.click(screen.getByTestId('hero-create-team'));
       expect(props.onManageTeams).toHaveBeenCalledTimes(1);
 
-      const steps = screen.getByTestId('onboarding-steps');
-      expect(within(steps).getByText('✓')).toBeInTheDocument();
+      // Done steps collapse into the one-line summary (owner round 4).
+      const summary = screen.getByTestId('onboarding-done-summary');
+      expect(within(summary).getByText('✓')).toBeInTheDocument();
+      expect(within(summary).getByText('Add players')).toBeInTheDocument();
+    });
+
+    it('compose mode defers the side rows (planner, Taso) until the first game exists', () => {
+      const props = { ...composeProps({ players: true, team: true }), onOpenPlanner: jest.fn() };
+      render(<StartScreen {...props} />);
+      expect(screen.queryByText('Match planner')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Taso/)).not.toBeInTheDocument();
+
+      cleanup();
+      // With a game saved, composition ends and the rows return.
+      render(<StartScreen {...props} hasSavedGames={true} />);
+      expect(screen.getByText('Match planner')).toBeInTheDocument();
+      expect(screen.getByText(/Taso/)).toBeInTheDocument();
     });
 
     /**

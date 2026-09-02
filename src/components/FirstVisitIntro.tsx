@@ -44,8 +44,8 @@ function markSeen(surface: string, userId: string | null | undefined): void {
 interface FirstVisitIntroProps {
   /** Stable surface id - keys the per-user seen flag (e.g. "team-form"). */
   surface: string;
-  /** Already-translated one-to-three-line note. */
-  text: string;
+  /** Already-translated one-to-three-line note; may embed inline icons. */
+  text: React.ReactNode;
   /** Absolute card variant for the field view (overlays, never blocks). */
   overlay?: boolean;
   /** Extra layout classes from the host surface (e.g. margins). */
@@ -76,10 +76,12 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
   // round 3: the gradient runs as a full EDGE around the card (1.5px frame
   // around a dark glass inner), so the note reads as a system moment from any
   // angle. The field overlay sits BELOW the field's own top buttons (top-16,
-  // z-30) so neither covers the other.
+  // z-30). Owner round 4: the overlay COVERS the field's top buttons while
+  // visible - the card is temporary and dismissible, and in that moment the
+  // guidance matters more than rules/camera shortcuts.
   const frame =
     'rounded-2xl p-[1.5px] bg-gradient-to-br from-sky-400 via-indigo-400 to-fuchsia-500 shadow-[0_12px_36px_rgba(0,0,0,0.45)]';
-  const base = overlay ? `absolute inset-x-3 top-16 z-30 ${frame}` : `${frame} mb-4`;
+  const base = overlay ? `absolute inset-x-3 top-3 z-30 ${frame}` : `${frame} mb-4`;
 
   return (
     <div data-testid={`first-visit-${surface}`} className={`${base} ${className}`.trim()}>

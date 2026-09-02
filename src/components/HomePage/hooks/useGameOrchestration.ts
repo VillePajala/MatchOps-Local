@@ -2420,6 +2420,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     },
     handlers: {
       handleUpdateGameEvent,
+      handlePlaceAllPlayersTracked,
       handleExportOneExcel,
       handleExportOneJson,
       handleTeamNameChange,

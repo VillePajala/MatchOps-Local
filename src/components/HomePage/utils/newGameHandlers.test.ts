@@ -153,6 +153,18 @@ describe('newGameHandlers', () => {
     expect(result!.gameState.playersOnField[0].id).toBe('p1');
   });
 
+  it('defaults to the size\'s REAL formation when none is chosen (owner round 4: no generic grid)', async () => {
+    // 2 selected players -> recommended size 3v3 -> default 1-1 formation.
+    const preset = getPresetById('3v3-1-1');
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({ initialSelectedPlayerIds: ['p1', 'p2'] }),
+    );
+    const outfielder = result!.gameState.playersOnField.find((pl) => !pl.isGoalie);
+    expect(outfielder?.relX).toBeCloseTo(preset!.positions[0].relX);
+    expect(outfielder?.relY).toBeCloseTo(preset!.positions[0].relY);
+  });
+
   it('places the squad on the CHOSEN formation preset at creation (owner round 2)', async () => {
     const preset = getPresetById('5v5-2-2');
     expect(preset).toBeDefined();

@@ -76,6 +76,8 @@ export interface ModalUIState {
  */
 export interface ModalHandlers {
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
+  /** TRACKED place-all (counts toward the guided tour's formation signal). */
+  handlePlaceAllPlayersTracked: (presetId: string | null) => void;
   handleExportOneExcel: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
   // New-game handlers LIFTED to useNewGameSetupController (L.3b).
@@ -184,6 +186,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   // Destructure handlers
   const {
     handleUpdateGameEvent,
+    handlePlaceAllPlayersTracked,
     handleExportOneExcel,
     handleExportOneJson,
     handleTeamNameChange,
@@ -432,6 +435,11 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setShowNoPlayersConfirm,
       setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
       resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
+      // Owner round 4: Game Settings can re-place the squad in a chosen
+      // formation. Routed through the TRACKED wrapper (review #734 Bug): the
+      // guided tour's set-formation step must advance no matter which surface
+      // applies the formation.
+      applyFormation: handlePlaceAllPlayersTracked,
       openSettingsModal: handleOpenSettingsModal,
       // W6 + R3: leave the stats modal and land where the item is
       // completed, scrolled to its section.

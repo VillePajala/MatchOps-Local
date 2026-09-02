@@ -596,7 +596,29 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 )}
                 {composeOnboarding && (
                   <div className="space-y-2" data-testid="onboarding-steps">
-                    {heroStep !== 'players' && (
+                    {/* DONE steps collapse into one quiet line (owner round 4:
+                        two full-height check rows pushed the page past the
+                        fold); pending steps keep their full rows below. */}
+                    {(setupProgress?.players || setupProgress?.team) && (
+                      <div
+                        data-testid="onboarding-done-summary"
+                        className="flex items-center gap-4 px-1 pt-0.5 text-sm text-slate-400"
+                      >
+                        {setupProgress?.players && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-emerald-400" aria-hidden="true">✓</span>
+                            {t('startScreen.heroAddPlayers', 'Add players')}
+                          </span>
+                        )}
+                        {setupProgress?.team && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-emerald-400" aria-hidden="true">✓</span>
+                            {t('startScreen.heroCreateTeam', 'Create your team')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {heroStep !== 'players' && !setupProgress?.players && (
                       <button
                         type="button"
                         onClick={onManageRoster}
@@ -604,16 +626,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
-                        {setupProgress?.players ? (
-                          <span className="text-emerald-400" aria-hidden="true">✓</span>
-                        ) : (
-                          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
-                            {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
-                          </span>
-                        )}
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
+                        </span>
                       </button>
                     )}
-                    {heroStep !== 'team' && (
+                    {heroStep !== 'team' && !setupProgress?.team && (
                       <button
                         type="button"
                         onClick={onManageTeams}
@@ -621,13 +639,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
-                        {setupProgress?.team ? (
-                          <span className="text-emerald-400" aria-hidden="true">✓</span>
-                        ) : (
-                          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
-                            {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
-                          </span>
-                        )}
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
+                        </span>
                       </button>
                     )}
                     {heroStep !== 'game' && (
@@ -719,7 +733,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </div>
                 ))}
 
-                {onOpenPlanner && (
+                {/* Side entries are DEFERRED while composing (owner round 4:
+                    they pushed the onboarding screen past the fold and are
+                    dead weight before the first game); back automatically
+                    once a game exists. */}
+                {!composeOnboarding && onOpenPlanner && (
                   <button
                     type="button"
                     onClick={onOpenPlanner}
@@ -734,6 +752,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
                     burial under the gear. Solid row like its siblings (3.1b). */}
+                {!composeOnboarding && (
                 <a
                   href="https://taso.palloliitto.fi"
                   target="_blank"
@@ -745,6 +764,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </span>
                   <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
                 </a>
+                )}
               </>
             )}
           </div>
