@@ -213,9 +213,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
              the whitespace into odd thirds - nothing looked anchored.) The
              card fill is also a step stronger so it reads as a surface, not a
              stray hairline box. */
-          {/* House surface recipe (owner round 6: the wizard spoke a foreign
-              dialect - ghost-outline 2xl card, hollow chips, too-dark input).
-              This is the exact inner-card vocabulary of the app's forms. */}
+          /* House surface recipe (owner round 6: the wizard spoke a foreign
+             dialect - ghost-outline 2xl card, hollow chips, too-dark input).
+             This is the exact inner-card vocabulary of the app's forms. */
           <div className="mt-6 rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-5">
             <h2 className="text-2xl font-semibold">
               {t('setupWizard.teamTitle', 'Your team')}
