@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import fs from 'fs';
 import path from 'path';
 import SetupWizard, { isSetupWizardDone } from '../SetupWizard';
-import { useSetupWizardActive } from '../setupWizardActive';
+import { getStoredSetupFormat, useSetupWizardActive } from '../setupWizardActive';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -294,5 +294,36 @@ describe('SetupWizard', () => {
 
     render(<Probe />);
     expect(screen.getByTestId('probe')).toHaveTextContent('off');
+  });
+});
+
+
+describe('getStoredSetupFormat (review #742)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('returns the stored valid format for the user', () => {
+    localStorage.setItem('matchops_setup_format_user-1', '8v8');
+    expect(getStoredSetupFormat('user-1')).toBe('8v8');
+  });
+
+  it('rejects corrupted values', () => {
+    localStorage.setItem('matchops_setup_format_user-1', '7v7');
+    expect(getStoredSetupFormat('user-1')).toBeNull();
+  });
+
+  it('returns null while auth is unsettled (undefined userId)', () => {
+    localStorage.setItem('matchops_setup_format_local', '5v5');
+    expect(getStoredSetupFormat(undefined)).toBeNull();
+  });
+
+  it('survives storage failure', () => {
+    const spy = jest.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    try {
+      expect(getStoredSetupFormat('user-1')).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

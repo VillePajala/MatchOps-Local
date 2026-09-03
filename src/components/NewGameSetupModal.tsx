@@ -24,6 +24,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
+import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -152,6 +153,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Player selection state - start with empty selection (no players pre-selected)
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  // The wizard's Pelimuoto answer (store-fed userId - context-free,
+  // test-safe) beats the player-count guess for the DEFAULT formation
+  // size (audit 1.16). DELIBERATELY permanent, not first-game-only: the
+  // answer describes the TEAM's format, which rarely changes mid-season -
+  // and it is only a default, one tap away from any other shape
+  // (review #742 issue 3; owner can veto).
+  const onboardingUserId = useOnboardingUserId();
+  const preferredFormationSize =
+    getStoredSetupFormat(onboardingUserId) ?? getRecommendedFieldSize(selectedPlayerIds.length);
 
   // Playing-Time Planner prefill (Phase 2): pick a saved plan + one of its games to
   // pre-load the planned lineup. Payload rides onStart; missing-count drives a hint.
@@ -706,7 +716,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // unknown/absent ids fall back to the recommended size's default.
       formationPresetId && getPresetById(formationPresetId)
         ? formationPresetId
-        : getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length)),
+        : getDefaultPresetIdForSize(preferredFormationSize),
     );
 
     // Modal will be closed by parent component after onStart
@@ -797,7 +807,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   a different layout from everyone else). */}
               <FirstVisitIntro
                 surface="game-setup"
-                text={t('firstVisit.gameSetup', 'Pick your team - a league or tournament can be added now or later.')}
+                text={t('firstVisit.gameSetup', 'Pick your team - a season or tournament can be added now or later.')}
               />
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
@@ -1188,7 +1198,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   value={
                     formationPresetId && getPresetById(formationPresetId)
                       ? formationPresetId
-                      : getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
+                      : getDefaultPresetIdForSize(preferredFormationSize)
                   }
                   onChange={(e) => setFormationPresetId(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
@@ -1199,7 +1209,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         <option key={preset.id} value={preset.id}>
                           {t(preset.labelKey, preset.name)}
                           {preset.id ===
-                          getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
+                          getDefaultPresetIdForSize(preferredFormationSize)
                             ? ` · ${t('formations.recommended', 'Recommended')}`
                             : ''}
                         </option>

@@ -6,6 +6,7 @@ import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import { setOnboardingUserId } from '@/components/setupWizardActive';
 
 // Mock the utility functions
 jest.mock('@/utils/appSettings', () => ({
@@ -1119,6 +1120,26 @@ describe('NewGameSetupModal', () => {
         expect(futsalButton).toHaveClass('bg-indigo-600');
         expect(soccerButton).not.toHaveClass('bg-indigo-600');
       });
+    });
+
+    it("the wizard's stored Pelimuoto drives the DEFAULT formation size (review #742)", async () => {
+      // 2 players -> the count guess says 3v3, but the coach answered 8v8.
+      setOnboardingUserId('user-1');
+      localStorage.setItem('matchops_setup_format_user-1', '8v8');
+      try {
+        render(
+          <ToastProvider>
+            <NewGameSetupModal {...defaultProps} />
+          </ToastProvider>
+        );
+        await waitFor(() => {
+          expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+        });
+        expect((document.querySelector('#formationSelect') as HTMLSelectElement).value).toBe('8v8-2-1-2-1-1');
+      } finally {
+        setOnboardingUserId(undefined);
+        localStorage.removeItem('matchops_setup_format_user-1');
+      }
     });
 
     it('formation select offers ALL field sizes as groups (owner round 6b)', async () => {
