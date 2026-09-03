@@ -34,7 +34,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { getDefaultPresetIdForSize, getPresetsForFieldSize, getRecommendedFieldSize } from '@/config/formationPresets';
+import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getRecommendedFieldSize } from '@/config/formationPresets';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -2723,13 +2723,18 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <option value="" disabled>
                     {t('gameSettingsModal.formationApply', 'Place players in a formation…')}
                   </option>
-                  {getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length)).map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {t(preset.labelKey, preset.name)}
-                      {preset.id === getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
-                        ? ` · ${t('formations.recommended', 'Recommended')}`
-                        : ''}
-                    </option>
+                  {FIELD_SIZES.map((size) => (
+                    <optgroup key={size} label={size}>
+                      {PRESETS_BY_SIZE[size].map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {t(preset.labelKey, preset.name)}
+                          {preset.id ===
+                          getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
+                            ? ` · ${t('formations.recommended', 'Recommended')}`
+                            : ''}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

@@ -23,7 +23,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { getDefaultPresetIdForSize, getPresetsForFieldSize, getRecommendedFieldSize } from '@/config/formationPresets';
+import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -702,11 +702,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       gender, // Gender: 'boys' or 'girls' (optional)
       prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
       isFriendly, // Friendly / practice match flag
-      // Formation preset, validated against the final squad size; stale picks
-      // fall back to the size's REAL default (owner round 4), never the grid.
-      getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length)).some(
-        (preset) => preset.id === formationPresetId,
-      )
+      // Any KNOWN preset is valid regardless of squad size (owner round 6);
+      // unknown/absent ids fall back to the recommended size's default.
+      formationPresetId && getPresetById(formationPresetId)
         ? formationPresetId
         : getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length)),
     );
@@ -1179,27 +1177,31 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </label>
                 <select
                   id="formationSelect"
-                  /* Owner round 4: the select PRESELECTS the size's real
-                     default formation (no more generic-grid Auto option); a
-                     stale pick from another squad size falls back to that
-                     default too. */
-                  value={(() => {
-                    const size = getRecommendedFieldSize(selectedPlayerIds.length);
-                    const presets = getPresetsForFieldSize(size);
-                    return presets.some((preset) => preset.id === formationPresetId)
-                      ? (formationPresetId as string)
-                      : getDefaultPresetIdForSize(size);
-                  })()}
+                  /* Owner rounds 4+6: ALL sizes are offered (squad size never
+                     RESTRICTS the choice - a 15-player squad can still play
+                     5v5 with subs); the player count only PRESELECTS and tags
+                     the recommended size's default. Unknown/stale ids fall
+                     back to that default. */
+                  value={
+                    formationPresetId && getPresetById(formationPresetId)
+                      ? formationPresetId
+                      : getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
+                  }
                   onChange={(e) => setFormationPresetId(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  {getPresetsForFieldSize(getRecommendedFieldSize(selectedPlayerIds.length)).map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {t(preset.labelKey, preset.name)}
-                      {preset.id === getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
-                        ? ` · ${t('formations.recommended', 'Recommended')}`
-                        : ''}
-                    </option>
+                  {FIELD_SIZES.map((size) => (
+                    <optgroup key={size} label={size}>
+                      {PRESETS_BY_SIZE[size].map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {t(preset.labelKey, preset.name)}
+                          {preset.id ===
+                          getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
+                            ? ` · ${t('formations.recommended', 'Recommended')}`
+                            : ''}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
