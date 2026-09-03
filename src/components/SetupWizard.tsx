@@ -213,17 +213,22 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
              the whitespace into odd thirds - nothing looked anchored.) The
              card fill is also a step stronger so it reads as a surface, not a
              stray hairline box. */
-          <div className="mt-6 rounded-2xl bg-slate-800/60 border border-slate-700/60 p-5">
-            <h2 className="text-2xl font-semibold">
+          /* House surface recipe (owner round 6: the wizard spoke a foreign
+             dialect - ghost-outline 2xl card, hollow chips, too-dark input).
+             This is the exact inner-card vocabulary of the app's forms. */
+          <>
+            {/* Title lives ABOVE the card (owner round 6): app forms keep
+                titles in headers, never as big h2s inside content cards. */}
+            <h2 className="text-2xl font-semibold mt-2">
               {t('setupWizard.teamTitle', 'Your team')}
             </h2>
             <p className="text-sm text-slate-400 mt-1">
               {t('setupWizard.teamHint', 'Name your team - you can fill in details later.')}
             </p>
-
+          <div className="mt-4 rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-5">
             <label
               htmlFor="setup-team-name"
-              className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mt-6 mb-1.5"
+              className="block text-sm font-medium text-slate-300 mb-1"
             >
               {t('setupWizard.teamNameLabel', 'Team name')}
             </label>
@@ -234,10 +239,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t('setupWizard.teamNamePlaceholder', 'e.g. FC Honka P12') ?? undefined}
-              className="w-full rounded-lg bg-slate-800 border border-slate-600 px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+              className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
             />
 
-            <div className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mt-5 mb-1.5">
+            <div className="block text-sm font-medium text-slate-300 mt-5 mb-1">
               {t('setupWizard.formatLabel', 'Format')}
             </div>
             <div className="flex gap-2" role="group" aria-label={t('setupWizard.formatLabel', 'Format')}>
@@ -248,10 +253,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   data-testid={`wizard-format-${f}`}
                   onClick={() => setFormat(f)}
                   aria-pressed={format === f}
-                  className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
+                  className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors shadow-sm ${
                     format === f
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
                   {f}
@@ -269,11 +274,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 setStep(2);
               }}
               disabled={!teamName.trim()}
-              className="w-full mt-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
+              className="w-full mt-6 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 py-3 text-lg font-bold text-slate-900 shadow-lg transition-transform active:scale-[0.99] disabled:opacity-40"
             >
               {t('setupWizard.next', 'Continue')}
             </button>
           </div>
+          </>
         ) : (
           /* Step 2 does not scroll the PAGE in portrait (owner round 3): the
              card fills the remaining height, the ROWS scroll internally
@@ -281,7 +287,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
              pinned. The page keeps overflow-y-auto as a FALLBACK only - on a
              short/landscape viewport the fixed-height children exceed 100dvh
              and the page must scroll rather than clip (review #732). */
-          <div className="flex-1 min-h-0 mt-2 flex flex-col rounded-2xl bg-slate-800/60 border border-slate-700/60 p-5">
+          <>
             {/* Quiet back link on its own row (owner round 2: the arrow glued
                 to the title read badly). No autofocus on step 1 for the same
                 round: the keyboard covered the format chips before the coach
@@ -290,7 +296,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               type="button"
               data-testid="wizard-back"
               onClick={() => setStep(1)}
-              className="self-start -ml-1 mb-1 px-1 text-sm text-slate-500 hover:text-slate-300"
+              className="self-start -ml-1 mt-1 px-1 text-sm text-slate-500 hover:text-slate-300"
             >
               &lsaquo; {t('setupWizard.back', 'Back')}
             </button>
@@ -300,13 +306,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             <p className="text-sm text-slate-400 mt-1">
               {t('setupWizard.playersHint', 'One name per row - Enter adds the next.')}
             </p>
+          <div className="flex-1 min-h-0 mt-4 flex flex-col rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-5">
 
             {/* Input PINNED here (keyboard-safe, never moves as the list grows);
                 committed rows stack BELOW it newest-first, so it is the OLD rows
                 that scroll away behind the phone keyboard (owner round 1). The
                 visible "+ Add" button gives Enter's action a discoverable twin -
                 without it, coaches tapped the big Valmis after one name. */}
-            <div className="mt-5 flex gap-2">
+            <div className="flex gap-2">
               <input
                 data-testid="wizard-player-input"
                 type="text"
@@ -319,14 +326,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   }
                 }}
                 placeholder={t('setupWizard.playerPlaceholder', 'Player name…') ?? undefined}
-                className="flex-1 min-w-0 rounded-lg bg-slate-800 border border-slate-600 px-3.5 py-2.5 text-base text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
               />
               <button
                 type="button"
                 data-testid="wizard-add-player"
                 onClick={commitDraft}
                 disabled={!draft.trim()}
-                className="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 text-sm font-semibold text-white transition-colors disabled:opacity-40"
+                className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 text-sm font-semibold text-white transition-colors disabled:opacity-40 shadow-sm"
               >
                 {t('setupWizard.add', 'Add')}
               </button>
@@ -341,7 +348,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   <div
                     key={`${name}-${originalIndex}`}
                     data-testid="wizard-player-row"
-                    className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
+                    className="flex items-center justify-between rounded-md bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
                   >
                     <span className="text-sm">{name}</span>
                     <button
@@ -365,7 +372,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               data-testid="wizard-finish"
               onClick={() => void handleFinish()}
               disabled={isSaving}
-              className="w-full flex-none mt-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
+              className="w-full flex-none mt-4 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 py-3 text-lg font-bold text-slate-900 shadow-lg transition-transform active:scale-[0.99] disabled:opacity-40"
             >
               {isSaving
                 ? t('setupWizard.saving', 'Saving…')
@@ -374,6 +381,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   : t('setupWizard.finish', 'Done')}
             </button>
           </div>
+          </>
         )}
 
         {/* Quiet skip (owner decision): a text link, not a button - present for
