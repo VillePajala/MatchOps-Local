@@ -388,6 +388,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6" onScroll={headerCollapse.onScroll}>
             <FirstVisitIntro
               surface="seasons"
+              className="mb-4"
               text={t('firstVisit.seasons', 'Group games into a season or tournament to get standings and per-competition stats.')}
             />
             {/* Search Field and Show Archived Toggle */}

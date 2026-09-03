@@ -542,16 +542,16 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         <div
           className={`flex-1 min-h-0 p-6 ${isEditingRoster ? 'pb-4' : 'pb-2'} relative z-10 flex flex-col`}
         >
-          {!isEditingRoster && (
-            <FirstVisitIntro
-              surface="team-form"
-              text={t('firstVisit.teamForm', 'Three steps: name the team, pick players via Edit Roster, then tap Create.')}
-            />
-          )}
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 flex-1 overflow-y-auto">
               <div className={`space-y-4 ${isEditingRoster ? 'flex flex-col h-full' : ''}`}>
                 {!isEditingRoster && (
                   <>
+                    {/* First-visit note INSIDE the card (audit #1: outside it,
+                        its margin collided with the card's responsive -mt). */}
+                    <FirstVisitIntro
+                      surface="team-form"
+                      text={t('firstVisit.teamForm', 'Three steps: name the team, pick players via Edit Roster, then tap Create.')}
+                    />
                     {/* Name */}
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">

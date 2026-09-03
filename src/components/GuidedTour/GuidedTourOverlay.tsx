@@ -330,7 +330,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                 type="button"
                 data-testid={`guided-tour-choice-${choice.id}`}
                 onClick={() => onApplyChoice(choice.apply)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
                   selected
                     ? 'bg-indigo-600 text-white'
                     : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -355,7 +355,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
           type="button"
           data-testid="guided-tour-skip"
           onClick={onSkip}
-          className={`rounded-lg bg-slate-700 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-600 ${isActionStep && !showContinueBack && !showManualAdvance ? 'w-full' : 'flex-1'}`}
+          className={`rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${isActionStep && !showContinueBack && !showManualAdvance ? 'w-full' : 'flex-1'}`}
         >
           {skipLabel}
         </button>
@@ -364,7 +364,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-manual-advance"
             onClick={onNext}
-            className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
           >
             {t(step.manualAdvance.labelKey, step.manualAdvance.label)}
           </button>
@@ -374,7 +374,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-continue"
             onClick={() => window.history.back()}
-            className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
           >
             {t('guidedTour.buttons.continue', 'Continue')}
           </button>
@@ -386,7 +386,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
             type="button"
             data-testid="guided-tour-next"
             onClick={onNext}
-            className="flex-1 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
           >
             {nextLabel}
           </button>
@@ -444,7 +444,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
                 data-testid="guided-tour-pill-skip"
                 onClick={onSkip}
                 aria-label={skipLabel}
-                className="pointer-events-auto -mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+                className="pointer-events-auto -mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 ×
               </button>
@@ -513,7 +513,7 @@ const GuidedTourOverlay: React.FC<GuidedTourOverlayProps> = ({
               data-testid="guided-tour-pill-skip"
               onClick={onSkip}
               aria-label={skipLabel}
-              className="pointer-events-auto -mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+              className="pointer-events-auto -mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               ×
             </button>

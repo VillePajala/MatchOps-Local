@@ -190,18 +190,21 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
   return (
     <div
       data-testid="setup-wizard"
-      className="flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-y-auto"
+      className="relative flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-y-auto"
     >
+      {/* Same ambient glows as StartScreen - the background must not visibly
+          change at the wizard -> start screen hand-off (audit 1.15). */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+      </div>
       <div className="w-full max-w-sm mx-auto flex flex-col flex-1 px-6 py-8">
-        <h1 className="text-5xl font-bold tracking-tight text-center mt-2">
+        <h1 className="text-[clamp(2.3rem,10.5vw,3.5rem)] font-bold tracking-tight text-center mt-2">
           <span className="text-amber-400">MatchOps</span>
         </h1>
-        <p className="text-center text-slate-400 mt-1.5">
-          {t('startScreen.tagline', 'Plan · Track · Discover')}
-        </p>
 
         {/* Step dots */}
-        <div className="flex gap-1.5 justify-center mt-5 mb-8" aria-hidden="true">
+        <div className="flex gap-1.5 justify-center mt-4 mb-6" aria-hidden="true">
           <span className="w-6 h-1 rounded-full bg-amber-400" />
           <span className={`w-6 h-1 rounded-full ${step === 2 ? 'bg-amber-400' : 'bg-slate-700'}`} />
         </div>
@@ -219,13 +222,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           <>
             {/* Title lives ABOVE the card (owner round 6): app forms keep
                 titles in headers, never as big h2s inside content cards. */}
-            <h2 className="text-2xl font-semibold mt-2">
+            <h2 className="text-2xl font-semibold">
               {t('setupWizard.teamTitle', 'Your team')}
             </h2>
             <p className="text-sm text-slate-400 mt-1">
               {t('setupWizard.teamHint', 'Name your team - you can fill in details later.')}
             </p>
-          <div className="mt-4 rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-5">
+          <div className="mt-4 rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-4">
             <label
               htmlFor="setup-team-name"
               className="block text-sm font-medium text-slate-300 mb-1"
@@ -239,10 +242,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t('setupWizard.teamNamePlaceholder', 'e.g. FC Honka P12') ?? undefined}
-              className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+              className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
             />
 
-            <div className="block text-sm font-medium text-slate-300 mt-5 mb-1">
+            <div className="block text-sm font-medium text-slate-300 mt-4 mb-1">
               {t('setupWizard.formatLabel', 'Format')}
             </div>
             <div className="flex gap-2" role="group" aria-label={t('setupWizard.formatLabel', 'Format')}>
@@ -253,7 +256,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   data-testid={`wizard-format-${f}`}
                   onClick={() => setFormat(f)}
                   aria-pressed={format === f}
-                  className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors shadow-sm ${
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
                     format === f
                       ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -274,7 +277,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 setStep(2);
               }}
               disabled={!teamName.trim()}
-              className="w-full mt-6 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 py-3 text-lg font-bold text-slate-900 shadow-lg transition-transform active:scale-[0.99] disabled:opacity-40"
+              className="mt-6 w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
             >
               {t('setupWizard.next', 'Continue')}
             </button>
@@ -296,7 +299,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               type="button"
               data-testid="wizard-back"
               onClick={() => setStep(1)}
-              className="self-start -ml-1 mt-1 px-1 text-sm text-slate-500 hover:text-slate-300"
+              className="self-start -ml-1 mt-1 px-1 text-sm text-slate-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
             >
               &lsaquo; {t('setupWizard.back', 'Back')}
             </button>
@@ -306,7 +309,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             <p className="text-sm text-slate-400 mt-1">
               {t('setupWizard.playersHint', 'One name per row - Enter adds the next.')}
             </p>
-          <div className="flex-1 min-h-0 mt-4 flex flex-col rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-5">
+          <div className="flex-1 min-h-0 mt-4 flex flex-col rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-4">
 
             {/* Input PINNED here (keyboard-safe, never moves as the list grows);
                 committed rows stack BELOW it newest-first, so it is the OLD rows
@@ -326,14 +329,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   }
                 }}
                 placeholder={t('setupWizard.playerPlaceholder', 'Player name…') ?? undefined}
-                className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+                className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
               />
               <button
                 type="button"
                 data-testid="wizard-add-player"
                 onClick={commitDraft}
                 disabled={!draft.trim()}
-                className="rounded-md bg-slate-700 hover:bg-slate-600 px-4 text-sm font-semibold text-white transition-colors disabled:opacity-40 shadow-sm"
+                className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
               >
                 {t('setupWizard.add', 'Add')}
               </button>
@@ -348,14 +351,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   <div
                     key={`${name}-${originalIndex}`}
                     data-testid="wizard-player-row"
-                    className="flex items-center justify-between rounded-md bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
+                    className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700/60 px-3.5 py-2"
                   >
                     <span className="text-sm">{name}</span>
                     <button
                       type="button"
                       onClick={() => removeName(originalIndex)}
                       aria-label={`${t('setupWizard.removePlayer', 'Remove')} ${name}`}
-                      className="text-slate-500 hover:text-white px-1"
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       ×
                     </button>
@@ -372,7 +375,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               data-testid="wizard-finish"
               onClick={() => void handleFinish()}
               disabled={isSaving}
-              className="w-full flex-none mt-4 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 py-3 text-lg font-bold text-slate-900 shadow-lg transition-transform active:scale-[0.99] disabled:opacity-40"
+              className="flex-none mt-4 w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
             >
               {isSaving
                 ? t('setupWizard.saving', 'Saving…')
@@ -391,7 +394,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           type="button"
           data-testid="wizard-skip"
           onClick={handleSkip}
-          className="flex-none mt-auto pt-5 pb-1 text-sm text-slate-500 hover:text-slate-300 underline decoration-slate-600 underline-offset-2 text-center w-full"
+          className="flex-none mt-auto pt-5 pb-1 text-sm text-slate-500 hover:text-slate-300 underline decoration-slate-600 underline-offset-2 text-center w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
         >
           {skipLabel}
         </button>

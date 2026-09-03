@@ -1672,7 +1672,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       {view === 'manager' && (
         <FirstVisitIntro
           surface="planner"
-          className="mx-6 mt-3"
+          className="mx-6 my-4"
           text={t('firstVisit.planner', 'Plan substitutions and fair playing time for upcoming games - plans prefill new games.')}
         />
       )}
