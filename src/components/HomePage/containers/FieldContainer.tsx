@@ -281,7 +281,7 @@ export function FieldContainer({
         surface="match-field"
         text={
           <>
-            {t('firstVisit.matchFieldPlace', 'This is your field. Place your players with the formation button')}{' '}
+            {t('firstVisit.matchFieldPlace', 'This is your field - the squad is already in formation. Change it from the formation menu')}{' '}
             <HiOutlineSquares2X2 className="inline h-4 w-4 -mt-0.5" aria-hidden="true" />
             {'. '}
             {t('firstVisit.matchFieldClock', 'The game clock and goal logging open from the 00:00 button below.')}
