@@ -273,6 +273,15 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   const touchExceededTapThresholdRef = useRef<boolean>(false);
   const suppressTapActionRef = useRef<boolean>(false);
   const lastPlayerDragRelPosRef = useRef<Point | null>(null);
+  // Where the dragged disc STARTED - needed so a drop onto an occupied snap
+  // point can SWAP (the occupant goes to the origin, not to the drop point).
+  const playerDragOriginRef = useRef<Point | null>(null);
+  // Latest players list for identity-free handlers (adding `players` to the
+  // touch handlers' deps would re-register native listeners every drag frame).
+  const playersListRef = useRef(players);
+  useEffect(() => {
+    playersListRef.current = players;
+  }, [players]);
   const touchDraggingPlayerIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -301,36 +310,26 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     });
   }, [formationSnapPoints]);
 
-  const maybeSnapPlayerToFormation = useCallback((playerId: string, currentRelPos: Point | null) => {
-    logger.debug('[Snap] Called maybeSnapPlayerToFormation', {
-      playerId,
-      currentRelPos,
-      snapPointsCount: formationSnapPoints?.length ?? 0,
-      isTacticsBoardView
-    });
-
-    if (isTacticsBoardView) {
-      logger.debug('[Snap] Skipping - tactics board view');
-      return;
-    }
-    if (!formationSnapPoints || formationSnapPoints.length === 0) {
-      logger.debug('[Snap] Skipping - no formation snap points available');
-      return;
-    }
-    if (!currentRelPos) {
-      logger.debug('[Snap] Skipping - no current position');
-      return;
-    }
+  /**
+   * Snap a dropped disc onto the nearest free formation point - or, when that
+   * point is held by exactly one other disc, SWAP with it (owner field-glitch
+   * report: dropping on the keeper spot used to silently refuse because the
+   * old goalie "occupied" it - no snap, no orange handover). Returns true when
+   * the drop was fully handled as a swap (the caller must NOT fire its own
+   * move-end - the swap emits one for BOTH discs).
+   */
+  const maybeSnapPlayerToFormation = useCallback((playerId: string, currentRelPos: Point | null): boolean => {
+    if (isTacticsBoardView) return false;
+    if (!formationSnapPoints || formationSnapPoints.length === 0) return false;
+    if (!currentRelPos) return false;
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    if (!canvas) return false;
     const rect = canvas.getBoundingClientRect();
-    if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return;
+    if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return false;
 
     let bestPoint: Point | null = null;
     let bestDistSq = Infinity;
-
     for (const point of formationSnapPoints) {
       const dxPx = (currentRelPos.relX - point.relX) * rect.width;
       const dyPx = (currentRelPos.relY - point.relY) * rect.height;
@@ -340,47 +339,38 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         bestPoint = point;
       }
     }
-
-    const bestDistPx = Math.sqrt(bestDistSq);
-    logger.debug('[Snap] Best snap point found', {
-      bestPoint,
-      bestDistPx,
-      thresholdPx: FORMATION_SNAP_THRESHOLD_PX
-    });
-
-    if (!bestPoint || bestDistSq > FORMATION_SNAP_THRESHOLD_SQ) {
-      logger.debug('[Snap] Skipping - distance exceeds threshold');
-      return;
-    }
-
-    // Capture bestPoint for use in closure (TypeScript narrowing)
+    if (!bestPoint || bestDistSq > FORMATION_SNAP_THRESHOLD_SQ) return false;
     const snapTarget = bestPoint;
 
-    // Avoid snapping into an occupied spot (tap-to-move handles explicit moves to empty positions).
-    const occupied = players.some(p => {
+    const occupants = players.filter(p => {
       if (p.id === playerId) return false;
-      // Validate coordinates are finite numbers. typeof check provides TypeScript type narrowing
-      // and handles undefined, null, strings, and other non-numeric values
       if (typeof p.relX !== 'number' || typeof p.relY !== 'number' || !Number.isFinite(p.relX) || !Number.isFinite(p.relY)) return false;
       const dxPx = (p.relX - snapTarget.relX) * rect.width;
       const dyPx = (p.relY - snapTarget.relY) * rect.height;
-      const distSq = dxPx * dxPx + dyPx * dyPx;
-      return distSq <= FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
+      return dxPx * dxPx + dyPx * dyPx <= FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
     });
 
-    if (occupied) {
-      logger.debug('[Snap] Skipping - snap position is occupied');
-      return;
+    if (occupants.length === 1) {
+      const occupant = occupants[0];
+      const origin = playerDragOriginRef.current;
+      if (origin && typeof occupant.relX === 'number' && typeof occupant.relY === 'number') {
+        logger.debug('[Snap] Occupied snap point - swapping', { playerId, occupantId: occupant.id });
+        onPlayerMove(occupant.id, origin.relX, origin.relY);
+        onPlayerMove(playerId, occupant.relX, occupant.relY);
+        onPlayerMoveEnd([playerId, occupant.id]);
+        lastPlayerDragRelPosRef.current = null;
+        playerDragOriginRef.current = null;
+        return true;
+      }
+      return false;
     }
+    if (occupants.length > 1) return false;
 
-    logger.debug('[Snap] Snapping player to formation position', {
-      playerId,
-      from: currentRelPos,
-      to: snapTarget
-    });
+    logger.debug('[Snap] Snapping player to formation position', { playerId, from: currentRelPos, to: snapTarget });
     onPlayerMove(playerId, snapTarget.relX, snapTarget.relY);
     lastPlayerDragRelPosRef.current = snapTarget;
-  }, [formationSnapPoints, isTacticsBoardView, onPlayerMove, players]);
+    return false;
+  }, [formationSnapPoints, isTacticsBoardView, onPlayerMove, onPlayerMoveEnd, players]);
 
   /**
    * Renders the field at high resolution for export.
@@ -1565,6 +1555,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         if (isPointInPlayer(e.clientX, e.clientY, player)) {
           setSelectedPlayerForSwapId(null);
           lastPlayerDragRelPosRef.current = { relX: player.relX ?? relPos.relX, relY: player.relY ?? relPos.relY };
+          playerDragOriginRef.current = lastPlayerDragRelPosRef.current;
           setIsDraggingPlayer(true);
           setDraggingPlayerId(player.id);
           if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
@@ -1640,11 +1631,13 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         setIsDraggingTacticalDisc(false);
         setDraggingTacticalDiscId(null);
       } else if (isDraggingPlayer) {
+        let handledAsSwap = false;
         if (draggingPlayerId) {
           const currentPos = lastPlayerDragRelPosRef.current ?? null;
-          maybeSnapPlayerToFormation(draggingPlayerId, currentPos);
+          handledAsSwap = maybeSnapPlayerToFormation(draggingPlayerId, currentPos);
         }
-        onPlayerMoveEnd(draggingPlayerId ? [draggingPlayerId] : undefined);
+        if (!handledAsSwap) onPlayerMoveEnd(draggingPlayerId ? [draggingPlayerId] : undefined);
+        playerDragOriginRef.current = null;
         setIsDraggingPlayer(false);
         setDraggingPlayerId(null);
         lastPlayerDragRelPosRef.current = null;
@@ -1865,6 +1858,13 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         setSelectedPlayerForSwapId(null);
         setIsDraggingPlayer(true);
         setDraggingPlayerId(touchStartTarget.targetId);
+        {
+          const origin = playersListRef.current.find(p => p.id === touchStartTarget.targetId);
+          playerDragOriginRef.current =
+            origin && typeof origin.relX === 'number' && typeof origin.relY === 'number'
+              ? { relX: origin.relX, relY: origin.relY }
+              : null;
+        }
         touchDraggingPlayerIdRef.current = touchStartTarget.targetId;
         isDraggingPlayerForMove = true;
         draggingPlayerIdForMove = touchStartTarget.targetId;
@@ -1913,11 +1913,13 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
         setDraggingTacticalDiscId(null);
     } else if (isDraggingPlayer || touchDraggingPlayerIdRef.current) {
       const playerId = draggingPlayerId ?? touchDraggingPlayerIdRef.current;
+      let handledAsSwap = false;
       if (playerId) {
         const currentPos = lastPlayerDragRelPosRef.current ?? null;
-        maybeSnapPlayerToFormation(playerId, currentPos);
+        handledAsSwap = maybeSnapPlayerToFormation(playerId, currentPos);
       }
-      onPlayerMoveEnd(playerId ? [playerId] : undefined);
+      if (!handledAsSwap) onPlayerMoveEnd(playerId ? [playerId] : undefined);
+      playerDragOriginRef.current = null;
       setIsDraggingPlayer(false);
       setDraggingPlayerId(null);
       lastPlayerDragRelPosRef.current = null;

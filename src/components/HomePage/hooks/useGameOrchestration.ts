@@ -191,23 +191,25 @@ export function displayedGoalieStatus(
  */
 export function createGoalieRequestGate() {
   let inProgress = false;
-  let pending: { playerId: string; isGoalie: boolean } | null = null;
+  // FIFO, not last-write-wins (owner field-glitch report): a SWAP emits TWO
+  // position-driven changes (demote the old goalie, promote the new one) and
+  // dropping either leaves the orange on the wrong disc when a save was
+  // already in flight.
+  const pending: Array<{ playerId: string; isGoalie: boolean }> = [];
   return {
-    /** True = proceed now; false = queued behind the in-flight update. */
+    /** True = proceed now; false = queued (FIFO) behind the in-flight update. */
     tryAcquire(playerId: string, isGoalie: boolean): boolean {
       if (inProgress) {
-        pending = { playerId, isGoalie }; // last-write-wins
+        pending.push({ playerId, isGoalie });
         return false;
       }
       inProgress = true;
       return true;
     },
-    /** Ends the in-flight update; returns a queued request to run next, if any. */
+    /** Ends the in-flight update; returns the next queued request, if any. */
     release(): { playerId: string; isGoalie: boolean } | null {
       inProgress = false;
-      const drained = pending;
-      pending = null;
-      return drained;
+      return pending.shift() ?? null;
     },
   };
 }
@@ -1659,12 +1661,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       // Update local state
       setAvailablePlayers(updatedAvailablePlayers);
 
-      // Update field players to reflect goalie status change
-      const updatedFieldPlayers = fieldStateRef.current.playersOnField.map(fieldPlayer => {
+      // Update field players to reflect goalie status change. FUNCTIONAL
+      // updater (owner field-glitch report): the old ref-snapshot write could
+      // clobber a move/swap that landed between the mirror effect and this
+      // call, snapping discs back or losing positions during rapid taps.
+      const mapGoalieStatus = (list: Player[]) => list.map(fieldPlayer => {
         const updatedAvailablePlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
         return updatedAvailablePlayer ? { ...fieldPlayer, isGoalie: updatedAvailablePlayer.isGoalie } : fieldPlayer;
       });
-      setPlayersOnField(updatedFieldPlayers);
+      setPlayersOnField(prev => mapGoalieStatus(prev));
+      // Snapshot for the PERSISTED payload only (the state write above is
+      // functional so it can never clobber a concurrent move/swap).
+      const updatedFieldPlayers = mapGoalieStatus(fieldStateRef.current.playersOnField);
 
       // Save the updated state - fetch FRESH state from storage to avoid stale data
       //
