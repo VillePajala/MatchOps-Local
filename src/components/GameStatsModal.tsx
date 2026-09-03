@@ -757,7 +757,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0" onScroll={headerCollapse.onScroll}>
           <FirstVisitIntro
             surface="stats"
-            className="mx-4 mt-4 sm:mx-6"
+            className="mx-4 my-4 sm:mx-6"
             text={t('firstVisit.stats', 'Game stats live here: this game, season, tournament and per-player views from the tabs.')}
           />
           {activeTab === 'player' ? (

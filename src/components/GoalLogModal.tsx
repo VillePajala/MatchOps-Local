@@ -393,6 +393,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
             <FirstVisitIntro
               surface="goal-log"
+              className="mb-4"
               text={t('firstVisit.goalLog', 'Pick the scorer - and an assister if there was one - then tap Log Goal.')}
             />
             <div className="flex flex-col md:flex-row gap-4 h-full">

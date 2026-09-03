@@ -310,7 +310,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <div className="max-w-sm mx-auto w-full mb-3">
               <div
                 data-testid="welcome-strip"
-                className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-2.5 text-sm text-slate-100"
+                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-slate-100"
               >
                 {heroStep === 'players'
                   ? t('startScreen.welcomeStripStart', 'Welcome! Start by adding your players.')
@@ -322,7 +322,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     type="button"
                     data-testid="welcome-strip-tour"
                     onClick={() => guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps)}
-                    className="block mt-1 text-xs text-amber-400 hover:text-amber-300 underline decoration-amber-400/40 underline-offset-2"
+                    className="block mt-1 text-xs text-amber-400 hover:text-amber-300 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 rounded"
                   >
                     {t('startScreen.welcomeStripTour', 'Want a guided walkthrough?')}
                   </button>
@@ -587,7 +587,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onClick={heroStep === 'players' ? onManageRoster : onManageTeams}
                     disabled={heroStep === 'players' ? !onManageRoster : !onManageTeams}
                     data-testid={heroStep === 'players' ? 'hero-add-players' : 'hero-create-team'}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg text-center shadow-lg transition-transform active:scale-[0.99] disabled:opacity-50"
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
                   >
                     {heroStep === 'players'
                       ? t('startScreen.heroAddPlayers', 'Add players')
@@ -606,13 +606,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       >
                         {setupProgress?.players && (
                           <span className="flex items-center gap-1.5">
-                            <span className="text-emerald-400" aria-hidden="true">✓</span>
+                            <span className="text-green-400" aria-hidden="true">✓</span>
                             {t('startScreen.heroAddPlayers', 'Add players')}
                           </span>
                         )}
                         {setupProgress?.team && (
                           <span className="flex items-center gap-1.5">
-                            <span className="text-emerald-400" aria-hidden="true">✓</span>
+                            <span className="text-green-400" aria-hidden="true">✓</span>
                             {t('startScreen.heroCreateTeam', 'Create your team')}
                           </span>
                         )}
@@ -623,10 +623,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         type="button"
                         onClick={onManageRoster}
                         disabled={!onManageRoster}
-                        className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
                         </span>
                       </button>
@@ -636,10 +636,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         type="button"
                         onClick={onManageTeams}
                         disabled={!onManageTeams}
-                        className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
                         </span>
                       </button>
@@ -649,10 +649,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         type="button"
                         onClick={onNewGame ?? onGetStarted}
                         data-testid="tour-new-game"
-                        className="w-full flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                       >
                         <span className="text-sm font-semibold text-white">{t('startScreen.newGame', 'New Game')}</span>
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 border border-slate-700 rounded-full px-2 py-0.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
                           {t('startScreen.stepBadge', 'Step {{n}}', { n: 3 })}
                         </span>
                       </button>
@@ -673,7 +673,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <button
                     type="button"
                     onClick={onResumeGame}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
                   >
                     {t('startScreen.resumeCard', 'Continue')}
                   </button>
@@ -688,7 +688,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
                       data-testid="tour-new-game"
-                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center"
+                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
                     >
                       {t('startScreen.newGame', 'New Game')}
                     </button>

@@ -790,12 +790,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4" onScroll={headerCollapse.onScroll}>
-            <FirstVisitIntro
-              surface="game-setup"
-              text={t('firstVisit.gameSetup', 'Pick your team - a league or tournament can be added now or later.')}
-            />
             {/* CARD 1: Teams & Roster */}
             <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+              {/* First-visit note INSIDE the card (audit #2: as a sibling it
+                  made space-y-4 defeat this card's -mt bleed, giving new users
+                  a different layout from everyone else). */}
+              <FirstVisitIntro
+                surface="game-setup"
+                text={t('firstVisit.gameSetup', 'Pick your team - a league or tournament can be added now or later.')}
+              />
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
@@ -1188,7 +1191,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       : getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
                   }
                   onChange={(e) => setFormationPresetId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   {FIELD_SIZES.map((size) => (
                     <optgroup key={size} label={size}>
