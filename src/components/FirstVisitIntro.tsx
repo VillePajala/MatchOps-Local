@@ -85,19 +85,24 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
 
   return (
     <div data-testid={`first-visit-${surface}`} className={`${base} ${className}`.trim()}>
-      <div className="flex items-start gap-3 rounded-[14px] bg-slate-900/95 backdrop-blur-md px-4 py-3">
-        <p className="flex-1 text-sm leading-snug text-slate-100">{text}</p>
-        <button
-          type="button"
-          data-testid={`first-visit-${surface}-dismiss`}
-          onClick={() => {
-            markSeen(surface, userId);
-            setDismissed(true);
-          }}
-          className="flex-none rounded-lg bg-indigo-600 hover:bg-indigo-500 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors"
-        >
-          {t('firstVisit.gotIt', 'Got it')}
-        </button>
+      {/* Dialog composition (owner round 6): text full-width, action pinned
+          bottom-right - the old side-by-side row left the button floating at
+          the top of a tall ragged column on multi-line notes. */}
+      <div className="rounded-[14px] bg-slate-900/95 backdrop-blur-md px-4 py-3">
+        <p className="text-sm leading-snug text-slate-100">{text}</p>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            data-testid={`first-visit-${surface}-dismiss`}
+            onClick={() => {
+              markSeen(surface, userId);
+              setDismissed(true);
+            }}
+            className="rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors"
+          >
+            {t('firstVisit.gotIt', 'Got it')}
+          </button>
+        </div>
       </div>
     </div>
   );
