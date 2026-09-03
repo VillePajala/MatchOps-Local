@@ -129,7 +129,34 @@ test('caps visible toasts at 5, dropping oldest', () => {
   }
 });
 
-test('dismiss button removes toast', () => {
+test('dismiss button removes an error toast', () => {
+  jest.useFakeTimers();
+  try {
+    render(
+      <ToastProvider>
+        <TestComponent />
+      </ToastProvider>
+    );
+
+    fireEvent.click(screen.getByText('Error'));
+    expect(screen.getByText('Error!')).toBeInTheDocument();
+
+    // Click the dismiss button
+    const dismissBtn = screen.getByLabelText('Dismiss');
+    fireEvent.click(dismissBtn);
+    expect(screen.queryByText('Error!')).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+/**
+ * @critical - Owner round 7: confirmations are heavy all around the app and
+ * must never block the controls underneath. Success/info toasts are purely
+ * visual (taps pass through, no dead dismiss button); only toasts the user
+ * must TAP - errors and action toasts - stay interactive.
+ */
+test('success toasts pass taps through; error and action toasts stay interactive', () => {
   jest.useFakeTimers();
   try {
     render(
@@ -139,12 +166,20 @@ test('dismiss button removes toast', () => {
     );
 
     fireEvent.click(screen.getByText('Success'));
-    expect(screen.getByText('Saved!')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Error'));
 
-    // Click the dismiss button
-    const dismissBtn = screen.getByLabelText('Dismiss');
-    fireEvent.click(dismissBtn);
-    expect(screen.queryByText('Saved!')).not.toBeInTheDocument();
+    // The stack container never captures taps.
+    expect(screen.getByRole('log').className).toContain('pointer-events-none');
+
+    // Success: visual only - no pointer opt-in, no dismiss button.
+    const successToast = screen.getByText('Saved!').closest('[role="status"]') as HTMLElement;
+    expect(successToast.className).not.toContain('pointer-events-auto');
+    expect(successToast.querySelector('button')).toBeNull();
+
+    // Error: must be dismissible - opts back into pointer events.
+    const errorToast = screen.getByText('Error!').closest('[role="alert"]') as HTMLElement;
+    expect(errorToast.className).toContain('pointer-events-auto');
+    expect(errorToast.querySelector('button')).not.toBeNull();
   } finally {
     jest.useRealTimers();
   }

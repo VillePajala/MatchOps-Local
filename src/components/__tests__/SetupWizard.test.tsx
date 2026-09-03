@@ -117,6 +117,26 @@ describe('SetupWizard', () => {
     expect(isSetupWizardDone('user-1')).toBe(true);
   });
 
+  it('derives the disc nickname from the first word of multi-word names', async () => {
+    const { onComplete } = renderWizard();
+
+    toStepTwo();
+    addPlayerRow('Matti Meikalainen');
+    addPlayerRow('Aino');
+    fireEvent.click(screen.getByTestId('wizard-finish'));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(mockAddPlayer).toHaveBeenCalledWith(
+      { name: 'Matti Meikalainen', nickname: 'Matti', jerseyNumber: '', notes: '' },
+      'user-1',
+    );
+    // Single-word names stay nickname-free (no "Aino (Aino)" in the roster).
+    expect(mockAddPlayer).toHaveBeenCalledWith(
+      { name: 'Aino', nickname: '', jerseyNumber: '', notes: '' },
+      'user-1',
+    );
+  });
+
   /**
    * @edge-case - A typed-but-unentered name still counts on Valmis: the fast
    * typist must not lose the last row.

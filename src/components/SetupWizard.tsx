@@ -132,8 +132,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       // attempt already created (retry-safe, no duplicates).
       while (createdPlayersRef.current.length < finalNames.length) {
         const name = finalNames[createdPlayersRef.current.length];
+        // "Matti Meikalainen" -> disc shows "Matti": multi-word names get
+        // the first word as the nickname, the same outcome as a coach setting
+        // one in the roster (the disc renders nickname || name). Single words
+        // stay nickname-free so the roster list doesn't echo "Aino (Aino)".
+        const firstWord = name.trim().split(/\s+/)[0] ?? '';
         const player = await addPlayer(
-          { name, nickname: '', jerseyNumber: '', notes: '' },
+          { name, nickname: firstWord === name.trim() ? '' : firstWord, jerseyNumber: '', notes: '' },
           userId ?? undefined,
         );
         if (!player) throw new Error(`player creation failed: ${name}`);
