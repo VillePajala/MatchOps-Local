@@ -808,11 +808,22 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
 
     // --- Draw Cached Background ---
     // Use prerendered background for performance
-    const backgroundCanvas = createFieldBackgroundCached(context, W, H, isTacticsBoardView, gameType, dpr);
-    // The cache is a physical-resolution bitmap - blit it into the CSS-pixel
-    // box (drawImage honours the current dpr scale) so it maps 1:1 to device
-    // pixels and the lines render crisp.
-    context.drawImage(backgroundCanvas, 0, 0, W, H);
+    // Background failure degrades gracefully (review of the flat-field bug):
+    // a throw here used to abort the WHOLE draw via the ResizeObserver's
+    // catch - discs, lines, everything. Now the frame renders without the
+    // background instead.
+    let backgroundCanvas: HTMLCanvasElement | null = null;
+    try {
+      backgroundCanvas = createFieldBackgroundCached(context, W, H, isTacticsBoardView, gameType, dpr);
+    } catch (error) {
+      logger.error('[SoccerField] Background render failed - drawing without it:', error);
+    }
+    if (backgroundCanvas) {
+      // The cache is a physical-resolution bitmap - blit it into the CSS-pixel
+      // box (drawImage honours the current dpr scale) so it maps 1:1 to device
+      // pixels and the lines render crisp.
+      context.drawImage(backgroundCanvas, 0, 0, W, H);
+    }
 
     // --- Draw Tactical Mode Overlays ---
     if (isTacticsBoardView) {
@@ -1264,6 +1275,16 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   useEffect(() => {
     drawRef.current = draw;
   }, [draw]);
+
+  // A hide/show while this component was UNMOUNTED (start screen, modals)
+  // never reaches the listeners below - the module cache can then hold
+  // same-key bitmaps whose backing store Android discarded, and the first
+  // draw blits a blank background under perfectly healthy discs (owner
+  // screenshot, guided-tour first entry). One background re-render per
+  // match mount is trivial; trusting a pre-mount bitmap is not.
+  useEffect(() => {
+    invalidateFieldBackgroundCache();
+  }, []);
 
   // Force redraw when the app returns from background (Android TWA / iOS Safari
   // bfcache). The ResizeObserver won't fire if the canvas size hasn't changed,
