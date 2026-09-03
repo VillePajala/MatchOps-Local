@@ -83,6 +83,58 @@ const TAP_TO_DRAG_THRESHOLD = 10; // pixels
 const TAP_TO_DRAG_THRESHOLD_SQ = TAP_TO_DRAG_THRESHOLD * TAP_TO_DRAG_THRESHOLD;
 const FORMATION_SNAP_THRESHOLD_PX = 36; // pixels
 const FORMATION_SNAP_THRESHOLD_SQ = FORMATION_SNAP_THRESHOLD_PX * FORMATION_SNAP_THRESHOLD_PX;
+
+/** What a drop near the formation points should do. Exported for tests. */
+export type SnapAction =
+  | { type: 'swap'; occupantId: string }
+  | { type: 'snap'; point: Point }
+  | { type: 'none' };
+
+/**
+ * Pure decision core of maybeSnapPlayerToFormation (review #739: the
+ * swap-on-drop branch needed direct test coverage). Nearest snap point within
+ * threshold: free -> snap; held by exactly ONE other disc -> swap with it
+ * (the keeper-spot handover case); ambiguous/beyond threshold -> none.
+ */
+export function resolveSnapAction(
+  snapPoints: Point[] | undefined,
+  players: Player[],
+  playerId: string,
+  currentRelPos: Point | null,
+  rectWidth: number,
+  rectHeight: number,
+): SnapAction {
+  if (!snapPoints || snapPoints.length === 0 || !currentRelPos) return { type: 'none' };
+  if (!Number.isFinite(rectWidth) || !Number.isFinite(rectHeight) || rectWidth <= 0 || rectHeight <= 0) {
+    return { type: 'none' };
+  }
+
+  let bestPoint: Point | null = null;
+  let bestDistSq = Infinity;
+  for (const point of snapPoints) {
+    const dxPx = (currentRelPos.relX - point.relX) * rectWidth;
+    const dyPx = (currentRelPos.relY - point.relY) * rectHeight;
+    const distSq = dxPx * dxPx + dyPx * dyPx;
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestPoint = point;
+    }
+  }
+  if (!bestPoint || bestDistSq > FORMATION_SNAP_THRESHOLD_SQ) return { type: 'none' };
+  const snapTarget = bestPoint;
+
+  const occupants = players.filter(p => {
+    if (p.id === playerId) return false;
+    if (typeof p.relX !== 'number' || typeof p.relY !== 'number' || !Number.isFinite(p.relX) || !Number.isFinite(p.relY)) return false;
+    const dxPx = (p.relX - snapTarget.relX) * rectWidth;
+    const dyPx = (p.relY - snapTarget.relY) * rectHeight;
+    return dxPx * dxPx + dyPx * dyPx <= FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
+  });
+
+  if (occupants.length === 1) return { type: 'swap', occupantId: occupants[0].id };
+  if (occupants.length > 1) return { type: 'none' };
+  return { type: 'snap', point: snapTarget };
+}
 export const SUB_SLOT_OCCUPATION_THRESHOLD = 0.04; // relative coordinate tolerance for slot occupation check
 
 // Visual styling constants for formation positions and sub slots
@@ -318,42 +370,26 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
    * the drop was fully handled as a swap (the caller must NOT fire its own
    * move-end - the swap emits one for BOTH discs).
    */
+  /**
+   * Drop handler over resolveSnapAction (the pure, tested core): snap onto a
+   * free point, or SWAP with a single occupant (owner field-glitch report -
+   * the keeper spot used to silently refuse while the old goalie held it).
+   * Returns true when handled as a swap (caller must not fire its own
+   * move-end; the swap emits one for BOTH discs).
+   */
   const maybeSnapPlayerToFormation = useCallback((playerId: string, currentRelPos: Point | null): boolean => {
     if (isTacticsBoardView) return false;
-    if (!formationSnapPoints || formationSnapPoints.length === 0) return false;
-    if (!currentRelPos) return false;
-
     const canvas = canvasRef.current;
     if (!canvas) return false;
     const rect = canvas.getBoundingClientRect();
-    if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height) || rect.width <= 0 || rect.height <= 0) return false;
 
-    let bestPoint: Point | null = null;
-    let bestDistSq = Infinity;
-    for (const point of formationSnapPoints) {
-      const dxPx = (currentRelPos.relX - point.relX) * rect.width;
-      const dyPx = (currentRelPos.relY - point.relY) * rect.height;
-      const distSq = dxPx * dxPx + dyPx * dyPx;
-      if (distSq < bestDistSq) {
-        bestDistSq = distSq;
-        bestPoint = point;
-      }
-    }
-    if (!bestPoint || bestDistSq > FORMATION_SNAP_THRESHOLD_SQ) return false;
-    const snapTarget = bestPoint;
+    const action = resolveSnapAction(formationSnapPoints, players, playerId, currentRelPos, rect.width, rect.height);
+    if (action.type === 'none') return false;
 
-    const occupants = players.filter(p => {
-      if (p.id === playerId) return false;
-      if (typeof p.relX !== 'number' || typeof p.relY !== 'number' || !Number.isFinite(p.relX) || !Number.isFinite(p.relY)) return false;
-      const dxPx = (p.relX - snapTarget.relX) * rect.width;
-      const dyPx = (p.relY - snapTarget.relY) * rect.height;
-      return dxPx * dxPx + dyPx * dyPx <= FIELD_PLAYER_RADIUS * FIELD_PLAYER_RADIUS;
-    });
-
-    if (occupants.length === 1) {
-      const occupant = occupants[0];
+    if (action.type === 'swap') {
       const origin = playerDragOriginRef.current;
-      if (origin && typeof occupant.relX === 'number' && typeof occupant.relY === 'number') {
+      const occupant = players.find(p => p.id === action.occupantId);
+      if (origin && occupant && typeof occupant.relX === 'number' && typeof occupant.relY === 'number') {
         logger.debug('[Snap] Occupied snap point - swapping', { playerId, occupantId: occupant.id });
         onPlayerMove(occupant.id, origin.relX, origin.relY);
         onPlayerMove(playerId, occupant.relX, occupant.relY);
@@ -364,11 +400,10 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       }
       return false;
     }
-    if (occupants.length > 1) return false;
 
-    logger.debug('[Snap] Snapping player to formation position', { playerId, from: currentRelPos, to: snapTarget });
-    onPlayerMove(playerId, snapTarget.relX, snapTarget.relY);
-    lastPlayerDragRelPosRef.current = snapTarget;
+    logger.debug('[Snap] Snapping player to formation position', { playerId, from: currentRelPos, to: action.point });
+    onPlayerMove(playerId, action.point.relX, action.point.relY);
+    lastPlayerDragRelPosRef.current = action.point;
     return false;
   }, [formationSnapPoints, isTacticsBoardView, onPlayerMove, onPlayerMoveEnd, players]);
 

@@ -183,7 +183,7 @@ export function displayedGoalieStatus(
 }
 
 /**
- * Serialization gate for goalie updates with a last-write-wins pending slot.
+ * Serialization gate for goalie updates with a FIFO pending queue.
  * While an update's save is in flight, a new request is QUEUED (not dropped -
  * dropping let the field and persisted roster diverge during rapid drags);
  * release() returns the queued request so the caller can run it next.
@@ -288,7 +288,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, []);
   // Serializes goalie updates so concurrent requests can't corrupt the
   // single-goalie invariant; requests during an in-flight save are queued
-  // last-write-wins and drained on release (see createGoalieRequestGate).
+  // FIFO and drained in order on release (see createGoalieRequestGate).
   const goalieRequestGateRef = useRef(createGoalieRequestGate());
   // Self-reference so the finally-block can drain the queue without a
   // definition-order cycle on the useCallback identity.
@@ -1623,7 +1623,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // position-driven promotion. Enforces a single goalie across BOTH availablePlayers
   // and playersOnField, then persists. Serialized via an in-flight guard so two
   // rapid requests can't read the same stale roster and corrupt the invariant
-  // (last-write-wins).
+  // (queued FIFO).
   const applyGoalieStatus = useCallback(async (playerId: string, targetGoalieStatus: boolean) => {
     const player = availablePlayers.find(p => p.id === playerId);
     if (!player) {
@@ -1639,7 +1639,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       return;
     }
     if (!goalieRequestGateRef.current.tryAcquire(playerId, targetGoalieStatus)) {
-      // Queued last-write-wins behind the in-flight save; drained on release.
+      // Queued (FIFO) behind the in-flight save; drained in order on release.
       logger.debug(`[Page.tsx] goalie update in progress, queued request for ${playerId}`);
       return;
     }
@@ -1669,10 +1669,17 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         const updatedAvailablePlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
         return updatedAvailablePlayer ? { ...fieldPlayer, isGoalie: updatedAvailablePlayer.isGoalie } : fieldPlayer;
       });
-      setPlayersOnField(prev => mapGoalieStatus(prev));
-      // Snapshot for the PERSISTED payload only (the state write above is
-      // functional so it can never clobber a concurrent move/swap).
-      const updatedFieldPlayers = mapGoalieStatus(fieldStateRef.current.playersOnField);
+      // The PERSISTED payload is captured from the SAME functional update the
+      // display uses (review #739): deriving it from fieldStateRef re-opened
+      // the stale-snapshot race for what gets SAVED (screen right, reload
+      // wrong). Reading the capture after the awaits below is safe for the
+      // same reason handlePlayerMoveEnd's in-updater ref write is: the updater
+      // has run by the time the microtask queue resumes (React 19, non-Strict).
+      let updatedFieldPlayers: Player[] = fieldStateRef.current.playersOnField;
+      setPlayersOnField(prev => {
+        updatedFieldPlayers = mapGoalieStatus(prev);
+        return updatedFieldPlayers;
+      });
 
       // Save the updated state - fetch FRESH state from storage to avoid stale data
       //

@@ -676,6 +676,7 @@ describe('SoccerField Component - Interaction Testing', () => {
 
 // Import helper function and constant for direct testing
 import { isPositionOccupied, SUB_SLOT_OCCUPATION_THRESHOLD } from '../SoccerField';
+import { resolveSnapAction } from '../SoccerField';
 
 describe('isPositionOccupied Helper Function', () => {
   const createPlayer = (relX?: number, relY?: number): Player => ({
@@ -1218,5 +1219,49 @@ describe('Empty Position Selection', () => {
 
       expect(onTacticalBallMove).toHaveBeenCalled();
     });
+  });
+});
+
+
+describe('resolveSnapAction (pure drop-decision core, review #739)', () => {
+  const RECT_W = 400;
+  const RECT_H = 600;
+  const KEEPER = { relX: 0.5, relY: 0.95 };
+  const mkPlayer = (id: string, relX?: number, relY?: number) =>
+    ({ id, name: id, relX, relY, isGoalie: false, receivedFairPlayCard: false } as never);
+
+  it('snaps onto a FREE point within threshold', () => {
+    const action = resolveSnapAction([KEEPER], [mkPlayer('me', 0.52, 0.93)], 'me', { relX: 0.52, relY: 0.93 }, RECT_W, RECT_H);
+    expect(action).toEqual({ type: 'snap', point: KEEPER });
+  });
+
+  /**
+   * @critical - The owner-reported keeper handover: dropping on the keeper
+   * spot while the old goalie holds it must SWAP, not silently refuse.
+   */
+  it('swaps with a SINGLE occupant holding the point (old goalie on the keeper spot)', () => {
+    const players = [mkPlayer('me', 0.52, 0.93), mkPlayer('old-gk', KEEPER.relX, KEEPER.relY)];
+    const action = resolveSnapAction([KEEPER], players, 'me', { relX: 0.52, relY: 0.93 }, RECT_W, RECT_H);
+    expect(action).toEqual({ type: 'swap', occupantId: 'old-gk' });
+  });
+
+  it('does nothing when MULTIPLE discs crowd the point (ambiguous)', () => {
+    const players = [
+      mkPlayer('me', 0.52, 0.93),
+      mkPlayer('a', KEEPER.relX, KEEPER.relY),
+      mkPlayer('b', KEEPER.relX + 0.01, KEEPER.relY),
+    ];
+    const action = resolveSnapAction([KEEPER], players, 'me', { relX: 0.52, relY: 0.93 }, RECT_W, RECT_H);
+    expect(action).toEqual({ type: 'none' });
+  });
+
+  it('does nothing beyond the snap threshold', () => {
+    const action = resolveSnapAction([KEEPER], [mkPlayer('me', 0.5, 0.5)], 'me', { relX: 0.5, relY: 0.5 }, RECT_W, RECT_H);
+    expect(action).toEqual({ type: 'none' });
+  });
+
+  it('does nothing without snap points or a position', () => {
+    expect(resolveSnapAction([], [], 'me', { relX: 0.5, relY: 0.5 }, RECT_W, RECT_H)).toEqual({ type: 'none' });
+    expect(resolveSnapAction([KEEPER], [], 'me', null, RECT_W, RECT_H)).toEqual({ type: 'none' });
   });
 });
