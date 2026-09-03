@@ -438,12 +438,16 @@ describe('createGoalieRequestGate (queue instead of drop during in-flight saves)
     expect(gate.release()).toBeNull();
   });
 
-  it('is last-write-wins: only the newest queued request survives', () => {
+  it('is FIFO: a swap emits TWO changes and both must survive the queue', () => {
     const gate = createGoalieRequestGate();
     gate.tryAcquire('p1', true);
-    gate.tryAcquire('p2', true);
-    gate.tryAcquire('p3', false);
-    expect(gate.release()).toEqual({ playerId: 'p3', isGoalie: false });
+    // A swap queues demote+promote while p1's save is in flight.
+    gate.tryAcquire('p2', false);
+    gate.tryAcquire('p3', true);
+    expect(gate.release()).toEqual({ playerId: 'p2', isGoalie: false });
+    // The drained request re-acquires (mirrors applyGoalieStatus's chain).
+    expect(gate.tryAcquire('p2', false)).toBe(true);
+    expect(gate.release()).toEqual({ playerId: 'p3', isGoalie: true });
   });
 });
 
