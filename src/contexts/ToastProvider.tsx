@@ -110,12 +110,17 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 space-y-2 z-[100] max-w-sm" role="log" aria-live="polite" aria-relevant="additions">
+      {/* pointer-events-none: confirmations are heavy all around the app and
+          must never block the controls underneath them (owner round 7). Only
+          toasts the user must be able to TAP - errors (dismiss) and action
+          toasts (undo) - opt back in below. */}
+      <div className="fixed top-[max(1rem,env(safe-area-inset-top))] right-4 space-y-2 z-[100] max-w-sm pointer-events-none" role="log" aria-live="polite" aria-relevant="additions">
         {toasts.map(toast => {
+          const interactive = Boolean(toast.action) || toast.type === 'error';
           return (
             <div
               key={toast.id}
-              className={`text-white pl-3 pr-3 py-3 rounded-lg shadow-lg backdrop-blur-sm animate-fade-in-out flex items-center gap-3 ${toastStyle[toast.type]}`}
+              className={`text-white pl-3 pr-3 py-3 rounded-lg shadow-lg backdrop-blur-sm animate-fade-in-out flex items-center gap-3 ${interactive ? 'pointer-events-auto' : ''} ${toastStyle[toast.type]}`}
               role={toast.type === 'error' ? 'alert' : 'status'}
               style={{ animationDuration: `${toast.durationMs}ms` }}
             >
@@ -129,9 +134,11 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                   {toast.action.label}
                 </button>
               )}
-              <button onClick={() => removeToast(toast.id)} className="p-1 rounded hover:bg-white/20 transition-colors flex-shrink-0" aria-label={t('common.dismiss', 'Dismiss')}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-              </button>
+              {interactive && (
+                <button onClick={() => removeToast(toast.id)} className="p-1 rounded hover:bg-white/20 transition-colors flex-shrink-0" aria-label={t('common.dismiss', 'Dismiss')}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                </button>
+              )}
             </div>
           );
         })}
