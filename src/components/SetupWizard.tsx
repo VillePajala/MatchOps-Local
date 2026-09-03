@@ -55,6 +55,23 @@ function markSetupWizardDone(userId: string | null | undefined): void {
 type WizardFormat = '5v5' | '8v8' | '11v11';
 const FORMATS: WizardFormat[] = ['5v5', '8v8', '11v11'];
 
+/**
+ * The format the coach picked in the wizard (audit 1.16: it was written and
+ * never read). New Game Setup prefers this size for its default formation -
+ * the coach's own answer beats a player-count guess. undefined userId = auth
+ * unsettled or no publisher (tests) -> null.
+ */
+export function getStoredSetupFormat(userId: string | null | undefined): WizardFormat | null {
+  if (typeof window === 'undefined' || userId === undefined) return null;
+  try {
+    // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
+    const value = localStorage.getItem(`${FORMAT_PREFIX}${userId ?? 'local'}`);
+    return value === '5v5' || value === '8v8' || value === '11v11' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 interface SetupWizardProps {
   /** Called after the wizard is done (finished or skipped) - hide it and refresh signals. */
   onComplete: () => void;

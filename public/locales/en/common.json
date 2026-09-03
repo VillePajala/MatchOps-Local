@@ -1,6 +1,6 @@
 {
   "firstVisit": {
-    "gameSetup": "Pick your team - a league or tournament can be added now or later.",
+    "gameSetup": "Pick your team - a season or tournament can be added now or later.",
     "goalLog": "Pick the scorer - and an assister if there was one - then tap Log Goal.",
     "gotIt": "Got it",
     "matchFieldClock": "The game clock and goal logging open from the 00:00 button below.",
@@ -30,11 +30,11 @@
     },
     "createGame": {
       "title": "Start your first game",
-      "body": "Tap New Game, then choose your team. Playing in a league or tournament? You can add it here or later."
+      "body": "Tap New Game, then choose your team. Part of a season or tournament? You can add it now or later."
     },
     "setFormation": {
       "title": "Set your formation",
-      "body": "Tap the formation button and pick a template - your players take their positions."
+      "body": "Open the formation menu and pick a template - your players take their positions."
     },
     "startTimer": {
       "title": "Start the clock",
@@ -72,7 +72,7 @@
       "openGamesTab": "Open the Games tab.",
       "tapNewGame": "Tap New Game.",
       "chooseTeamStart": "Choose your team, then start the game.",
-      "chooseFormation": "Tap the formation button and pick a template.",
+      "chooseFormation": "Open the formation menu and pick a template.",
       "confirmGoal": "Pick the scorer, then tap Log Goal.",
       "openTimer": "Tap the timer.",
       "tapStart": "Tap Start when the match kicks off.",
@@ -258,7 +258,8 @@
     "planner": "Match planner",
     "noPlayersForNewGame": "You need at least one player in your roster to create a game. Would you like to add players now?",
     "openTimer": "Open Timer",
-    "toggleTacticsBoardShow": "Tactics Board"
+    "toggleTacticsBoardShow": "Tactics Board",
+    "formationMenu": "Formation menu"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -1130,15 +1131,15 @@
     "emptyCompetitions": "Create a season or tournament to group your games.",
     "emptyStats": "Statistics appear once you've played games.",
     "gearRestartTour": "Getting started guide",
-      "gearGuide": "How it works",
+    "gearGuide": "How it works",
     "heroAddPlayers": "Add players",
     "heroCreateTeam": "Create your team",
     "stepBadge": "Step {{n}}",
     "welcomeStripReady": "All set! Your team and players are ready for the first game.",
     "welcomeStripStart": "Welcome! Start by adding your players.",
     "welcomeStripTeam": "Good start! Next, create your team.",
-    "welcomeStripTour": "Want a guided walkthrough?",
-    "gearSetup": "Getting started ({{done}}/4)"
+    "welcomeStripTour": "Want the getting-started guide?",
+    "gearSetup": "Setup checklist ({{done}}/4)"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

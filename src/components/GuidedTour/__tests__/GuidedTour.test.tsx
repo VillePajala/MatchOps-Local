@@ -876,6 +876,41 @@ describe('GuidedTour engine', () => {
   });
 });
 
+describe('tour completion retires the tour-covered first-visit notes', () => {
+  const TEAM_FORM_KEY = 'matchops_first_visit_team-form_test-user';
+
+  /**
+   * @critical - Owner rule: the tour and the first-visit notes must never
+   * teach the same view. FINISHING the first-run tour marks the five
+   * tour-covered surfaces seen; SKIPPING keeps them as the lighter fallback.
+   */
+  it('finishing the first-run tour marks the covered surfaces seen', () => {
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={twoStep} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.click(screen.getByTestId('guided-tour-next'));
+    fireEvent.click(screen.getByTestId('guided-tour-next')); // finish
+    expect(localStorage.getItem(TEAM_FORM_KEY)).toBe('1');
+    expect(localStorage.getItem('matchops_first_visit_goal-log_test-user')).toBe('1');
+    // Surfaces the tour never teaches keep their note.
+    expect(localStorage.getItem('matchops_first_visit_stats_test-user')).toBeNull();
+  });
+
+  it('skipping keeps the notes (the lighter fallback)', () => {
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={twoStep} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.click(screen.getByTestId('guided-tour-skip'));
+    expect(localStorage.getItem(TEAM_FORM_KEY)).toBeNull();
+  });
+});
+
 describe('GuidedTourController', () => {
   /**
    * @critical - Onboarding v2: the tour NEVER auto-starts. First-run

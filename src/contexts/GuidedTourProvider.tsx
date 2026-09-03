@@ -6,6 +6,8 @@ import logger from '@/utils/logger';
 import GuidedTourOverlay from '@/components/GuidedTour/GuidedTourOverlay';
 import type { TourSignals, TourStep } from '@/components/GuidedTour/tourTypes';
 import { setGuidedTourActive } from '@/components/setupWizardActive';
+import { FIRST_RUN_TOUR_ID } from '@/components/GuidedTour/firstRunTour';
+import { markTourCoveredFirstVisitsSeen } from '@/components/FirstVisitIntro';
 
 const TOUR_COMPLETED_PREFIX = 'matchops_tour_completed_';
 
@@ -110,6 +112,13 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const advance = useCallback(() => {
     if (index + 1 >= steps.length) {
+      // FINISHING the first-run tour retires the first-visit notes for the
+      // surfaces it just taught (owner rule: the two systems must never teach
+      // the same view). Skipping keeps them - the notes are the lighter
+      // fallback for a coach who opted out of the walkthrough.
+      if (tourId === FIRST_RUN_TOUR_ID) {
+        markTourCoveredFirstVisitsSeen(userIdRef.current);
+      }
       endTour(tourId);
     } else {
       setIndex(index + 1);

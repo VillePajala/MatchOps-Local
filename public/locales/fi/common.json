@@ -1,6 +1,6 @@
 {
   "firstVisit": {
-    "gameSetup": "Valitse joukkueesi. Sarjan tai turnauksen voit liittää nyt tai myöhemmin.",
+    "gameSetup": "Valitse joukkueesi - kauden tai turnauksen voit liittää nyt tai myöhemmin.",
     "goalLog": "Valitse maalintekijä - ja syöttäjä jos oli - ja napauta Kirjaa maali.",
     "gotIt": "Selvä",
     "matchFieldClock": "Pelikello ja maalitapahtumien kirjaus avautuvat alareunan 00:00-painikkeesta.",
@@ -30,11 +30,11 @@
     },
     "createGame": {
       "title": "Aloita ensimmäinen ottelu",
-      "body": "Napauta Uusi ottelu ja valitse joukkueesi. Pelaatteko sarjassa tai turnauksessa? Voit lisätä sen tästä tai myöhemmin."
+      "body": "Napauta Uusi ottelu ja valitse joukkueesi. Kuuluuko ottelu kauteen tai turnaukseen? Voit liittää sen nyt tai myöhemmin."
     },
     "setFormation": {
       "title": "Valitse muodostelma",
-      "body": "Napauta muodostelmapainiketta ja valitse pohja - pelaajat asettuvat paikoilleen."
+      "body": "Avaa muodostelmavalikko ja valitse pohja - pelaajat asettuvat paikoilleen."
     },
     "startTimer": {
       "title": "Käynnistä kello",
@@ -72,7 +72,7 @@
       "openGamesTab": "Avaa Pelit-välilehti.",
       "tapNewGame": "Napauta Uusi ottelu.",
       "chooseTeamStart": "Valitse joukkueesi ja aloita ottelu.",
-      "chooseFormation": "Napauta muodostelmapainiketta ja valitse pohja.",
+      "chooseFormation": "Avaa muodostelmavalikko ja valitse pohja.",
       "confirmGoal": "Valitse maalintekijä ja napauta Kirjaa maali.",
       "openTimer": "Napauta ajastinta.",
       "tapStart": "Napauta Käynnistä, kun ottelu alkaa.",
@@ -258,7 +258,8 @@
     "planner": "Ottelusuunnittelu",
     "noPlayersForNewGame": "Tarvitset vähintään yhden pelaajan kokoonpanoon luodaksesi pelin. Haluatko lisätä pelaajia nyt?",
     "openTimer": "Avaa ajastin",
-    "toggleTacticsBoardShow": "Taktiikkataulu"
+    "toggleTacticsBoardShow": "Taktiikkataulu",
+    "formationMenu": "Muodostelmavalikko"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -990,17 +991,17 @@
     "statsOverall": "Kokonaistilastot",
     "statsPlayer": "Pelaajatilastot",
     "emptyTeam": "Aloita lisäämällä pelaajat.",
-    "emptyCompetitions": "Luo kausi tai turnaus pelien ryhmittelyyn.",
-    "emptyStats": "Tilastot ilmestyvät, kun olet pelannut pelejä.",
+    "emptyCompetitions": "Luo kausi tai turnaus otteluiden ryhmittelyyn.",
+    "emptyStats": "Tilastot ilmestyvät, kun olet pelannut otteluita.",
     "gearRestartTour": "Aloitusopastus",
-      "gearGuide": "Näin se toimii",
+    "gearGuide": "Näin se toimii",
     "heroAddPlayers": "Lisää pelaajat",
     "heroCreateTeam": "Luo joukkue",
     "stepBadge": "Vaihe {{n}}",
     "welcomeStripReady": "Kaikki valmista! Joukkue ja pelaajat odottavat ensimmäistä ottelua.",
     "welcomeStripStart": "Tervetuloa! Aloita lisäämällä pelaajasi.",
     "welcomeStripTeam": "Hyvä alku! Luo seuraavaksi joukkue.",
-    "welcomeStripTour": "Haluatko opastetun kierroksen?",
+    "welcomeStripTour": "Haluatko aloitusopastuksen?",
     "gearSetup": "Käyttöönotto ({{done}}/4)"
   },
   "workspace": {

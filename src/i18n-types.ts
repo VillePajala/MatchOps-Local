@@ -406,6 +406,7 @@ export type TranslationKey =
   | 'controlBar.drawingMode'
   | 'controlBar.enterFullscreen'
   | 'controlBar.exitFullscreen'
+  | 'controlBar.formationMenu'
   | 'controlBar.gameReport'
   | 'controlBar.gameSettingsButton'
   | 'controlBar.hardReset'
