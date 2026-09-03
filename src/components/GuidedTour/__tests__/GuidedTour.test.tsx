@@ -7,6 +7,7 @@ import GuidedTourMatchReporter from '../GuidedTourMatchReporter';
 import GuidedTourRosterReporter from '../GuidedTourRosterReporter';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '../firstRunTour';
 import type { TourSignals, TourStep } from '../tourTypes';
+import { setOnboardingUserId } from '@/components/setupWizardActive';
 
 // The provider reads the user id from useAuth for the per-user completion flag.
 jest.mock('@/contexts/AuthProvider', () => ({
@@ -897,6 +898,25 @@ describe('tour completion retires the tour-covered first-visit notes', () => {
     expect(localStorage.getItem('matchops_first_visit_goal-log_test-user')).toBe('1');
     // Surfaces the tour never teaches keep their note.
     expect(localStorage.getItem('matchops_first_visit_stats_test-user')).toBeNull();
+  });
+
+  it('marks under the SETTLED id when the page has published one (review #742 Bug 1)', () => {
+    setOnboardingUserId('settled-user');
+    try {
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={twoStep} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      fireEvent.click(screen.getByTestId('guided-tour-next'));
+      fireEvent.click(screen.getByTestId('guided-tour-next'));
+      // Written with the id FirstVisitIntro will READ with - never the raw one.
+      expect(localStorage.getItem('matchops_first_visit_team-form_settled-user')).toBe('1');
+      expect(localStorage.getItem('matchops_first_visit_team-form_test-user')).toBeNull();
+    } finally {
+      setOnboardingUserId(undefined);
+    }
   });
 
   it('skipping keeps the notes (the lighter fallback)', () => {

@@ -24,8 +24,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
-import { getStoredSetupFormat } from '@/components/SetupWizard';
-import { useOnboardingUserId } from '@/components/setupWizardActive';
+import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -156,7 +155,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   // The wizard's Pelimuoto answer (store-fed userId - context-free,
   // test-safe) beats the player-count guess for the DEFAULT formation
-  // size (audit 1.16).
+  // size (audit 1.16). DELIBERATELY permanent, not first-game-only: the
+  // answer describes the TEAM's format, which rarely changes mid-season -
+  // and it is only a default, one tap away from any other shape
+  // (review #742 issue 3; owner can veto).
   const onboardingUserId = useOnboardingUserId();
   const preferredFormationSize =
     getStoredSetupFormat(onboardingUserId) ?? getRecommendedFieldSize(selectedPlayerIds.length);
