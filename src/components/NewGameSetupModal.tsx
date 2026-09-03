@@ -23,7 +23,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getPresetsForFieldSize, getRecommendedFieldSize } from '@/config/formationPresets';
+import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
