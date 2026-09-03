@@ -207,9 +207,13 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         </div>
 
         {step === 1 ? (
-          /* Soft card, vertically centered in the leftover space (owner round
-             3: the top-packed step floated in dead air). */
-          <div className="my-auto rounded-2xl bg-slate-800/40 border border-slate-700/40 p-5">
+          /* Owner round 5: deterministic rhythm instead of centering - the
+             card sits anchored under the header and the ONLY flexible gap is
+             above the bottom skip link. (my-auto + the skip's mt-auto split
+             the whitespace into odd thirds - nothing looked anchored.) The
+             card fill is also a step stronger so it reads as a surface, not a
+             stray hairline box. */
+          <div className="mt-6 rounded-2xl bg-slate-800/60 border border-slate-700/60 p-5">
             <h2 className="text-2xl font-semibold">
               {t('setupWizard.teamTitle', 'Your team')}
             </h2>
@@ -265,7 +269,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 setStep(2);
               }}
               disabled={!teamName.trim()}
-              className="w-full mt-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
+              className="w-full mt-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-lg font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
             >
               {t('setupWizard.next', 'Continue')}
             </button>
@@ -277,7 +281,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
              pinned. The page keeps overflow-y-auto as a FALLBACK only - on a
              short/landscape viewport the fixed-height children exceed 100dvh
              and the page must scroll rather than clip (review #732). */
-          <div className="flex-1 min-h-0 mt-1 flex flex-col rounded-2xl bg-slate-800/40 border border-slate-700/40 p-5">
+          <div className="flex-1 min-h-0 mt-2 flex flex-col rounded-2xl bg-slate-800/60 border border-slate-700/60 p-5">
             {/* Quiet back link on its own row (owner round 2: the arrow glued
                 to the title read badly). No autofocus on step 1 for the same
                 round: the keyboard covered the format chips before the coach
