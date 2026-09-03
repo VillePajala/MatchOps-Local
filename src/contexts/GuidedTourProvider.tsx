@@ -5,7 +5,9 @@ import { useAuth } from '@/contexts/AuthProvider';
 import logger from '@/utils/logger';
 import GuidedTourOverlay from '@/components/GuidedTour/GuidedTourOverlay';
 import type { TourSignals, TourStep } from '@/components/GuidedTour/tourTypes';
-import { setGuidedTourActive } from '@/components/setupWizardActive';
+import { setGuidedTourActive, useOnboardingUserId } from '@/components/setupWizardActive';
+import { FIRST_RUN_TOUR_ID } from '@/components/GuidedTour/firstRunTour';
+import { markTourCoveredFirstVisitsSeen } from '@/components/FirstVisitIntro';
 
 const TOUR_COMPLETED_PREFIX = 'matchops_tour_completed_';
 
@@ -44,6 +46,15 @@ const GuidedTourContext = createContext<GuidedTourContextValue | undefined>(unde
 export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  // SETTLED id from page.tsx (review #742 Bug 1): the raw useAuth id above is
+  // null while auth is still loading, which would file per-user writes under
+  // '_local' - while FirstVisitIntro reads with the settled id. Keep both: the
+  // settled one is preferred wherever the two systems must agree.
+  const onboardingUserId = useOnboardingUserId();
+  const onboardingUserIdRef = useRef(onboardingUserId);
+  useEffect(() => {
+    onboardingUserIdRef.current = onboardingUserId;
+  }, [onboardingUserId]);
   // Keep the latest userId reachable from stable callbacks without re-creating
   // them. Synced in an effect (never mutate a ref during render).
   const userIdRef = useRef(userId);
@@ -110,6 +121,18 @@ export const GuidedTourProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const advance = useCallback(() => {
     if (index + 1 >= steps.length) {
+      // FINISHING the first-run tour retires the first-visit notes for the
+      // surfaces it just taught (owner rule: the two systems must never teach
+      // the same view). Skipping keeps them - the notes are the lighter
+      // fallback for a coach who opted out of the walkthrough.
+      if (tourId === FIRST_RUN_TOUR_ID) {
+        // The SETTLED id keys these writes so FirstVisitIntro's reads agree
+        // (Bug 1); the raw-auth id is the best-effort fallback when no
+        // publisher exists (isolated tests).
+        markTourCoveredFirstVisitsSeen(
+          onboardingUserIdRef.current !== undefined ? onboardingUserIdRef.current : userIdRef.current,
+        );
+      }
       endTour(tourId);
     } else {
       setIndex(index + 1);

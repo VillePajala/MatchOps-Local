@@ -152,7 +152,7 @@ export const firstRunTourSteps: TourStep[] = [
     titleKey: 'guidedTour.createGame.title',
     title: 'Start your first game',
     bodyKey: 'guidedTour.createGame.body',
-    body: 'Tap New Game, then choose your team. Playing in a league or tournament? You can add it here or later.',
+    body: 'Tap New Game, then choose your team. Part of a season or tournament? You can add it now or later.',
     targets: [
       {
         selector: '#teamSelectTop',
@@ -183,12 +183,12 @@ export const firstRunTourSteps: TourStep[] = [
     titleKey: 'guidedTour.setFormation.title',
     title: 'Set your formation',
     bodyKey: 'guidedTour.setFormation.body',
-    body: 'Tap the formation button and pick a template - your players take their positions.',
+    body: 'Open the formation menu and pick a template - your players take their positions.',
     targets: [
       {
         selector: '[data-testid="tour-formation"]',
         hintKey: 'guidedTour.hints.chooseFormation',
-        hint: 'Tap the formation button and pick a template.',
+        hint: 'Open the formation menu and pick a template.',
         compact: true,
       },
     ],

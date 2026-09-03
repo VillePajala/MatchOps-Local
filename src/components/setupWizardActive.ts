@@ -117,3 +117,36 @@ const getTourServerSnapshot = () => false;
 export function useGuidedTourActive(): boolean {
   return useSyncExternalStore(subscribeTour, getTourSnapshot, getTourServerSnapshot);
 }
+
+// --- Wizard format preference (review #742 issue 4) ---------------------------
+// Lives here, not in SetupWizard.tsx, for the same reason as everything else in
+// this module: consumers (NewGameSetupModal) must not pull the wizard's
+// data-layer imports just to read one localStorage hint.
+const FORMAT_PREFIX = 'matchops_setup_format_';
+export type SetupFormat = '5v5' | '8v8' | '11v11';
+
+/** Written by the wizard when the coach answers Pelimuoto. */
+export function storeSetupFormat(userId: string | null | undefined, format: SetupFormat): void {
+  try {
+    // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
+    localStorage.setItem(`${FORMAT_PREFIX}${userId ?? 'local'}`, format);
+  } catch {
+    // Non-critical preference - ignore.
+  }
+}
+
+/**
+ * The coach's own Pelimuoto answer; New Game Setup prefers this size for its
+ * DEFAULT formation. undefined userId = auth unsettled (or no publisher, e.g.
+ * tests) -> null, so callers fall back to the player-count guess.
+ */
+export function getStoredSetupFormat(userId: string | null | undefined): SetupFormat | null {
+  if (typeof window === 'undefined' || userId === undefined) return null;
+  try {
+    // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
+    const value = localStorage.getItem(`${FORMAT_PREFIX}${userId ?? 'local'}`);
+    return value === '5v5' || value === '8v8' || value === '11v11' ? value : null;
+  } catch {
+    return null;
+  }
+}

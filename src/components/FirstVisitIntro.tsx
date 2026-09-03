@@ -32,6 +32,20 @@ function isSeen(surface: string, userId: string | null | undefined): boolean {
   }
 }
 
+/**
+ * The surfaces the FIRST-RUN guided tour teaches. Finishing the tour retires
+ * their notes (owner rule: the tour and the notes must never teach the same
+ * view); stats/planner/seasons keep theirs - the tour never covers them.
+ */
+export const TOUR_COVERED_SURFACES = ['team-form', 'game-setup', 'match-field', 'timer', 'goal-log'] as const;
+
+/** Called by GuidedTourProvider when the first-run tour COMPLETES (not skip). */
+export function markTourCoveredFirstVisitsSeen(userId: string | null | undefined): void {
+  for (const surface of TOUR_COVERED_SURFACES) {
+    markSeen(surface, userId);
+  }
+}
+
 function markSeen(surface: string, userId: string | null | undefined): void {
   try {
     // eslint-disable-next-line no-restricted-globals -- one-time UI education flag, not app data (same pattern as the tour/wizard flags)

@@ -422,7 +422,10 @@ describe('Translation File Validation', () => {
       //     renders between the two halves).
       // +2: gameSettingsModal.formationApply/formationLabel - the Game
       //     Settings Muodostelma block (owner round 4). Lands at 2846.
-      expect(enKeys.length).toBe(2846);
+      // +1: controlBar.formationMenu - the formation picker's accessible name
+      //     ('Muodostelmavalikko'), unifying the control's four names (audit
+      //     6.1). Lands at 2847.
+      expect(enKeys.length).toBe(2847);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -552,7 +555,7 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(fiKeys.length).toBe(2846);
+      expect(fiKeys.length).toBe(2847);
     });
   });
 });

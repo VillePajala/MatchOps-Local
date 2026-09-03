@@ -311,7 +311,7 @@ describe('StartScreen', () => {
 
     const openGear = () => fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-    it('shows a "Getting started (N/4)" gear entry that opens the checklist (not on the home tabs)', async () => {
+    it('shows a "Setup checklist (N/4)" gear entry that opens the checklist (not on the home tabs)', async () => {
       render(
         <StartScreen
           {...baseHandlers()}
@@ -326,7 +326,7 @@ describe('StartScreen', () => {
 
       openGear();
       const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      const entry = await within(sheet).findByRole('button', { name: /Getting started/ });
+      const entry = await within(sheet).findByRole('button', { name: /Setup checklist/ });
       fireEvent.click(entry);
 
       // The checklist opens in its own sheet.
@@ -421,7 +421,7 @@ describe('StartScreen', () => {
       );
       openGear();
       const sheet = await screen.findByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
     });
 
     it('has no setup entry for first-time users', () => {
@@ -436,7 +436,7 @@ describe('StartScreen', () => {
       );
       openGear();
       const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
     });
 
     it('the checklist × dismisses the gear entry across renders', async () => {
@@ -450,7 +450,7 @@ describe('StartScreen', () => {
       const { unmount } = render(<StartScreen {...props} />);
       openGear();
       let sheet = screen.getByRole('dialog', { name: 'App & account' });
-      fireEvent.click(await within(sheet).findByRole('button', { name: /Getting started/ }));
+      fireEvent.click(await within(sheet).findByRole('button', { name: /Setup checklist/ }));
       fireEvent.click(screen.getByRole('button', { name: 'Dismiss' })); // the card's ×
 
       unmount();
@@ -458,7 +458,7 @@ describe('StartScreen', () => {
       openGear();
       sheet = screen.getByRole('dialog', { name: 'App & account' });
       // Persisted dismissal keeps the gear entry hidden.
-      expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
     });
 
     it('opening the setup sheet closes the gear sheet (not stacked)', async () => {
@@ -472,7 +472,7 @@ describe('StartScreen', () => {
         />
       );
       openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Getting started/ }));
+      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
       // Gear sheet is gone; only the setup sheet remains.
       expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: 'Get the most out of MatchOps' })).toBeInTheDocument();
@@ -489,7 +489,7 @@ describe('StartScreen', () => {
         />
       );
       openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Getting started/ }));
+      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
       expect(screen.getByText('Get the most out of MatchOps')).toBeInTheDocument();
 
       // Tap the backdrop (not the ×) - closes the sheet only.
@@ -498,7 +498,7 @@ describe('StartScreen', () => {
 
       // The gear entry is NOT dismissed - it reopens.
       openGear();
-      expect(within(screen.getByRole('dialog', { name: 'App & account' })).getByRole('button', { name: /Getting started/ })).toBeInTheDocument();
+      expect(within(screen.getByRole('dialog', { name: 'App & account' })).getByRole('button', { name: /Setup checklist/ })).toBeInTheDocument();
     });
   });
 });

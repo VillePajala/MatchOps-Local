@@ -324,7 +324,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onClick={() => guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps)}
                     className="block mt-1 text-xs text-amber-400 hover:text-amber-300 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 rounded"
                   >
-                    {t('startScreen.welcomeStripTour', 'Want a guided walkthrough?')}
+                    {t('startScreen.welcomeStripTour', 'Want the getting-started guide?')}
                   </button>
                 )}
               </div>
@@ -841,7 +841,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {/* Setup tracker (moved off the home tabs) - on-demand, shows N/4. */}
               {showSetupEntry && (
                 <button type="button" onClick={() => { setShowGearSheet(false); setShowSetupSheet(true); }} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                  <span>{t('startScreen.gearSetup', 'Getting started ({{done}}/4)', { done: setupDoneCount })}</span>
+                  <span>{t('startScreen.gearSetup', 'Setup checklist ({{done}}/4)', { done: setupDoneCount })}</span>
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
               )}

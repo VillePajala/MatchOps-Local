@@ -7,6 +7,7 @@ import GuidedTourMatchReporter from '../GuidedTourMatchReporter';
 import GuidedTourRosterReporter from '../GuidedTourRosterReporter';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '../firstRunTour';
 import type { TourSignals, TourStep } from '../tourTypes';
+import { setOnboardingUserId } from '@/components/setupWizardActive';
 
 // The provider reads the user id from useAuth for the per-user completion flag.
 jest.mock('@/contexts/AuthProvider', () => ({
@@ -873,6 +874,60 @@ describe('GuidedTour engine', () => {
     fireEvent.click(screen.getByText('start-tour'));
     expect(screen.queryByTestId('guided-tour-next')).not.toBeInTheDocument();
     expect(screen.getByTestId('guided-tour-skip')).toBeInTheDocument();
+  });
+});
+
+describe('tour completion retires the tour-covered first-visit notes', () => {
+  const TEAM_FORM_KEY = 'matchops_first_visit_team-form_test-user';
+
+  /**
+   * @critical - Owner rule: the tour and the first-visit notes must never
+   * teach the same view. FINISHING the first-run tour marks the five
+   * tour-covered surfaces seen; SKIPPING keeps them as the lighter fallback.
+   */
+  it('finishing the first-run tour marks the covered surfaces seen', () => {
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={twoStep} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.click(screen.getByTestId('guided-tour-next'));
+    fireEvent.click(screen.getByTestId('guided-tour-next')); // finish
+    expect(localStorage.getItem(TEAM_FORM_KEY)).toBe('1');
+    expect(localStorage.getItem('matchops_first_visit_goal-log_test-user')).toBe('1');
+    // Surfaces the tour never teaches keep their note.
+    expect(localStorage.getItem('matchops_first_visit_stats_test-user')).toBeNull();
+  });
+
+  it('marks under the SETTLED id when the page has published one (review #742 Bug 1)', () => {
+    setOnboardingUserId('settled-user');
+    try {
+      render(
+        <GuidedTourProvider>
+          <StartButton steps={twoStep} />
+        </GuidedTourProvider>,
+      );
+      fireEvent.click(screen.getByText('start-tour'));
+      fireEvent.click(screen.getByTestId('guided-tour-next'));
+      fireEvent.click(screen.getByTestId('guided-tour-next'));
+      // Written with the id FirstVisitIntro will READ with - never the raw one.
+      expect(localStorage.getItem('matchops_first_visit_team-form_settled-user')).toBe('1');
+      expect(localStorage.getItem('matchops_first_visit_team-form_test-user')).toBeNull();
+    } finally {
+      setOnboardingUserId(undefined);
+    }
+  });
+
+  it('skipping keeps the notes (the lighter fallback)', () => {
+    render(
+      <GuidedTourProvider>
+        <StartButton steps={twoStep} />
+      </GuidedTourProvider>,
+    );
+    fireEvent.click(screen.getByText('start-tour'));
+    fireEvent.click(screen.getByTestId('guided-tour-skip'));
+    expect(localStorage.getItem(TEAM_FORM_KEY)).toBeNull();
   });
 });
 

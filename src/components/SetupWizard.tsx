@@ -8,7 +8,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { addPlayer } from '@/utils/masterRosterManager';
 import { addTeam, setTeamRoster } from '@/utils/teams';
-import { setSetupWizardActive } from './setupWizardActive';
+import { setSetupWizardActive, storeSetupFormat } from './setupWizardActive';
 import type { Player, Team, TeamPlayer } from '@/types';
 import logger from '@/utils/logger';
 
@@ -26,7 +26,6 @@ import logger from '@/utils/logger';
 // --- Per-user one-time flag --------------------------------------------------
 // Same localStorage pattern as the guided tour's completion flag.
 const DONE_PREFIX = 'matchops_setup_wizard_done_';
-const FORMAT_PREFIX = 'matchops_setup_format_';
 
 /**
  * Whether this account has already seen the wizard (finished OR skipped).
@@ -54,6 +53,7 @@ function markSetupWizardDone(userId: string | null | undefined): void {
 
 type WizardFormat = '5v5' | '8v8' | '11v11';
 const FORMATS: WizardFormat[] = ['5v5', '8v8', '11v11'];
+
 
 interface SetupWizardProps {
   /** Called after the wizard is done (finished or skipped) - hide it and refresh signals. */
@@ -158,12 +158,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
 
       // The format choice is a UI default hint for later steps (game size,
       // formations) - a per-user local preference, not entity data.
-      try {
-        // eslint-disable-next-line no-restricted-globals -- per-user UI default hint, not app data
-        localStorage.setItem(`${FORMAT_PREFIX}${userId ?? 'local'}`, format);
-      } catch {
-        // Non-critical preference - ignore.
-      }
+      storeSetupFormat(userId, format);
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: [...queryKeys.masterRoster, userId] }),
