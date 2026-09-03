@@ -1121,6 +1121,45 @@ describe('NewGameSetupModal', () => {
       });
     });
 
+    it('formation select offers ALL field sizes as groups (owner round 6b)', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+      const groups = document.querySelectorAll('#formationSelect optgroup');
+      expect(Array.from(groups).map((g) => g.getAttribute('label'))).toEqual(['3v3', '5v5', '8v8', '11v11']);
+    });
+
+    it('a non-recommended-size preset SURVIVES to onStart (squad size never restricts)', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+        target: { value: 'Test Opponent' },
+      });
+      // 2 players selected -> 3v3 recommended, but the coach picks an 8v8 shape.
+      fireEvent.change(document.querySelector('#formationSelect')!, {
+        target: { value: '8v8-2-3-2' },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => {
+        expect(mockOnStart).toHaveBeenCalled();
+        const args = mockOnStart.mock.calls[0];
+        expect(args[args.length - 1]).toBe('8v8-2-3-2');
+      });
+    });
+
     it('should pass gameType to onStart callback', async () => {
       render(
         <ToastProvider>
