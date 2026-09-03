@@ -75,13 +75,13 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
   // Visual language borrowed from the app-update banner, upgraded per owner
   // round 3: the gradient runs as a full EDGE around the card (1.5px frame
   // around a dark glass inner), so the note reads as a system moment from any
-  // angle. The field overlay sits BELOW the field's own top buttons (top-16,
+  // angle. The field overlay COVERS the temporarily-irrelevant top buttons (top-3,
   // z-30). Owner round 4: the overlay COVERS the field's top buttons while
   // visible - the card is temporary and dismissible, and in that moment the
   // guidance matters more than rules/camera shortcuts.
   const frame =
-    'rounded-2xl p-[1.5px] bg-gradient-to-br from-sky-400 via-indigo-400 to-fuchsia-500 shadow-[0_12px_36px_rgba(0,0,0,0.45)]';
-  const base = overlay ? `absolute inset-x-3 top-3 z-30 ${frame}` : `${frame} mb-4`;
+    'rounded-2xl p-[1.5px] bg-gradient-to-br from-sky-400 via-indigo-400 to-fuchsia-500 shadow-[0_18px_50px_rgba(0,0,0,0.55)]';
+  const base = overlay ? `absolute inset-x-3 top-3 z-30 ${frame}` : frame;
 
   return (
     <div data-testid={`first-visit-${surface}`} className={`${base} ${className}`.trim()}>
@@ -98,7 +98,7 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
               markSeen(surface, userId);
               setDismissed(true);
             }}
-            className="rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors"
+            className="rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
           >
             {t('firstVisit.gotIt', 'Got it')}
           </button>

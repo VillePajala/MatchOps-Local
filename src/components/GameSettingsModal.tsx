@@ -2708,17 +2708,18 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 An ACTION select (value stays on the placeholder): picking a
                 formation applies it immediately. */}
             {onApplyFormation && selectedPlayerIds.length > 0 && (
-              <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
-                <h3 className="text-lg font-semibold text-slate-200 mb-1">
+              <div className="mt-4 space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
+                <h3 id="gameSettingsFormationHeading" className="text-lg font-semibold text-slate-200 mb-1">
                   {t('gameSettingsModal.formationLabel', 'Formation')}
                 </h3>
                 <select
+                  aria-labelledby="gameSettingsFormationHeading"
                   data-testid="game-settings-formation-select"
                   value=""
                   onChange={(e) => {
                     if (e.target.value) onApplyFormation(e.target.value);
                   }}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="" disabled>
                     {t('gameSettingsModal.formationApply', 'Place players in a formation…')}

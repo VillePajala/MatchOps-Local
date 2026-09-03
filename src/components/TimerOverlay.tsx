@@ -242,7 +242,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
       <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
         <FirstVisitIntro
           surface="timer"
-          className="w-full"
+          className="w-full mb-4"
           text={t('firstVisit.timer', 'Start and pause the clock here - goals and substitutions are logged from this view too.')}
         />
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER.
