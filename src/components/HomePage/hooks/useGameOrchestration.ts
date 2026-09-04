@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { GameNoteInput } from '@/types/game';
 import { useDictationCapture } from '@/hooks/useDictationCapture';
 import type { ComponentProps } from 'react';
 import type ControlBar from '@/components/ControlBar';
@@ -1523,12 +1524,41 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Handler to update an existing game event
   const handleUpdateGameEvent = useCallback((updatedEvent: GameEvent) => {
-    const cleanUpdatedEvent: GameEvent = { id: updatedEvent.id, type: updatedEvent.type, time: updatedEvent.time, scorerId: updatedEvent.scorerId, assisterId: updatedEvent.assisterId }; // Keep cleaning
+    // Keep cleaning to known fields - including the Kirjuri note fields, which
+    // the reducer's replace-by-id would otherwise silently drop.
+    const cleanUpdatedEvent: GameEvent = {
+      id: updatedEvent.id,
+      type: updatedEvent.type,
+      time: updatedEvent.time,
+      scorerId: updatedEvent.scorerId,
+      assisterId: updatedEvent.assisterId,
+      entityId: updatedEvent.entityId,
+      period: updatedEvent.period,
+      text: updatedEvent.text,
+      source: updatedEvent.source,
+    };
 
     dispatchGameSession({ type: 'UPDATE_GAME_EVENT', payload: cleanUpdatedEvent });
 
     logger.log("Updated game event via dispatch:", updatedEvent.id);
   }, [dispatchGameSession]);
+
+  // Kirjuri (PR 3): the inbox accepted a clip - it becomes a note event on the
+  // current game, persisted by the same autosave path goals use.
+  const handleAddGameNote = useCallback((note: GameNoteInput) => {
+    if (!currentGameId) return;
+    const event: GameEvent = {
+      id: `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      type: 'note',
+      time: Math.round(note.time * 100) / 100,
+      period: note.period,
+      entityId: note.entityId,
+      text: note.text.trim(),
+      source: 'dictation',
+    };
+    dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: event });
+    showToast(t('dictation.accepted', 'Note saved'), 'success');
+  }, [currentGameId, dispatchGameSession, showToast, t]);
 
   // Session coordination handlers
   const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
@@ -2449,6 +2479,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     },
     handlers: {
       handleUpdateGameEvent,
+      handleAddGameNote,
       handlePlaceAllPlayersTracked,
       handleExportOneExcel,
       handleExportOneJson,

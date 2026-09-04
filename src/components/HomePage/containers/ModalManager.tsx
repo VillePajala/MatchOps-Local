@@ -1,4 +1,5 @@
 import React from 'react';
+import type { GameNoteInput } from '@/types/game';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
@@ -67,6 +68,7 @@ interface ModalManagerHandlers {
   logOpponentGoal: (timeSeconds: number) => void;
   recalculateScore: () => void;
   updateGameEvent: (event: GameEvent) => void;
+  addGameNote?: (note: GameNoteInput) => void;
   deleteGameEvent: (eventId: string) => Promise<boolean>;
   toggleGameStatsModal: () => void;
   exportOneExcel: (gameId: string) => void;
@@ -199,6 +201,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             gamePersonnel={data.gameSessionState.gamePersonnel}
             personnelDirectory={data.personnel}
             onUpdateGameEvent={handlers.updateGameEvent}
+            onAddGameNote={handlers.addGameNote}
             selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
             savedGames={data.savedGames}
             currentGameId={data.currentGameId}

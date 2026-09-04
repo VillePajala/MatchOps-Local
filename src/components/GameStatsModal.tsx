@@ -22,6 +22,9 @@ import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
+import DictationInbox from './GameStatsModal/components/DictationInbox';
+import GameNotesList from './GameStatsModal/components/GameNotesList';
+import type { GameNoteInput } from '@/types/game';
 import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
@@ -92,6 +95,8 @@ interface GameStatsModalProps {
   playerPositions?: Record<string, string[]>;
   onGameNotesChange?: (notes: string) => void;
   onUpdateGameEvent?: (updatedEvent: GameEvent) => void;
+  /** Kirjuri (PR 3): the dictation inbox accepted a clip. */
+  onAddGameNote?: (note: GameNoteInput) => void;
   selectedPlayerIds: string[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
@@ -148,6 +153,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   playerPositions,
   onGameNotesChange = NOOP,
   onUpdateGameEvent = NOOP,
+  onAddGameNote,
   selectedPlayerIds,
   savedGames,
   currentGameId,
@@ -553,6 +559,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
     return [];
   }, [activeTab, localGameEvents]);
+
+  // Kirjuri notes on the current game, clock order (their own card - never in the goal list)
+  const noteEvents = useMemo(() => {
+    if (activeTab !== 'currentGame') return [];
+    return localGameEvents.filter((e) => e.type === 'note').sort((a, b) => a.time - b.time);
+  }, [activeTab, localGameEvents]);
+  // Clips awaiting review, reported by the inbox; drives the wrap-up row.
+  const [voiceClipCount, setVoiceClipCount] = useState(0);
+  const scrollToInbox = useCallback(() => {
+    document.getElementById('dictation-inbox')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   // Determine display names based on home/away
   const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
@@ -1013,6 +1030,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       completeness={currentGameCompleteness}
                       onOpenSettings={onOpenGameSettings}
                       onOpenAssessments={onOpenAssessments}
+                      voiceClipCount={voiceClipCount}
+                      onOpenVoiceNotes={scrollToInbox}
                     />
                   )}
                   {activeTab === 'currentGame' && (
@@ -1093,6 +1112,20 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
                         onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
                         onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
+                      />
+
+                      {currentGameId && (
+                        <DictationInbox
+                          gameId={currentGameId}
+                          availablePlayers={availablePlayers}
+                          onAccept={onAddGameNote}
+                          onCountChange={setVoiceClipCount}
+                        />
+                      )}
+                      <GameNotesList
+                        notes={noteEvents}
+                        availablePlayers={availablePlayers}
+                        onDeleteNote={onDeleteGameEvent ? (id) => { void onDeleteGameEvent(id); } : undefined}
                       />
 
                       <PersonnelSummaryCard personnel={resolvedGamePersonnel} />

@@ -12,6 +12,9 @@ interface GameWrapUpCardProps {
   onOpenSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
   /** Routes the assessments row to the player-assessment editor. */
   onOpenAssessments?: () => void;
+  /** Kirjuri: recorded clips not yet turned into notes (0 = row hidden). */
+  voiceClipCount?: number;
+  onOpenVoiceNotes?: () => void;
 }
 
 type RowStatus = 'done' | 'todo';
@@ -24,7 +27,7 @@ const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.to
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenAssessments }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
 
   interface Row {
@@ -36,6 +39,17 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
   }
 
   const rows: Row[] = [];
+  // Voice clips are not part of the record's completeness (audio is transient),
+  // so the count comes from the inbox, not the model; the row exists only while
+  // something waits.
+  if (voiceClipCount > 0) {
+    rows.push({
+      key: 'voiceNotes',
+      label: t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount }),
+      status: 'todo',
+      onClick: onOpenVoiceNotes,
+    });
+  }
   if (!completeness.roster) {
     rows.push({ key: 'roster', label: t('gameStatsModal.wrapUpRoster', 'Squad selected'), status: 'todo', onClick: onOpenSettings && (() => onOpenSettings('roster')) });
   }
