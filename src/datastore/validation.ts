@@ -72,6 +72,23 @@ export const validateGame = (game: AppState, context?: string): void => {
     );
   }
 
+  // Validate Kirjuri note events: the DB CHECK (migration 041) requires text
+  // on a note, and a save that violates it would fail the WHOLE game save.
+  for (const event of game.gameEvents ?? []) {
+    if (event.type !== 'note') continue;
+    const text = typeof event.text === 'string' ? event.text.trim() : '';
+    if (text.length === 0) {
+      throw new ValidationError(`${prefix}A note event must have text`, 'gameEvents', event.id);
+    }
+    if (text.length > VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX) {
+      throw new ValidationError(
+        `${prefix}Note text cannot exceed ${VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX} characters (got ${text.length})`,
+        'gameEvents',
+        event.id
+      );
+    }
+  }
+
   // Validate ageGroup if present
   if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
     throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);

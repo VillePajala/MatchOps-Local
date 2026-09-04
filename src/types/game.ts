@@ -64,7 +64,10 @@ export interface Opponent {
   relY: number;
 }
 
-export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
+export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard' | 'note';
+
+/** Provenance of a `note` event (Kirjuri): who wrote the words. */
+export type GameNoteSource = 'dictation' | 'ai' | 'manual';
 
 export interface GameEvent {
   id: string;
@@ -72,7 +75,14 @@ export interface GameEvent {
   time: number;
   scorerId?: string;
   assisterId?: string;
+  /** Generic subject: the carded player, or the player a `note` is about (absent = game note). */
   entityId?: string;
+  /** `note` only: the period the clock was in when the note was captured. */
+  period?: number;
+  /** `note` only: the coach's observation. */
+  text?: string;
+  /** `note` only. */
+  source?: GameNoteSource;
 }
 
 // TimerState is defined in @/utils/timerStateManager.ts (canonical location)

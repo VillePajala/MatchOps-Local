@@ -1,4 +1,4 @@
-import { appStateSchema } from './appStateSchema';
+import { appStateSchema, gameEventSchema } from './appStateSchema';
 
 describe('appStateSchema', () => {
   const valid = {
@@ -37,5 +37,19 @@ describe('appStateSchema', () => {
 
   it('fails for invalid data', () => {
     expect(() => appStateSchema.parse({ ...valid, homeScore: 'bad' })).toThrow();
+  });
+});
+
+describe('gameEventSchema - Kirjuri note events (migration 041)', () => {
+  /** @critical - backup restore parses with this schema; a rejected note would throw the whole restore. */
+  it('parses a note event with period, text and source', () => {
+    const parsed = gameEventSchema.parse({
+      id: 'n1', type: 'note', time: 1834, period: 2, entityId: 'p2', text: 'hieno syöttö', source: 'dictation',
+    });
+    expect(parsed).toMatchObject({ type: 'note', period: 2, text: 'hieno syöttö', source: 'dictation' });
+  });
+
+  it('rejects an unknown note source', () => {
+    expect(() => gameEventSchema.parse({ id: 'n1', type: 'note', time: 1, text: 'x', source: 'robot' })).toThrow();
   });
 });

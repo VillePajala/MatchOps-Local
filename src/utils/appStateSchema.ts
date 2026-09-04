@@ -30,11 +30,14 @@ export const playerSchema = z.object({
 
 export const gameEventSchema = z.object({
   id: z.string(),
-  type: z.enum(['goal', 'opponentGoal', 'substitution', 'periodEnd', 'gameEnd', 'fairPlayCard']),
+  type: z.enum(['goal', 'opponentGoal', 'substitution', 'periodEnd', 'gameEnd', 'fairPlayCard', 'note']),
   time: z.number(),
   scorerId: z.string().optional(),
   assisterId: z.string().optional(),
   entityId: z.string().optional(),
+  period: z.number().optional(),
+  text: z.string().optional(),
+  source: z.enum(['dictation', 'ai', 'manual']).optional(),
 });
 
 export const intervalLogSchema = z.object({

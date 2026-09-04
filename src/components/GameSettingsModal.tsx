@@ -1562,8 +1562,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // Moved the sortedEvents calculation up to ensure hooks are called unconditionally
   const sortedEvents = useMemo(() => {
-    // Use localGameEvents for display within the modal
-    return [...localGameEvents].sort((a, b) => a.time - b.time);
+    // Use localGameEvents for display within the modal. Kirjuri note events
+    // are excluded - they have their own card and must not be editable as goals.
+    return localGameEvents.filter((e) => e.type !== 'note').sort((a, b) => a.time - b.time);
   }, [localGameEvents]);
 
   // Removed: handleShowCreateSeason - unused handler (season creation moved to dedicated modal)
