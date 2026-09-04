@@ -199,7 +199,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
       </div>
       <div className="w-full max-w-sm mx-auto flex flex-col flex-1 px-6 py-8">
-        <h1 className="text-[clamp(2.3rem,10.5vw,3.5rem)] font-bold tracking-tight text-center mt-2">
+        {/* Step 1 centers the WHOLE group (wordmark -> skip) like the landing
+            page: mt-auto here + mb-auto on the skip split the leftover space
+            in two (not the odd thirds of round 5, where the skip's own
+            mt-auto added a third gap). Autos collapse to 0 when the keyboard
+            shrinks the viewport, so the column degrades to a normal scroll. */}
+        <h1 className={`text-[clamp(2.3rem,10.5vw,3.5rem)] font-bold tracking-tight text-center ${step === 1 ? 'mt-auto' : 'mt-2'}`}>
           <span className="text-amber-400">MatchOps</span>
         </h1>
 
@@ -210,31 +215,17 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
         </div>
 
         {step === 1 ? (
-          /* Owner round 5: deterministic rhythm instead of centering - the
-             card sits anchored under the header and the ONLY flexible gap is
-             above the bottom skip link. (my-auto + the skip's mt-auto split
-             the whitespace into odd thirds - nothing looked anchored.) The
-             card fill is also a step stronger so it reads as a surface, not a
-             stray hairline box. */
-          /* House surface recipe (owner round 6: the wizard spoke a foreign
-             dialect - ghost-outline 2xl card, hollow chips, too-dark input).
-             This is the exact inner-card vocabulary of the app's forms. */
+          /* Landing language (owner round 8): the auth screen is the design
+             reference - centered headings, open h-12 fields directly on the
+             ambient background (no card chrome), full-width hero CTA. The
+             wizard must read as page 2 of the same flow, not a settings form. */
           <>
-            {/* Title lives ABOVE the card (owner round 6): app forms keep
-                titles in headers, never as big h2s inside content cards. */}
-            <h2 className="text-2xl font-semibold">
+            <h2 className="text-2xl font-bold text-center">
               {t('setupWizard.teamTitle', 'Your team')}
             </h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-400 text-center mt-2 mb-6">
               {t('setupWizard.teamHint', 'Name your team - you can fill in details later.')}
             </p>
-          <div className="mt-4 rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-4">
-            <label
-              htmlFor="setup-team-name"
-              className="block text-sm font-medium text-slate-300 mb-1"
-            >
-              {t('setupWizard.teamNameLabel', 'Team name')}
-            </label>
             <input
               id="setup-team-name"
               data-testid="wizard-team-name"
@@ -242,10 +233,11 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t('setupWizard.teamNamePlaceholder', 'e.g. FC Honka P12') ?? undefined}
-              className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+              aria-label={t('setupWizard.teamNameLabel', 'Team name')}
+              className="w-full h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
 
-            <div className="block text-sm font-medium text-slate-300 mt-4 mb-1">
+            <div className="text-sm font-medium text-slate-300 text-center mt-6 mb-2">
               {t('setupWizard.formatLabel', 'Format')}
             </div>
             <div className="flex gap-2" role="group" aria-label={t('setupWizard.formatLabel', 'Format')}>
@@ -256,10 +248,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   data-testid={`wizard-format-${f}`}
                   onClick={() => setFormat(f)}
                   aria-pressed={format === f}
-                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+                  className={`flex-1 h-11 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
                     format === f
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      ? 'bg-indigo-600 border border-indigo-400/30 text-white'
+                      : 'bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
                   {f}
@@ -272,16 +264,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
               data-testid="wizard-continue"
               onClick={() => {
                 // Owner round 4: close the keyboard before step 2 so the whole
-                // card (input, Lisaa, Valmis, skip) is visible first.
+                // column (input, Add, Done, skip) is visible first.
                 (document.activeElement as HTMLElement | null)?.blur?.();
                 setStep(2);
               }}
               disabled={!teamName.trim()}
-              className="mt-6 w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
+              className="mt-8 w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
             >
               {t('setupWizard.next', 'Continue')}
             </button>
-          </div>
           </>
         ) : (
           /* Step 2 does not scroll the PAGE in portrait (owner round 3): the
@@ -303,13 +294,16 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
             >
               &lsaquo; {t('setupWizard.back', 'Back')}
             </button>
-            <h2 className="text-2xl font-semibold">
+            <h2 className="text-2xl font-bold text-center">
               {t('setupWizard.playersTitle', 'Players')}
             </h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-400 text-center mt-2">
               {t('setupWizard.playersHint', 'One name per row - Enter adds the next.')}
             </p>
-          <div className="flex-1 min-h-0 mt-4 flex flex-col rounded-lg bg-slate-900/70 border border-slate-700 shadow-inner p-4">
+          {/* No card chrome (round 8) - the same open background as the
+              landing; the column keeps its pinned-input / scrolling-rows /
+              pinned-Valmis structure. */}
+          <div className="flex-1 min-h-0 mt-5 flex flex-col">
 
             {/* Input PINNED here (keyboard-safe, never moves as the list grows);
                 committed rows stack BELOW it newest-first, so it is the OLD rows
@@ -329,14 +323,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                   }
                 }}
                 placeholder={t('setupWizard.playerPlaceholder', 'Player name…') ?? undefined}
-                className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-base text-white placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+                className="flex-1 min-w-0 h-12 px-4 rounded-md bg-slate-800 border border-slate-700 text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
               <button
                 type="button"
                 data-testid="wizard-add-player"
                 onClick={commitDraft}
                 disabled={!draft.trim()}
-                className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+                className="h-12 rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 text-sm font-medium text-white transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
               >
                 {t('setupWizard.add', 'Add')}
               </button>
@@ -394,7 +388,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
           type="button"
           data-testid="wizard-skip"
           onClick={handleSkip}
-          className="flex-none mt-auto pt-5 pb-1 text-sm text-slate-500 hover:text-slate-300 underline decoration-slate-600 underline-offset-2 text-center w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+          className={`flex-none ${step === 1 ? 'mt-8 mb-auto' : 'mt-auto pt-5'} pb-1 text-sm text-slate-500 hover:text-slate-300 underline decoration-slate-600 underline-offset-2 text-center w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded`}
         >
           {skipLabel}
         </button>
