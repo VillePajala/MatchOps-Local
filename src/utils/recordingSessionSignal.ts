@@ -5,7 +5,7 @@
  * read by useGameTimer to hold the screen wake lock and (PR 2) by useAppResume
  * to suppress the long-background force-reload - the same role
  * `matchTimerSignal` plays for the running clock. A module store (like
- * `setupWizardActive.ts`) so the timer hook and the recorder share ONE wake
+ * `src/components/setupWizardActive.ts`) so the timer hook and the recorder share ONE wake
  * lock instance instead of fighting over two.
  */
 

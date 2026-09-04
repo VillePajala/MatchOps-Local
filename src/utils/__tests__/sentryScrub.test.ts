@@ -54,15 +54,24 @@ describe('sentryScrub', () => {
       });
     });
 
-    it('does not recurse forever on very deep values', () => {
+    /** @critical - the depth cap must fail CLOSED: nothing past it leaks. */
+    it('replaces subtrees past the depth cap instead of passing them through', () => {
       let deep: Record<string, unknown> = { key: 'sk-abcdefghijklmnop' };
       for (let i = 0; i < 10; i++) deep = { child: deep };
-      expect(() => scrubSecretsDeep(deep)).not.toThrow();
+      expect(JSON.stringify(scrubSecretsDeep(deep))).not.toContain('sk-abcdefghijklmnop');
+      expect(JSON.stringify(scrubSecretsDeep(deep))).toContain('[TRUNCATED]');
+    });
+
+    it('redacts Google-style keys too', () => {
+      expect(scrubSecretsDeep({ k: 'AIzaSyA1234567890abcdefghijklmnopq' })).toEqual({ k: '[REDACTED]' });
     });
   });
 
-  it('recognises AI provider hosts', () => {
+  it('recognises AI provider hosts by hostname, not substring', () => {
     expect(isAiProviderUrl('https://api.openai.com/v1/audio/transcriptions')).toBe(true);
     expect(isAiProviderUrl('https://x.supabase.co/rest/v1/games')).toBe(false);
+    expect(isAiProviderUrl('https://api.openai.com.evil.example/v1')).toBe(false);
+    expect(isAiProviderUrl('https://x.test/?redirect=api.openai.com')).toBe(false);
+    expect(isAiProviderUrl('not a url')).toBe(false);
   });
 });

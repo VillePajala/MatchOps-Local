@@ -29,8 +29,16 @@ export const SENSITIVE_QUERY_PARAMS = ['access_token', 'refresh_token', 'token',
 /** Hosts of user-connected AI providers (Kirjuri). Grows with the provider field. */
 export const AI_PROVIDER_HOSTS = ['api.openai.com'];
 
-/** Key-shaped tokens: OpenAI-style `sk-...` keys and bearer tokens. */
-const SECRET_PATTERNS: RegExp[] = [/\bsk-[A-Za-z0-9_-]{8,}/g, /\bBearer\s+[A-Za-z0-9._-]{16,}/g];
+/**
+ * Key-shaped tokens: OpenAI/Anthropic-style `sk-...` keys, Google `AIza...`
+ * keys, and bearer tokens. Extend when the provider field grows - a provider
+ * whose key matches none of these relies on nothing else.
+ */
+const SECRET_PATTERNS: RegExp[] = [
+  /\bsk-[A-Za-z0-9_-]{8,}/g,
+  /\bAIza[0-9A-Za-z_-]{20,}/g,
+  /\bBearer\s+[A-Za-z0-9._-]{16,}/g,
+];
 
 const MAX_DEPTH = 6;
 
@@ -53,8 +61,14 @@ export function scrubUrl(url: string): string {
   }
 }
 
+/** Hostname match, not substring - `api.openai.com.evil.example` must not count. */
 export function isAiProviderUrl(url: string): boolean {
-  return AI_PROVIDER_HOSTS.some((host) => url.includes(host));
+  try {
+    const { hostname } = new URL(url);
+    return AI_PROVIDER_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
 }
 
 /** Replace key-shaped tokens inside a string. */
@@ -64,11 +78,15 @@ export function scrubSecretsInString(value: string): string {
 
 /**
  * Walk any JSON-ish value and scrub every string in it. Returns a copy for
- * objects/arrays (Sentry event fields are plain data); depth-capped so a
- * cyclic or huge `extra` cannot hang the SDK.
+ * objects/arrays (Sentry event fields are plain data). Depth-capped so a
+ * cyclic or huge `extra` cannot hang the SDK - and the cap FAILS CLOSED: a
+ * subtree deeper than the cap is replaced by a placeholder, never passed
+ * through unscrubbed (review #744).
  */
 export function scrubSecretsDeep<T>(value: T, depth = 0): T {
-  if (depth > MAX_DEPTH) return value;
+  if (depth > MAX_DEPTH) {
+    return (value && typeof value === 'object' ? '[TRUNCATED]' : scrubSecretsDeep(value, 0)) as T;
+  }
   if (typeof value === 'string') return scrubSecretsInString(value) as T;
   if (Array.isArray(value)) return value.map((item) => scrubSecretsDeep(item, depth + 1)) as T;
   if (value && typeof value === 'object') {
