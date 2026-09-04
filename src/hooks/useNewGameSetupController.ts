@@ -101,6 +101,7 @@ export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: Use
       gender: StartNewGameRequest['gender'],
       prefill?: StartNewGameRequest['prefill'],
       isFriendly?: boolean,
+      formationPresetId?: string | null,
     ) => {
       if (createInFlightRef.current) return;
       createInFlightRef.current = true;
@@ -146,6 +147,7 @@ export function useNewGameSetupController({ onGameCreated, flushLiveMatch }: Use
             gender,
             prefill,
             isFriendly,
+            formationPresetId,
           },
         );
 

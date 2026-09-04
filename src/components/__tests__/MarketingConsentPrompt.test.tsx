@@ -19,6 +19,23 @@ import MarketingConsentPrompt from '../MarketingConsentPrompt';
 import { useAuth } from '@/contexts/AuthProvider';
 
 // Mock the auth context
+// Tour-deferral control: the prompt must wait while a first-run tour is active.
+let mockTourActive = false;
+jest.mock('@/contexts/GuidedTourProvider', () => ({
+  useGuidedTourOptional: () => ({ isActive: mockTourActive }),
+}));
+
+// Wizard-deferral control (Onboarding v2): the prompt must also wait while the
+// first-sign-in setup wizard is on screen.
+let mockWizardActive = false;
+// Default TRUE so the pre-existing delay/consent tests keep exercising the
+// prompt; the re-gate test below flips it.
+let mockFirstGameExists = true;
+jest.mock('@/components/setupWizardActive', () => ({
+  useSetupWizardActive: () => mockWizardActive,
+  useFirstGameExists: () => mockFirstGameExists,
+}));
+
 jest.mock('@/contexts/AuthProvider', () => ({
   useAuth: jest.fn(),
 }));
@@ -78,6 +95,9 @@ describe('MarketingConsentPrompt', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockTourActive = false;
+    mockWizardActive = false;
+    mockFirstGameExists = true;
     mockUseAuth.mockReturnValue(defaultMockAuth);
   });
 
@@ -109,6 +129,74 @@ describe('MarketingConsentPrompt', () => {
     });
 
     expect(container.firstChild).toBeNull();
+  });
+
+  it('defers to an ACTIVE first-run tour: hidden past the delay, appears once the tour ends', () => {
+    mockUseAuth.mockReturnValue({
+      ...defaultMockAuth,
+      showMarketingPrompt: true,
+    });
+    mockTourActive = true;
+    try {
+      const { rerender } = render(<MarketingConsentPrompt />);
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+      // Tour running: no prompt no matter how long we wait.
+      expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+      // Tour finished: the normal delayed appearance resumes.
+      mockTourActive = false;
+      rerender(<MarketingConsentPrompt />);
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+      expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
+    } finally {
+      mockTourActive = false;
+    }
+  });
+
+  it('waits for the FIRST GAME (Onboarding v2 re-gate): hidden until a game exists', () => {
+    mockUseAuth.mockReturnValue({
+      ...defaultMockAuth,
+      showMarketingPrompt: true,
+    });
+    mockFirstGameExists = false;
+    const { rerender } = render(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+    // First game saved: the normal delayed appearance resumes.
+    mockFirstGameExists = true;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
+  });
+
+  it('defers to the ACTIVE setup wizard (Onboarding v2): hidden until the wizard is gone', () => {
+    mockUseAuth.mockReturnValue({
+      ...defaultMockAuth,
+      showMarketingPrompt: true,
+    });
+    mockWizardActive = true;
+    const { rerender } = render(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(10000);
+    });
+    expect(screen.queryByText('Stay in the loop?')).not.toBeInTheDocument();
+
+    // Wizard finished/skipped: the normal delayed appearance resumes.
+    mockWizardActive = false;
+    rerender(<MarketingConsentPrompt />);
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    expect(screen.getByText('Stay in the loop?')).toBeInTheDocument();
   });
 
   it('renders the prompt after the 5-second delay', () => {

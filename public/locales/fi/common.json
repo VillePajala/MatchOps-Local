@@ -1,4 +1,84 @@
 {
+  "firstVisit": {
+    "gameSetup": "Valitse joukkueesi - kauden tai turnauksen voit liittää nyt tai myöhemmin.",
+    "goalLog": "Valitse maalintekijä - ja syöttäjä jos oli - ja napauta Kirjaa maali.",
+    "gotIt": "Selvä",
+    "matchFieldClock": "Pelikello ja maalitapahtumien kirjaus avautuvat alareunan 00:00-painikkeesta.",
+    "matchFieldPlace": "Tämä on kenttäsi - pelaajat ovat jo muodostelmassa. Muodostelman voit vaihtaa muodostelmavalikosta",
+    "planner": "Suunnittele vaihdot ja tasainen peliaika tuleviin otteluihin - suunnitelma esitäyttää uuden ottelun.",
+    "seasons": "Ryhmittele ottelut kaudeksi tai turnaukseksi - saat sarjataulukot ja kilpailukohtaiset tilastot.",
+    "stats": "Tilastot asuvat täällä: tämä ottelu, kausi, turnaus ja pelaajakohtaiset näkymät välilehdiltä.",
+    "teamForm": "Kolme askelta: anna joukkueelle nimi, valitse pelaajat kohdasta Muokkaa kokoonpanoa ja paina Luo.",
+    "timer": "Käynnistä ja pysäytä kello tästä - myös maalit ja vaihdot kirjataan tästä näkymästä."
+  },
+  "guidedTour": {
+    "welcome": {
+      "title": "Tervetuloa MatchOpsiin",
+      "body": "Viedään sinut ensimmäiseen otteluusi - se vie noin minuutin."
+    },
+    "addPlayers": {
+      "title": "Lisää pelaajat",
+      "body": "Avaa Seura-välilehti, napauta Pelaajat ja lisää joukkueesi pelaajat - vähintään kenttäjoukkueen verran pelimuodossanne.",
+      "format": "Pelimuoto"
+    },
+    "progress": {
+      "playersAdded": "{{done}} / {{target}} pelaajaa lisätty"
+    },
+    "createTeam": {
+      "title": "Luo joukkue",
+      "body": "Napauta Seura-välilehdellä Joukkueet luodaksesi joukkueen ja lisätäksesi siihen pelaajat."
+    },
+    "createGame": {
+      "title": "Aloita ensimmäinen ottelu",
+      "body": "Napauta Uusi ottelu ja valitse joukkueesi. Kuuluuko ottelu kauteen tai turnaukseen? Voit liittää sen nyt tai myöhemmin."
+    },
+    "setFormation": {
+      "title": "Valitse muodostelma",
+      "body": "Avaa muodostelmavalikko ja valitse pohja - pelaajat asettuvat paikoilleen."
+    },
+    "startTimer": {
+      "title": "Käynnistä kello",
+      "body": "Napauta ajastinta ja sitten Käynnistä, kun ottelu alkaa."
+    },
+    "logGoal": {
+      "title": "Kirjaa maali",
+      "body": "Avaa ajastin ja napauta maalipainiketta - tilastot päivittyvät heti."
+    },
+    "done": {
+      "title": "Kaikki valmista",
+      "body": "Siinä perusteet. Kaikki tekemäsi tallentuu automaattisesti."
+    },
+    "buttons": {
+      "next": "Seuraava",
+      "continue": "Jatka",
+      "nextPhase": "Seuraava vaihe",
+      "skip": "Ohita opastus",
+      "finish": "Valmis"
+    },
+    "hints": {
+      "closeThisView": "Sulje tämä näkymä (X) jatkaaksesi.",
+      "tapContinue": "Valmista täällä - napauta Jatka.",
+      "goBack": "Paina laitteen takaisin-painiketta jatkaaksesi.",
+      "openClubTab": "Avaa Seura-välilehti.",
+      "tapPlayers": "Napauta Pelaajat.",
+      "addPlayer": "Napauta Lisää Pelaaja. Kokoa kokoonpano - tai sulje lista, kun joukkue on koossa.",
+      "savePlayer": "Kirjoita pelaajan nimi - se näkyy pelaajan kiekossa kentällä (tai kutsumanimi, jos annat sellaisen).",
+      "tapTeams": "Napauta Joukkueet.",
+      "addTeam": "Napauta Lisää joukkue.",
+      "saveTeam": "Napauta Luo.",
+      "teamName": "Anna joukkueelle nimi.",
+      "editRoster": "Napauta Muokkaa kokoonpanoa valitaksesi pelaajat.",
+      "rosterDone": "Valitse joukkueen pelaajat ja napauta Valmis.",
+      "openGamesTab": "Avaa Pelit-välilehti.",
+      "tapNewGame": "Napauta Uusi ottelu.",
+      "chooseTeamStart": "Valitse joukkueesi ja aloita ottelu.",
+      "chooseFormation": "Avaa muodostelmavalikko ja valitse pohja.",
+      "confirmGoal": "Valitse maalintekijä ja napauta Kirjaa maali.",
+      "openTimer": "Napauta ajastinta.",
+      "tapStart": "Napauta Käynnistä, kun ottelu alkaa.",
+      "tapGoal": "Napauta maalipainiketta - tilastot päivittyvät heti."
+    }
+  },
   "recap": {
     "button": "Luo ottelukooste",
     "title": "Ottelukooste",
@@ -86,6 +166,28 @@
       "abbrev": "PIVO"
     }
   },
+  "setupWizard": {
+    "add": "Lisää",
+    "back": "Takaisin",
+    "error": "Tallennus epäonnistui - yritä uudelleen.",
+    "finish": "Valmis",
+    "finishWithCount_one": "Valmis ({{count}} pelaaja)",
+    "finishWithCount_other": "Valmis ({{count}} pelaajaa)",
+    "formatLabel": "Pelimuoto",
+    "next": "Jatka",
+    "playerPlaceholder": "Pelaajan nimi…",
+    "playersAdded_one": "{{count}} pelaaja lisätty",
+    "playersAdded_other": "{{count}} pelaajaa lisätty",
+    "playersHint": "Yksi nimi riviin - Enter lisää seuraavan.",
+    "playersTitle": "Pelaajat",
+    "removePlayer": "Poista",
+    "saving": "Tallennetaan…",
+    "skip": "Ohita, teen tämän myöhemmin",
+    "teamHint": "Nimeä joukkueesi - lisätiedot voit täydentää myöhemmin.",
+    "teamNameLabel": "Joukkueen nimi",
+    "teamNamePlaceholder": "esim. FC Honka P12",
+    "teamTitle": "Joukkueesi"
+  },
   "undoToast": {
     "goal": "Maali kirjattu",
     "opponentGoal": "Vastustajan maali kirjattu",
@@ -156,7 +258,8 @@
     "planner": "Ottelusuunnittelu",
     "noPlayersForNewGame": "Tarvitset vähintään yhden pelaajan kokoonpanoon luodaksesi pelin. Haluatko lisätä pelaajia nyt?",
     "openTimer": "Avaa ajastin",
-    "toggleTacticsBoardShow": "Taktiikkataulu"
+    "toggleTacticsBoardShow": "Taktiikkataulu",
+    "formationMenu": "Muodostelmavalikko"
   },
   "tooltips": {
     "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
@@ -734,6 +837,7 @@
     "playerBarCrashed": "Pelaajapalkki kaatui. Päivitä sivu."
   },
   "newGameSetupModal": {
+    "formationLabel": "Muodostelma",
     "title": "Luo uusi ottelu",
     "repeatLastGame": "Toista edellinen peli",
     "repeatedLastGame": "Täytetty edellisen pelin mukaan",
@@ -887,9 +991,17 @@
     "statsOverall": "Kokonaistilastot",
     "statsPlayer": "Pelaajatilastot",
     "emptyTeam": "Aloita lisäämällä pelaajat.",
-    "emptyCompetitions": "Luo kausi tai turnaus pelien ryhmittelyyn.",
-    "emptyStats": "Tilastot ilmestyvät, kun olet pelannut pelejä.",
+    "emptyCompetitions": "Luo kausi tai turnaus otteluiden ryhmittelyyn.",
+    "emptyStats": "Tilastot ilmestyvät, kun olet pelannut otteluita.",
+    "gearRestartTour": "Aloitusopastus",
     "gearGuide": "Näin se toimii",
+    "heroAddPlayers": "Lisää pelaajat",
+    "heroCreateTeam": "Luo joukkue",
+    "stepBadge": "Vaihe {{n}}",
+    "welcomeStripReady": "Kaikki valmista! Joukkue ja pelaajat odottavat ensimmäistä ottelua.",
+    "welcomeStripStart": "Tervetuloa! Aloita lisäämällä pelaajasi.",
+    "welcomeStripTeam": "Hyvä alku! Luo seuraavaksi joukkue.",
+    "welcomeStripTour": "Haluatko aloitusopastuksen?",
     "gearSetup": "Käyttöönotto ({{done}}/4)"
   },
   "workspace": {
@@ -1305,6 +1417,8 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "formationApply": "Aseta pelaajat muodostelmaan…",
+    "formationLabel": "Muodostelma",
     "reapplyPlan": {
       "button": "Päivitä suunnitelmasta",
       "confirmTitle": "Otetaanko suunnitelma uudelleen käyttöön?",
@@ -2403,7 +2517,7 @@
     "password": "Salasana",
     "confirmPassword": "Vahvista salasana",
     "passwordMismatch": "Salasanat eivät täsmää",
-    "passwordRequirements": "Salasanan on oltava vähintään 12 merkkiä ja sisällettävä 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit.",
+    "passwordRequirements": "Salasanan on oltava vähintään 8 merkkiä.",
     "checkEmail": "Tarkista sähköpostisi vahvistaaksesi tilisi",
     "emailMayExist": "Jos tämä sähköposti ei ole vielä rekisteröity, tarkista postilaatikkosi vahvistusviestiltä. Jos sinulla on jo tili, kirjaudu sen sijaan sisään.",
     "resetEmailSent": "Tarkista sähköpostistasi nollausohjeet",
@@ -2444,8 +2558,7 @@
     "passwordUpdated": "Salasana päivitetty onnistuneesti. Kirjaudu sisään uudella salasanallasi.",
     "unexpectedError": "Tapahtui odottamaton virhe",
     "errors": {
-      "passwordTooShort": "Salasanan on oltava vähintään 12 merkkiä",
-      "passwordTooWeak": "Salasanan on sisällettävä vähintään 3 seuraavista: isot kirjaimet, pienet kirjaimet, numerot, erikoismerkit",
+      "passwordTooShort": "Salasanan on oltava vähintään 8 merkkiä",
       "invalidEmail": "Virheellinen sähköpostiosoite",
       "emailTooLong": "Sähköpostiosoite on liian pitkä",
       "authInProgress": "Todennus on jo käynnissä. Odota hetki.",

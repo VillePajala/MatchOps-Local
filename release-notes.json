@@ -2,6 +2,19 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-04",
+      "en": [
+        "New here? A one-minute setup now creates your team, players and game format right at the start - and your first game opens with a real formation on the field.",
+        "Each view introduces itself with a short one-time note on your first visit, and a full guided tour is available from the start screen whenever you want it.",
+        "Confirmation messages no longer block the controls beneath them, and the whole first-run flow got a visual polish."
+      ],
+      "fi": [
+        "Uusi käyttäjä? Minuutin pika-aloitus luo joukkueen, pelaajat ja pelimuodon heti alkuun - ja ensimmäinen ottelu alkaa oikealla muodostelmalla kentällä.",
+        "Jokainen näkymä esittelee itsensä lyhyellä kertaluontoisella vinkillä ensimmäisellä käynnillä, ja täyden aloitusopastuksen saat aloitusnäytöltä milloin haluat.",
+        "Vahvistusviestit eivät enää peitä alla olevia painikkeita, ja koko ensikäytön kulku sai visuaalisen viimeistelyn."
+      ]
+    },
+    {
       "date": "2026-08-24",
       "en": [
         "Goalkeeper fix: moving the goalie away from the goal now clears their goalie status, and other players are never accidentally marked as goalie when you move a different disc.",
@@ -10,6 +23,15 @@
       "fi": [
         "Maalivahtikorjaus: kun siirrät maalivahdin pois maalilta, maalivahtimerkintä poistuu - eikä muita pelaajia enää merkitä vahingossa maalivahdiksi toista kiekkoa siirrettäessä.",
         "Kenttänäkymän korjaus: kenttä piirtää viivat ja grafiikat luotettavasti uudelleen, kun sovellus palaa taustalta - ei enää pelkkää vihreää kenttää."
+      ]
+    },
+    {
+      "date": "2026-08-11",
+      "en": [
+        "Signing up is easier: the app now opens on Create Account for new users, and a password just needs 8 or more characters."
+      ],
+      "fi": [
+        "Rekisteröityminen on helpompaa: sovellus avautuu uusille käyttäjille suoraan tilin luontiin, ja salasanaksi riittää vähintään 8 merkkiä."
       ]
     },
     {

@@ -100,6 +100,7 @@ import PlayerSelectionSection from '@/components/PlayerSelectionSection';
 import PlanBalanceView from '@/components/PlanBalanceView';
 import type { PlaytimePlan, PlanSub, PlanGame, PlanPlayer } from '@/utils/playtimePlanner/types';
 import type { Player } from '@/types';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 interface PlaytimePlannerModalProps {
   isOpen: boolean;
@@ -1668,6 +1669,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         <ModalHeader title={t('playtimePlanner.title', 'Match planner')} />
       )}
 
+      {view === 'manager' && (
+        <FirstVisitIntro
+          surface="planner"
+          className="mx-6 my-4"
+          text={t('firstVisit.planner', 'Plan substitutions and fair playing time for upcoming games - plans prefill new games.')}
+        />
+      )}
       {/* House pattern (TeamManager/RosterSettings): create-new is pinned under
           the header, not buried in the scroll. Import JSON sits beside it (its
           former top-of-content spot didn't work) - New plan stays the primary,

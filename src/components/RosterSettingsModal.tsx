@@ -210,6 +210,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
               <button
                 onClick={handleAddPlayer}
+                data-testid="tour-add-player"
                 className={`${primaryButtonStyle} w-full`}
                 disabled={isRosterUpdating}
               >

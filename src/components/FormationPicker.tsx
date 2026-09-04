@@ -326,14 +326,15 @@ const FormationPicker: React.FC<FormationPickerProps> = React.memo(({
       <button
         ref={buttonRef}
         onClick={handleButtonClick}
+        data-testid="tour-formation"
         disabled={disabled}
         className={`${BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${
           disabled
             ? 'bg-slate-800 opacity-50 cursor-not-allowed'
             : 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500'
         }`}
-        title={t('controlBar.placeAllPlayers', 'Place All Players')}
-        aria-label={t('controlBar.placeAllPlayers', 'Place All Players')}
+        title={t('controlBar.formationMenu', 'Formation menu')}
+        aria-label={t('controlBar.formationMenu', 'Formation menu')}
         aria-expanded={isOpen}
         aria-haspopup="true"
       >

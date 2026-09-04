@@ -1388,6 +1388,39 @@ describe('useFieldCoordination', () => {
     });
 
     /**
+     * handlePlaceAllPlayers reports whether players were ACTUALLY placed - the
+     * guided tour's formation signal must not count a no-op tap as an apply.
+     * @critical - Guided tour formation signal contract
+     */
+    it('handlePlaceAllPlayers returns false on empty selection and true when players are placed', () => {
+      const p1 = TestFixtures.players.fieldPlayer({ id: 'p1' });
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [],
+        setPlayersOnField: jest.fn(),
+      });
+
+      // Empty selection: no-op, returns false.
+      const empty = renderHook(() =>
+        useFieldCoordination({ ...mockParams, availablePlayers: [p1], selectedPlayerIds: [] })
+      );
+      let applied: boolean | undefined;
+      act(() => {
+        applied = empty.result.current.handlePlaceAllPlayers(null);
+      });
+      expect(applied).toBe(false);
+
+      // With a selection: players placed, returns true.
+      const withSelection = renderHook(() =>
+        useFieldCoordination({ ...mockParams, availablePlayers: [p1], selectedPlayerIds: ['p1'] })
+      );
+      act(() => {
+        applied = withSelection.result.current.handlePlaceAllPlayers(null);
+      });
+      expect(applied).toBe(true);
+    });
+
+    /**
      * Owner-reported bug: dragging the goalie out of goal kept them orange at
      * the new position. The scoped rule demotes the MOVED goalie once they are
      * clearly outside the goalmouth, and mirrors (id, false) to the parent.

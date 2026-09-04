@@ -1,4 +1,84 @@
 {
+  "firstVisit": {
+    "gameSetup": "Pick your team - a season or tournament can be added now or later.",
+    "goalLog": "Pick the scorer - and an assister if there was one - then tap Log Goal.",
+    "gotIt": "Got it",
+    "matchFieldClock": "The game clock and goal logging open from the 00:00 button below.",
+    "matchFieldPlace": "This is your field - the squad is already in formation. Change it from the formation menu",
+    "planner": "Plan substitutions and fair playing time for upcoming games - plans prefill new games.",
+    "seasons": "Group games into a season or tournament to get standings and per-competition stats.",
+    "stats": "Game stats live here: this game, season, tournament and per-player views from the tabs.",
+    "teamForm": "Three steps: name the team, pick players via Edit Roster, then tap Create.",
+    "timer": "Start and pause the clock here - goals and substitutions are logged from this view too."
+  },
+  "guidedTour": {
+    "welcome": {
+      "title": "Welcome to MatchOps",
+      "body": "Let's get you to your first game - it takes about a minute."
+    },
+    "addPlayers": {
+      "title": "Add your players",
+      "body": "Open the Club tab, tap Players, and add your squad - enough to field a full team in your format.",
+      "format": "Format"
+    },
+    "progress": {
+      "playersAdded": "{{done}} / {{target}} players added"
+    },
+    "createTeam": {
+      "title": "Create your team",
+      "body": "In the Club tab, tap Teams to create your team and add your players to it."
+    },
+    "createGame": {
+      "title": "Start your first game",
+      "body": "Tap New Game, then choose your team. Part of a season or tournament? You can add it now or later."
+    },
+    "setFormation": {
+      "title": "Set your formation",
+      "body": "Open the formation menu and pick a template - your players take their positions."
+    },
+    "startTimer": {
+      "title": "Start the clock",
+      "body": "Tap the timer, then Start, when the match kicks off."
+    },
+    "logGoal": {
+      "title": "Log a goal",
+      "body": "Open the timer and tap the goal button - your stats update live."
+    },
+    "done": {
+      "title": "You're all set",
+      "body": "That is the basics. Everything you do saves automatically."
+    },
+    "buttons": {
+      "next": "Next",
+      "continue": "Continue",
+      "nextPhase": "Next phase",
+      "skip": "Skip guide",
+      "finish": "Done"
+    },
+    "hints": {
+      "closeThisView": "Close this view (X) to continue.",
+      "tapContinue": "All done here - tap Continue.",
+      "goBack": "Press your device's back button to continue.",
+      "openClubTab": "Open the Club tab.",
+      "tapPlayers": "Tap Players.",
+      "addPlayer": "Tap Add Player. Fill your lineup - or close the list when your squad is in.",
+      "savePlayer": "Type the player's name - it shows on their disc on the field (or a nickname, if you set one).",
+      "tapTeams": "Tap Teams.",
+      "addTeam": "Tap Add Team.",
+      "saveTeam": "Tap Create.",
+      "teamName": "Give your team a name.",
+      "editRoster": "Tap Edit Roster to pick your players.",
+      "rosterDone": "Pick the players for your team, then tap Done.",
+      "openGamesTab": "Open the Games tab.",
+      "tapNewGame": "Tap New Game.",
+      "chooseTeamStart": "Choose your team, then start the game.",
+      "chooseFormation": "Open the formation menu and pick a template.",
+      "confirmGoal": "Pick the scorer, then tap Log Goal.",
+      "openTimer": "Tap the timer.",
+      "tapStart": "Tap Start when the match kicks off.",
+      "tapGoal": "Tap the goal button - stats update live."
+    }
+  },
   "recap": {
     "button": "Generate match recap",
     "title": "Game recap",
@@ -86,6 +166,28 @@
       "abbrev": "PIVO"
     }
   },
+  "setupWizard": {
+    "add": "Add",
+    "back": "Back",
+    "error": "Saving failed - please try again.",
+    "finish": "Done",
+    "finishWithCount_one": "Done ({{count}} player)",
+    "finishWithCount_other": "Done ({{count}} players)",
+    "formatLabel": "Format",
+    "next": "Continue",
+    "playerPlaceholder": "Player name…",
+    "playersAdded_one": "{{count}} player added",
+    "playersAdded_other": "{{count}} players added",
+    "playersHint": "One name per row - Enter adds the next.",
+    "playersTitle": "Players",
+    "removePlayer": "Remove",
+    "saving": "Saving…",
+    "skip": "Skip, I'll do this later",
+    "teamHint": "Name your team - you can fill in details later.",
+    "teamNameLabel": "Team name",
+    "teamNamePlaceholder": "e.g. FC Honka P12",
+    "teamTitle": "Your team"
+  },
   "undoToast": {
     "goal": "Goal logged",
     "opponentGoal": "Opponent goal logged",
@@ -156,7 +258,8 @@
     "planner": "Match planner",
     "noPlayersForNewGame": "You need at least one player in your roster to create a game. Would you like to add players now?",
     "openTimer": "Open Timer",
-    "toggleTacticsBoardShow": "Tactics Board"
+    "toggleTacticsBoardShow": "Tactics Board",
+    "formationMenu": "Formation menu"
   },
   "tooltips": {
     "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
@@ -722,6 +825,7 @@
     }
   },
   "newGameSetupModal": {
+    "formationLabel": "Formation",
     "title": "Create New Match",
     "repeatLastGame": "Repeat last game",
     "repeatedLastGame": "Filled from your last game",
@@ -810,6 +914,8 @@
     "prefillMissingPlayers_other": "{{count}} planned players are not in this roster and were skipped."
   },
   "gameSettingsModal": {
+    "formationApply": "Place players in a formation…",
+    "formationLabel": "Formation",
     "reapplyPlan": {
       "button": "Re-apply plan",
       "confirmTitle": "Re-apply plan?",
@@ -1024,8 +1130,16 @@
     "emptyTeam": "Start by adding your players.",
     "emptyCompetitions": "Create a season or tournament to group your games.",
     "emptyStats": "Statistics appear once you've played games.",
+    "gearRestartTour": "Getting started guide",
     "gearGuide": "How it works",
-    "gearSetup": "Getting started ({{done}}/4)"
+    "heroAddPlayers": "Add players",
+    "heroCreateTeam": "Create your team",
+    "stepBadge": "Step {{n}}",
+    "welcomeStripReady": "All set! Your team and players are ready for the first game.",
+    "welcomeStripStart": "Welcome! Start by adding your players.",
+    "welcomeStripTeam": "Good start! Next, create your team.",
+    "welcomeStripTour": "Want the getting-started guide?",
+    "gearSetup": "Setup checklist ({{done}}/4)"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -2403,7 +2517,7 @@
     "password": "Password",
     "confirmPassword": "Confirm Password",
     "passwordMismatch": "Passwords do not match",
-    "passwordRequirements": "Password must be at least 12 characters and include 3 of: uppercase, lowercase, numbers, special characters.",
+    "passwordRequirements": "Password must be at least 8 characters.",
     "checkEmail": "Check your email to confirm your account",
     "emailMayExist": "If this email is not already registered, check your inbox for confirmation. If you already have an account, please sign in instead.",
     "resetEmailSent": "Check your email for reset instructions",
@@ -2444,8 +2558,7 @@
     "passwordUpdated": "Password updated successfully. Please sign in with your new password.",
     "unexpectedError": "An unexpected error occurred",
     "errors": {
-      "passwordTooShort": "Password must be at least 12 characters",
-      "passwordTooWeak": "Password must contain at least 3 of: uppercase, lowercase, number, special character",
+      "passwordTooShort": "Password must be at least 8 characters",
       "invalidEmail": "Invalid email format",
       "emailTooLong": "Email address is too long",
       "authInProgress": "Authentication already in progress. Please wait.",

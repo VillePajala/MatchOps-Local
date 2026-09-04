@@ -34,6 +34,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getRecommendedFieldSize } from '@/config/formationPresets';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -56,6 +57,8 @@ type MutationMetaBase = Omit<UpdateGameDetailsMutationMeta, 'sequence'>;
 export interface GameSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Re-place the squad in a formation preset (owner round 4). */
+  onApplyFormation?: (presetId: string | null) => void;
   // --- Data for the current game ---
   currentGameId: string | null;
   teamId?: string;
@@ -206,6 +209,7 @@ const getEventDescription = (event: GameEvent, players: Player[], t: TFunction):
 };
 
 const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
+  onApplyFormation,
   isOpen,
   onClose,
   currentGameId,
@@ -2698,6 +2702,44 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Formation (owner round 4): re-place the current squad in a
+                chosen shape - same engine as the in-match Place All picker.
+                An ACTION select (value stays on the placeholder): picking a
+                formation applies it immediately. */}
+            {onApplyFormation && selectedPlayerIds.length > 0 && (
+              <div className="mt-4 space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
+                <h3 id="gameSettingsFormationHeading" className="text-lg font-semibold text-slate-200 mb-1">
+                  {t('gameSettingsModal.formationLabel', 'Formation')}
+                </h3>
+                <select
+                  aria-labelledby="gameSettingsFormationHeading"
+                  data-testid="game-settings-formation-select"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) onApplyFormation(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="" disabled>
+                    {t('gameSettingsModal.formationApply', 'Place players in a formation…')}
+                  </option>
+                  {FIELD_SIZES.map((size) => (
+                    <optgroup key={size} label={size}>
+                      {PRESETS_BY_SIZE[size].map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {t(preset.labelKey, preset.name)}
+                          {preset.id ===
+                          getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
+                            ? ` · ${t('formations.recommended', 'Recommended')}`
+                            : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Line-up / Positions Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 mt-4">

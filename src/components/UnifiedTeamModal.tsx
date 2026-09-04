@@ -22,6 +22,7 @@ import logger from '@/utils/logger';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -545,6 +546,12 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
               <div className={`space-y-4 ${isEditingRoster ? 'flex flex-col h-full' : ''}`}>
                 {!isEditingRoster && (
                   <>
+                    {/* First-visit note INSIDE the card (audit #1: outside it,
+                        its margin collided with the card's responsive -mt). */}
+                    <FirstVisitIntro
+                      surface="team-form"
+                      text={t('firstVisit.teamForm', 'Three steps: name the team, pick players via Edit Roster, then tap Create.')}
+                    />
                     {/* Name */}
                     <div>
                       <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -554,6 +561,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        data-testid="tour-team-name"
                         placeholder={t('teamDetailsModal.namePlaceholder', 'Enter team name')}
                         className={`w-full px-3 py-2 bg-slate-700 border ${duplicateError ? 'border-red-500' : 'border-slate-600'} rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500`}
                         required
@@ -837,6 +845,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setIsEditingRoster(true)}
+                          data-testid="tour-edit-roster"
                           className={`${secondaryButtonStyle} px-3 py-1 text-xs`}
                         >
                           {t('unifiedTeamModal.editRoster', 'Edit Roster')} →
@@ -893,11 +902,11 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
         {/* Footer */}
         {isEditingRoster ? (
-          <ModalStickyPrimary onClick={() => setIsEditingRoster(false)}>
+          <ModalStickyPrimary onClick={() => setIsEditingRoster(false)} dataTestId="tour-roster-done">
             {t('common.doneButton', 'Done')}
           </ModalStickyPrimary>
         ) : (
-          <ModalStickyPrimary onClick={handleSave} disabled={isPending}>
+          <ModalStickyPrimary onClick={handleSave} disabled={isPending} dataTestId="tour-save-team">
             {isPending
               ? t('common.saving', 'Saving...')
               : mode === 'create'

@@ -6,6 +6,7 @@ import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import { setOnboardingUserId } from '@/components/setupWizardActive';
 
 // Mock the utility functions
 jest.mock('@/utils/appSettings', () => ({
@@ -240,7 +241,8 @@ describe('NewGameSetupModal', () => {
       'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+      '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
     );
   });
 
@@ -279,7 +281,8 @@ describe('NewGameSetupModal', () => {
         'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+        '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
       );
     });
   });
@@ -437,7 +440,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });
@@ -556,7 +560,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });
@@ -812,7 +817,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });
@@ -893,7 +899,8 @@ describe('NewGameSetupModal', () => {
           'soccer', // gameType
       undefined, // gender
       undefined, // prefill (Phase 2 planner)
-      false // isFriendly
+      false, // isFriendly
+          '3v3-1-1', // formationPresetId (2-player fixture -> 3v3 size default, owner round 4)
         );
       });
     });
@@ -1115,6 +1122,65 @@ describe('NewGameSetupModal', () => {
       });
     });
 
+    it("the wizard's stored Pelimuoto drives the DEFAULT formation size (review #742)", async () => {
+      // 2 players -> the count guess says 3v3, but the coach answered 8v8.
+      setOnboardingUserId('user-1');
+      localStorage.setItem('matchops_setup_format_user-1', '8v8');
+      try {
+        render(
+          <ToastProvider>
+            <NewGameSetupModal {...defaultProps} />
+          </ToastProvider>
+        );
+        await waitFor(() => {
+          expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+        });
+        expect((document.querySelector('#formationSelect') as HTMLSelectElement).value).toBe('8v8-2-1-2-1-1');
+      } finally {
+        setOnboardingUserId(undefined);
+        localStorage.removeItem('matchops_setup_format_user-1');
+      }
+    });
+
+    it('formation select offers ALL field sizes as groups (owner round 6b)', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+      const groups = document.querySelectorAll('#formationSelect optgroup');
+      expect(Array.from(groups).map((g) => g.getAttribute('label'))).toEqual(['3v3', '5v5', '8v8', '11v11']);
+    });
+
+    it('a non-recommended-size preset SURVIVES to onStart (squad size never restricts)', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+        target: { value: 'Test Opponent' },
+      });
+      // 2 players selected -> 3v3 recommended, but the coach picks an 8v8 shape.
+      fireEvent.change(document.querySelector('#formationSelect')!, {
+        target: { value: '8v8-2-3-2' },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Create Game/i }));
+      });
+      await waitFor(() => {
+        expect(mockOnStart).toHaveBeenCalled();
+        const args = mockOnStart.mock.calls[0];
+        expect(args[args.length - 1]).toBe('8v8-2-3-2');
+      });
+    });
+
     it('should pass gameType to onStart callback', async () => {
       render(
         <ToastProvider>
@@ -1143,11 +1209,12 @@ describe('NewGameSetupModal', () => {
       });
 
       // Verify onStart was called with gameType: 'futsal'
-      // Positional args: gameType is 4th from the end (gender, optional prefill, isFriendly follow it).
+      // Positional args: gameType is 5th from the end (gender, prefill,
+      // isFriendly, formationPresetId follow it).
       await waitFor(() => {
         expect(mockOnStart).toHaveBeenCalled();
         const args = mockOnStart.mock.calls[0];
-        const gameTypeArg = args[args.length - 4];
+        const gameTypeArg = args[args.length - 5];
         expect(gameTypeArg).toBe('futsal');
       });
     });
@@ -1275,7 +1342,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      const prefillArg = call[call.length - 2]; // isFriendly is now the last arg
+      const prefillArg = call[call.length - 3]; // isFriendly + formationPresetId follow it
       expect(prefillArg).toBeDefined();
       expect(prefillArg.playersOnField).toHaveLength(2); // GK + one field player placed
       const gk = prefillArg.playersOnField.find((p: { id: string }) => p.id === 'player1');
@@ -1319,7 +1386,7 @@ describe('NewGameSetupModal', () => {
       });
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload
+      expect(call[call.length - 3]).toBeUndefined(); // no prefill payload
     });
 
     test('picker stays hidden when there are no plans', async () => {
@@ -1365,7 +1432,7 @@ describe('NewGameSetupModal', () => {
       expect(call[6]).toBe('season1');           // the season binding itself is kept
       expect(call[8]).toBe(2);                   // numPeriods: the plan's...
       expect(call[9]).toBe(12);                  // ...and the plan's 12-minute periods
-      expect(call[call.length - 1]).toBeDefined(); // prefill still rides along
+      expect(call[call.length - 3]).toBeDefined(); // prefill still rides along
     });
 
     test('switching Team after a plan prefill clears the prefill (no cross-team lineup)', async () => {
@@ -1400,7 +1467,7 @@ describe('NewGameSetupModal', () => {
 
       await waitFor(() => expect(mockOnStart).toHaveBeenCalled());
       const call = mockOnStart.mock.calls[0];
-      expect(call[call.length - 2]).toBeUndefined(); // no prefill payload rode along
+      expect(call[call.length - 3]).toBeUndefined(); // no prefill payload rode along
     });
   });
 });

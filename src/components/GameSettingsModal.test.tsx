@@ -240,6 +240,23 @@ describe('<GameSettingsModal />', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * @critical - Review #734 wiring guard: the tour-tracking bug shipped twice
+   * because nothing asserted the Muodostelma select actually invokes the
+   * handler it is given. This pins the select -> onApplyFormation contract.
+   */
+  test('the Muodostelma select applies the chosen preset via onApplyFormation', async () => {
+    const onApplyFormation = jest.fn();
+    renderModal({ ...defaultProps, onApplyFormation });
+
+    // 2 selected players -> 3v3 presets offered.
+    await userEvent.selectOptions(
+      screen.getByTestId('game-settings-formation-select'),
+      '3v3-1-1',
+    );
+    expect(onApplyFormation).toHaveBeenCalledWith('3v3-1-1');
+  });
+
   test('the Friendly-match toggle reclassifies the game via a mutation', async () => {
     const user = userEvent.setup();
     (defaultProps.updateGameDetailsMutation.mutate as jest.Mock).mockClear();

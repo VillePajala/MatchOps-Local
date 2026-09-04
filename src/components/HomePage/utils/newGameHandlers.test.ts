@@ -18,6 +18,7 @@ import type { TFunction } from 'i18next';
 
 import { buildAndPersistNewGame } from './newGameHandlers';
 import { setPlanLink } from '@/utils/playtimePlanner/planLinks';
+import { getPresetById } from '@/config/formationPresets';
 
 // The plan link is written to a local-only store (not the game blob - autosave and
 // cloud pulls rebuild the blob and would drop it). Mock the store to observe writes.
@@ -150,6 +151,33 @@ describe('newGameHandlers', () => {
     // Exactly the planned XI (one player), NOT the whole auto-placed squad.
     expect(result!.gameState.playersOnField).toHaveLength(1);
     expect(result!.gameState.playersOnField[0].id).toBe('p1');
+  });
+
+  it('defaults to the size\'s REAL formation when none is chosen (owner round 4: no generic grid)', async () => {
+    // 2 selected players -> recommended size 3v3 -> default 1-1 formation.
+    const preset = getPresetById('3v3-1-1');
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({ initialSelectedPlayerIds: ['p1', 'p2'] }),
+    );
+    const outfielder = result!.gameState.playersOnField.find((pl) => !pl.isGoalie);
+    expect(outfielder?.relX).toBeCloseTo(preset!.positions[0].relX);
+    expect(outfielder?.relY).toBeCloseTo(preset!.positions[0].relY);
+  });
+
+  it('places the squad on the CHOSEN formation preset at creation (owner round 2)', async () => {
+    const preset = getPresetById('5v5-2-2');
+    expect(preset).toBeDefined();
+    const result = await buildAndPersistNewGame(
+      createTestDeps(),
+      createBaseRequest({ initialSelectedPlayerIds: ['p1', 'p2'], formationPresetId: '5v5-2-2' }),
+    );
+    // The fixture-designated goalie takes the keeper spot; the remaining
+    // outfielder lands on the preset's FIRST slot (goalie-agnostic on purpose:
+    // buildAutoPlacement picks the designated goalie, not positional order).
+    const outfielder = result!.gameState.playersOnField.find((pl) => !pl.isGoalie);
+    expect(outfielder?.relX).toBeCloseTo(preset!.positions[0].relX);
+    expect(outfielder?.relY).toBeCloseTo(preset!.positions[0].relY);
   });
 
   it('mirrors a prefilled goalie onto availablePlayers (single source of truth from creation)', async () => {
