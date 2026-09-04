@@ -59,7 +59,9 @@ validateEnvironment();
  * Risk Assessment (LOW for this app):
  * - No user-generated content that could contain scripts
  * - No third-party scripts (Sentry uses connect-src, not script-src)
- * - All data is local (IndexedDB), not from external APIs
+ * - App data is local (IndexedDB) or the user's Supabase project; the only
+ *   other outbound calls are user-connected AI providers, allow-listed
+ *   explicitly in connect-src when that feature ships (Kirjuri plan)
  * - Single-page PWA with minimal attack surface
  * - XSS would require attacker to modify static files on hosting server
  *
@@ -86,6 +88,7 @@ const securityHeaders = [
       "font-src 'self'",
       `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com`,
       "worker-src 'self' blob:",  // blob: required for Supabase realtime-js heartbeat workers
+      "media-src 'self' blob:", // blob: replays locally recorded voice clips (Kirjuri); audio never leaves the device
       "object-src 'none'", // Block Flash, Java applets, and other plugins
       "frame-ancestors 'none'",
       "form-action 'self'",
@@ -117,9 +120,11 @@ const securityHeaders = [
   },
   {
     // Permissions Policy (formerly Feature-Policy)
-    // Disable features we don't need
+    // Disable features we don't need. microphone=(self): same-origin only, for
+    // Kirjuri voice notes (an empty allowlist blocks getUserMedia before any
+    // user prompt - Kirjuri PR 0). Embedded frames still get nothing.
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=()',
+    value: 'camera=(), microphone=(self), geolocation=()',
   },
   {
     // Preconnect hints for Sentry error reporting
