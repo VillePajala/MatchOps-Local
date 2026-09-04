@@ -32,6 +32,7 @@ import type { AuthService } from '@/interfaces/AuthService';
 import logger from '@/utils/logger';
 import { getCachedUserIdentity } from '@/auth/cachedSession';
 import { deleteUserLocalDatabases } from '@/datastore/userDatabase';
+import { markDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 
 /**
  * Auth context value interface.
@@ -232,6 +233,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const markSignedInThisSession = useCallback(() => {
     hasSignedInThisSessionRef.current = true;
     lastSignInAtRef.current = Date.now();
+    // Device memory: from now on this device opens on Sign in, not Create account.
+    markDeviceHasSignedIn();
   }, []);
 
   // Clean up password reset timeout on unmount
