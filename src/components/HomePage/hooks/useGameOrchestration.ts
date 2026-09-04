@@ -43,7 +43,7 @@ import type { FieldContainerProps, FieldInteractions } from '@/components/HomePa
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 import { generateSubSlots, isFieldPosition } from '@/utils/formations';
-import { reapplyPlanToGame, type ReapplyResult } from '@/utils/playtimePlanner/reapply';
+import { reapplyPlanToGame, type ReapplyResult, hasPlayEvents } from '@/utils/playtimePlanner/reapply';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
@@ -2105,7 +2105,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const canReapplyPlan =
     !!currentGamePlanLink &&
     gameSessionState.gameStatus === 'notStarted' &&
-    (gameSessionState.gameEvents?.length ?? 0) === 0;
+    !hasPlayEvents(gameSessionState.gameEvents);
 
   // Deterministic init fallback: auto-select latest real game if default or stale
   useEffect(() => {
