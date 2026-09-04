@@ -170,6 +170,30 @@ describe('useDictationCapture', () => {
     expect(isRecordingSessionActive()).toBe(false);
   });
 
+  /** @critical - the OS mic indicator must go off soon after a note, not at full time. */
+  it('releases the mic after an idle minute, and a new press re-arms it', async () => {
+    const { result } = renderHook(() => useDictationCapture(baseProps));
+    await act(async () => {
+      result.current.start();
+    });
+    jest.setSystemTime(new Date('2026-09-04T10:00:02Z'));
+    await act(async () => {
+      result.current.stop();
+    });
+    expect(isRecordingSessionActive()).toBe(true); // still warm right after the note
+    await act(async () => {
+      jest.advanceTimersByTime(60_000);
+    });
+    expect(tracks[0].stop).toHaveBeenCalled();
+    expect(isRecordingSessionActive()).toBe(false);
+
+    await act(async () => {
+      result.current.start();
+    });
+    expect(getUserMedia).toHaveBeenCalledTimes(2);
+    expect(isRecordingSessionActive()).toBe(true);
+  });
+
   it('refuses to record without an open game', async () => {
     const { result } = renderHook(() => useDictationCapture({ ...baseProps, currentGameId: null }));
     await act(async () => {

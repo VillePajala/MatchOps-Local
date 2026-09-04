@@ -176,6 +176,17 @@ describe('TimerOverlay', () => {
       expect(dictation.acknowledgeIntro).toHaveBeenCalledTimes(1);
     });
 
+    it('a held key toggles once, not on every auto-repeat', () => {
+      const dictation = controls();
+      render(<TimerOverlay {...baseProps} dictation={dictation} />);
+      const button = screen.getByTestId('dictation-hold');
+      fireEvent.keyDown(button, { key: ' ' });
+      fireEvent.keyDown(button, { key: ' ', repeat: true });
+      fireEvent.keyDown(button, { key: ' ', repeat: true });
+      expect(dictation.start).toHaveBeenCalledTimes(1);
+      expect(dictation.stop).not.toHaveBeenCalled();
+    });
+
     it('is disabled when unsupported or denied, with the reason as title', () => {
       const { unmount } = render(<TimerOverlay {...baseProps} dictation={{ ...controls(), isSupported: false }} />);
       expect(screen.getByTestId('dictation-hold')).toBeDisabled();

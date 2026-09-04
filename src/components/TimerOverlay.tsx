@@ -456,6 +456,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                   onKeyDown={(event) => {
                     if (event.key !== ' ' && event.key !== 'Enter') return;
                     event.preventDefault();
+                    if (event.repeat) return; // a held key must not toggle on every auto-repeat
                     if (dictation.isRecording) dictation.stop();
                     else if (dictation.needsIntro) setShowDictationIntro(true);
                     else if (!dictationDisabled) dictation.start();

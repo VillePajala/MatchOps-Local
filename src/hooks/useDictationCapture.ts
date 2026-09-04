@@ -57,6 +57,13 @@ interface UseDictationCaptureProps {
 const MIN_CLIP_MS = 400;
 /** A stuck press must not record the whole half. */
 const MAX_CLIP_MS = 60_000;
+/**
+ * Keep the mic warm this long after a clip so successive notes start
+ * instantly, then release it: the OS "microphone in use" indicator must not
+ * glow for the rest of the match after one two-second note (review #746),
+ * and the resume safety net comes back while nothing is being recorded.
+ */
+const IDLE_RELEASE_MS = 60_000;
 const INTRO_SEEN_KEY = 'matchops_dictation_intro_seen';
 
 const MIME_CANDIDATES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
@@ -134,6 +141,7 @@ export function useDictationCapture({
   const chunksRef = useRef<Blob[]>([]);
   const stampRef = useRef<{ gameId: string; time: number; period: number; startedAt: number } | null>(null);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idleReleaseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRecordingRef = useRef(false);
 
   const disarm = useCallback(() => {
@@ -148,6 +156,10 @@ export function useDictationCapture({
     if (autoStopRef.current) {
       clearTimeout(autoStopRef.current);
       autoStopRef.current = null;
+    }
+    if (idleReleaseRef.current) {
+      clearTimeout(idleReleaseRef.current);
+      idleReleaseRef.current = null;
     }
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
@@ -255,6 +267,14 @@ export function useDictationCapture({
     [userId],
   );
 
+  const scheduleIdleRelease = useCallback(() => {
+    if (idleReleaseRef.current) clearTimeout(idleReleaseRef.current);
+    idleReleaseRef.current = setTimeout(() => {
+      idleReleaseRef.current = null;
+      if (!isRecordingRef.current) disarm();
+    }, IDLE_RELEASE_MS);
+  }, [disarm]);
+
   const stop = useCallback(() => {
     if (!isRecordingRef.current) return;
     isRecordingRef.current = false;
@@ -272,7 +292,8 @@ export function useDictationCapture({
         logger.warn('[dictation] recorder.stop failed', error);
       }
     }
-  }, []);
+    scheduleIdleRelease();
+  }, [scheduleIdleRelease]);
 
   const start = useCallback(() => {
     if (isRecordingRef.current) return;
@@ -280,6 +301,10 @@ export function useDictationCapture({
     if (!gameId) {
       toastRef.current(tRef.current('dictation.noGame', 'Open a game before dictating.'), 'info');
       return;
+    }
+    if (idleReleaseRef.current) {
+      clearTimeout(idleReleaseRef.current);
+      idleReleaseRef.current = null;
     }
     isRecordingRef.current = true; // claim before the async arm so a fast release cannot double-start
     void arm().then((stream) => {
