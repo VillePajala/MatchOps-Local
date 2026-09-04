@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useState, useMemo } from 'react';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
@@ -149,6 +150,8 @@ export interface FieldContainerProps {
   onWentToPenaltiesChange: (value: boolean) => void;
   interactions: FieldInteractions;
   timerInteractions: TimerInteractions;
+  /** Kirjuri voice notes (PR 2) - recorder controls for the timer overlay. */
+  dictation?: DictationControls;
 }
 
 export function FieldContainer({
@@ -158,6 +161,7 @@ export function FieldContainer({
   currentGameId,
   plannedSubsRefreshKey,
   availablePlayers,
+  dictation,
   teams: _teams,
   seasons,
   tournaments,
@@ -326,6 +330,7 @@ export function FieldContainer({
           onRecordShootout={() => setIsShootoutModalOpen(true)}
           onClose={toggleLargeOverlay}
           isLoaded={tmInitialLoad}
+          dictation={dictation}
         />
       )}
 

@@ -188,6 +188,22 @@
     "teamNamePlaceholder": "esim. FC Honka P12",
     "teamTitle": "Joukkueesi"
   },
+  "dictation": {
+    "holdToTalk": "Pidä pohjassa ja puhu",
+    "recording": "Tallentaa...",
+    "clipCount": "{{count}} äänimuistiinpanoa",
+    "unsupported": "Äänimuistiinpanot eivät toimi tällä laitteella.",
+    "permissionDenied": "Mikrofonin käyttö estettiin. Salli se puhelimen sovellusasetuksista sanellaksesi muistiinpanoja.",
+    "noMicrophone": "Mikrofonia ei löytynyt.",
+    "startFailed": "Tallennusta ei voitu aloittaa.",
+    "noGame": "Avaa ottelu ennen sanelua.",
+    "captured": "Muistiinpano tallennettu",
+    "storageFull": "Tallennustila ei riitä äänimuistiinpanoille.",
+    "saveFailed": "Muistiinpanoa ei voitu tallentaa.",
+    "firstRunTitle": "Äänimuistiinpanot",
+    "firstRunBody": "Pidä painiketta pohjassa ja puhu - yksi havainto per muistiinpano. Tallenteet pysyvät tässä puhelimessa. MatchOps pyytää nyt mikrofonin käyttöoikeutta.",
+    "firstRunConfirm": "Jatka"
+  },
   "undoToast": {
     "goal": "Maali kirjattu",
     "opponentGoal": "Vastustajan maali kirjattu",
@@ -1038,6 +1054,7 @@
     "tacticsButtonTip": "Paina Taktiikat-painiketta päästäksesi piirtotyökaluihin:",
     "placeAllTip": "Aseta kaikki pelaajat kerralla:",
     "timerTip": "Paina ajastinta näyttääksesi/piilottaaksesi suuren kellonäytön",
+    "dictationTip": "Pidä ajastinnäkymän mikrofonipainiketta pohjassa sanellaksesi äänimuistiinpanon - se pysyy puhelimessasi.",
     "resetFieldTip": "Nollaa kenttä:",
     "menuTip": "Avaa valikko lisätoiminnoille:",
     "drawingTools": "Piirto- ja taktiikat-työkalut",

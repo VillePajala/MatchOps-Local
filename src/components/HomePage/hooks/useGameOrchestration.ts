@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useDictationCapture } from '@/hooks/useDictationCapture';
 import type { ComponentProps } from 'react';
 import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
@@ -2299,6 +2300,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldCoordination.subSlots,
   ]);
 
+  // Kirjuri voice notes (PR 2): the recorder lives here, not in the overlay,
+  // so the hands-free trigger (PR 4) can reach it with the overlay closed.
+  const dictation = useDictationCapture({
+    currentGameId,
+    userId: userId ?? undefined,
+    timeElapsedInSeconds,
+    currentPeriod: gameSessionState.currentPeriod,
+    gameStatus: gameSessionState.gameStatus,
+    showToast,
+    t,
+  });
+
   // Memoize timerVM to prevent unnecessary re-renders of TimerOverlay
   const timerVM = useMemo(() => ({
     timeElapsedInSeconds,
@@ -2341,6 +2354,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onWentToPenaltiesChange: handleSetWentToPenalties,
     interactions: fieldInteractions,
     timerInteractions,
+    dictation,
   };
 
   const controlBarProps: ComponentProps<typeof ControlBar> = {

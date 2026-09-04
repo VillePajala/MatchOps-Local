@@ -188,6 +188,22 @@
     "teamNamePlaceholder": "e.g. FC Honka P12",
     "teamTitle": "Your team"
   },
+  "dictation": {
+    "holdToTalk": "Hold to dictate",
+    "recording": "Recording...",
+    "clipCount": "{{count}} voice notes",
+    "unsupported": "Voice notes are not supported on this device.",
+    "permissionDenied": "Microphone access was denied. Allow it in your phone's app settings to dictate notes.",
+    "noMicrophone": "No microphone found.",
+    "startFailed": "Could not start recording.",
+    "noGame": "Open a game before dictating.",
+    "captured": "Note captured",
+    "storageFull": "Not enough storage for voice notes.",
+    "saveFailed": "Could not save the note.",
+    "firstRunTitle": "Voice notes",
+    "firstRunBody": "Hold the button and speak - one observation per note. Recordings stay on this phone. MatchOps will now ask for microphone access.",
+    "firstRunConfirm": "Continue"
+  },
   "undoToast": {
     "goal": "Goal logged",
     "opponentGoal": "Opponent goal logged",
@@ -1175,6 +1191,7 @@
     "tacticsButtonTip": "Click Tactics Board to access drawing tools:",
     "placeAllTip": "Place all players at once:",
     "timerTip": "Click timer to show/hide large overlay",
+    "dictationTip": "Hold the microphone button on the timer overlay to dictate a voice note - it stays on your phone.",
     "resetFieldTip": "Reset field:",
     "menuTip": "Open menu for more options:",
     "drawingTools": "Drawing & Tactical Tools",
