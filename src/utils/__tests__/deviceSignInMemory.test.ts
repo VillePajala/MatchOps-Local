@@ -1,7 +1,15 @@
 import { renderHook, act } from '@testing-library/react';
-import { deviceHasSignedIn, markDeviceHasSignedIn, useDeviceHasSignedIn } from '../deviceSignInMemory';
+import {
+  deviceHasSignedIn,
+  markDeviceHasSignedIn,
+  resetDeviceSignInMemoryForTests,
+  useDeviceHasSignedIn,
+} from '../deviceSignInMemory';
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  resetDeviceSignInMemoryForTests();
+});
 
 describe('deviceSignInMemory', () => {
   /** @critical - decides whether a returning coach lands on Sign in or Create account. */
@@ -28,5 +36,13 @@ describe('deviceSignInMemory', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+
+  it('reads storage once and serves the cached value afterwards', () => {
+    const spy = jest.spyOn(window.localStorage, 'getItem');
+    deviceHasSignedIn();
+    deviceHasSignedIn();
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
   });
 });
