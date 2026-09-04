@@ -16,13 +16,22 @@ import { useSyncExternalStore } from 'react';
 const KEY = 'matchops_device_signed_in';
 const listeners = new Set<() => void>();
 
-export function deviceHasSignedIn(): boolean {
+function readFlag(): boolean {
   try {
     // eslint-disable-next-line no-restricted-globals -- device-local UI hint, not app data
     return localStorage.getItem(KEY) === '1';
   } catch {
     return false;
   }
+}
+
+// Cached like the other module stores (setupWizardActive.ts): the snapshot is
+// read on every render of page.tsx, so storage is touched once, not per render.
+let cached: boolean | null = null;
+
+export function deviceHasSignedIn(): boolean {
+  if (cached === null) cached = readFlag();
+  return cached;
 }
 
 /** Call wherever a real sign-in lands (AuthProvider.markSignedInThisSession). */
@@ -33,7 +42,13 @@ export function markDeviceHasSignedIn(): void {
   } catch {
     // Not persistable - the next launch simply defaults to Create account again.
   }
+  cached = true;
   listeners.forEach((listener) => listener());
+}
+
+/** Test-only: forget the cached value (storage itself is cleared by the test). */
+export function resetDeviceSignInMemoryForTests(): void {
+  cached = null;
 }
 
 const subscribe = (listener: () => void) => {
