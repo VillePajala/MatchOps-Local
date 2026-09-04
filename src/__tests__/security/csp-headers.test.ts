@@ -67,6 +67,10 @@ describe('Security Headers Configuration', () => {
       expect(configContent).toContain("worker-src 'self'");
     });
 
+    it('should allow blob media for replaying locally recorded voice clips', () => {
+      expect(configContent).toContain("media-src 'self' blob:");
+    });
+
     it('should have CSP violation reporting with both modern and legacy directives', () => {
       // Modern browsers (Chrome 70+, Firefox 65+)
       expect(configContent).toContain('report-to csp-endpoint');
@@ -105,8 +109,16 @@ describe('Security Headers Configuration', () => {
     it('should have Permissions-Policy disabling unused features', () => {
       expect(configContent).toContain("key: 'Permissions-Policy'");
       expect(configContent).toContain('camera=()');
-      expect(configContent).toContain('microphone=()');
       expect(configContent).toContain('geolocation=()');
+    });
+
+    /**
+     * @critical - Kirjuri voice notes need the microphone on the app's own
+     * origin only; an empty allowlist rejects getUserMedia before any prompt.
+     */
+    it('should allow the microphone for the app origin only', () => {
+      expect(configContent).toContain('microphone=(self)');
+      expect(configContent).not.toContain('microphone=()');
     });
 
     it('should have Cross-Origin-Opener-Policy same-origin', () => {

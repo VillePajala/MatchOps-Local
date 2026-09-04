@@ -4,6 +4,7 @@ import { saveTimerState, clearTimerState, TimerState } from '@/utils/timerStateM
 import { setMatchTimerRunning } from '@/utils/matchTimerSignal';
 import { writeTimerAnchor, clearTimerAnchor } from '@/utils/timerAnchor';
 import { useWakeLock } from './useWakeLock';
+import { useRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { usePrecisionTimer } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
 
@@ -191,9 +192,20 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     precisionTimerRef.current = precisionTimer;
   }, [precisionTimer]);
 
+  // Kirjuri PR 0: the screen stays on whenever the coach may dictate, not only
+  // while the clock runs - at half-time (periodEnd), during an in-play pause,
+  // and while a recording session is armed. notStarted/gameEnd release it.
+  // Accepted trade-off: a game left inProgress keeps the screen on until the
+  // coach ends it or locks the phone (the lock never blocks the power button).
+  const recordingSessionActive = useRecordingSessionActive();
+  const holdScreen =
+    state.isTimerRunning ||
+    state.gameStatus === 'inProgress' ||
+    state.gameStatus === 'periodEnd' ||
+    recordingSessionActive;
   useEffect(() => {
-    syncWakeLock(state.isTimerRunning);
-  }, [state.isTimerRunning, syncWakeLock]);
+    syncWakeLock(holdScreen);
+  }, [holdScreen, syncWakeLock]);
 
   // Use ref for isTimerRunning check in visibility handler to avoid
   // re-registering the listener on every tick (was 20x/sec)
