@@ -93,7 +93,7 @@ describe('LoginScreen', () => {
       expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument();
     });
 
-    it('opens directly in Sign Up when initialMode is signUp (production funnel default)', () => {
+    it('opens directly in Sign Up when initialMode is signUp (new-device default; a device that has signed in before opens on signIn)', () => {
       render(<LoginScreen initialMode="signUp" />);
 
       expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument();

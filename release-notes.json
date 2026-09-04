@@ -4,6 +4,15 @@
     {
       "date": "2026-09-04",
       "en": [
+        "Signing in is quicker on a phone you have used before: the login screen now opens on Sign in instead of Create account."
+      ],
+      "fi": [
+        "Kirjautuminen on nopeampaa aiemmin käyttämälläsi puhelimella: kirjautumisnäkymä avautuu nyt suoraan Kirjaudu sisään -lomakkeeseen uuden tilin luonnin sijaan."
+      ]
+    },
+    {
+      "date": "2026-09-04",
+      "en": [
         "New here? A one-minute setup now creates your team, players and game format right at the start - and your first game opens with a real formation on the field.",
         "Each view introduces itself with a short one-time note on your first visit, and a full guided tour is available from the start screen whenever you want it.",
         "Confirmation messages no longer block the controls beneath them, and the whole first-run flow got a visual polish."
