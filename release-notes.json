@@ -2,14 +2,16 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
-      "date": "2026-08-24",
+      "date": "2026-09-04",
       "en": [
-        "New here? A guided walkthrough now takes first-time coaches through their first game step by step - add players, create your team, start a game, run the clock, and log a goal - so you're up and running in about a minute.",
-        "A getting-started shortcut on the home screen helps you finish setup, like grouping your games into a season."
+        "New here? A one-minute setup now creates your team, players and game format right at the start - and your first game opens with a real formation on the field.",
+        "Each view introduces itself with a short one-time note on your first visit, and a full guided tour is available from the start screen whenever you want it.",
+        "Confirmation messages no longer block the controls beneath them, and the whole first-run flow got a visual polish."
       ],
       "fi": [
-        "Uusi käyttäjä? Ohjattu esittely vie ensikertalaiset valmentajat vaihe vaiheelta ensimmäiseen otteluun - lisää pelaajat, luo joukkue, aloita ottelu, käynnistä kello ja kirjaa maali - joten pääset alkuun noin minuutissa.",
-        "Aloituksen pikakuvake kotinäytöllä auttaa viimeistelemään käyttöönoton, kuten ryhmittelemään ottelusi kaudeksi."
+        "Uusi käyttäjä? Minuutin pika-aloitus luo joukkueen, pelaajat ja pelimuodon heti alkuun - ja ensimmäinen ottelu alkaa oikealla muodostelmalla kentällä.",
+        "Jokainen näkymä esittelee itsensä lyhyellä kertaluontoisella vinkillä ensimmäisellä käynnillä, ja täyden aloitusopastuksen saat aloitusnäytöltä milloin haluat.",
+        "Vahvistusviestit eivät enää peitä alla olevia painikkeita, ja koko ensikäytön kulku sai visuaalisen viimeistelyn."
       ]
     },
     {
