@@ -36,8 +36,11 @@ export type Database = {
           event_type: string
           game_id: string
           id: string
+          note_text: string | null
           order_index: number
+          period: number | null
           scorer_id: string | null
+          source: string | null
           time_seconds: number
           user_id: string
         }
@@ -48,8 +51,11 @@ export type Database = {
           event_type: string
           game_id: string
           id: string
+          note_text?: string | null
           order_index: number
+          period?: number | null
           scorer_id?: string | null
+          source?: string | null
           time_seconds: number
           user_id: string
         }
@@ -60,8 +66,11 @@ export type Database = {
           event_type?: string
           game_id?: string
           id?: string
+          note_text?: string | null
           order_index?: number
+          period?: number | null
           scorer_id?: string | null
+          source?: string | null
           time_seconds?: number
           user_id?: string
         }

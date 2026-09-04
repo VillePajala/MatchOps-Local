@@ -819,6 +819,19 @@ describe('<GameSettingsModal />', () => {
       return eventDiv as HTMLElement;
     };
 
+    test('does not list Kirjuri note events (own card; never goal-editable)', async () => {
+      renderModal({
+        ...defaultProps,
+        gameEvents: [
+          { id: 'goal1', type: 'goal' as GameEventType, time: 120, scorerId: 'p1' },
+          { id: 'note1', type: 'note' as GameEventType, time: 130, entityId: 'p2', text: 'hieno syöttö', source: 'dictation' },
+        ],
+      });
+      await findEventByTime('02:00');
+      expect(screen.queryByText(/hieno syöttö/)).not.toBeInTheDocument();
+      expect(screen.queryByText('02:10')).not.toBeInTheDocument();
+    });
+
     test('edits a goal event successfully (time, scorer, assister)', async () => {
       const user = userEvent.setup();
       renderModal();

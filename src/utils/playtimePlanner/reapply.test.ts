@@ -84,6 +84,15 @@ describe('isGamePlayed', () => {
       true,
     );
   });
+  it('ignores Kirjuri note events - an observation is not play', () => {
+    expect(
+      isGamePlayed(
+        makeGame({
+          gameEvents: [{ id: 'n', type: 'note', time: 0, text: 'x' }] as unknown as AppState['gameEvents'],
+        }),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe('buildReapplyPatch', () => {
