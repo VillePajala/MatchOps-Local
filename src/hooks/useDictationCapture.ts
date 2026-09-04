@@ -169,6 +169,16 @@ export function useDictationCapture({
     setRecordingSessionActive(false);
   }, []);
 
+  // Every armed state expires - whether it came from a press or from the
+  // intro acknowledgement alone (review #746 follow-up).
+  const scheduleIdleRelease = useCallback(() => {
+    if (idleReleaseRef.current) clearTimeout(idleReleaseRef.current);
+    idleReleaseRef.current = setTimeout(() => {
+      idleReleaseRef.current = null;
+      if (!isRecordingRef.current) disarm();
+    }, IDLE_RELEASE_MS);
+  }, [disarm]);
+
   const arm = useCallback(async (): Promise<MediaStream | null> => {
     if (!isSupported) {
       toastRef.current(tRef.current('dictation.unsupported', 'Voice notes are not supported on this device.'), 'error');
@@ -184,6 +194,7 @@ export function useDictationCapture({
       });
       setPermission('granted');
       setRecordingSessionActive(true);
+      scheduleIdleRelease();
       rotateOldClips(Date.now(), userId).catch((error) => {
         logger.warn('[dictation] clip rotation failed (non-fatal)', error);
       });
@@ -207,7 +218,7 @@ export function useDictationCapture({
       }
       return null;
     }
-  }, [isSupported, userId, disarm]);
+  }, [isSupported, userId, disarm, scheduleIdleRelease]);
 
   const finalizeClip = useCallback(
     async (mimeType: string) => {
@@ -266,14 +277,6 @@ export function useDictationCapture({
     },
     [userId],
   );
-
-  const scheduleIdleRelease = useCallback(() => {
-    if (idleReleaseRef.current) clearTimeout(idleReleaseRef.current);
-    idleReleaseRef.current = setTimeout(() => {
-      idleReleaseRef.current = null;
-      if (!isRecordingRef.current) disarm();
-    }, IDLE_RELEASE_MS);
-  }, [disarm]);
 
   const stop = useCallback(() => {
     if (!isRecordingRef.current) return;

@@ -221,5 +221,12 @@ describe('useDictationCapture', () => {
     expect(result.current.needsIntro).toBe(false);
     expect(localStorage.getItem('matchops_dictation_intro_seen')).toBe('1');
     expect(getUserMedia).toHaveBeenCalledTimes(1);
+    // Armed without any recording - must still expire.
+    expect(isRecordingSessionActive()).toBe(true);
+    await act(async () => {
+      jest.advanceTimersByTime(60_000);
+    });
+    expect(tracks[0].stop).toHaveBeenCalled();
+    expect(isRecordingSessionActive()).toBe(false);
   });
 });
