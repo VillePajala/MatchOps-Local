@@ -9,6 +9,8 @@ import { formatTime } from '@/utils/time';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
+import { HiOutlineMicrophone } from 'react-icons/hi2';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 
 
 interface TimerOverlayProps {
@@ -47,6 +49,8 @@ interface TimerOverlayProps {
   plannedSubPrompt?: PlannedSubPrompt | null;
   /** Acknowledge a planned-sub nudge so it stops showing. */
   onDismissPlannedSub?: (subId: string) => void;
+  /** Kirjuri voice notes (PR 2): press-hold recorder controls; absent = feature not wired. */
+  dictation?: DictationControls;
 }
 
 const TimerOverlay: React.FC<TimerOverlayProps> = ({
@@ -58,6 +62,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onSetSubInterval,
   isTimerRunning,
   onStartPauseTimer,
+  dictation,
   onResetTimer,
   onToggleGoalLogModal = () => { logger.warn('onToggleGoalLogModal handler not provided'); },
   onOpenPlayerAssessmentModal,
@@ -143,6 +148,30 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const secondaryActionStyle = `${actionButtonBase} bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-indigo-400/30`;
   const dangerActionStyle = `${actionButtonBase} bg-red-700 hover:bg-red-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900 border border-red-500/30`;
   
+  // Kirjuri (PR 2): the first press explains + asks for the mic (the app's
+  // first runtime permission) before any recording starts.
+  const [showDictationIntro, setShowDictationIntro] = React.useState(false);
+  const dictationDisabled = !!dictation && (!dictation.isSupported || dictation.permission === 'denied');
+  const dictationTitle = !dictation
+    ? undefined
+    : !dictation.isSupported
+      ? t('dictation.unsupported', 'Voice notes are not supported on this device.')
+      : dictation.permission === 'denied'
+        ? t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")
+        : t('dictation.holdToTalk', 'Hold to dictate');
+  const handleDictationPress = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (!dictation || dictationDisabled) return;
+    if (dictation.needsIntro) {
+      setShowDictationIntro(true);
+      return;
+    }
+    dictation.start();
+  };
+  const handleDictationRelease = () => {
+    dictation?.stop();
+  };
+
   const handleConfirmSubClick = () => {
     onSubstitutionMade();
   };
@@ -411,6 +440,68 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
               </button>
             </div>
             
+            {/* Kirjuri voice note (PR 2): one full-width press-hold row above
+                the goals - thumb-findable without looking. Release = stop.
+                Space/Enter toggle for keyboards. */}
+            {dictation && (
+              <>
+                <button
+                  type="button"
+                  data-testid="dictation-hold"
+                  onPointerDown={handleDictationPress}
+                  onPointerUp={handleDictationRelease}
+                  onPointerCancel={handleDictationRelease}
+                  onPointerLeave={handleDictationRelease}
+                  onContextMenu={(event) => event.preventDefault()}
+                  onKeyDown={(event) => {
+                    if (event.key !== ' ' && event.key !== 'Enter') return;
+                    event.preventDefault();
+                    if (event.repeat) return; // a held key must not toggle on every auto-repeat
+                    if (dictation.isRecording) dictation.stop();
+                    else if (dictation.needsIntro) setShowDictationIntro(true);
+                    else if (!dictationDisabled) dictation.start();
+                  }}
+                  disabled={dictationDisabled}
+                  aria-disabled={dictationDisabled}
+                  aria-pressed={dictation.isRecording}
+                  title={dictationTitle}
+                  className={`${dictation.isRecording ? dangerActionStyle : primaryActionStyle} w-full touch-none select-none flex items-center justify-center gap-2 ${dictationDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <HiOutlineMicrophone aria-hidden className={`h-5 w-5 ${dictation.isRecording ? 'animate-pulse' : ''}`} />
+                  <span>
+                    {dictation.isRecording
+                      ? t('dictation.recording', 'Recording...')
+                      : t('dictation.holdToTalk', 'Hold to dictate')}
+                  </span>
+                  {dictation.clipCount > 0 && !dictation.isRecording && (
+                    <span
+                      data-testid="dictation-clip-count"
+                      className="ml-1 rounded-full bg-slate-900/60 px-2 py-0.5 text-xs font-semibold text-slate-100"
+                      aria-label={t('dictation.clipCount', '{{count}} voice notes').replace('{{count}}', String(dictation.clipCount))}
+                    >
+                      {dictation.clipCount}
+                    </span>
+                  )}
+                </button>
+                <ConfirmationModal
+                  isOpen={showDictationIntro}
+                  title={t('dictation.firstRunTitle', 'Voice notes')}
+                  message={t(
+                    'dictation.firstRunBody',
+                    'Hold the button and speak - one observation per note. Recordings stay on this phone. MatchOps will now ask for microphone access.',
+                  )}
+                  confirmLabel={t('dictation.firstRunConfirm', 'Continue')}
+                  cancelLabel={t('common.cancel', 'Cancel')}
+                  variant="primary"
+                  onConfirm={() => {
+                    setShowDictationIntro(false);
+                    dictation.acknowledgeIntro();
+                  }}
+                  onCancel={() => setShowDictationIntro(false)}
+                />
+              </>
+            )}
+
             {/* Goal Buttons - Side by side layout */}
             <div className="flex gap-2 pt-1">
               <button

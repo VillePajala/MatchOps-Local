@@ -1056,6 +1056,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           logger.warn('[AuthProvider] Failed to delete backups database on account deletion:', error);
         }
+        // Kirjuri voice clips live in their own device-local DB (never synced or
+        // backed up) - account deletion is the one place it is removed.
+        try {
+          const { deleteAudioDatabase } = await import('@/utils/audioClipStore');
+          await deleteAudioDatabase(deletedUserId);
+        } catch (error) {
+          logger.warn('[AuthProvider] Failed to delete audio database on account deletion:', error);
+        }
       }
 
       logger.info('[AuthProvider] Account deleted successfully');

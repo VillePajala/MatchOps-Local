@@ -137,4 +137,74 @@ describe('TimerOverlay', () => {
       expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
     });
   });
+
+  describe('Kirjuri dictation button (PR 2)', () => {
+    const controls = () => ({
+      isSupported: true,
+      permission: 'unknown' as const,
+      isRecording: false,
+      clipCount: 0,
+      needsIntro: false,
+      acknowledgeIntro: jest.fn(),
+      start: jest.fn(),
+      stop: jest.fn(),
+    });
+
+    it('is absent when the feature is not wired', () => {
+      render(<TimerOverlay {...baseProps} />);
+      expect(screen.queryByTestId('dictation-hold')).not.toBeInTheDocument();
+    });
+
+    /** @critical - press starts, release stops: the whole in-game interaction. */
+    it('press starts and release stops the recorder', () => {
+      const dictation = controls();
+      render(<TimerOverlay {...baseProps} dictation={dictation} />);
+      const button = screen.getByTestId('dictation-hold');
+      fireEvent.pointerDown(button);
+      expect(dictation.start).toHaveBeenCalledTimes(1);
+      fireEvent.pointerUp(button);
+      expect(dictation.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('the first press explains and asks instead of recording; confirming acknowledges', () => {
+      const dictation = { ...controls(), needsIntro: true };
+      render(<TimerOverlay {...baseProps} dictation={dictation} />);
+      fireEvent.pointerDown(screen.getByTestId('dictation-hold'));
+      expect(dictation.start).not.toHaveBeenCalled();
+      expect(screen.getByText('Voice notes')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Continue'));
+      expect(dictation.acknowledgeIntro).toHaveBeenCalledTimes(1);
+    });
+
+    it('a held key toggles once, not on every auto-repeat', () => {
+      const dictation = controls();
+      render(<TimerOverlay {...baseProps} dictation={dictation} />);
+      const button = screen.getByTestId('dictation-hold');
+      fireEvent.keyDown(button, { key: ' ' });
+      fireEvent.keyDown(button, { key: ' ', repeat: true });
+      fireEvent.keyDown(button, { key: ' ', repeat: true });
+      expect(dictation.start).toHaveBeenCalledTimes(1);
+      expect(dictation.stop).not.toHaveBeenCalled();
+    });
+
+    it('is disabled when unsupported or denied, with the reason as title', () => {
+      const { unmount } = render(<TimerOverlay {...baseProps} dictation={{ ...controls(), isSupported: false }} />);
+      expect(screen.getByTestId('dictation-hold')).toBeDisabled();
+      expect(screen.getByTestId('dictation-hold').title).toMatch(/not supported/i);
+      unmount();
+      render(<TimerOverlay {...baseProps} dictation={{ ...controls(), permission: 'denied' }} />);
+      expect(screen.getByTestId('dictation-hold')).toBeDisabled();
+      expect(screen.getByTestId('dictation-hold').title).toMatch(/denied/i);
+    });
+
+    it('shows the stored clip count and the recording state', () => {
+      const { unmount } = render(<TimerOverlay {...baseProps} dictation={{ ...controls(), clipCount: 3 }} />);
+      expect(screen.getByTestId('dictation-clip-count')).toHaveTextContent('3');
+      unmount();
+      render(<TimerOverlay {...baseProps} dictation={{ ...controls(), isRecording: true, clipCount: 3 }} />);
+      expect(screen.getByTestId('dictation-hold')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByTestId('dictation-clip-count')).not.toBeInTheDocument();
+    });
+  });
+
 });
