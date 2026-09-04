@@ -12,7 +12,7 @@ via Edge Functions, Azure, PRO tier) and absorbs the roadmap's "Moment Capture" 
 ## Principles (do not re-litigate)
 
 - **Capture now, understand later.** In-game there is exactly one interaction: press,
-  speak, done. All intelligence (transcript cleanup, name matching, tagging) happens
+  speak, done. All intelligence (transcription, name matching, tagging) happens
   post-game in an inbox. The phone is a dictaphone during play, never a UI.
 - **Assessment is output, not input.** No sliders, no scales. AI summaries are generated
   from accumulated facts, revisable, and evidence-linked. (The assessment plan's point
@@ -20,10 +20,33 @@ via Edge Functions, Azure, PRO tier) and absorbs the roadmap's "Moment Capture" 
   post-match debrief is exactly that signal, captured cheaply.)
 - **Coach approves everything.** Nothing AI-generated is saved without explicit accept.
   Every note carries `source: 'dictation' | 'ai' | 'manual'`.
-- **BYOK, client-direct.** The coach's own API key, calls straight from the device to the
-  provider. MatchOps runs no AI infra and never sees the data in transit.
+- **MatchOps is never in the audio or AI data path.** Audio stays on the device. All
+  transcription and synthesis go from the device straight to a provider the user
+  connected with their own key (BYOK). MatchOps runs no AI infra and never receives
+  recordings or transcripts; it stores only the text notes the coach accepts - the same
+  data category as today's player notes and match reports.
 - **No always-on listening.** Push-to-talk only. Short deliberate clips of the coach's
   own voice.
+- **Safe by default for a user who configures nothing.** Audio deleted on accept and
+  after 30 days regardless; names tokenized before synthesis; the AI feature is off
+  until the user passes the consent gate.
+
+## Why BYOK and not Google Web Speech or on-device (decided 2026-09-04)
+
+- On-device is not available: Chrome's on-device Web Speech has no Finnish and is
+  desktop-only; browser Whisper models small enough for a phone are unusable for
+  Finnish (large-class models needed for ~10-15% WER cannot run in a phone browser).
+  The engine interface still probes `SpeechRecognition.available({langs:['fi-FI'],
+  processLocally:true})` so on-device becomes the default automatically if Chrome ever
+  ships it.
+- Google Web Speech (cloud) is free and keyless but audio goes to Google under Chrome's
+  consumer terms - nobody holds a contract for children's voice data. Rejected.
+- BYOK: the user's own provider account under API terms (OpenAI: not used for training,
+  30-day abuse-monitoring retention, US processing by default). Widely used pattern
+  (OpenAI-sanctioned; Warp, Home Assistant voice/STT, developer tools); the closest
+  competitor (Coachlog) takes audio into its own cloud, i.e. asks more trust than we do.
+  The Snap "My AI" case shows regulators check for a risk assessment, not for the
+  pattern itself - so this plan carries one (below).
 
 ## Codebase facts that shape the design (audited 2026-09-04)
 
@@ -56,11 +79,12 @@ via Edge Functions, Azure, PRO tier) and absorbs the roadmap's "Moment Capture" 
   working on / Team spirit and effort / Highlights / Next step), duplicated in
   `GameNotesEditor.tsx` and `GameSettingsModal.tsx`. No structured section model.
 - Nicknames: max 20 chars, auto-derived only for multi-word names; no fuzzy matching
-  exists anywhere (`normalizeNameForCompare` only). Web Speech on Android Chrome/TWA is
-  Google's cloud recognizer, not on-device.
+  exists anywhere (`normalizeNameForCompare` only).
 - No runtime permission prompt exists yet (mic will be the first). No Media Session,
   no global key handling, no touch shield. `useAppResume` force-reloads after >5 min in
   background unless the match timer is running.
+- A versioned re-acceptance pattern already exists (`ReConsentModal` for terms/privacy)
+  and is the template for the AI consent gate.
 
 ## Data model decisions
 
@@ -72,21 +96,85 @@ via Edge Functions, Azure, PRO tier) and absorbs the roadmap's "Moment Capture" 
   Notes ride the game's existing sync, export, backup and import remap. They enter undo
   history like goals (acceptable). Goal-log lists get a `type !== 'note'` filter.
 - **Player profile timeline** = note events across games where `entityId === playerId`,
-  shown in `PlayerStatsView` independently of assessments (the existing "Assessment
-  Notes" list stays gated with assessments).
+  shown in `PlayerStatsView` independently of assessments.
 - **Game timeline** = a notes card beside `GoalEventList` in the stats modal's right
-  column (not a generalisation of the goal list).
+  column.
 - **Audio clips**: dedicated IndexedDB DB `matchops_audio_{userId}` storing real Blobs
-  keyed by note id. Quota check before write, delete on accept (configurable), rotate
-  clips older than 30 days. Never in `savedSoccerGames`, never base64 in a game.
+  keyed by note id. Quota check before write, delete on accept (configurable), hard
+  delete of anything older than 30 days. Never in `savedSoccerGames`, never base64 in a
+  game, never synced.
 - **API key**: `matchops_ai_key` in its own localStorage module (device-local precedent).
   Excluded from backup/sync by construction; regression test asserts it never appears in
   `generateFullBackupJson`. Sentry `beforeSend`/`beforeBreadcrumb` scrub `sk-` patterns
   and provider hosts; the key module never passes its value to `logger.*`.
+- **Transcription engine interface**: `transcribe(clip, { language, vocabulary })` with
+  engines `byok-openai` (v1) and `on-device` (probed, used automatically when available).
+  No Google cloud engine.
 - **AI-generated per-player notes** save as note events with `source: 'ai'` on that
   game, referencing the packet hash so a re-run excludes already-applied proposals.
 - **Season summary output** (phase 5) is displayed/copied; persistent storage is a
   phase-5 decision (Player.notes is 1000 chars - too small).
+
+## Consent gate (before the AI feature can be enabled at all)
+
+A full-screen, versioned acknowledgement (reuse the `ReConsentModal` pattern; bump the
+version whenever the text changes and re-gate). The key field is disabled until every
+box is ticked. Plain language, EN + FI:
+
+**What happens with your data**
+- Recordings stay on this phone. MatchOps never receives your recordings, transcripts,
+  or AI results.
+- When you press Transcribe or Draft, the recording/notes are sent from this phone to
+  the AI provider YOU connected, under YOUR account and YOUR key. The provider may keep
+  the data for a limited time under its own terms (for example OpenAI: not used for
+  training, abuse-monitoring logs up to 30 days, processed in the US). Read your
+  provider's terms - MatchOps is not a party to them.
+- Costs are billed to your provider account. Create a dedicated key with a monthly
+  spend cap.
+- Player names are replaced with codes before any drafting request (you can turn this
+  off). Transcription necessarily contains what you said.
+- You can disconnect the provider and delete all recordings at any time from Settings.
+
+**Dictation rules (shown at the gate and always one tap away in the inbox)**
+- Talk about football actions, not people's lives.
+- Use first names or nicknames, never full names.
+- Never dictate health, injuries, family matters, or anything about parents, referees
+  or opponents by name.
+- Keep clips short; delete anything you would not want a parent to read.
+- You are responsible for what you dictate and for informing families where your
+  situation requires it - the app ships a ready-made parent-information text.
+
+**Acknowledgement boxes**
+1. I understand recordings and notes go to my own AI provider, under my account, and
+   MatchOps never receives them.
+2. I have read my provider's data terms and accept that they may retain data for a
+   limited time.
+3. I will follow the dictation rules and not dictate health or other sensitive data.
+
+## Risk assessment (DPIA-lite, kept current with the feature)
+
+- **Data**: coach's voice clips (may name minors by first name), text notes about
+  minors' football performance, coach-written match reports. No special-category data by
+  design (rules + hint); if dictated anyway, it is the user's content, deletable.
+- **Roles**: the user is the controller of their notes (as today for player notes).
+  MatchOps processes accepted text notes for sync/backup (existing footprint, no change).
+  The AI provider processes clips/notes under the user's own account; MatchOps is not a
+  party to that processing.
+- **Risks and mitigations**: audio leaving device unintentionally -> impossible without
+  key + gate + explicit action; over-retention -> delete on accept, 30-day hard cap,
+  transcripts only; excessive identification -> nickname guidance + tokenized names
+  for drafting; sensitive content -> rules + acknowledgement; key theft -> device-local,
+  masked, spend cap advice, Sentry scrub, backup-exclusion test; unclear disclosure ->
+  versioned gate, privacy policy + terms sections, in-app rules; user cannot exercise
+  rights -> disconnect + delete all recordings + delete notes; children's rights -> notes
+  are coach observations the child/guardian can request via the coach (as today).
+- **Residual risk**: provider-side retention under provider terms; user disregarding the
+  rules. Accepted; both are disclosed and under the user's control.
+- **Precedent**: BYOK is an established pattern; the closest competitor stores audio in
+  its own cloud; the one relevant enforcement case (Snap My AI) required a risk
+  assessment, not a ban. Recommended before phase 3 ships: a one-hour review of this
+  section with a Finnish data-protection lawyer or a written question to the
+  Tietosuojavaltuutettu.
 
 ## Data rules
 
@@ -94,31 +182,28 @@ via Edge Functions, Azure, PRO tier) and absorbs the roadmap's "Moment Capture" 
 - Every clip is stamped with clock + period at press time.
   Example: `{ type: 'note', time: 1834, period: 2, entityId: 'p-emma', text: "hieno
   syöttö paineen alla", source: 'dictation' }`.
-- Raw audio is device-local only and deleted when its note is accepted (configurable).
-  Audio never syncs; accepted note text syncs with the game.
-- Live transcription in phase 1 uses the platform Web Speech service (on Android:
-  Google's recognizer - the same service behind the keyboard mic button). This is
-  disclosed in-app next to the feature toggle. Coaches who decline get audio-only capture
-  and type from replay in the inbox. Phase 3 adds transcription through the coach's own
-  BYOK provider as the privacy-preferred path.
+- Raw audio is device-local only, deleted when its note is accepted (configurable) and
+  hard-deleted after 30 days. Audio never syncs; accepted note text syncs with the game.
+- No live transcription. Clips are transcribed post-game in the inbox through the
+  connected provider (batch, one tap, shows the estimated cost), with the game roster's
+  nicknames passed as vocabulary hints. Without a connected provider the inbox offers
+  replay + typing.
 
 **Name matching (Finnish inflection is real: "Emman syöttö")**
 - Match transcript tokens against the game roster first, then the master roster, using
   nickname or first word of name (`gameRecap.ts` convention), by normalized stem prefix
   + small edit distance. Show the guess as a chip; coach confirms with one tap.
 - Pseudonymization replaces all matched tokens (inflected forms included) with `P<n>`
-  keyed by `entityId`. Residual leakage of unmatched spoken names is possible and is
-  disclosed; a spoken nickname matches best.
+  keyed by `entityId` before any drafting request. Residual leakage of unmatched spoken
+  names is possible and is disclosed.
 
 **API key**
 - Device-local only. Never synced, never in backups/exports, never logged, never sent to
-  Sentry. Masked input, test button, delete button.
-- Onboarding text tells the coach to create a dedicated key with a monthly spend cap.
+  Sentry. Masked input, test button, delete button, "delete all recordings" button.
 
 **AI transfer**
-- Pseudonymized by default; coach can disable; default stays on.
-- Sent only on an explicit coach action, only to the coach's chosen provider with the
-  coach's key. One match costs cents on a mini-class model.
+- Only after the consent gate, only on an explicit coach action, only to the coach's
+  chosen provider with the coach's key. Pseudonymized by default for drafting.
 
 **AI output**
 - Responses must match a versioned JSON schema (`aiSchema v1`, provider structured
@@ -141,68 +226,75 @@ bullet (its test asserts the section set).
   recording session is active (lift `useWakeLock` so the timer and the recorder share
   one instance). Sentry scrub rules for `sk-` and provider hosts.
 
-**Phase 1 - Capture core** (useful alone, no AI, no Bluetooth)
+**Phase 1 - Capture + transcription core** (no Bluetooth, no drafting)
 - PR 1: note event type end to end: TS union, zod, `VALID_GAME_EVENT_TYPES`, both
   transforms, `types/supabase.ts`, migration 041, goal-log filters, tests including a
   cloud round-trip and a backup-restore parse.
 - PR 2: recording controller hook at orchestration level (reads `elapsedRef`, period,
   status; suppresses `useAppResume` reload while a session is active); press-hold mic
-  button in the timer overlay's goal-button row; MediaRecorder clip into the audio DB +
-  Web Speech live transcript (fi-FI, feature-detected) + disclosure; first-run
-  permission UX incl. denied/blocked states; "note captured" undo toast.
+  button in the timer overlay's goal-button row; MediaRecorder clip into the audio DB;
+  first-run permission UX incl. denied/blocked states; "note captured" undo toast;
+  30-day audio rotation.
 - PR 3: dictation inbox row on the wrap-up card (count from `gameCompleteness`):
-  transcript, replay, fuzzy player chip, accept/edit/reject; accepted notes get
+  replay, typed text, fuzzy player chip, accept/edit/reject; accepted notes get
   `source: 'dictation'`; notes card in the stats modal; player profile notes list.
+- PR 4: consent gate (versioned) + AI settings card in Settings > General: provider
+  (OpenAI first, field designed for more), key handling per the data rules, test call,
+  disconnect + delete-all-recordings; `connect-src` gains the provider host; privacy
+  policy + terms sections; parent-information text; Play Data Safety re-checked.
+- PR 5: transcription engine interface + `byok-openai` engine (multipart upload,
+  `language: fi`, roster vocabulary prompt) + on-device probe; inbox "Transcribe N
+  clips" batch with cost estimate; dictation rules reachable from the inbox.
 
 **Phase 2 - Hands-free**
 - Spike first (half a day, throwaway): silent-track Media Session in the TWA - do
   earbud play/pause taps reach the page, and does the mic stream survive a pocketed
   screen-on phone?
-- PR 4: Media Session action handlers toggling the recording controller; earcon
+- PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
-- PR 5: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.
+- PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.
 
-**Phase 3 - BYOK post-match AI**
-- PR 6: AI card in Settings > General (below Preferences; a fifth tab crowds mobile):
-  provider (OpenAI first, field designed for more), key handling per the data rules,
-  pseudonymize toggle, test call; `connect-src` gains the provider host; privacy policy
-  page updated (mic + optional BYOK AI); Play Data Safety re-checked.
-- PR 7: GamePacket builder (score, events, minutes + positions, demand level, notes,
+**Phase 3 - Post-match drafting**
+- PR 8: GamePacket builder (score, events, minutes + positions, demand level, notes,
   pseudonymized roster keyed by `entityId`) + schema v1 + client call + validation.
-- PR 8: review screen + apply-on-approve with provenance; match report draft under the
-  7 headings; `gameNotes` cap 4000; BYOK transcription for clips whose live transcript
-  was declined or empty.
+- PR 9: review screen + apply-on-approve with provenance; match report draft under the
+  7 headings; `gameNotes` cap 4000.
 
 **Phase 4 - Spoken debrief**
-- PR 9: 60-second post-match voice memo (optional halftime memo) feeding the
+- PR 10: 60-second post-match voice memo (optional halftime memo) feeding the
   GamePacket.
 
 **Phase 5 - Season synthesis**
-- PR 10: per-player season summary over accumulated notes + minutes + positions;
+- PR 11: per-player season summary over accumulated notes + minutes + positions;
   decide its storage. Closes the AI Assistant "richer data collection" prerequisite.
 
 ## Testing
 
-Unit tests with mocked `MediaRecorder` / `SpeechRecognition` / `mediaSession` /
-`getUserMedia`; the note round-trip and backup-restore tests in PR 1; the backup-excludes-
-key test in PR 6. A manual device checklist per phase (Android phone, earbuds, TWA build)
-because none of the media APIs run in jsdom or Playwright.
+Unit tests with mocked `MediaRecorder` / `mediaSession` / `getUserMedia` / fetch; the
+note round-trip and backup-restore tests in PR 1; the backup-excludes-key test and the
+gate-blocks-key test in PR 4. A manual device checklist per phase (Android phone,
+earbuds, TWA build) because none of the media APIs run in jsdom or Playwright.
 
 ## Later (not in this build)
 
-BLE keyfob push-to-talk (Web Bluetooth), on-device transcription (Whisper WASM spike),
-voice commands that create real events, a hosted AI tier on MatchOps' own key, parent
-share cards fed by AI summaries.
+BLE keyfob push-to-talk (Web Bluetooth), voice commands that create real events, a
+hosted AI tier on MatchOps' own key (deliberately avoided: it would make MatchOps the
+processor for every recording), EU-hosted provider option once one supports Finnish,
+parent share cards fed by AI summaries.
 
 ## Decisions log
 
-- 2026-09-04: BYOK approved (safe given the data rules); pseudonymization default ON;
-  OpenAI-only first; audio never syncs in v1; earbud taps chosen over BLE fob / wake
-  word (wake word rejected on privacy); attendance tracking rejected; clock-pinned
-  manual event tapping rejected (forces eyes on phone - dictation instead).
+- 2026-09-04: BYOK approved; pseudonymization default ON; OpenAI-only first; audio
+  never syncs; earbud taps chosen over BLE fob / wake word (wake word rejected on
+  privacy); attendance tracking rejected; clock-pinned manual event tapping rejected
+  (forces eyes on phone); jersey-number speech handles rejected (cannot control speech,
+  duplicate numbers at U10).
 - 2026-09-04 (audit): notes = `gameEvents` `type: 'note'` with `entityId`, not a new
   entity; audio in a dedicated Blob DB; key in a device-local module; PR 0 added for the
-  three header blockers + wake lock + Sentry scrub; Media Session spike before PR 4;
-  match report stays plain text under the 7 real headings (cap 2000 -> 4000); live
-  transcription = platform speech service with disclosure, BYOK transcription as the
-  privacy-preferred path from phase 3.
+  three header blockers + wake lock + Sentry scrub; Media Session spike before the
+  hands-free PRs; match report stays plain text under the 7 real headings (cap 2000 ->
+  4000).
+- 2026-09-04 (privacy): Google Web Speech dropped; on-device not viable for Finnish
+  today (probe kept); BYOK transcription moved into Phase 1 behind a versioned consent
+  gate with dictation rules; 30-day hard audio cap; risk assessment kept in this doc;
+  lawyer/Ombudsman review recommended before the drafting phase ships.
