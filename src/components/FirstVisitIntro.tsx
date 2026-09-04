@@ -99,24 +99,23 @@ const FirstVisitIntro: React.FC<FirstVisitIntroProps> = ({ surface, text, overla
 
   return (
     <div data-testid={`first-visit-${surface}`} className={`${base} ${className}`.trim()}>
-      {/* Dialog composition (owner round 6): text full-width, action pinned
-          bottom-right - the old side-by-side row left the button floating at
-          the top of a tall ragged column on multi-line notes. */}
+      {/* Composition (owner round 8): text full-width, then a full-width
+          Selva row - the house's solid full-width-on-phone style; a
+          bottom-right button left a hollow band across the card on short
+          notes. */}
       <div className="rounded-[14px] bg-slate-900/95 backdrop-blur-md px-4 py-3">
         <p className="text-sm leading-snug text-slate-100">{text}</p>
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            data-testid={`first-visit-${surface}-dismiss`}
-            onClick={() => {
-              markSeen(surface, userId);
-              setDismissed(true);
-            }}
-            className="rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
-          >
-            {t('firstVisit.gotIt', 'Got it')}
-          </button>
-        </div>
+        <button
+          type="button"
+          data-testid={`first-visit-${surface}-dismiss`}
+          onClick={() => {
+            markSeen(surface, userId);
+            setDismissed(true);
+          }}
+          className="w-full mt-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+        >
+          {t('firstVisit.gotIt', 'Got it')}
+        </button>
       </div>
     </div>
   );
