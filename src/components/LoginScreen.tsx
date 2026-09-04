@@ -24,6 +24,9 @@ interface LoginScreenProps {
   onUseLocalMode?: () => void;
   /** Whether to allow registration (false on desktop - must subscribe via Android app) */
   allowRegistration?: boolean;
+  /** Which auth mode the form opens in. Defaults to 'signIn'; the production
+   *  cloud funnel passes 'signUp' so new users land on Create Account. */
+  initialMode?: 'signIn' | 'signUp';
 }
 
 /**
@@ -36,7 +39,7 @@ interface LoginScreenProps {
  * - Sign up with email/password (with password requirements)
  * - Password reset via email
  */
-export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration = true }: LoginScreenProps) {
+export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration = true, initialMode = 'signIn' }: LoginScreenProps) {
   const { t } = useTranslation();
 
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
@@ -75,7 +78,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
       </div>
 
       {/* === MAIN CONTENT === */}
-      <div className="relative z-10 flex-1 flex flex-col px-6 py-8 pb-safe">
+      <div className="relative z-10 flex-1 flex flex-col px-6 pt-6 pb-10 pb-safe">
 
         {/* === TOP: Back Button + Language Switcher === */}
         <div className="flex justify-between items-center mb-4">
@@ -123,16 +126,19 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
         </div>
 
         {/* === HERO: App Name === */}
-        <div className="flex-1 flex flex-col justify-center">
+        {/* py-6 keeps the centered block off both edges even when the tall
+            signUp form fills the screen - the footer link must never hug the
+            gesture bar (owner round 7). */}
+        <div className="flex-1 flex flex-col justify-center py-6">
           <div className="max-w-sm mx-auto w-full">
             {/* App name */}
             <div className="text-center mb-8">
-              <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-amber-400">
+              <h1 className="text-[clamp(2.3rem,10.5vw,3.5rem)] font-bold tracking-tight text-amber-400">
                 MatchOps
               </h1>
             </div>
 
-            <AuthForm allowRegistration={allowRegistration} />
+            <AuthForm allowRegistration={allowRegistration} initialMode={initialMode} />
 
             {/* Use without account option */}
             {onUseLocalMode && (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 jest.mock('@/i18n', () => ({
@@ -41,6 +41,7 @@ jest.mock('react-i18next', () => ({
 
 import i18n from '@/i18n';
 import StartScreen from './StartScreen';
+import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 
 describe('StartScreen', () => {
   it('renders experienced user interface with all action buttons', () => {
@@ -310,7 +311,7 @@ describe('StartScreen', () => {
 
     const openGear = () => fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
 
-    it('shows a "Getting started (N/4)" gear entry that opens the checklist (not on the home tabs)', async () => {
+    it('shows a "Setup checklist (N/4)" gear entry that opens the checklist (not on the home tabs)', async () => {
       render(
         <StartScreen
           {...baseHandlers()}
@@ -325,12 +326,87 @@ describe('StartScreen', () => {
 
       openGear();
       const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      const entry = await within(sheet).findByRole('button', { name: /Getting started/ });
+      const entry = await within(sheet).findByRole('button', { name: /Setup checklist/ });
       fireEvent.click(entry);
 
       // The checklist opens in its own sheet.
       expect(await screen.findByText('Get the most out of MatchOps')).toBeInTheDocument();
       expect(screen.getByText('Build a team')).toBeInTheDocument();
+    });
+
+    it('the home-surface getting-started banner is GONE (superseded by the composed start screen)', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      // The gear entry (previous test) remains the post-game setup path.
+      await screen.findByRole('button', { name: 'Settings' });
+      expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
+    });
+
+    it('has no getting-started banner for first-time users', () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={false}
+          hasSavedGames={false}
+          isFirstTimeUser={true}
+          setupProgress={{ players: false, competition: false, team: false, teamLinkedGame: false }}
+        />
+      );
+      expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
+    });
+
+    it('gear sheet offers a restart-the-guide entry when the tour provider is present', () => {
+      render(
+        <GuidedTourProvider>
+          <StartScreen
+            {...baseHandlers()}
+            canResume={false}
+            hasSavedGames={false}
+            isFirstTimeUser={false}
+            setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
+          />
+        </GuidedTourProvider>
+      );
+      openGear();
+      fireEvent.click(screen.getByTestId('gear-restart-tour'));
+      // The coached tour starts from its first step.
+      expect(screen.getByTestId('guided-tour-title')).toHaveTextContent('Welcome to MatchOps');
+    });
+
+    it('has no restart-the-guide entry without a tour provider', () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={false}
+          hasSavedGames={false}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
+        />
+      );
+      openGear();
+      expect(screen.queryByTestId('gear-restart-tour')).not.toBeInTheDocument();
+    });
+
+    it('has no getting-started banner once setup is complete', async () => {
+      render(
+        <StartScreen
+          {...baseHandlers()}
+          canResume={true}
+          hasSavedGames={true}
+          isFirstTimeUser={false}
+          setupProgress={{ players: true, competition: true, team: true, teamLinkedGame: true }}
+        />
+      );
+      // Allow the post-hydration effect to run, then assert the banner never appears.
+      await screen.findByRole('button', { name: 'Settings' });
+      expect(screen.queryByTestId('setup-banner')).not.toBeInTheDocument();
     });
 
     it('has no setup entry once all steps are complete', async () => {
@@ -345,7 +421,7 @@ describe('StartScreen', () => {
       );
       openGear();
       const sheet = await screen.findByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
     });
 
     it('has no setup entry for first-time users', () => {
@@ -360,7 +436,7 @@ describe('StartScreen', () => {
       );
       openGear();
       const sheet = screen.getByRole('dialog', { name: 'App & account' });
-      expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
     });
 
     it('the checklist × dismisses the gear entry across renders', async () => {
@@ -374,7 +450,7 @@ describe('StartScreen', () => {
       const { unmount } = render(<StartScreen {...props} />);
       openGear();
       let sheet = screen.getByRole('dialog', { name: 'App & account' });
-      fireEvent.click(await within(sheet).findByRole('button', { name: /Getting started/ }));
+      fireEvent.click(await within(sheet).findByRole('button', { name: /Setup checklist/ }));
       fireEvent.click(screen.getByRole('button', { name: 'Dismiss' })); // the card's ×
 
       unmount();
@@ -382,7 +458,7 @@ describe('StartScreen', () => {
       openGear();
       sheet = screen.getByRole('dialog', { name: 'App & account' });
       // Persisted dismissal keeps the gear entry hidden.
-      expect(within(sheet).queryByRole('button', { name: /Getting started/ })).not.toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Setup checklist/ })).not.toBeInTheDocument();
     });
 
     it('opening the setup sheet closes the gear sheet (not stacked)', async () => {
@@ -396,7 +472,7 @@ describe('StartScreen', () => {
         />
       );
       openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Getting started/ }));
+      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
       // Gear sheet is gone; only the setup sheet remains.
       expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
       expect(screen.getByRole('dialog', { name: 'Get the most out of MatchOps' })).toBeInTheDocument();
@@ -413,7 +489,7 @@ describe('StartScreen', () => {
         />
       );
       openGear();
-      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Getting started/ }));
+      fireEvent.click(await within(screen.getByRole('dialog', { name: 'App & account' })).findByRole('button', { name: /Setup checklist/ }));
       expect(screen.getByText('Get the most out of MatchOps')).toBeInTheDocument();
 
       // Tap the backdrop (not the ×) - closes the sheet only.
@@ -422,7 +498,7 @@ describe('StartScreen', () => {
 
       // The gear entry is NOT dismissed - it reopens.
       openGear();
-      expect(within(screen.getByRole('dialog', { name: 'App & account' })).getByRole('button', { name: /Getting started/ })).toBeInTheDocument();
+      expect(within(screen.getByRole('dialog', { name: 'App & account' })).getByRole('button', { name: /Setup checklist/ })).toBeInTheDocument();
     });
   });
 });
@@ -440,6 +516,107 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     canResume: true,
     hasSavedGames: true,
     isFirstTimeUser: false,
+  });
+
+  describe('Onboarding v2 composition (pre-first-game)', () => {
+    beforeEach(() => localStorage.clear());
+
+    const composeProps = (progress: { players: boolean; team: boolean }) => ({
+      onLoadGame: jest.fn(),
+      onResumeGame: jest.fn(),
+      onGetStarted: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
+      onManageRoster: jest.fn(),
+      onManageTeams: jest.fn(),
+      onNewGame: jest.fn(),
+      canResume: false,
+      hasSavedGames: false,
+      isFirstTimeUser: !progress.players,
+      setupProgress: { ...progress, competition: false, teamLinkedGame: false },
+    });
+
+    /**
+     * @critical - The screen itself is the checklist: no players -> the hero
+     * is Add players, and the later steps stay VISIBLE as ordered rows
+     * (reorder, never hide).
+     */
+    it('empty account: Add players is the hero, team and game are visible ordered rows', () => {
+      const props = composeProps({ players: false, team: false });
+      render(<StartScreen {...props} />);
+
+      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Welcome! Start by adding your players.');
+      fireEvent.click(screen.getByTestId('hero-add-players'));
+      expect(props.onManageRoster).toHaveBeenCalledTimes(1);
+
+      const steps = screen.getByTestId('onboarding-steps');
+      expect(within(steps).getByText('Create your team')).toBeInTheDocument();
+      // New Game stays reachable (and keeps the tour anchor).
+      fireEvent.click(within(steps).getByTestId('tour-new-game'));
+      expect(props.onNewGame).toHaveBeenCalledTimes(1);
+    });
+
+    it('players done: Create your team is the hero, players row shows a check', () => {
+      const props = composeProps({ players: true, team: false });
+      render(<StartScreen {...props} />);
+
+      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('Good start! Next, create your team.');
+      fireEvent.click(screen.getByTestId('hero-create-team'));
+      expect(props.onManageTeams).toHaveBeenCalledTimes(1);
+
+      // Done steps collapse into the one-line summary (owner round 4).
+      const summary = screen.getByTestId('onboarding-done-summary');
+      expect(within(summary).getByText('✓')).toBeInTheDocument();
+      expect(within(summary).getByText('Add players')).toBeInTheDocument();
+    });
+
+    it('compose mode defers the side rows (planner, Taso) until the first game exists', () => {
+      const props = { ...composeProps({ players: true, team: true }), onOpenPlanner: jest.fn() };
+      render(<StartScreen {...props} />);
+      expect(screen.queryByText('Match planner')).not.toBeInTheDocument();
+      expect(screen.queryByText(/Taso/)).not.toBeInTheDocument();
+
+      cleanup();
+      // With a game saved, composition ends and the rows return.
+      render(<StartScreen {...props} hasSavedGames={true} />);
+      expect(screen.getByText('Match planner')).toBeInTheDocument();
+      expect(screen.getByText(/Taso/)).toBeInTheDocument();
+    });
+
+    /**
+     * @critical - Wizard graduates here: team + players exist, no games ->
+     * the stock amber New Game hero takes over (no duplicate custom hero).
+     */
+    it('team ready: the stock New Game hero leads and the strip says all set', () => {
+      const props = composeProps({ players: true, team: true });
+      render(<StartScreen {...props} />);
+
+      expect(screen.getByTestId('welcome-strip')).toHaveTextContent('All set!');
+      expect(screen.queryByTestId('hero-add-players')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('hero-create-team')).not.toBeInTheDocument();
+      // Exactly ONE tour-new-game element (the stock hero), no step duplicate.
+      expect(screen.getAllByTestId('tour-new-game')).toHaveLength(1);
+      fireEvent.click(screen.getByTestId('tour-new-game'));
+      expect(props.onNewGame).toHaveBeenCalledTimes(1);
+    });
+
+    it('once a game exists the composition and strip are gone', () => {
+      const props = { ...composeProps({ players: true, team: true }), hasSavedGames: true };
+      render(<StartScreen {...props} />);
+      expect(screen.queryByTestId('welcome-strip')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('onboarding-steps')).not.toBeInTheDocument();
+    });
+
+    it('the welcome strip carries the opt-in tour link', () => {
+      const props = composeProps({ players: false, team: false });
+      render(
+        <GuidedTourProvider>
+          <StartScreen {...props} />
+        </GuidedTourProvider>
+      );
+      fireEvent.click(screen.getByTestId('welcome-strip-tour'));
+      expect(screen.getByTestId('guided-tour-overlay')).toBeInTheDocument();
+    });
   });
 
   it('renders the four club-level tabs with Games active', () => {

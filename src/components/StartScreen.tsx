@@ -9,6 +9,8 @@ import RecommendedSetupCard, { type SetupProgress } from '@/components/Recommend
 import type { HomeSummary } from '@/utils/homeSummary';
 import { HomeDashboard, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
+import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
+import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
 import { isAndroid } from '@/utils/platform';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 
@@ -109,7 +111,25 @@ const StartScreen: React.FC<StartScreenProps> = ({
   // action a new coach needs (players are added inside the new-game flow). When
   // there's a game to resume, Continue is the hero and New Game steps back to a row.
   const newGamePrimary = !canResume && !dashboardOn;
+
+  // Onboarding v2 (PR 20): pre-first-game composition. Until the first game
+  // exists, the Pelit page itself is the checklist - the HERO is the next
+  // missing step (players -> team -> game) and the other steps stay visible as
+  // ordered rows (reorder, never hide - owner decision). Once a game exists
+  // (or one is resumable) the screen returns to its normal shape for good.
+  const composeOnboarding = !!setupProgress && !hasSavedGames && !canResume;
+  const heroStep: 'players' | 'team' | 'game' | null = !composeOnboarding
+    ? null
+    : !setupProgress.players
+      ? 'players'
+      : !setupProgress.team
+        ? 'team'
+        : 'game';
   const { user, mode } = useAuth();
+  // Optional: present only when the app mounts the tour provider. Used for the
+  // gear-sheet "restart the guide" entry - the safety net for an accidental
+  // skip (skipping otherwise marks the tour done forever) and a refresher.
+  const guidedTour = useGuidedTourOptional();
   // SSR-safe initial value: must match i18n.ts default ('fi') so the server-rendered
   // HTML and the first client render produce identical markup. Reading i18n.language
   // here directly causes a hydration mismatch when localStorage holds a non-default
@@ -264,19 +284,52 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
 
             {/* Tagline - shown in the simple launcher (the dashboard packs its
                 own summary under the logo, so a tagline there would crowd it). */}
-            {!dashboardOn && (
+            {/* Compose mode uses the compact wordmark and skips the tagline so
+                the welcome strip + hero + step rows fit above the fold (owner
+                round 2: the strip pushed content off-screen). */}
+            {!dashboardOn && !composeOnboarding && (
               <p className="text-lg text-slate-400">
                 {t('startScreen.tagline', 'Plan · Track · Discover')}
               </p>
             )}
           </div>
+
+          {/* Welcome strip (Onboarding v2): a quiet one-liner that names the
+              next step and carries the OPT-IN tour link. Lives only in the
+              pre-first-game phase; it disappears naturally once a game exists.
+              It supersedes the old "Getting started" home banner (the gear
+              entry still covers post-game setup like seasons). */}
+          {composeOnboarding && (
+            <div className="max-w-sm mx-auto w-full mb-3">
+              <div
+                data-testid="welcome-strip"
+                className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-slate-100"
+              >
+                {heroStep === 'players'
+                  ? t('startScreen.welcomeStripStart', 'Welcome! Start by adding your players.')
+                  : heroStep === 'team'
+                    ? t('startScreen.welcomeStripTeam', 'Good start! Next, create your team.')
+                    : t('startScreen.welcomeStripReady', 'All set! Your team and players are ready for the first game.')}
+                {guidedTour && (
+                  <button
+                    type="button"
+                    data-testid="welcome-strip-tour"
+                    onClick={() => guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps)}
+                    className="block mt-1 text-xs text-amber-400 hover:text-amber-300 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 rounded"
+                  >
+                    {t('startScreen.welcomeStripTour', 'Want the getting-started guide?')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* === HOME TABS (two-level restructure PR 1.2, strangler stage):
               Pelit is this page; the other tabs OPEN THE EXISTING MODALS
@@ -289,6 +342,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   type="button"
                   role="tab"
                   aria-selected={activeTab === 'games'}
+                  data-testid="tour-tab-games"
                   onClick={() => setActiveTab('games')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'games'
@@ -302,6 +356,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   type="button"
                   role="tab"
                   aria-selected={activeTab === 'team'}
+                  data-testid="tour-tab-club"
                   onClick={() => setActiveTab('team')}
                   className={`flex-1 px-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
                     activeTab === 'team'
@@ -364,6 +419,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     type="button"
                     onClick={onManageRoster}
                     disabled={!onManageRoster}
+                    data-testid="tour-players"
                     className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
                       onManageRoster
                         ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
@@ -378,6 +434,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     type="button"
                     onClick={onManageTeams}
                     disabled={!onManageTeams}
+                    data-testid="tour-teams"
                     className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
                       onManageTeams
                         ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
@@ -520,6 +577,88 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  entry rows. The Stats/Load grid buttons are gone: the tab bar
                  and the rows below cover both. */
               <>
+                {/* Onboarding v2 composition: amber hero = next missing step
+                    (the game step reuses the existing New Game hero below);
+                    the remaining steps render as ordered rows - done ones get
+                    a quiet check, pending ones a step badge. */}
+                {composeOnboarding && heroStep !== 'game' && (
+                  <button
+                    type="button"
+                    onClick={heroStep === 'players' ? onManageRoster : onManageTeams}
+                    disabled={heroStep === 'players' ? !onManageRoster : !onManageTeams}
+                    data-testid={heroStep === 'players' ? 'hero-add-players' : 'hero-create-team'}
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
+                  >
+                    {heroStep === 'players'
+                      ? t('startScreen.heroAddPlayers', 'Add players')
+                      : t('startScreen.heroCreateTeam', 'Create your team')}
+                  </button>
+                )}
+                {composeOnboarding && (
+                  <div className="space-y-2" data-testid="onboarding-steps">
+                    {/* DONE steps collapse into one quiet line (owner round 4:
+                        two full-height check rows pushed the page past the
+                        fold); pending steps keep their full rows below. */}
+                    {(setupProgress?.players || setupProgress?.team) && (
+                      <div
+                        data-testid="onboarding-done-summary"
+                        className="flex items-center gap-4 px-1 pt-0.5 text-sm text-slate-400"
+                      >
+                        {setupProgress?.players && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-green-400" aria-hidden="true">✓</span>
+                            {t('startScreen.heroAddPlayers', 'Add players')}
+                          </span>
+                        )}
+                        {setupProgress?.team && (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-green-400" aria-hidden="true">✓</span>
+                            {t('startScreen.heroCreateTeam', 'Create your team')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {heroStep !== 'players' && !setupProgress?.players && (
+                      <button
+                        type="button"
+                        onClick={onManageRoster}
+                        disabled={!onManageRoster}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                      >
+                        <span className="text-sm font-semibold text-white">{t('startScreen.heroAddPlayers', 'Add players')}</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 1 })}
+                        </span>
+                      </button>
+                    )}
+                    {heroStep !== 'team' && !setupProgress?.team && (
+                      <button
+                        type="button"
+                        onClick={onManageTeams}
+                        disabled={!onManageTeams}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                      >
+                        <span className="text-sm font-semibold text-white">{t('startScreen.heroCreateTeam', 'Create your team')}</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 2 })}
+                        </span>
+                      </button>
+                    )}
+                    {heroStep !== 'game' && (
+                      <button
+                        type="button"
+                        onClick={onNewGame ?? onGetStarted}
+                        data-testid="tour-new-game"
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                      >
+                        <span className="text-sm font-semibold text-white">{t('startScreen.newGame', 'New Game')}</span>
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 bg-slate-700/60 rounded-full px-2 py-0.5">
+                          {t('startScreen.stepBadge', 'Step {{n}}', { n: 3 })}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
                 {dashboardOn && homeSummary ? (
                   /* Opt-in dashboard: informative resume card + Vuosi record +
                      recent strip, in place of the plain Continue button. */
@@ -534,7 +673,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <button
                     type="button"
                     onClick={onResumeGame}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
                   >
                     {t('startScreen.resumeCard', 'Continue')}
                   </button>
@@ -543,12 +682,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     coach adds players inside this flow); otherwise a standard
                     row - paired with Saved games in dashboard mode, stacked in
                     the simple launcher. Saved games hides when there are none. */}
-                {newGamePrimary ? (
+                {(!composeOnboarding || heroStep === 'game') && (newGamePrimary ? (
                   <>
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
-                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center"
+                      data-testid="tour-new-game"
+                      className="w-full p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-900 font-bold text-lg hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20 text-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500"
                     >
                       {t('startScreen.newGame', 'New Game')}
                     </button>
@@ -570,6 +710,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
+                      data-testid="tour-new-game"
                       className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
                     >
                       <span className="text-sm font-semibold text-white">
@@ -590,9 +731,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       </button>
                     )}
                   </div>
-                )}
+                ))}
 
-                {onOpenPlanner && (
+                {/* Side entries are DEFERRED while composing (owner round 4:
+                    they pushed the onboarding screen past the fold and are
+                    dead weight before the first game); back automatically
+                    once a game exists. */}
+                {!composeOnboarding && onOpenPlanner && (
                   <button
                     type="button"
                     onClick={onOpenPlanner}
@@ -607,6 +752,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
                     burial under the gear. Solid row like its siblings (3.1b). */}
+                {!composeOnboarding && (
                 <a
                   href="https://taso.palloliitto.fi"
                   target="_blank"
@@ -618,6 +764,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   </span>
                   <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
                 </a>
+                )}
               </>
             )}
           </div>
@@ -694,7 +841,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {/* Setup tracker (moved off the home tabs) - on-demand, shows N/4. */}
               {showSetupEntry && (
                 <button type="button" onClick={() => { setShowGearSheet(false); setShowSetupSheet(true); }} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                  <span>{t('startScreen.gearSetup', 'Getting started ({{done}}/4)', { done: setupDoneCount })}</span>
+                  <span>{t('startScreen.gearSetup', 'Setup checklist ({{done}}/4)', { done: setupDoneCount })}</span>
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
               )}
@@ -702,6 +849,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
               {onOpenGuide && (
                 <button type="button" onClick={() => { setShowGearSheet(false); onOpenGuide(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
                   {t('startScreen.gearGuide', 'How it works')}
+                </button>
+              )}
+              {/* Restart the first-run coached tour on demand: the recovery for
+                  an accidental skip and a refresher for returning coaches. */}
+              {guidedTour && (
+                <button
+                  type="button"
+                  data-testid="gear-restart-tour"
+                  onClick={() => { setShowGearSheet(false); guidedTour.startTour(FIRST_RUN_TOUR_ID, firstRunTourSteps); }}
+                  className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors"
+                >
+                  {t('startScreen.gearRestartTour', 'Getting started guide')}
                 </button>
               )}
               <a href="https://www.match-ops.com/guide" target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">

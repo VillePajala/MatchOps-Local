@@ -41,6 +41,17 @@ export function isHandlingHardwareBack(): boolean {
   return handlingHardwareBack;
 }
 
+/** Number of surfaces currently registered with the back contract. Lets the
+ *  guided tour offer a "Continue" button that performs a back navigation: with
+ *  a surface registered, the back is guaranteed to be consumed by the sentinel
+ *  (closing only the topmost surface) and can never navigate the page away.
+ *  Callers must mind the BASELINE: the match screen itself holds one
+ *  registration (page.tsx's back-to-Home guard), so on that screen a count of
+ *  1 means "no modal open" - a back there would exit the match. */
+export function liftedSurfaceCount(): number {
+  return modalStack.length;
+}
+
 function pushSentinel(): void {
   window.history.pushState({ liftedModal: true }, '');
   sentinelPushed = true;

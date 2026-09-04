@@ -8,6 +8,7 @@ import type { PlannedSubPrompt } from '@/hooks/usePlannedSubPrompts';
 import { formatTime } from '@/utils/time';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 
 interface TimerOverlayProps {
@@ -239,6 +240,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   return (
     <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-3 pt-6 ${bgColor} backdrop-blur-lg`}>
       <div className="w-full max-w-lg flex flex-col items-center mt-2 sm:mt-4 md:mt-6">
+        <FirstVisitIntro
+          surface="timer"
+          className="w-full mb-4"
+          text={t('firstVisit.timer', 'Start and pause the clock here - goals and substitutions are logged from this view too.')}
+        />
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER.
             3-column grid so long team names wrap inside their own column while
             the score stays fixed in the centre and vertically centred against
@@ -301,8 +307,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
         {/* Timer Controls */}
         <div className="flex items-center gap-3 mb-3"> 
-          <button 
-            onClick={onStartPauseTimer} 
+          <button
+            onClick={onStartPauseTimer}
+            data-testid="tour-timer-startpause"
             disabled={gameStatus === 'gameEnd' || !isLoaded} // Disable when game ended OR NOT LOADED
             className={`${timerButtonStyle} ${isTimerRunning ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-400' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'} ${gameStatus === 'gameEnd' || !isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
             aria-label={isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.startButton', 'Start')}
@@ -406,8 +413,9 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             
             {/* Goal Buttons - Side by side layout */}
             <div className="flex gap-2 pt-1">
-              <button 
-                onClick={onToggleGoalLogModal} 
+              <button
+                onClick={onToggleGoalLogModal}
+                data-testid="tour-log-goal"
                 className={`${secondaryActionStyle} flex-1`}
                 title={`${displayHomeTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >

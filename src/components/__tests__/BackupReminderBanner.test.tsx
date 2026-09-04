@@ -36,9 +36,6 @@ const mockSetDismissed = appSettings.setBackupReminderDismissed as jest.MockedFu
   typeof appSettings.setBackupReminderDismissed
 >;
 const mockExport = fullBackup.exportFullBackup as jest.MockedFunction<typeof fullBackup.exportFullBackup>;
-const mockTryShare = fullBackup.trySharePrewarmedBackup as jest.MockedFunction<
-  typeof fullBackup.trySharePrewarmedBackup
->;
 
 const THIRTY_ONE_DAYS_AGO = Date.now() - 31 * 24 * 60 * 60 * 1000;
 const TWO_DAYS_AGO = Date.now() - 2 * 24 * 60 * 60 * 1000;
@@ -50,8 +47,6 @@ describe('BackupReminderBanner', () => {
     mockGetDismissed.mockResolvedValue(null);
     mockSetDismissed.mockResolvedValue(undefined);
     mockExport.mockResolvedValue('{}');
-    // Default: no prewarmed backup ready → callers fall back to exportFullBackup.
-    mockTryShare.mockReturnValue(false);
   });
 
   it('renders nothing when the user has no saved games', () => {
@@ -85,30 +80,33 @@ describe('BackupReminderBanner', () => {
     expect(await screen.findByRole('status')).toBeInTheDocument();
   });
 
-  it('triggers the export flow when "Back up now" is clicked', async () => {
+  /**
+   * @critical - Owner round 2: "Back up now" goes STRAIGHT to a plain download
+   * (no share sheet), so the file lands predictably in Downloads.
+   */
+  it('triggers a DOWNLOAD export when "Back up now" is clicked', async () => {
     render(<BackupReminderBanner hasSavedGames />);
     const button = await screen.findByText('Back up now');
     fireEvent.click(button);
-    await waitFor(() => expect(mockExport).toHaveBeenCalledWith(expect.any(Function), 'user-1'));
+    await waitFor(() =>
+      expect(mockExport).toHaveBeenCalledWith(expect.any(Function), 'user-1', 'download'),
+    );
   });
 
-  it('hides itself after a successful synchronous share', async () => {
+  it('hides itself after a successful download', async () => {
     render(<BackupReminderBanner hasSavedGames />);
     expect(await screen.findByRole('status')).toBeInTheDocument();
 
-    // Simulate the sync-share path: it records a fresh off-device backup and
-    // fires the onComplete callback so the banner re-evaluates.
-    mockTryShare.mockImplementation((_toast, _userId, onComplete) => {
+    // A successful export records a fresh off-device backup; the banner
+    // re-evaluates afterwards and hides.
+    mockExport.mockImplementation(async () => {
       mockGetLastOffDevice.mockResolvedValue(Date.now());
-      onComplete?.();
-      return true;
+      return '{}';
     });
 
     fireEvent.click(screen.getByText('Back up now'));
 
     await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
-    // It used the synchronous share, not the async export fallback.
-    expect(mockExport).not.toHaveBeenCalled();
   });
 
   it('records a dismissal and hides the banner when dismissed', async () => {

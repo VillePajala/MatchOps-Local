@@ -22,6 +22,9 @@ import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalToggleButton } from '@/styles/modalStyles';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
+import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
+import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -67,6 +70,7 @@ interface NewGameSetupModalProps {
     },
     // Friendly / practice match: excluded from competitive stat totals by default.
     isFriendly?: boolean,
+    formationPresetId?: string | null,
   ) => void;
   onCancel: () => void;
   /** W1 roster bridge in game creation too: club write returning the saved
@@ -138,6 +142,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament
   const [gameType, setGameType] = useState<GameType>('soccer');
+  // Owner round 2: the coach chooses the starting formation at creation
+  // (null = auto). Validated against the CURRENT squad size's presets at use,
+  // so a stale pick from another size silently falls back to auto.
+  const [formationPresetId, setFormationPresetId] = useState<string | null>(null);
 
   // Gender state - optional, can be prefilled from season/tournament
   const [gender, setGender] = useState<Gender | undefined>(undefined);
@@ -145,6 +153,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Player selection state - start with empty selection (no players pre-selected)
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
+  // The wizard's Pelimuoto answer (store-fed userId - context-free,
+  // test-safe) beats the player-count guess for the DEFAULT formation
+  // size (audit 1.16). DELIBERATELY permanent, not first-game-only: the
+  // answer describes the TEAM's format, which rarely changes mid-season -
+  // and it is only a default, one tap away from any other shape
+  // (review #742 issue 3; owner can veto).
+  const onboardingUserId = useOnboardingUserId();
+  const preferredFormationSize =
+    getStoredSetupFormat(onboardingUserId) ?? getRecommendedFieldSize(selectedPlayerIds.length);
 
   // Playing-Time Planner prefill (Phase 2): pick a saved plan + one of its games to
   // pre-load the planned lineup. Payload rides onStart; missing-count drives a hint.
@@ -277,9 +294,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       };
       loadLastTeamName();
 
-      // Focus on home team input
+      // No auto-focus on open (owner round 4): the self-raising keyboard hid
+      // the first-visit card at the top - the keyboard now rises only when a
+      // field is tapped. The init flag keeps its deferred clear.
       setTimeout(() => {
-        homeTeamInputRef.current?.focus();
         initializingRef.current = false;
       }, 100);
     }
@@ -694,6 +712,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       gender, // Gender: 'boys' or 'girls' (optional)
       prefillPayload, // Planner prefill (Phase 2): planned XI + subs, or undefined
       isFriendly, // Friendly / practice match flag
+      // Any KNOWN preset is valid regardless of squad size (owner round 6);
+      // unknown/absent ids fall back to the recommended size's default.
+      formationPresetId && getPresetById(formationPresetId)
+        ? formationPresetId
+        : getDefaultPresetIdForSize(preferredFormationSize),
     );
 
     // Modal will be closed by parent component after onStart
@@ -779,6 +802,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4" onScroll={headerCollapse.onScroll}>
             {/* CARD 1: Teams & Roster */}
             <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+              {/* First-visit note INSIDE the card (audit #2: as a sibling it
+                  made space-y-4 defeat this card's -mt bleed, giving new users
+                  a different layout from everyone else). */}
+              <FirstVisitIntro
+                surface="game-setup"
+                text={t('firstVisit.gameSetup', 'Pick your team - a season or tournament can be added now or later.')}
+              />
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
@@ -938,7 +968,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               {/* Game Type Tabs */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-slate-300 mb-2">
-                  {t('newGameSetupModal.gameTypeLabel', 'Game Type')}
+                  {t('gameSettingsModal.gameTypeLabel', 'Link to Competition')}
                 </label>
                 <div className="flex gap-2">
                         <button
@@ -1150,6 +1180,43 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     {t('common.gameTypeFutsal', 'Futsal')}
                   </button>
                 </div>
+              </div>
+
+              {/* Formation (owner round 2): choose the starting shape; options
+                  follow the squad size selected above. */}
+              <div className="mb-4">
+                <label htmlFor="formationSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('newGameSetupModal.formationLabel', 'Formation')}
+                </label>
+                <select
+                  id="formationSelect"
+                  /* Owner rounds 4+6: ALL sizes are offered (squad size never
+                     RESTRICTS the choice - a 15-player squad can still play
+                     5v5 with subs); the player count only PRESELECTS and tags
+                     the recommended size's default. Unknown/stale ids fall
+                     back to that default. */
+                  value={
+                    formationPresetId && getPresetById(formationPresetId)
+                      ? formationPresetId
+                      : getDefaultPresetIdForSize(preferredFormationSize)
+                  }
+                  onChange={(e) => setFormationPresetId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  {FIELD_SIZES.map((size) => (
+                    <optgroup key={size} label={size}>
+                      {PRESETS_BY_SIZE[size].map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {t(preset.labelKey, preset.name)}
+                          {preset.id ===
+                          getDefaultPresetIdForSize(preferredFormationSize)
+                            ? ` · ${t('formations.recommended', 'Recommended')}`
+                            : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
 
               {/* Gender (Boys/Girls) */}

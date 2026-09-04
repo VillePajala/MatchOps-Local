@@ -1,6 +1,10 @@
 'use client';
 
 import ModalProvider from '@/contexts/ModalProvider';
+import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
+import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
+import { setFirstGameExists, setOnboardingUserId } from '@/components/setupWizardActive';
+import GuidedTourRosterReporter from '@/components/GuidedTour/GuidedTourRosterReporter';
 import HomePage from '@/components/HomePage';
 import StartScreenLiftedBridge from '@/components/StartScreenLiftedBridge';
 import LoginScreen from '@/components/LoginScreen';
@@ -92,6 +96,12 @@ export default function Home() {
   const { isBlocked: isBlockedByOtherTab } = useMultiTabPrevention();
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
+  // Session-level dismissal of the first-sign-in setup wizard, scoped to the
+  // USER who dismissed it (review #725: a bare boolean survived sign-out ->
+  // sign-in and wrongly suppressed the wizard for a different fresh account in
+  // the same tab). The durable per-user flag lives in SetupWizard's helper;
+  // this only covers the flag-write-failed case within a session.
+  const [setupWizardDismissedFor, setSetupWizardDismissedFor] = useState<string | null>(null);
   const [hasSavedGames, setHasSavedGames] = useState(false);
   // Recommended-setup signals for the Start Screen card (full-route discovery)
   const [hasCompetition, setHasCompetition] = useState(false);
@@ -376,6 +386,35 @@ export default function Home() {
   }, [userId, setAction]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
+
+  // Targeted refresh of the recommended-setup / guided-tour signals after a setup
+  // modal closes. Reads directly and sets state WITHOUT the full checkAppState
+  // round-trip (no loading-screen flash). NOT gated on isFirstTimeUser: the guided
+  // tour keeps advancing past the point where the account stops being empty (add
+  // players -> the account is no longer "first-time", but the tour still needs
+  // hasTeam / hasTeamLinkedGame to refresh so its later steps auto-advance), and
+  // the Start Screen recommended-setup card wants fresh signals too.
+  const refreshSetupSignals = useCallback(async () => {
+    try {
+      const [roster, games, seasonsList, tournamentsList, teamsList] = await Promise.all([
+        getMasterRoster(userId),
+        getSavedGames(userId),
+        getSeasons(userId),
+        getTournaments(userId),
+        getTeams(userId),
+      ]);
+      setHasPlayers(roster.length > 0);
+      setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
+      setHasTeam(teamsList.length > 0);
+      setHasTeamLinkedGame(
+        Object.values(games || {}).some(
+          (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
+        )
+      );
+    } catch (err) {
+      logger.warn('Failed to refresh setup signals', { error: err });
+    }
+  }, [userId]);
 
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered
@@ -1392,11 +1431,54 @@ export default function Home() {
   // Compute whether to show loading screen
   const showLoadingScreen = isAuthLoading || isCheckingState || isPostLoginLoading || isSigningOut;
 
+  // Onboarding v2: first-sign-in setup wizard (CLOUD ONLY, owner decision).
+  // Shows exactly once per account, on the same readiness terms the app screens
+  // use, and only for a truly empty account (no roster, no games, no team).
+  // Finishing or skipping sets the durable per-user flag; the session state
+  // hides it immediately without waiting for the signal refresh.
+  const showSetupWizard =
+    !isBlockedByOtherTab && !showLoadingScreen && !showWelcome &&
+    !(initTimedOut && mode === 'cloud') && !needsAuth && !showMigrationWizard &&
+    screen === 'start' && mode === 'cloud' &&
+    isFirstTimeUser && !hasTeam &&
+    setupWizardDismissedFor !== (userId ?? 'local') && !isSetupWizardDone(userId);
+
+  // Publish the first-game signal for the marketing-consent prompt's re-gate
+  // (PR 22): the prompt waits until the coach has actually arrived.
+  useEffect(() => {
+    setFirstGameExists(hasSavedGames);
+  }, [hasSavedGames]);
+
+  // Publish the SETTLED user id for the first-visit banners: undefined while
+  // auth is resolving (banners stay hidden - no 'local'-key misfiling).
+  useEffect(() => {
+    setOnboardingUserId(isAuthLoading ? undefined : (userId ?? null));
+  }, [isAuthLoading, userId]);
+
+  const handleSetupWizardComplete = useCallback(() => {
+    setSetupWizardDismissedFor(userId ?? 'local');
+    // Refresh Home signals so the start screen reflects what the wizard created
+    // (team + roster) without a loading-screen round-trip.
+    void refreshSetupSignals();
+  }, [userId, refreshSetupSignals]);
+
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider currentUserId={userId}>
+        {/* Guided-tour signal feed (headless). Onboarding v2: the tour no longer
+            auto-starts - first-run onboarding is the SetupWizard below, and the
+            tour is opt-in via gear -> "Aloitusopastus". This feed keeps the
+            opt-in tour's steps auto-advancing on real progress. */}
+        <GuidedTourController
+          hasPlayers={hasPlayers}
+          hasTeam={hasTeam}
+          hasTeamLinkedGame={hasTeamLinkedGame}
+          screen={screen}
+        />
+        {/* Live roster-size feed for the tour's add-players progress/goal. */}
+        <GuidedTourRosterReporter />
         {/* Club/app-scope modals render at PAGE level (two-level restructure
             L-waves): opening them from Home never mounts the match view.
             Gated behind the SAME readiness checks as the app screens below:
@@ -1505,6 +1587,7 @@ export default function Home() {
               onBack={skipWelcomeScreen ? undefined : handleLoginBack}
               onUseLocalMode={hideLocalModeEntry ? undefined : handleLoginUseLocalMode}
               allowRegistration={true}  // Account creation is free on all platforms
+              initialMode="signUp"  // New users dominate the funnel; returning users get a "Sign in" link
             />
           </ErrorBoundary>
         ) : showMigrationWizard ? (
@@ -1515,6 +1598,10 @@ export default function Home() {
               onSkip={handleMigrationSkip}
               onDiscard={handleMigrationDiscard}
             />
+          </ErrorBoundary>
+        ) : showSetupWizard ? (
+          <ErrorBoundary>
+            <SetupWizard onComplete={handleSetupWizardComplete} />
           </ErrorBoundary>
         ) : screen === 'start' ? (
           <ErrorBoundary>
@@ -1542,21 +1629,7 @@ export default function Home() {
               homeSummary={homeSummary}
               onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
-              onSetupModalsClosed={async () => {
-                // A first-time user who just added players in a setup modal must
-                // graduate off the first-run panel. Refresh ONLY hasPlayers -
-                // targeted, so it flips isFirstTimeUser WITHOUT the full
-                // checkAppState round-trip (which flashes the loading screen).
-                // Gated to first-timers: everyday setup-modal closes for existing
-                // users need no refresh at all.
-                if (!isFirstTimeUser) return;
-                try {
-                  const roster = await getMasterRoster(userId);
-                  setHasPlayers(roster.length > 0);
-                } catch (err) {
-                  logger.warn('Failed to refresh players after setup', { error: err });
-                }
-              }}
+              onSetupModalsClosed={refreshSetupSignals}
             />
           </ErrorBoundary>
         ) : (

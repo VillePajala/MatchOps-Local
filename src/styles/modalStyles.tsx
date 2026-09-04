@@ -292,7 +292,9 @@ export const ModalStickyPrimary: React.FC<{
   disabled?: boolean;
   children: React.ReactNode;
   className?: string;
-}> = ({ onClick, disabled, children, className = '' }) => (
+  /** Optional stable anchor (e.g. for the guided tour's spotlight). */
+  dataTestId?: string;
+}> = ({ onClick, disabled, children, className = '', dataTestId }) => (
   <div className={`${modalStickyBarStyle} ${className}`}>
     {/* Sized to match the in-modal quick-fill buttons (py-2 / text-sm) - the
         full-height version read as too heavy (owner feedback 2026-07-17). */}
@@ -300,6 +302,7 @@ export const ModalStickyPrimary: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled}
+      data-testid={dataTestId}
       className="w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {children}

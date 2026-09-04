@@ -136,7 +136,9 @@ export interface UseFieldCoordinationReturn {
   handlePlayerDropViaTouch: (relX: number, relY: number) => void;
   handlePlayerDragCancelViaTouch: () => void;
   handleDeselectPlayer: () => void;
-  handlePlaceAllPlayers: (presetId: string | null) => void;
+  /** Returns true only when players were actually placed (false = no-op, e.g.
+   *  empty selection) - the guided tour's formation signal relies on this. */
+  handlePlaceAllPlayers: (presetId: string | null) => boolean;
 
   // Opponent handlers (from useGameState)
   handleAddOpponent: () => void;
@@ -625,7 +627,9 @@ export function useFieldCoordination({
    *
    * @param presetId - Formation preset ID to use, or null for auto mode
    */
-  const handlePlaceAllPlayers = useCallback((presetId: string | null) => {
+  // Returns true only when players were actually placed - callers (e.g. the
+  // guided tour's formation signal) must not treat a no-op tap as an apply.
+  const handlePlaceAllPlayers = useCallback((presetId: string | null): boolean => {
     // Get ALL players selected for this game (clear field and place all)
     const playersToPlace = availablePlayers.filter(player =>
       selectedPlayerIds.includes(player.id)
@@ -633,7 +637,7 @@ export function useFieldCoordination({
 
     if (playersToPlace.length === 0) {
       logger.log('No players selected for this game');
-      return;
+      return false;
     }
 
     logger.log(`Placing ${playersToPlace.length} players on the field (preset: ${presetId ?? 'auto'})...`);
@@ -754,6 +758,7 @@ export function useFieldCoordination({
     setFormationSnapPoints(snapPoints);
 
     logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
+    return true;
   }, [
     availablePlayers,
     selectedPlayerIds,

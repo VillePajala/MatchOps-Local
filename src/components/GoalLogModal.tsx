@@ -13,6 +13,7 @@ import { TFunction } from 'i18next';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import FirstVisitIntro from '@/components/FirstVisitIntro';
 
 // Re-export shared types for backward compatibility with test imports
 export type { GameEvent, GameEventType } from '@/types/game';
@@ -390,6 +391,11 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
 
           {/* Scrollable Content - Split View Layout */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
+            <FirstVisitIntro
+              surface="goal-log"
+              className="mb-4"
+              text={t('firstVisit.goalLog', 'Pick the scorer - and an assister if there was one - then tap Log Goal.')}
+            />
             <div className="flex flex-col md:flex-row gap-4 h-full">
               {/* Left: Goal Logging Form (40% on desktop) */}
               <div className="md:w-2/5 space-y-4">
@@ -444,6 +450,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                       <button
                         type="button"
                         onClick={handleLogOwnGoalClick}
+                        data-testid="tour-confirm-goal"
                         disabled={!scorerId}
                         className="w-full px-4 py-2 rounded-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-400/30"
                       >
