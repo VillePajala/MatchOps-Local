@@ -2773,6 +2773,7 @@ export type TranslationKey =
   | 'timerOverlay.decreaseInterval'
   | 'timerOverlay.disabledWhenPaused'
   | 'timerOverlay.editOpponentNameTitle'
+  | 'timerOverlay.finishGameButton'
   | 'timerOverlay.fullTime'
   | 'timerOverlay.gameEnded'
   | 'timerOverlay.gameNotStarted'

@@ -643,7 +643,8 @@
     "plannedSubTitle": "Planned sub",
     "plannedSubInOut": "{{in}} on for {{out}}",
     "plannedSubIn": "{{in}} on",
-    "plannedSubDismiss": "Got it"
+    "plannedSubDismiss": "Got it",
+    "finishGameButton": "Finish this game"
   },
   "instructionsModal": {
     "title": "How It Works",
@@ -654,7 +655,7 @@
       "tip3": "Games auto-save to browser storage - no account needed"
     },
     "controlBar": {
-      "assessPlayers": "Open the player assessment modal after a game."
+      "assessPlayers": "After the final whistle, Finish this game gathers goals, notes, positions, the match report and player assessments in one view."
     }
   },
   "warmup": {

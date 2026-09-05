@@ -542,7 +542,8 @@
     "plannedSubTitle": "Suunniteltu vaihto",
     "plannedSubInOut": "{{in}} kentälle, {{out}} pois",
     "plannedSubIn": "{{in}} kentälle",
-    "plannedSubDismiss": "Selvä"
+    "plannedSubDismiss": "Selvä",
+    "finishGameButton": "Viimeistele ottelu"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
@@ -553,7 +554,7 @@
       "tip3": "Pelit tallentuvat automaattisesti selaimen muistiin - tiliä ei tarvita"
     },
     "controlBar": {
-      "assessPlayers": "Avaa pelaaja-arviointi pelin päätyttyä."
+      "assessPlayers": "Pelin päätyttyä Viimeistele ottelu kokoaa maalit, muistiinpanot, pelipaikat, otteluraportin ja pelaaja-arviot yhteen näkymään."
     }
   },
   "warmup": {
