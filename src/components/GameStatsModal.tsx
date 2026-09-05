@@ -958,6 +958,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               players={masterRoster.length > 0 ? masterRoster : availablePlayers}
               stamp={draftStamp}
               onApply={onApplyReportDraft}
+              onOpenSettings={onOpenSettings}
             />
           )}
         </>

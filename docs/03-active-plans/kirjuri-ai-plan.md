@@ -435,6 +435,17 @@ first. One intent per surface, organised by WHEN:
   Found while fixing: the transcript write could abort the whole paid batch if it threw
   (an undefined mock proved it). It is now wrapped so it cannot - every remaining clip in
   that loop is money the coach already decided to spend.
+- PR 14 (owner: "recording otteluraportti succeeded but was never transcribed or shown
+  anywhere. also I could not find the ai button any more"). ONE root cause, TWO fixes.
+  Root cause: no provider connected on that origin - a per-deploy Vercel preview URL is a
+  different browser origin, so the device-local key is absent there. Both panels then
+  degrade, but one did it silently:
+  1. `SpokenReportPanel` had `if (!engine) return;` - a coach who just spoke for a minute
+     was told NOTHING. It now says the recording is saved and waiting under Voice notes on
+     the same page, on both the no-engine and the transcription-failed paths.
+  2. The draft card correctly hides its button with no key, but only named the problem.
+     It now offers "Open settings" (`onOpenSettings`, already a prop of the modal).
+  Rule this reinforces: a degraded path must be as loud as a working one.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 
