@@ -469,6 +469,13 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
         setIsGameStatsModalOpen(false);
         timerManagement.handleOpenGoalLogModal();
       },
+      // App settings sits at the same layer as the stats modal, so opening it
+      // from inside that modal put it UNDERNEATH and looked like a dead button.
+      // Every hand-off out of this modal has to leave it first.
+      wrapUpToAppSettings: () => {
+        setIsGameStatsModalOpen(false);
+        handleOpenSettingsModal();
+      },
     },
   };
 

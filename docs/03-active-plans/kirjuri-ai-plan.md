@@ -430,6 +430,15 @@ first. One intent per surface, organised by WHEN:
   5. **The lone "Nykyinen" tab.** At match level the aggregate tabs are hidden, leaving a
      single full-width tab that looked like a button and did nothing. The tab bar now
      renders only when there is more than one tab.
+- PR 23 (owner: "avaa asetukset Button does nothing"). App settings renders at the SAME
+  z-layer as the stats modal (`z-[60]` both), so opening it from inside that modal put it
+  underneath - the state changed, nothing appeared to happen. Every other hand-off out of
+  this modal already left it first (`wrapUpToGameSettings`, `wrapUpToAssessments`,
+  `wrapUpToGoalLog`); the settings one did not, because it reused the control bar's plain
+  `openSettingsModal`, which is correct THERE because nothing is on top of it.
+  `wrapUpToAppSettings` now closes the stats modal first, and the stats modal is wired to
+  it. This also fixes the older season-filter settings link, which had the same bug.
+  RULE: a hand-off out of a modal must leave the modal. Same-layer modals do not stack.
 - PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
 - PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.
