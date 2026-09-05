@@ -32,7 +32,7 @@ const onOpenPlanner = jest.fn();
 const onOpenTraining = jest.fn();
 const onOpenRules = jest.fn();
 
-const renderBar = () =>
+const renderBar = (extra: Partial<React.ComponentProps<typeof ControlBar>> = {}) =>
   render(
     <ControlBar
       timeElapsedInSeconds={0}
@@ -67,6 +67,7 @@ const renderBar = () =>
       onOpenTraining={onOpenTraining}
       onOpenRules={onOpenRules}
       onGoToStartScreen={onGoToStartScreen}
+      {...extra}
     />,
   );
 
@@ -178,5 +179,32 @@ describe('ControlBar - bar-level Home button without a handler', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: 'Back to Home' })).not.toBeInTheDocument();
+  });
+});
+
+describe('finishing progress on the menu row', () => {
+  /**
+   * @critical - state, not decoration: the dot is amber while work remains and
+   * green when it is done, and the count comes from the same model the
+   * checklist uses so the two cannot disagree.
+   */
+  it('shows the count and an amber dot while the match is unfinished', () => {
+    renderBar({ finishProgress: { done: 3, total: 5 } });
+
+    const badge = screen.getByTestId('menu-finish-progress');
+    expect(badge).toHaveTextContent('3/5');
+    expect(badge.querySelector('span')?.className).toContain('bg-amber-400');
+  });
+
+  it('turns green when there is nothing left to do', () => {
+    renderBar({ finishProgress: { done: 5, total: 5 } });
+
+    expect(screen.getByTestId('menu-finish-progress').querySelector('span')?.className).toContain('bg-emerald-500');
+  });
+
+  it('shows nothing at all for a game where it does not apply', () => {
+    renderBar({ finishProgress: null });
+
+    expect(screen.queryByTestId('menu-finish-progress')).not.toBeInTheDocument();
   });
 });

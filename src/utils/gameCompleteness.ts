@@ -63,7 +63,10 @@ export function completenessProgress(c: GameCompleteness): { done: number; total
   const items = [
     c.report,
     c.roster,
-    c.competition,
+    // Both, because the checklist's "Competition & team" row is done only when
+    // both are set. Counting just one made the badge claim all-done while the
+    // list underneath still showed the row outstanding.
+    c.competition && c.team,
     c.positions.total > 0 && c.positions.done > 0,
     c.assessments.total > 0 && c.assessments.done > 0,
   ];

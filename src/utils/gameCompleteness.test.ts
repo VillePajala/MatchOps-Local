@@ -100,11 +100,26 @@ describe('completenessProgress', () => {
       ...base,
       gameNotes: 'Yleiskuva: hyva',
       seasonId: 's1',
+      teamId: 't1',
       playerPositions: { p1: ['CM'] },
       assessments: { p1: { overall: 7, sliders: {} } } as never,
     });
 
     expect(completenessProgress(partial)).toEqual({ done: 5, total: 5 });
+  });
+
+  /**
+   * @critical - the checklist's "Competition & team" row needs BOTH, so counting
+   * only the competition let the badge say all-done while the list underneath
+   * still showed that row outstanding. The whole point of the shared model is
+   * that two surfaces cannot disagree.
+   */
+  it('agrees with the checklist row that needs both a competition and a team', () => {
+    const seasonOnly = computeGameCompleteness({ ...base, gameNotes: 'x', seasonId: 's1' });
+    expect(completenessProgress(seasonOnly).done).toBe(2);
+
+    const both = computeGameCompleteness({ ...base, gameNotes: 'x', seasonId: 's1', teamId: 't1' });
+    expect(completenessProgress(both).done).toBe(3);
   });
 
   it('reports nothing for a game that was never played', () => {
