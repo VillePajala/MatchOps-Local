@@ -884,7 +884,8 @@
       "deleteFailedCatch": "Pelin poistaminen epäonnistui. Yritä uudelleen.",
       "quickSaveFailed": "Pelin pikallennus epäonnistui.",
       "createGameFailed": "Uuden pelin luominen epäonnistui.",
-      "quickSaveInvalid": "Tätä ottelua ei voi tallentaa tällaisena, joten viimeisimmät muutoksesi eivät säily. Otteluraportin lyhentäminen auttaa yleensä."
+      "quickSaveInvalid": "Tätä ottelua ei voi tallentaa tällaisena, joten viimeisimmät muutoksesi eivät säily.",
+      "quickSaveNotesTooLong": "Viimeisimmät muutoksesi eivät säily: otteluraportti on liian pitkä. Lyhennä sitä, niin tallennus toimii taas."
     }
   },
   "errors": {

@@ -193,7 +193,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const runDraft = useCallback(async (job: DraftingMode = 'full') => {
     if (drafting) return;
     setDrafting(true);
-    setUndoText(null);
+    // Deliberately does NOT clear the undo. Asking for another draft says
+    // nothing about whether the coach still wants the report a previous
+    // Replace overwrote, and that text has no other copy. It is cleared by
+    // using it, by a Replace that supersedes it, or by going stale.
     const controller = new AbortController();
     abortRef.current = controller;
     try {
@@ -293,11 +296,13 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   }, [onApply, showToast, t, undoText]);
 
   const discard = useCallback(() => {
+    // Throws away the DRAFT on screen and nothing else.
+    //
+    // It used to clear the undo as well, which conflated two unrelated things:
+    // a coach who applied a Replace, drafted again and then discarded the
+    // second draft lost the safety net for the first one, silently. The undo
+    // belongs to the applied report, not to whichever draft is being reviewed.
     setDraft(null);
-    setUndoText(null);
-    // The coach declined the undo, so the old text has served its purpose and
-    // should not sit on the device any longer.
-    forgetReplacedReport();
   }, []);
 
   if (!ai.connected) {

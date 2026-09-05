@@ -288,6 +288,39 @@ describe('ReportDraftPanel - reviewing a draft', () => {
     expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
   });
 
+  /**
+   * @critical - the review caught this: discarding a draft used to clear the
+   * undo for an ALREADY-APPLIED Replace. A coach who tried a second draft and
+   * decided against it lost the safety net for the first one, silently, and
+   * the overwritten report has no other copy.
+   */
+  it('keeps the undo for an applied replace when a later draft is discarded', async () => {
+    const onApply = jest.fn(() => true);
+    renderPanel({ game: game({ gameNotes: 'Omani.' }), existingReport: 'Omani.', onApply });
+    await produceDraft();
+
+    fireEvent.click(screen.getByTestId('report-draft-mode-replace'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+
+    // Second thoughts: draft again, then throw that draft away. The undo is
+    // out of sight while a draft is under review, which is fine - what matters
+    // is that it comes back rather than having been thrown away with the draft.
+    await produceDraft();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-discard'));
+    });
+
+    // The first Replace's original text is still recoverable.
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-undo'));
+    });
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
+  });
+
   it('offers no undo belonging to a different match', () => {
     renderPanel({ gameId: 'g-other' });
     expect(screen.queryByTestId('report-draft-undo')).not.toBeInTheDocument();

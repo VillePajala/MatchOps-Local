@@ -1169,6 +1169,7 @@ export type TranslationKey =
   | 'loadGameModal.errors.notFound'
   | 'loadGameModal.errors.quickSaveFailed'
   | 'loadGameModal.errors.quickSaveInvalid'
+  | 'loadGameModal.errors.quickSaveNotesTooLong'
   | 'loadGameModal.expandCard'
   | 'loadGameModal.exportAllExcelButton'
   | 'loadGameModal.exportAllExcelError'

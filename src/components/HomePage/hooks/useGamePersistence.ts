@@ -388,9 +388,16 @@ export function useGamePersistence({
         const alreadyWarned = deterministic && blockedSaveGameIdRef.current === currentGameId;
         if (deterministic) blockedSaveGameIdRef.current = currentGameId;
         if (!suppressErrorToast || (deterministic && !alreadyWarned)) {
+          // Advice only where we know what to advise. The over-long report is
+          // the one case a coach can act on directly; every other field that
+          // fails validation would get confidently wrong instructions from a
+          // single fixed sentence.
+          const overLongReport = deterministic && (error as ValidationError).field === 'gameNotes';
           showToast(
             deterministic
-              ? t('loadGameModal.errors.quickSaveInvalid', 'This match cannot be saved as it is, so your latest changes are not being kept. Shortening the match report usually fixes it.')
+              ? overLongReport
+                ? t('loadGameModal.errors.quickSaveNotesTooLong', 'Your latest changes are not being kept: the match report is too long. Shorten it and they will save again.')
+                : t('loadGameModal.errors.quickSaveInvalid', 'This match cannot be saved as it is, so your latest changes are not being kept.')
               : t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'),
             'error',
           );
