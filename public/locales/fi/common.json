@@ -220,7 +220,15 @@
     "sourceDictation": "puhe",
     "sourceAi": "tekoäly",
     "sourceManual": "kirjoitettu",
-    "deleteFailed": "Muistiinpanoa ei voitu poistaa."
+    "deleteFailed": "Muistiinpanoa ei voitu poistaa.",
+    "transcribe": "Litteroi {{count}} klippiä (noin ${{cost}})",
+    "transcribing": "Litteroidaan {{done}}/{{total}}...",
+    "transcribeHint": "Yhdistä oma tekoälypalvelusi asetuksissa, niin klipit litteroidaan automaattisesti.",
+    "transcribeUnauthorized": "Palvelu hylkäsi avaimesi. Tarkista se asetuksista.",
+    "transcribeRateLimited": "Palvelu rajoittaa pyyntöjä. Yritä uudelleen hetken kuluttua.",
+    "transcribeNetwork": "Palveluun ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen.",
+    "transcribeRejected": "Palvelu ei pystynyt litteroimaan yhtä klippiä - kirjoita se itse.",
+    "transcribeDone": "{{count}} klippiä litteroitu - tarkista teksti ja pelaaja, tallenna sitten."
   },
   "undoToast": {
     "goal": "Maali kirjattu",

@@ -220,7 +220,15 @@
     "sourceDictation": "voice",
     "sourceAi": "AI",
     "sourceManual": "typed",
-    "deleteFailed": "Could not delete the note."
+    "deleteFailed": "Could not delete the note.",
+    "transcribe": "Transcribe {{count}} clips (about ${{cost}})",
+    "transcribing": "Transcribing {{done}}/{{total}}...",
+    "transcribeHint": "Connect your own AI provider in Settings to transcribe clips automatically.",
+    "transcribeUnauthorized": "The provider rejected your key. Check it in Settings.",
+    "transcribeRateLimited": "The provider is rate-limiting requests. Try again in a minute.",
+    "transcribeNetwork": "Could not reach the provider. Check your connection and try again.",
+    "transcribeRejected": "The provider could not transcribe one clip - type it instead.",
+    "transcribeDone": "{{count}} clips transcribed - check the text and the player, then save."
   },
   "undoToast": {
     "goal": "Goal logged",

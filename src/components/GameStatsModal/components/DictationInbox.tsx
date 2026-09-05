@@ -17,8 +17,12 @@ import { HiOutlinePlay, HiOutlineStop } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { GameNoteInput } from '@/types/game';
 import { useDataStore } from '@/hooks/useDataStore';
+import { useToast } from '@/contexts/ToastProvider';
+import { DictationRules } from '@/components/AiConsentGate';
 import { deleteClip, getClipBlob, listClips, type AudioClipMeta } from '@/utils/audioClipStore';
-import { matchPlayerInText } from '@/utils/playerNameMatch';
+import { matchPlayerInText, playerSpeechHandles } from '@/utils/playerNameMatch';
+import { useAiProviderState } from '@/utils/aiProvider';
+import { TranscriptionError, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
 import logger from '@/utils/logger';
 
 interface DictationInboxProps {
@@ -44,7 +48,11 @@ export const formatClock = (seconds: number): string => {
 const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayers, onAccept, onCountChange }) => {
   const { t } = useTranslation();
   const { userId } = useDataStore();
+  const { showToast } = useToast();
+  const ai = useAiProviderState();
   const [clips, setClips] = useState<AudioClipMeta[] | null>(null);
+  // Batch transcription progress (PR 5); null = idle.
+  const [transcribing, setTranscribing] = useState<{ done: number; total: number } | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -175,7 +183,65 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
     [availablePlayers],
   );
 
+  // Clips whose text field is still empty - the batch works on these only.
+  const untranscribed = useMemo(
+    () => (clips ?? []).filter((c) => !(drafts[c.id]?.text ?? '').trim()),
+    [clips, drafts],
+  );
+  const vocabulary = useMemo(() => availablePlayers.flatMap((p) => playerSpeechHandles(p)), [availablePlayers]);
+
+  const transcribeAll = useCallback(async () => {
+    const engine = getTranscriptionEngine();
+    if (!engine || transcribing || untranscribed.length === 0) return;
+    const batch = untranscribed;
+    setTranscribing({ done: 0, total: batch.length });
+    let done = 0;
+    let stopped = false;
+    try {
+      for (const clip of batch) {
+        try {
+          const blob = await getClipBlob(clip.id, userId ?? undefined);
+          if (!blob) continue;
+          const text = await engine.transcribe(blob, { language: 'fi', vocabulary });
+          if (text) {
+            setDrafts((prev) => ({ ...prev, [clip.id]: { ...(prev[clip.id] ?? { playerId: 'auto' }), text } }));
+            done += 1;
+          }
+        } catch (error) {
+          const kind = error instanceof TranscriptionError ? error.kind : 'network';
+          if (kind === 'rejected') {
+            // This clip only; the rest may still work.
+            showToast(t('dictation.transcribeRejected', 'The provider could not transcribe one clip - type it instead.'), 'info');
+            continue;
+          }
+          showToast(
+            kind === 'unauthorized'
+              ? t('dictation.transcribeUnauthorized', 'The provider rejected your key. Check it in Settings.')
+              : kind === 'rateLimited'
+                ? t('dictation.transcribeRateLimited', 'The provider is rate-limiting requests. Try again in a minute.')
+                : t('dictation.transcribeNetwork', 'Could not reach the provider. Check your connection and try again.'),
+            'error',
+          );
+          stopped = true;
+          break;
+        } finally {
+          setTranscribing((prev) => (prev ? { ...prev, done: Math.min(prev.total, prev.done + 1) } : prev));
+        }
+      }
+      if (!stopped && done > 0) {
+        showToast(
+          t('dictation.transcribeDone', '{{count}} clips transcribed - check the text and the player, then save.', { count: done }),
+          'success',
+        );
+      }
+    } finally {
+      setTranscribing(null);
+    }
+  }, [transcribing, untranscribed, userId, vocabulary, showToast, t]);
+
   if (!clips || clips.length === 0) return null;
+  const pendingMs = untranscribed.reduce((sum, c) => sum + c.durationMs, 0);
+  const costUsd = estimateTranscriptionUsd(pendingMs).toFixed(2);
 
   return (
     <div
@@ -187,9 +253,34 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
         {t('dictation.inboxTitle', 'Voice notes to review')}{' '}
         <span className="text-sm font-medium text-slate-400">({clips.length})</span>
       </h3>
-      <p className="text-xs text-slate-400 mb-3">
+      <p className="text-xs text-slate-400 mb-2">
         {t('dictation.inboxHint', 'Listen, write what you said, check the player, save.')}
       </p>
+      {ai.connected ? (
+        untranscribed.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void transcribeAll()}
+            disabled={!!transcribing}
+            data-testid="dictation-transcribe"
+            className="w-full mb-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+          >
+            {transcribing
+              ? t('dictation.transcribing', 'Transcribing {{done}}/{{total}}...', { done: transcribing.done, total: transcribing.total })
+              : t('dictation.transcribe', 'Transcribe {{count}} clips (about ${{cost}})', { count: untranscribed.length, cost: costUsd })}
+          </button>
+        )
+      ) : (
+        <p className="text-xs text-slate-500 mb-3" data-testid="dictation-transcribe-hint">
+          {t('dictation.transcribeHint', 'Connect your own AI provider in Settings to transcribe clips automatically.')}
+        </p>
+      )}
+      <details className="mb-3 rounded-md bg-slate-800/60 border border-slate-700/60 px-3 py-2">
+        <summary className="text-xs font-medium text-slate-300 cursor-pointer">{t('aiConsent.rulesTitle', 'Dictation rules')}</summary>
+        <div className="mt-2">
+          <DictationRules />
+        </div>
+      </details>
       {audioUrl && (
         <audio src={audioUrl} autoPlay controls className="w-full mb-3" onEnded={stopPlayback} data-testid="dictation-audio" />
       )}
