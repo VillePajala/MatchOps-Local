@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team, Personnel, PlayerStatAdjustment } from '@/types';
 import { GameEvent, SavedGamesCollection, AppState } from '@/types';
+import type { GameType } from '@/types/game';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally } from '@/utils/shootout';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
@@ -120,6 +121,9 @@ interface GameStatsModalProps {
   onOpenGameSettings?: (section: 'roster' | 'competition') => void;
   /** Positions played moved here from Ottelun tiedot (Phase 1b). Autosave persists like notes. */
   onPlayerPositionsChange?: (positions: Record<string, string[]>) => void;
+  /** Live session game type for the positions editor (review #752): the saved-games
+   *  cache can lag the session right after creation, so the host passes it directly. */
+  gameType?: GameType;
   onOpenAssessments?: () => void;
   /** Phase 1b: the Goals step offers one way to add a goal - the existing goal log
    *  modal, reached by the same leave-and-land hand-off the wrap-up rows use. */
@@ -180,6 +184,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onOpenSettings,
   onOpenGameSettings,
   onPlayerPositionsChange,
+  gameType,
   onOpenAssessments,
   onAddGoal,
 }) => {
@@ -583,7 +588,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const scrollToInbox = useCallback(() => scrollToId('dictation-inbox'), [scrollToId]);
   const scrollToReport = useCallback(() => scrollToId('game-report-editor'), [scrollToId]);
   const scrollToPositions = useCallback(() => scrollToId('positions-editor'), [scrollToId]);
-  const currentGameType = currentGameId ? savedGames?.[currentGameId]?.gameType : undefined;
+  const currentGameType = gameType ?? (currentGameId ? savedGames?.[currentGameId]?.gameType : undefined);
   // Note deletion mirrors the goal editor: one in flight at a time, and a
   // storage failure (handleDeleteGameEvent returns false) is told, not swallowed.
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
@@ -827,7 +832,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     });
     spineSteps.push({
       key: 'notes',
-      id: 'game-notes-step',
       content: (
         <>
           {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
