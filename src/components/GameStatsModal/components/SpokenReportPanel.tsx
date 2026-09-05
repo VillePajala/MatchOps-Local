@@ -85,6 +85,18 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   // Only claim a clip this panel's own button produced; the in-match mic writes
   // to the same store and its notes belong in the inbox, not here.
   const miningRef = useRef(false);
+  /**
+   * The clip id already dealt with, so a second recording cannot pick up the
+   * first one's clip.
+   *
+   * `stop()` clears the recording flag straight away, but the clip is written
+   * later, inside the recorder's own onstop. Between those two moments the
+   * effect below sees "not recording" with `lastClip` still pointing at the
+   * PREVIOUS clip - which used to mean re-transcribing the old audio (showing
+   * its old text, and billing the coach for it again) while the new recording
+   * was never transcribed at all.
+   */
+  const claimedIdRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const transcribe = useCallback(
@@ -136,7 +148,10 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   useEffect(() => {
     const clip = dictation.lastClip;
     if (!clip || !miningRef.current || dictation.isRecording) return;
+    // Still the clip from last time: the new one has not been written yet.
+    if (clip.id === claimedIdRef.current) return;
     miningRef.current = false;
+    claimedIdRef.current = clip.id;
     setClipId(clip.id);
     void transcribe(clip.id, clip.durationMs);
   }, [dictation.lastClip, dictation.isRecording, transcribe]);
@@ -156,6 +171,9 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
     setText('');
     setClipId(null);
     setStoredOnly(false);
+    // Anything already stored is old news; only a clip written after this point
+    // belongs to the recording we are starting now.
+    claimedIdRef.current = dictation.lastClip?.id ?? null;
     miningRef.current = true;
     dictation.start();
   }, [dictation]);
