@@ -75,6 +75,16 @@ export type GameNoteSource = 'dictation' | 'ai' | 'manual';
  */
 export type GameNoteTag = 'halftime' | 'debrief' | 'technique' | 'attitude' | 'gameSense';
 
+/**
+ * Provenance for anything an AI drafted and the coach approved (migration 043).
+ * `packet` is the GamePacket fingerprint, so a later model's work can be told
+ * from today's, and a re-draft from the same data is recognisable.
+ */
+export interface AiMeta {
+  model: string;
+  packet: string;
+}
+
 /** What the dictation inbox hands over when the coach accepts a clip. */
 export interface GameNoteInput {
   time: number;
@@ -99,6 +109,8 @@ export interface GameEvent {
   source?: GameNoteSource;
   /** `note` only: optional category (migration 042). */
   tag?: GameNoteTag;
+  /** `note` only: set when the note came from an AI draft the coach approved. */
+  aiMeta?: AiMeta;
 }
 
 // TimerState is defined in @/utils/timerStateManager.ts (canonical location)
@@ -135,6 +147,8 @@ export interface AppState {
   homeScore: number;
   awayScore: number;
   gameNotes: string;
+  /** Set when the report text came from an approved AI draft (migration 043). */
+  gameNotesAiMeta?: AiMeta;
   // Position id(s) each player was assigned post-game, keyed by player id (see positions.ts).
   playerPositions?: Record<string, string[]>;
   homeOrAway: 'home' | 'away';

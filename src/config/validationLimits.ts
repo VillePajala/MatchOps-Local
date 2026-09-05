@@ -37,7 +37,8 @@ export const VALIDATION_LIMITS = {
   TEAM_NOTES_MAX: 1000,
 
   /** Maximum length for game notes */
-  GAME_NOTES_MAX: 2000,
+  /** Raised for Kirjuri: an AI-drafted report under seven headings needs the room. */
+  GAME_NOTES_MAX: 4000,
 
   /** Maximum length of one Kirjuri note event (a dictated observation) */
   GAME_NOTE_EVENT_TEXT_MAX: 1000,

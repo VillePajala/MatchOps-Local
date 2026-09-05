@@ -799,7 +799,16 @@
     "spineStep": "Vaihe {{n}}/{{total}}",
     "spineAddGoal": "Lisää maali",
     "spineOpenAssessments": "Avaa pelaaja-arviot",
-    "spineShareTitle": "Jaa ottelukooste"
+    "spineShareTitle": "Jaa ottelukooste",
+    "reportSections": {
+      "overview": "Yleiskuva",
+      "flow": "Pelin kulku",
+      "worked": "Mikä toimi hyvin",
+      "improve": "Kehityskohteet",
+      "spirit": "Joukkuehenki ja asenne",
+      "mentions": "Erityismaininnat",
+      "next": "Seuraava askel"
+    }
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."
@@ -1577,7 +1586,6 @@
     "lineupTitle": "Toteutuneet pelipaikat",
     "lineupSubtitle": "Merkitse, missä kukin pelaaja tosiasiassa pelasi tässä ottelussa.",
     "useTemplate": "Pohja",
-    "reportTemplate": "Yleiskuva:\n\nPelin kulku:\n\nMikä toimi hyvin:\n\nKehityskohteet:\n\nJoukkuehenki ja asenne:\n\nErityismaininnat:\n\nSeuraava askel:\n",
     "lineupNoPlayers": "Valitse otteluun pelaajat, jotta voit määrittää pelipaikat.",
     "lineupFormat": "Muoto",
     "lineupFormatAll": "Kaikki",

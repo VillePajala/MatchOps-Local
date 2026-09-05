@@ -42,6 +42,7 @@ export type Database = {
           scorer_id: string | null
           source: string | null
           tag: string | null
+          ai_meta: Json | null
           time_seconds: number
           user_id: string
         }
@@ -58,6 +59,7 @@ export type Database = {
           scorer_id?: string | null
           source?: string | null
           tag?: string | null
+          ai_meta?: Json | null
           time_seconds: number
           user_id: string
         }
@@ -74,6 +76,7 @@ export type Database = {
           scorer_id?: string | null
           source?: string | null
           tag?: string | null
+          ai_meta?: Json | null
           time_seconds?: number
           user_id?: string
         }
@@ -217,6 +220,7 @@ export type Database = {
           game_date: string
           game_location: string | null
           game_notes: string
+          game_notes_ai_meta: Json | null
           game_personnel: string[] | null
           game_status: string
           game_time: string | null
@@ -260,6 +264,7 @@ export type Database = {
           game_date: string
           game_location?: string | null
           game_notes?: string
+          game_notes_ai_meta?: Json | null
           game_personnel?: string[] | null
           game_status?: string
           game_time?: string | null
@@ -303,6 +308,7 @@ export type Database = {
           game_date?: string
           game_location?: string | null
           game_notes?: string
+          game_notes_ai_meta?: Json | null
           game_personnel?: string[] | null
           game_status?: string
           game_time?: string | null

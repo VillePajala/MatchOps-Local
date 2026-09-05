@@ -8,6 +8,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TranslationKey } from '@/i18n-types';
+import { reportSectionHeadings } from '@/utils/reportSections';
 
 interface GameNotesEditorProps {
   gameNotes: string;
@@ -36,7 +37,9 @@ export function GameNotesEditor({
   const { t } = useTranslation();
 
   const handleUseTemplate = () => {
-    const template = t('gameSettingsModal.reportTemplate' as TranslationKey, '');
+    // Composed from the same seven heading keys the AI draft uses, so the blank
+    // template and a drafted report can never drift apart.
+    const template = `${reportSectionHeadings(t).map(({ label }) => `${label}:`).join('\n\n')}\n`;
     onEditNotesChange(editGameNotes.trim() ? `${editGameNotes.trimEnd()}\n\n${template}` : template);
     requestAnimationFrame(() => notesTextareaRef.current?.focus());
   };

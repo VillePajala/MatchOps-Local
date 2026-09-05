@@ -2948,6 +2948,7 @@ export class SupabaseDataStore implements DataStore {
       period: e.period ?? null,
       source: e.source ?? null,
       tag: e.tag ?? null,
+      ai_meta: (e.aiMeta ?? null) as Json | null,
     }));
 
     // Build assessment rows with flattened sliders
@@ -3042,6 +3043,7 @@ export class SupabaseDataStore implements DataStore {
         home_score: normalizeInteger(game.homeScore, 0),
         away_score: normalizeInteger(game.awayScore, 0),
         game_notes: game.gameNotes,
+        game_notes_ai_meta: (game.gameNotesAiMeta ?? null) as Json | null,
         show_player_names: game.showPlayerNames ?? true,
         // === Optional fields ===
         sub_interval_minutes: typeof game.subIntervalMinutes === 'number' && Number.isFinite(game.subIntervalMinutes)
@@ -3152,6 +3154,7 @@ export class SupabaseDataStore implements DataStore {
         text: e.note_text ?? undefined,
         source: (e.source as GameNoteSource | null) ?? undefined,
         tag: (e.tag as GameEvent['tag'] | null) ?? undefined,
+        aiMeta: (e.ai_meta as GameEvent['aiMeta'] | null) ?? undefined,
       }));
 
     // Reconstruct assessments as Record<playerId, Assessment>
@@ -3226,6 +3229,7 @@ export class SupabaseDataStore implements DataStore {
       homeScore: game.home_score,
       awayScore: game.away_score,
       gameNotes: game.game_notes,
+      gameNotesAiMeta: (game.game_notes_ai_meta as AppState['gameNotesAiMeta'] | null) ?? undefined,
       showPlayerNames: game.show_player_names,
       // === Optional fields (null → undefined for TypeScript semantics) ===
       subIntervalMinutes: game.sub_interval_minutes ?? undefined,
