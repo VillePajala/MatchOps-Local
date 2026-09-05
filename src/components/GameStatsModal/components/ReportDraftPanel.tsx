@@ -26,7 +26,7 @@ import type { Player } from '@/types';
 import type { AppState } from '@/types/game';
 import { DraftingError, draftMatchReport, estimateDraftUsd, type ReportDraft } from '@/utils/aiDrafting';
 import { applyReportDraft, composeReportText, type ApplyMode } from '@/utils/applyReportDraft';
-import { buildGamePacket } from '@/utils/gamePacket';
+import { UNKNOWN_PLAYER_REF, buildGamePacket } from '@/utils/gamePacket';
 import { reportSectionLabel } from '@/utils/reportSections';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { recordAiUsage } from '@/utils/aiUsage';
@@ -86,13 +86,18 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
   }, [ai.connected, ai.pseudonymize, game, players]);
 
   /**
-   * Codes are what the provider saw; the coach should see the child. The
-   * mapping never left the device, so resolving it for display costs nothing.
+   * Codes are what the provider saw; the coach should see the child. The mapping
+   * never left the device, so resolving it costs nothing.
+   *
+   * A report says "Emma", not "Emma Virtanen": nickname first, then the first
+   * name. A surname in a match report about a nine-year-old reads like a police
+   * statement.
    */
   const nameForRef = useCallback(
     (ref: string): string => {
       const player = players.find((p) => p.id === refMap[ref]);
-      return player?.nickname?.trim() || player?.name || t('reportDraft.unknownPlayer', 'Unidentified player');
+      if (!player) return t('reportDraft.unknownPlayer', 'Unidentified player');
+      return player.nickname?.trim() || player.name.trim().split(/\s+/)[0] || player.name;
     },
     [players, refMap, t],
   );
@@ -117,9 +122,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
       mode,
       labelFor: (section) => reportSectionLabel(t, section),
       refToPlayerId: refMap,
+      nameForRef,
       stamp,
     });
-  }, [draft, approvedSections, approvedNoteIndexes, game.gameNotes, mode, refMap, stamp, t]);
+  }, [draft, approvedSections, approvedNoteIndexes, game.gameNotes, mode, refMap, nameForRef, stamp, t]);
 
   const runDraft = useCallback(async () => {
     if (drafting) return;
@@ -403,7 +409,13 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
             <details className="text-xs text-slate-400">
               <summary className="cursor-pointer">{t('reportDraft.previewToggle', 'Preview the text')}</summary>
               <pre className="mt-2 whitespace-pre-wrap font-sans text-slate-300" data-testid="report-draft-preview">
-                {composeReportText(draft, approvedSections, (section) => reportSectionLabel(t, section))}
+                {composeReportText(
+                  draft,
+                  approvedSections,
+                  (section) => reportSectionLabel(t, section),
+                  [...Object.keys(refMap), UNKNOWN_PLAYER_REF],
+                  nameForRef,
+                )}
               </pre>
             </details>
           )}

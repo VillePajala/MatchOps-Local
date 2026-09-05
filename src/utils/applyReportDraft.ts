@@ -16,6 +16,7 @@
 
 import type { DraftPlayerNote, ReportDraft, ReportSectionKey } from '@/utils/aiDrafting';
 import type { AiMeta, GameEvent } from '@/types/game';
+import { UNKNOWN_PLAYER_REF } from '@/utils/gamePacket';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 
 export type ApplyMode = 'append' | 'replace';
@@ -33,6 +34,11 @@ export interface ApplyReportDraftOptions {
   labelFor: (section: ReportSectionKey) => string;
   /** Packet ref -> player id, from `buildGamePacket`. */
   refToPlayerId: Record<string, string>;
+  /**
+   * The name to show for a packet ref. Drafted prose arrives full of codes;
+   * this is what turns it back into the coach's own players.
+   */
+  nameForRef: (ref: string) => string;
   /** Clock stamp for the note events: where the match ended. */
   stamp: { time: number; period: number };
   /** Injected for deterministic ids in tests. */
@@ -60,6 +66,34 @@ export interface ApplyReportDraftResult {
 
 const SEPARATOR = '\n\n';
 
+const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
+
+/**
+ * Put the players' names back into drafted prose.
+ *
+ * The packet sends codes so the provider never learns who these children are.
+ * That protection is about the provider, not about the coach: once the words
+ * are back on the device, a report reading "P1 pelasi rohkeasti" in the coach's
+ * own document is simply broken. Player notes were always mapped back through
+ * `entityId`; section text was not, and went in with the codes intact.
+ *
+ * Longest ref first, so "P1" cannot eat the front of "P10", and boundaries on
+ * both sides so a code is only replaced when it stands as its own word.
+ */
+export function resolveRefsInText(
+  text: string,
+  refs: string[],
+  nameForRef: (ref: string) => string,
+): string {
+  if (refs.length === 0) return text;
+  const alternatives = [...refs]
+    .sort((a, b) => b.length - a.length)
+    .map((ref) => ref.replace(REGEX_SPECIAL, '\\$&'))
+    .join('|');
+  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(${alternatives})(?![\\p{L}\\p{N}])`, 'gu');
+  return text.replace(pattern, (match) => nameForRef(match) || match);
+}
+
 const defaultIdFactory = (index: number): string =>
   `note-ai-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -73,9 +107,11 @@ export function composeReportText(
   draft: ReportDraft,
   approvedSections: ReportSectionKey[],
   labelFor: (section: ReportSectionKey) => string,
+  refs: string[],
+  nameForRef: (ref: string) => string,
 ): string {
   return orderedSections(draft, approvedSections)
-    .map(({ section, text }) => `${labelFor(section)}:\n${text.trim()}`)
+    .map(({ section, text }) => `${labelFor(section)}:\n${resolveRefsInText(text.trim(), refs, nameForRef)}`)
     .join(SEPARATOR);
 }
 
@@ -94,11 +130,14 @@ export function applyReportDraft({
   mode,
   labelFor,
   refToPlayerId,
+  nameForRef,
   stamp,
   idFactory = defaultIdFactory,
 }: ApplyReportDraftOptions): ApplyReportDraftResult {
   const meta: AiMeta = { model: draft.model, packet: draft.packetFingerprint };
-  const drafted = composeReportText(draft, approvedSections, labelFor);
+  // Every ref the packet used, plus the one that means "we could not tell".
+  const refs = [...Object.keys(refToPlayerId), UNKNOWN_PLAYER_REF];
+  const drafted = composeReportText(draft, approvedSections, labelFor, refs, nameForRef);
   const existing = existingReport.trim();
 
   let composed: string;
@@ -131,7 +170,10 @@ export function applyReportDraft({
       droppedRefs.push(note.ref);
       return;
     }
-    const text = note.text.trim().slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX);
+    const text = resolveRefsInText(note.text.trim(), refs, nameForRef).slice(
+      0,
+      VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX,
+    );
     if (!text) return;
     noteEvents.push({
       id: idFactory(index),
