@@ -89,7 +89,7 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.wrapUpTitle', 'Finish this game')}</h3>
+        <h3 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.wrapUpTitle', 'Checklist')}</h3>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
             done ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'

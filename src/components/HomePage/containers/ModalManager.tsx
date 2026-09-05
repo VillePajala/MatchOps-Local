@@ -68,7 +68,8 @@ interface ModalManagerHandlers {
   logOpponentGoal: (timeSeconds: number) => void;
   recalculateScore: () => void;
   updateGameEvent: (event: GameEvent) => void;
-  addGameNote?: (note: GameNoteInput) => void;
+  /** Returns true when the note was dispatched; the inbox deletes the audio only then. */
+  addGameNote?: (note: GameNoteInput) => boolean;
   deleteGameEvent: (eventId: string) => Promise<boolean>;
   toggleGameStatsModal: () => void;
   exportOneExcel: (gameId: string) => void;
@@ -120,8 +121,6 @@ interface ModalManagerHandlers {
   wrapUpToAssessments: () => void;
   /** Phase 1b: the Goals step's add button - leave the stats view, open the goal log. */
   wrapUpToGoalLog: () => void;
-  /** Re-place the squad in a formation preset (tracked for the guided tour). */
-  applyFormation: (presetId: string | null) => void;
 }
 
 export interface ModalManagerProps {

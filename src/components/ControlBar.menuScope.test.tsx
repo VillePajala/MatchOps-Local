@@ -85,7 +85,7 @@ describe('ControlBar menu - match scope only (restructure 3.1)', () => {
 
   it('holds exactly the match-scope items plus Taso and Home', () => {
     const match = within(section('This match'));
-    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', /Team stats/]) {
+    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Finish this game', /Team stats/]) {
       expect(match.getByRole('button', { name: item })).toBeInTheDocument();
     }
     // Taso is the one external link that stays: game-day workflow tool.

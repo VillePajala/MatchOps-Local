@@ -109,6 +109,14 @@ describe('audioClipStore', () => {
     }
   });
 
+  it('rotation and per-game cleanup never create a database for a user who has not recorded', async () => {
+    const fresh = '22222222-2222-4222-8222-222222222222';
+    expect(await rotateOldClips(Date.now(), fresh)).toBe(0);
+    expect(await deleteClipsForGame('g1', fresh)).toBe(0);
+    const names = (await indexedDB.databases()).map((db) => db.name);
+    expect(names).not.toContain(getAudioDatabaseName(fresh));
+  });
+
   it('names the database per user, legacy when anonymous', () => {
     expect(getAudioDatabaseName()).toBe('MatchOpsLocal_Audio');
     expect(getAudioDatabaseName('11111111-1111-4111-8111-111111111111')).toBe(

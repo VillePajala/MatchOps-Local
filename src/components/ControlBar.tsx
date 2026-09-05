@@ -567,7 +567,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
             </button>
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />{t('controlBar.gameReport', 'Game report')}
+              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />{t('controlBar.gameReport', 'Finish this game')}
             </button>
             {/* Deep-review: the separate "Match stats" entry was identical to
                 Game report (same modal, same landing) - collapsed into one.

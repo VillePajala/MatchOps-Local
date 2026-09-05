@@ -137,7 +137,6 @@ const createProps = (): ModalManagerProps => ({
     wrapUpToGameSettings: noop,
     wrapUpToAssessments: noop,
     wrapUpToGoalLog: noop,
-    applyFormation: jest.fn(() => true),
     reapplyPlan: noop,
     setGamePersonnel: noop,
     closePlayerAssessmentModal: noop,

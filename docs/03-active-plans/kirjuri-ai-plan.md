@@ -266,6 +266,14 @@ not a measurement:
   #745, PR 2 #746, PR 3 #748, PR 4 #749, PR 5 #750). Testable end to end on the branch
   preview with the coach's own OpenAI key. Migration 041 is on staging only.
   Next: owner device test round, then the Phase 2 Media Session spike.
+- 2026-09-05 later: PR 6 #751 (hardening), **Phase 1b PR 7a #752** (editors out of Ottelun
+  tiedot) and **PR 7b-1 #753** (Viimeistele ottelu spine on the current-game tab) merged.
+  Finding while scoping 7b-2: the aggregate split already exists - the match-level host
+  renders the stats modal `currentGameOnly` and the Team stats menu opens the club-level
+  aggregate view - so 7b-2 is labels, guide copy and review follow-ups (boolean accept
+  contract, explicit goal-log open, audio-DB existence guard, dead `applyFormation`
+  handler, coverage gaps). Unused locale keys are NOT pruned: several are addressed
+  dynamically (template keys), so a static "unused" list is unsafe.
 - Correction from PR 5: Web Speech (also Chrome's on-device mode) only transcribes live
   mic input, never a stored clip - the "on-device probe" cannot apply to post-game
   clips. An on-device engine over clips needs a WASM model; the slot stays open.
