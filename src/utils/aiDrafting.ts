@@ -394,26 +394,40 @@ export interface DraftReportOptions {
  * Only ever called from an explicit coach action. Throws `DraftingError` with a
  * kind the UI can explain; never resolves with a half-checked draft.
  */
-export async function draftMatchReport({
-  packet,
-  signal,
+/** What one provider call gives back, whatever the caller asked it to write. */
+interface CompletionResult {
+  content: string;
+  /** True when the model spent its whole budget before finishing. */
+  ranOut: boolean;
+  /** Already on the coach's bill, whatever happens to the answer from here. */
+  billed: number;
+  inputTokens: number;
+  outputTokens: number;
+  /** Diagnostics that name a failure without carrying any of the answer's words. */
+  shape: { finishReason: string; contentChars: number; promptTokens: number; completionTokens: number; reasoningTokens: number };
+}
+
+/**
+ * One request to the coach's provider, with every failure already typed.
+ *
+ * Shared by drafting and translation so the two cannot drift apart on what
+ * counts as unauthorized, what gets billed, or what may be logged. Nothing in
+ * here ever logs the request or the answer's words: the request carries the key
+ * and the match data, and the answer is about children.
+ */
+async function postChatCompletion({
   model,
-  mode = 'full',
-}: DraftReportOptions): Promise<ReportDraft> {
-  const state = getAiProviderState();
-  if (!state.connected) {
-    throw new DraftingError('unauthorized', 'No AI provider is connected on this device');
-  }
-  // Explicit argument, else the coach's own choice, else the app's default.
-  const chosenModel = model ?? state.model ?? DRAFTING_MODEL;
+  messages,
+  responseFormat,
+  signal,
+}: {
+  model: string;
+  messages: Array<{ role: 'system' | 'user'; content: string }>;
+  responseFormat?: Record<string, unknown>;
+  signal?: AbortSignal;
+}): Promise<CompletionResult> {
   const key = getAiProviderKey();
   if (!key) throw new DraftingError('unauthorized', 'No provider key on this device');
-
-  const packetJson = JSON.stringify(packet);
-  if (packetJson.length > MAX_PACKET_CHARS) {
-    // Refused here rather than billed to the coach.
-    throw new DraftingError('tooLarge', 'This match has more data than one request should carry');
-  }
 
   let response: Response;
   try {
@@ -424,16 +438,10 @@ export async function draftMatchReport({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: chosenModel,
+        model,
         max_completion_tokens: MAX_COMPLETION_TOKENS,
-        messages: [
-          { role: 'system', content: buildDraftingInstructions(packet, mode) },
-          { role: 'user', content: packetJson },
-        ],
-        response_format: {
-          type: 'json_schema',
-          json_schema: { name: 'match_report_draft', strict: true, schema: responseSchema() },
-        },
+        messages,
+        ...(responseFormat ? { response_format: responseFormat } : {}),
       }),
       signal: withTimeout(signal),
     });
@@ -474,13 +482,10 @@ export async function draftMatchReport({
   };
   const choice = completion.choices?.[0];
   if (typeof choice?.message?.refusal === 'string' && choice.message.refusal) {
-    throw new DraftingError('rejected', 'The provider declined to draft this report');
+    throw new DraftingError('rejected', 'The provider declined this request');
   }
 
   const content = typeof choice?.message?.content === 'string' ? choice.message.content.trim() : '';
-  const ranOut = choice?.finish_reason === 'length';
-  // Diagnostics that name the failure without carrying any of the answer's
-  // words: this is the difference between "unreadable" and a fixable cause.
   const shape = {
     finishReason: typeof choice?.finish_reason === 'string' ? choice.finish_reason : 'unknown',
     contentChars: content.length,
@@ -489,9 +494,49 @@ export async function draftMatchReport({
     reasoningTokens: Number(completion.usage?.completion_tokens_details?.reasoning_tokens ?? 0),
   };
 
-  // The provider answered, so these tokens are on the coach's bill whatever
-  // happens to the answer from here.
-  const billed = completionUsd(shape.promptTokens, shape.completionTokens);
+  return {
+    content,
+    ranOut: choice?.finish_reason === 'length',
+    billed: completionUsd(shape.promptTokens, shape.completionTokens),
+    inputTokens: shape.promptTokens,
+    outputTokens: shape.completionTokens,
+    shape,
+  };
+}
+
+export async function draftMatchReport({
+  packet,
+  signal,
+  model,
+  mode = 'full',
+}: DraftReportOptions): Promise<ReportDraft> {
+  const state = getAiProviderState();
+  if (!state.connected) {
+    throw new DraftingError('unauthorized', 'No AI provider is connected on this device');
+  }
+  // Explicit argument, else the coach's own choice, else the app's default.
+  const chosenModel = model ?? state.model ?? DRAFTING_MODEL;
+  const key = getAiProviderKey();
+  if (!key) throw new DraftingError('unauthorized', 'No provider key on this device');
+
+  const packetJson = JSON.stringify(packet);
+  if (packetJson.length > MAX_PACKET_CHARS) {
+    // Refused here rather than billed to the coach.
+    throw new DraftingError('tooLarge', 'This match has more data than one request should carry');
+  }
+
+  const { content, ranOut, billed, inputTokens, outputTokens, shape } = await postChatCompletion({
+    model: chosenModel,
+    messages: [
+      { role: 'system', content: buildDraftingInstructions(packet, mode) },
+      { role: 'user', content: packetJson },
+    ],
+    responseFormat: {
+      type: 'json_schema',
+      json_schema: { name: 'match_report_draft', strict: true, schema: responseSchema() },
+    },
+    signal,
+  });
 
   if (!content) {
     logger.warn('[aiDrafting] provider returned no content', shape);
@@ -517,8 +562,6 @@ export async function draftMatchReport({
   }
 
   const draft = validateDraft(parsed, packet);
-  const inputTokens = Number(completion.usage?.prompt_tokens ?? 0);
-  const outputTokens = Number(completion.usage?.completion_tokens ?? 0);
 
   return {
     ...draft,
@@ -534,4 +577,105 @@ export async function draftMatchReport({
         }
       : {}),
   };
+}
+
+/** Longest report we will send for translation - the report cap plus headroom. */
+const MAX_TRANSLATE_CHARS = 6_000;
+
+/** Languages offered for a translated read of the report. */
+export const TRANSLATION_LANGUAGES = ['en', 'sv', 'fi', 'et', 'ru', 'uk', 'so', 'ar'] as const;
+export type TranslationLanguage = (typeof TRANSLATION_LANGUAGES)[number];
+
+const LANGUAGE_NAMES: Record<TranslationLanguage, string> = {
+  en: 'English',
+  sv: 'Swedish',
+  fi: 'Finnish',
+  et: 'Estonian',
+  ru: 'Russian',
+  uk: 'Ukrainian',
+  so: 'Somali',
+  ar: 'Arabic',
+};
+
+export interface TranslatedReport {
+  text: string;
+  language: TranslationLanguage;
+  model: string;
+  estimatedUsd: number;
+}
+
+/**
+ * Translate the coach's finished report, for reading rather than for saving.
+ *
+ * A coach whose squad includes a family that does not read Finnish currently
+ * has no way to hand over what they wrote. This produces a translation the
+ * coach can read and copy, and deliberately offers NO apply path: nothing it
+ * returns can overwrite the report, so there is no way for it to destroy the
+ * original at all.
+ *
+ * Names are redacted before the text leaves the device and resolved back
+ * afterwards, exactly as drafting does. Translation would be a strange place to
+ * start sending children's real names when every other request stops doing so,
+ * and the coach reading the result wants the names anyway - which the caller
+ * restores locally, from a mapping that never left.
+ */
+export async function translateReport({
+  text,
+  language,
+  signal,
+  model,
+}: {
+  text: string;
+  language: TranslationLanguage;
+  signal?: AbortSignal;
+  model?: string;
+}): Promise<TranslatedReport> {
+  const state = getAiProviderState();
+  if (!state.connected) {
+    throw new DraftingError('unauthorized', 'No AI provider is connected on this device');
+  }
+  const trimmed = text.trim();
+  if (!trimmed) throw new DraftingError('invalidResponse', 'There is no report to translate');
+  if (trimmed.length > MAX_TRANSLATE_CHARS) {
+    // Refused here rather than billed to the coach.
+    throw new DraftingError('tooLarge', 'This report is longer than one translation request should carry');
+  }
+
+  const chosenModel = model ?? state.model ?? DRAFTING_MODEL;
+  const target = LANGUAGE_NAMES[language];
+
+  const { content, ranOut, billed } = await postChatCompletion({
+    model: chosenModel,
+    messages: [
+      {
+        role: 'system',
+        content: [
+          `Translate the coach's match report into ${target}.`,
+          'Translate it and nothing else. Do not summarise, do not improve it, do not add a',
+          'greeting or a closing, and do not comment on the text. Keep the headings, the',
+          'paragraph breaks and the order exactly as they are.',
+          'Codes like P1, P2 and P? are player references. Leave every one of them exactly as',
+          'written - they are replaced with real names on the coach\'s device afterwards, and a',
+          'translated or renumbered code would attach the wrong child to the sentence.',
+          'Return the translated report as plain text, with no preamble and no code fences.',
+        ].join('\n'),
+      },
+      { role: 'user', content: trimmed },
+    ],
+    signal,
+  });
+
+  if (!content) {
+    throw new DraftingError(
+      'noOutput',
+      ranOut ? 'The model spent its whole output budget before writing anything' : 'Provider returned no translation',
+      billed,
+    );
+  }
+  if (ranOut) {
+    // A half-translated report read as whole would be worse than none.
+    throw new DraftingError('noOutput', 'The translation was cut off before it finished', billed);
+  }
+
+  return { text: content, language, model: chosenModel, estimatedUsd: billed };
 }

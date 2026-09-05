@@ -3564,5 +3564,28 @@
     "savedWhere": "Saved as a note, not as report text. It is further up this page under Notes, and the AI draft will use it as your own account.",
     "showNotes": "Show me the notes",
     "insertFailed": "Could not add that to the report. Your recording is kept."
+  },
+  "translateReport": {
+    "title": "Read this report in another language",
+    "blurb": "For sharing with a family who reads another language. This never changes your report.",
+    "language": "Language",
+    "action": "Translate",
+    "working": "Translating...",
+    "copy": "Copy",
+    "copied": "Copied.",
+    "copyFailed": "Could not copy. Select the text instead.",
+    "errorTooLarge": "This report is too long to translate in one go.",
+    "errorNoOutput": "The translation came back empty or unfinished.",
+    "errorNothing": "There is nothing to translate yet.",
+    "lang": {
+      "en": "English",
+      "sv": "Swedish",
+      "fi": "Finnish",
+      "et": "Estonian",
+      "ru": "Russian",
+      "uk": "Ukrainian",
+      "so": "Somali",
+      "ar": "Arabic"
+    }
   }
 }

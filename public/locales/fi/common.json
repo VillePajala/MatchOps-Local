@@ -3564,5 +3564,28 @@
     "savedWhere": "Tallennettu muistiinpanoksi, ei raporttitekstiksi. Se on ylempänä tällä sivulla kohdassa Muistiinpanot, ja tekoälyluonnos käyttää sitä omana kertomuksenasi.",
     "showNotes": "Näytä muistiinpanot",
     "insertFailed": "Raporttiin ei voitu lisätä tätä. Äänitys säilyy."
+  },
+  "translateReport": {
+    "title": "Lue tämä raportti toisella kielellä",
+    "blurb": "Jaettavaksi perheelle, joka lukee toista kieltä. Tämä ei koskaan muuta raporttiasi.",
+    "language": "Kieli",
+    "action": "Käännä",
+    "working": "Käännetään...",
+    "copy": "Kopioi",
+    "copied": "Kopioitu.",
+    "copyFailed": "Kopiointi ei onnistunut. Valitse teksti sen sijaan.",
+    "errorTooLarge": "Tämä raportti on liian pitkä käännettäväksi kerralla.",
+    "errorNoOutput": "Käännös palautui tyhjänä tai kesken.",
+    "errorNothing": "Ei vielä mitään käännettävää.",
+    "lang": {
+      "en": "Englanti",
+      "sv": "Ruotsi",
+      "fi": "Suomi",
+      "et": "Viro",
+      "ru": "Venäjä",
+      "uk": "Ukraina",
+      "so": "Somali",
+      "ar": "Arabia"
+    }
   }
 }

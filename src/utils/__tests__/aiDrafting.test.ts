@@ -18,6 +18,7 @@ import {
   buildDraftingInstructions,
   draftMatchReport,
   estimateDraftUsd,
+  translateReport,
   validateDraft,
 } from '../aiDrafting';
 import { buildGamePacket } from '../gamePacket';
@@ -428,5 +429,105 @@ describe('instructions and cost hint', () => {
     const usd = estimateDraftUsd(makePacket());
     expect(usd).toBeGreaterThan(0);
     expect(usd).toBeLessThan(0.02);
+  });
+});
+
+describe('translateReport', () => {
+  const okResponse = (text: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      choices: [{ message: { content: text }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 200 },
+    }),
+  });
+
+  beforeEach(() => {
+    connect();
+  });
+
+  it('refuses without a connected provider and never calls out', async () => {
+    // The outer beforeEach already cleared storage; drop the key this one set.
+    localStorage.clear();
+    resetAiProviderStateForTests();
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await expect(translateReport({ text: 'Raportti', language: 'en' })).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses an empty report and a report longer than one request should carry', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await expect(translateReport({ text: '   ', language: 'en' })).rejects.toMatchObject({
+      kind: 'invalidResponse',
+    });
+    await expect(translateReport({ text: 'x'.repeat(6_001), language: 'en' })).rejects.toMatchObject({
+      kind: 'tooLarge',
+    });
+    // Neither was billed, because neither was sent.
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('sends the report with the key in the header only, and asks for the named language', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(okResponse('The match was even.'));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await translateReport({ text: 'Tasainen ottelu.', language: 'sv' });
+
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers.Authorization).toBe('Bearer sk-proj-abcdefghijklmnop');
+    const body = JSON.parse(init.body);
+    expect(body.messages[0].content).toContain('Swedish');
+    expect(body.messages[1].content).toBe('Tasainen ottelu.');
+    // The key must never travel in the URL.
+    expect(fetchMock.mock.calls[0][0]).not.toContain('sk-');
+    expect(result.text).toBe('The match was even.');
+    expect(result.language).toBe('sv');
+  });
+
+  /**
+   * @critical - the codes are how a sentence stays attached to the right child.
+   * A model that translated or renumbered them would silently reassign praise
+   * or concern from one player to another.
+   */
+  it('tells the model to leave player codes exactly as they are', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(okResponse('P1 played well.'));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await translateReport({ text: 'P1 pelasi hyvin.', language: 'en' });
+
+    const instructions = JSON.parse(fetchMock.mock.calls[0][1].body).messages[0].content;
+    expect(instructions).toMatch(/P1/);
+    expect(instructions).toMatch(/exactly as/i);
+  });
+
+  it('refuses to hand back a translation that was cut off', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: 'The match was ev' }, finish_reason: 'length' }],
+        usage: { prompt_tokens: 100, completion_tokens: 4000 },
+      }),
+    }) as unknown as typeof fetch;
+
+    // Half a report read as a whole one is worse than none, and it was billed.
+    await expect(translateReport({ text: 'Tasainen ottelu.', language: 'en' })).rejects.toMatchObject({
+      kind: 'noOutput',
+    });
+  });
+
+  it('maps provider failures to the same typed errors drafting uses', async () => {
+    for (const [status, kind] of [[401, 'unauthorized'], [429, 'rateLimited'], [500, 'network']] as const) {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status,
+        json: async () => ({ error: {} }),
+      }) as unknown as typeof fetch;
+      await expect(translateReport({ text: 'Raportti', language: 'en' })).rejects.toMatchObject({ kind });
+    }
   });
 });
