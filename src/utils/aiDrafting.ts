@@ -248,6 +248,24 @@ export function validateDraft(raw: unknown, packet: GamePacket): Omit<ReportDraf
   return { sections, playerNotes, ...(caveat ? { dataCaveat: caveat } : {}) };
 }
 
+/**
+ * The provider's own words about why it said no - but only the fields that name
+ * a parameter, never `message`, which can quote back what we sent.
+ */
+async function describeProviderError(response: Response): Promise<Record<string, string>> {
+  try {
+    const body = (await response.json()) as { error?: { type?: unknown; code?: unknown; param?: unknown } };
+    const out: Record<string, string> = {};
+    for (const field of ['type', 'code', 'param'] as const) {
+      const value = body.error?.[field];
+      if (typeof value === 'string' && value.length <= 100) out[field] = value;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 function withTimeout(signal?: AbortSignal): AbortSignal | undefined {
   const timeout = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(REQUEST_TIMEOUT_MS) : undefined;
   if (signal && timeout && typeof AbortSignal.any === 'function') return AbortSignal.any([signal, timeout]);
@@ -315,7 +333,14 @@ export async function draftMatchReport({
   if (response.status === 401 || response.status === 403) throw new DraftingError('unauthorized');
   if (response.status === 429) throw new DraftingError('rateLimited');
   if (!response.ok) {
-    logger.warn('[aiDrafting] provider returned an error status', { status: response.status });
+    // A rejected request is usually a wrong model id or an unsupported
+    // parameter, and a bare status number makes that undiagnosable. Log the
+    // provider's structured error fields only - type/code/param name the
+    // problem, while `message` can echo request content, so it stays out.
+    logger.warn('[aiDrafting] provider returned an error status', {
+      status: response.status,
+      ...(await describeProviderError(response)),
+    });
     throw new DraftingError(response.status >= 500 ? 'network' : 'rejected');
   }
 

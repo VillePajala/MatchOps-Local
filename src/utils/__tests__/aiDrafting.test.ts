@@ -141,6 +141,33 @@ describe('draftMatchReport - the request', () => {
     await expect(draftMatchReport({ packet })).rejects.toBeInstanceOf(DraftingError);
   });
 
+  /** A wrong model id is the likeliest 400; the log must name it without
+   *  echoing the match data the provider may quote back in `message`. */
+  it('logs which parameter the provider objected to, never its message text', async () => {
+    connect();
+    const logger = (jest.requireMock('@/utils/logger') as { default: { warn: jest.Mock } }).default;
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        error: {
+          type: 'invalid_request_error',
+          code: 'model_not_found',
+          param: 'model',
+          message: 'The model does not exist. Request contained: Emman syöttö',
+        },
+      }),
+    });
+
+    await expect(draftMatchReport({ packet: makePacket() })).rejects.toMatchObject({ kind: 'rejected' });
+
+    const logged = JSON.stringify(logger.warn.mock.calls);
+    expect(logged).toContain('model_not_found');
+    expect(logged).toContain('"param":"model"');
+    expect(logged).not.toContain('Emman');
+    expect(logged).not.toContain('message');
+  });
+
   it('treats a refusal and a cut-off answer as distinct failures', async () => {
     connect();
     const packet = makePacket();
