@@ -347,9 +347,60 @@ first. One intent per surface, organised by WHEN:
   text updates. PR 7c: completeness dot on Home + the Peli ohi hand-off.
 
 **Phase 2 - Hands-free**
-- Spike first (half a day, throwaway): silent-track Media Session in the TWA - do
-  earbud play/pause taps reach the page, and does the mic stream survive a pocketed
+- SPIKE HARNESS BUILT (PR 20, `/kirjuri-spike`): a throwaway diagnostic route, no
+  navigation to it and `robots: noindex` - the only way in is typing the address.
+  **DELETE IT BEFORE THE MASTER MERGE** (checklist item below). It answers the two
+  questions that cannot be answered from a desk:
+  1. Does an earbud button reach the page? Holds a looping WAV built in the browser
+     (silent, with a barely-audible tone as the fallback, because some systems ignore a
+     silent player and never grant a media session), registers EVERY MediaSession action
+     including `hangup` / `togglemicrophone`, AND listens for media KEY events, since some
+     devices deliver keys rather than session actions. Every arrival is timestamped.
+     Why this matters for the owner's two pairs: a single-button media bud normally sends
+     play/pause over AVRCP, which can surface as a session action; a headset built for
+     calls (Jabra Evolve 2) tends to send CALL CONTROL over the hands-free profile, which
+     may never surface as a media action at all. The log tells them apart.
+  2. Does the mic survive a pocketed phone? Opens the stream, holds the screen wake lock
+     like the app does, and logs one line a second with the input level, track readyState,
+     mute flag, page visibility and AudioContext state - readable after the phone comes
+     back out of the pocket. Plus `enumerateDevices`, because media buds and call headsets
+     appear differently there, which is the likeliest reason one pair works and another
+     does not.
+  Original spike question (kept for the record): silent-track Media Session in the TWA -
+  do earbud play/pause taps reach the page, and does the mic stream survive a pocketed
   screen-on phone?
+- **DESIGN DECISION from the owner's point that "users might have a variety of bud styles
+  too" (2026-09-05).** The spike answers whether hands-free works on HIS two pairs. It
+  cannot answer it for the next coach, and we will never enumerate the market: media buds,
+  call headsets, single-button, multi-button, phone-brand buds with their own gesture
+  layer. So Phase 2 must NOT be "hands-free works" - it must be:
+  1. The on-screen press-hold stays the guaranteed path, always. Hands-free is an
+     enhancement on top, never a replacement.
+  2. Ship a SELF-TEST the coach runs with their own buds, in settings, before they ever
+     rely on it in a match. It reports plainly: "your earbuds reach the app - hands-free
+     will work" or "your earbuds do not reach the app - use the button on screen". A coach
+     who believes hands-free works and discovers otherwise mid-match has been failed by us,
+     not by their hardware.
+  3. That self-test is the button half of this spike harness, trimmed. So the harness is
+     only half throwaway: the media-session detection graduates into the feature, and the
+     mic-in-pocket logging is what gets deleted.
+  This also means a NEGATIVE spike result does not kill Phase 2 for everyone - it tells us
+  how loudly the self-test has to speak.
+- **HOW TO RUN THE SPIKE (owner: "I cannot see logs in installed app").** Two problems,
+  both handled:
+  1. No console in an installed app, so the harness prints its log ON SCREEN and now has
+     a Copy button (clipboard, then the share sheet, then a text file as the last resort).
+     The exported log carries the user agent and whether the page was running standalone
+     or in a browser tab, because that changes what the result means.
+  2. **The Play Store app CANNOT run branch code.** The installed TWA loads PRODUCTION and
+     has no address bar, so `/kirjuri-spike` on a Vercel preview is unreachable from it.
+     The closest available proxy: open the preview in Chrome, "Add to home screen", and
+     run the spike from that icon - a standalone window on the preview origin, no address
+     bar. The page detects this and says which mode it is in, because a browser tab is
+     more permissive than an installed app and a pass in a tab can still fail in the TWA.
+     A true TWA answer only arrives when this reaches production; if the standalone result
+     is positive we accept that residual risk, and the per-coach self-test above is what
+     catches it in the field anyway.
 - PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
 - PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.
@@ -563,6 +614,15 @@ carries neither the key, the consent flag nor the usage counter. The export buil
 an allowlist so they were already excluded; the test is there so a future "back up
 everything" change fails instead of shipping credentials in a file coaches share. A manual device checklist per phase (Android phone,
 earbuds, TWA build) because none of the media APIs run in jsdom or Playwright.
+
+## Before the master merge (checklist)
+
+- [ ] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). It is a diagnostic.
+- [ ] Apply migrations 041, 042, 043 to PROD - diff the live definitions first; they are
+      on staging only.
+- [ ] Owner decision: POLICY_VERSION bump (deliberately not bumped so far).
+- [ ] Recheck Play Data Safety declarations against what the feature now does.
+- [ ] Lawyer / Tietosuojavaltuutettu review of the drafting phase, as this doc recommends.
 
 ## Later (not in this build)
 
