@@ -168,6 +168,42 @@ describe('draftMatchReport - the request', () => {
     expect(logged).not.toContain('message');
   });
 
+  /** @critical - what the owner actually hit: a 200 with nothing usable in it.
+   *  "unreadable" is useless; the cause has to reach the message. */
+  it('separates an empty answer from unreadable JSON, and logs the shape without the words', async () => {
+    connect();
+    const logger = (jest.requireMock('@/utils/logger') as { default: { warn: jest.Mock } }).default;
+
+    // A reasoning model that spent the whole budget thinking.
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: '' }, finish_reason: 'length' }],
+        usage: { prompt_tokens: 1200, completion_tokens: 4000, completion_tokens_details: { reasoning_tokens: 4000 } },
+      }),
+    });
+    await expect(draftMatchReport({ packet: makePacket() })).rejects.toMatchObject({
+      kind: 'noOutput',
+      message: expect.stringMatching(/budget/i),
+    });
+
+    const logged = JSON.stringify(logger.warn.mock.calls);
+    expect(logged).toContain('"reasoningTokens":4000');
+    expect(logged).toContain('"finishReason":"length"');
+
+    // Content present but not JSON, and not truncated: a different failure.
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: 'Tässä on raporttisi!' }, finish_reason: 'stop' }] }),
+    });
+    await expect(draftMatchReport({ packet: makePacket() })).rejects.toMatchObject({ kind: 'invalidResponse' });
+
+    // Nothing logged carries the model's words.
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('raporttisi');
+  });
+
   it('treats a refusal and a cut-off answer as distinct failures', async () => {
     connect();
     const packet = makePacket();
@@ -183,7 +219,7 @@ describe('draftMatchReport - the request', () => {
       status: 200,
       json: async () => ({ choices: [{ message: { content: '{"sections":[{"sect' }, finish_reason: 'length' }] }),
     });
-    await expect(draftMatchReport({ packet })).rejects.toMatchObject({ kind: 'invalidResponse' });
+    await expect(draftMatchReport({ packet })).rejects.toMatchObject({ kind: 'noOutput' });
   });
 
   it('passes the caller signal through so leaving the screen cancels the request', async () => {

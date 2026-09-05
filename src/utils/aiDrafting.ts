@@ -37,8 +37,15 @@ export const DRAFTING_MODEL = 'gpt-5-mini';
 /** Rough list prices in USD per 1M tokens, for the cost hint only. */
 export const DRAFTING_USD_PER_1M_INPUT = 0.25;
 export const DRAFTING_USD_PER_1M_OUTPUT = 2.0;
-/** Hard ceiling on what we will pay for in one answer. */
-export const MAX_COMPLETION_TOKENS = 2000;
+/**
+ * Hard ceiling on what we will pay for in one answer.
+ *
+ * Sized for a reasoning-capable model: those spend part of this budget thinking
+ * before they write, and a budget that only covers the prose comes back with an
+ * empty answer and `finish_reason: 'length'`. 4000 output tokens is still under
+ * a cent at this tier.
+ */
+export const MAX_COMPLETION_TOKENS = 4000;
 /** Refuse before sending: a packet this big means something is wrong upstream. */
 export const MAX_PACKET_CHARS = 60_000;
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -93,6 +100,8 @@ export type DraftingFailure =
   | 'network'
   | 'rejected'
   | 'tooLarge'
+  /** The call succeeded but the model wrote nothing usable, or ran out of budget. */
+  | 'noOutput'
   | 'invalidResponse';
 
 export class DraftingError extends Error {
@@ -353,25 +362,49 @@ export async function draftMatchReport({
 
   const completion = body as {
     choices?: Array<{ message?: { content?: unknown; refusal?: unknown }; finish_reason?: unknown }>;
-    usage?: { prompt_tokens?: unknown; completion_tokens?: unknown };
+    usage?: {
+      prompt_tokens?: unknown;
+      completion_tokens?: unknown;
+      completion_tokens_details?: { reasoning_tokens?: unknown };
+    };
   };
   const choice = completion.choices?.[0];
   if (typeof choice?.message?.refusal === 'string' && choice.message.refusal) {
     throw new DraftingError('rejected', 'The provider declined to draft this report');
   }
-  if (typeof choice?.message?.content !== 'string') {
-    throw new DraftingError('invalidResponse', 'Provider returned no draft content');
+
+  const content = typeof choice?.message?.content === 'string' ? choice.message.content.trim() : '';
+  const ranOut = choice?.finish_reason === 'length';
+  // Diagnostics that name the failure without carrying any of the answer's
+  // words: this is the difference between "unreadable" and a fixable cause.
+  const shape = {
+    finishReason: typeof choice?.finish_reason === 'string' ? choice.finish_reason : 'unknown',
+    contentChars: content.length,
+    promptTokens: Number(completion.usage?.prompt_tokens ?? 0),
+    completionTokens: Number(completion.usage?.completion_tokens ?? 0),
+    reasoningTokens: Number(completion.usage?.completion_tokens_details?.reasoning_tokens ?? 0),
+  };
+
+  if (!content) {
+    logger.warn('[aiDrafting] provider returned no content', shape);
+    throw new DraftingError(
+      'noOutput',
+      ranOut
+        ? 'The model spent its whole output budget before writing anything'
+        : 'Provider returned no draft content',
+    );
   }
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(choice.message.content);
+    parsed = JSON.parse(content);
   } catch {
-    // A truncated answer lands here: the cap cut the JSON mid-string.
-    throw new DraftingError(
-      'invalidResponse',
-      choice.finish_reason === 'length' ? 'The draft was cut off before it finished' : 'Draft was not valid JSON',
-    );
+    logger.warn('[aiDrafting] draft content was not JSON', shape);
+    // A cut-off answer lands here too: the budget ended mid-string.
+    if (ranOut) {
+      throw new DraftingError('noOutput', 'The draft was cut off before it finished');
+    }
+    throw new DraftingError('invalidResponse', 'Draft was not valid JSON');
   }
 
   const draft = validateDraft(parsed, packet);

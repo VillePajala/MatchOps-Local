@@ -3523,6 +3523,7 @@
     "errorRejected": "Your AI provider refused this request.",
     "errorTooLarge": "This match has too much data for one draft.",
     "errorInvalid": "The draft came back unreadable. Try again.",
-    "unknownPlayer": "Unidentified player"
+    "unknownPlayer": "Unidentified player",
+    "errorNoOutput": "Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers."
   }
 }
