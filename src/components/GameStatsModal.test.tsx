@@ -974,6 +974,30 @@ describe('GameStatsModal', () => {
     });
   });
 
+  /** @critical - the owner's report: a full-width button that does nothing. */
+  it('hides the tab bar when there is only one tab to show', async () => {
+    const props = { ...getDefaultProps(), currentGameOnly: true };
+    await act(async () => {
+      renderComponent(props);
+    });
+
+    // The match-level host hides the aggregate tabs, so a lone "Nykyinen" tab
+    // is chrome that looks like navigation.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    // The content itself is still the current game.
+    expect(screen.getByTestId('finish-game-spine')).toBeInTheDocument();
+  });
+
+  it('keeps the tab bar where there is somewhere to navigate', async () => {
+    await act(async () => {
+      renderComponent(getDefaultProps());
+    });
+
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').length).toBeGreaterThan(1);
+  });
+
   describe('Phase 1b: aggregate cards survive the spine rewrite', () => {
     it('the overall tab still renders the team performance card', async () => {
       renderComponent(getDefaultProps());

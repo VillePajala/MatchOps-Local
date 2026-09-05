@@ -384,6 +384,18 @@ describe('instructions and cost hint', () => {
     expect(text).not.toMatch(/association football/i);
   });
 
+  /** @critical - real drafts came back narrating the bookkeeping: "torjuntoja
+   *  kirjattiin tarkeiksi", "maali merkittiin 0. minuutilla". */
+  it('forbids writing about the act of recording, and about a minute that is not there', () => {
+    const text = buildDraftingInstructions(makePacket());
+
+    expect(text).toMatch(/NEVER WRITE ABOUT THE RECORD ITSELF/);
+    expect(text).toMatch(/kirjattiin/);
+    expect(text).toMatch(/merkittiin/);
+    expect(text).toMatch(/Never say it happened in minute zero/i);
+    expect(text).toMatch(/never guess a minute/i);
+  });
+
   it('estimates a cost the UI can show before spending anything', () => {
     const usd = estimateDraftUsd(makePacket());
     expect(usd).toBeGreaterThan(0);
