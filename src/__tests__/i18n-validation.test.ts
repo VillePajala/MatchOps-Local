@@ -425,7 +425,7 @@ describe('Translation File Validation', () => {
       // +1: controlBar.formationMenu - the formation picker's accessible name
       //     ('Muodostelmavalikko'), unifying the control's four names (audit
       //     6.1). Lands at 2847.
-      expect(enKeys.length).toBe(3050) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7;
+      expect(enKeys.length).toBe(3050) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7, settings in the game menu +1;
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -555,7 +555,7 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(fiKeys.length).toBe(3050) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7;
+      expect(fiKeys.length).toBe(3050) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7, settings in the game menu +1;
     });
   });
 });
