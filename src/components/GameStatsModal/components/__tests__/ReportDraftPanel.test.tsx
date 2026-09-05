@@ -87,6 +87,7 @@ const renderPanel = (
       players={props.players ?? players}
       stamp={props.stamp ?? { time: 3000, period: 2 }}
       language="fi"
+      existingReport={props.existingReport ?? (props.game ?? game()).gameNotes ?? ''}
       onApply={onApply as unknown as ApplyFn}
     />,
   );
@@ -127,6 +128,7 @@ describe('ReportDraftPanel - before any request', () => {
         players={players}
         stamp={{ time: 3000, period: 2 }}
         language="fi"
+        existingReport=""
         onApply={jest.fn(() => true) as unknown as React.ComponentProps<typeof ReportDraftPanel>['onApply']}
         onOpenSettings={onOpenSettings}
       />,
@@ -313,6 +315,29 @@ describe('ReportDraftPanel - protecting text the coach already wrote', () => {
     const empty = renderPanel();
     await produceDraft();
     expect(empty.queryByTestId('report-draft-duplication-note')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the gap the branch review caught: a draft applied while the
+   * report editor holds unsaved text must build on what is ON SCREEN. Reading
+   * the saved value instead silently drops the coach's paragraph.
+   */
+  it('builds on the text the coach can see, not the last saved value', async () => {
+    const typedButNotSaved = 'Rivi jonka kirjoitin enka viela tallentanut.';
+    const { onApply } = renderPanel({
+      game: game({ gameNotes: 'Vanha tallennettu teksti.' }),
+      existingReport: typedButNotSaved,
+    });
+    await produceDraft();
+
+    // The warning reflects the on-screen text too, not the saved one.
+    expect(screen.getByTestId('report-draft-duplication-note')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('report-draft-apply'));
+
+    const saved = onApply.mock.calls[0][0].gameNotes;
+    expect(saved.startsWith(typedButNotSaved)).toBe(true);
+    expect(saved).not.toContain('Vanha tallennettu teksti.');
   });
 
   /** @critical - replace is destructive, so it warns first and undoes after. */

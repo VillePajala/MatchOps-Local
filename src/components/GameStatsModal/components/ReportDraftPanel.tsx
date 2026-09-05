@@ -40,6 +40,12 @@ export interface ReportDraftPanelProps {
   onOpenSettings?: () => void;
   /** The coach's language: the draft is written in it, not always in Finnish. */
   language: string;
+  /**
+   * The report text as it is ON SCREEN, which is not the same as the saved
+   * value while the editor is open with something unsaved in it. Appending to
+   * the saved value would quietly drop whatever the coach had just typed.
+   */
+  existingReport: string;
   /** The finished game the draft is about. */
   game: AppState;
   /** Full roster, so names outside the squad are redacted too. */
@@ -68,6 +74,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   onApply,
   onOpenSettings,
   language,
+  existingReport,
 }) => {
   const { t } = useTranslation();
   const ai = useAiProviderState();
@@ -141,14 +148,14 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
       draft,
       approvedSections,
       approvedPlayerNoteIndexes: approvedNoteIndexes,
-      existingReport: game.gameNotes ?? '',
+      existingReport,
       mode,
       labelFor: (section) => reportSectionLabel(t, section),
       refToPlayerId: refMap,
       nameForRef,
       stamp,
     });
-  }, [draft, approvedSections, approvedNoteIndexes, game.gameNotes, mode, refMap, nameForRef, stamp, t]);
+  }, [draft, approvedSections, approvedNoteIndexes, existingReport, mode, refMap, nameForRef, stamp, t]);
 
   const runDraft = useCallback(async () => {
     if (drafting) return;
@@ -401,7 +408,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
               />
               {t('reportDraft.modeReplace', 'Replace it with the draft')}
             </label>
-            {mode === 'append' && (game.gameNotes ?? '').trim() && (
+            {mode === 'append' && existingReport.trim() && (
               // The coach's own report was sent as source material, so the draft
               // can cover the same ground. Say so where the choice is made,
               // rather than after they are looking at it twice.
@@ -409,7 +416,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
                 {t('reportDraft.duplicationNote', 'The draft was written knowing what you already wrote, so it may cover the same ground twice. Replace avoids that, and you can undo it.')}
               </p>
             )}
-            {mode === 'replace' && (game.gameNotes ?? '').trim() && (
+            {mode === 'replace' && existingReport.trim() && (
               <p className="text-xs text-amber-300" data-testid="report-draft-replace-warning">
                 {t('reportDraft.replaceWarning', 'Your current report text will be overwritten. You can undo it right after.')}
               </p>
