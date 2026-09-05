@@ -3597,5 +3597,16 @@
     "matchesPlayed_other": "{{count}} ottelua",
     "andMore_one": "ja {{count}} muu",
     "andMore_other": "ja {{count}} muuta"
+  },
+  "playerNotesSummary": {
+    "title": "Lue nämä muistiinpanot yhtenä kokonaisuutena",
+    "scope": "Lähettää {{notes}} muistiinpanoasi tästä pelaajasta {{matches}} ottelusta AI-palveluusi. Mitään ei tallenneta eikä muuteta.",
+    "omitted": "{{count}} vanhinta muistiinpanoa jää tämän pyynnön ulkopuolelle.",
+    "action": "Kokoa muistiinpanot",
+    "working": "Luetaan muistiinpanojasi...",
+    "footer": "Omat muistiinpanosi järjestettynä. Mitään tästä ei lisätty tietoihin.",
+    "errorTooLarge": "Muistiinpanoja on enemmän kuin yksi pyyntö voi kantaa.",
+    "errorNoOutput": "Kooste palautui tyhjänä tai kesken.",
+    "errorNothing": "Tästä pelaajasta ei ole vielä muistiinpanoja."
   }
 }

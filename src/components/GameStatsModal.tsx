@@ -1184,6 +1184,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               <PlayerStatsView
                 player={selectedPlayer}
                 savedGames={savedGames}
+                masterRoster={masterRoster}
                 onGameClick={onGameClick}
                 seasons={seasons}
                 tournaments={tournaments}

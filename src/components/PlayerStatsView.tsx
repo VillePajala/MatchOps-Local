@@ -31,6 +31,7 @@ import { POSITION_IDS } from '@/config/positions';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
+import PlayerNotesSummaryCard from './PlayerNotesSummaryCard';
 
 // Line badge colours mirror the position-category colours used in the positions editor.
 interface PlayerStatsViewProps {
@@ -50,9 +51,11 @@ interface PlayerStatsViewProps {
   /** Optional gender filter - 'boys', 'girls', or 'all' */
   selectedGenderFilter?: Gender | 'all';
   includeFriendlies?: boolean;
+  /** Full roster: only needed so other children named in a note are redacted too. */
+  masterRoster?: Player[];
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -1352,6 +1355,19 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {player && playerNotes.length > 0 && (
+          <div className="mt-2">
+            {/* Read-only, like the translation panel: it reads the record back
+                and cannot become part of it. */}
+            <PlayerNotesSummaryCard
+              player={player}
+              notes={playerNotes}
+              roster={masterRoster ?? []}
+              language={i18n.language}
+            />
           </div>
         )}
 

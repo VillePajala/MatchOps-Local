@@ -3597,5 +3597,16 @@
     "matchesPlayed_other": "{{count}} matches",
     "andMore_one": "and {{count}} more",
     "andMore_other": "and {{count}} more"
+  },
+  "playerNotesSummary": {
+    "title": "Read these notes as one account",
+    "scope": "Sends {{notes}} of your notes about this player, from {{matches}} matches, to your AI provider. Nothing is saved or changed.",
+    "omitted": "The {{count}} oldest notes are left out of this request.",
+    "action": "Group these notes",
+    "working": "Reading your notes...",
+    "footer": "Your own notes, organised. Nothing here was added to the record.",
+    "errorTooLarge": "There are more notes here than one request can carry.",
+    "errorNoOutput": "The summary came back empty or unfinished.",
+    "errorNothing": "There are no notes about this player yet."
   }
 }
