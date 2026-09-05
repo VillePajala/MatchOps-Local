@@ -148,8 +148,30 @@ describe('applyReportDraft - codes become names again', () => {
     });
 
     expect(result.report).toBe('Erityismaininnat:\nEmma teki paljon työtä ilman palloa, ja Matti tuki hyvin.');
-    expect(result.noteEvents[0].text).toBe('Rohkea. Yhteistyö Matti:n kanssa toimi.');
+    expect(result.noteEvents[0].text).toBe('Rohkea. Yhteistyö Mattin kanssa toimi.');
     expect(result.report).not.toMatch(/\bP[0-9?]/);
+  });
+
+  /**
+   * @critical - a real draft came back with "Keijo:lle merkittiin upea torjunta"
+   * and "Esko:n kautta syntyi maali". Finnish inflects a CODE with a colon;
+   * a name takes the ending directly, so the colon goes with the code.
+   */
+  it('drops the colon Finnish uses for codes, so a name inflects properly', () => {
+    const inflected = draft({
+      sections: [{ section: 'mentions', text: 'P2:lle upea torjunta, ja P1:n kautta syntyi maali. P2 oli vahva.' }],
+    });
+    const result = applyReportDraft({
+      ...base,
+      draft: inflected,
+      approvedSections: ['mentions'],
+      approvedPlayerNoteIndexes: [],
+      nameForRef: (ref) => ({ P1: 'Esko', P2: 'Keijo' }[ref] ?? ref),
+    });
+
+    expect(result.report).toBe('Erityismaininnat:\nKeijolle upea torjunta, ja Eskon kautta syntyi maali. Keijo oli vahva.');
+    // The heading keeps its own colon; the prose must carry none.
+    expect(result.report.split('\n')[1]).not.toContain(':');
   });
 
   /** "P1" must not eat the front of "P10" in a squad of a dozen or more. */

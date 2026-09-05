@@ -79,6 +79,10 @@ const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
  *
  * Longest ref first, so "P1" cannot eat the front of "P10", and boundaries on
  * both sides so a code is only replaced when it stands as its own word.
+ *
+ * Finnish inflects a code with a colon - "P2:lle", "P1:n" - because that is how
+ * abbreviations take endings. A NAME takes the ending directly, so the colon has
+ * to go with the code: "P2:lle" becomes "Keijolle", not "Keijo:lle".
  */
 export function resolveRefsInText(
   text: string,
@@ -90,8 +94,16 @@ export function resolveRefsInText(
     .sort((a, b) => b.length - a.length)
     .map((ref) => ref.replace(REGEX_SPECIAL, '\\$&'))
     .join('|');
-  const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(${alternatives})(?![\\p{L}\\p{N}])`, 'gu');
-  return text.replace(pattern, (match) => nameForRef(match) || match);
+  const pattern = new RegExp(
+    `(?<![\\p{L}\\p{N}])(${alternatives})(?::(\\p{L}+))?(?![\\p{L}\\p{N}])`,
+    'gu',
+  );
+  return text.replace(pattern, (match, ref: string, ending: string | undefined) => {
+    const name = nameForRef(ref);
+    if (!name) return match;
+    // "P2:lle" -> "Keijolle": the colon belonged to the code, not to the name.
+    return ending ? `${name}${ending}` : name;
+  });
 }
 
 const defaultIdFactory = (index: number): string =>

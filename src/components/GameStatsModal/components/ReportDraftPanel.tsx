@@ -25,7 +25,7 @@ import type { GameEvent } from '@/types/game';
 import type { Player } from '@/types';
 import type { AppState } from '@/types/game';
 import { DraftingError, draftMatchReport, estimateDraftUsd, type ReportDraft } from '@/utils/aiDrafting';
-import { applyReportDraft, composeReportText, type ApplyMode } from '@/utils/applyReportDraft';
+import { applyReportDraft, composeReportText, resolveRefsInText, type ApplyMode } from '@/utils/applyReportDraft';
 import { UNKNOWN_PLAYER_REF, buildGamePacket } from '@/utils/gamePacket';
 import { reportSectionLabel } from '@/utils/reportSections';
 import { useAiProviderState } from '@/utils/aiProvider';
@@ -100,6 +100,19 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
       return player.nickname?.trim() || player.name.trim().split(/\s+/)[0] || player.name;
     },
     [players, refMap, t],
+  );
+
+  /**
+   * Draft text as the coach should read it.
+   *
+   * The refs were resolved when a draft was APPLIED, but not in this review
+   * list - so the screen where the coach decides showed "P5 ja P3" while the
+   * saved report showed the names. The place a decision is made is exactly
+   * where the text has to be readable.
+   */
+  const display = useCallback(
+    (text: string): string => resolveRefsInText(text, [...Object.keys(refMap), UNKNOWN_PLAYER_REF], nameForRef),
+    [refMap, nameForRef],
   );
 
   const approvedSections = useMemo(
@@ -305,7 +318,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
                 />
                 <span className="text-sm text-slate-200">
                   <span className="font-semibold">{reportSectionLabel(t, section)}: </span>
-                  {text}
+                  {display(text)}
                 </span>
               </label>
             ))}
@@ -334,7 +347,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
                   />
                   <span className="text-sm text-slate-200">
                     <span className="font-semibold">{nameForRef(note.ref)}: </span>
-                    {note.text}
+                    {display(note.text)}
                   </span>
                 </label>
               ))}
