@@ -195,18 +195,41 @@ const TRUST_EXPLANATION: GamePacket['trust'] = {
 const toMinute = (seconds: number): number | undefined =>
   Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds / 60) : undefined;
 
+/** Inside a name, these join parts that are also used on their own. */
+const NAME_JOINERS = /[-\u2010-\u2015'\u2019\u02bc]/;
+
+/**
+ * Shortest handle we keep. Two-letter names exist ("Bo", "JP"), and dropping
+ * them meant the app promised codes and then sent the child's real name.
+ * They are matched exactly rather than inflected - see tokenMatchesHandle.
+ */
+const MIN_HANDLE = 2;
+/** Below this length a handle matches only itself, never an inflection. */
+const MIN_INFLECTED_HANDLE = 3;
+
 /**
  * Every word that could identify this player: nickname plus each part of the
  * name. Surnames included - a coach may well say one out loud, and redaction
  * has to cover what pseudonymization promises.
+ *
+ * A hyphenated or apostrophed name yields BOTH the whole and its parts, because
+ * a coach says either: "Juha-Pekka" in the team sheet is "Juha" on the pitch.
+ * Keeping only the whole is how the child's real first name reached the
+ * provider in cleartext.
  */
 export function playerRedactionHandles(player: Player): string[] {
   const handles = new Set<string>();
-  if (player.nickname) handles.add(normalizeNameForCompare(player.nickname));
-  for (const part of normalizeNameForCompare(player.name).split(/\s+/)) {
-    if (part) handles.add(part);
-  }
-  return [...handles].filter((h) => h.length >= 3);
+  const add = (raw: string): void => {
+    const norm = normalizeNameForCompare(raw);
+    if (!norm) return;
+    handles.add(norm);
+    for (const part of norm.split(NAME_JOINERS)) {
+      if (part) handles.add(part);
+    }
+  };
+  if (player.nickname) add(player.nickname);
+  for (const part of normalizeNameForCompare(player.name).split(/\s+/)) add(part);
+  return [...handles].filter((h) => h.length >= MIN_HANDLE);
 }
 
 /**
@@ -240,6 +263,9 @@ const GRADATING_NAME = /([kpt])\1[aeiouyäö]$/;
  */
 function tokenMatchesHandle(token: string, handle: string): boolean {
   if (token === handle) return true;
+  // A very short name is matched exactly and no other way. "Bo" must not drag
+  // in "bonus", and no inflection rule is safe at two letters.
+  if (handle.length < MIN_INFLECTED_HANDLE) return false;
   // The whole name plus a case ending.
   if (token.startsWith(handle) && token.length - handle.length <= MAX_ENDING) return true;
   // Consonant gradation eats one of the doubled letters, so allow a shortened
@@ -285,12 +311,21 @@ export function redactPlayerNames(
     .filter((p) => p.handles.length > 0);
   if (handled.length === 0) return text;
 
-  return text.replace(/[\p{L}\p{N}]+/gu, (word) => {
+  // Hyphens and apostrophes stay INSIDE a word, so "Juha-Pekka" and "O'Brien"
+  // are examined whole. Splitting on them first turned one name into two
+  // ordinary-looking words that matched nothing and went out as written.
+  return text.replace(/[\p{L}\p{N}]+(?:[-\u2010-\u2015'\u2019\u02bc][\p{L}\p{N}]+)*/gu, (word) => {
     const token = normalizeNameForCompare(word);
-    if (token.length < 3) return word;
+    if (token.length < MIN_HANDLE) return word;
+    // The whole compound first, then its parts: "Juha-Pekka" is one name, but
+    // so is the "Juha" in "Juha-Pekan". Any part being a name removes the whole
+    // word - a false positive costs a word, a false negative leaks a child.
+    const pieces = [token, ...token.split(NAME_JOINERS).filter((piece) => piece.length >= MIN_HANDLE)];
     const refs = new Set<string>();
     for (const { ref, handles } of handled) {
-      if (handles.some((handle) => tokenMatchesHandle(token, handle))) refs.add(ref);
+      if (pieces.some((piece) => handles.some((handle) => tokenMatchesHandle(piece, handle)))) {
+        refs.add(ref);
+      }
     }
     if (refs.size === 0) return word;
     // Two players answer to this word: drop the name, never guess the child.

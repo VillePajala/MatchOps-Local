@@ -93,6 +93,8 @@ interface ControlBarProps {
   onQuickSave: () => void;
   onOpenGameSettingsModal: () => void;
   isGameLoaded: boolean;
+  /** Finishing progress for the current game, or null when it does not apply. */
+  finishProgress?: { done: number; total: number } | null;
   onOpenPlayerAssessmentModal: () => void;
   /** W10 (menu watchpoint, restored on proven friction day one): quick
    *  access to the planner right after creating/entering a game. Opens the
@@ -132,6 +134,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onQuickSave,
   onOpenGameSettingsModal,
   isGameLoaded,
+  finishProgress,
   onOpenPlayerAssessmentModal,
   onOpenPlanner,
   onOpenTraining,
@@ -567,7 +570,25 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
               <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
             </button>
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />{t('controlBar.gameReport', 'Finish this game')}
+              <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />
+              {t('controlBar.gameReport', 'Finish this game')}
+              {finishProgress && (
+                  // State, not a permanent badge: it appears because the match
+                  // is unfinished and turns green when it is done, so the menu
+                  // answers "is there anything left" without opening a screen.
+                <span
+                  className="ml-auto flex items-center gap-1.5 text-xs font-semibold tabular-nums text-slate-300"
+                  data-testid="menu-finish-progress"
+                >
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      finishProgress.done >= finishProgress.total ? 'bg-emerald-500' : 'bg-amber-400'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {finishProgress.done}/{finishProgress.total}
+                </span>
+              )}
             </button>
             {/* Deep-review: the separate "Match stats" entry was identical to
                 Finish this game (same modal, same landing) - collapsed into one.

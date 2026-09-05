@@ -230,7 +230,9 @@
     "transcribeRejected": "The provider could not transcribe one clip - type it instead.",
     "transcribeDone": "{{count}} clips transcribed - check the text and the player, then save.",
     "transcribeRejectedCount": "{{count}} clips could not be transcribed - type those instead.",
-    "transcribingHint": "Sending each clip to your AI provider."
+    "transcribingHint": "Sending each clip to your AI provider.",
+    "discardClipTitle": "Discard this recording?",
+    "discardClipBody": "The recording is deleted for good. Anything you have not saved as a note goes with it."
   },
   "undoToast": {
     "goal": "Goal logged",
@@ -595,7 +597,8 @@
       "spirit": "Team spirit & effort",
       "mentions": "Highlights",
       "next": "Next step"
-    }
+    },
+    "notesRemaining": "{{remaining}} characters left"
   },
   "importResults": {
     "title": "Import Results",
@@ -3484,11 +3487,11 @@
     "title": "Before you connect an AI provider",
     "version": "Version",
     "dataTitle": "What happens with your data",
-    "data1": "Recordings stay on this phone. MatchOps never receives your recordings, transcripts or AI results.",
+    "data1": "Recordings stay on this phone. MatchOps never receives your audio.",
     "data2": "When you press Transcribe or Draft, the recording or notes are sent from this phone to the AI provider YOU connected, under YOUR account and YOUR key.",
     "data3": "The provider may keep the data for a limited time under its own terms (OpenAI: not used for training, abuse-monitoring logs up to 30 days, processed in the US). Read your provider's terms - MatchOps is not a party to them.",
     "data4": "Costs are billed to your provider account. Create a dedicated key with a monthly spend cap.",
-    "data5": "Player names are replaced with codes before any drafting request (you can turn this off). Transcription necessarily contains what you said.",
+    "data5": "Player names are replaced with codes before any drafting request (you can turn this off). Transcription necessarily contains what you said, and the first names of the players in that match are sent with the audio so the provider spells them correctly.",
     "data6": "You can disconnect the provider and delete all recordings at any time from Settings.",
     "rulesTitle": "Dictation rules",
     "rule1": "Talk about football actions, not people's lives.",
@@ -3499,7 +3502,8 @@
     "box1": "I understand recordings and notes go to my own AI provider, under my account, and MatchOps never receives them.",
     "box2": "I have read my provider's data terms and accept that they may retain data for a limited time.",
     "box3": "I will follow the dictation rules and not dictate health or other sensitive data.",
-    "accept": "I understand, continue"
+    "accept": "I understand, continue",
+    "data1b": "A note or report you choose to SAVE is ordinary match data from then on. If you use MatchOps with an account, it syncs and is backed up like the rest of your match notes."
   },
   "reportDraft": {
     "title": "Draft with AI",
@@ -3558,6 +3562,7 @@
     "costHint": "Writing it out costs about ${{usd}} a minute on your provider account, and starts when you stop recording.",
     "storedOnly": "Recorded and saved. It could not be written out, so it is waiting under Voice notes on this page.",
     "savedWhere": "Saved as a note, not as report text. It is further up this page under Notes, and the AI draft will use it as your own account.",
-    "showNotes": "Show me the notes"
+    "showNotes": "Show me the notes",
+    "insertFailed": "Could not add that to the report. Your recording is kept."
   }
 }

@@ -10,7 +10,11 @@
 -- Additive: ADD COLUMN, nullable, no default, so no table rewrite. The
 -- save_game_with_relations RPC populates child rows via
 -- jsonb_populate_recordset(null::game_events, ...) and picks the new event
--- column up without being recreated; games columns are written directly.
+-- column up without being recreated.
+--
+-- NOTE: the games column is NOT picked up automatically. The RPC's INSERT is
+-- column-agnostic but its ON CONFLICT DO UPDATE path names every column, and
+-- this one was missing - see migration 044, which adds it.
 
 ALTER TABLE game_events
   ADD COLUMN IF NOT EXISTS ai_meta jsonb;

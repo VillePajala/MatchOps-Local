@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import { useDictationCapture } from '@/hooks/useDictationCapture';
 import type { ComponentProps } from 'react';
@@ -1571,6 +1572,34 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   }, [currentGameId, dispatchGameSession, showToast, t]);
 
   /**
+   * How much of the finishing work is left, for the surfaces that are not the
+   * checklist itself: the game-end button and the menu. Computed once, from the
+   * same model the checklist uses, so no two places can disagree.
+   */
+  const finishProgress = useMemo(() => {
+    const saved = currentGameId ? savedGames?.[currentGameId] : undefined;
+    if (!saved) return null;
+    const completeness = computeGameCompleteness({
+      isPlayed: saved.isPlayed,
+      gameNotes: gameSessionState.gameNotes,
+      selectedPlayerIds: gameSessionState.selectedPlayerIds,
+      seasonId: saved.seasonId,
+      tournamentId: saved.tournamentId,
+      teamId: saved.teamId,
+      playerPositions: gameSessionState.playerPositions,
+      assessments: saved.assessments,
+    });
+    if (!completeness.applicable) return null;
+    return completenessProgress(completeness);
+  }, [
+    currentGameId,
+    savedGames,
+    gameSessionState.gameNotes,
+    gameSessionState.selectedPlayerIds,
+    gameSessionState.playerPositions,
+  ]);
+
+  /**
    * Kirjuri (PR 9b): store an approved report draft - the text plus any notes
    * the coach ticked - through the same autosave path everything else uses.
    * Returns false when the game cannot hold it, so the review panel keeps the
@@ -2395,6 +2424,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
+    finishProgress,
     fieldVM,
     timerVM,
     currentGameId,
@@ -2454,6 +2484,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
+    finishProgress,
     // W10: quick planner access from the match (host planner over the pitch).
     onOpenPlanner: () => setIsPlaytimePlannerOpen(true),
     // R6: game-day reference material (host modals over the pitch).
