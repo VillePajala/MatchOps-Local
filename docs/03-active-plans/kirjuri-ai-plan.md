@@ -398,8 +398,17 @@ first. One intent per surface, organised by WHEN:
   `APPLY_REPORT_DRAFT` action; a hand edit via `SET_GAME_NOTES` clears it) and in both
   save paths. `handleApplyReportDraft` refuses the scratch game and an over-cap
   report, returning false so the panel keeps the draft on screen.
-- PR 9c: "used this season" counter on the AI settings card (token usage already
-  comes back from 8b).
+- PR 9c (done): `src/utils/aiUsage.ts` - a device-local counter on the AI settings card.
+  DEVIATION FROM THE PROMISE, deliberately: it counts "since <date>", not "this season".
+  A device-local counter cannot know which season it belongs to, and a wrong season label
+  is worse than an honest date; the coach can reset it. Every figure is labelled an
+  ESTIMATE with the line "your provider's bill is the real number", because list prices
+  change and audio billing rounds in ways we do not model. Drafting records the response's
+  REAL token usage; transcription records a per-clip duration estimate at the moment the
+  provider was called (billed whether or not words came back). Same storage discipline as
+  the key: one localStorage key, never synced, never exported.
+  Also here: the review list shows player NAMES instead of packet codes (the mapping never
+  left the device, so resolving it for display costs nothing).
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 

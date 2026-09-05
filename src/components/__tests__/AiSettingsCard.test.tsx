@@ -8,6 +8,7 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import AiSettingsCard from '../AiSettingsCard';
 import { deleteAllClips } from '@/utils/audioClipStore';
 import { acceptAiConsent, getAiProviderState, resetAiProviderStateForTests, setAiProviderKey } from '@/utils/aiProvider';
+import { recordAiUsage, resetAiUsageStateForTests } from '@/utils/aiUsage';
 
 const showToast = jest.fn();
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast }) }));
@@ -29,6 +30,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
   resetAiProviderStateForTests();
+  resetAiUsageStateForTests();
   global.fetch = fetchMock as unknown as typeof fetch;
 });
 
@@ -85,6 +87,29 @@ describe('AiSettingsCard', () => {
     expect(box.checked).toBe(true);
     fireEvent.click(box);
     expect(getAiProviderState().pseudonymize).toBe(false);
+  });
+
+  /** The number a coach checks to answer "is this costing me anything?". */
+  it('shows nothing used until a request happens, then the running estimate', () => {
+    const { rerender } = render(<AiSettingsCard userId="u1" />);
+    expect(screen.getByTestId('ai-usage')).toHaveTextContent('Nothing used on this device yet.');
+
+    act(() => {
+      recordAiUsage('drafting', 0.0021);
+      recordAiUsage('transcription', 0.003);
+    });
+    rerender(<AiSettingsCard userId="u1" />);
+
+    const usage = screen.getByTestId('ai-usage');
+    expect(usage).toHaveTextContent('~$0.01');
+    expect(usage).toHaveTextContent('1 transcriptions, 1 report drafts');
+    // Never presented as the real bill.
+    expect(usage).toHaveTextContent(/estimate/i);
+
+    act(() => {
+      fireEvent.click(screen.getByTestId('ai-usage-reset'));
+    });
+    expect(screen.getByTestId('ai-usage')).toHaveTextContent('Nothing used on this device yet.');
   });
 
   it('delete all recordings asks first, then clears the device store', async () => {

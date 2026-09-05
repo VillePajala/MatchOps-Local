@@ -29,6 +29,7 @@ import { applyReportDraft, composeReportText, type ApplyMode } from '@/utils/app
 import { buildGamePacket } from '@/utils/gamePacket';
 import { reportSectionLabel } from '@/utils/reportSections';
 import { useAiProviderState } from '@/utils/aiProvider';
+import { recordAiUsage } from '@/utils/aiUsage';
 import { useToast } from '@/contexts/ToastProvider';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import logger from '@/utils/logger';
@@ -82,6 +83,18 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
     }
   }, [ai.connected, ai.pseudonymize, game, players]);
 
+  /**
+   * Codes are what the provider saw; the coach should see the child. The
+   * mapping never left the device, so resolving it for display costs nothing.
+   */
+  const nameForRef = useCallback(
+    (ref: string): string => {
+      const player = players.find((p) => p.id === refMap[ref]);
+      return player?.nickname?.trim() || player?.name || t('reportDraft.unknownPlayer', 'Unidentified player');
+    },
+    [players, refMap, t],
+  );
+
   const approvedSections = useMemo(
     () => (draft?.sections ?? []).filter((s) => !skippedSections.has(s.section)).map((s) => s.section),
     [draft, skippedSections],
@@ -115,6 +128,8 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
     try {
       const { packet, refToPlayerId } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize });
       const result = await draftMatchReport({ packet, signal: controller.signal });
+      // Real token usage when the provider reported it, else our own estimate.
+      recordAiUsage('drafting', result.usage?.estimatedUsd ?? estimateDraftUsd(packet));
       setDraft(result);
       setRefMap(refToPlayerId);
       setSkippedSections(new Set());
@@ -292,7 +307,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
                     data-testid={`report-draft-note-${index}`}
                   />
                   <span className="text-sm text-slate-200">
-                    <span className="font-semibold">{note.ref}: </span>
+                    <span className="font-semibold">{nameForRef(note.ref)}: </span>
                     {note.text}
                   </span>
                 </label>

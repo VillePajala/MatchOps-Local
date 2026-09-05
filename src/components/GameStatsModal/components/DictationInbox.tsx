@@ -24,6 +24,7 @@ import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { matchPlayerInText } from '@/utils/playerNameMatch';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { TranscriptionError, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
+import { recordAiUsage } from '@/utils/aiUsage';
 import logger from '@/utils/logger';
 
 interface DictationInboxProps {
@@ -248,6 +249,8 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
           if (!blob || controller.signal.aborted) continue;
           const text = (await engine.transcribe(blob, { language: 'fi', vocabulary, signal: controller.signal })).slice(0, MAX_NOTE_CHARS);
           if (controller.signal.aborted) return;
+          // Billed by the provider whether or not words came back.
+          recordAiUsage('transcription', estimateTranscriptionUsd(clip.durationMs));
           if (text) {
             setDrafts((prev) => ({ ...prev, [clip.id]: { ...(prev[clip.id] ?? { playerId: 'auto' }), text } }));
             done += 1;
