@@ -32,6 +32,7 @@ import {
   type ReportDraft,
 } from '@/utils/aiDrafting';
 import { applyReportDraft, composeReportText, resolveRefsInText, type ApplyMode } from '@/utils/applyReportDraft';
+import { forgetReplacedReport, readReplacedReport, rememberReplacedReport } from '@/utils/reportUndo';
 import { UNKNOWN_PLAYER_REF, buildGamePacket } from '@/utils/gamePacket';
 import { reportSectionLabel } from '@/utils/reportSections';
 import { useAiProviderState } from '@/utils/aiProvider';
@@ -54,6 +55,11 @@ export interface ReportDraftPanelProps {
   existingReport: string;
   /** The finished game the draft is about. */
   game: AppState;
+  /**
+   * Which saved game this is. Only used to key the durable undo slot, so an
+   * Undo offered here can never revert a different match.
+   */
+  gameId: string | null;
   /** Full roster, so names outside the squad are redacted too. */
   players: Player[];
   /** Clock stamp for applied notes: where the match ended. */
@@ -75,6 +81,7 @@ const CHECKBOX =
 
 const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   game,
+  gameId,
   players,
   stamp,
   onApply,
@@ -94,7 +101,12 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const [mode, setMode] = useState<ApplyMode>('append');
   /** Which job produced the draft on screen, for wording and for the default. */
   const [draftedAs, setDraftedAs] = useState<DraftingMode>('full');
-  const [undoText, setUndoText] = useState<string | null>(null);
+  // Read from the device, not just from this component: every hand-off this
+  // panel offers closes the modal it lives in, and the replaced report has no
+  // other copy once the notes are overwritten.
+  const [undoText, setUndoText] = useState<string | null>(() =>
+    gameId ? readReplacedReport(gameId) : null,
+  );
   const [applying, setApplying] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -181,7 +193,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const runDraft = useCallback(async (job: DraftingMode = 'full') => {
     if (drafting) return;
     setDrafting(true);
-    setUndoText(null);
+    // Deliberately does NOT clear the undo. Asking for another draft says
+    // nothing about whether the coach still wants the report a previous
+    // Replace overwrote, and that text has no other copy. It is cleared by
+    // using it, by a Replace that supersedes it, or by going stale.
     const controller = new AbortController();
     abortRef.current = controller;
     try {
@@ -260,26 +275,40 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
         showToast(t('reportDraft.applyFailed', 'Could not save the draft.'), 'error');
         return;
       }
-      setUndoText(preview.replacedReport ?? null);
+      // Only a Replace produces an undo, and only a Replace should disturb one.
+      // Blanking it on an append hid a still-valid undo for an earlier Replace,
+      // while the stored slot survived - so the button came back on a remount
+      // and vanished again on the next apply.
+      if (preview.replacedReport) {
+        setUndoText(preview.replacedReport);
+        // Outlive this component: the coach can leave the screen from inside it.
+        if (gameId) rememberReplacedReport(gameId, preview.replacedReport);
+      }
       setDraft(null);
       showToast(t('reportDraft.applied', 'Draft saved to the match report.'), 'success');
     } finally {
       setApplying(false);
     }
-  }, [applying, onApply, preview, showToast, t]);
+  }, [applying, gameId, onApply, preview, showToast, t]);
 
   const undo = useCallback(() => {
     if (undoText === null) return;
     const stored = onApply({ gameNotes: undoText, aiMeta: undefined, noteEvents: [] });
     if (stored) {
       setUndoText(null);
+      forgetReplacedReport();
       showToast(t('reportDraft.undone', 'Your earlier report text is back.'), 'success');
     }
   }, [onApply, showToast, t, undoText]);
 
   const discard = useCallback(() => {
+    // Throws away the DRAFT on screen and nothing else.
+    //
+    // It used to clear the undo as well, which conflated two unrelated things:
+    // a coach who applied a Replace, drafted again and then discarded the
+    // second draft lost the safety net for the first one, silently. The undo
+    // belongs to the applied report, not to whichever draft is being reviewed.
     setDraft(null);
-    setUndoText(null);
   }, []);
 
   if (!ai.connected) {

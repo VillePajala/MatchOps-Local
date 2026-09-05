@@ -2480,6 +2480,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // L.4: "Joukkueen tilastot ->" opens the HOST-level aggregate surface
     // (works over the match too - the match modal keeps the current-game side).
     onOpenTeamStats: () => openClubStatsToTab('season'),
+    // Owner's request: reach settings without leaving the match. The AI
+    // provider key lives there, and "not connected" is discovered mid-match.
+    onOpenAppSettings: () => setIsSettingsModalOpen(true),
     onQuickSave: persistence.handleQuickSaveGame,
     onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
