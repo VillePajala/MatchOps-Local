@@ -194,6 +194,18 @@ describe('useDictationCapture', () => {
     expect(isRecordingSessionActive()).toBe(true);
   });
 
+  /** @critical - the scratch game is never autosaved; a clip there would be orphaned. */
+  it('treats the scratch game as no game', async () => {
+    const { result } = renderHook(() => useDictationCapture({ ...baseProps, currentGameId: 'unsaved_game' }));
+    expect(result.current.available).toBe(false);
+    await act(async () => {
+      result.current.start();
+    });
+    expect(getUserMedia).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/open a game/i), 'info');
+    expect(countClips).not.toHaveBeenCalled();
+  });
+
   it('refuses to record without an open game', async () => {
     const { result } = renderHook(() => useDictationCapture({ ...baseProps, currentGameId: null }));
     await act(async () => {

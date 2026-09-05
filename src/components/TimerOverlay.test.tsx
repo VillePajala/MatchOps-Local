@@ -141,6 +141,7 @@ describe('TimerOverlay', () => {
   describe('Kirjuri dictation button (PR 2)', () => {
     const controls = () => ({
       isSupported: true,
+      available: true,
       permission: 'unknown' as const,
       isRecording: false,
       clipCount: 0,
@@ -195,6 +196,12 @@ describe('TimerOverlay', () => {
       render(<TimerOverlay {...baseProps} dictation={{ ...controls(), permission: 'denied' }} />);
       expect(screen.getByTestId('dictation-hold')).toBeDisabled();
       expect(screen.getByTestId('dictation-hold').title).toMatch(/denied/i);
+    });
+
+    it('is disabled with an explanation on the scratch (unsaved) game', () => {
+      render(<TimerOverlay {...baseProps} dictation={{ ...controls(), available: false }} />);
+      expect(screen.getByTestId('dictation-hold')).toBeDisabled();
+      expect(screen.getByTestId('dictation-hold').title).toMatch(/open a game/i);
     });
 
     it('shows the stored clip count and the recording state', () => {

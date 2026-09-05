@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import type { GameNoteInput } from '@/types/game';
 import { useDictationCapture } from '@/hooks/useDictationCapture';
 import type { ComponentProps } from 'react';
@@ -1546,14 +1547,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Kirjuri (PR 3): the inbox accepted a clip - it becomes a note event on the
   // current game, persisted by the same autosave path goals use.
   const handleAddGameNote = useCallback((note: GameNoteInput) => {
-    if (!currentGameId) return;
+    // The scratch game is never autosaved: a note added there would silently vanish.
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+    // Clamp to the validation limit: an over-long note would fail the WHOLE game save.
+    const text = note.text.trim().slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX);
+    if (!text) return;
     const event: GameEvent = {
       id: `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type: 'note',
       time: Math.round(note.time * 100) / 100,
       period: note.period,
       entityId: note.entityId,
-      text: note.text.trim(),
+      text,
       source: 'dictation',
     };
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: event });

@@ -19,7 +19,8 @@ import type { GameNoteInput } from '@/types/game';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { DictationRules } from '@/components/AiConsentGate';
-import { deleteClip, getClipBlob, listClips, type AudioClipMeta } from '@/utils/audioClipStore';
+import { deleteClip, getClipBlob, listClips, rotateOldClips, type AudioClipMeta } from '@/utils/audioClipStore';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { matchPlayerInText } from '@/utils/playerNameMatch';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { TranscriptionError, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
@@ -45,6 +46,8 @@ export const formatClock = (seconds: number): string => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
+const MAX_NOTE_CHARS = VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX;
+
 const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayers, onAccept, onCountChange }) => {
   const { t } = useTranslation();
   const { userId } = useDataStore();
@@ -64,14 +67,21 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
     countRef.current = onCountChange;
   }, [onCountChange]);
 
+  // Latest clips for callbacks that must not act on a stale render.
+  const clipsRef = useRef<AudioClipMeta[]>([]);
   const applyClips = useCallback((next: AudioClipMeta[]) => {
+    clipsRef.current = next;
     setClips(next);
     countRef.current?.(next.length);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    listClips(gameId, userId ?? undefined)
+    // The 30-day cap must hold even for a coach who stopped recording, so
+    // rotate on every inbox open, not only when the mic arms.
+    rotateOldClips(Date.now(), userId ?? undefined)
+      .catch((error) => logger.warn('[dictation] rotation on inbox open failed', error))
+      .then(() => listClips(gameId, userId ?? undefined))
       .then((list) => {
         if (!cancelled) applyClips(list);
       })
@@ -144,9 +154,9 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
         delete next[id];
         return next;
       });
-      applyClips((clips ?? []).filter((c) => c.id !== id));
+      applyClips(clipsRef.current.filter((c) => c.id !== id));
     },
-    [applyClips, clips, playingId, stopPlayback, userId],
+    [applyClips, playingId, stopPlayback, userId],
   );
 
   const remove = useCallback(
@@ -163,8 +173,10 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
 
   const accept = useCallback(
     async (clip: AudioClipMeta) => {
+      // No handler = nowhere to put the note; never delete the audio in that case.
+      if (!onAccept) return;
       const draft = draftFor(clip.id);
-      const text = draft.text.trim();
+      const text = draft.text.trim().slice(0, MAX_NOTE_CHARS);
       if (!text) return;
       if (!claim(clip.id)) return;
       try {
@@ -230,7 +242,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
         try {
           const blob = await getClipBlob(clip.id, userId ?? undefined);
           if (!blob || controller.signal.aborted) continue;
-          const text = await engine.transcribe(blob, { language: 'fi', vocabulary, signal: controller.signal });
+          const text = (await engine.transcribe(blob, { language: 'fi', vocabulary, signal: controller.signal })).slice(0, MAX_NOTE_CHARS);
           if (controller.signal.aborted) return;
           if (text) {
             setDrafts((prev) => ({ ...prev, [clip.id]: { ...(prev[clip.id] ?? { playerId: 'auto' }), text } }));
@@ -350,6 +362,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
                 onChange={(e) => setDrafts((prev) => ({ ...prev, [clip.id]: { ...draftFor(clip.id), text: e.target.value } }))}
                 placeholder={t('dictation.textPlaceholder', 'What did you say?')}
                 rows={2}
+                maxLength={MAX_NOTE_CHARS}
                 aria-label={t('dictation.textPlaceholder', 'What did you say?')}
                 data-testid="dictation-text"
                 className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
@@ -371,7 +384,13 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
                   ))}
                 </select>
               </div>
+              {draft.text.length >= MAX_NOTE_CHARS - 100 && (
+                <p className="text-right text-xs text-slate-400" data-testid="dictation-char-count">
+                  {draft.text.length}/{MAX_NOTE_CHARS}
+                </p>
+              )}
               <div className="flex gap-2 pt-1">
+                {onAccept && (
                 <button
                   type="button"
                   onClick={() => void accept(clip)}
@@ -381,6 +400,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
                 >
                   {t('dictation.accept', 'Save note')}
                 </button>
+                )}
                 <button
                   type="button"
                   onClick={() => void remove(clip.id)}
