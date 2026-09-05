@@ -91,6 +91,8 @@ export interface GameNoteInput {
   period: number;
   text: string;
   entityId?: string;
+  /** Optional category, e.g. 'debrief' for the coach's spoken match summary. */
+  tag?: GameNoteTag;
 }
 
 export interface GameEvent {

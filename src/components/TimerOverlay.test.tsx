@@ -144,7 +144,7 @@ describe('TimerOverlay', () => {
       available: true,
       permission: 'unknown' as const,
       isRecording: false,
-      clipCount: 0,
+      clipCount: 0, lastClip: null,
       needsIntro: false,
       acknowledgeIntro: jest.fn(),
       start: jest.fn(),

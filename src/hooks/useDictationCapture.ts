@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import logger from '@/utils/logger';
 import { setRecordingSessionActive } from '@/utils/recordingSessionSignal';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import type { AudioClipMeta } from '@/utils/audioClipStore';
 import {
   AudioQuotaError,
   countClips,
@@ -37,6 +38,12 @@ export interface DictationControls {
   clipCount: number;
   /** First press ever: explain, then ask for the mic (the app's first runtime permission). */
   needsIntro: boolean;
+  /**
+   * The clip this hook stored most recently, so a caller that started a
+   * recording can pick its own clip up again (the spoken-report panel
+   * transcribes it on the spot instead of sending it to the inbox).
+   */
+  lastClip: AudioClipMeta | null;
   acknowledgeIntro: () => void;
   start: () => void;
   stop: () => void;
@@ -118,6 +125,7 @@ export function useDictationCapture({
   const [counts, setCounts] = useState<{ gameId: string | null; count: number }>({ gameId: null, count: 0 });
   const clipCount = counts.gameId === currentGameId ? counts.count : 0;
   const [needsIntro, setNeedsIntro] = useState(() => !readIntroSeen());
+  const [lastClip, setLastClip] = useState<AudioClipMeta | null>(null);
   const available = !!currentGameId && currentGameId !== DEFAULT_GAME_ID;
 
   // Latest values without re-creating the press handlers every clock tick.
@@ -258,6 +266,16 @@ export function useDictationCapture({
             count: Math.max(0, (prev.gameId === stamp.gameId ? prev.count : 0) + delta),
           }));
         bump(1);
+        setLastClip({
+          id,
+          gameId: stamp.gameId,
+          time: Math.round(stamp.time * 100) / 100,
+          period: stamp.period,
+          createdAt: new Date().toISOString(),
+          durationMs,
+          mimeType: blob.type,
+          sizeBytes: blob.size,
+        });
         toastRef.current(tRef.current('dictation.captured', 'Note captured'), 'info', {
           action: {
             label: tRef.current('controlBar.undo', 'Undo'),
@@ -380,5 +398,5 @@ export function useDictationCapture({
     return () => disarm();
   }, [currentGameId, disarm]);
 
-  return { isSupported, available, permission, isRecording, clipCount, needsIntro, acknowledgeIntro, start, stop };
+  return { isSupported, available, permission, isRecording, clipCount, needsIntro, lastClip, acknowledgeIntro, start, stop };
 }
