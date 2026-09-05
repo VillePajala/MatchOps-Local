@@ -260,6 +260,16 @@ not a measurement:
   `gameNotes` limit rises from 2000 to 4000 chars in the same PR (validation only, the
   column is `text`).
 
+## Status
+
+- 2026-09-05: **Phase 0 and Phase 1 merged into `feat/kirjuri-ai`** (PR 0 #744, PR 1
+  #745, PR 2 #746, PR 3 #748, PR 4 #749, PR 5 #750). Testable end to end on the branch
+  preview with the coach's own OpenAI key. Migration 041 is on staging only.
+  Next: owner device test round, then the Phase 2 Media Session spike.
+- Correction from PR 5: Web Speech (also Chrome's on-device mode) only transcribes live
+  mic input, never a stored clip - the "on-device probe" cannot apply to post-game
+  clips. An on-device engine over clips needs a WASM model; the slot stays open.
+
 ## Phases and PR plan
 
 Integration branch: **`feat/kirjuri-ai`** (off master). Every step is a sub-branch PR'd
