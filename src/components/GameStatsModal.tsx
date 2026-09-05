@@ -1268,7 +1268,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
           {/* Chrome slimming: Export Excel moved inline, per active tab,
               below that tab's content (was a fixed footer). */}
-          {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) && (
+          {activeTab !== 'currentGame' && (onExportAggregateExcel || onExportPlayerExcel) && (
             <div className="px-4 sm:px-6 pb-6">
               {activeTab === 'player' && selectedPlayer && onExportPlayerExcel && (
                 <button
