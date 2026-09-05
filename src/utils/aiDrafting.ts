@@ -147,6 +147,44 @@ export function estimateDraftUsd(packet: GamePacket): number {
  * generalised, and a youth-football report about named children is no place
  * for invented detail.
  */
+/**
+ * Everything the model needs to know about the sport before it reads the data.
+ *
+ * Without this it guesses: it reads position codes as initials, misses that two
+ * periods are halves, and writes professional match analysis about nine-year
+ * olds. The packet says what happened; this says what any of it means.
+ */
+function matchContext(packet: GamePacket): string[] {
+  const r = packet.recorded;
+  const futsal = r.gameType === 'futsal';
+  const lines: string[] = [
+    `SPORT: ${futsal ? 'futsal (five-a-side indoor football)' : 'association football (soccer)'}, youth level.`,
+    futsal
+      ? 'Futsal is played on a hard court with a smaller heavier ball, rolling substitutions and constant pressing. Space is tight, so first touch and quick combinations matter more than long play.'
+      : 'Outdoor eleven-a-side or a smaller-sided youth format, depending on the age group.',
+  ];
+  if (r.ageGroup) {
+    lines.push(
+      `AGE GROUP: ${r.ageGroup}. Write about learning, effort and enjoyment, not professional analysis. Children develop at wildly different rates, so nothing here is a judgement on a child's ability - and a parent may well read it.`,
+    );
+  }
+  lines.push(
+    `STRUCTURE: ${r.periods} ${r.periods === 2 ? 'periods of' : 'period(s) of'} ${r.periodMinutes} minutes${
+      r.periods === 2 ? ' - call them halves, first and second' : ''
+    }. Goal minutes are counted from kick-off across the whole match.`,
+    `SIDE: the team being reported on is ${r.teamName}, playing ${r.homeOrAway === 'home' ? 'at home' : 'away'} against ${r.opponentName}. "us" in the goal list means ${r.teamName}; "them" means the opponent.`,
+    'POSITIONS: codes are pitch roles, not initials. GK goalkeeper; LB CB RB the back line; LDM CDM RDM holding midfield; LM CM RM central midfield; LAM CAM RAM attacking midfield; LW ST RW the front line. A player listed in several codes moved around during the match.',
+  );
+  if (r.wentToOvertime || r.wentToPenalties) {
+    lines.push(
+      `The match went to ${[r.wentToOvertime ? 'extra time' : null, r.wentToPenalties ? 'a penalty shootout' : null]
+        .filter(Boolean)
+        .join(' and ')}.`,
+    );
+  }
+  return lines;
+}
+
 export function buildDraftingInstructions(packet: GamePacket): string {
   return [
     'You draft a youth football match report for the coach who was there.',
@@ -157,6 +195,8 @@ export function buildDraftingInstructions(packet: GamePacket): string {
     'Finnish that means the passive: "toisella puoliajalla prassattiin paremmin", never',
     '"valmentajan mukaan prassattiin paremmin". Do not write "according to the coach" or',
     'anything like it: the coach was there, and the coach is the one reading this.',
+    '',
+    ...matchContext(packet),
     '',
     'THE DATA HAS THREE KINDS OF RELIABILITY, and you must respect them:',
     `- recorded: ${packet.trust.recorded}`,

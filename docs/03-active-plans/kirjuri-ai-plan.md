@@ -474,6 +474,15 @@ first. One intent per surface, organised by WHEN:
   player note without a note behind it.
   LESSON: a data-honesty rule has to be written for the document's actual reader. Hedging
   aimed at a stranger reads as evasion when the author is the audience.
+  Same PR, owner's second point ("the system prompt could provide more context so the
+  call understands we are talking about soccer"): the prompt described the DATA but never
+  the DOMAIN, so the model was guessing - position codes read as initials, two periods
+  were not recognised as halves, and a U11 match invited professional analysis. A
+  `matchContext()` block now states the sport (futsal described as its own game, not
+  soccer-with-fewer-players), the age group with an explicit "not professional analysis,
+  a parent may read it", the period structure (two periods = halves) and clock basis,
+  which side "us" and "them" mean, and that position codes are pitch roles with their
+  line - GK / back line / holding, central, attacking midfield / front line.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 
