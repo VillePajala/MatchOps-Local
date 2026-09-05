@@ -680,6 +680,7 @@ export async function translateReport({
   return { text: content, language, model: chosenModel, estimatedUsd: billed };
 }
 
+
 /** Most notes we will send in one grouping request. */
 export const MAX_GROUPED_NOTES = 60;
 /** Longest combined note text for one grouping request. */

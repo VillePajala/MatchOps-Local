@@ -704,6 +704,7 @@ spine is cheap. Ordered by value for effort:
   leave as codes like every other request and are resolved back on the device. The shared
   `postChatCompletion` was extracted at the same time, so drafting and translation cannot
   drift on what counts as unauthorized, what is billed, or what may be logged.
+<<<<<<< HEAD
 - **Group the notes about one player (done).** Organises the coach's own notes about one
   player into a few paragraphs, adding nothing - the tidy contract applied to a player.
   Read-only, no apply path, same as translate.
@@ -713,6 +714,9 @@ spine is cheap. Ordered by value for effort:
   presses anything, caps the request at 60 notes and says when it left some out. It stops
   short of the season-summary escalation below because it never generates judgement - but it
   is the nearest thing to it that exists, and worth the owner's eye before master.
+=======
+- **Group the notes about one player** (after that).
+>>>>>>> feat/kirjuri-ai
 - **Season summaries: NOT low-hanging.** They widen what leaves the device from one match
   to a season of observations about a child. That is a real privacy escalation and the
   point where the legal review this doc recommends stops being optional.
@@ -751,9 +755,22 @@ row shows an outline tick rather than a solid one, so it never claims all-done a
 ## Before the master merge (checklist)
 
 - [ ] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). It is a diagnostic.
-- [ ] Apply migrations 041, 042, 043 AND 044 to PROD - diff the live definitions first;
-      they are on staging only. 044 recreates `save_game_with_relations`, so it is the one
-      that most needs the diff: prod was bootstrapped from a different history.
+- [ ] Apply migrations 041, 042, 043 AND 044 to PROD, **in that order**. Staging only so
+      far. NOT DONE - needs the owner's go-ahead; nothing has been applied to prod.
+
+      The diff the rule asks for is DONE (read-only query, 2026-09-05). Prod's live
+      `save_game_with_relations` was fetched with `pg_get_functiondef` and compared against
+      migration 044's version, normalised for whitespace and comments. **One functional
+      line differs**, and it is exactly the intended one:
+
+          game_notes_ai_meta = EXCLUDED.game_notes_ai_meta,
+
+      So prod has not drifted from migration 039's base, and 044 is safe to apply as
+      written. Order matters: 044's UPDATE references a column that migration 043 adds.
+      Prod currently has NONE of the new columns (verified: `games.game_notes_ai_meta`,
+      `game_events.ai_meta` / `note_text` / `tag` / `period` / `source` all absent), which
+      is what we expect. 041 and 042 do not touch the function - child rows go through
+      `jsonb_populate_recordset`, which is column-agnostic.
 - [ ] Owner decision: POLICY_VERSION bump (deliberately not bumped so far). The consent
       gate's wording CHANGED after the audit below - it used to say MatchOps never receives
       transcripts or AI results, which is true of audio and false of a saved note. Nobody
