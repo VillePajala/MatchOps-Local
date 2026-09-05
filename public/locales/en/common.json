@@ -219,7 +219,8 @@
     "periodClock": "P{{period}} {{clock}}",
     "sourceDictation": "voice",
     "sourceAi": "AI",
-    "sourceManual": "typed"
+    "sourceManual": "typed",
+    "deleteFailed": "Could not delete the note."
   },
   "undoToast": {
     "goal": "Goal logged",

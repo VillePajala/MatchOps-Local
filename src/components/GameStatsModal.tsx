@@ -570,6 +570,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const scrollToInbox = useCallback(() => {
     document.getElementById('dictation-inbox')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+  // Note deletion mirrors the goal editor: one in flight at a time, and a
+  // storage failure (handleDeleteGameEvent returns false) is told, not swallowed.
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const handleDeleteNote = useCallback(async (id: string) => {
+    if (!onDeleteGameEvent || deletingNoteId) return;
+    setDeletingNoteId(id);
+    try {
+      const result = await onDeleteGameEvent(id);
+      if (result === false) {
+        showToast(t('dictation.deleteFailed', 'Could not delete the note.'), 'error');
+      }
+    } finally {
+      setDeletingNoteId(null);
+    }
+  }, [onDeleteGameEvent, deletingNoteId, showToast, t]);
 
   // Determine display names based on home/away
   const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
@@ -1125,7 +1140,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       <GameNotesList
                         notes={noteEvents}
                         availablePlayers={availablePlayers}
-                        onDeleteNote={onDeleteGameEvent ? (id) => { void onDeleteGameEvent(id); } : undefined}
+                        onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
                       />
 
                       <PersonnelSummaryCard personnel={resolvedGamePersonnel} />

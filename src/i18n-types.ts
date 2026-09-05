@@ -469,6 +469,7 @@ export type TranslationKey =
   | 'dictation.accepted'
   | 'dictation.captured'
   | 'dictation.clipCount'
+  | 'dictation.deleteFailed'
   | 'dictation.deleteNoteBody'
   | 'dictation.deleteNoteTitle'
   | 'dictation.discard'

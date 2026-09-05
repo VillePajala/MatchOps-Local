@@ -80,7 +80,8 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     onClick: onOpenSettings && (() => onOpenSettings('competition')),
   });
 
-  const done = completeness.coreComplete;
+  // Clips waiting are unfinished work even when the record itself is complete.
+  const done = completeness.coreComplete && voiceClipCount === 0;
 
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">

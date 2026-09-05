@@ -219,7 +219,8 @@
     "periodClock": "J{{period}} {{clock}}",
     "sourceDictation": "puhe",
     "sourceAi": "tekoäly",
-    "sourceManual": "kirjoitettu"
+    "sourceManual": "kirjoitettu",
+    "deleteFailed": "Muistiinpanoa ei voitu poistaa."
   },
   "undoToast": {
     "goal": "Maali kirjattu",

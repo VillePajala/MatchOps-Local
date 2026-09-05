@@ -92,6 +92,25 @@ describe('DictationInbox', () => {
     expect(onCountChange).toHaveBeenLastCalledWith(1);
   });
 
+  /** @critical - a double-tap on Save must not create two notes. */
+  it('ignores a second tap while the first accept is in flight', async () => {
+    let resolveDelete: () => void = () => {};
+    (deleteClip as jest.Mock).mockImplementationOnce(() => new Promise<void>((resolve) => { resolveDelete = resolve; }));
+    const onAccept = jest.fn();
+    render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
+    const [text] = await screen.findAllByTestId('dictation-text');
+    fireEvent.change(text, { target: { value: 'Emman syöttö' } });
+    const [accept] = screen.getAllByTestId('dictation-accept');
+    await act(async () => {
+      fireEvent.click(accept);
+      fireEvent.click(accept);
+    });
+    expect(onAccept).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveDelete();
+    });
+  });
+
   it('a manually chosen "the game" overrides the guess', async () => {
     const onAccept = jest.fn();
     render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);

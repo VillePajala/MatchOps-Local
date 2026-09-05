@@ -1,4 +1,5 @@
 import React from 'react';
+import { within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { render, screen, waitFor, fireEvent, act } from '../../tests/utils/test-utils';
 import PlayerStatsView from './PlayerStatsView';
@@ -365,5 +366,33 @@ describe('External game cards styling', () => {
     expect(screen.getByText('Narrow')).toBeInTheDocument();
     // exact positions are listed (ST played twice)
     expect(screen.getByText(/ST/)).toBeInTheDocument();
+  });
+});
+
+describe('PlayerStatsView Kirjuri notes', () => {
+  it('lists notes about the player across games, newest game first, never other players', async () => {
+    const savedGames = {
+      g1: createGame({
+        opponentName: 'First Opp',
+        gameDate: '2024-02-15',
+        gameEvents: [{ id: 'n1', type: 'note', time: 120, period: 1, entityId: player.id, text: 'hieno syöttö', source: 'dictation' }],
+      }),
+      g2: createGame({
+        opponentName: 'Second Opp',
+        gameDate: '2024-03-20',
+        gameEvents: [
+          { id: 'n2', type: 'note', time: 1834, period: 2, entityId: 'someone-else', text: 'not mine', source: 'dictation' },
+          { id: 'n3', type: 'note', time: 600, period: 1, entityId: player.id, text: 'hyvä paine', source: 'manual' },
+        ],
+      }),
+    };
+    render(<PlayerStatsView {...baseProps} savedGames={savedGames} />);
+    const card = await screen.findByTestId('player-notes');
+    const items = within(card).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('hyvä paine');
+    expect(items[0]).toHaveTextContent('Second Opp');
+    expect(items[1]).toHaveTextContent('hieno syöttö');
+    expect(within(card).queryByText('not mine')).not.toBeInTheDocument();
   });
 });

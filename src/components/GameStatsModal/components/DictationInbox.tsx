@@ -48,6 +48,9 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  // One accept/discard in flight per clip: a double-tap must not create two notes.
+  const [busyIds, setBusyIds] = useState<Set<string>>(() => new Set());
+  const busyRef = useRef<Set<string>>(new Set());
   const countRef = useRef(onCountChange);
   useEffect(() => {
     countRef.current = onCountChange;
@@ -109,7 +112,18 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
     [availablePlayers],
   );
 
-  const remove = useCallback(
+  const claim = useCallback((id: string): boolean => {
+    if (busyRef.current.has(id)) return false;
+    busyRef.current.add(id);
+    setBusyIds(new Set(busyRef.current));
+    return true;
+  }, []);
+  const release = useCallback((id: string) => {
+    busyRef.current.delete(id);
+    setBusyIds(new Set(busyRef.current));
+  }, []);
+
+  const removeClip = useCallback(
     async (id: string) => {
       if (playingId === id) stopPlayback();
       try {
@@ -127,16 +141,33 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
     [applyClips, clips, playingId, stopPlayback, userId],
   );
 
+  const remove = useCallback(
+    async (id: string) => {
+      if (!claim(id)) return;
+      try {
+        await removeClip(id);
+      } finally {
+        release(id);
+      }
+    },
+    [claim, release, removeClip],
+  );
+
   const accept = useCallback(
     async (clip: AudioClipMeta) => {
       const draft = draftFor(clip.id);
       const text = draft.text.trim();
       if (!text) return;
-      const playerId = resolvePlayerId(draft);
-      onAccept?.({ time: clip.time, period: clip.period, text, entityId: playerId || undefined });
-      await remove(clip.id);
+      if (!claim(clip.id)) return;
+      try {
+        const playerId = resolvePlayerId(draft);
+        onAccept?.({ time: clip.time, period: clip.period, text, entityId: playerId || undefined });
+        await removeClip(clip.id);
+      } finally {
+        release(clip.id);
+      }
     },
-    [draftFor, onAccept, remove, resolvePlayerId],
+    [claim, draftFor, onAccept, release, removeClip, resolvePlayerId],
   );
 
   const sortedPlayers = useMemo(
@@ -166,7 +197,8 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
         {clips.map((clip) => {
           const draft = draftFor(clip.id);
           const guessedId = draft.playerId === 'auto' ? resolvePlayerId(draft) : draft.playerId;
-          const canSave = draft.text.trim().length > 0;
+          const busy = busyIds.has(clip.id);
+          const canSave = draft.text.trim().length > 0 && !busy;
           return (
             <li key={clip.id} data-testid="dictation-clip" className="rounded-md bg-slate-800/60 border border-slate-700/60 p-3 space-y-2">
               <div className="flex items-center gap-2">
@@ -189,12 +221,14 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
                 onChange={(e) => setDrafts((prev) => ({ ...prev, [clip.id]: { ...draftFor(clip.id), text: e.target.value } }))}
                 placeholder={t('dictation.textPlaceholder', 'What did you say?')}
                 rows={2}
+                aria-label={t('dictation.textPlaceholder', 'What did you say?')}
                 data-testid="dictation-text"
                 className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
               />
               <div className="flex items-center gap-2">
-                <label className="text-xs text-slate-400 shrink-0">{t('dictation.playerLabel', 'About')}</label>
+                <label htmlFor={`dictation-player-${clip.id}`} className="text-xs text-slate-400 shrink-0">{t('dictation.playerLabel', 'About')}</label>
                 <select
+                  id={`dictation-player-${clip.id}`}
                   value={guessedId}
                   onChange={(e) => setDrafts((prev) => ({ ...prev, [clip.id]: { ...draftFor(clip.id), playerId: e.target.value } }))}
                   data-testid="dictation-player"
@@ -221,6 +255,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
                 <button
                   type="button"
                   onClick={() => void remove(clip.id)}
+                  disabled={busy}
                   data-testid="dictation-discard"
                   className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
                 >

@@ -31,4 +31,14 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     fireEvent.click(screen.getByText('3 voice notes to review'));
     expect(onOpenVoiceNotes).toHaveBeenCalledTimes(1);
   });
+
+  it('does not call the game Complete while clips still wait', () => {
+    const complete = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'Good game', selectedPlayerIds: ['p1'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {},
+    });
+    const { rerender } = render(<GameWrapUpCard completeness={complete} voiceClipCount={0} />);
+    expect(screen.getByText('Complete')).toBeInTheDocument();
+    rerender(<GameWrapUpCard completeness={complete} voiceClipCount={1} />);
+    expect(screen.getByText('Needs finishing')).toBeInTheDocument();
+  });
 });
