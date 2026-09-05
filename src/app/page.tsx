@@ -1,5 +1,6 @@
 'use client';
 
+import { useDeviceHasSignedIn } from '@/utils/deviceSignInMemory';
 import ModalProvider from '@/contexts/ModalProvider';
 import GuidedTourController from '@/components/GuidedTour/GuidedTourController';
 import SetupWizard, { isSetupWizardDone } from '@/components/SetupWizard';
@@ -141,6 +142,7 @@ export default function Home() {
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
+  const isReturningDevice = useDeviceHasSignedIn();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
   const { isPremium: _isPremium, isLoading: _isPremiumLoading } = usePremium();
@@ -1584,10 +1586,14 @@ export default function Home() {
           // Cloud mode: show login screen when not authenticated
           <ErrorBoundary>
             <LoginScreen
+              // A device that has held a session once opens on Sign in; a fresh
+              // device stays on the new-coach funnel. Keyed so a post-hydration
+              // flip remounts the form instead of being ignored by its seed state.
+              key={isReturningDevice ? 'returning-device' : 'new-device'}
               onBack={skipWelcomeScreen ? undefined : handleLoginBack}
               onUseLocalMode={hideLocalModeEntry ? undefined : handleLoginUseLocalMode}
               allowRegistration={true}  // Account creation is free on all platforms
-              initialMode="signUp"  // New users dominate the funnel; returning users get a "Sign in" link
+              initialMode={isReturningDevice ? 'signIn' : 'signUp'}
             />
           </ErrorBoundary>
         ) : showMigrationWizard ? (
