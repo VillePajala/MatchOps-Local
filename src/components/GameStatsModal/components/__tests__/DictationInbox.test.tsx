@@ -18,6 +18,18 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('@/hooks/useDataStore', () => ({ useDataStore: () => ({ userId: 'u1' }) }));
 
+const showToast = jest.fn();
+jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast }) }));
+
+const aiState = { connected: false };
+jest.mock('@/utils/aiProvider', () => ({ useAiProviderState: () => aiState }));
+
+const transcribe = jest.fn();
+jest.mock('@/utils/transcription', () => ({
+  ...jest.requireActual('@/utils/transcription'),
+  getTranscriptionEngine: () => (aiState.connected ? { id: 'byok-openai', transcribe } : null),
+}));
+
 jest.mock('@/utils/audioClipStore', () => ({
   listClips: jest.fn(),
   getClipBlob: jest.fn(),
@@ -42,6 +54,7 @@ const clips = [
 describe('DictationInbox', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    aiState.connected = false;
     (listClips as jest.Mock).mockResolvedValue(clips);
     (getClipBlob as jest.Mock).mockResolvedValue(new Blob(['x'], { type: 'audio/webm' }));
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: jest.fn(() => 'blob:mock') });
@@ -148,5 +161,99 @@ describe('DictationInbox', () => {
     });
     expect(screen.queryByTestId('dictation-audio')).not.toBeInTheDocument();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock');
+  });
+
+  describe('transcription (PR 5)', () => {
+    it('offers only a hint while no provider is connected', async () => {
+      render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      await screen.findAllByTestId('dictation-clip');
+      expect(screen.getByTestId('dictation-transcribe-hint')).toBeInTheDocument();
+      expect(screen.queryByTestId('dictation-transcribe')).not.toBeInTheDocument();
+    });
+
+    /** @critical - the batch fills only empty fields, passes the roster, and the chip follows the text. */
+    it('transcribes the empty clips with the roster as vocabulary and the player chip follows', async () => {
+      aiState.connected = true;
+      transcribe.mockResolvedValueOnce('Emman syöttö').mockResolvedValueOnce('puolustus nukkui');
+      render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      const button = await screen.findByTestId('dictation-transcribe');
+      expect(button).toHaveTextContent('Transcribe 2 clips');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(transcribe).toHaveBeenCalledTimes(2);
+      expect(transcribe.mock.calls[0][1]).toMatchObject({ language: 'fi', vocabulary: ['Emma', 'Matti'] });
+      expect(transcribe.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+      const texts = screen.getAllByTestId('dictation-text') as HTMLTextAreaElement[];
+      expect(texts[0].value).toBe('Emman syöttö');
+      expect(texts[1].value).toBe('puolustus nukkui');
+      const selects = screen.getAllByTestId('dictation-player') as HTMLSelectElement[];
+      expect(selects[0].value).toBe('p-emma');
+      expect(selects[1].value).toBe('');
+      expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/2 clips transcribed/), 'success');
+      expect(screen.queryByTestId('dictation-transcribe')).not.toBeInTheDocument(); // nothing left to transcribe
+    });
+
+    it('does not overwrite text the coach already typed', async () => {
+      aiState.connected = true;
+      transcribe.mockResolvedValue('from provider');
+      render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      const [first] = await screen.findAllByTestId('dictation-text');
+      fireEvent.change(first, { target: { value: 'typed by hand' } });
+      const button = screen.getByTestId('dictation-transcribe');
+      expect(button).toHaveTextContent('Transcribe 1 clips');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(transcribe).toHaveBeenCalledTimes(1);
+      expect((screen.getAllByTestId('dictation-text')[0] as HTMLTextAreaElement).value).toBe('typed by hand');
+    });
+
+    /** @critical - closing the modal must stop uploads to the coach's paid key. */
+    it('unmounting mid-batch aborts the rest of the batch', async () => {
+      aiState.connected = true;
+      let resolveFirst: (text: string) => void = () => {};
+      transcribe.mockImplementationOnce(() => new Promise<string>((resolve) => { resolveFirst = resolve; }));
+      const { unmount } = render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      const button = await screen.findByTestId('dictation-transcribe');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      const signal = transcribe.mock.calls[0][1].signal as AbortSignal;
+      unmount();
+      expect(signal.aborted).toBe(true);
+      await act(async () => {
+        resolveFirst('late result');
+      });
+      expect(transcribe).toHaveBeenCalledTimes(1); // the second clip was never sent
+    });
+
+    it('coalesces unreadable clips into one toast and keeps going', async () => {
+      aiState.connected = true;
+      const { TranscriptionError } = jest.requireActual('@/utils/transcription');
+      transcribe.mockRejectedValueOnce(new TranscriptionError('rejected')).mockRejectedValueOnce(new TranscriptionError('rejected'));
+      render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      const button = await screen.findByTestId('dictation-transcribe');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(transcribe).toHaveBeenCalledTimes(2);
+      const infoToasts = showToast.mock.calls.filter((c) => c[1] === 'info');
+      expect(infoToasts).toHaveLength(1);
+      expect(infoToasts[0][0]).toMatch(/2 clips could not be transcribed/);
+    });
+
+    it('a rejected key stops the batch with a Settings hint', async () => {
+      aiState.connected = true;
+      const { TranscriptionError } = jest.requireActual('@/utils/transcription');
+      transcribe.mockRejectedValue(new TranscriptionError('unauthorized'));
+      render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      const button = await screen.findByTestId('dictation-transcribe');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(transcribe).toHaveBeenCalledTimes(1); // stopped after the first failure
+      expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/rejected your key/), 'error');
+    });
   });
 });
