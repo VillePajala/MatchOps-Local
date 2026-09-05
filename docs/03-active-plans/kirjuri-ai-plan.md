@@ -423,8 +423,12 @@ first. One intent per surface, organised by WHEN:
 ## Testing
 
 Unit tests with mocked `MediaRecorder` / `mediaSession` / `getUserMedia` / fetch; the
-note round-trip and backup-restore tests in PR 1; the backup-excludes-key test and the
-gate-blocks-key test in PR 4. A manual device checklist per phase (Android phone,
+note round-trip and backup-restore tests in PR 1; the gate-blocks-key test in PR 4. The
+promised **backup-excludes-key test was missed in PR 4 and landed in 9d** (found while
+answering why a preview URL loses the key): `fullBackup.test.ts` now asserts an export
+carries neither the key, the consent flag nor the usage counter. The export builds from
+an allowlist so they were already excluded; the test is there so a future "back up
+everything" change fails instead of shipping credentials in a file coaches share. A manual device checklist per phase (Android phone,
 earbuds, TWA build) because none of the media APIs run in jsdom or Playwright.
 
 ## Later (not in this build)
