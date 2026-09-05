@@ -126,6 +126,29 @@ describe('draftMatchReport - the request', () => {
     expect(sent.messages[0].content).toContain('recorded');
   });
 
+  /** The coach's own choice wins over the default, with no silent fallback. */
+  it('uses the model the coach picked, and the default when they have not', async () => {
+    connect();
+    fetchMock.mockResolvedValue(okResponse(fullDraft));
+
+    await draftMatchReport({ packet: makePacket() });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).model).toBe(DRAFTING_MODEL);
+
+    const { setAiModel } = jest.requireActual('@/utils/aiProvider') as { setAiModel: (m: string | null) => void };
+    setAiModel('gpt-5.4-mini');
+    await draftMatchReport({ packet: makePacket() });
+    const sent = JSON.parse(fetchMock.mock.calls[1][1].body as string);
+    expect(sent.model).toBe('gpt-5.4-mini');
+
+    // And the draft records which model actually wrote it.
+    const draft = await draftMatchReport({ packet: makePacket() });
+    expect(draft.model).toBe('gpt-5.4-mini');
+
+    setAiModel(null);
+    await draftMatchReport({ packet: makePacket() });
+    expect(JSON.parse(fetchMock.mock.calls[3][1].body as string).model).toBe(DRAFTING_MODEL);
+  });
+
   it('maps provider failures to typed errors', async () => {
     connect();
     const packet = makePacket();

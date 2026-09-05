@@ -3471,7 +3471,13 @@
     "usageAmount": "~{{usd}} $ alkaen {{since}}",
     "usageBreakdown": "{{transcriptions}} litterointia, {{drafts}} raporttiluonnosta. Arvio listahinnoista - palveluntarjoajan lasku on oikea luku.",
     "usageReset": "Aloita laskenta uudelleen",
-    "usageNone": "Tällä laitteella ei ole vielä käytetty mitään."
+    "usageNone": "Tällä laitteella ei ole vielä käytetty mitään.",
+    "modelLabel": "Raporttiluonnoksissa käytettävä malli",
+    "modelDefault": "{{model}} (oletus)",
+    "modelLoad": "Näytä tilini mallit",
+    "modelLoading": "Luetaan mallilistaa...",
+    "modelHint": "Vain tilisi edulliset mallit ovat valittavissa, joten vahinkovalinta ei voi kasvattaa laskua. Automaattista varamallia ei myöskään ole: jos malli lakkaa toimimasta, luonnos kertoo sen sen sijaan että vaihtaisi hiljaa toiseen.",
+    "modelCustomHint": "Tässä näkyvät kulut ovat oletusmallin hintoja, joten ne ovat vain karkea arvio mallille {{model}}. Isommat mallit kirjoittavat paremmin ja kustantavat enemmän."
   },
   "aiConsent": {
     "title": "Ennen kuin yhdistät tekoälypalvelun",
