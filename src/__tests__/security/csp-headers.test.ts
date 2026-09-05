@@ -63,6 +63,10 @@ describe('Security Headers Configuration', () => {
       expect(configContent).toContain('https://play.googleapis.com');
     });
 
+    it('should allow the user-connected AI provider host (Kirjuri BYOK)', () => {
+      expect(configContent).toContain('https://api.openai.com');
+    });
+
     it('should allow service workers', () => {
       expect(configContent).toContain("worker-src 'self'");
     });

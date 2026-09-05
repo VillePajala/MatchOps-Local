@@ -2312,7 +2312,26 @@
       "intro": "Useimmat tietopyynnöt voit hoitaa suoraan sovelluksessa (Asetukset → Tiedot-välilehti) ilman yhteydenottoa. Muihin tietosuojakysymyksiin tai huolenaiheisiin:",
       "email": "Sähköposti"
     },
-    "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
+    "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta.",
+    "voiceNotesAndAi": {
+      "title": "Äänimuistiinpanot ja valinnainen tekoäly",
+      "intro": "MatchOps voi tallentaa lyhyitä äänimuistiinpanoja ottelun aikana. Näin niitä käsitellään:",
+      "items": {
+        "onDevice": "Tallenteet säilytetään vain laitteellasi. Niitä ei koskaan lähetetä MatchOpsin palvelimille, synkronoida laitteiden välillä eikä sisällytetä varmuuskopioihin tai vienteihin.",
+        "deleted": "Tallenne poistetaan laitteeltasi heti, kun muutat sen muistiinpanoksi tai hylkäät sen, ja joka tapauksessa 30 päivän kuluttua.",
+        "notes": "Tallentamasi kirjalliset muistiinpanot ovat osa ottelutietoja, ja niitä käsitellään kuten muitakin yllä kuvattuja ottelutietoja (laitteellasi ja pilvitilassa tiliisi synkronoituna).",
+        "neverReceived": "MatchOps ei koskaan vastaanota tallenteitasi, litterointeja tai tekoälyn tuloksia."
+      },
+      "aiTitle": "Valinnainen tekoälypalvelu (oma tilisi)",
+      "aiIntro": "Voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia sekä otteluraporttien ja muistiinpanojen luonnostelua varten. Jos teet niin:",
+      "aiItems": {
+        "yourAccount": "Tiedot lähetetään suoraan laitteeltasi valitsemallesi palvelulle omalla tililläsi ja omalla API-avaimellasi. MatchOps ei ole tämän käsittelyn osapuoli eikä pääse siihen käsiksi.",
+        "onlyOnAction": "Mitään ei lähetetä automaattisesti. Tiedot lähtevät laitteeltasi vain, kun painat Litteroi tai Luonnostele.",
+        "providerTerms": "Palvelu käsittelee ja säilyttää tietoja omien ehtojensa mukaan, jotka hyväksyit tiliä luodessasi. MatchOps ei voi vaikuttaa tähän säilytykseen.",
+        "pseudonymized": "Ennen luonnostelupyyntöjä pelaajien nimet korvataan laitteellasi koodeilla (oletuksena päällä). Litterointipyynnöt sisältävät väistämättä puhumasi sanat.",
+        "disconnect": "Voit irrottaa palvelun ja poistaa kaikki tallenteet milloin tahansa asetuksista. Avain säilytetään vain laitteellasi."
+      }
+    }
   },
   "termsOfService": {
     "title": "MatchOpsin käyttöehdot",
@@ -2473,6 +2492,12 @@
     "noAdvice": {
       "title": "Ei ammatillista neuvontaa; käyttö omalla vastuulla",
       "content": "MatchOps on valmennustyökalu, joka tallentaa ja näyttää antamiasi tietoja. Se ei anna ammatillista, lääketieteellistä, oikeudellista tai turvallisuutta koskevaa neuvontaa. Kaikki sovelluksen avulla tekemäsi päätökset – mukaan lukien pelaajien terveyteen, turvallisuuteen tai peliaikaan vaikuttavat – ovat omiasi, ja käytät sovellusta omalla vastuullasi."
+    },
+    "aiServices": {
+      "title": "Valinnaiset tekoälypalvelut",
+      "content1": "MatchOpsissa voit yhdistää oman tilisi kolmannen osapuolen tekoälypalveluun äänimuistiinpanojen litterointia ja raporttien luonnostelua varten. Tällaiseen käyttöön sovelletaan sopimustasi kyseisen palvelun kanssa. MatchOps ei ole sen osapuoli, ei vastaanota tietoja eikä vastaa palvelun käsittelystä, saatavuudesta, tuloksista tai maksuista.",
+      "content2": "Vastaat itse tallentamastasi tai sanelemastasi sisällöstä ja oikeudestasi käsitellä sitä, mukaan lukien pelaajien perheiden informoinnista, jos olosuhteesi sitä edellyttävät. Älä tallenna terveystietoja tai muita arkaluonteisia henkilötietoja.",
+      "content3": "Tekoälyn tuottama sisältö on luonnos. Tarkistat ja hyväksyt jokaisen kohdan ennen tallennusta ja vastaat siitä, mitä säilytät."
     }
   },
   "premium": {
@@ -3386,5 +3411,59 @@
     "homeGear": "Ratas-kuvake (vasen yläkulma): kotinäkymän vaihto (yhteenveto tai yksinkertaistettu), asetukset, varmuuskopiot, tili ja tämä opas.",
     "matchMenuTitle": "Ottelun valikko",
     "matchMenuNote": "Ottelun aikana valikko sisältää ottelupäivän toiminnot:"
+  },
+  "aiSettings": {
+    "title": "Äänimuistiinpanot ja tekoäly",
+    "statusConnected": "Yhdistetty: {{provider}} ••••{{hint}}",
+    "statusNotConnected": "Ei yhdistetty",
+    "intro": "Äänimuistiinpanot toimivat ilman tätä. Litterointi ja luonnokset tarvitsevat oman tekoälypalvelutilisi - tallenteet lähtevät silloin puhelimestasi vain sinne, omalla avaimellasi ja vain kun painat nappia.",
+    "setUpLabel": "Ota litterointi ja luonnokset käyttöön",
+    "setUp": "Ota käyttöön",
+    "keyLabel": "{{provider}} API-avain",
+    "keyHint": "Luo MatchOpsille oma avain ja aseta sille kuukausittainen kulukatto.",
+    "keyLink": "Avaa palvelun avainsivu",
+    "connect": "Yhdistä",
+    "testing": "Tarkistetaan...",
+    "connected": "Tekoälypalvelu yhdistetty.",
+    "keyRejected": "Palvelu hylkäsi avaimen. Tarkista se ja yritä uudelleen.",
+    "testFailed": "Palveluun ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen.",
+    "connectedLine": "Pyynnöt menevät palveluun {{provider}} omalla avaimellasi.",
+    "disconnect": "Katkaise yhteys",
+    "disconnected": "Tekoälypalvelu irrotettu. Avain poistettiin tästä laitteesta.",
+    "pseudonymizeLabel": "Korvaa pelaajien nimet koodeilla ennen luonnostelua",
+    "pseudonymizeHint": "Oletuksena päällä. Litterointi sisältää silti sen, mitä sanoit.",
+    "deleteRecordingsLabel": "Poista kaikki äänitallenteet tältä laitteelta",
+    "deleteRecordings": "Poista",
+    "deleteRecordingsTitle": "Poistetaanko kaikki tallenteet?",
+    "deleteRecordingsBody": "Kaikki tämän laitteen äänitallenteet poistetaan. Jo tallennetut muistiinpanot säilyvät.",
+    "recordingsDeleted": "Kaikki äänitallenteet poistettu tältä laitteelta.",
+    "recordingsDeleteFailed": "Tallenteita ei voitu poistaa.",
+    "parentTextTitle": "Teksti vanhemmille",
+    "parentTextHint": "Valmis viesti, jonka voit lähettää perheille pitämistäsi muistiinpanoista.",
+    "parentText": "Hei! Valmentajana pidän lyhyitä muistiinpanoja pelaajista otteluiden aikana ja jälkeen - mikä sujui hyvin, mitä harjoittelemme. Muistiinpanot kirjoitetaan tai sanellaan puhelimeeni ja ne pysyvät valmennussovelluksessani. Jos käytän tekoälytyökalua niiden siistimiseen otteluraportiksi, pelaajien nimet korvataan koodeilla ennen kuin mitään lähetetään. Voit milloin tahansa kysyä, mitä olen lapsestasi kirjannut, ja poistan sen halutessasi.",
+    "copy": "Kopioi",
+    "copied": "Kopioitu.",
+    "copyFailed": "Kopiointi ei onnistunut. Valitse teksti ja kopioi se itse."
+  },
+  "aiConsent": {
+    "title": "Ennen kuin yhdistät tekoälypalvelun",
+    "version": "Versio",
+    "dataTitle": "Mitä tiedoillesi tapahtuu",
+    "data1": "Tallenteet pysyvät tässä puhelimessa. MatchOps ei koskaan vastaanota tallenteitasi, litterointeja tai tekoälyn tuloksia.",
+    "data2": "Kun painat Litteroi tai Luonnostele, tallenne tai muistiinpanot lähetetään tästä puhelimesta SINUN yhdistämällesi tekoälypalvelulle, SINUN tililläsi ja SINUN avaimellasi.",
+    "data3": "Palvelu voi säilyttää tietoja rajoitetun ajan omien ehtojensa mukaan (OpenAI: ei käytetä koulutukseen, väärinkäytösvalvonnan lokit enintään 30 päivää, käsittely Yhdysvalloissa). Lue palvelusi ehdot - MatchOps ei ole niiden osapuoli.",
+    "data4": "Kulut laskutetaan palvelutililtäsi. Luo oma avain ja aseta sille kuukausittainen kulukatto.",
+    "data5": "Pelaajien nimet korvataan koodeilla ennen luonnostelupyyntöjä (voit kytkeä tämän pois). Litterointi sisältää väistämättä sen, mitä sanoit.",
+    "data6": "Voit irrottaa palvelun ja poistaa kaikki tallenteet milloin tahansa asetuksista.",
+    "rulesTitle": "Sanelun säännöt",
+    "rule1": "Puhu jalkapallotapahtumista, älä ihmisten elämästä.",
+    "rule2": "Käytä etunimiä tai lempinimiä, älä koskaan koko nimiä.",
+    "rule3": "Älä koskaan sanele terveystietoja, loukkaantumisia, perheasioita tai mitään vanhemmista, tuomareista tai vastustajista nimeltä.",
+    "rule4": "Pidä klipit lyhyinä; poista kaikki, mitä et haluaisi vanhemman lukevan.",
+    "rule5": "Vastaat itse siitä, mitä sanelet, ja perheiden informoimisesta, jos tilanteesi sitä edellyttää.",
+    "box1": "Ymmärrän, että tallenteet ja muistiinpanot menevät omalle tekoälypalvelulleni omalla tililläni, eikä MatchOps koskaan vastaanota niitä.",
+    "box2": "Olen lukenut palveluni tietoehdot ja hyväksyn, että se voi säilyttää tietoja rajoitetun ajan.",
+    "box3": "Noudatan sanelun sääntöjä enkä sanele terveys- tai muita arkaluonteisia tietoja.",
+    "accept": "Ymmärrän, jatka"
   }
 }

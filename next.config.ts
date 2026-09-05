@@ -86,7 +86,9 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'", // Required for CSS-in-JS and Next.js styles
       "img-src 'self'", // Strict: no data: or blob: URIs needed for images
       "font-src 'self'",
-      `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com`,
+      // api.openai.com: the coach's OWN AI provider (Kirjuri BYOK) - called only
+      // with the coach's key, only on an explicit action. Allow-listed per provider.
+      `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com https://api.openai.com`,
       "worker-src 'self' blob:",  // blob: required for Supabase realtime-js heartbeat workers
       "media-src 'self' blob:", // blob: replays locally recorded voice clips (Kirjuri); audio never leaves the device
       "object-src 'none'", // Block Flash, Java applets, and other plugins
