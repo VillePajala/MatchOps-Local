@@ -228,7 +228,8 @@
     "transcribeRateLimited": "Palvelu rajoittaa pyyntöjä. Yritä uudelleen hetken kuluttua.",
     "transcribeNetwork": "Palveluun ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen.",
     "transcribeRejected": "Palvelu ei pystynyt litteroimaan yhtä klippiä - kirjoita se itse.",
-    "transcribeDone": "{{count}} klippiä litteroitu - tarkista teksti ja pelaaja, tallenna sitten."
+    "transcribeDone": "{{count}} klippiä litteroitu - tarkista teksti ja pelaaja, tallenna sitten.",
+    "transcribeRejectedCount": "{{count}} klippiä ei voitu litteroida - kirjoita ne itse."
   },
   "undoToast": {
     "goal": "Maali kirjattu",

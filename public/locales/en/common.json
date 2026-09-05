@@ -228,7 +228,8 @@
     "transcribeRateLimited": "The provider is rate-limiting requests. Try again in a minute.",
     "transcribeNetwork": "Could not reach the provider. Check your connection and try again.",
     "transcribeRejected": "The provider could not transcribe one clip - type it instead.",
-    "transcribeDone": "{{count}} clips transcribed - check the text and the player, then save."
+    "transcribeDone": "{{count}} clips transcribed - check the text and the player, then save.",
+    "transcribeRejectedCount": "{{count}} clips could not be transcribed - type those instead."
   },
   "undoToast": {
     "goal": "Goal logged",

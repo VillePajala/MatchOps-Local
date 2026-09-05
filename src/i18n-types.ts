@@ -553,6 +553,7 @@ export type TranslationKey =
   | 'dictation.transcribeNetwork'
   | 'dictation.transcribeRateLimited'
   | 'dictation.transcribeRejected'
+  | 'dictation.transcribeRejectedCount'
   | 'dictation.transcribeUnauthorized'
   | 'dictation.transcribing'
   | 'dictation.unsupported'

@@ -182,7 +182,8 @@ describe('DictationInbox', () => {
         fireEvent.click(button);
       });
       expect(transcribe).toHaveBeenCalledTimes(2);
-      expect(transcribe.mock.calls[0][1]).toEqual({ language: 'fi', vocabulary: ['emma', 'matti'] });
+      expect(transcribe.mock.calls[0][1]).toMatchObject({ language: 'fi', vocabulary: ['Emma', 'Matti'] });
+      expect(transcribe.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
       const texts = screen.getAllByTestId('dictation-text') as HTMLTextAreaElement[];
       expect(texts[0].value).toBe('Emman syöttö');
       expect(texts[1].value).toBe('puolustus nukkui');
@@ -206,6 +207,40 @@ describe('DictationInbox', () => {
       });
       expect(transcribe).toHaveBeenCalledTimes(1);
       expect((screen.getAllByTestId('dictation-text')[0] as HTMLTextAreaElement).value).toBe('typed by hand');
+    });
+
+    /** @critical - closing the modal must stop uploads to the coach's paid key. */
+    it('unmounting mid-batch aborts the rest of the batch', async () => {
+      aiState.connected = true;
+      let resolveFirst: (text: string) => void = () => {};
+      transcribe.mockImplementationOnce(() => new Promise<string>((resolve) => { resolveFirst = resolve; }));
+      const { unmount } = render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      const button = await screen.findByTestId('dictation-transcribe');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      const signal = transcribe.mock.calls[0][1].signal as AbortSignal;
+      unmount();
+      expect(signal.aborted).toBe(true);
+      await act(async () => {
+        resolveFirst('late result');
+      });
+      expect(transcribe).toHaveBeenCalledTimes(1); // the second clip was never sent
+    });
+
+    it('coalesces unreadable clips into one toast and keeps going', async () => {
+      aiState.connected = true;
+      const { TranscriptionError } = jest.requireActual('@/utils/transcription');
+      transcribe.mockRejectedValueOnce(new TranscriptionError('rejected')).mockRejectedValueOnce(new TranscriptionError('rejected'));
+      render(<DictationInbox gameId="g1" availablePlayers={players} />);
+      const button = await screen.findByTestId('dictation-transcribe');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(transcribe).toHaveBeenCalledTimes(2);
+      const infoToasts = showToast.mock.calls.filter((c) => c[1] === 'info');
+      expect(infoToasts).toHaveLength(1);
+      expect(infoToasts[0][0]).toMatch(/2 clips could not be transcribed/);
     });
 
     it('a rejected key stops the batch with a Settings hint', async () => {

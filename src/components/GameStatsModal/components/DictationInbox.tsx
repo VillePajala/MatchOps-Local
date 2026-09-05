@@ -20,7 +20,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { DictationRules } from '@/components/AiConsentGate';
 import { deleteClip, getClipBlob, listClips, type AudioClipMeta } from '@/utils/audioClipStore';
-import { matchPlayerInText, playerSpeechHandles } from '@/utils/playerNameMatch';
+import { matchPlayerInText } from '@/utils/playerNameMatch';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { TranscriptionError, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
 import logger from '@/utils/logger';
@@ -188,30 +188,59 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
     () => (clips ?? []).filter((c) => !(drafts[c.id]?.text ?? '').trim()),
     [clips, drafts],
   );
-  const vocabulary = useMemo(() => availablePlayers.flatMap((p) => playerSpeechHandles(p)), [availablePlayers]);
+  // Original casing on purpose: the recognizer mirrors the prompt's spelling,
+  // so "Emma" must be sent as "Emma" (review #750). Dedupe case-insensitively.
+  const vocabulary = useMemo(() => {
+    const seen = new Set<string>();
+    const terms: string[] = [];
+    for (const p of availablePlayers) {
+      for (const term of [p.nickname?.trim(), p.name.trim().split(/\s+/)[0]]) {
+        if (!term || term.length < 2) continue;
+        const key = term.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        terms.push(term);
+      }
+    }
+    return terms;
+  }, [availablePlayers]);
+
+  // The batch is abortable: closing the modal mid-batch must stop uploads to
+  // the coach's own (paid) key, not just hide the progress (review #750).
+  const batchAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    return () => {
+      batchAbortRef.current?.abort();
+    };
+  }, []);
 
   const transcribeAll = useCallback(async () => {
     const engine = getTranscriptionEngine();
     if (!engine || transcribing || untranscribed.length === 0) return;
     const batch = untranscribed;
+    const controller = new AbortController();
+    batchAbortRef.current = controller;
     setTranscribing({ done: 0, total: batch.length });
     let done = 0;
+    let rejected = 0;
     let stopped = false;
     try {
       for (const clip of batch) {
+        if (controller.signal.aborted) return;
         try {
           const blob = await getClipBlob(clip.id, userId ?? undefined);
-          if (!blob) continue;
-          const text = await engine.transcribe(blob, { language: 'fi', vocabulary });
+          if (!blob || controller.signal.aborted) continue;
+          const text = await engine.transcribe(blob, { language: 'fi', vocabulary, signal: controller.signal });
+          if (controller.signal.aborted) return;
           if (text) {
             setDrafts((prev) => ({ ...prev, [clip.id]: { ...(prev[clip.id] ?? { playerId: 'auto' }), text } }));
             done += 1;
           }
         } catch (error) {
+          if (controller.signal.aborted) return;
           const kind = error instanceof TranscriptionError ? error.kind : 'network';
           if (kind === 'rejected') {
-            // This clip only; the rest may still work.
-            showToast(t('dictation.transcribeRejected', 'The provider could not transcribe one clip - type it instead.'), 'info');
+            rejected += 1; // this clip only; the rest may still work
             continue;
           }
           showToast(
@@ -225,8 +254,16 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
           stopped = true;
           break;
         } finally {
-          setTranscribing((prev) => (prev ? { ...prev, done: Math.min(prev.total, prev.done + 1) } : prev));
+          if (!controller.signal.aborted) {
+            setTranscribing((prev) => (prev ? { ...prev, done: Math.min(prev.total, prev.done + 1) } : prev));
+          }
         }
+      }
+      if (rejected > 0) {
+        showToast(
+          t('dictation.transcribeRejectedCount', '{{count}} clips could not be transcribed - type those instead.', { count: rejected }),
+          'info',
+        );
       }
       if (!stopped && done > 0) {
         showToast(
@@ -235,7 +272,8 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
         );
       }
     } finally {
-      setTranscribing(null);
+      if (batchAbortRef.current === controller) batchAbortRef.current = null;
+      if (!controller.signal.aborted) setTranscribing(null);
     }
   }, [transcribing, untranscribed, userId, vocabulary, showToast, t]);
 
@@ -288,7 +326,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
         {clips.map((clip) => {
           const draft = draftFor(clip.id);
           const guessedId = draft.playerId === 'auto' ? resolvePlayerId(draft) : draft.playerId;
-          const busy = busyIds.has(clip.id);
+          const busy = busyIds.has(clip.id) || !!transcribing;
           const canSave = draft.text.trim().length > 0 && !busy;
           return (
             <li key={clip.id} data-testid="dictation-clip" className="rounded-md bg-slate-800/60 border border-slate-700/60 p-3 space-y-2">
