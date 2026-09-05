@@ -1,0 +1,63 @@
+BOOT TEXT:
+EN
+FI
+MatchOps
+
+Tervetuloa!
+
+Valitse miten haluat aloittaa
+
+Käytä pilvisynkronointia
+ILMAINEN
+Synkronoi tietosi kaikilla laitteillasi.
+
+has email input: 0
+has password input: 0
+buttons: EN | FI | Käytä pilvisynkronointia
+ILMAINEN
+Synkronoi tietosi kaikilla laitteillasi. | 
+
+=== POST-LOGIN ===
+EN
+FI
+MatchOps
+Pelit
+Seura
+Kilpailut
+Tilastot
+Puistola
+4–1
+Vieras
+Jatka →
+Vuosi 25/26
+·
+24 peliä
+·
+18-2-4
+·
+69–28
+›
+VIIMEISIMMÄT
+Puistola
+4–1
+05.24
+EPS Espoo
+1–4
+05.17
+Käpylän Pallo
+3–1
+05.10
+PK-35 Vantaa
+5–0
+04.26
+FC Honka
+2–1
+04.25
+HJK U12
+4–1
+04.19
+Uusi ottelu
+Tallennetut pelit
+Ottelusuunnittelu
+›
+Taso - kokoonpanot ja tulokset

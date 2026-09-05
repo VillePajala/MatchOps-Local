@@ -155,6 +155,9 @@ interface TestProps {
   onAwayScoreChange: jest.Mock;
   onGameNotesChange: jest.Mock;
   onPlayerPositionsChange?: jest.Mock;
+  onAddGoal?: jest.Mock;
+  onOpenAssessments?: jest.Mock;
+  onExportOneExcel?: jest.Mock;
   onUpdateGameEvent: jest.Mock;
   onExportOneJson: jest.Mock;
   onExportOneCsv: jest.Mock;
@@ -968,6 +971,64 @@ describe('GameStatsModal', () => {
         expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
       });
       expect(screen.queryByTestId('positions-editor')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Phase 1b: the Finish this game spine', () => {
+    const tabReady = () =>
+      waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+    const stepKeys = () =>
+      Array.from(screen.getByTestId('finish-game-spine').querySelectorAll('section[data-testid^="spine-"]')).map((el) =>
+        el.getAttribute('data-testid'),
+      );
+
+    it('renders the six steps in the plan order when every handler is wired', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        onPlayerPositionsChange: jest.fn(),
+        onOpenAssessments: jest.fn(),
+        onAddGoal: jest.fn(),
+        onExportOneExcel: jest.fn(),
+      });
+      await tabReady();
+      expect(stepKeys()).toEqual(['spine-goals', 'spine-notes', 'spine-positions', 'spine-report', 'spine-assessments', 'spine-share']);
+      expect(screen.getByText('Step 1 of 6')).toBeInTheDocument();
+      expect(screen.getByText('Step 6 of 6')).toBeInTheDocument();
+    });
+
+    it('omits the positions and assessments steps when their handlers are absent and renumbers', async () => {
+      renderComponent(getDefaultProps());
+      await tabReady();
+      expect(stepKeys()).toEqual(['spine-goals', 'spine-notes', 'spine-report', 'spine-share']);
+      expect(screen.getByText('Step 4 of 4')).toBeInTheDocument();
+      expect(screen.queryByTestId('spine-add-goal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('spine-export-excel')).not.toBeInTheDocument();
+    });
+
+    it('the Goals step hands off to the goal log and the Share step exports the current game', async () => {
+      const onAddGoal = jest.fn();
+      const onExportOneExcel = jest.fn();
+      const onOpenAssessments = jest.fn();
+      renderComponent({ ...getDefaultProps(), onAddGoal, onExportOneExcel, onOpenAssessments });
+      await tabReady();
+      fireEvent.click(screen.getByTestId('spine-add-goal'));
+      fireEvent.click(screen.getByTestId('spine-export-excel'));
+      fireEvent.click(screen.getByTestId('spine-open-assessments'));
+      expect(onAddGoal).toHaveBeenCalledTimes(1);
+      expect(onExportOneExcel).toHaveBeenCalledWith('game1');
+      expect(onOpenAssessments).toHaveBeenCalledTimes(1);
+    });
+
+    it('aggregate tabs keep their own layout with no spine', async () => {
+      renderComponent(getDefaultProps());
+      await tabReady();
+      fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') }));
+      await waitFor(() => {
+        expect(screen.queryByTestId('finish-game-spine')).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') })).toBeInTheDocument();
     });
   });
 });

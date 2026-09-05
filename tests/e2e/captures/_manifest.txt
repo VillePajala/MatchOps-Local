@@ -1,0 +1,12 @@
+club_en.png
+club_fi.png
+competitions_en.png
+competitions_fi.png
+dashboard_en.png
+dashboard_fi.png
+personnel_en.png
+planner_en.png
+roster_en.png
+stats_en.png
+stats_fi.png
+teams_en.png

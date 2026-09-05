@@ -120,6 +120,9 @@ interface GameStatsModalProps {
   /** Positions played moved here from Ottelun tiedot (Phase 1b). Autosave persists like notes. */
   onPlayerPositionsChange?: (positions: Record<string, string[]>) => void;
   onOpenAssessments?: () => void;
+  /** Phase 1b: the Goals step offers one way to add a goal - the existing goal log
+   *  modal, reached by the same leave-and-land hand-off the wrap-up rows use. */
+  onAddGoal?: () => void;
   /**
    * Club-level surface (L.4): hide the current-game tab entirely and land on
    * the aggregate side. The host renders this with NO live match behind it,
@@ -177,6 +180,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onOpenGameSettings,
   onPlayerPositionsChange,
   onOpenAssessments,
+  onAddGoal,
 }) => {
   const { t, i18n } = useTranslation();
   const headerCollapse = useCollapsingHeader();
@@ -737,6 +741,185 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Phase 1b (PR 7b-1): the current-game tab is the "Finish this game" spine -
+  // a read-only header (score, player stats, personnel) followed by one numbered
+  // step per post-game datum, each with its single editor inline. Order and
+  // vocabulary follow kirjuri-ai-plan.md "Phase 1b". Every editor here is the
+  // same component with the same handler it had before; only the frame moved.
+  const playerStatsCard = (
+    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+      <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
+      {noGamesInContext ? (
+        <div className="text-center text-slate-400 py-8">
+          <div className="text-lg font-semibold mb-2">
+            {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
+          </div>
+          <div className="text-sm">
+            {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
+          </div>
+          {hasActiveFilters && (
+            <div className="mt-2 text-xs text-slate-500">
+              {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Search Input */}
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={filterText}
+              onChange={handleFilterChange}
+              placeholder={t('common.filterByName', 'Filter by name...')}
+              className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div>
+            <PlayerStatsTable
+              playerStats={playerStats}
+              sortColumn={sortColumn}
+              sortDirection={sortDirection}
+              totals={totals}
+              onSort={handleSort}
+              onPlayerRowClick={handlePlayerRowClick}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+  const spineSteps: Array<{ key: string; id?: string; content: React.ReactNode }> = [];
+  if (activeTab === 'currentGame') {
+    spineSteps.push({
+      key: 'goals',
+      content: (
+        <>
+          <GoalEventList
+            goals={sortedGoals}
+            availablePlayers={availablePlayers}
+            opponentName={opponentName}
+            editingGoalId={goalEditorHook.editingGoalId}
+            editGoalTime={goalEditorHook.editGoalTime}
+            editGoalScorerId={goalEditorHook.editGoalScorerId}
+            editGoalAssisterId={goalEditorHook.editGoalAssisterId}
+            goalTimeInputRef={goalEditorHook.goalTimeInputRef}
+            onStartEditGoal={goalEditorHook.handleStartEditGoal}
+            onCancelEditGoal={goalEditorHook.handleCancelEditGoal}
+            onSaveEditGoal={goalEditorHook.handleSaveEditGoal}
+            onGoalEditKeyDown={goalEditorHook.handleGoalEditKeyDown}
+            onDeleteGoal={goalEditorHook.triggerDeleteEvent}
+            onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
+            onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
+            onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
+          />
+          {onAddGoal && (
+            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
+              {t('gameStatsModal.spineAddGoal', 'Add a goal')}
+            </button>
+          )}
+        </>
+      ),
+    });
+    spineSteps.push({
+      key: 'notes',
+      id: 'game-notes-step',
+      content: (
+        <>
+          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+            <DictationInbox
+              gameId={currentGameId}
+              availablePlayers={availablePlayers}
+              onAccept={onAddGameNote}
+              onCountChange={setVoiceClipCount}
+            />
+          )}
+          <GameNotesList
+            notes={noteEvents}
+            availablePlayers={availablePlayers}
+            onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
+          />
+        </>
+      ),
+    });
+    if (onPlayerPositionsChange) {
+      spineSteps.push({
+        key: 'positions',
+        id: 'positions-editor',
+        content: (
+          <div data-testid="positions-editor" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
+            <p className="text-xs text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
+            <PlayerPositionsEditor
+              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+              value={playerPositions ?? {}}
+              gameType={currentGameType}
+              onChange={onPlayerPositionsChange}
+            />
+          </div>
+        ),
+      });
+    }
+    spineSteps.push({
+      key: 'report',
+      id: 'game-report-editor',
+      content: (
+        <GameNotesEditor
+          gameNotes={gameNotes}
+          isEditingNotes={isEditingNotes}
+          editGameNotes={editGameNotes}
+          notesTextareaRef={notesTextareaRef}
+          onStartEdit={() => setIsEditingNotes(true)}
+          onSaveNotes={handleSaveNotes}
+          onCancelEdit={handleCancelEditNotes}
+          onEditNotesChange={setEditGameNotes}
+        />
+      ),
+    });
+    if (onOpenAssessments && currentGameCompleteness?.applicable) {
+      spineSteps.push({
+        key: 'assessments',
+        content: (
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
+            <p className="text-xs text-slate-400 mb-4">
+              {t('loadGameModal.assessmentsProgress', '{{done}}/{{total}} assessed', {
+                done: currentGameCompleteness.assessments.done,
+                total: currentGameCompleteness.assessments.total,
+              })}
+            </p>
+            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
+              {t('gameStatsModal.spineOpenAssessments', 'Open player assessments')}
+            </button>
+          </div>
+        ),
+      });
+    }
+    spineSteps.push({
+      key: 'share',
+      content: (
+        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-3">
+          <h3 className="text-xl font-semibold text-slate-200">{t('gameStatsModal.spineShareTitle', 'Share the match')}</h3>
+          <button
+            type="button"
+            onClick={() => setShowRecap(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+          >
+            <HiOutlineShare className="text-base" />
+            {t('recap.button', 'Generate match recap')}
+          </button>
+          {currentGameId && onExportOneExcel && (
+            <button type="button" onClick={() => onExportOneExcel(currentGameId)} data-testid="spine-export-excel" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-slate-500 transition-colors">
+              {t('common.exportExcel', 'Export Excel')}
+            </button>
+          )}
+        </div>
+      ),
+    });
+  }
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={getTabTitle()}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
@@ -908,148 +1091,23 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 />
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  {/* Overall Statistics Section */}
-                  {activeTab === 'overall' && overallTeamStats && (
-                    <TeamPerformanceCard
-                      title={
-                        selectedTeamIdFilter === 'all'
-                          ? t('loadGameModal.allTeamsFilter', 'All Teams')
-                          : selectedTeamIdFilter === 'legacy'
-                          ? t('loadGameModal.legacyGamesFilter', 'Legacy Games')
-                          : teams.find(team => team.id === selectedTeamIdFilter)?.name || t('gameStatsModal.overallSummary', 'Overall Summary')
-                      }
-                      gamesPlayed={overallTeamStats.gamesPlayed}
-                      wins={overallTeamStats.wins}
-                      losses={overallTeamStats.losses}
-                      ties={overallTeamStats.ties}
-                      winPercentage={overallTeamStats.winPercentage}
-                      goalDifference={overallTeamStats.goalDifference}
-                      goalsFor={overallTeamStats.goalsFor}
-                      goalsAgainst={overallTeamStats.goalsAgainst}
-                      averageGoalsFor={overallTeamStats.averageGoalsFor}
-                      averageGoalsAgainst={overallTeamStats.averageGoalsAgainst}
-                      teamAssessmentAverages={teamAssessmentAverages}
-                      ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
-                    />
-                  )}
-
-                  {/* Tournament/Season Statistics Section */}
-                  {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
-                    <>
-                      {Array.isArray(tournamentSeasonStats) ? (
-                        // Specific season/tournament selected - show TeamPerformanceCard directly (no outer wrapper)
-                        tournamentSeasonStats.length > 0 ? (
-                          tournamentSeasonStats.map(stats => (
-                            <div key={stats.id} className="mb-6 last:mb-0">
-                              <TeamPerformanceCard
-                                title={stats.name}
-                                gamesPlayed={stats.gamesPlayed}
-                                wins={stats.wins}
-                                losses={stats.losses}
-                                ties={stats.ties}
-                                winPercentage={stats.winPercentage}
-                                goalDifference={stats.goalDifference}
-                                goalsFor={stats.goalsFor}
-                                goalsAgainst={stats.goalsAgainst}
-                                averageGoalsFor={stats.averageGoalsFor}
-                                averageGoalsAgainst={stats.averageGoalsAgainst}
-                                lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
-                                useGradient={false}
-                                ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
-                              />
-                            </div>
-                          ))
-                        ) : (
-                          <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
-                            <div>
-                              {activeTab === 'season'
-                                ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
-                                : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
-                              }
-                            </div>
-                            {hasActiveFilters && (
-                              <div className="mt-2 text-sm text-slate-500">
-                                {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      ) : (
-                        // "All Seasons/Tournaments" selected - show aggregate stats in a card
-                        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                          <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                            {activeTab === 'season'
-                              ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
-                              : t('gameStatsModal.filterAllTournaments', 'All Tournaments')
-                            }
-                          </h3>
-                          <div className="space-y-0 text-sm">
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                              <span className="text-yellow-400 font-bold">
-                                {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
-                              <span
-                                className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
-                              >
-                                {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}
-                                {tournamentSeasonStats.totalGoalDifference}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2">
-                              <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* Game Info Card (Current Game only) */}
-                  {activeTab === 'currentGame' && (
-                    <GameInfoCard
-                      homeTeamName={displayHomeTeamName}
-                      awayTeamName={displayAwayTeamName}
-                      homeScore={homeScore}
-                      awayScore={awayScore}
-                      formattedDate={formatDisplayDate(gameDate)}
-                      gameTime={gameTime}
-                      gameLocation={gameLocation}
-                      numPeriods={numPeriods}
-                      periodDurationMinutes={periodDurationMinutes}
-                      wentToOvertime={wentToOvertime}
-                      wentToPenalties={wentToPenalties}
-                      shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
-                    />
-                  )}
-                  {activeTab === 'currentGame' && currentGameCompleteness?.applicable && (
+              {activeTab === 'currentGame' ? (
+                <div className="space-y-6" data-testid="finish-game-spine">
+                  <GameInfoCard
+                    homeTeamName={displayHomeTeamName}
+                    awayTeamName={displayAwayTeamName}
+                    homeScore={homeScore}
+                    awayScore={awayScore}
+                    formattedDate={formatDisplayDate(gameDate)}
+                    gameTime={gameTime}
+                    gameLocation={gameLocation}
+                    numPeriods={numPeriods}
+                    periodDurationMinutes={periodDurationMinutes}
+                    wentToOvertime={wentToOvertime}
+                    wentToPenalties={wentToPenalties}
+                    shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
+                  />
+                  {currentGameCompleteness?.applicable && (
                     <GameWrapUpCard
                       completeness={currentGameCompleteness}
                       onOpenSettings={onOpenGameSettings}
@@ -1060,131 +1118,144 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
                     />
                   )}
-                  {activeTab === 'currentGame' && (
-                    <button
-                      type="button"
-                      onClick={() => setShowRecap(true)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
-                    >
-                      <HiOutlineShare className="text-base" />
-                      {t('recap.button', 'Generate match recap')}
-                    </button>
-                  )}
-                  {/* Player Stats Table or Empty State */}
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                    <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
-                    {noGamesInContext ? (
-                      <div className="text-center text-slate-400 py-8">
-                        <div className="text-lg font-semibold mb-2">
-                          {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
-                        </div>
-                        <div className="text-sm">
-                          {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
-                        </div>
-                        {hasActiveFilters && (
-                          <div className="mt-2 text-xs text-slate-500">
-                            {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+                  {playerStatsCard}
+                  <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
+                  {spineSteps.map((step, i) => (
+                    <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                        {t('gameStatsModal.spineStep', 'Step {{n}} of {{total}}', { n: i + 1, total: spineSteps.length })}
+                      </p>
+                      {step.content}
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    {/* Overall Statistics Section */}
+                    {activeTab === 'overall' && overallTeamStats && (
+                      <TeamPerformanceCard
+                        title={
+                          selectedTeamIdFilter === 'all'
+                            ? t('loadGameModal.allTeamsFilter', 'All Teams')
+                            : selectedTeamIdFilter === 'legacy'
+                            ? t('loadGameModal.legacyGamesFilter', 'Legacy Games')
+                            : teams.find(team => team.id === selectedTeamIdFilter)?.name || t('gameStatsModal.overallSummary', 'Overall Summary')
+                        }
+                        gamesPlayed={overallTeamStats.gamesPlayed}
+                        wins={overallTeamStats.wins}
+                        losses={overallTeamStats.losses}
+                        ties={overallTeamStats.ties}
+                        winPercentage={overallTeamStats.winPercentage}
+                        goalDifference={overallTeamStats.goalDifference}
+                        goalsFor={overallTeamStats.goalsFor}
+                        goalsAgainst={overallTeamStats.goalsAgainst}
+                        averageGoalsFor={overallTeamStats.averageGoalsFor}
+                        averageGoalsAgainst={overallTeamStats.averageGoalsAgainst}
+                        teamAssessmentAverages={teamAssessmentAverages}
+                        ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
+                      />
+                    )}
+
+                    {/* Tournament/Season Statistics Section */}
+                    {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
+                      <>
+                        {Array.isArray(tournamentSeasonStats) ? (
+                          // Specific season/tournament selected - show TeamPerformanceCard directly (no outer wrapper)
+                          tournamentSeasonStats.length > 0 ? (
+                            tournamentSeasonStats.map(stats => (
+                              <div key={stats.id} className="mb-6 last:mb-0">
+                                <TeamPerformanceCard
+                                  title={stats.name}
+                                  gamesPlayed={stats.gamesPlayed}
+                                  wins={stats.wins}
+                                  losses={stats.losses}
+                                  ties={stats.ties}
+                                  winPercentage={stats.winPercentage}
+                                  goalDifference={stats.goalDifference}
+                                  goalsFor={stats.goalsFor}
+                                  goalsAgainst={stats.goalsAgainst}
+                                  averageGoalsFor={stats.averageGoalsFor}
+                                  averageGoalsAgainst={stats.averageGoalsAgainst}
+                                  lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
+                                  useGradient={false}
+                                  ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
+                                />
+                              </div>
+                            ))
+                          ) : (
+                            <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
+                              <div>
+                                {activeTab === 'season'
+                                  ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
+                                  : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
+                                }
+                              </div>
+                              {hasActiveFilters && (
+                                <div className="mt-2 text-sm text-slate-500">
+                                  {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        ) : (
+                          // "All Seasons/Tournaments" selected - show aggregate stats in a card
+                          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                            <h3 className="text-xl font-semibold text-slate-200 mb-4">
+                              {activeTab === 'season'
+                                ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
+                                : t('gameStatsModal.filterAllTournaments', 'All Tournaments')
+                              }
+                            </h3>
+                            <div className="space-y-0 text-sm">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.record', 'Record')}</span>
+                                <span className="text-yellow-400 font-bold">
+                                  {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+                                <span
+                                  className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                                >
+                                  {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}
+                                  {tournamentSeasonStats.totalGoalDifference}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2">
+                                <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
+                              </div>
+                            </div>
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      <>
-                        {/* Search Input */}
-                        <div className="relative mb-4">
-                          <input
-                            type="text"
-                            value={filterText}
-                            onChange={handleFilterChange}
-                            placeholder={t('common.filterByName', 'Filter by name...')}
-                            className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
-                          />
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <PlayerStatsTable
-                            playerStats={playerStats}
-                            sortColumn={sortColumn}
-                            sortDirection={sortDirection}
-                            totals={totals}
-                            onSort={handleSort}
-                            onPlayerRowClick={handlePlayerRowClick}
-                          />
-                        </div>
                       </>
                     )}
+                    {playerStatsCard}
                   </div>
                 </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
-                  {activeTab === 'currentGame' && (
-                    <>
-                      <GoalEventList
-                        goals={sortedGoals}
-                        availablePlayers={availablePlayers}
-                        opponentName={opponentName}
-                        editingGoalId={goalEditorHook.editingGoalId}
-                        editGoalTime={goalEditorHook.editGoalTime}
-                        editGoalScorerId={goalEditorHook.editGoalScorerId}
-                        editGoalAssisterId={goalEditorHook.editGoalAssisterId}
-                        goalTimeInputRef={goalEditorHook.goalTimeInputRef}
-                        onStartEditGoal={goalEditorHook.handleStartEditGoal}
-                        onCancelEditGoal={goalEditorHook.handleCancelEditGoal}
-                        onSaveEditGoal={goalEditorHook.handleSaveEditGoal}
-                        onGoalEditKeyDown={goalEditorHook.handleGoalEditKeyDown}
-                        onDeleteGoal={goalEditorHook.triggerDeleteEvent}
-                        onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
-                        onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
-                        onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
-                      />
-
-                      {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
-                        <DictationInbox
-                          gameId={currentGameId}
-                          availablePlayers={availablePlayers}
-                          onAccept={onAddGameNote}
-                          onCountChange={setVoiceClipCount}
-                        />
-                      )}
-                      <GameNotesList
-                        notes={noteEvents}
-                        availablePlayers={availablePlayers}
-                        onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
-                      />
-
-                      <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
-
-                      {onPlayerPositionsChange && (
-                        <div id="positions-editor" data-testid="positions-editor" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                          <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
-                          <p className="text-xs text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
-                          <PlayerPositionsEditor
-                            players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
-                            value={playerPositions ?? {}}
-                            gameType={currentGameType}
-                            onChange={onPlayerPositionsChange}
-                          />
-                        </div>
-                      )}
-
-                      <div id="game-report-editor">
-                      <GameNotesEditor
-                        gameNotes={gameNotes}
-                        isEditingNotes={isEditingNotes}
-                        editGameNotes={editGameNotes}
-                        notesTextareaRef={notesTextareaRef}
-                        onStartEdit={() => setIsEditingNotes(true)}
-                        onSaveNotes={handleSaveNotes}
-                        onCancelEdit={handleCancelEditNotes}
-                        onEditNotesChange={setEditGameNotes}
-                      />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* Position balance - full-width, below the two-column stats grid */}
               {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
@@ -1199,14 +1270,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               below that tab's content (was a fixed footer). */}
           {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) && (
             <div className="px-4 sm:px-6 pb-6">
-              {activeTab === 'currentGame' && currentGameId && onExportOneExcel && (
-                <button
-                  onClick={() => onExportOneExcel(currentGameId)}
-                  className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"
-                >
-                  {t('common.exportExcel', 'Export Excel')}
-                </button>
-              )}
               {activeTab === 'player' && selectedPlayer && onExportPlayerExcel && (
                 <button
                   onClick={() => {
