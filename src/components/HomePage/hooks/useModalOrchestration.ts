@@ -78,6 +78,11 @@ export interface ModalHandlers {
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
   /** Kirjuri: an accepted dictation clip becomes a note event on the current game. */
   handleAddGameNote?: (note: import('@/types/game').GameNoteInput) => boolean;
+  handleApplyReportDraft?: (payload: {
+    gameNotes: string;
+    aiMeta?: import('@/types/game').AiMeta;
+    noteEvents: import('@/types/game').GameEvent[];
+  }) => boolean;
   /** TRACKED place-all (counts toward the guided tour's formation signal). */
   handleExportOneExcel: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
@@ -188,6 +193,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   const {
     handleUpdateGameEvent,
     handleAddGameNote,
+    handleApplyReportDraft,
     handleExportOneExcel,
     handleExportOneJson,
     handleTeamNameChange,
@@ -393,6 +399,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       recalculateScore: timerManagement.handleRecalculateScoreFromEvents,
       updateGameEvent: handleUpdateGameEvent,
       addGameNote: handleAddGameNote,
+      applyReportDraft: handleApplyReportDraft,
       deleteGameEvent: persistence.handleDeleteGameEvent,
       toggleGameStatsModal: handleToggleGameStatsModal,
       exportOneExcel: handleExportOneExcel,

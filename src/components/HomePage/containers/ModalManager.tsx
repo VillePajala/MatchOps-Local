@@ -1,5 +1,5 @@
 import React from 'react';
-import type { GameNoteInput } from '@/types/game';
+import type { AiMeta, GameNoteInput } from '@/types/game';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
@@ -70,6 +70,8 @@ interface ModalManagerHandlers {
   updateGameEvent: (event: GameEvent) => void;
   /** Returns true when the note was dispatched; the inbox deletes the audio only then. */
   addGameNote?: (note: GameNoteInput) => boolean;
+  /** Stores an approved AI report draft; false = nothing was stored. */
+  applyReportDraft?: (payload: { gameNotes: string; aiMeta?: AiMeta; noteEvents: GameEvent[] }) => boolean;
   deleteGameEvent: (eventId: string) => Promise<boolean>;
   toggleGameStatsModal: () => void;
   exportOneExcel: (gameId: string) => void;
@@ -203,6 +205,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             personnelDirectory={data.personnel}
             onUpdateGameEvent={handlers.updateGameEvent}
             onAddGameNote={handlers.addGameNote}
+            onApplyReportDraft={handlers.applyReportDraft}
             selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
             savedGames={data.savedGames}
             currentGameId={data.currentGameId}

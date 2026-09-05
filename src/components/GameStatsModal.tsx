@@ -26,8 +26,9 @@ import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
 import DictationInbox from './GameStatsModal/components/DictationInbox';
 import GameNotesList from './GameStatsModal/components/GameNotesList';
+import ReportDraftPanel from './GameStatsModal/components/ReportDraftPanel';
 import PlayerPositionsEditor from './PlayerPositionsEditor';
-import type { GameNoteInput } from '@/types/game';
+import type { AiMeta, GameNoteInput } from '@/types/game';
 import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
@@ -101,6 +102,8 @@ interface GameStatsModalProps {
   /** Kirjuri (PR 3): the dictation inbox accepted a clip. */
   /** Returns true when the note was stored; the inbox deletes the clip's audio only then. */
   onAddGameNote?: (note: GameNoteInput) => boolean;
+  /** Phase 3: stores an approved AI report draft. False = nothing was stored. */
+  onApplyReportDraft?: (payload: { gameNotes: string; aiMeta?: AiMeta; noteEvents: GameEvent[] }) => boolean;
   selectedPlayerIds: string[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
@@ -166,6 +169,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onGameNotesChange = NOOP,
   onUpdateGameEvent = NOOP,
   onAddGameNote,
+  onApplyReportDraft,
   selectedPlayerIds,
   savedGames,
   currentGameId,
@@ -589,6 +593,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const scrollToReport = useCallback(() => scrollToId('game-report-editor'), [scrollToId]);
   const scrollToPositions = useCallback(() => scrollToId('positions-editor'), [scrollToId]);
   const currentGameType = gameType ?? (currentGameId ? savedGames?.[currentGameId]?.gameType : undefined);
+  // Phase 3: the draft panel needs the saved game as one object plus a clock
+  // stamp for the notes it creates. The last event is where the match actually
+  // ended, which beats the planned period length for a game cut short.
+  const currentGame = currentGameId ? savedGames?.[currentGameId] : undefined;
+  const lastEvent = useMemo(
+    () => localGameEvents.reduce<GameEvent | undefined>((latest, e) => (!latest || e.time > latest.time ? e : latest), undefined),
+    [localGameEvents],
+  );
+  const draftStamp = useMemo(
+    () => ({
+      time: lastEvent?.time ?? (numPeriods ?? 2) * (periodDurationMinutes ?? 0) * 60,
+      period: lastEvent?.period ?? numPeriods ?? 2,
+    }),
+    [lastEvent, numPeriods, periodDurationMinutes],
+  );
   // Note deletion mirrors the goal editor: one in flight at a time, and a
   // storage failure (handleDeleteGameEvent returns false) is told, not swallowed.
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
@@ -872,6 +891,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       key: 'report',
       id: 'game-report-editor',
       content: (
+        <>
         <GameNotesEditor
           gameNotes={gameNotes}
           isEditingNotes={isEditingNotes}
@@ -882,6 +902,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           onCancelEdit={handleCancelEditNotes}
           onEditNotesChange={setEditGameNotes}
         />
+          {onApplyReportDraft && currentGame && (
+            <ReportDraftPanel
+              game={currentGame}
+              players={masterRoster.length > 0 ? masterRoster : availablePlayers}
+              stamp={draftStamp}
+              onApply={onApplyReportDraft}
+            />
+          )}
+        </>
       ),
     });
     if (onOpenAssessments && currentGameCompleteness?.applicable) {

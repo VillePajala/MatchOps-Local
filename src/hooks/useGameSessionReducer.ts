@@ -1,4 +1,5 @@
 import { GameEvent, SubAlertLevel, GameType, Gender, IntervalLog, ShootoutKick } from '@/types';
+import type { AiMeta } from '@/types/game';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -9,6 +10,8 @@ export interface GameSessionState {
   homeScore: number;
   awayScore: number;
   gameNotes: string;
+  /** Provenance when the report text came from an approved AI draft. */
+  gameNotesAiMeta?: AiMeta;
   playerPositions?: Record<string, string[]>;
   homeOrAway: 'home' | 'away';
   numberOfPeriods: 1 | 2;
@@ -60,6 +63,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   homeScore: 0,
   awayScore: 0,
   gameNotes: '',
+  gameNotesAiMeta: undefined,
   playerPositions: {},
   homeOrAway: 'home',
   numberOfPeriods: 2,
@@ -101,6 +105,8 @@ export type GameSessionAction =
   | { type: 'SET_AWAY_SCORE'; payload: number }
   | { type: 'ADJUST_SCORE_FOR_EVENT'; payload: { eventType: 'goal' | 'opponentGoal', action: 'add' | 'delete' } }
   | { type: 'SET_GAME_NOTES'; payload: string }
+  /** Kirjuri: report text and the provenance of the draft it came from, together. */
+  | { type: 'APPLY_REPORT_DRAFT'; payload: { gameNotes: string; aiMeta?: AiMeta } }
   | { type: 'SET_PLAYER_POSITIONS'; payload: Record<string, string[]> }
   | { type: 'SET_HOME_OR_AWAY'; payload: 'home' | 'away' }
   | { type: 'SET_NUMBER_OF_PERIODS'; payload: 1 | 2 }
@@ -182,7 +188,10 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         return { ...state, homeScore: newHomeScore, awayScore: newAwayScore };
     }
     case 'SET_GAME_NOTES':
-      return { ...state, gameNotes: action.payload };
+      // Hand-written edits clear the AI provenance: the text is the coach's now.
+      return { ...state, gameNotes: action.payload, gameNotesAiMeta: undefined };
+    case 'APPLY_REPORT_DRAFT':
+      return { ...state, gameNotes: action.payload.gameNotes, gameNotesAiMeta: action.payload.aiMeta };
     case 'SET_PLAYER_POSITIONS':
       return { ...state, playerPositions: action.payload };
     case 'SET_HOME_OR_AWAY': {
@@ -484,6 +493,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const homeScore = loadedData.homeScore ?? 0;
       const awayScore = loadedData.awayScore ?? 0;
       const gameNotes = loadedData.gameNotes ?? '';
+      const gameNotesAiMeta = loadedData.gameNotesAiMeta;
       const playerPositions = loadedData.playerPositions ?? {};
       const homeOrAway = loadedData.homeOrAway ?? 'home';
       const numberOfPeriods = loadedData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods;
@@ -551,6 +561,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         homeScore,
         awayScore,
         gameNotes,
+        gameNotesAiMeta,
         playerPositions,
         homeOrAway,
         numberOfPeriods,
