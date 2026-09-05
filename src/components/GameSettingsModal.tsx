@@ -4,17 +4,13 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 
 import logger from '@/utils/logger';
-import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender, AppState, UpdateGameDetailsMutationMeta, UpdateGameDetailsMutationVariables } from '@/types';
-import type { GameEvent, ShootoutKick } from '@/types/game';
+import type { ShootoutKick } from '@/types/game';
 import ShootoutModal from './ShootoutModal';
 import { getShootoutTally } from '@/utils/shootout';
 import { getTeamRoster, getTeamDisplayName, getTeamBoundSeries } from '@/utils/teams';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
-import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
-import PlayerPositionsEditor from './PlayerPositionsEditor';
 import { UseMutationResult } from '@tanstack/react-query';
-import { TFunction } from 'i18next';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
@@ -32,9 +28,7 @@ import {
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader, secondaryButtonStyle } from '@/styles/modalStyles';
-import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getRecommendedFieldSize } from '@/config/formationPresets';
 
 /**
  * Defer prefill mutations to prevent race conditions on mobile devices.
@@ -58,7 +52,6 @@ export interface GameSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** Re-place the squad in a formation preset (owner round 4). */
-  onApplyFormation?: (presetId: string | null) => void;
   // --- Data for the current game ---
   currentGameId: string | null;
   teamId?: string;
@@ -67,8 +60,6 @@ export interface GameSettingsModalProps {
   gameDate: string;
   gameLocation?: string;
   gameTime?: string;
-  gameNotes?: string;
-  playerPositions?: Record<string, string[]>;
   ageGroup?: string;
   tournamentLevel?: string;
   tournamentSeriesId?: string;
@@ -76,7 +67,6 @@ export interface GameSettingsModalProps {
   tournamentId?: string;
   leagueId?: string;
   customLeagueName?: string;
-  gameEvents: GameEvent[];
   availablePlayers: Player[];
   availablePersonnel: Personnel[];
   numPeriods: number;
@@ -92,7 +82,7 @@ export interface GameSettingsModalProps {
    */
   onAddPlayerToRoster?: (name: string, nickname?: string) => Promise<Player | null>;
   /** R3: open scrolled to a wrap-up section (set by the stats wrap-up card). */
-  initialScrollSection?: 'roster' | 'report' | 'positions' | 'competition';
+  initialScrollSection?: 'roster' | 'competition';
   /** Whether this game was created from a plan and can still be re-applied (unplayed). */
   canReapplyPlan?: boolean;
   /** Re-apply the source plan to this game (overwrites the lineup + planned subs). */
@@ -104,13 +94,9 @@ export interface GameSettingsModalProps {
   onGameDateChange: (date: string) => void;
   onGameLocationChange: (location: string) => void;
   onGameTimeChange: (time: string) => void;
-  onGameNotesChange: (notes: string) => void;
-  onPlayerPositionsChange?: (positions: Record<string, string[]>) => void;
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
   onTournamentSeriesIdChange: (seriesId: string | undefined) => void;
-  onUpdateGameEvent: (updatedEvent: GameEvent) => void;
-  onDeleteGameEvent?: (goalId: string) => Promise<boolean>;
   onAwardFairPlayCard: (playerId: string | null) => void;
   onNumPeriodsChange: (num: number) => void;
   onPeriodDurationChange: (minutes: number) => void;
@@ -177,39 +163,7 @@ export interface GameSettingsModalProps {
 }
 
 // Helper to format time from seconds to MM:SS
-const formatTime = (timeInSeconds: number): string => {
-  const minutes = Math.floor(timeInSeconds / 60);
-  const seconds = Math.floor(timeInSeconds % 60);
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-};
-
-// Helper to get event description
-const getEventDescription = (event: GameEvent, players: Player[], t: TFunction): string => {
-  switch (event.type) {
-    case 'goal': {
-      const scorer = players.find(p => p.id === event.scorerId)?.name || t('gameSettingsModal.unknownPlayer', 'Unknown Player');
-      let description = scorer;
-      if (event.assisterId) {
-        const assister = players.find(p => p.id === event.assisterId)?.name;
-        if (assister) {
-          description += ` (${t('common.assist', 'Assist')}: ${assister})`;
-        }
-      }
-      return description;
-    }
-    case 'opponentGoal':
-      return t('gameSettingsModal.logTypeOpponentGoal', 'Opponent Goal');
-    case 'periodEnd':
-      return t('gameSettingsModal.logTypePeriodEnd', 'End of Period');
-    case 'gameEnd':
-      return t('gameSettingsModal.logTypeGameEnd', 'End of Game');
-    default:
-      return t('gameSettingsModal.logTypeUnknown', 'Unknown Event');
-  }
-};
-
 const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
-  onApplyFormation,
   isOpen,
   onClose,
   currentGameId,
@@ -219,8 +173,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   gameDate,
   gameLocation = '',
   gameTime = '',
-  gameNotes = '',
-  playerPositions = {},
   ageGroup = '',
   tournamentLevel = '',
   tournamentSeriesId,
@@ -229,15 +181,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onGameDateChange,
   onGameLocationChange,
   onGameTimeChange,
-  onGameNotesChange,
-  onPlayerPositionsChange,
   onAgeGroupChange,
   onTournamentLevelChange,
   onTournamentSeriesIdChange,
-  onUpdateGameEvent,
-  onDeleteGameEvent,
   onAwardFairPlayCard,
-  gameEvents,
   availablePlayers,
   availablePersonnel,
   selectedPlayerIds,
@@ -474,11 +421,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         tournamentId,
         seasonId,
         hasUpdateMutation: !!updateGameDetailsMutation,
-        gameEventsLength: gameEvents?.length || 0,
         availablePlayersLength: availablePlayers?.length || 0,
       });
     }
-  }, [isOpen, currentGameId, tournamentId, seasonId, updateGameDetailsMutation, gameEvents, availablePlayers]);
+  }, [isOpen, currentGameId, tournamentId, seasonId, updateGameDetailsMutation, availablePlayers]);
 
   // Clear error state when modal opens
   // Set league filters when modal opens based on current leagueId
@@ -503,8 +449,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   }, [isOpen, seasonId, leagueId]);
 
-  // State for event editing within the modal
-  const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
   // Optimistic echo for the Friendly-match toggle (the persisted value arrives a
   // tick later via the mutation's savedGames update). Re-syncs to the prop on a
   // GAME SWITCH - keyed on currentGameId, NOT the boolean value, so switching
@@ -516,13 +460,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     setPrevFriendlyGameId(currentGameId);
     setIsFriendlyLocal(isFriendly);
   }
-  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
-  const [editGoalTime, setEditGoalTime] = useState<string>('');
-  const [editGoalScorerId, setEditGoalScorerId] = useState<string>('');
-  const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
-  const [goalTimeError, setGoalTimeError] = useState<string | null>(null);
-  const goalTimeInputRef = useRef<HTMLInputElement>(null);
 
   // Local string buffer for the period-duration input. Editing is kept local
   // while typing so intermediate values (e.g. "1" then "12" then "125" when
@@ -534,18 +472,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }, [periodDurationMinutes]);
 
   // State for inline editing UI control
-  const [inlineEditingField, setInlineEditingField] = useState<
-    'team' | 'opponent' | 'date' | 'location' | 'time' | 'duration' | 'notes' | null
-  >(null);
-  const [inlineEditValue, setInlineEditValue] = useState<string>('');
-  const [inlineEditError, setInlineEditError] = useState<string | null>(null);
-  const teamInputRef = useRef<HTMLInputElement>(null);
-  const opponentInputRef = useRef<HTMLInputElement>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
-  const locationInputRef = useRef<HTMLInputElement>(null);
-  const timeInputRef = useRef<HTMLInputElement>(null);
-  const durationInputRef = useRef<HTMLInputElement>(null);
-  const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // (moved) Close actions menu when clicking outside — see below after menu state
 
@@ -560,19 +486,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [activeTab, setActiveTab] = useState<'none' | 'season' | 'tournament'>('none');
 
   // NEW: Loading and Error states for modal operations
-  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Confirmation modal state
-  const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   // Re-apply-plan confirmation (overwrites the current lineup from the source plan)
   const [showReapplyConfirm, setShowReapplyConfirm] = useState(false);
   const [isReapplying, setIsReapplying] = useState(false);
-  const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
-  const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
-  const { calculatePosition } = useDropdownPosition();
 
   // Ensure we're on the client side to avoid hydration issues
   const [isClient, setIsClient] = useState(false);
@@ -588,31 +506,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && inlineEditingField === null && !showDeleteEventConfirm && editingGoalId === null && !isShootoutModalOpen) {
+      if (e.key === 'Escape' && !isShootoutModalOpen) {
         onClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, inlineEditingField, showDeleteEventConfirm, editingGoalId, isShootoutModalOpen]);
-
-  // Close actions menu when clicking outside
-  useEffect(() => {
-    if (!eventActionsMenuId) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
-        setEventActionsMenuId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [eventActionsMenuId]);
-
-  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, eventId: string) => {
-    const shouldOpenUpward = calculatePosition(e.currentTarget);
-    setMenuPositions(prev => ({ ...prev, [eventId]: shouldOpenUpward }));
-    setEventActionsMenuId(eventActionsMenuId === eventId ? null : eventId);
-  };
+  }, [isOpen, onClose, isShootoutModalOpen]);
 
   // State for game time
   const [gameHour, setGameHour] = useState<string>('');
@@ -747,33 +647,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   }, [isOpen, seasonId, tournamentId]);
 
-  // Effect to update localGameEvents if the prop changes from parent (e.g., undo/redo)
-  useEffect(() => {
-    setLocalGameEvents(gameEvents || []); 
-  }, [gameEvents]);
-
-  // Focus goal time input (Keep this)
-  useEffect(() => {
-    if (editingGoalId) { goalTimeInputRef.current?.focus(); goalTimeInputRef.current?.select(); }
-  }, [editingGoalId]);
-
-  // Focus inline edit input (Keep this)
-  useEffect(() => {
-    if (inlineEditingField === 'team') teamInputRef.current?.focus();
-    else if (inlineEditingField === 'opponent') opponentInputRef.current?.focus();
-    else if (inlineEditingField === 'date') dateInputRef.current?.focus();
-    else if (inlineEditingField === 'location') locationInputRef.current?.focus();
-    else if (inlineEditingField === 'time') timeInputRef.current?.focus();
-    else if (inlineEditingField === 'duration') durationInputRef.current?.focus();
-    else if (inlineEditingField === 'notes') notesTextareaRef.current?.focus();
-
-    if(inlineEditingField) {
-        // Select text content on focus for easier editing
-        const inputElement = teamInputRef.current || opponentInputRef.current || dateInputRef.current || locationInputRef.current || timeInputRef.current || durationInputRef.current;
-        inputElement?.select();
-        notesTextareaRef.current?.select();
-    }
-  }, [inlineEditingField]);
 
   // Prefill game settings when selecting a season
   useEffect(() => {
@@ -1264,308 +1137,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   };
 
-  // Handle Goal Event Editing
-  const handleEditGoal = (goal: GameEvent) => {
-    setEditingGoalId(goal.id);
-    setEditGoalTime(formatTime(goal.time)); // Use MM:SS format for editing time
-    setEditGoalScorerId(goal.scorerId || '');
-    setEditGoalAssisterId(goal.assisterId || undefined);
-    setGoalTimeError(null);
-  };
-
-  const handleCancelEditGoal = () => {
-    setEditingGoalId(null);
-    setEditGoalTime('');
-    setEditGoalScorerId('');
-    setEditGoalAssisterId(undefined);
-    setGoalTimeError(null);
-  };
-
-  // Handle saving edited goal
-  const handleSaveGoal = async (goalId: string) => {
-    if (!goalId || !currentGameId) {
-      logger.error("[GameSettingsModal] Missing goalId or currentGameId for save.");
-      setError(t('gameSettingsModal.errors.missingGoalId', 'Goal ID or Game ID is missing. Cannot save.'));
-      return;
-    }
-
-    setError(null);
-    setGoalTimeError(null);
-    setIsProcessing(true);
-
-    let timeInSeconds = 0;
-    const timeParts = editGoalTime.split(':');
-    if (timeParts.length === 2) {
-      const minutes = parseInt(timeParts[0], 10);
-      const seconds = parseInt(timeParts[1], 10);
-      // Cap at 200 min to comfortably allow extra time + long stoppage, while still rejecting garbage.
-      if (!isNaN(minutes) && !isNaN(seconds) && minutes >= 0 && minutes <= 200 && seconds >= 0 && seconds < 60) {
-        timeInSeconds = minutes * 60 + seconds;
-      } else {
-        setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
-        setIsProcessing(false);
-        return;
-      }
-    } else if (editGoalTime) {
-        setGoalTimeError(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
-        setIsProcessing(false);
-      return;
-    }
-
-    const originalEvent = localGameEvents.find(e => e.id === goalId);
-    if (!originalEvent) {
-        logger.error(`[GameSettingsModal] Original event not found for ID: ${goalId}`);
-        setIsProcessing(false);
-      return;
-    }
-
-    const updatedEvent: GameEvent = {
-      ...originalEvent, // Preserve other properties like type
-      id: goalId,
-      time: timeInSeconds,
-      scorerId: editGoalScorerId,
-      assisterId: editGoalAssisterId || undefined,
-    };
-
-    setLocalGameEvents(prevEvents =>
-      prevEvents.map(event => (event.id === goalId ? updatedEvent : event))
-    );
-    onUpdateGameEvent(updatedEvent); // Propagate to parent for its state update
-
-    try {
-      const eventIndex = gameEvents.findIndex(e => e.id === goalId); // Use gameEvents from props for original index
-      if (eventIndex !== -1) {
-        const success = await updateGameEvent(currentGameId, eventIndex, updatedEvent);
-        if (success) {
-          logger.log(`[GameSettingsModal] Event ${goalId} updated in game ${currentGameId}.`);
-          handleCancelEditGoal(); // Close edit mode on success
-        } else {
-          logger.error(`[GameSettingsModal] Failed to update event ${goalId} in game ${currentGameId} via utility.`);
-          setError(t('gameSettingsModal.errors.updateFailed', 'Failed to update event. Please try again.'));
-          // Revert optimistic update on failure
-          setLocalGameEvents(prevEvents =>
-            prevEvents.map(event => (event.id === goalId ? originalEvent : event))
-          );
-          onUpdateGameEvent(originalEvent);
-        }
-      } else {
-        logger.error(`[GameSettingsModal] Event ${goalId} not found in original gameEvents prop for saving.`);
-        setError(t('gameSettingsModal.errors.eventNotFound', 'Original event not found for saving.'));
-        // Revert optimistic update — event not found in props for persistence
-        setLocalGameEvents(prevEvents =>
-          prevEvents.map(event => (event.id === goalId ? originalEvent : event))
-        );
-        onUpdateGameEvent(originalEvent);
-      }
-    } catch (err) {
-      logger.error(`[GameSettingsModal] Error updating event ${goalId} in game ${currentGameId}:`, err);
-      setError(t('gameSettingsModal.errors.genericSaveError', 'An unexpected error occurred while saving the event.'));
-      // Revert optimistic update on error
-      setLocalGameEvents(prevEvents =>
-        prevEvents.map(event => (event.id === goalId ? originalEvent : event))
-      );
-      onUpdateGameEvent(originalEvent);
-    } finally {
-      setIsProcessing(false);
-      // Do not call handleCancelEditGoal() here if there was an error,
-      // so the user can see their input and try again or cancel.
-    }
-  };
-
-  // Handle deleting a goal
-  const handleDeleteGoal = (goalId: string) => {
-    if (!onDeleteGameEvent || !currentGameId) {
-      logger.error("[GameSettingsModal] Missing onDeleteGameEvent handler or currentGameId for delete.");
-      setError(t('gameSettingsModal.errors.missingDeleteHandler', 'Cannot delete event: Critical configuration missing.'));
-      return;
-    }
-
-    setEventToDelete(goalId);
-    setShowDeleteEventConfirm(true);
-  };
-
-  const handleDeleteEventConfirmed = async () => {
-    const goalId = eventToDelete;
-    if (!goalId || !onDeleteGameEvent || !currentGameId) {
-      setShowDeleteEventConfirm(false);
-      setEventToDelete(null);
-      return;
-    }
-
-    setError(null);
-    setIsProcessing(true);
-    // Save original state for rollback if parent handler fails
-    const originalLocalEvents = localGameEvents;
-
-    try {
-      // Optimistic update for UI responsiveness
-      setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-
-      // Call parent handler (now handles storage internally and returns success status)
-      const success = await onDeleteGameEvent(goalId);
-
-      if (!success) {
-        logger.error(`[GameSettingsModal] Failed to delete event ${goalId} (parent handler returned false).`);
-        setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
-        setLocalGameEvents(originalLocalEvents); // Rollback on failure
-      } else {
-        logger.log(`[GameSettingsModal] Event ${goalId} deleted successfully.`);
-      }
-    } catch (err) {
-      logger.error(`[GameSettingsModal] Error deleting event ${goalId}:`, err);
-      setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
-      setLocalGameEvents(originalLocalEvents); // Rollback on error
-    } finally {
-      setIsProcessing(false);
-      setShowDeleteEventConfirm(false);
-      setEventToDelete(null);
-    }
-  };
-
-  // Inline Editing Handlers (Refactored)
-  const handleStartInlineEdit = (field: 'team' | 'opponent' | 'date' | 'location' | 'time' | 'duration' | 'notes') => {
-    setInlineEditingField(field);
-    setInlineEditError(null);
-    // Initialize edit value based on current prop value
-    switch (field) {
-      case 'team': setInlineEditValue(teamName); break;
-      case 'opponent': setInlineEditValue(opponentName); break;
-      case 'date': setInlineEditValue(gameDate); break; // Use YYYY-MM-DD
-      case 'location': setInlineEditValue(gameLocation); break;
-      case 'time': setInlineEditValue(gameTime); break; // Use HH:MM
-      case 'duration': setInlineEditValue(String(periodDurationMinutes)); break;
-      case 'notes': setInlineEditValue(gameNotes); break;
-      default: setInlineEditValue('');
-    }
-  };
-
-  const handleConfirmInlineEdit = async () => {
-    if (inlineEditingField === null) return;
-
-    setError(null); // Clear previous errors
-    setIsProcessing(true);
-
-    const trimmedValue = inlineEditValue.trim();
-    let success = false;
-    const fieldProcessed: typeof inlineEditingField = inlineEditingField; // To use in finally
-
-    try {
-      if (!currentGameId) {
-        logger.error("[GameSettingsModal] currentGameId is null, cannot save inline edit.");
-        setError(t('gameSettingsModal.errors.missingGameIdInline', "Cannot save: Game ID missing."));
-        return;
-      }
-
-      switch (inlineEditingField) {
-        case 'team':
-          if (trimmedValue) {
-            onTeamNameChange(trimmedValue);
-            await updateGameDetails(currentGameId, { teamName: trimmedValue });
-            success = true;
-          } else {
-            setInlineEditError(t('gameSettingsModal.teamNameRequired', "Team name cannot be empty."));
-          }
-          break;
-        case 'opponent':
-          if (trimmedValue) {
-            onOpponentNameChange(trimmedValue);
-            await updateGameDetails(currentGameId, { opponentName: trimmedValue });
-            success = true;
-          } else {
-            setInlineEditError(t('gameSettingsModal.opponentNameRequired', "Opponent name cannot be empty."));
-          }
-          break;
-        case 'date':
-          if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
-            onGameDateChange(trimmedValue);
-            await updateGameDetails(currentGameId, { gameDate: trimmedValue });
-            success = true;
-          } else {
-            setInlineEditError(t('gameSettingsModal.invalidDateFormat', "Invalid date format. Use YYYY-MM-DD."));
-          }
-          break;
-        case 'location':
-          onGameLocationChange(trimmedValue);
-          await updateGameDetails(currentGameId, { gameLocation: trimmedValue });
-          success = true;
-          break;
-        case 'time':
-          if (/^([01]\d|2[0-3]):([0-5]\d)$/.test(trimmedValue) || trimmedValue === '') {
-            onGameTimeChange(trimmedValue);
-            await updateGameDetails(currentGameId, { gameTime: trimmedValue });
-            success = true;
-          } else {
-            setInlineEditError(t('gameSettingsModal.invalidTimeFormatInline', "Invalid time format. Use HH:MM (24-hour)."));
-          }
-          break;
-        case 'duration':
-          const duration = parseInt(trimmedValue, 10);
-          if (!isNaN(duration) && duration > 0) {
-            onPeriodDurationChange(duration);
-            await updateGameDetails(currentGameId, { periodDurationMinutes: duration });
-            success = true;
-          } else {
-            setInlineEditError(t('gameSettingsModal.invalidDurationFormat', "Period duration must be a positive number."));
-          }
-          break;
-        case 'notes':
-          onGameNotesChange(inlineEditValue); // Keep original spacing/newlines
-          await updateGameDetails(currentGameId, { gameNotes: inlineEditValue });
-          success = true;
-          break;
-      }
-      if (success) {
-        logger.log(`[GameSettingsModal] Inline edit for ${fieldProcessed} saved for game ${currentGameId}.`);
-        setInlineEditingField(null); // Exit inline edit mode on success
-        setInlineEditValue('');
-        setInlineEditError(null);
-      }
-    } catch (err) {
-      logger.error(`[GameSettingsModal] Error saving inline edit for ${fieldProcessed} (Game ID: ${currentGameId}):`, err);
-      setError(t('gameSettingsModal.errors.genericInlineSaveError', "Error saving changes. Please try again."));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleCancelInlineEdit = () => {
-    setInlineEditingField(null);
-    setInlineEditValue('');
-    setInlineEditError(null);
-  };
-
-  // Insert the report scaffold (headings) into the notes editor - appends below
-  // any existing text so it's non-destructive.
-  const handleInsertReportTemplate = () => {
-    const template = t('gameSettingsModal.reportTemplate', '');
-    setInlineEditValue(prev => (prev.trim() ? `${prev.trimEnd()}\n\n${template}` : template));
-    if (inlineEditError) setInlineEditError(null);
-    requestAnimationFrame(() => notesTextareaRef.current?.focus());
-  };
-
-  // Handle KeyDown for inline edits (Enter/Escape)
-  const handleInlineEditKeyDown = (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (event.key === 'Enter') {
-      // Allow Shift+Enter for newlines in textarea
-      if (inlineEditingField === 'notes' && event.shiftKey) {
-        return;
-      } 
-      event.preventDefault(); // Prevent default form submission/newline
-      handleConfirmInlineEdit();
-    } else if (event.key === 'Escape') {
-      handleCancelInlineEdit();
-    }
-  };
-
   // --- ADDED Memoized Values (Moved Here) ---
   // Calculate these AFTER handlers are defined, potentially altering hook order slightly
 
-  // Moved the sortedEvents calculation up to ensure hooks are called unconditionally
-  const sortedEvents = useMemo(() => {
-    // Use localGameEvents for display within the modal. Kirjuri note events
-    // are excluded - they have their own card and must not be editable as goals.
-    return localGameEvents.filter((e) => e.type !== 'note').sort((a, b) => a.time - b.time);
-  }, [localGameEvents]);
 
   // Removed: handleShowCreateSeason - unused handler (season creation moved to dedicated modal)
   // Removed: handleShowCreateTournament - unused handler (tournament creation moved to dedicated modal)
@@ -1722,7 +1296,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 playersSelectedText={t('gameSettingsModal.playersSelected', 'selected')}
                 selectAllText={t('gameSettingsModal.selectAll', 'Select All')}
                 noPlayersText={t('gameSettingsModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
-                disabled={isProcessing}
                 onAddPlayer={
                   onAddPlayerToRoster
                     ? async (name: string, nickname?: string) => {
@@ -2517,253 +2090,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Game Events Section */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-4">
-                {t('gameSettingsModal.eventLogTitle', 'Event Log')}
-              </h3>
-              <div className="space-y-2">
-                {sortedEvents.map(event => (
-                  <div
-                    key={event.id}
-                    className={`p-3 rounded-md transition-all ${
-                      editingGoalId === event.id
-                        ? 'bg-slate-700/75 border border-indigo-500'
-                        : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
-                    }`}
-                  >
-                    {editingGoalId === event.id ? (
-                      <div className="space-y-3">
-                        <input
-                          ref={goalTimeInputRef}
-                          type="text"
-                          inputMode="numeric"
-                          value={editGoalTime}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            // Allow digits, colon, and reasonable time format
-                            const filteredValue = value.replace(/[^0-9:]/g, '');
-                            // Limit to reasonable length for MM:SS format
-                            if (filteredValue.length <= 5) {
-                              setEditGoalTime(filteredValue);
-                              if (goalTimeError) setGoalTimeError(null);
-                            }
-                          }}
-                          placeholder={t('gameSettingsModal.timeFormatPlaceholder', 'MM:SS')}
-                          className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${goalTimeError ? 'border-red-500' : 'border-slate-600'}`}
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          maxLength={5}
-                          onFocus={(e) => e.target.select()}
-                        />
-                        {goalTimeError && <p className="mt-1 text-sm text-red-400">{goalTimeError}</p>}
-                        {event.type === 'goal' && (
-                          <>
-                            <select
-                              value={editGoalScorerId}
-                              onChange={(e) => setEditGoalScorerId(e.target.value)}
-                              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm appearance-none"
-                            >
-                              <option value="">{t('gameSettingsModal.selectScorer', 'Select Scorer...')}</option>
-                              {availablePlayers.map(player => (
-                                <option key={player.id} value={player.id}>{player.name}</option>
-                              ))}
-                            </select>
-                            <select
-                              value={editGoalAssisterId ?? ''}
-                              onChange={(e) => setEditGoalAssisterId(e.target.value || undefined)}
-                              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm appearance-none"
-                            >
-                              <option value="">{t('gameSettingsModal.selectAssister', 'Select Assister (Optional)...')}</option>
-                              {availablePlayers.map(player => (
-                                <option key={player.id} value={player.id}>{player.name}</option>
-                              ))}
-                            </select>
-                          </>
-                        )}
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={handleCancelEditGoal}
-                            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-slate-400/30"
-                            disabled={isProcessing}
-                          >
-                            {t('common.cancel', 'Cancel')}
-                          </button>
-                          <button
-                            onClick={() => handleSaveGoal(event.id)}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 border border-indigo-400/30"
-                            disabled={isProcessing}
-                          >
-                            {t('common.save', 'Save')}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <span className="text-slate-300">{formatTime(event.time)}</span>
-                          <span className="text-slate-100">
-                            {getEventDescription(event, availablePlayers, t)}
-                          </span>
-                        </div>
-                        <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
-                          <button
-                            onClick={(e) => handleActionsMenuToggle(e, event.id)}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
-                            aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
-                            disabled={isProcessing}
-                          >
-                            <HiOutlineEllipsisVertical className="w-5 h-5" />
-                          </button>
-
-                          {eventActionsMenuId === event.id && (
-                            <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[event.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
-                              <button
-                                onClick={() => { setEventActionsMenuId(null); handleEditGoal(event); }}
-                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
-                                disabled={isProcessing}
-                              >
-                                <HiOutlinePencil className="w-4 h-4" />
-                                {t('common.edit', 'Edit')}
-                              </button>
-                              <button
-                                onClick={() => { setEventActionsMenuId(null); handleDeleteGoal(event.id); }}
-                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
-                                disabled={isProcessing}
-                              >
-                                <HiOutlineTrash className="w-4 h-4" />
-                                {t('common.delete', 'Delete')}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {sortedEvents.length === 0 && (
-                  <div className="text-slate-400 text-center py-4">
-                    {t('gameSettingsModal.noGoalsLogged', 'No goals logged yet.')}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Game Notes Section */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <h3 className="text-lg font-semibold text-slate-200 mb-4">
-                <span data-wrapup-section="report" />
-                {t('gameSettingsModal.notesTitle', 'Game Notes')}
-              </h3>
-              {inlineEditingField === 'notes' ? (
-                <div className="space-y-3">
-                  <textarea
-                    ref={notesTextareaRef}
-                    value={inlineEditValue}
-                    onChange={(e) => { setInlineEditValue(e.target.value); if (inlineEditError) setInlineEditError(null); }}
-                    onKeyDown={handleInlineEditKeyDown}
-                    className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm h-64 min-h-[10rem] resize-y ${inlineEditError ? 'border-red-500' : 'border-slate-600'}`}
-                    placeholder={t('gameSettingsModal.notesPlaceholder', 'Write notes...')}
-                    disabled={isProcessing}
-                  />
-                  {inlineEditError && <p className="mt-1 text-sm text-red-400">{inlineEditError}</p>}
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={handleInsertReportTemplate}
-                      className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50"
-                      disabled={isProcessing}
-                    >
-                      {t('gameSettingsModal.useTemplate', 'Template')}
-                    </button>
-                    <button
-                      onClick={handleCancelInlineEdit}
-                      className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-50"
-                      disabled={isProcessing}
-                    >
-                      {t('common.cancel', 'Cancel')}
-                    </button>
-                    <button
-                      onClick={handleConfirmInlineEdit}
-                      className="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
-                      disabled={isProcessing}
-                    >
-                      {t('common.save', 'Save')}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="cursor-pointer whitespace-pre-wrap text-slate-300 hover:text-yellow-400 transition-colors min-h-[8rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50"
-                  onClick={() => handleStartInlineEdit('notes')}
-                >
-                  {gameNotes || t('gameSettingsModal.noNotes', 'No notes yet. Click to add.')}
-                </div>
-              )}
-            </div>
-
-            {/* Formation (owner round 4): re-place the current squad in a
-                chosen shape - same engine as the in-match Place All picker.
-                An ACTION select (value stays on the placeholder): picking a
-                formation applies it immediately. */}
-            {onApplyFormation && selectedPlayerIds.length > 0 && (
-              <div className="mt-4 space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
-                <h3 id="gameSettingsFormationHeading" className="text-lg font-semibold text-slate-200 mb-1">
-                  {t('gameSettingsModal.formationLabel', 'Formation')}
-                </h3>
-                <select
-                  aria-labelledby="gameSettingsFormationHeading"
-                  data-testid="game-settings-formation-select"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) onApplyFormation(e.target.value);
-                  }}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="" disabled>
-                    {t('gameSettingsModal.formationApply', 'Place players in a formation…')}
-                  </option>
-                  {FIELD_SIZES.map((size) => (
-                    <optgroup key={size} label={size}>
-                      {PRESETS_BY_SIZE[size].map((preset) => (
-                        <option key={preset.id} value={preset.id}>
-                          {t(preset.labelKey, preset.name)}
-                          {preset.id ===
-                          getDefaultPresetIdForSize(getRecommendedFieldSize(selectedPlayerIds.length))
-                            ? ` · ${t('formations.recommended', 'Recommended')}`
-                            : ''}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Line-up / Positions Section */}
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 mt-4">
-              <h3 className="text-lg font-semibold text-slate-200 mb-1">
-                <span data-wrapup-section="positions" />
-                {t('gameSettingsModal.lineupTitle', 'Positions played')}
-              </h3>
-              <p className="text-xs text-slate-400 mb-4">
-                {t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}
-              </p>
-              <PlayerPositionsEditor
-                players={availablePlayers.filter(p => selectedPlayerIds.includes(p.id))}
-                value={playerPositions}
-                gameType={gameType}
-                onChange={(next) => {
-                  onPlayerPositionsChange?.(next);
-                  if (currentGameId) {
-                    updateGameDetails(currentGameId, { playerPositions: next }).catch(err =>
-                      logger.error('[GameSettingsModal] failed to persist positions', err));
-                  }
-                }}
-              />
-            </div>
             {/* Chrome slimming: Re-apply plan is a utility action, moved
                 inline at the bottom of the content (Done is now the header
                 X). R3 scroll anchors are id-based and unaffected. */}
@@ -2787,21 +2113,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         </div>
       </div>
 
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showDeleteEventConfirm}
-        title={t('gameSettingsModal.confirmDeleteEventTitle', 'Delete Event')}
-        message={t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.')}
-        warningMessage={t('gameSettingsModal.deleteWarning', 'This action is permanent.')}
-        onConfirm={handleDeleteEventConfirmed}
-        onCancel={() => {
-          setShowDeleteEventConfirm(false);
-          setEventToDelete(null);
-        }}
-        confirmLabel={t('common.delete', 'Delete')}
-        variant="danger"
-        isConfirming={isProcessing}
-      />
       <ConfirmationModal
         isOpen={showReapplyConfirm}
         title={t('gameSettingsModal.reapplyPlan.confirmTitle', 'Re-apply plan?')}

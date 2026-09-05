@@ -32,6 +32,16 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(onOpenVoiceNotes).toHaveBeenCalledTimes(1);
   });
 
+  it('report and positions rows scroll within the page instead of leaving it', () => {
+    const onOpenReport = jest.fn();
+    const onOpenPositions = jest.fn();
+    render(<GameWrapUpCard completeness={completeness} onOpenReport={onOpenReport} onOpenPositions={onOpenPositions} />);
+    fireEvent.click(screen.getByText('Match report'));
+    fireEvent.click(screen.getByText('Positions played'));
+    expect(onOpenReport).toHaveBeenCalledTimes(1);
+    expect(onOpenPositions).toHaveBeenCalledTimes(1);
+  });
+
   it('does not call the game Complete while clips still wait', () => {
     const complete = computeGameCompleteness({
       isPlayed: true, gameNotes: 'Good game', selectedPlayerIds: ['p1'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {},
