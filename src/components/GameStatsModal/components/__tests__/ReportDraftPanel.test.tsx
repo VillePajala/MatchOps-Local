@@ -321,6 +321,37 @@ describe('ReportDraftPanel - reviewing a draft', () => {
     expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
   });
 
+  /**
+   * @critical - only a Replace overwrites anything, so only a Replace has an
+   * undo to offer or to take away. An append used to blank the button while
+   * the stored slot survived, so the undo reappeared on a remount and vanished
+   * again on the next apply.
+   */
+  it('leaves an existing undo alone when the next apply only appends', async () => {
+    const onApply = jest.fn(() => true);
+    renderPanel({ game: game({ gameNotes: 'Omani.' }), existingReport: 'Omani.', onApply });
+    await produceDraft();
+
+    fireEvent.click(screen.getByTestId('report-draft-mode-replace'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+
+    // A second draft, appended this time: it overwrites nothing.
+    await produceDraft();
+    fireEvent.click(screen.getByTestId('report-draft-mode-append'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-undo'));
+    });
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
+  });
+
   it('offers no undo belonging to a different match', () => {
     renderPanel({ gameId: 'g-other' });
     expect(screen.queryByTestId('report-draft-undo')).not.toBeInTheDocument();

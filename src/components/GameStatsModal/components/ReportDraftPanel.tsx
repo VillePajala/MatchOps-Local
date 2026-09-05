@@ -275,9 +275,15 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
         showToast(t('reportDraft.applyFailed', 'Could not save the draft.'), 'error');
         return;
       }
-      setUndoText(preview.replacedReport ?? null);
-      // Outlive this component: the coach can leave the screen from inside it.
-      if (gameId && preview.replacedReport) rememberReplacedReport(gameId, preview.replacedReport);
+      // Only a Replace produces an undo, and only a Replace should disturb one.
+      // Blanking it on an append hid a still-valid undo for an earlier Replace,
+      // while the stored slot survived - so the button came back on a remount
+      // and vanished again on the next apply.
+      if (preview.replacedReport) {
+        setUndoText(preview.replacedReport);
+        // Outlive this component: the coach can leave the screen from inside it.
+        if (gameId) rememberReplacedReport(gameId, preview.replacedReport);
+      }
       setDraft(null);
       showToast(t('reportDraft.applied', 'Draft saved to the match report.'), 'success');
     } finally {
