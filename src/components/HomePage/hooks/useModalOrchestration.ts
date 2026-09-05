@@ -77,9 +77,8 @@ export interface ModalUIState {
 export interface ModalHandlers {
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
   /** Kirjuri: an accepted dictation clip becomes a note event on the current game. */
-  handleAddGameNote?: (note: import('@/types/game').GameNoteInput) => void;
+  handleAddGameNote?: (note: import('@/types/game').GameNoteInput) => boolean;
   /** TRACKED place-all (counts toward the guided tour's formation signal). */
-  handlePlaceAllPlayersTracked: (presetId: string | null) => void;
   handleExportOneExcel: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
   // New-game handlers LIFTED to useNewGameSetupController (L.3b).
@@ -189,7 +188,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   const {
     handleUpdateGameEvent,
     handleAddGameNote,
-    handlePlaceAllPlayersTracked,
     handleExportOneExcel,
     handleExportOneJson,
     handleTeamNameChange,
@@ -443,7 +441,6 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       // formation. Routed through the TRACKED wrapper (review #734 Bug): the
       // guided tour's set-formation step must advance no matter which surface
       // applies the formation.
-      applyFormation: handlePlaceAllPlayersTracked,
       openSettingsModal: handleOpenSettingsModal,
       // W6 + R3: leave the stats modal and land where the item is
       // completed, scrolled to its section.
@@ -458,7 +455,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       },
       wrapUpToGoalLog: () => {
         setIsGameStatsModalOpen(false);
-        timerManagement.handleToggleGoalLogModal();
+        timerManagement.handleOpenGoalLogModal();
       },
     },
   };

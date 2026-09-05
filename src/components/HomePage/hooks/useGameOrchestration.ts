@@ -1548,10 +1548,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // current game, persisted by the same autosave path goals use.
   const handleAddGameNote = useCallback((note: GameNoteInput) => {
     // The scratch game is never autosaved: a note added there would silently vanish.
-    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return false;
     // Clamp to the validation limit: an over-long note would fail the WHOLE game save.
     const text = note.text.trim().slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX);
-    if (!text) return;
+    if (!text) return false;
     const event: GameEvent = {
       id: `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type: 'note',
@@ -1563,6 +1563,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     };
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: event });
     showToast(t('dictation.accepted', 'Note saved'), 'success');
+    return true;
   }, [currentGameId, dispatchGameSession, showToast, t]);
 
   // Session coordination handlers
@@ -2485,7 +2486,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     handlers: {
       handleUpdateGameEvent,
       handleAddGameNote,
-      handlePlaceAllPlayersTracked,
       handleExportOneExcel,
       handleExportOneJson,
       handleTeamNameChange,

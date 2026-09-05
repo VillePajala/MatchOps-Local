@@ -29,7 +29,8 @@ import logger from '@/utils/logger';
 interface DictationInboxProps {
   gameId: string;
   availablePlayers: Player[];
-  onAccept?: (note: GameNoteInput) => void;
+  /** Must return true only when the note was actually stored - the audio is deleted on true. */
+  onAccept?: (note: GameNoteInput) => boolean;
   /** Reports how many clips await review (the wrap-up card row). */
   onCountChange?: (count: number) => void;
 }
@@ -181,7 +182,10 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
       if (!claim(clip.id)) return;
       try {
         const playerId = resolvePlayerId(draft);
-        onAccept?.({ time: clip.time, period: clip.period, text, entityId: playerId || undefined });
+        // The audio is the only copy of what was said: delete it only once the
+        // handler confirms the note exists somewhere else.
+        const stored = onAccept({ time: clip.time, period: clip.period, text, entityId: playerId || undefined });
+        if (!stored) return;
         await removeClip(clip.id);
       } finally {
         release(clip.id);

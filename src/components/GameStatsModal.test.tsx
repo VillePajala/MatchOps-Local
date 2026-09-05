@@ -299,7 +299,7 @@ describe('GameStatsModal', () => {
       renderComponent(props);
     });
     
-    expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.titleCurrentGame', 'Ottelutilastot') })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.titleCurrentGame', 'Finish this game') })).toBeInTheDocument();
     
     const gameInfoSection = screen.getByRole('heading', { name: i18n.t('gameStatsModal.gameInfoTitle', 'Game Information') });
     expect(gameInfoSection).toBeInTheDocument();
@@ -971,6 +971,20 @@ describe('GameStatsModal', () => {
         expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
       });
       expect(screen.queryByTestId('positions-editor')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Phase 1b: aggregate cards survive the spine rewrite', () => {
+    it('the overall tab still renders the team performance card', async () => {
+      renderComponent(getDefaultProps());
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.overall') }));
+      await waitFor(() => {
+        expect(screen.getAllByText(i18n.t('loadGameModal.allTeamsFilter', 'All Teams')).length).toBeGreaterThan(0);
+      });
+      expect(screen.getByText(i18n.t('common.gamesPlayed', 'Games Played'))).toBeInTheDocument();
     });
   });
 

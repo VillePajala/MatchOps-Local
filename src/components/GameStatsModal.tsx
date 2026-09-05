@@ -98,7 +98,8 @@ interface GameStatsModalProps {
   onGameNotesChange?: (notes: string) => void;
   onUpdateGameEvent?: (updatedEvent: GameEvent) => void;
   /** Kirjuri (PR 3): the dictation inbox accepted a clip. */
-  onAddGameNote?: (note: GameNoteInput) => void;
+  /** Returns true when the note was stored; the inbox deletes the clip's audio only then. */
+  onAddGameNote?: (note: GameNoteInput) => boolean;
   selectedPlayerIds: string[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
@@ -697,7 +698,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           : null;
         return `${selectedPlayer?.name || t('playerStats.selectPlayerLabel', 'Select Player')}${selectedTeamName ? ` - ${selectedTeamName}` : ''}`;
       }
-      default: return t('gameStatsModal.titleCurrentGame', 'Ottelutilastot');
+      default: return t('gameStatsModal.titleCurrentGame', 'Finish this game');
     }
   };
 

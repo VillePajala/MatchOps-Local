@@ -74,6 +74,8 @@ export interface UseTimerManagementReturn {
   // Timer UI controls
   handleToggleLargeTimerOverlay: () => void;
   handleToggleGoalLogModal: () => void;
+  /** Explicit open for hand-offs that must never accidentally close it. */
+  handleOpenGoalLogModal: () => void;
 
   // Goal event handlers
   handleAddGoalEvent: (scorerId: string | undefined, assisterId?: string) => void;
@@ -141,6 +143,9 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
 
   const handleToggleGoalLogModal = useCallback(() => {
     setIsGoalLogModalOpen((prev) => !prev);
+  }, [setIsGoalLogModalOpen]);
+  const handleOpenGoalLogModal = useCallback(() => {
+    setIsGoalLogModalOpen(true);
   }, [setIsGoalLogModalOpen]);
 
   const handleOpenPlayerAssessmentModal = useCallback(() => {
@@ -267,6 +272,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     // Timer UI controls
     handleToggleLargeTimerOverlay,
     handleToggleGoalLogModal,
+    handleOpenGoalLogModal,
 
     // Goal event handlers
     handleAddGoalEvent,

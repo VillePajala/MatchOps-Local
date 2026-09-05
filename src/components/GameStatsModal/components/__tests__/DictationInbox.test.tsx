@@ -8,6 +8,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import DictationInbox from '../DictationInbox';
 import { deleteClip, getClipBlob, listClips, rotateOldClips } from '@/utils/audioClipStore';
 import type { Player } from '@/types';
+import type { GameNoteInput } from '@/types/game';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -90,7 +91,7 @@ describe('DictationInbox', () => {
   it('caps note text at the validation limit, transcripts included', async () => {
     aiState.connected = true;
     transcribe.mockResolvedValue('x'.repeat(1500));
-    const onAccept = jest.fn();
+    const onAccept = jest.fn((_note: GameNoteInput) => true);
     render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
     const [text] = (await screen.findAllByTestId('dictation-text')) as HTMLTextAreaElement[];
     expect(text.maxLength).toBe(1000);
@@ -124,7 +125,7 @@ describe('DictationInbox', () => {
 
   /** @critical - accept hands the stamped note up and deletes the audio. */
   it('accept passes time, period, text and the chosen player up, then deletes the clip', async () => {
-    const onAccept = jest.fn();
+    const onAccept = jest.fn(() => true);
     const onCountChange = jest.fn();
     render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} onCountChange={onCountChange} />);
     const [text] = await screen.findAllByTestId('dictation-text');
@@ -140,11 +141,25 @@ describe('DictationInbox', () => {
     expect(onCountChange).toHaveBeenLastCalledWith(1);
   });
 
+  /** @critical - the audio is the only copy: it survives when the note was not stored. */
+  it('keeps the clip when the handler reports the note was not stored', async () => {
+    const onAccept = jest.fn(() => false);
+    render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
+    const [text] = await screen.findAllByTestId('dictation-text');
+    fireEvent.change(text, { target: { value: 'Emman syöttö' } });
+    await act(async () => {
+      fireEvent.click(screen.getAllByTestId('dictation-accept')[0]);
+    });
+    expect(onAccept).toHaveBeenCalledTimes(1);
+    expect(deleteClip).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('dictation-clip')).toHaveLength(2);
+  });
+
   /** @critical - a double-tap on Save must not create two notes. */
   it('ignores a second tap while the first accept is in flight', async () => {
     let resolveDelete: () => void = () => {};
     (deleteClip as jest.Mock).mockImplementationOnce(() => new Promise<void>((resolve) => { resolveDelete = resolve; }));
-    const onAccept = jest.fn();
+    const onAccept = jest.fn(() => true);
     render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
     const [text] = await screen.findAllByTestId('dictation-text');
     fireEvent.change(text, { target: { value: 'Emman syöttö' } });
@@ -160,7 +175,7 @@ describe('DictationInbox', () => {
   });
 
   it('a manually chosen "the game" overrides the guess', async () => {
-    const onAccept = jest.fn();
+    const onAccept = jest.fn(() => true);
     render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
     const [text] = await screen.findAllByTestId('dictation-text');
     fireEvent.change(text, { target: { value: 'Emma ja koko puolustus nukkui' } });
@@ -173,7 +188,7 @@ describe('DictationInbox', () => {
   });
 
   it('discard deletes the audio without creating a note', async () => {
-    const onAccept = jest.fn();
+    const onAccept = jest.fn(() => true);
     render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
     const [discard] = await screen.findAllByTestId('dictation-discard');
     await act(async () => {

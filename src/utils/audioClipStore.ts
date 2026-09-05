@@ -68,6 +68,23 @@ function hasIndexedDb(): boolean {
   return typeof indexedDB !== 'undefined';
 }
 
+/**
+ * True when this user's audio database already exists. The read-mostly paths
+ * (rotation on inbox open, per-game cleanup on delete) check this first so they
+ * never create an empty database for a coach who has never dictated. Browsers
+ * without `indexedDB.databases()` report true and open as before.
+ */
+async function audioDbExists(userId?: string): Promise<boolean> {
+  const list = (indexedDB as { databases?: () => Promise<Array<{ name?: string }>> }).databases;
+  if (typeof list !== 'function') return true;
+  try {
+    const name = getAudioDatabaseName(userId);
+    return (await list.call(indexedDB)).some((db) => db.name === name);
+  } catch {
+    return true;
+  }
+}
+
 function openDb(userId?: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(getAudioDatabaseName(userId), 1);
@@ -170,7 +187,7 @@ export async function deleteClip(id: string, userId?: string): Promise<void> {
 }
 
 export async function deleteClipsForGame(gameId: string, userId?: string): Promise<number> {
-  if (!hasIndexedDb()) return 0;
+  if (!hasIndexedDb() || !(await audioDbExists(userId))) return 0;
   return withStore('readwrite', userId, async (store) => {
     const keys = await promisifyRequest(store.index('gameId').getAllKeys(gameId));
     for (const key of keys) {
@@ -182,7 +199,7 @@ export async function deleteClipsForGame(gameId: string, userId?: string): Promi
 
 /** Delete every clip older than MAX_CLIP_AGE_MS. Returns how many were removed. */
 export async function rotateOldClips(now: number = Date.now(), userId?: string): Promise<number> {
-  if (!hasIndexedDb()) return 0;
+  if (!hasIndexedDb() || !(await audioDbExists(userId))) return 0;
   const cutoff = new Date(now - MAX_CLIP_AGE_MS).toISOString();
   return withStore('readwrite', userId, async (store) => {
     const keys = await promisifyRequest(store.index('createdAt').getAllKeys(IDBKeyRange.upperBound(cutoff, true)));
