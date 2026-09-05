@@ -446,6 +446,18 @@ first. One intent per surface, organised by WHEN:
   2. The draft card correctly hides its button with no key, but only named the problem.
      It now offers "Open settings" (`onOpenSettings`, already a prop of the modal).
   Rule this reinforces: a degraded path must be as loud as a working one.
+- PR 15 (owner: "if I record the match report it transcribes it, but if I record it again
+  the old text still remains"). A DOUBLE-BILLING bug, and the worst one in the phase.
+  `stop()` clears `isRecording` synchronously, but the clip is written later inside the
+  recorder's own `onstop`. In that gap the panel's effect saw "not recording" with
+  `lastClip` still pointing at the PREVIOUS clip, so it re-transcribed the old audio -
+  old text back on screen, the coach billed a second time for it - and then ignored the
+  new clip when it finally arrived, because its claim flag had already been consumed.
+  Fixed by remembering the claimed clip id and baselining it at record-start, so only a
+  clip written after the tap can be claimed. The regression test drives the exact
+  sequence and fails against the old code with "2 calls, expected 1".
+  This is the fifth instance of the session's blind spot: acting on state that was true
+  a moment ago. Here the stale value was the recorder's own last clip.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 

@@ -216,6 +216,76 @@ describe('SpokenReportPanel - recording', () => {
   });
 });
 
+describe('SpokenReportPanel - recording a second time', () => {
+  /**
+   * @critical - the owner's report: record, it transcribes; record again and the
+   * OLD text stays. Cause: stop() clears the recording flag immediately while
+   * the new clip is written later, so the panel saw "not recording" with
+   * lastClip still pointing at the previous clip - re-transcribing old audio
+   * (old text back, billed twice) and never transcribing the new recording.
+   */
+  it('does not re-transcribe the previous clip in the gap before the new one is written', async () => {
+    const view = renderPanel();
+    await recordAndFinish(view);
+    expect(transcribe).toHaveBeenCalledTimes(1);
+
+    // Start again. The recorder is mid-flight; lastClip is still clip A.
+    fireEvent.click(screen.getByTestId('spoken-report-toggle'));
+    await act(async () => {
+      view.rerender(
+        <SpokenReportPanel
+          dictation={{ ...view.dictation, lastClip: clip, isRecording: true }}
+          vocabulary={[]}
+          stamp={{ time: 3000, period: 2 }}
+          onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
+          onInsertIntoReport={view.onInsertIntoReport}
+        />,
+      );
+    });
+
+    // stop() clears the flag straight away; clip B is not written yet.
+    await act(async () => {
+      view.rerender(
+        <SpokenReportPanel
+          dictation={{ ...view.dictation, lastClip: clip, isRecording: false }}
+          vocabulary={[]}
+          stamp={{ time: 3000, period: 2 }}
+          onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
+          onInsertIntoReport={view.onInsertIntoReport}
+        />,
+      );
+    });
+
+    // The old clip must not be paid for a second time, and its text stays gone.
+    expect(transcribe).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('spoken-report-result')).not.toBeInTheDocument();
+
+    // Now the new clip lands and IS transcribed.
+    transcribe.mockResolvedValueOnce('Toinen yritys, parempi.');
+    const second = { ...clip, id: 'clip-2' };
+    await act(async () => {
+      view.rerender(
+        <SpokenReportPanel
+          dictation={{ ...view.dictation, lastClip: second, isRecording: false }}
+          vocabulary={[]}
+          stamp={{ time: 3000, period: 2 }}
+          onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
+          onInsertIntoReport={view.onInsertIntoReport}
+        />,
+      );
+    });
+
+    await waitFor(() => expect(screen.getByTestId('spoken-report-result')).toBeInTheDocument());
+    expect(transcribe).toHaveBeenCalledTimes(2);
+    expect((screen.getByTestId('spoken-report-text') as HTMLTextAreaElement).value).toBe('Toinen yritys, parempi.');
+    // And the second clip is the one that gets kept or thrown away.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('spoken-report-discard'));
+    });
+    expect(deleteClip).toHaveBeenLastCalledWith('clip-2', 'u1');
+  });
+});
+
 describe('SpokenReportPanel - the transcript', () => {
   it('transcribes its own clip with the roster as vocabulary and shows editable text', async () => {
     const view = renderPanel();
