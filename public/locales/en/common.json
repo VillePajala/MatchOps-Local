@@ -2312,7 +2312,26 @@
       "intro": "Most data requests can be handled directly in the app (Settings → Data tab) without contacting us. For other privacy questions or concerns:",
       "email": "Email"
     },
-    "footer": "This privacy policy applies to the MatchOps application available on Google Play Store."
+    "footer": "This privacy policy applies to the MatchOps application available on Google Play Store.",
+    "voiceNotesAndAi": {
+      "title": "Voice Notes and Optional AI",
+      "intro": "MatchOps can record short voice notes during a game. This is how they are handled:",
+      "items": {
+        "onDevice": "Recordings are stored only on your device. They are never uploaded to MatchOps servers, never synced between devices, and never included in backups or exports.",
+        "deleted": "A recording is deleted from your device as soon as you turn it into a note or discard it, and in any case after 30 days.",
+        "notes": "The written notes you save become part of the game record and are handled like all other game data described above (stored on your device and, in cloud mode, synced to your account).",
+        "neverReceived": "MatchOps never receives your recordings, transcripts or AI results."
+      },
+      "aiTitle": "Optional AI provider (your own account)",
+      "aiIntro": "You may connect your own account with an AI provider (for example OpenAI) to transcribe recordings and to draft match reports and notes. If you do:",
+      "aiItems": {
+        "yourAccount": "Data is sent directly from your device to the provider you chose, under your own account and your own API key. MatchOps is not a party to that processing and has no access to it.",
+        "onlyOnAction": "Nothing is sent automatically. Data leaves your device only when you press Transcribe or Draft.",
+        "providerTerms": "The provider processes and retains data under its own terms, which you accepted when you created the account. MatchOps has no control over that retention.",
+        "pseudonymized": "Before drafting requests, player names are replaced with codes on your device (on by default). Transcription requests necessarily contain the words you spoke.",
+        "disconnect": "You can disconnect the provider and delete all recordings at any time from Settings. The key is stored only on your device."
+      }
+    }
   },
   "termsOfService": {
     "title": "Terms of Service for MatchOps",
@@ -2473,6 +2492,12 @@
     "noAdvice": {
       "title": "No Professional Advice; Use at Your Own Risk",
       "content": "MatchOps is a coaching tool that records and displays information you provide. It does not give professional, medical, legal, or safety advice. All decisions you make using the app — including those affecting players' health, safety, or playing time — are your own, and you use the app at your own risk."
+    },
+    "aiServices": {
+      "title": "Optional AI Services",
+      "content1": "MatchOps lets you connect your own account with a third-party AI provider to transcribe voice notes and draft reports. Any such use is governed by your agreement with that provider. MatchOps is not a party to it, does not receive the data, and is not responsible for the provider's processing, availability, output or fees.",
+      "content2": "You are responsible for the content you record or dictate and for having the right to process it, including informing players' families where your circumstances require it. Do not record health information or other sensitive personal data.",
+      "content3": "AI output is a draft. You review and accept every item before it is saved, and you remain responsible for what you keep."
     }
   },
   "premium": {
@@ -3386,5 +3411,60 @@
     "homeGear": "The gear icon (top-left): the home view toggle (summary or simplified), settings, backups, your account, and this guide.",
     "matchMenuTitle": "The match menu",
     "matchMenuNote": "While in a match, the menu holds match-day actions:"
+  },
+  "aiSettings": {
+    "title": "Voice notes and AI",
+    "statusConnected": "Connected: {{provider}} ••••{{hint}}",
+    "statusNotConnected": "Not connected",
+    "intro": "Voice notes work without this. Transcription and drafts need your own AI provider account - the recordings then go from your phone to that provider only, on your key, only when you press the button.",
+    "setUpLabel": "Set up transcription and drafts",
+    "setUp": "Set up",
+    "keyLabel": "{{provider}} API key",
+    "keyHint": "Create a dedicated key for MatchOps and set a monthly spend cap on it.",
+    "keyLink": "Open the provider's key page",
+    "connect": "Connect",
+    "testing": "Checking...",
+    "connected": "AI provider connected.",
+    "keyRejected": "The provider rejected this key. Check it and try again.",
+    "testFailed": "Could not reach the provider. Check your connection and try again.",
+    "connectedLine": "Requests go to {{provider}} on your own key.",
+    "disconnect": "Disconnect",
+    "disconnected": "AI provider disconnected. The key was removed from this device.",
+    "pseudonymizeLabel": "Replace player names with codes before drafting",
+    "pseudonymizeHint": "On by default. Transcription still contains what you said.",
+    "deleteRecordingsLabel": "Delete all voice recordings on this device",
+    "deleteRecordings": "Delete",
+    "deleteRecordingsTitle": "Delete all recordings?",
+    "deleteRecordingsBody": "Every voice recording on this device is removed. Notes you have already saved are kept.",
+    "recordingsDeleted": "All voice recordings deleted from this device.",
+    "recordingsDeleteFailed": "Could not delete the recordings.",
+    "parentTextTitle": "Text for parents",
+    "parentTextHint": "A ready-made note you can send to families about the notes you keep.",
+    "parentText": "Hi! As the coach I keep short notes about the players during and after games - who did what well, what we are working on. The notes are written or dictated on my phone and stay in my coaching app. If I use an AI tool to tidy them into a match report, the players' names are replaced with codes before anything is sent. You can ask me at any time what I have noted about your child, and I will delete it if you wish.",
+    "copy": "Copy",
+    "copied": "Copied.",
+    "copyFailed": "Could not copy. Select the text and copy it manually.",
+    "rateLimited": "The provider is rate-limiting requests right now. Try again in a minute."
+  },
+  "aiConsent": {
+    "title": "Before you connect an AI provider",
+    "version": "Version",
+    "dataTitle": "What happens with your data",
+    "data1": "Recordings stay on this phone. MatchOps never receives your recordings, transcripts or AI results.",
+    "data2": "When you press Transcribe or Draft, the recording or notes are sent from this phone to the AI provider YOU connected, under YOUR account and YOUR key.",
+    "data3": "The provider may keep the data for a limited time under its own terms (OpenAI: not used for training, abuse-monitoring logs up to 30 days, processed in the US). Read your provider's terms - MatchOps is not a party to them.",
+    "data4": "Costs are billed to your provider account. Create a dedicated key with a monthly spend cap.",
+    "data5": "Player names are replaced with codes before any drafting request (you can turn this off). Transcription necessarily contains what you said.",
+    "data6": "You can disconnect the provider and delete all recordings at any time from Settings.",
+    "rulesTitle": "Dictation rules",
+    "rule1": "Talk about football actions, not people's lives.",
+    "rule2": "Use first names or nicknames, never full names.",
+    "rule3": "Never dictate health, injuries, family matters, or anything about parents, referees or opponents by name.",
+    "rule4": "Keep clips short; delete anything you would not want a parent to read.",
+    "rule5": "You are responsible for what you dictate and for informing families where your situation requires it.",
+    "box1": "I understand recordings and notes go to my own AI provider, under my account, and MatchOps never receives them.",
+    "box2": "I have read my provider's data terms and accept that they may retain data for a limited time.",
+    "box3": "I will follow the dictation rules and not dictate health or other sensitive data.",
+    "accept": "I understand, continue"
   }
 }
