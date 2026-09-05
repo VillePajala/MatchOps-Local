@@ -409,6 +409,19 @@ first. One intent per surface, organised by WHEN:
   the key: one localStorage key, never synced, never exported.
   Also here: the review list shows player NAMES instead of packet codes (the mapping never
   left the device, so resolving it for display costs nothing).
+- PR 12 (billing audit, after the owner asked "are you sure no billing surprises"):
+  the audit found only three provider endpoints ever called (the key test hits
+  `/v1/models?limit=1`, which is free), no retries anywhere, nothing on mount, input
+  bounded by `MAX_PACKET_CHARS` and output by `MAX_COMPLETION_TOKENS` - worst case ~$0.012
+  a draft, $0.003 a 60 s clip. It also found TWO REAL GAPS, both fixed here:
+  1. **A failed draft can still be billed.** A model that thinks itself out of budget
+     returns HTTP 200 having spent input + reasoning tokens. `DraftingError` now carries
+     `billedUsd` and the panel records it, so the counter stops under-reporting. (An
+     earlier statement to the owner that a failed draft "costs nothing" was wrong: true
+     for a 400, false for this case.)
+  2. **The spoken report transcribed on stop with no price shown**, while the inbox
+     shows a cost and waits for a tap. The panel now states the per-minute price and
+     that writing out starts when recording stops, before the coach records.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 

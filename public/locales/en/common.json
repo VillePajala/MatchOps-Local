@@ -3542,6 +3542,7 @@
     "inserted": "Added to the match report.",
     "saveFailed": "Could not save that.",
     "errorTranscribe": "Could not transcribe that. The recording is in your voice notes.",
-    "errorUnauthorized": "Your AI provider rejected the key. Check it in Settings."
+    "errorUnauthorized": "Your AI provider rejected the key. Check it in Settings.",
+    "costHint": "Writing it out costs about ${{usd}} a minute on your provider account, and starts when you stop recording."
   }
 }

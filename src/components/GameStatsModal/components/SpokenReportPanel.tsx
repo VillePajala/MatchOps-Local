@@ -34,7 +34,12 @@ import { deleteClip, getClipBlob } from '@/utils/audioClipStore';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { recordAiUsage } from '@/utils/aiUsage';
-import { TranscriptionError, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
+import {
+  OPENAI_TRANSCRIBE_USD_PER_MINUTE,
+  TranscriptionError,
+  estimateTranscriptionUsd,
+  getTranscriptionEngine,
+} from '@/utils/transcription';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
@@ -215,6 +220,15 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
               'Record your account of the match. Without an AI provider connected it stays as a recording in your voice notes, ready to write out later.',
             )}
       </p>
+      {ai.connected && (
+        // Writing out starts as soon as the recording stops, so the price is
+        // stated before the coach records - not after they have been billed.
+        <p className="text-xs text-slate-400 mb-3" data-testid="spoken-report-cost">
+          {t('spokenReport.costHint', 'Writing it out costs about ${{usd}} a minute on your provider account, and starts when you stop recording.', {
+            usd: OPENAI_TRANSCRIBE_USD_PER_MINUTE.toFixed(3),
+          })}
+        </p>
+      )}
 
       {dictation.permission === 'denied' ? (
         <p className="text-xs text-amber-300" data-testid="spoken-report-denied">

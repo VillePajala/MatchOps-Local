@@ -32,6 +32,7 @@ jest.mock('@/utils/logger', () => ({
   __esModule: true,
   default: { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn(), info: jest.fn() },
 }));
+jest.mock('@/utils/aiUsage', () => ({ recordAiUsage: jest.fn() }));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: string, options?: Record<string, unknown>) =>
@@ -133,6 +134,34 @@ describe('ReportDraftPanel - before any request', () => {
 
     expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/rate limiting/i), 'error');
     expect(screen.getByTestId('report-draft-start')).toBeInTheDocument();
+  });
+
+  /** @critical - a failure the provider already billed must reach the counter,
+   *  or the running total under-reports what the coach actually spent. */
+  it('counts a failed draft the provider had already charged for', async () => {
+    const { DraftingError } = jest.requireActual('@/utils/aiDrafting');
+    const { recordAiUsage } = jest.requireMock('@/utils/aiUsage') as { recordAiUsage: jest.Mock };
+    draftMatchReport.mockRejectedValueOnce(new DraftingError('noOutput', 'spent its budget', 0.0083));
+    renderPanel();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-start'));
+    });
+
+    expect(recordAiUsage).toHaveBeenCalledWith('drafting', 0.0083);
+  });
+
+  it('counts nothing for a failure that never reached the provider', async () => {
+    const { DraftingError } = jest.requireActual('@/utils/aiDrafting');
+    const { recordAiUsage } = jest.requireMock('@/utils/aiUsage') as { recordAiUsage: jest.Mock };
+    draftMatchReport.mockRejectedValueOnce(new DraftingError('unauthorized'));
+    renderPanel();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-start'));
+    });
+
+    expect(recordAiUsage).not.toHaveBeenCalled();
   });
 });
 
