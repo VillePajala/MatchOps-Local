@@ -1,4 +1,4 @@
-import { computeGameCompleteness, type CompletenessGame } from './gameCompleteness';
+import { completenessProgress, computeGameCompleteness, type CompletenessGame } from './gameCompleteness';
 
 const base: CompletenessGame = {
   isPlayed: true,
@@ -70,5 +70,47 @@ describe('computeGameCompleteness', () => {
       assessments: { p1: {} },
     });
     expect(enriched.enriched).toBe(true);
+  });
+});
+
+describe('completenessProgress', () => {
+  const base = {
+    isPlayed: true,
+    gameNotes: '',
+    selectedPlayerIds: ['p1', 'p2'],
+    seasonId: '',
+    tournamentId: '',
+    teamId: '',
+    playerPositions: {},
+    assessments: {},
+  };
+
+  it('counts the same items the checklist shows', () => {
+    // Roster only: a squad is picked, nothing else recorded yet.
+    expect(completenessProgress(computeGameCompleteness(base))).toEqual({ done: 1, total: 5 });
+  });
+
+  /**
+   * Some, not all: a coach who wrote about the three players they watched has
+   * finished that job for this match, and a bar that only filled at fourteen of
+   * fourteen would call every real match unfinished.
+   */
+  it('counts positions and assessments as done once any are recorded', () => {
+    const partial = computeGameCompleteness({
+      ...base,
+      gameNotes: 'Yleiskuva: hyva',
+      seasonId: 's1',
+      playerPositions: { p1: ['CM'] },
+      assessments: { p1: { overall: 7, sliders: {} } } as never,
+    });
+
+    expect(completenessProgress(partial)).toEqual({ done: 5, total: 5 });
+  });
+
+  it('reports nothing for a game that was never played', () => {
+    expect(completenessProgress(computeGameCompleteness({ ...base, isPlayed: false }))).toEqual({
+      done: 0,
+      total: 0,
+    });
   });
 });

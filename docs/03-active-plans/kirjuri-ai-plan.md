@@ -685,6 +685,31 @@ an allowlist so they were already excluded; the test is there so a future "back 
 everything" change fails instead of shipping credentials in a file coaches share. A manual device checklist per phase (Android phone,
 earbuds, TWA build) because none of the media APIs run in jsdom or Playwright.
 
+## Completeness, visible where the coach already looks (2026-09-05, owner's idea)
+
+The checklist lived only inside Viimeistele ottelu, so the only way to learn there was
+nothing left to do was to open the screen and look. `completenessProgress()` now derives a
+`done/total` from the SAME model the checklist rows use - so a bar, a menu badge and the
+list can never disagree - and it appears in three places:
+
+- **Top of the checklist card**, a bar plus the count, so the coach sees the whole job
+  while working through the six steps (the steps already said "Vaihe 3/6" but nothing said
+  how done the MATCH was).
+- **On the game-end button**, because at the whistle the only question is whether this
+  takes one minute or ten.
+- **On the menu row**, with the amber/green dot the saved-games list already uses. This is
+  the owner's earlier "how do I signal Viimeistele ottelu is the final step" question
+  answered by STATE rather than a badge: it appears because the match is unfinished and
+  turns green when it is done. Only that row gets an indicator - a menu where every row
+  has status is a menu where none of them mean anything.
+
+DELIBERATELY NOT during play. A completeness bar while the match is running is noise at
+best and nags a coach about paperwork while they are coaching at worst.
+
+Counting rule: positions and assessments count as done once SOME are recorded, not all. A
+coach who wrote about the three players they watched has finished that job for this match,
+and a bar that only filled at 14/14 would call every real match unfinished.
+
 ## Before the master merge (checklist)
 
 - [ ] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). It is a diagnostic.

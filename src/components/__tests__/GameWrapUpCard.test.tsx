@@ -42,6 +42,15 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(onOpenPositions).toHaveBeenCalledTimes(1);
   });
 
+  it('shows how much of the finishing work is done', () => {
+    render(<GameWrapUpCard completeness={completeness} />);
+
+    // The number and the bar come from the same model the list does, so they
+    // cannot disagree with the rows underneath.
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/5$/);
+    expect(screen.getByTestId('wrap-up-progress-bar')).toBeInTheDocument();
+  });
+
   it('does not call the game Complete while clips still wait', () => {
     const complete = computeGameCompleteness({
       isPlayed: true, gameNotes: 'Good game', selectedPlayerIds: ['p1'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {},

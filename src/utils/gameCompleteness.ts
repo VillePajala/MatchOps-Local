@@ -46,6 +46,30 @@ export interface GameCompleteness {
 
 const nonEmpty = (s?: string): boolean => typeof s === 'string' && s.trim().length > 0;
 
+/**
+ * How much of the finishing work is done, as a fraction the UI can show.
+ *
+ * Counts exactly the rows the checklist card shows, so a bar, a menu badge and
+ * the list can never disagree - the same reason the completeness model itself
+ * is shared rather than recomputed per surface.
+ *
+ * Positions and assessments count as done when SOME are recorded, not all: a
+ * coach who wrote about the three players they watched has finished that job
+ * for this match, and a bar that only fills at fourteen of fourteen would call
+ * every real match unfinished.
+ */
+export function completenessProgress(c: GameCompleteness): { done: number; total: number } {
+  if (!c.applicable) return { done: 0, total: 0 };
+  const items = [
+    c.report,
+    c.roster,
+    c.competition,
+    c.positions.total > 0 && c.positions.done > 0,
+    c.assessments.total > 0 && c.assessments.done > 0,
+  ];
+  return { done: items.filter(Boolean).length, total: items.length };
+}
+
 export function computeGameCompleteness(game: CompletenessGame): GameCompleteness {
   const applicable = game.isPlayed !== false;
 

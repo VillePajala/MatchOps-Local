@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import ProgressBar from '@/components/ProgressBar';
+import { completenessProgress } from '@/utils/gameCompleteness';
 import { HiCheckCircle, HiOutlineExclamationCircle, HiChevronRight } from 'react-icons/hi';
 import type { GameCompleteness, CountCheck } from '@/utils/gameCompleteness';
 
@@ -32,6 +34,7 @@ const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.to
  */
 const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
+  const progress = completenessProgress(completeness);
 
   interface Row {
     key: string;
@@ -91,6 +94,12 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
       <div className="flex items-center justify-between gap-2 mb-3">
         <h3 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.wrapUpTitle', 'Checklist')}</h3>
         <span
+          className="ml-auto text-sm font-semibold text-slate-300 tabular-nums"
+          data-testid="wrap-up-progress-count"
+        >
+          {progress.done}/{progress.total}
+        </span>
+        <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
             done ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
                  : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
@@ -99,6 +108,11 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
           {done ? t('gameStatsModal.wrapUpComplete', 'Complete') : t('gameStatsModal.wrapUpPartial', 'Needs finishing')}
         </span>
       </div>
+      {progress.total > 0 && (
+        <div className="mb-3" data-testid="wrap-up-progress-bar">
+          <ProgressBar current={progress.done} total={progress.total} />
+        </div>
+      )}
       <ul className="space-y-0.5">
         {rows.map(row => {
           const Tag = row.onClick ? 'button' : 'div';

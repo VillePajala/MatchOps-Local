@@ -236,6 +236,23 @@ describe('TimerOverlay', () => {
       expect(onOpenPlayerAssessmentModal).not.toHaveBeenCalled();
     });
 
+    /** At the whistle the only question is how much is left. */
+    it('says how much is left, and nothing when it does not apply', () => {
+      const { unmount } = render(
+        <TimerOverlay
+          {...baseProps}
+          gameStatus="gameEnd"
+          onFinishGame={jest.fn()}
+          finishProgress={{ done: 3, total: 5 }}
+        />,
+      );
+      expect(screen.getByTestId('timer-finish-progress')).toHaveTextContent('3/5');
+
+      unmount();
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" onFinishGame={jest.fn()} finishProgress={null} />);
+      expect(screen.queryByTestId('timer-finish-progress')).not.toBeInTheDocument();
+    });
+
     it('falls back to the assess-players button when no hand-off is wired', () => {
       render(<TimerOverlay {...baseProps} gameStatus="gameEnd" onOpenPlayerAssessmentModal={jest.fn()} />);
       expect(screen.queryByTestId('timer-finish-game')).not.toBeInTheDocument();
