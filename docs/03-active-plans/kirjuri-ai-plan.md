@@ -739,9 +739,22 @@ row shows an outline tick rather than a solid one, so it never claims all-done a
 ## Before the master merge (checklist)
 
 - [ ] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). It is a diagnostic.
-- [ ] Apply migrations 041, 042, 043 AND 044 to PROD - diff the live definitions first;
-      they are on staging only. 044 recreates `save_game_with_relations`, so it is the one
-      that most needs the diff: prod was bootstrapped from a different history.
+- [ ] Apply migrations 041, 042, 043 AND 044 to PROD, **in that order**. Staging only so
+      far. NOT DONE - needs the owner's go-ahead; nothing has been applied to prod.
+
+      The diff the rule asks for is DONE (read-only query, 2026-09-05). Prod's live
+      `save_game_with_relations` was fetched with `pg_get_functiondef` and compared against
+      migration 044's version, normalised for whitespace and comments. **One functional
+      line differs**, and it is exactly the intended one:
+
+          game_notes_ai_meta = EXCLUDED.game_notes_ai_meta,
+
+      So prod has not drifted from migration 039's base, and 044 is safe to apply as
+      written. Order matters: 044's UPDATE references a column that migration 043 adds.
+      Prod currently has NONE of the new columns (verified: `games.game_notes_ai_meta`,
+      `game_events.ai_meta` / `note_text` / `tag` / `period` / `source` all absent), which
+      is what we expect. 041 and 042 do not touch the function - child rows go through
+      `jsonb_populate_recordset`, which is column-agnostic.
 - [ ] Owner decision: POLICY_VERSION bump (deliberately not bumped so far). The consent
       gate's wording CHANGED after the audit below - it used to say MatchOps never receives
       transcripts or AI results, which is true of audio and false of a saved note. Nobody
