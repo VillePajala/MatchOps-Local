@@ -704,7 +704,6 @@ spine is cheap. Ordered by value for effort:
   leave as codes like every other request and are resolved back on the device. The shared
   `postChatCompletion` was extracted at the same time, so drafting and translation cannot
   drift on what counts as unauthorized, what is billed, or what may be logged.
-<<<<<<< HEAD
 - **Group the notes about one player (done).** Organises the coach's own notes about one
   player into a few paragraphs, adding nothing - the tidy contract applied to a player.
   Read-only, no apply path, same as translate.
@@ -714,9 +713,6 @@ spine is cheap. Ordered by value for effort:
   presses anything, caps the request at 60 notes and says when it left some out. It stops
   short of the season-summary escalation below because it never generates judgement - but it
   is the nearest thing to it that exists, and worth the owner's eye before master.
-=======
-- **Group the notes about one player** (after that).
->>>>>>> feat/kirjuri-ai
 - **Season summaries: NOT low-hanging.** They widen what leaves the device from one match
   to a season of observations about a child. That is a real privacy escalation and the
   point where the legal review this doc recommends stops being optional.

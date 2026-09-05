@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { recordAiUsage } from '@/utils/aiUsage';
-import { DraftingError, groupPlayerNotes, MAX_GROUPED_NOTES } from '@/utils/aiDrafting';
+import { DraftingError, groupPlayerNotes, MAX_GROUPED_NOTES, MAX_GROUPING_CHARS } from '@/utils/aiDrafting';
 import { redactPlayerNames, playerRedactionHandles } from '@/utils/gamePacket';
 import { resolveRefsInText } from '@/utils/applyReportDraft';
 import WorkingIndicator from '@/components/WorkingIndicator';
@@ -69,7 +69,19 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
 
   const scope = useMemo(() => {
     const withText = notes.filter((n) => n.text.trim());
-    const capped = withText.slice(0, MAX_GROUPED_NOTES);
+    // Two caps bound this request, and the coach is shown the result of BOTH.
+    // Counting notes but not their length meant a coach with sixty long notes
+    // read an accurate-looking disclosure, pressed the button, and only then
+    // was told the request was too big.
+    const capped: PlayerNoteEntry[] = [];
+    let chars = 0;
+    for (const note of withText.slice(0, MAX_GROUPED_NOTES)) {
+      // +4 for the "12. " the request numbers each line with.
+      const cost = note.text.trim().length + 4;
+      if (chars + cost > MAX_GROUPING_CHARS) break;
+      chars += cost;
+      capped.push(note);
+    }
     return {
       notes: capped,
       // By game, not by date: two matches on one Saturday are two matches, and
@@ -172,7 +184,7 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
         {t(
           'playerNotesSummary.scope',
           'Sends {{notes}} of your notes about this player, from {{matches}} matches, to your AI provider. Nothing is saved or changed.',
-          { notes: scope.notes.length, count: scope.matches, matches: scope.matches },
+          { notes: scope.notes.length, count: scope.matches },
         )}
       </p>
       {scope.omitted > 0 && (

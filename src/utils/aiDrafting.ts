@@ -684,7 +684,7 @@ export async function translateReport({
 /** Most notes we will send in one grouping request. */
 export const MAX_GROUPED_NOTES = 60;
 /** Longest combined note text for one grouping request. */
-const MAX_GROUPING_CHARS = 8_000;
+export const MAX_GROUPING_CHARS = 8_000;
 
 export interface GroupedNotes {
   text: string;

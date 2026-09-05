@@ -10,6 +10,16 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import PlayerNotesSummaryCard from '../PlayerNotesSummaryCard';
 import type { Player } from '@/types';
 
+// Resolves _one/_other the way i18next does; the scope line is pluralised.
+const EN: Record<string, string> = {
+  'playerNotesSummary.scope_one':
+    'Sends {{notes}} of your notes about this player, from {{count}} match, to your AI provider. Nothing is saved or changed.',
+  'playerNotesSummary.scope_other':
+    'Sends {{notes}} of your notes about this player, from {{count}} matches, to your AI provider. Nothing is saved or changed.',
+  'playerNotesSummary.omitted_one': 'The oldest note is left out of this request.',
+  'playerNotesSummary.omitted_other': 'The {{count}} oldest notes are left out of this request.',
+};
+
 const showToast = jest.fn();
 jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast }) }));
 
@@ -32,8 +42,12 @@ jest.mock('@/utils/logger', () => ({
 }));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_k: string, fallback?: string, options?: Record<string, unknown>) =>
-      (fallback ?? _k).replace(/\{\{(\w+)\}\}/g, (_m, n) => String(options?.[n] ?? '')),
+    t: (key: string, fallback?: string, options?: Record<string, unknown>) => {
+      const count = options?.count;
+      const plural = typeof count === 'number' ? `${key}_${count === 1 ? 'one' : 'other'}` : key;
+      const template = EN[plural] ?? fallback ?? key;
+      return template.replace(/\{\{(\w+)\}\}/g, (_m, n) => String(options?.[n] ?? ''));
+    },
   }),
 }));
 
@@ -103,6 +117,25 @@ describe('PlayerNotesSummaryCard', () => {
       ],
     });
     expect(screen.getByTestId('player-notes-summary-scope')).toHaveTextContent('from 2 matches');
+  });
+
+  /**
+   * @critical - the disclosure is the safeguard. Counting notes but not their
+   * length meant a coach could read an accurate-looking scope, press the
+   * button, and only then be told the request was too big.
+   */
+  it('leaves out what will not fit, and says so before sending', () => {
+    const long = Array.from({ length: 12 }, (_, i) => ({
+      id: `L${i}`,
+      gameId: `g${i}`,
+      gameDate: `2026-08-${String(i + 1).padStart(2, '0')}`,
+      text: 'x'.repeat(1_000),
+    }));
+    renderCard({ notes: long });
+
+    // 8000 chars of budget, ~1004 a note: seven fit.
+    expect(screen.getByTestId('player-notes-summary-scope')).toHaveTextContent('Sends 7 of your notes');
+    expect(screen.getByTestId('player-notes-summary-omitted')).toHaveTextContent('5 oldest notes');
   });
 
   it('offers nothing when no provider is connected', () => {
