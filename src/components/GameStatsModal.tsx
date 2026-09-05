@@ -1028,27 +1028,27 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   the aggregate tabs are hidden, which used to leave a single
                   full-width "Nykyinen" button that did nothing when pressed. */}
               {visibleTabCount > 1 && (
-              <div className="flex w-full gap-2" role="tablist">
-            {!aggregateOnly && (
-              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
-                {t('gameStatsModal.tabs.currentGame')}
+                <div className="flex w-full gap-2" role="tablist">
+              {!aggregateOnly && (
+                <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
+                  {t('gameStatsModal.tabs.currentGame')}
+                </button>
+              )}
+              {!currentGameOnly && (<>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
+                {t('gameStatsModal.tabs.season')}
               </button>
-            )}
-            {!currentGameOnly && (<>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
-              {t('gameStatsModal.tabs.season')}
-            </button>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('tournament'); }} className={`${getTabStyle('tournament')} flex-1`} aria-selected={activeTab === 'tournament'}>
-              {t('gameStatsModal.tabs.tournament')}
-            </button>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-selected={activeTab === 'overall'}>
-              {t('gameStatsModal.tabs.overall')}
-            </button>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
-              {t('gameStatsModal.tabs.player', 'Player')}
-            </button>
-            </>)}
-              </div>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('tournament'); }} className={`${getTabStyle('tournament')} flex-1`} aria-selected={activeTab === 'tournament'}>
+                {t('gameStatsModal.tabs.tournament')}
+              </button>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-selected={activeTab === 'overall'}>
+                {t('gameStatsModal.tabs.overall')}
+              </button>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
+                {t('gameStatsModal.tabs.player', 'Player')}
+              </button>
+              </>)}
+                </div>
               )}
             </div>
             {/* Include friendlies in the competitive read (Overall / Player only). */}

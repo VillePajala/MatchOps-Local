@@ -148,7 +148,7 @@ describe('applyReportDraft - codes become names again', () => {
     });
 
     expect(result.report).toBe('Erityismaininnat:\nEmma teki paljon työtä ilman palloa, ja Matti tuki hyvin.');
-    expect(result.noteEvents[0].text).toBe('Rohkea. Yhteistyö Mattin kanssa toimi.');
+    expect(result.noteEvents[0].text).toBe('Rohkea. Yhteistyö Matin kanssa toimi.');
     expect(result.report).not.toMatch(/\bP[0-9?]/);
   });
 
@@ -172,6 +172,24 @@ describe('applyReportDraft - codes become names again', () => {
     expect(result.report).toBe('Erityismaininnat:\nKeijolle upea torjunta, ja Eskon kautta syntyi maali. Keijo oli vahva.');
     // The heading keeps its own colon; the prose must carry none.
     expect(result.report.split('\n')[1]).not.toContain(':');
+  });
+
+  /** Finnish weakens a doubled k/p/t before a consonant ending: Matti -> Matin. */
+  it('inflects a name properly instead of gluing the ending on', () => {
+    const forms = draft({
+      sections: [{ section: 'overview', text: 'P1:n syöttö, P2:lle kiitos, P3:a kehuttiin, P4:n veto.' }],
+    });
+    const result = applyReportDraft({
+      ...base,
+      draft: forms,
+      approvedSections: ['overview'],
+      approvedPlayerNoteIndexes: [],
+      refToPlayerId: { P1: 'p1', P2: 'p2', P3: 'p3', P4: 'p4' },
+      nameForRef: (ref) => ({ P1: 'Matti', P2: 'Pekka', P3: 'Matti', P4: 'Keijo' }[ref] ?? ref),
+    });
+
+    // Weak grade before a consonant ending; strong grade kept before a vowel.
+    expect(result.report).toBe('Yleiskuva:\nMatin syöttö, Pekalle kiitos, Mattia kehuttiin, Keijon veto.');
   });
 
   /** "P1" must not eat the front of "P10" in a squad of a dozen or more. */

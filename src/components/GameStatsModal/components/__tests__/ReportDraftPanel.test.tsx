@@ -213,6 +213,26 @@ describe('ReportDraftPanel - reviewing a draft', () => {
     expect(payload.aiMeta).toEqual({ model: 'gpt-5-mini', packet: 'v1-abcdef0123456789' });
   });
 
+  /**
+   * @critical - the owner's screenshot: the review list read "tekijana P5 ja
+   * syottajana P3". The codes are resolved for display, and the fixtures used
+   * to contain none, so a revert to bare {text} would have passed everything.
+   */
+  it('shows names in the review list, not the codes the provider saw', async () => {
+    draftMatchReport.mockResolvedValueOnce({
+      ...draft,
+      sections: [{ section: 'overview', text: 'Tasoituksen teki P1, syottajana P2.' }],
+      playerNotes: [{ ref: 'P1', text: 'P1 pelasi rohkeasti P2:n rinnalla.' }],
+    });
+    renderPanel();
+    await produceDraft();
+
+    const review = screen.getByTestId('report-draft-review');
+    expect(review).toHaveTextContent('Tasoituksen teki Emma, syottajana Matti.');
+    expect(review).toHaveTextContent('Emma pelasi rohkeasti Matin rinnalla.');
+    expect(review.textContent).not.toMatch(/\bP[0-9?]\b/);
+  });
+
   it('cannot apply when the coach unticked everything', async () => {
     renderPanel();
     await produceDraft();

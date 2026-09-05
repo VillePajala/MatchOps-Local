@@ -68,6 +68,29 @@ const SEPARATOR = '\n\n';
 
 const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g;
 
+/** A name whose final syllable has a doubled k, p or t: Matti, Pekka, Seppo. */
+const GRADATING_NAME = /([kpt])\1([aeiouyäöAEIOUYÄÖ])$/;
+
+/**
+ * Attach a Finnish case ending to a name.
+ *
+ * A code takes endings with a colon ("P2:n") and a name takes them directly,
+ * but not by simple concatenation: Finnish weakens a doubled k, p or t before
+ * a consonant-initial ending. "Matti" + "n" is "Matin", not "Mattin", and
+ * "Pekka" + "lle" is "Pekalle". Endings that begin with a vowel keep the strong
+ * grade, which is why the partitive "Mattia" is left alone.
+ *
+ * This covers the common case rather than Finnish morphology as a whole; a name
+ * it cannot inflect correctly still reads better than a code with a colon.
+ */
+export function attachEnding(name: string, ending: string): string {
+  const consonantInitial = /^[bcdfghjklmnpqrstvwxzš]/i.test(ending);
+  if (consonantInitial && GRADATING_NAME.test(name)) {
+    return name.replace(GRADATING_NAME, (_m, consonant: string, vowel: string) => `${consonant}${vowel}`) + ending;
+  }
+  return name + ending;
+}
+
 /**
  * Put the players' names back into drafted prose.
  *
@@ -102,7 +125,7 @@ export function resolveRefsInText(
     const name = nameForRef(ref);
     if (!name) return match;
     // "P2:lle" -> "Keijolle": the colon belonged to the code, not to the name.
-    return ending ? `${name}${ending}` : name;
+    return ending ? attachEnding(name, ending) : name;
   });
 }
 
