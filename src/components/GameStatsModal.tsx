@@ -61,7 +61,7 @@ import {
   PositionBalanceSection,
 } from './GameStatsModal/components';
 import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
-import type { DiversityGame } from '@/utils/positionDiversity';
+import CoverageNudgeCard from './GameStatsModal/components/CoverageNudgeCard';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
@@ -482,7 +482,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // Games in the current stats scope, resolved from the filtered ids - fed to
   // the position-balance table (each carries playerPositions).
-  const scopedGames = useMemo<DiversityGame[]>(
+  // Left as the full games rather than narrowed to DiversityGame: two cards
+  // read this now, and each wants different fields off the same scope.
+  const scopedGames = useMemo(
     () => processedGameIds.map(id => savedGames[id]).filter((g): g is NonNullable<typeof g> => Boolean(g)),
     [processedGameIds, savedGames],
   );
@@ -1390,6 +1392,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
                 <div className="mt-6">
                   <PositionBalanceSection games={scopedGames} players={playerPool} />
+                </div>
+              )}
+              {/* Same scope as the tables above it, so the denominator matches
+                  what the coach is already looking at. */}
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+                <div className="mt-6">
+                  <CoverageNudgeCard games={scopedGames} players={playerPool} />
                 </div>
               )}
             </div>
