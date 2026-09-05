@@ -378,9 +378,22 @@ first. One intent per surface, organised by WHEN:
   distinct failures. Returns model + packet fingerprint + token usage for `aiMeta` and
   the "used this season" counter. MODEL ID `gpt-5-mini` needs owner confirmation
   against the provider's current list before release.
-- PR 9: review screen + apply-on-approve with provenance; match report draft under the
-  7 headings; `gameNotes` cap 4000. OPEN DECISION for PR 9: whether assessment slider
-  values join the packet (8a deliberately sends only coverage counts).
+- PR 9a (done): the apply-on-approve half, still no UI. `src/utils/reportSections.ts`
+  makes the seven headings ONE source of truth - the blank template button and an AI
+  draft now compose from the same keys (`gameStatsModal.reportSections.*`), and the old
+  `reportTemplate` blob is gone. `src/utils/applyReportDraft.ts` turns ticked items into
+  the new report text plus note events; it writes nothing itself, so the existing
+  autosave and validation stay the only route to storage. THE RULE: the coach's own
+  report is never destroyed - `append` keeps it byte for byte, `replace` is explicit AND
+  hands the old text back for undo, and an approved note whose ref has no player is
+  dropped (reported in `droppedRefs`) rather than guessed onto someone. Provenance
+  shipped: `AiMeta {model, packet}` on note events and on the report, migration 043
+  (APPLIED TO STAGING ONLY) plus both transform directions. `gameNotes` cap 2000 -> 4000.
+- PR 9b: the review screen itself - draft preview per heading, tick to approve, cost
+  shown before the request, wired into the spine's Otteluraportti step; plus the
+  "used this season" counter on the AI settings card.
+- OPEN DECISION for 9b: whether assessment slider values join the packet (8a
+  deliberately sends only coverage counts).
 
 **Phase 4 - Spoken debrief**
 - PR 10: 60-second post-match voice memo (optional halftime memo) feeding the
