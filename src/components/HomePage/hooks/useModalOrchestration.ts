@@ -249,7 +249,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   // R3: which wrap-up section GameSettings should open scrolled to (cleared
   // when the modal closes so a plain open starts at the top).
   const [gameSettingsInitialSection, setGameSettingsInitialSection] = useState<
-    'roster' | 'report' | 'positions' | 'competition' | undefined
+    'roster' | 'competition' | undefined
   >(undefined);
 
   // --- Local Modal State ---
@@ -447,7 +447,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       openSettingsModal: handleOpenSettingsModal,
       // W6 + R3: leave the stats modal and land where the item is
       // completed, scrolled to its section.
-      wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => {
+      wrapUpToGameSettings: (section: 'roster' | 'competition') => {
         setGameSettingsInitialSection(section);
         setIsGameStatsModalOpen(false);
         setIsGameSettingsModalOpen(true);

@@ -941,4 +941,22 @@ describe('GameStatsModal', () => {
       });
     });
   });
-}); 
+
+  describe('Phase 1b: positions editor lives on the stats page', () => {
+    it('renders the positions editor when a change handler is wired', async () => {
+      renderComponent({ ...getDefaultProps(), onPlayerPositionsChange: jest.fn() });
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('positions-editor')).toBeInTheDocument();
+    });
+
+    it('does not render the positions editor without a handler (aggregate hosts)', async () => {
+      renderComponent(getDefaultProps());
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('positions-editor')).not.toBeInTheDocument();
+    });
+  });
+});

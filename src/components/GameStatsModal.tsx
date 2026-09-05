@@ -24,6 +24,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
 import DictationInbox from './GameStatsModal/components/DictationInbox';
 import GameNotesList from './GameStatsModal/components/GameNotesList';
+import PlayerPositionsEditor from './PlayerPositionsEditor';
 import type { GameNoteInput } from '@/types/game';
 import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
@@ -114,7 +115,9 @@ interface GameStatsModalProps {
   onOpenSettings?: () => void;
   /** W6/W7: the wrap-up rows open GAME settings (Ottelun tiedot), NOT app
    *  settings - tapping a row lands where the item can be completed. */
-  onOpenGameSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  onOpenGameSettings?: (section: 'roster' | 'competition') => void;
+  /** Positions played moved here from Ottelun tiedot (Phase 1b). Autosave persists like notes. */
+  onPlayerPositionsChange?: (positions: Record<string, string[]>) => void;
   onOpenAssessments?: () => void;
   /**
    * Club-level surface (L.4): hide the current-game tab entirely and land on
@@ -171,6 +174,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   masterRoster = [],
   onOpenSettings,
   onOpenGameSettings,
+  onPlayerPositionsChange,
   onOpenAssessments,
 }) => {
   const { t, i18n } = useTranslation();
@@ -567,9 +571,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   }, [activeTab, localGameEvents]);
   // Clips awaiting review, reported by the inbox; drives the wrap-up row.
   const [voiceClipCount, setVoiceClipCount] = useState(0);
-  const scrollToInbox = useCallback(() => {
-    document.getElementById('dictation-inbox')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToId = useCallback((id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+  const scrollToInbox = useCallback(() => scrollToId('dictation-inbox'), [scrollToId]);
+  const scrollToReport = useCallback(() => scrollToId('game-report-editor'), [scrollToId]);
+  const scrollToPositions = useCallback(() => scrollToId('positions-editor'), [scrollToId]);
+  const currentGameType = currentGameId ? savedGames?.[currentGameId]?.gameType : undefined;
   // Note deletion mirrors the goal editor: one in flight at a time, and a
   // storage failure (handleDeleteGameEvent returns false) is told, not swallowed.
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
@@ -1047,6 +1055,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       onOpenAssessments={onOpenAssessments}
                       voiceClipCount={voiceClipCount}
                       onOpenVoiceNotes={scrollToInbox}
+                      onOpenReport={scrollToReport}
+                      onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
                     />
                   )}
                   {activeTab === 'currentGame' && (
@@ -1145,6 +1155,20 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
                       <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
 
+                      {onPlayerPositionsChange && (
+                        <div id="positions-editor" data-testid="positions-editor" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                          <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
+                          <p className="text-xs text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
+                          <PlayerPositionsEditor
+                            players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+                            value={playerPositions ?? {}}
+                            gameType={currentGameType}
+                            onChange={onPlayerPositionsChange}
+                          />
+                        </div>
+                      )}
+
+                      <div id="game-report-editor">
                       <GameNotesEditor
                         gameNotes={gameNotes}
                         isEditingNotes={isEditingNotes}
@@ -1155,6 +1179,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         onCancelEdit={handleCancelEditNotes}
                         onEditNotesChange={setEditGameNotes}
                       />
+                      </div>
                     </>
                   )}
                 </div>
