@@ -581,7 +581,11 @@
     "noSeasonGames": "No games found for this season.",
     "noTournamentGames": "No games found for this tournament.",
     "noGoals": "No goals recorded.",
-    "deleteEventFailed": "Failed to delete the event. Please try again."
+    "deleteEventFailed": "Failed to delete the event. Please try again.",
+    "spineStep": "Step {{n}} of {{total}}",
+    "spineAddGoal": "Add a goal",
+    "spineOpenAssessments": "Open player assessments",
+    "spineShareTitle": "Share the match"
   },
   "importResults": {
     "title": "Import Results",

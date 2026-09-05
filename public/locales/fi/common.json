@@ -794,7 +794,11 @@
     "game": "Ottelu",
     "games": "Ottelut",
     "noGoals": "Ei kirjattuja maaleja.",
-    "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen."
+    "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen.",
+    "spineStep": "Vaihe {{n}}/{{total}}",
+    "spineAddGoal": "Lisää maali",
+    "spineOpenAssessments": "Avaa pelaaja-arviot",
+    "spineShareTitle": "Jaa ottelukooste"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."

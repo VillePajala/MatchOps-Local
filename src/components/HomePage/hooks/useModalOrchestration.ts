@@ -456,6 +456,10 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
         setIsGameStatsModalOpen(false);
         setIsPlayerAssessmentModalOpen(true);
       },
+      wrapUpToGoalLog: () => {
+        setIsGameStatsModalOpen(false);
+        timerManagement.handleToggleGoalLogModal();
+      },
     },
   };
 

@@ -136,6 +136,7 @@ const createProps = (): ModalManagerProps => ({
     addPlayerToClubRoster: async () => null,
     wrapUpToGameSettings: noop,
     wrapUpToAssessments: noop,
+    wrapUpToGoalLog: noop,
     applyFormation: jest.fn(() => true),
     reapplyPlan: noop,
     setGamePersonnel: noop,

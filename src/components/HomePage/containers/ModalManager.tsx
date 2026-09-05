@@ -118,6 +118,8 @@ interface ModalManagerHandlers {
   /** W6: wrap-up rows navigate to where the item is completed. */
   wrapUpToGameSettings: (section: 'roster' | 'competition') => void;
   wrapUpToAssessments: () => void;
+  /** Phase 1b: the Goals step's add button - leave the stats view, open the goal log. */
+  wrapUpToGoalLog: () => void;
   /** Re-place the squad in a formation preset (tracked for the guided tour). */
   applyFormation: (presetId: string | null) => void;
 }
@@ -214,6 +216,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onOpenSettings={handlers.openSettingsModal}
           onOpenGameSettings={handlers.wrapUpToGameSettings}
           onOpenAssessments={handlers.wrapUpToAssessments}
+          onAddGoal={handlers.wrapUpToGoalLog}
         />
       )}
 
