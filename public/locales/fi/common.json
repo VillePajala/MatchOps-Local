@@ -3525,5 +3525,23 @@
     "errorInvalid": "Luonnos tuli lukukelvottomana. Yritä uudelleen.",
     "unknownPlayer": "Tuntematon pelaaja",
     "errorNoOutput": "Tekoälypalvelu vastasi mutta ei kirjoittanut mitään. Se ehkä käytti budjettinsa ajatteluun. Yritä uudelleen, tai kerro mikä malli tilillesi kuuluu."
+  },
+  "spokenReport": {
+    "title": "Sanele raportti",
+    "intro": "Nauhoita oma kertomuksesi ottelusta, ja se kirjoitetaan tähän. Kun pidät sen yhteenvetona, tekoälyluonnos kohtelee sitä sinun sanoinasi.",
+    "introNoProvider": "Nauhoita oma kertomuksesi ottelusta. Ilman yhdistettyä tekoälypalvelua se jää nauhoitteeksi äänimuistiinpanoihin, valmiina kirjoitettavaksi myöhemmin.",
+    "start": "Nauhoita raportti",
+    "stop": "Lopeta nauhoitus",
+    "transcribing": "Kirjoitetaan mitä sanoit...",
+    "textLabel": "Mitä sanoit",
+    "editHint": "Korjaa mahdolliset litterointivirheet ennen tallennusta.",
+    "save": "Pidä omana yhteenvetonani",
+    "insert": "Lisää raporttitekstiin",
+    "discard": "Heitä nauhoitus pois",
+    "saved": "Tallennettu omaksi yhteenvedoksesi.",
+    "inserted": "Lisätty otteluraporttiin.",
+    "saveFailed": "Tallennus ei onnistunut.",
+    "errorTranscribe": "Litterointi ei onnistunut. Nauhoitus on äänimuistiinpanoissa.",
+    "errorUnauthorized": "Tekoälypalvelu hylkäsi avaimen. Tarkista se asetuksista."
   }
 }

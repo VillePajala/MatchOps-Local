@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AiMeta, GameNoteInput } from '@/types/game';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
@@ -50,6 +51,8 @@ interface ModalManagerData {
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
   canReapplyPlan: boolean;
+  /** Shared mic controls, so the spoken report uses the same recorder as the overlay. */
+  dictation?: DictationControls;
   teams: Team[];
   seasons: Season[];
   tournaments: Tournament[];
@@ -206,6 +209,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             onUpdateGameEvent={handlers.updateGameEvent}
             onAddGameNote={handlers.addGameNote}
             onApplyReportDraft={handlers.applyReportDraft}
+            dictation={data.dictation}
             selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
             savedGames={data.savedGames}
             currentGameId={data.currentGameId}
