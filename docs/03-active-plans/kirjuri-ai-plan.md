@@ -196,6 +196,14 @@ not a measurement:
   "3 observations over 8 games", "positions recorded in 2/8 games", "no notes
   this season". No averages over sparse fields (no mean demand, no
   minutes-fairness percentages below a coverage threshold).
+- **Trust tiers: plan is not record.** Every packet field is labelled for the
+  AI as recorded (as it happened: score, goals/assists, cards, penalties, note
+  clock stamps), attested (coach entered afterwards: positions played, note
+  text, debrief - "the coach noted", never "it happened"), or planned (intent
+  before kick-off: planner minutes, starting formation, sub schedule - context
+  only, never a claim about a player). Per-player minutes stay out of summaries
+  until the actual-playing-time record (roadmap P4) exists; planner minutes
+  are never used for fairness statements.
 - **The equalizer is the coach; the app nudges the coach.** A coverage view
   ("notes on 6 of 14 players this month - nothing on Aino, Veeti, Leo") on the
   team page and in the post-game wrap-up turns gaps into next game's watching
@@ -334,7 +342,8 @@ parent share cards fed by AI summaries.
   hands-free PRs; match report stays plain text under the 7 real headings (cap 2000 ->
   4000).
 - 2026-09-05: data honesty rules (absence is not evidence, defaults are not
-  measurements, coverage shown with denominators, coach-nudging coverage view);
+  measurements, trust tiers recorded / attested / planned, coverage shown with
+  denominators, coach-nudging coverage view);
   note `tag`, AI provenance `aiMeta`, own record for season summaries; audio
   never kept.
 - 2026-09-04 (privacy): Google Web Speech dropped; on-device not viable for Finnish
