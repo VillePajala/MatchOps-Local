@@ -230,6 +230,18 @@ describe('ReportDraftPanel - protecting text the coach already wrote', () => {
     expect(screen.getByTestId('report-draft-review')).toBeInTheDocument();
   });
 
+  /** @critical - the panel must append to the text as it is now, not as it
+   *  was last saved, or a just-typed line would be overwritten. */
+  it('appends to the report text it was handed, including an unsaved edit', () => {
+    const justTyped = 'Rivi jonka kirjoitin juuri nyt.';
+    const { onApply } = renderPanel({ game: game({ gameNotes: justTyped }) });
+    return (async () => {
+      await produceDraft();
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+      expect(onApply.mock.calls[0][0].gameNotes).toContain(justTyped);
+    })();
+  });
+
   /** @critical - a warning after the text was cut is no warning at all. */
   it('warns that the report would be cut before the coach applies it', async () => {
     renderPanel({ game: game({ gameNotes: 'x'.repeat(3995) }) });

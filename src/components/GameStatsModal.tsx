@@ -596,7 +596,22 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Phase 3: the draft panel needs the saved game as one object plus a clock
   // stamp for the notes it creates. The last event is where the match actually
   // ended, which beats the planned period length for a game cut short.
-  const currentGame = currentGameId ? savedGames?.[currentGameId] : undefined;
+  const savedGame = currentGameId ? savedGames?.[currentGameId] : undefined;
+  /**
+   * The game as it is RIGHT NOW, not as it was last written to storage.
+   *
+   * The draft panel both reads the report text it appends to and builds the
+   * packet from this. Using the saved snapshot would mean a note accepted or a
+   * report line typed seconds ago is missing from the draft - and worse, that
+   * applying the draft would write stale text back over the newer edit.
+   */
+  const currentGame = useMemo(
+    () =>
+      savedGame
+        ? ({ ...savedGame, gameNotes, gameEvents: localGameEvents, playerPositions: playerPositions ?? savedGame.playerPositions } as AppState)
+        : undefined,
+    [savedGame, gameNotes, localGameEvents, playerPositions],
+  );
   const lastEvent = useMemo(
     () => localGameEvents.reduce<GameEvent | undefined>((latest, e) => (!latest || e.time > latest.time ? e : latest), undefined),
     [localGameEvents],
