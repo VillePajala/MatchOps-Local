@@ -1286,7 +1286,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
               )}
-              {activeTab !== 'currentGame' && activeTab !== 'player' && onExportAggregateExcel && !noGamesInContext && processedGameIds.length > 0 && (
+              {activeTab !== 'player' && onExportAggregateExcel && !noGamesInContext && processedGameIds.length > 0 && (
                 <button
                   onClick={() => onExportAggregateExcel(processedGameIds, playerStats)}
                   className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"
