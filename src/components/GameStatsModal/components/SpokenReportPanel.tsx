@@ -52,7 +52,12 @@ export interface SpokenReportPanelProps {
   /** Stores the transcript as a note. Returns false when nothing was stored. */
   onSaveSummary: (note: GameNoteInput) => boolean;
   /** Adds the transcript to the report text the coach is writing. */
-  onInsertIntoReport: (text: string) => void;
+  /**
+   * Put this text into the match report. Must return true ONLY when the text
+   * is stored - the recording is deleted on true, and once it is gone the
+   * words cannot be recovered at any price.
+   */
+  onInsertIntoReport: (text: string) => boolean;
   /** Scrolls to the notes list, so a note the coach cannot see is not lost. */
   onShowNotes?: () => void;
   /** Clock stamp for the note: where the match ended. */
@@ -243,7 +248,16 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
     if (!trimmed || busy) return;
     setBusy(true);
     try {
-      onInsertIntoReport(trimmed);
+      // Same contract as saving a note: the clip is only dropped once the
+      // words are somewhere durable. This used to drop it regardless, so a
+      // report that could not be written left neither text nor recording.
+      if (!onInsertIntoReport(trimmed)) {
+        showToast(
+          t('spokenReport.insertFailed', 'Could not add that to the report. Your recording is kept.'),
+          'error',
+        );
+        return;
+      }
       await dropClip();
       setText('');
       showToast(t('spokenReport.inserted', 'Added to the match report.'), 'success');

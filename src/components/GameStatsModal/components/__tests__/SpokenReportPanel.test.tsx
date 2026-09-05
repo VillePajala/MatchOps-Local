@@ -73,7 +73,10 @@ const clip = {
 
 const renderPanel = (over: { dictation?: Partial<DictationControls>; onSaveSummary?: jest.Mock } = {}) => {
   const onSaveSummary = over.onSaveSummary ?? jest.fn(() => true);
-  const onInsertIntoReport = jest.fn();
+  // Mirrors the real contract: true means the text is stored, and only then
+  // may the recording be deleted. A mock returning undefined would let the
+  // panel pass a test the app itself would fail.
+  const onInsertIntoReport = jest.fn(() => true);
   const onShowNotes = jest.fn();
   const dictation = controls(over.dictation);
   const view = render(
@@ -401,6 +404,25 @@ describe('SpokenReportPanel - the transcript', () => {
       'Tasainen ottelu, hyvä prässi toisella puoliajalla.',
       'u1',
     );
+  });
+
+  /**
+   * @critical - the recording is the only copy of the coach's words. It used to
+   * be deleted whether or not the report could take the text, so a refused
+   * insert left neither.
+   */
+  it('keeps the recording when the report could not take the text', async () => {
+    const view = renderPanel();
+    view.onInsertIntoReport.mockReturnValueOnce(false);
+    await recordAndFinish(view);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('spoken-report-insert'));
+    });
+
+    expect(deleteClip).not.toHaveBeenCalled();
+    // And the words are still on screen to try again with.
+    expect(screen.getByTestId('spoken-report-text')).toHaveTextContent('Tasainen ottelu');
   });
 
   it('throws the recording away when asked, storing nothing', async () => {

@@ -230,7 +230,9 @@
     "transcribeRejected": "Palvelu ei pystynyt litteroimaan yhtä klippiä - kirjoita se itse.",
     "transcribeDone": "{{count}} klippiä litteroitu - tarkista teksti ja pelaaja, tallenna sitten.",
     "transcribeRejectedCount": "{{count}} klippiä ei voitu litteroida - kirjoita ne itse.",
-    "transcribingHint": "Lähetetään klippejä tekoälypalveluusi."
+    "transcribingHint": "Lähetetään klippejä tekoälypalveluusi.",
+    "discardClipTitle": "Hylätäänkö tämä äänitys?",
+    "discardClipBody": "Äänitys poistetaan lopullisesti. Kaikki mitä et ole tallentanut muistiinpanoksi katoaa sen mukana."
   },
   "undoToast": {
     "goal": "Maali kirjattu",
@@ -809,7 +811,8 @@
       "spirit": "Joukkuehenki ja asenne",
       "mentions": "Erityismaininnat",
       "next": "Seuraava askel"
-    }
+    },
+    "notesRemaining": "{{remaining}} merkkiä jäljellä"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."
@@ -3485,11 +3488,11 @@
     "title": "Ennen kuin yhdistät tekoälypalvelun",
     "version": "Versio",
     "dataTitle": "Mitä tiedoillesi tapahtuu",
-    "data1": "Tallenteet pysyvät tässä puhelimessa. MatchOps ei koskaan vastaanota tallenteitasi, litterointeja tai tekoälyn tuloksia.",
+    "data1": "Äänitykset pysyvät tässä puhelimessa. MatchOps ei koskaan vastaanota ääntäsi.",
     "data2": "Kun painat Litteroi tai Luonnostele, tallenne tai muistiinpanot lähetetään tästä puhelimesta SINUN yhdistämällesi tekoälypalvelulle, SINUN tililläsi ja SINUN avaimellasi.",
     "data3": "Palvelu voi säilyttää tietoja rajoitetun ajan omien ehtojensa mukaan (OpenAI: ei käytetä koulutukseen, väärinkäytösvalvonnan lokit enintään 30 päivää, käsittely Yhdysvalloissa). Lue palvelusi ehdot - MatchOps ei ole niiden osapuoli.",
     "data4": "Kulut laskutetaan palvelutililtäsi. Luo oma avain ja aseta sille kuukausittainen kulukatto.",
-    "data5": "Pelaajien nimet korvataan koodeilla ennen luonnostelupyyntöjä (voit kytkeä tämän pois). Litterointi sisältää väistämättä sen, mitä sanoit.",
+    "data5": "Pelaajien nimet korvataan koodeilla ennen jokaista luonnostelupyyntöä (voit ottaa tämän pois). Litterointi sisältää väistämättä sen mitä sanoit, ja äänen mukana lähetetään kyseisen ottelun pelaajien etunimet, jotta palvelu kirjoittaa ne oikein.",
     "data6": "Voit irrottaa palvelun ja poistaa kaikki tallenteet milloin tahansa asetuksista.",
     "rulesTitle": "Sanelun säännöt",
     "rule1": "Puhu jalkapallotapahtumista, älä ihmisten elämästä.",
@@ -3500,7 +3503,8 @@
     "box1": "Ymmärrän, että tallenteet ja muistiinpanot menevät omalle tekoälypalvelulleni omalla tililläni, eikä MatchOps koskaan vastaanota niitä.",
     "box2": "Olen lukenut palveluni tietoehdot ja hyväksyn, että se voi säilyttää tietoja rajoitetun ajan.",
     "box3": "Noudatan sanelun sääntöjä enkä sanele terveys- tai muita arkaluonteisia tietoja.",
-    "accept": "Ymmärrän, jatka"
+    "accept": "Ymmärrän, jatka",
+    "data1b": "Muistiinpano tai raportti, jonka TALLENNAT, on siitä eteenpäin tavallista ottelutietoa. Jos käytät MatchOpsia tunnuksella, se synkronoituu ja varmuuskopioituu kuten muutkin ottelumuistiinpanosi."
   },
   "reportDraft": {
     "title": "Luonnostele tekoälyllä",
@@ -3535,7 +3539,9 @@
     "errorNoOutput": "Tekoälypalvelu vastasi mutta ei kirjoittanut mitään. Se ehkä käytti budjettinsa ajatteluun. Yritä uudelleen, tai kerro mikä malli tilillesi kuuluu.",
     "openSettings": "Avaa asetukset",
     "duplicationNote": "Luonnos on kirjoitettu tietäen mitä olet jo kirjoittanut, joten se voi käsitellä samoja asioita kahdesti. Korvaa välttää sen, ja voit peruuttaa.",
-    "working": "Luonnosta kirjoitetaan tekoälypalvelussasi. Tämä kestää muutaman sekunnin."
+    "working": "Luonnosta kirjoitetaan tekoälypalvelussasi. Tämä kestää muutaman sekunnin.",
+    "tidy": "Siisti se mitä kirjoitin",
+    "reviewHintTidy": "Oma kertomuksesi järjestettynä otsikoiden alle. Poista rasti kohdista joissa merkitys muuttui."
   },
   "spokenReport": {
     "title": "Sanele raportti",
@@ -3557,6 +3563,7 @@
     "costHint": "Kirjoittaminen kustantaa noin {{usd}} dollaria minuutilta tekoälypalvelusi tilillä, ja alkaa kun lopetat nauhoituksen.",
     "storedOnly": "Nauhoitettu ja tallennettu. Sitä ei saatu kirjoitettua auki, joten se odottaa tämän sivun Muistiinpanot-kohdassa.",
     "savedWhere": "Tallennettu muistiinpanoksi, ei raporttitekstiksi. Se on ylempänä tällä sivulla kohdassa Muistiinpanot, ja tekoälyluonnos käyttää sitä omana kertomuksenasi.",
-    "showNotes": "Näytä muistiinpanot"
+    "showNotes": "Näytä muistiinpanot",
+    "insertFailed": "Raporttiin ei voitu lisätä tätä. Äänitys säilyy."
   }
 }

@@ -5,6 +5,7 @@
  * failure has a typed kind the inbox can explain.
  */
 import {
+  dictationVocabularyFor,
   TranscriptionError,
   buildVocabularyPrompt,
   estimateTranscriptionUsd,
@@ -144,5 +145,32 @@ describe('helpers', () => {
     expect(estimateTranscriptionUsd(0)).toBe(0);
     expect(estimateTranscriptionUsd(30_000)).toBe(0.01); // half a minute
     expect(estimateTranscriptionUsd(10 * 60_000)).toBe(0.03);
+  });
+});
+
+describe('dictationVocabularyFor', () => {
+  const P = (name: string, nickname?: string) => ({ name, nickname });
+
+  it('sends first names and nicknames, in the coach spelling', () => {
+    expect(dictationVocabularyFor([P('Emma Virtanen', 'Emma'), P('Matti Korhonen')]))
+      .toEqual(['Emma', 'Matti']);
+  });
+
+  it('dedupes case-insensitively but keeps the original casing', () => {
+    expect(dictationVocabularyFor([P('Emma Virtanen', 'emma'), P('Emma Korhonen')])).toEqual(['emma']);
+  });
+
+  it('skips a one-letter term, which is an initial rather than a name', () => {
+    expect(dictationVocabularyFor([P('A Virtanen')])).toEqual([]);
+  });
+
+  /**
+   * @critical - this list is text about children that leaves the device on
+   * every clip. The caller decides the scope; this only proves the function
+   * adds nobody the caller did not pass in.
+   */
+  it('sends nobody the caller did not pass in', () => {
+    expect(dictationVocabularyFor([])).toEqual([]);
+    expect(dictationVocabularyFor([P('Emma Virtanen')])).toEqual(['Emma']);
   });
 });

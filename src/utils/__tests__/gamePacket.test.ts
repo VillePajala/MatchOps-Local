@@ -132,6 +132,43 @@ describe('buildGamePacket - pseudonymization', () => {
     expect(json).not.toContain('refToPlayerId');
   });
 
+  /**
+   * @critical - the report editor has no autosave, so what the coach can see is
+   * routinely newer than what the game holds. A caller with the live text says
+   * so, and it must be that text that goes out - and it is redacted like any
+   * other, not waved through because it arrived by a different route.
+   */
+  it('prefers the on-screen report over the saved one, and still redacts it', () => {
+    const { packet } = buildGamePacket({
+      game: baseGame({ gameNotes: 'Vanha tallennettu teksti.' }),
+      players: roster,
+      coachReport: 'Emma ja Matti johtivat peliä.',
+    });
+
+    expect(packet.attested.coachReport).toBe('P1 ja P2 johtivat peliä.');
+    expect(JSON.stringify(packet)).not.toContain('Vanha tallennettu');
+  });
+
+  it('falls back to the saved report when no on-screen text is given', () => {
+    const { packet } = buildGamePacket({
+      game: baseGame({ gameNotes: 'Tallennettu.' }),
+      players: roster,
+    });
+    expect(packet.attested.coachReport).toBe('Tallennettu.');
+  });
+
+  it('treats an emptied editor as no report rather than falling back to the saved one', () => {
+    // The coach cleared the box. Reviving the old text would put words back
+    // that they deliberately deleted.
+    const { packet } = buildGamePacket({
+      game: baseGame({ gameNotes: 'Vanha teksti.' }),
+      players: roster,
+      coachReport: '   ',
+    });
+    expect(packet.attested).not.toHaveProperty('coachReport');
+    expect(packet.coverage.coachReport).toBe(false);
+  });
+
   it('uses real names when the coach turned pseudonymization off, and keeps refs unique', () => {
     const otherEmma = player('p5', 'Emma Salo', 'Emma');
     const { packet, refToPlayerId } = buildGamePacket({
@@ -188,6 +225,42 @@ describe('redactPlayerNames', () => {
     expect(redactPlayerNames('Emna otti pallon', [emma], refOf)).toBe('P1 otti pallon');
   });
 
+  /**
+   * @critical - a hyphenated first name went to the provider in cleartext. The
+   * handle was the joined "juha-pekka" while the text tokeniser split the word
+   * on the hyphen, so neither half ever met its handle and the promise of
+   * "codes, always" quietly did not hold for these children.
+   */
+  it('redacts a hyphenated name, whole or by either part', () => {
+    const jp = { id: 'p1', name: 'Juha-Pekka Virtanen' } as Player;
+    expect(redactPlayerNames('Juha-Pekka teki syötön', [jp], refOf)).toBe('P1 teki syötön');
+    // The pitch name, not the team-sheet name.
+    expect(redactPlayerNames('Juha teki syötön', [jp], refOf)).toBe('P1 teki syötön');
+    expect(redactPlayerNames('Pekka teki syötön', [jp], refOf)).toBe('P1 teki syötön');
+    // ...and inflected on the compound.
+    expect(redactPlayerNames('Juha-Pekan syöttö', [jp], refOf)).toBe('P1 syöttö');
+  });
+
+  it('redacts a name held together by an apostrophe', () => {
+    const liam = { id: 'p1', name: "Liam O'Brien" } as Player;
+    expect(redactPlayerNames("O'Brien torjui", [liam], refOf)).toBe('P1 torjui');
+  });
+
+  /**
+   * @critical - two-letter names exist, and the old three-character floor meant
+   * the app said "names are replaced with codes" and then sent them.
+   */
+  it('redacts a two-letter name, but only where it stands alone', () => {
+    const bo = { id: 'p1', name: 'Bo Nieminen' } as Player;
+    expect(redactPlayerNames('Bo puolusti hyvin', [bo], refOf)).toBe('P1 puolusti hyvin');
+    // No inflection rule is safe at two letters, so nothing else may match.
+    expect(redactPlayerNames('Bonus oli iso, bussi tuli', [bo], refOf)).toBe('Bonus oli iso, bussi tuli');
+  });
+
+  it('leaves ordinary hyphenated words alone', () => {
+    expect(redactPlayerNames('ala-aste ja sivu-ura', [emma, matti], refOf)).toBe('ala-aste ja sivu-ura');
+  });
+
   it('leaves text alone when nothing matches', () => {
     expect(redactPlayerNames('Joukkue puolusti hyvin', [emma, matti], refOf)).toBe('Joukkue puolusti hyvin');
   });
@@ -236,9 +309,24 @@ describe('redactPlayerNames', () => {
     expect(redactPlayerNames('Leolle syöttö', [leo], ref)).toBe('P1 syöttö');
   });
 
-  it('collects nickname and every name part as a handle, ignoring short ones', () => {
-    expect(playerRedactionHandles(player('x', 'Bo Li', 'Bo'))).toEqual([]);
+  /**
+   * This test used to assert that "Bo Li" produced NO handles - i.e. it pinned
+   * the leak in place as if it were a rule. A child whose name is two letters
+   * is still a child the consent gate promised to replace with a code, so the
+   * floor is now two and short handles match only themselves.
+   */
+  it('collects nickname and every name part as a handle, down to two letters', () => {
+    expect(playerRedactionHandles(player('x', 'Bo Li', 'Bo')).sort()).toEqual(['bo', 'li']);
     expect(playerRedactionHandles(emma).sort()).toEqual(['emma', 'virtanen']);
+  });
+
+  it('keeps a compound name and each of its parts', () => {
+    expect(playerRedactionHandles(player('x', 'Juha-Pekka Virtanen')).sort())
+      .toEqual(['juha', 'juha-pekka', 'pekka', 'virtanen']);
+  });
+
+  it('drops a single letter, which cannot be told from an initial', () => {
+    expect(playerRedactionHandles(player('x', 'A Virtanen')).sort()).toEqual(['virtanen']);
   });
 });
 

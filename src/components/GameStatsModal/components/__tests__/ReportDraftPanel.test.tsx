@@ -293,6 +293,58 @@ describe('ReportDraftPanel - reviewing a draft', () => {
     expect(screen.queryByTestId('report-draft-undo')).not.toBeInTheDocument();
   });
 
+  /** Tidying replaces by intent, so the coach is not left with both versions. */
+  it('offers tidying only when there is something to tidy, and defaults it to replace', async () => {
+    const empty = renderPanel();
+    expect(screen.queryByTestId('report-draft-tidy')).not.toBeInTheDocument();
+    empty.unmount();
+
+    renderPanel({ game: game({ gameNotes: 'Omat muistiinpanoni.' }), existingReport: 'Omat muistiinpanoni.' });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+    });
+    await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
+
+    expect(draftMatchReport).toHaveBeenCalledWith(expect.objectContaining({ mode: 'tidy' }));
+    expect((screen.getByTestId('report-draft-mode-replace') as HTMLInputElement).checked).toBe(true);
+    // Destructive by intent, so the warning and the undo still stand.
+    expect(screen.getByTestId('report-draft-replace-warning')).toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the editor has no autosave, so the saved game and the text on
+   * screen routinely differ. Drafting from the saved copy tidied a document the
+   * coach was not looking at, then offered to replace what they had typed with
+   * it. The packet must carry the on-screen text.
+   */
+  it('tidies the text on screen, not the last saved report', async () => {
+    renderPanel({
+      // Nothing saved yet: the coach has typed a first report and not pressed Save.
+      game: game({ gameNotes: '' }),
+      existingReport: 'Tanaan pelattiin hyvin, puolustus piti.',
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+    });
+    await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
+
+    const sent = draftMatchReport.mock.calls.at(-1)?.[0] as { packet: { attested: { coachReport?: string } } };
+    expect(sent.packet.attested.coachReport).toContain('puolustus piti');
+  });
+
+  it('sends the saved report when the panel has no newer text', async () => {
+    renderPanel({ game: game({ gameNotes: 'Tallennettu raportti.' }) });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+    });
+    await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
+
+    const sent = draftMatchReport.mock.calls.at(-1)?.[0] as { packet: { attested: { coachReport?: string } } };
+    expect(sent.packet.attested.coachReport).toContain('Tallennettu raportti');
+  });
+
   it('cannot apply when the coach unticked everything', async () => {
     renderPanel();
     await produceDraft();

@@ -18,13 +18,19 @@
  * - The draft is discarded on close. Nothing persists until Apply.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import type { GameEvent } from '@/types/game';
 import type { Player } from '@/types';
 import type { AppState } from '@/types/game';
-import { DraftingError, draftMatchReport, estimateDraftUsd, type ReportDraft } from '@/utils/aiDrafting';
+import {
+  DraftingError,
+  draftMatchReport,
+  estimateDraftUsd,
+  type DraftingMode,
+  type ReportDraft,
+} from '@/utils/aiDrafting';
 import { applyReportDraft, composeReportText, resolveRefsInText, type ApplyMode } from '@/utils/applyReportDraft';
 import { forgetReplacedReport, readReplacedReport, rememberReplacedReport } from '@/utils/reportUndo';
 import { UNKNOWN_PLAYER_REF, buildGamePacket } from '@/utils/gamePacket';
@@ -93,6 +99,8 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const [skippedSections, setSkippedSections] = useState<Set<string>>(new Set());
   const [skippedNotes, setSkippedNotes] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<ApplyMode>('append');
+  /** Which job produced the draft on screen, for wording and for the default. */
+  const [draftedAs, setDraftedAs] = useState<DraftingMode>('full');
   // Read from the device, not just from this component: every hand-off this
   // panel offers closes the modal it lives in, and the replaced report has no
   // other copy once the notes are overwritten.
@@ -104,15 +112,28 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
   // Built fresh for the estimate so a settings change (pseudonymization) is
   // reflected before the coach sees a number.
+  // The estimate has to reflect the text that will actually be sent, but that
+  // text is the textarea buffer and changes on every keystroke. Deferring it
+  // keeps typing responsive: the number catches up a beat later, which is all a
+  // "roughly $X" hint needs.
+  const estimateReport = useDeferredValue(existingReport);
   const estimate = useMemo(() => {
     if (!ai.connected) return 0;
     try {
-      const { packet } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize, language });
+      // Same packet the request will send, on-screen report included, so the
+      // number the coach reads is an estimate of the job they are about to run.
+      const { packet } = buildGamePacket({
+        game,
+        players,
+        pseudonymize: ai.pseudonymize,
+        language,
+        coachReport: estimateReport,
+      });
       return estimateDraftUsd(packet);
     } catch {
       return 0;
     }
-  }, [ai.connected, ai.pseudonymize, game, players, language]);
+  }, [ai.connected, ai.pseudonymize, estimateReport, game, players, language]);
 
   /**
    * Codes are what the provider saw; the coach should see the child. The mapping
@@ -169,18 +190,33 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
     });
   }, [draft, approvedSections, approvedNoteIndexes, existingReport, mode, refMap, nameForRef, stamp, t]);
 
-  const runDraft = useCallback(async () => {
+  const runDraft = useCallback(async (job: DraftingMode = 'full') => {
     if (drafting) return;
     setDrafting(true);
     setUndoText(null);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const { packet, refToPlayerId } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize, language });
-      const result = await draftMatchReport({ packet, signal: controller.signal });
+      // `existingReport` is the textarea's live buffer, which the saved game
+      // does not have until the coach presses Save. Tidying is defined as
+      // "organise what is on my screen", so the packet has to carry that text
+      // and not the older saved copy.
+      const { packet, refToPlayerId } = buildGamePacket({
+        game,
+        players,
+        pseudonymize: ai.pseudonymize,
+        language,
+        coachReport: existingReport,
+      });
+      const result = await draftMatchReport({ packet, signal: controller.signal, mode: job });
       // Real token usage when the provider reported it, else our own estimate.
       recordAiUsage('drafting', result.usage?.estimatedUsd ?? estimateDraftUsd(packet));
       setDraft(result);
+      setDraftedAs(job);
+      // Tidying returns the coach's own words organised, so keeping the untidy
+      // original above it would defeat the point. Replace is the intent here,
+      // and it still warns and still offers undo.
+      setMode(job === 'tidy' ? 'replace' : 'append');
       setRefMap(refToPlayerId);
       setSkippedSections(new Set());
       setSkippedNotes(new Set());
@@ -215,7 +251,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
       if (abortRef.current === controller) abortRef.current = null;
       if (!controller.signal.aborted) setDrafting(false);
     }
-  }, [ai.pseudonymize, drafting, game, players, showToast, t, language]);
+  }, [ai.pseudonymize, drafting, existingReport, game, players, showToast, t, language]);
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
@@ -317,9 +353,22 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
               </button>
             </>
           ) : (
-            <button type="button" onClick={() => void runDraft()} className={PRIMARY} data-testid="report-draft-start">
+            <button type="button" onClick={() => void runDraft('full')} className={PRIMARY} data-testid="report-draft-start">
               <HiOutlineSparkles className="text-base" />
               {t('reportDraft.start', 'Draft the report')}
+            </button>
+          )}
+          {!drafting && existingReport.trim() && (
+            // Only offered when there IS something to tidy: a different job
+            // from writing one, and the one that removes the main reason a
+            // report never gets written at all.
+            <button
+              type="button"
+              onClick={() => void runDraft('tidy')}
+              className={`${SECONDARY} mt-2`}
+              data-testid="report-draft-tidy"
+            >
+              {t('reportDraft.tidy', 'Tidy up what I wrote')}
             </button>
           )}
           {undoText !== null && (
@@ -333,7 +382,9 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
       {draft && preview && (
         <div className="space-y-4" data-testid="report-draft-review">
           <p className="text-xs text-slate-400">
-            {t('reportDraft.reviewHint', 'Untick anything you do not want. Only ticked items are saved.')}
+            {draftedAs === 'tidy'
+              ? t('reportDraft.reviewHintTidy', 'Your own account, organised under the headings. Untick anything that lost your meaning.')
+              : t('reportDraft.reviewHint', 'Untick anything you do not want. Only ticked items are saved.')}
           </p>
 
           {draft.dataCaveat && (
