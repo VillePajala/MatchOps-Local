@@ -48,6 +48,12 @@ export interface ApplyReportDraftResult {
   reportTruncated: boolean;
   /** Set on `replace` so the caller can offer to undo. */
   replacedReport?: string;
+  /**
+   * Provenance to store alongside the report, set only when drafted text was
+   * actually applied. On `append` the report is then part coach, part model,
+   * and this records which model contributed - not that it wrote all of it.
+   */
+  reportAiMeta?: AiMeta;
   /** Approved notes whose ref no longer maps to a player; nothing was created. */
   droppedRefs: string[];
 }
@@ -91,6 +97,7 @@ export function applyReportDraft({
   stamp,
   idFactory = defaultIdFactory,
 }: ApplyReportDraftOptions): ApplyReportDraftResult {
+  const meta: AiMeta = { model: draft.model, packet: draft.packetFingerprint };
   const drafted = composeReportText(draft, approvedSections, labelFor);
   const existing = existingReport.trim();
 
@@ -113,7 +120,6 @@ export function applyReportDraft({
   const reportTruncated = composed.length > cap;
   const report = reportTruncated ? composed.slice(0, cap).trimEnd() : composed;
 
-  const meta: AiMeta = { model: draft.model, packet: draft.packetFingerprint };
   const noteEvents: GameEvent[] = [];
   const droppedRefs: string[] = [];
   const wanted = new Set(approvedPlayerNoteIndexes);
@@ -144,6 +150,8 @@ export function applyReportDraft({
     noteEvents,
     reportTruncated,
     ...(replacedReport ? { replacedReport } : {}),
+    // Only claim provenance when something drafted actually went in.
+    ...(drafted ? { reportAiMeta: meta } : {}),
     droppedRefs,
   };
 }

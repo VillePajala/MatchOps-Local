@@ -7,10 +7,10 @@
  * does not know.
  */
 import { applyReportDraft, composeReportText } from '../applyReportDraft';
-import type { ReportDraft } from '../aiDrafting';
+import type { ReportDraft, ReportSectionKey } from '../aiDrafting';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 
-const labelFor = (section: string) =>
+const labelFor = (section: ReportSectionKey): string =>
   ({
     overview: 'Yleiskuva',
     flow: 'Pelin kulku',
@@ -37,7 +37,7 @@ const draft = (over: Partial<ReportDraft> = {}): ReportDraft => ({
 
 const base = {
   draft: draft(),
-  approvedSections: ['overview', 'next'] as const,
+  approvedSections: ['overview', 'next'] as ReportSectionKey[],
   approvedPlayerNoteIndexes: [0, 1],
   existingReport: '',
   mode: 'append' as const,
@@ -88,6 +88,19 @@ describe('applyReportDraft - the coach keeps their words', () => {
 
   it('does not flag truncation for an ordinary report', () => {
     expect(applyReportDraft(base).reportTruncated).toBe(false);
+  });
+
+  /** Provenance is a claim about the text, so it is only made when text went in. */
+  it('records report provenance only when drafted text was applied', () => {
+    expect(applyReportDraft(base).reportAiMeta).toEqual({
+      model: 'gpt-5-mini',
+      packet: 'v1-abcdef0123456789',
+    });
+    expect(applyReportDraft({ ...base, approvedSections: [] }).reportAiMeta).toBeUndefined();
+    // Notes-only approval must not stamp the report the coach wrote alone.
+    const notesOnly = applyReportDraft({ ...base, approvedSections: [], existingReport: 'Omat sanani.' });
+    expect(notesOnly.reportAiMeta).toBeUndefined();
+    expect(notesOnly.noteEvents).toHaveLength(2);
   });
 });
 
