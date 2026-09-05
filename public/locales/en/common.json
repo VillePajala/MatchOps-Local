@@ -3443,7 +3443,8 @@
     "parentText": "Hi! As the coach I keep short notes about the players during and after games - who did what well, what we are working on. The notes are written or dictated on my phone and stay in my coaching app. If I use an AI tool to tidy them into a match report, the players' names are replaced with codes before anything is sent. You can ask me at any time what I have noted about your child, and I will delete it if you wish.",
     "copy": "Copy",
     "copied": "Copied.",
-    "copyFailed": "Could not copy. Select the text and copy it manually."
+    "copyFailed": "Could not copy. Select the text and copy it manually.",
+    "rateLimited": "The provider is rate-limiting requests right now. Try again in a minute."
   },
   "aiConsent": {
     "title": "Before you connect an AI provider",

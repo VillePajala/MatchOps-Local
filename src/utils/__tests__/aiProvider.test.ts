@@ -43,6 +43,11 @@ describe('aiProvider state', () => {
     expect(getAiProviderKey()).toBe('sk-proj-abcdefghijklmnop1234');
   });
 
+  it('falls back to openai for an unknown stored provider id instead of crashing', () => {
+    localStorage.setItem('matchops_ai_provider', 'gone-provider');
+    expect(getAiProviderState().provider).toBe('openai');
+  });
+
   it('an older consent version does not count', () => {
     localStorage.setItem('matchops_ai_consent', '2020-01');
     setAiProviderKey('sk-abcdefghijklmnop');
@@ -96,9 +101,11 @@ describe('testAiProviderKey', () => {
   it('maps 401/403 to unauthorized and failures to network', async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 401 });
     expect(await testAiProviderKey('sk-abcdefghijklmnop')).toBe('unauthorized');
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 429 });
+    expect(await testAiProviderKey('sk-abcdefghijklmnop')).toBe('rateLimited');
     fetchMock.mockRejectedValueOnce(new Error('offline'));
     expect(await testAiProviderKey('sk-abcdefghijklmnop')).toBe('network');
     expect(await testAiProviderKey('   ')).toBe('unauthorized');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

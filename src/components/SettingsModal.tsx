@@ -720,7 +720,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             {/* Kirjuri (PR 4): own AI provider behind the consent gate */}
-            <AiSettingsCard userId={userId ?? undefined} />
+            <AiSettingsCard userId={userId} />
 
             {/* Season Settings - merged from Season tab */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">

@@ -59,6 +59,8 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
         showToast(t('aiSettings.connected', 'AI provider connected.'), 'success');
       } else if (result === 'unauthorized') {
         showToast(t('aiSettings.keyRejected', 'The provider rejected this key. Check it and try again.'), 'error');
+      } else if (result === 'rateLimited') {
+        showToast(t('aiSettings.rateLimited', 'The provider is rate-limiting requests right now. Try again in a minute.'), 'error');
       } else {
         showToast(t('aiSettings.testFailed', 'Could not reach the provider. Check your connection and try again.'), 'error');
       }

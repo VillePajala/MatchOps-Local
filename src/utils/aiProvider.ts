@@ -71,8 +71,12 @@ function compute(): AiProviderState {
   const consentVersion = read(CONSENT);
   const hasConsent = consentVersion === AI_CONSENT_VERSION;
   const hasKey = !!key;
+  // Validate the stored id: a removed/renamed provider or a hand-edited value
+  // must fall back, never crash the Settings modal (review #749).
+  const stored = read(PROVIDER);
+  const provider: AiProviderId = stored !== null && stored in AI_PROVIDERS ? (stored as AiProviderId) : 'openai';
   return {
-    provider: (read(PROVIDER) as AiProviderId | null) ?? 'openai',
+    provider,
     hasKey,
     keyHint: key ? key.slice(-4) : null,
     consentVersion,
@@ -147,7 +151,10 @@ export function resetAiProviderStateForTests(): void {
   snapshot = null;
 }
 
-export type AiKeyTestResult = 'ok' | 'unauthorized' | 'network';
+export type AiKeyTestResult = 'ok' | 'unauthorized' | 'rateLimited' | 'network';
+
+/** A stalled network must not leave the Connect button on "Checking..." forever. */
+const KEY_TEST_TIMEOUT_MS = 10_000;
 
 /**
  * Cheapest authenticated call the provider offers. The key travels only in the
@@ -160,9 +167,11 @@ export async function testAiProviderKey(key: string, provider: AiProviderId = 'o
     const response = await fetch(`${AI_PROVIDERS[provider].host}/v1/models?limit=1`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${trimmed}` },
+      signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(KEY_TEST_TIMEOUT_MS) : undefined,
     });
     if (response.ok) return 'ok';
     if (response.status === 401 || response.status === 403) return 'unauthorized';
+    if (response.status === 429) return 'rateLimited';
     logger.warn('[aiProvider] key test returned an unexpected status', { status: response.status });
     return 'network';
   } catch {

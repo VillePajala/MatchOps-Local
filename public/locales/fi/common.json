@@ -3443,7 +3443,8 @@
     "parentText": "Hei! Valmentajana pidän lyhyitä muistiinpanoja pelaajista otteluiden aikana ja jälkeen - mikä sujui hyvin, mitä harjoittelemme. Muistiinpanot kirjoitetaan tai sanellaan puhelimeeni ja ne pysyvät valmennussovelluksessani. Jos käytän tekoälytyökalua niiden siistimiseen otteluraportiksi, pelaajien nimet korvataan koodeilla ennen kuin mitään lähetetään. Voit milloin tahansa kysyä, mitä olen lapsestasi kirjannut, ja poistan sen halutessasi.",
     "copy": "Kopioi",
     "copied": "Kopioitu.",
-    "copyFailed": "Kopiointi ei onnistunut. Valitse teksti ja kopioi se itse."
+    "copyFailed": "Kopiointi ei onnistunut. Valitse teksti ja kopioi se itse.",
+    "rateLimited": "Palvelu rajoittaa pyyntöjä juuri nyt. Yritä uudelleen hetken kuluttua."
   },
   "aiConsent": {
     "title": "Ennen kuin yhdistät tekoälypalvelun",

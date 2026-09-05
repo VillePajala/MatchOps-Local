@@ -41,6 +41,7 @@ export type TranslationKey =
   | 'aiSettings.parentTextTitle'
   | 'aiSettings.pseudonymizeHint'
   | 'aiSettings.pseudonymizeLabel'
+  | 'aiSettings.rateLimited'
   | 'aiSettings.recordingsDeleteFailed'
   | 'aiSettings.recordingsDeleted'
   | 'aiSettings.setUp'
