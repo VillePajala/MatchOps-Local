@@ -389,9 +389,17 @@ first. One intent per surface, organised by WHEN:
   dropped (reported in `droppedRefs`) rather than guessed onto someone. Provenance
   shipped: `AiMeta {model, packet}` on note events and on the report, migration 043
   (APPLIED TO STAGING ONLY) plus both transform directions. `gameNotes` cap 2000 -> 4000.
-- PR 9b: the review screen itself - draft preview per heading, tick to approve, cost
-  shown before the request, wired into the spine's Otteluraportti step; plus the
-  "used this season" counter on the AI settings card.
+- PR 9b (done): `ReportDraftPanel` in the spine's Otteluraportti step. Cost shown
+  BEFORE the request next to one Draft button; every section and player note has its
+  own checkbox, all ticked to start; append is the default and never touches the
+  coach's text, replace warns first and offers Undo after; truncation, unmatched
+  notes and the model's own caveat all appear BEFORE Apply, not after; discard clears
+  without storing. Provenance persists: `gameNotesAiMeta` on the session reducer (new
+  `APPLY_REPORT_DRAFT` action; a hand edit via `SET_GAME_NOTES` clears it) and in both
+  save paths. `handleApplyReportDraft` refuses the scratch game and an over-cap
+  report, returning false so the panel keeps the draft on screen.
+- PR 9c: "used this season" counter on the AI settings card (token usage already
+  comes back from 8b).
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 

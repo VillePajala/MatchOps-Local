@@ -425,7 +425,7 @@ describe('Translation File Validation', () => {
       // +1: controlBar.formationMenu - the formation picker's accessible name
       //     ('Muodostelmavalikko'), unifying the control's four names (audit
       //     6.1). Lands at 2847.
-      expect(enKeys.length).toBe(2970) // 2026-09-05 Kirjuri PR 4 +68, PR 5 +9, PR 7b-1 +4, PR 7c +1, PR 9a +7 report headings -1 template blob;
+      expect(enKeys.length).toBe(2998) // 2026-09-05 Kirjuri PR 4 +68, PR 5 +9, PR 7b-1 +4, PR 7c +1, PR 9a +7 -1, PR 9b +28 (report draft panel);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -555,7 +555,7 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(fiKeys.length).toBe(2970) // 2026-09-05 Kirjuri PR 4 +68, PR 5 +9, PR 7b-1 +4, PR 7c +1, PR 9a +7 report headings -1 template blob;
+      expect(fiKeys.length).toBe(2998) // 2026-09-05 Kirjuri PR 4 +68, PR 5 +9, PR 7b-1 +4, PR 7c +1, PR 9a +7 -1, PR 9b +28 (report draft panel);
     });
   });
 });

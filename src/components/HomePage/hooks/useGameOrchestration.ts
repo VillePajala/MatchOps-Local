@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
-import type { GameNoteInput } from '@/types/game';
+import type { AiMeta, GameNoteInput } from '@/types/game';
 import { useDictationCapture } from '@/hooks/useDictationCapture';
 import type { ComponentProps } from 'react';
 import type ControlBar from '@/components/ControlBar';
@@ -1567,6 +1567,30 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     return true;
   }, [currentGameId, dispatchGameSession, showToast, t]);
 
+  /**
+   * Kirjuri (PR 9b): store an approved report draft - the text plus any notes
+   * the coach ticked - through the same autosave path everything else uses.
+   * Returns false when the game cannot hold it, so the review panel keeps the
+   * draft on screen instead of pretending it saved.
+   */
+  const handleApplyReportDraft = useCallback((payload: {
+    gameNotes: string;
+    aiMeta?: AiMeta;
+    noteEvents: GameEvent[];
+  }): boolean => {
+    // The scratch game is never autosaved: an approved draft would vanish.
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return false;
+    if (payload.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) return false;
+    dispatchGameSession({
+      type: 'APPLY_REPORT_DRAFT',
+      payload: { gameNotes: payload.gameNotes, aiMeta: payload.aiMeta },
+    });
+    for (const event of payload.noteEvents) {
+      dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: event });
+    }
+    return true;
+  }, [currentGameId, dispatchGameSession]);
+
   // Session coordination handlers
   const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
   const handleGameDateChange = sessionCoordination.handlers.setGameDate;
@@ -2487,6 +2511,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     handlers: {
       handleUpdateGameEvent,
       handleAddGameNote,
+      handleApplyReportDraft,
       handleExportOneExcel,
       handleExportOneJson,
       handleTeamNameChange,
