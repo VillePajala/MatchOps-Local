@@ -2102,6 +2102,7 @@ export type TranslationKey =
   | 'reportDraft.costHint'
   | 'reportDraft.discard'
   | 'reportDraft.droppedWarning'
+  | 'reportDraft.duplicationNote'
   | 'reportDraft.errorInvalid'
   | 'reportDraft.errorNetwork'
   | 'reportDraft.errorNoOutput'

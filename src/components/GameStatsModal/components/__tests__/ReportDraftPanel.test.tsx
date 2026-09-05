@@ -251,6 +251,26 @@ describe('ReportDraftPanel - protecting text the coach already wrote', () => {
     expect(onApply.mock.calls[0][0].gameNotes.startsWith(existing)).toBe(true);
   });
 
+  /** The draft is written knowing the existing text, so it can restate it. Say
+   *  that where the choice is made, not after the coach is reading it twice. */
+  it('warns that keeping the text may duplicate it, and only when there is text', async () => {
+    const view = renderPanel({ game: game({ gameNotes: 'Omat sanani.' }) });
+    await produceDraft();
+
+    expect(screen.getByTestId('report-draft-duplication-note')).toHaveTextContent(/same ground twice/i);
+
+    // Replace is the way out, so the duplication note gives way to its warning.
+    fireEvent.click(screen.getByTestId('report-draft-mode-replace'));
+    expect(screen.queryByTestId('report-draft-duplication-note')).not.toBeInTheDocument();
+    expect(screen.getByTestId('report-draft-replace-warning')).toBeInTheDocument();
+
+    // Nothing to duplicate when the report is empty.
+    view.unmount();
+    const empty = renderPanel();
+    await produceDraft();
+    expect(empty.queryByTestId('report-draft-duplication-note')).not.toBeInTheDocument();
+  });
+
   /** @critical - replace is destructive, so it warns first and undoes after. */
   it('warns before replacing and offers undo afterwards', async () => {
     const existing = 'Vanha raporttini.';

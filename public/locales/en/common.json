@@ -3531,7 +3531,8 @@
     "errorInvalid": "The draft came back unreadable. Try again.",
     "unknownPlayer": "Unidentified player",
     "errorNoOutput": "Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers.",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "duplicationNote": "The draft was written knowing what you already wrote, so it may cover the same ground twice. Replace avoids that, and you can undo it."
   },
   "spokenReport": {
     "title": "Say the report out loud",
