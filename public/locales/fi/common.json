@@ -3523,6 +3523,7 @@
     "errorRejected": "Tekoälypalvelusi hylkäsi pyynnön.",
     "errorTooLarge": "Tässä ottelussa on liikaa tietoa yhteen luonnokseen.",
     "errorInvalid": "Luonnos tuli lukukelvottomana. Yritä uudelleen.",
-    "unknownPlayer": "Tuntematon pelaaja"
+    "unknownPlayer": "Tuntematon pelaaja",
+    "errorNoOutput": "Tekoälypalvelu vastasi mutta ei kirjoittanut mitään. Se ehkä käytti budjettinsa ajatteluun. Yritä uudelleen, tai kerro mikä malli tilillesi kuuluu."
   }
 }

@@ -145,6 +145,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
           network: t('reportDraft.errorNetwork', 'Could not reach your AI provider.'),
           rejected: t('reportDraft.errorRejected', 'Your AI provider refused this request.'),
           tooLarge: t('reportDraft.errorTooLarge', 'This match has too much data for one draft.'),
+          noOutput: t(
+            'reportDraft.errorNoOutput',
+            'Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers.',
+          ),
           invalidResponse: t('reportDraft.errorInvalid', 'The draft came back unreadable. Try again.'),
         }[kind],
         'error',
