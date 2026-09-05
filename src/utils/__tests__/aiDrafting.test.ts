@@ -398,6 +398,32 @@ describe('instructions and cost hint', () => {
     expect(text).toMatch(/never "0\. minuutilla"/i);
   });
 
+  /** Tidying is a different job: organise the coach's words, add nothing. */
+  it('tells the model to organise the coach\'s own words rather than write a new report', () => {
+    const packet = makePacket();
+    const tidy = buildDraftingInstructions(packet, 'tidy');
+    const full = buildDraftingInstructions(packet, 'full');
+
+    expect(tidy).toMatch(/TIDYING JOB, NOT A NEW REPORT/);
+    expect(tidy).toMatch(/keep\s+their judgements/i);
+    expect(tidy).toMatch(/do not add an\s*\n?observation they did not make/i);
+    expect(tidy).toMatch(/leave that heading out rather than inventing/i);
+    // The honesty rules still apply to both.
+    expect(tidy).toMatch(/Never invent an event/);
+    expect(full).not.toMatch(/TIDYING JOB/);
+  });
+
+  it('sends the mode the coach asked for', async () => {
+    connect();
+    fetchMock.mockResolvedValue(okResponse(fullDraft));
+
+    await draftMatchReport({ packet: makePacket(), mode: 'tidy' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).messages[0].content).toMatch(/TIDYING JOB/);
+
+    await draftMatchReport({ packet: makePacket() });
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body as string).messages[0].content).not.toMatch(/TIDYING JOB/);
+  });
+
   it('estimates a cost the UI can show before spending anything', () => {
     const usd = estimateDraftUsd(makePacket());
     expect(usd).toBeGreaterThan(0);

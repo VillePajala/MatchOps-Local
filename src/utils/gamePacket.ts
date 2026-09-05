@@ -160,6 +160,16 @@ export interface BuildGamePacketOptions {
   language?: string;
   /** Planner minutes per player id, when a plan is linked to this game. */
   plannedMinutes?: Record<string, number>;
+  /**
+   * The report as it stands ON SCREEN, when that differs from the saved game.
+   *
+   * The editor has no autosave, so a coach who has typed a report and not yet
+   * pressed Save has `game.gameNotes` still holding the old text - or nothing
+   * at all. Drafting from the saved copy would tidy a document the coach is
+   * not looking at. Callers that have the live buffer pass it here; everyone
+   * else keeps getting `game.gameNotes`.
+   */
+  coachReport?: string;
 }
 
 const TRUST_EXPLANATION: GamePacket['trust'] = {
@@ -337,6 +347,7 @@ export function buildGamePacket({
   pseudonymize = true,
   language = 'fi',
   plannedMinutes,
+  coachReport: coachReportOverride,
 }: BuildGamePacketOptions): GamePacketResult {
   const selectedIds = game.selectedPlayerIds ?? [];
   // Squad order follows the coach's selection, so refs are stable across
@@ -400,7 +411,7 @@ export function buildGamePacket({
     return note;
   });
 
-  const coachReport = (game.gameNotes ?? '').trim();
+  const coachReport = (coachReportOverride ?? game.gameNotes ?? '').trim();
   const assessments = game.assessments ?? {};
   const playersWithNotes = new Set(
     noteEvents.map((e) => e.entityId).filter((id): id is string => !!id && playerIdToRef.has(id)),

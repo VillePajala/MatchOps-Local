@@ -685,6 +685,28 @@ an allowlist so they were already excluded; the test is there so a future "back 
 everything" change fails instead of shipping credentials in a file coaches share. A manual device checklist per phase (Android phone,
 earbuds, TWA build) because none of the media APIs run in jsdom or Playwright.
 
+## AI expansions (2026-09-05, owner asked for the low-hanging ones)
+
+The expensive parts are built - consent, key handling, redaction, a capped and validated
+call, the approve-item-by-item screen, provenance, cost tracking - so anything reusing that
+spine is cheap. Ordered by value for effort:
+
+- **Tidy my report (done, PR 27).** A `DraftingMode` on the existing call: `full` writes
+  from everything recorded, `tidy` organises what the coach ALREADY wrote under the seven
+  headings without adding observations they did not make. Same packet, same schema, same
+  review screen, one extra prompt block and one extra button - offered only when there is
+  something to tidy. It defaults to REPLACE, unlike drafting: keeping the untidy original
+  above a tidied version of itself defeats the point, and the warning and undo still stand.
+  This is the one that removes the main reason a report never gets written at all.
+- **Translate the report** (next): read-only output with copy/share, NOT an apply path, so
+  there is no data-loss surface at all.
+- **Group the notes about one player** (after that).
+- **Season summaries: NOT low-hanging.** They widen what leaves the device from one match
+  to a season of observations about a child. That is a real privacy escalation and the
+  point where the legal review this doc recommends stops being optional.
+- **Parent-facing share text: technically trivial, riskiest on the list.** Model-written
+  text about a named child leaving the phone into a group chat. Not without deciding first
+  who may appear in it and what happens when the model is wrong about a child.
 ## Completeness, visible where the coach already looks (2026-09-05, owner's idea)
 
 The checklist lived only inside Viimeistele ottelu, so the only way to learn there was
