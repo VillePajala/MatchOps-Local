@@ -18,7 +18,7 @@
  * - The draft is discarded on close. Nothing persists until Apply.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import type { GameEvent } from '@/types/game';
@@ -100,6 +100,11 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
   // Built fresh for the estimate so a settings change (pseudonymization) is
   // reflected before the coach sees a number.
+  // The estimate has to reflect the text that will actually be sent, but that
+  // text is the textarea buffer and changes on every keystroke. Deferring it
+  // keeps typing responsive: the number catches up a beat later, which is all a
+  // "roughly $X" hint needs.
+  const estimateReport = useDeferredValue(existingReport);
   const estimate = useMemo(() => {
     if (!ai.connected) return 0;
     try {
@@ -110,13 +115,13 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
         players,
         pseudonymize: ai.pseudonymize,
         language,
-        coachReport: existingReport,
+        coachReport: estimateReport,
       });
       return estimateDraftUsd(packet);
     } catch {
       return 0;
     }
-  }, [ai.connected, ai.pseudonymize, existingReport, game, players, language]);
+  }, [ai.connected, ai.pseudonymize, estimateReport, game, players, language]);
 
   /**
    * Codes are what the provider saw; the coach should see the child. The mapping
