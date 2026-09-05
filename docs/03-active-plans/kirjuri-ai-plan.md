@@ -303,6 +303,31 @@ bullet (its test asserts the section set).
   `language: fi`, roster vocabulary prompt) + on-device probe; inbox "Transcribe N
   clips" batch with cost estimate; dictation rules reachable from the inbox.
 
+**Phase 1b - Viimeistele ottelu restructure (decided 2026-09-05, before Phase 2/3)**
+The match surfaces grew by accretion: goals editable in three places, the report in
+two, setup and post-game record mixed in Ottelun tiedot, "Ottelun raportti" opening a
+stats modal. Kirjuri's Phase 3 lands exactly in these surfaces, so they are fixed
+first. One intent per surface, organised by WHEN:
+- *Ottelun asetukset* (before): team/opponent, roster, personnel, competition, date/
+  time/place, periods, demand, flags. Loses event log, report, positions, formation,
+  OT/PK, fair play.
+- *Ottelu käynnissä* (during, TimerOverlay): clock, subs, goals, dictation, OT/PK.
+  Loses the assessments button; "Peli ohi" offers one CTA: Viimeistele ottelu.
+- *Viimeistele ottelu* (after; today's current-game stats tab, rebuilt): an ordered
+  checklist spine with each editor inline - 1 Maalit (single event log, with add),
+  2 Äänimuistiinpanot -> Muistiinpanot, 3 Toteutuneet pelipaikat, 4 Otteluraportti
+  (one editor; Phase 3's draft lands here), 5 Pelaaja-arviot (if enabled), 6 Jaa
+  ottelukooste. Read-only header: score + player stats.
+- *Joukkueen tilastot* (across matches): the aggregate tabs, filters, position
+  balance, Excel - removed from the match-level modal.
+- Vocabulary fixed once: Otteluraportti (the text), Muistiinpanot (timestamped
+  notes), Maalit, Pelaaja-arviot, Viimeistele ottelu / Valmis / Kaipaa viimeistelyä
+  (one completeness vocabulary incl. a dot on Home cards). "Ottelu", never "Peli".
+- PR 7a: move the three post-game editors out of Ottelun asetukset, delete duplicate
+  editors and the second Pohja button. PR 7b: rebuild the current-game tab as the
+  spine, split aggregates to the club view, menu + label renames, guide/first-visit
+  text updates. PR 7c: completeness dot on Home + the Peli ohi hand-off.
+
 **Phase 2 - Hands-free**
 - Spike first (half a day, throwaway): silent-track Media Session in the TWA - do
   earbud play/pause taps reach the page, and does the mic stream survive a pocketed
@@ -351,6 +376,9 @@ parent share cards fed by AI summaries.
   three header blockers + wake lock + Sentry scrub; Media Session spike before the
   hands-free PRs; match report stays plain text under the 7 real headings (cap 2000 ->
   4000).
+- 2026-09-05: match-surface restructure (Phase 1b, PR 7a-c) decided from a surface
+  inventory: one intent per surface by when (before / during / after / across); each
+  datum has one editor; done before Phase 2/3 so the AI draft lands in a clean spine.
 - 2026-09-05: data honesty rules (absence is not evidence, defaults are not
   measurements, trust tiers recorded / attested / planned, coverage shown with
   denominators, coach-nudging coverage view);
