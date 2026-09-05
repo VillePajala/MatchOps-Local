@@ -79,6 +79,8 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   const [clipId, setClipId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [transcribing, setTranscribing] = useState(false);
+  /** Recorded and stored, but there was nothing to write it out with. */
+  const [storedOnly, setStoredOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   // Only claim a clip this panel's own button produced; the in-match mic writes
   // to the same store and its notes belong in the inbox, not here.
@@ -88,7 +90,13 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   const transcribe = useCallback(
     async (id: string, durationMs: number) => {
       const engine = getTranscriptionEngine();
-      if (!engine) return;
+      if (!engine) {
+        // The recording is safely stored, but nothing on screen would have said
+        // so: a coach who just spoke for a minute must never be left wondering
+        // whether it vanished.
+        setStoredOnly(true);
+        return;
+      }
       setTranscribing(true);
       const controller = new AbortController();
       abortRef.current = controller;
@@ -108,6 +116,8 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
         if (controller.signal.aborted) return;
         const kind = error instanceof TranscriptionError ? error.kind : 'network';
         logger.warn('[spokenReport] transcription failed', { kind });
+        // Same reason as the no-engine case: say where the recording went.
+        setStoredOnly(true);
         showToast(
           kind === 'unauthorized'
             ? t('spokenReport.errorUnauthorized', 'Your AI provider rejected the key. Check it in Settings.')
@@ -145,6 +155,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
     }
     setText('');
     setClipId(null);
+    setStoredOnly(false);
     miningRef.current = true;
     dictation.start();
   }, [dictation]);
@@ -253,6 +264,15 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
             </>
           )}
         </button>
+      )}
+
+      {storedOnly && !transcribing && (
+        <p className="mt-3 text-xs text-amber-300" data-testid="spoken-report-stored-only">
+          {t(
+            'spokenReport.storedOnly',
+            'Recorded and saved. It could not be written out, so it is waiting under Voice notes on this page.',
+          )}
+        </p>
       )}
 
       {transcribing && (

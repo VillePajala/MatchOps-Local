@@ -39,6 +39,13 @@ export interface AudioClipMeta {
   durationMs: number;
   mimeType: string;
   sizeBytes: number;
+  /**
+   * What the provider wrote out for this clip, once the coach has paid to have
+   * it transcribed. Kept with the clip rather than in component state so that
+   * closing the review screen does not throw the words away and make the coach
+   * pay a second time for the same audio.
+   */
+  transcript?: string;
 }
 
 /** Stored form: raw bytes (structured-clone safe in every engine); Blob is rebuilt on read. */
@@ -194,6 +201,19 @@ export async function deleteClipsForGame(gameId: string, userId?: string): Promi
       await promisifyRequest(store.delete(key));
     }
     return keys.length;
+  });
+}
+
+/**
+ * Remember what a clip says. Best effort: a failed write costs a re-transcribe,
+ * never the coach's text, which is already on screen.
+ */
+export async function setClipTranscript(id: string, transcript: string, userId?: string): Promise<void> {
+  if (!hasIndexedDb()) return;
+  await withStore('readwrite', userId, async (store) => {
+    const existing = (await promisifyRequest(store.get(id))) as AudioClipRecord | undefined;
+    if (!existing) return;
+    await promisifyRequest(store.put({ ...existing, transcript }));
   });
 }
 

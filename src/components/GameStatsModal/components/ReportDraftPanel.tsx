@@ -35,6 +35,8 @@ import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import logger from '@/utils/logger';
 
 export interface ReportDraftPanelProps {
+  /** Opens app settings, where a provider is connected. */
+  onOpenSettings?: () => void;
   /** The finished game the draft is about. */
   game: AppState;
   /** Full roster, so names outside the squad are redacted too. */
@@ -56,7 +58,7 @@ const SECONDARY =
 const CHECKBOX =
   'mt-0.5 h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer';
 
-const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stamp, onApply }) => {
+const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stamp, onApply, onOpenSettings }) => {
   const { t } = useTranslation();
   const ai = useAiProviderState();
   const { showToast } = useToast();
@@ -216,6 +218,16 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
             'Connect your own AI provider in Settings to draft a report from this match. Your notes stay on this phone until you press Draft.',
           )}
         </p>
+        {onOpenSettings && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className={`${SECONDARY} mt-3`}
+            data-testid="report-draft-open-settings"
+          >
+            {t('reportDraft.openSettings', 'Open settings')}
+          </button>
+        )}
       </div>
     );
   }

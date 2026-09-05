@@ -162,6 +162,52 @@ describe('SpokenReportPanel - recording', () => {
     expect(screen.queryByTestId('spoken-report-cost')).not.toBeInTheDocument();
   });
 
+  /** @critical - the owner's report: a recording that succeeded but appeared
+   *  nowhere. Silence after a minute of speaking is the worst possible answer. */
+  it('says where the recording went when there is nothing to write it out with', async () => {
+    aiState.connected = false;
+    const view = renderPanel();
+
+    fireEvent.click(screen.getByTestId('spoken-report-toggle'));
+    await act(async () => {
+      view.rerender(
+        <SpokenReportPanel
+          dictation={{ ...view.dictation, lastClip: clip }}
+          vocabulary={[]}
+          stamp={{ time: 3000, period: 2 }}
+          onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
+          onInsertIntoReport={view.onInsertIntoReport}
+        />,
+      );
+    });
+
+    expect(screen.getByTestId('spoken-report-stored-only')).toHaveTextContent(/waiting under Voice notes/i);
+    expect(transcribe).not.toHaveBeenCalled();
+    // The audio is kept: it is the only copy of what was said.
+    expect(deleteClip).not.toHaveBeenCalled();
+  });
+
+  it('says the same when the transcription attempt fails', async () => {
+    const { TranscriptionError } = jest.requireActual('@/utils/transcription');
+    transcribe.mockRejectedValueOnce(new TranscriptionError('network'));
+    const view = renderPanel();
+
+    fireEvent.click(screen.getByTestId('spoken-report-toggle'));
+    await act(async () => {
+      view.rerender(
+        <SpokenReportPanel
+          dictation={{ ...view.dictation, lastClip: clip }}
+          vocabulary={[]}
+          stamp={{ time: 3000, period: 2 }}
+          onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
+          onInsertIntoReport={view.onInsertIntoReport}
+        />,
+      );
+    });
+
+    expect(screen.getByTestId('spoken-report-stored-only')).toBeInTheDocument();
+  });
+
   it('says what it is for differently when no provider is connected', () => {
     aiState.connected = false;
     renderPanel();

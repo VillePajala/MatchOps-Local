@@ -115,6 +115,25 @@ describe('ReportDraftPanel - before any request', () => {
     expect(screen.queryByTestId('report-draft-start')).not.toBeInTheDocument();
   });
 
+  /** The owner could not find the button; it is gone on purpose when no key is
+   *  connected, so the card has to offer the way to fix that. */
+  it('offers a route to settings when there is no provider to draft with', () => {
+    aiState.connected = false;
+    const onOpenSettings = jest.fn();
+    render(
+      <ReportDraftPanel
+        game={game()}
+        players={players}
+        stamp={{ time: 3000, period: 2 }}
+        onApply={jest.fn(() => true) as unknown as React.ComponentProps<typeof ReportDraftPanel>['onApply']}
+        onOpenSettings={onOpenSettings}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('report-draft-open-settings'));
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+  });
+
   /** @critical - money is only ever spent on a deliberate tap. */
   it('shows the cost first and requests nothing until the coach presses Draft', () => {
     renderPanel();

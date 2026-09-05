@@ -3524,7 +3524,8 @@
     "errorTooLarge": "This match has too much data for one draft.",
     "errorInvalid": "The draft came back unreadable. Try again.",
     "unknownPlayer": "Unidentified player",
-    "errorNoOutput": "Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers."
+    "errorNoOutput": "Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers.",
+    "openSettings": "Open settings"
   },
   "spokenReport": {
     "title": "Say the report out loud",
@@ -3543,6 +3544,7 @@
     "saveFailed": "Could not save that.",
     "errorTranscribe": "Could not transcribe that. The recording is in your voice notes.",
     "errorUnauthorized": "Your AI provider rejected the key. Check it in Settings.",
-    "costHint": "Writing it out costs about ${{usd}} a minute on your provider account, and starts when you stop recording."
+    "costHint": "Writing it out costs about ${{usd}} a minute on your provider account, and starts when you stop recording.",
+    "storedOnly": "Recorded and saved. It could not be written out, so it is waiting under Voice notes on this page."
   }
 }
