@@ -458,6 +458,31 @@ first. One intent per surface, organised by WHEN:
   sequence and fails against the old code with "2 calls, expected 1".
   This is the fifth instance of the session's blind spot: acting on state that was true
   a moment ago. Here the stale value was the recorder's own last clip.
+- PR 16 (owner, after testing the whole feature: "I would like to hear the report in
+  passive format, not 'Valmentajan mukaan oli prassia' but 'oli prassia'"). The honesty
+  rule was aimed at the wrong AUDIENCE. "Attribute it to the coach" exists so attested
+  data is not passed off as something the app measured - but the report is the coach's own
+  document about their own team, and attributing their observations back to them reads
+  like a diary saying "according to the author". In Finnish it produced bureaucratic prose
+  no coach would write.
+  Reworked: the prompt opens with a VOICE block asking for the impersonal register a match
+  report uses (Finnish passive, with the owner's own example of the right and wrong form),
+  the `attested` tier says the datum belongs in the report's own voice while still
+  forbidding invented detail and numbers that are not in the data, and rule 4 now spells
+  out that the report's voice "changes who is speaking, not what is known". Substance
+  rules untouched: never invent, never turn planner intent into a claim about a player, no
+  player note without a note behind it.
+  LESSON: a data-honesty rule has to be written for the document's actual reader. Hedging
+  aimed at a stranger reads as evasion when the author is the audience.
+  Same PR, owner's second point ("the system prompt could provide more context so the
+  call understands we are talking about soccer"): the prompt described the DATA but never
+  the DOMAIN, so the model was guessing - position codes read as initials, two periods
+  were not recognised as halves, and a U11 match invited professional analysis. A
+  `matchContext()` block now states the sport (futsal described as its own game, not
+  soccer-with-fewer-players), the age group with an explicit "not professional analysis,
+  a parent may read it", the period structure (two periods = halves) and clock basis,
+  which side "us" and "them" mean, and that position codes are pitch roles with their
+  line - GK / back line / holding, central, attacking midfield / front line.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 

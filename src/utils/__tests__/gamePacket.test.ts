@@ -70,6 +70,7 @@ describe('buildGamePacket - trust tiers', () => {
     expect(packet.recorded.score).toEqual({ us: 2, them: 1 });
     expect(Object.keys(packet.trust)).toEqual(['recorded', 'attested', 'planned']);
     expect(packet.trust.attested).toMatch(/the coach/i);
+    expect(packet.trust.attested).toMatch(/no invented detail/i);
     expect(packet.trust.planned).toMatch(/never/i);
   });
 

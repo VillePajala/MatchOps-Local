@@ -322,11 +322,43 @@ describe('instructions and cost hint', () => {
   it('tells the model the trust tiers, the unknown ref and the coverage rule', () => {
     const text = buildDraftingInstructions(makePacket());
     expect(text).toContain('recorded');
-    expect(text).toContain('the coach noted');
+    // The report is the coach's own document, so it is written in the report's
+    // voice, not attributed back to the person reading it.
+    expect(text).toMatch(/impersonal/i);
+    expect(text).toMatch(/passive/i);
+    expect(text).not.toMatch(/the coach noted/i);
+    expect(text).toMatch(/not licence to claim more than the data holds/i);
     expect(text).toContain('P?');
     expect(text).toMatch(/coverage/i);
     expect(text).toMatch(/never invent/i);
     expect(text).toContain('fi');
+  });
+
+  /** Without this the model guesses: position codes read as initials, two
+   *  periods are not halves, and nine-year-olds get professional analysis. */
+  it('explains the sport, the age group, the structure and the position codes', () => {
+    const text = buildDraftingInstructions(
+      makePacket({ ageGroup: 'U11', gameType: 'soccer', wentToPenalties: true } as never),
+    );
+
+    expect(text).toMatch(/association football \(soccer\)/i);
+    expect(text).toMatch(/U11/);
+    expect(text).toMatch(/not professional analysis/i);
+    expect(text).toMatch(/a parent may well read it/i);
+    expect(text).toMatch(/call them halves/i);
+    // The codes are roles, and the model is told which line each belongs to.
+    expect(text).toMatch(/GK goalkeeper/);
+    expect(text).toMatch(/LW ST RW the front line/);
+    expect(text).toMatch(/"us" in the goal list means FC Testi/);
+    expect(text).toMatch(/penalty shootout/i);
+  });
+
+  it('describes futsal differently, because it is a different game', () => {
+    const text = buildDraftingInstructions(makePacket({ gameType: 'futsal' } as never));
+
+    expect(text).toMatch(/futsal \(five-a-side indoor football\)/i);
+    expect(text).toMatch(/smaller heavier ball/i);
+    expect(text).not.toMatch(/association football/i);
   });
 
   it('estimates a cost the UI can show before spending anything', () => {
