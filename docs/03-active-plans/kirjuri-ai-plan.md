@@ -430,6 +430,38 @@ first. One intent per surface, organised by WHEN:
   5. **The lone "Nykyinen" tab.** At match level the aggregate tabs are hidden, leaving a
      single full-width tab that looked like a button and did nothing. The tab bar now
      renders only when there is more than one tab.
+- PR 24: **full-branch review findings.** Half this branch merged with no independent
+  review while the GitHub job was rate-limited (12 PRs with no written review at all, 6
+  with only a local one), so a whole-branch review was run once the limits reset. It found
+  ten things; these are the real ones, all fixed here:
+  1. **DATA LOSS.** The notes-sync effect reset `editGameNotes` whenever `gameNotes`
+     changed. The spoken report and the AI draft both change `gameNotes` from INSIDE the
+     same step, under an open editor - so inserting discarded whatever the coach had typed
+     and not saved. The effect now skips while editing, and inserting appends to what is
+     ON SCREEN rather than to the last saved value.
+  2. **The report was always drafted in Finnish.** `language` was never passed to
+     `buildGamePacket`, which defaults to 'fi', and that is what the prompt tells the model
+     to write in. An English coach paid for a Finnish report. Same for TRANSCRIPTION, which
+     hardcoded `language: 'fi'` in both the inbox and the spoken panel.
+  3. **A cancelled draft clobbered the next one.** `finally` cleared `abortRef` and
+     `drafting` unconditionally, so request #1 finishing wiped request #2's controller and
+     the UI - leaving the coach unable to cancel a request they were paying for. Both
+     panels now only clear what they own, like `transcribeAll` already did.
+  4. **`tag` and `aiMeta` were stripped on import.** Zod strips unknown keys and the parsed
+     object is what gets saved, so a backup round-trip lost every debrief tag and all AI
+     provenance. Schema updated; `handleUpdateGameEvent`'s whitelist too.
+  5. **`toMinute` threw away real times.** My own earlier fix dropped everything under 60s,
+     so a genuine 0:45 goal became "no time on it". Now only exactly zero is treated as
+     "the clock never ran", and the prompt teaches minute 0 as the opening minute.
+  6. **The name matcher attributed ordinary words to players.** `playerNameMatch` had the
+     unbounded stem I had already fixed in the packet's matcher, so "leopardin"
+     pre-selected the player Leo as a note's subject.
+  7. **A billed transcription went uncounted** when the coach closed the screen between the
+     provider answering and the abort check.
+  8. **The model picker showed the default** until the list loaded, claiming a model the
+     coach was not using.
+  LESSON: the local gate only ever sees the working copy. It cannot catch a file that was
+  never staged, and it cannot see across PRs. Both need a review that reads the branch.
 - PR 23 (owner: "avaa asetukset Button does nothing"). App settings renders at the SAME
   z-layer as the stats modal (`z-[60]` both), so opening it from inside that modal put it
   underneath - the state changed, nothing appeared to happen. Every other hand-off out of

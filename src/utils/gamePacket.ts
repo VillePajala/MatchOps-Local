@@ -171,15 +171,19 @@ const TRUST_EXPLANATION: GamePacket['trust'] = {
 };
 
 /**
- * Whole minutes from kick-off, or undefined when the clock was not running.
+ * Whole minutes from kick-off, or undefined when there is no time on the event.
  *
- * A goal logged at clock zero is not a goal in the opening minute - it is a
- * goal with no time on it, usually because the coach never started the timer.
- * Sending `minute: 0` produced drafts reading "merkittiin 0. minuutilla", which
- * is an invented fact dressed as a precise one. Absence is the honest answer.
+ * Exactly zero means the clock never ran - the coach logged a goal without
+ * starting the timer - and sending `minute: 0` produced drafts reading
+ * "merkittiin 0. minuutilla", an invented fact dressed as a precise one.
+ *
+ * Anything above zero is a real reading and is kept, including the opening
+ * minute: an earlier version dropped everything under sixty seconds, which
+ * threw away a genuine 0:45 goal along with the unset ones. The prompt is what
+ * teaches the model to phrase minute zero as the opening minute.
  */
 const toMinute = (seconds: number): number | undefined =>
-  Number.isFinite(seconds) && seconds >= 60 ? Math.floor(seconds / 60) : undefined;
+  Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds / 60) : undefined;
 
 /**
  * Every word that could identify this player: nickname plus each part of the

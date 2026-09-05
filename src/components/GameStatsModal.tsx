@@ -265,6 +265,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  // Read inside the notes-sync effect without making it re-run on every keystroke.
+  const isEditingNotesRef = useRef(isEditingNotes);
+  isEditingNotesRef.current = isEditingNotes;
   const [showRecap, setShowRecap] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
@@ -421,7 +424,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // Sync notes with props
   useEffect(() => {
-    if (isOpen) {
+    // Never while the coach is typing. The spoken report and the AI draft both
+    // change gameNotes from INSIDE this step, directly under an open editor;
+    // resetting here threw away whatever they had not saved yet.
+    if (isOpen && !isEditingNotesRef.current) {
       setEditGameNotes(gameNotes);
       setIsEditingNotes(false);
     }
@@ -899,6 +905,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               onAccept={onAddGameNote}
               onCountChange={setVoiceClipCount}
               latestClipId={dictation?.lastClip?.id ?? null}
+              language={i18n.language}
             />
           )}
           <GameNotesList
@@ -947,12 +954,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               dictation={dictation}
               vocabulary={dictationVocabulary}
               stamp={draftStamp}
+              language={i18n.language}
               onSaveSummary={onAddGameNote}
               onShowNotes={() => scrollToId('game-notes-step')}
               onInsertIntoReport={(spoken) => {
-                // Never replace: the coach's typed report keeps its place above.
-                const base = (gameNotes ?? '').trimEnd();
-                onGameNotesChange?.(base ? `${base}\n\n${spoken}` : spoken);
+                // Append to what is ON SCREEN, not to the last saved value: an
+                // open editor may hold a paragraph the coach has not saved.
+                const base = (isEditingNotes ? editGameNotes : gameNotes ?? '').trimEnd();
+                const next = base ? `${base}\n\n${spoken}` : spoken;
+                if (isEditingNotes) setEditGameNotes(next);
+                else onGameNotesChange?.(next);
               }}
             />
           )}
@@ -961,6 +972,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               game={currentGame}
               players={masterRoster.length > 0 ? masterRoster : availablePlayers}
               stamp={draftStamp}
+              language={i18n.language}
               onApply={onApplyReportDraft}
               onOpenSettings={onOpenSettings}
             />

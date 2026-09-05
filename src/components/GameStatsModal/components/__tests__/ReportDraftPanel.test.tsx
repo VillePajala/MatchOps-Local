@@ -86,6 +86,7 @@ const renderPanel = (
       game={props.game ?? game()}
       players={props.players ?? players}
       stamp={props.stamp ?? { time: 3000, period: 2 }}
+      language="fi"
       onApply={onApply as unknown as ApplyFn}
     />,
   );
@@ -125,6 +126,7 @@ describe('ReportDraftPanel - before any request', () => {
         game={game()}
         players={players}
         stamp={{ time: 3000, period: 2 }}
+        language="fi"
         onApply={jest.fn(() => true) as unknown as React.ComponentProps<typeof ReportDraftPanel>['onApply']}
         onOpenSettings={onOpenSettings}
       />,

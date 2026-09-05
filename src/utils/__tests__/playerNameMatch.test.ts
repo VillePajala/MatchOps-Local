@@ -43,4 +43,23 @@ describe('playerNameMatch', () => {
   it('an exact name wins over a stem match on another player', () => {
     expect(matchPlayerInText('Matti syötti Matiakselle', players)?.id).toBe('p-matti');
   });
+
+  /**
+   * @critical - an unbounded stem made "leopardin" score as the player Leo, so
+   * the inbox pre-selected Leo as the note's subject and saved it that way
+   * unless the coach noticed. The packet's redaction matcher was bounded for
+   * exactly this reason; this one was not.
+   */
+  describe('short names do not swallow long words', () => {
+    const leo = { id: 'p1', name: 'Leo Laine', nickname: 'Leo' } as Player;
+
+    it('leaves an unrelated word unattributed', () => {
+      expect(matchPlayerInText('leopardin nopeus yllatti', [leo])).toBeNull();
+    });
+
+    it('still matches a real inflection of the name', () => {
+      expect(matchPlayerInText('Leolle syotto', [leo])?.id).toBe('p1');
+      expect(matchPlayerInText('Leon veto', [leo])?.id).toBe('p1');
+    });
+  });
 });

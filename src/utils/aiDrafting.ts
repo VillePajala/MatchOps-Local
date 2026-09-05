@@ -181,7 +181,7 @@ function matchContext(packet: GamePacket): string[] {
     }. Goal minutes are counted from kick-off across the whole match.`,
     `SIDE: the team being reported on is ${r.teamName}, playing ${r.homeOrAway === 'home' ? 'at home' : 'away'} against ${r.opponentName}. "us" in the goal list means ${r.teamName}; "them" means the opponent.`,
     'POSITIONS: codes are pitch roles, not initials. GK goalkeeper; LB CB RB the back line; LDM CDM RDM holding midfield; LM CM RM central midfield; LAM CAM RAM attacking midfield; LW ST RW the front line. A player listed in several codes moved around during the match.',
-    'MINUTES: a goal or note with NO minute has no time on it, because the clock was not running. Write about it without a time. Never say it happened in minute zero, and never guess a minute.',
+    'MINUTES: a goal or note with NO minute has no time on it, because the clock was not running - write about it without a time, and never guess one. A minute of 0 is real: it means the opening minute, so say "heti alussa" or the equivalent, never "0. minuutilla".',
   );
   if (r.wentToOvertime || r.wentToPenalties) {
     lines.push(

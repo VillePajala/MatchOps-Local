@@ -219,6 +219,12 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
             <option value={DRAFTING_MODEL}>
               {t('aiSettings.modelDefault', '{{model}} (default)', { model: DRAFTING_MODEL })}
             </option>
+            {/* The stored choice first, even before the list loads: otherwise the
+                only option is the default and the dropdown claims a model the
+                coach is not using. */}
+            {state.model && state.model !== DRAFTING_MODEL && !models.includes(state.model) && (
+              <option value={state.model}>{state.model}</option>
+            )}
             {models
               .filter((m) => m !== DRAFTING_MODEL)
               .map((m) => (

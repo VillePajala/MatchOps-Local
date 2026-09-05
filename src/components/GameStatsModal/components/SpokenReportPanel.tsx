@@ -57,6 +57,8 @@ export interface SpokenReportPanelProps {
   onShowNotes?: () => void;
   /** Clock stamp for the note: where the match ended. */
   stamp: { time: number; period: number };
+  /** The coach's language, so speech is transcribed as what they actually spoke. */
+  language: string;
 }
 
 const CARD = 'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
@@ -74,6 +76,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   onInsertIntoReport,
   onShowNotes,
   stamp,
+  language,
 }) => {
   const { t } = useTranslation();
   const { userId } = useDataStore();
@@ -122,7 +125,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
         const blob = await getClipBlob(id, userId ?? undefined);
         if (!blob || controller.signal.aborted) return;
         const spoken = await engine.transcribe(blob, {
-          language: 'fi',
+          language,
           vocabulary,
           signal: controller.signal,
         });
@@ -143,11 +146,11 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
           'error',
         );
       } finally {
-        abortRef.current = null;
-        setTranscribing(false);
+        if (abortRef.current === controller) abortRef.current = null;
+        if (!controller.signal.aborted) setTranscribing(false);
       }
     },
-    [showToast, t, userId, vocabulary],
+    [showToast, t, userId, vocabulary, language],
   );
 
   // The recorder reports the clip it stored; pick it up if this panel asked for it.
