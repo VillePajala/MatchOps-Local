@@ -29,12 +29,19 @@ import { gamePacketFingerprint } from '@/utils/gamePacket';
 import logger from '@/utils/logger';
 
 /**
- * Cheap reasoning-light tier: this is the coach's own bill, and a match report
- * is a summarising job. Verify against the provider's current model list before
- * a release; a wrong id fails loudly with `rejected` rather than costing money.
+ * The default drafting model: the cheap tier, because this is the coach's own
+ * bill and a match report is a summarising job. Confirmed present on the
+ * owner's account. A coach can pick another in Settings; there is deliberately
+ * NO automatic fallback, because silently swapping the model would change the
+ * prose, the price and the result without telling anyone.
  */
 export const DRAFTING_MODEL = 'gpt-5-mini';
-/** Rough list prices in USD per 1M tokens, for the cost hint only. */
+/**
+ * Rough list prices in USD per 1M tokens, for the cost hint only - and they are
+ * the DEFAULT model's prices. `estimateDraftUsd` is therefore an estimate for
+ * the default and a rough order of magnitude for anything else, which is what
+ * the settings card says when another model is chosen.
+ */
 export const DRAFTING_USD_PER_1M_INPUT = 0.25;
 export const DRAFTING_USD_PER_1M_OUTPUT = 2.0;
 /**
@@ -358,11 +365,14 @@ export interface DraftReportOptions {
 export async function draftMatchReport({
   packet,
   signal,
-  model = DRAFTING_MODEL,
+  model,
 }: DraftReportOptions): Promise<ReportDraft> {
-  if (!getAiProviderState().connected) {
+  const state = getAiProviderState();
+  if (!state.connected) {
     throw new DraftingError('unauthorized', 'No AI provider is connected on this device');
   }
+  // Explicit argument, else the coach's own choice, else the app's default.
+  const chosenModel = model ?? state.model ?? DRAFTING_MODEL;
   const key = getAiProviderKey();
   if (!key) throw new DraftingError('unauthorized', 'No provider key on this device');
 
@@ -381,7 +391,7 @@ export async function draftMatchReport({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
+        model: chosenModel,
         max_completion_tokens: MAX_COMPLETION_TOKENS,
         messages: [
           { role: 'system', content: buildDraftingInstructions(packet) },
@@ -479,7 +489,7 @@ export async function draftMatchReport({
 
   return {
     ...draft,
-    model,
+    model: chosenModel,
     packetFingerprint: gamePacketFingerprint(packet),
     ...(inputTokens || outputTokens
       ? {

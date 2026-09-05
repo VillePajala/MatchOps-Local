@@ -19,12 +19,15 @@ import {
   AI_PROVIDERS,
   clearAiProviderKey,
   setAiProviderKey,
+  listAiModels,
+  setAiModel,
   setPseudonymizeNames,
   testAiProviderKey,
   useAiProviderState,
 } from '@/utils/aiProvider';
 import logger from '@/utils/logger';
 import { resetAiUsage, useAiUsage } from '@/utils/aiUsage';
+import { DRAFTING_MODEL } from '@/utils/aiDrafting';
 
 interface AiSettingsCardProps {
   userId?: string;
@@ -43,6 +46,20 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
   const { showToast } = useToast();
   const state = useAiProviderState();
   const usage = useAiUsage();
+  const [models, setModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+
+  // Listed from the coach's own account, so the picker can never offer a model
+  // they do not have. The models endpoint is free, so this costs nothing.
+  const loadModels = useCallback(async () => {
+    if (loadingModels) return;
+    setLoadingModels(true);
+    try {
+      setModels(await listAiModels());
+    } finally {
+      setLoadingModels(false);
+    }
+  }, [loadingModels]);
   const [gateOpen, setGateOpen] = useState(false);
   const [keyInput, setKeyInput] = useState('');
   const [testing, setTesting] = useState(false);
@@ -185,6 +202,50 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
             <span className="block text-xs text-slate-400">{t('aiSettings.pseudonymizeHint', 'On by default. Transcription still contains what you said.')}</span>
           </span>
         </label>
+      )}
+
+      {state.connected && (
+        <div className={`${rowStyle} space-y-2`} data-testid="ai-model">
+          <label htmlFor="ai-model-select" className="block text-sm text-slate-200">
+            {t('aiSettings.modelLabel', 'Model used for report drafts')}
+          </label>
+          <select
+            id="ai-model-select"
+            value={state.model ?? DRAFTING_MODEL}
+            onChange={(e) => setAiModel(e.target.value === DRAFTING_MODEL ? null : e.target.value)}
+            className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+            data-testid="ai-model-select"
+          >
+            <option value={DRAFTING_MODEL}>
+              {t('aiSettings.modelDefault', '{{model}} (default)', { model: DRAFTING_MODEL })}
+            </option>
+            {models
+              .filter((m) => m !== DRAFTING_MODEL)
+              .map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+          </select>
+          {models.length === 0 && (
+            <button
+              type="button"
+              onClick={() => void loadModels()}
+              disabled={loadingModels}
+              className={secondary}
+              data-testid="ai-model-load"
+            >
+              {loadingModels
+                ? t('aiSettings.modelLoading', 'Reading your model list...')
+                : t('aiSettings.modelLoad', 'Show the models on my account')}
+            </button>
+          )}
+          <p className="text-xs text-slate-400">
+            {state.model && state.model !== DRAFTING_MODEL
+              ? t('aiSettings.modelCustomHint', 'The cost figures here are the default model\'s prices, so they are only a rough guide for {{model}}. Larger models write better and cost more.', { model: state.model })
+              : t('aiSettings.modelHint', 'Only the low-cost models on your account are offered, so a mis-tap here cannot run up a bill. There is no automatic fallback either: if a model stops working the draft says so, rather than quietly using another one.')}
+          </p>
+        </div>
       )}
 
       <div className={`${rowStyle} space-y-1`} data-testid="ai-usage">

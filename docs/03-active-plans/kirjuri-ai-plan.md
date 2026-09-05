@@ -499,6 +499,27 @@ first. One intent per surface, organised by WHEN:
   precisely where destroying something matters most.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
+- PR 19 (owner: "should we have a fallback model? or are you building a model chooser?"
+  then "we cant know what model a specific user has - also I would restrict the usage of
+  high cost models altogether so no accidents happen"). Both answered:
+  NO automatic fallback, deliberately. Silently swapping the model would change the prose,
+  the price and the result without telling anyone - the exact class of hidden behaviour
+  this phase kept removing. A wrong model id is rejected before generation, so it is not
+  billed either; there is no cost argument for an auto-retry.
+  A CHOOSER instead, on the AI settings card, with two guards:
+  1. The list is read from the coach's OWN account (`listAiModels`, the free `/v1/models`
+     endpoint the key test already uses), because we cannot know what any account has.
+  2. Only the cheap tiers are offered - ids ending `-mini` or `-nano`, with codex/search/
+     audio/embedding variants and date-stamped duplicates filtered out. A match report does
+     not need a flagship, a mis-tap must not be able to run up a bill, AND it keeps the
+     cost figures meaningful: they are the DEFAULT model's prices, so allowing a pro model
+     would make every estimate in the app a lie. The card says so when a non-default model
+     is chosen. On the owner's account this offers exactly gpt-5-mini, gpt-5-nano,
+     gpt-5.4-mini, gpt-5.4-nano.
+  The choice is device-local like the key (`matchops_ai_model`), and `ReportDraft.model`
+  records which model actually wrote a draft, so provenance stays truthful.
+  PROCESS NOTE: two plan-doc notes failed to apply today because their anchor text lived
+  on a sibling branch still open. Branch from the merged state, or expect the conflict.
 
 **Phase 4 - Spoken debrief**
 - PR 10 (done, RESHAPED from the plan on the owner's steer): not a separate memo

@@ -10,7 +10,7 @@ import {
   estimateTranscriptionUsd,
   getTranscriptionEngine,
 } from '../transcription';
-import { acceptAiConsent, resetAiProviderStateForTests, setAiProviderKey } from '@/utils/aiProvider';
+import { acceptAiConsent, listAiModels, resetAiProviderStateForTests, setAiProviderKey } from '@/utils/aiProvider';
 
 jest.mock('@/utils/logger', () => ({
   __esModule: true,
@@ -84,6 +84,52 @@ describe('byok-openai engine', () => {
     localStorage.removeItem('matchops_ai_key');
     await expect(engine.transcribe(new Blob(['x']), { language: 'fi', vocabulary: [] })).rejects.toMatchObject({ kind: 'unauthorized' });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('listAiModels', () => {
+  const account = [
+    'gpt-5', 'gpt-5-chat-latest', 'gpt-5-mini', 'gpt-5-mini-2025-08-07', 'gpt-5-nano',
+    'gpt-5-pro', 'gpt-5-codex', 'gpt-5-search-api', 'gpt-5.1-codex-mini',
+    'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.4-pro', 'gpt-5.5-pro', 'gpt-5.6-sol',
+    'text-embedding-3-small', 'gpt-4o-mini-transcribe',
+  ];
+
+  /** @critical - a mis-tap in a settings list must not be able to run up a bill. */
+  it('offers only the cheap tiers from the account, never a flagship or a pro model', async () => {
+    connect();
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ data: account.map((id) => ({ id })) }) });
+
+    const models = await listAiModels();
+
+    expect(models).toEqual(['gpt-5-mini', 'gpt-5-nano', 'gpt-5.4-mini', 'gpt-5.4-nano']);
+    for (const expensive of ['gpt-5', 'gpt-5-pro', 'gpt-5.4', 'gpt-5.5-pro', 'gpt-5.6-sol', 'gpt-5-chat-latest']) {
+      expect(models).not.toContain(expensive);
+    }
+    // Nor the wrong kind of model, nor a date-stamped duplicate of an alias.
+    expect(models).not.toContain('gpt-5.1-codex-mini');
+    expect(models).not.toContain('gpt-5-mini-2025-08-07');
+    expect(models).not.toContain('gpt-4o-mini-transcribe');
+  });
+
+  it('reads from the account rather than a guess, on the free endpoint', async () => {
+    connect();
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ data: [] }) });
+
+    await listAiModels();
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.openai.com/v1/models');
+    expect(init.headers.Authorization).toBe('Bearer sk-proj-abcdefghijklmnop');
+  });
+
+  it('offers nothing rather than failing when it cannot ask', async () => {
+    expect(await listAiModels()).toEqual([]);
+    connect();
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401 });
+    expect(await listAiModels()).toEqual([]);
+    fetchMock.mockRejectedValueOnce(new Error('offline'));
+    expect(await listAiModels()).toEqual([]);
   });
 });
 

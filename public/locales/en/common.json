@@ -3471,7 +3471,13 @@
     "usageAmount": "~${{usd}} since {{since}}",
     "usageBreakdown": "{{transcriptions}} transcriptions, {{drafts}} report drafts. An estimate from list prices - your provider's bill is the real number.",
     "usageReset": "Start counting again",
-    "usageNone": "Nothing used on this device yet."
+    "usageNone": "Nothing used on this device yet.",
+    "modelLabel": "Model used for report drafts",
+    "modelDefault": "{{model}} (default)",
+    "modelLoad": "Show the models on my account",
+    "modelLoading": "Reading your model list...",
+    "modelHint": "Only the low-cost models on your account are offered, so a mis-tap here cannot run up a bill. There is no automatic fallback either: if a model stops working the draft says so, rather than quietly using another one.",
+    "modelCustomHint": "The cost figures here are the default model's prices, so they are only a rough guide for {{model}}. Larger models write better and cost more."
   },
   "aiConsent": {
     "title": "Before you connect an AI provider",
