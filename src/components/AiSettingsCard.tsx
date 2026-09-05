@@ -106,15 +106,13 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
         <h3 className="text-lg font-semibold text-slate-200">{t('aiSettings.title', 'Voice notes and AI')}</h3>
         <span
           data-testid="ai-status"
-          className={`px-2 py-0.5 rounded-full text-xs font-semibold border ${
+          className={`shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-semibold border ${
             state.connected
               ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
               : 'bg-slate-700/60 text-slate-300 border-slate-600'
           }`}
         >
-          {state.connected
-            ? t('aiSettings.statusConnected', 'Connected: {{provider}} ••••{{hint}}', { provider: provider.label, hint: state.keyHint ?? '' })
-            : t('aiSettings.statusNotConnected', 'Not connected')}
+          {state.connected ? t('aiSettings.statusConnected', 'Connected') : t('aiSettings.statusNotConnected', 'Not connected')}
         </span>
       </div>
 
@@ -162,8 +160,8 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
 
       {state.connected && (
         <div className={`${rowStyle} flex flex-wrap items-center gap-2`}>
-          <p className="flex-1 min-w-[12rem] text-sm text-slate-200">
-            {t('aiSettings.connectedLine', 'Requests go to {{provider}} on your own key.', { provider: provider.label })}
+          <p className="flex-1 min-w-[12rem] text-sm text-slate-200" data-testid="ai-connected-line">
+            {t('aiSettings.connectedLine', 'Requests go to {{provider}} on your own key (••••{{hint}}).', { provider: provider.label, hint: state.keyHint ?? '' })}
           </p>
           <button type="button" onClick={disconnect} className={secondary} data-testid="ai-disconnect">
             {t('aiSettings.disconnect', 'Disconnect')}

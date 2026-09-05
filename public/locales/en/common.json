@@ -3428,7 +3428,7 @@
   },
   "aiSettings": {
     "title": "Voice notes and AI",
-    "statusConnected": "Connected: {{provider}} ••••{{hint}}",
+    "statusConnected": "Connected",
     "statusNotConnected": "Not connected",
     "intro": "Voice notes work without this. Transcription and drafts need your own AI provider account - the recordings then go from your phone to that provider only, on your key, only when you press the button.",
     "setUpLabel": "Set up transcription and drafts",
@@ -3441,7 +3441,7 @@
     "connected": "AI provider connected.",
     "keyRejected": "The provider rejected this key. Check it and try again.",
     "testFailed": "Could not reach the provider. Check your connection and try again.",
-    "connectedLine": "Requests go to {{provider}} on your own key.",
+    "connectedLine": "Requests go to {{provider}} on your own key (••••{{hint}}).",
     "disconnect": "Disconnect",
     "disconnected": "AI provider disconnected. The key was removed from this device.",
     "pseudonymizeLabel": "Replace player names with codes before drafting",

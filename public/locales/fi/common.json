@@ -3428,7 +3428,7 @@
   },
   "aiSettings": {
     "title": "Äänimuistiinpanot ja tekoäly",
-    "statusConnected": "Yhdistetty: {{provider}} ••••{{hint}}",
+    "statusConnected": "Yhdistetty",
     "statusNotConnected": "Ei yhdistetty",
     "intro": "Äänimuistiinpanot toimivat ilman tätä. Litterointi ja luonnokset tarvitsevat oman tekoälypalvelutilisi - tallenteet lähtevät silloin puhelimestasi vain sinne, omalla avaimellasi ja vain kun painat nappia.",
     "setUpLabel": "Ota litterointi ja luonnokset käyttöön",
@@ -3441,7 +3441,7 @@
     "connected": "Tekoälypalvelu yhdistetty.",
     "keyRejected": "Palvelu hylkäsi avaimen. Tarkista se ja yritä uudelleen.",
     "testFailed": "Palveluun ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen.",
-    "connectedLine": "Pyynnöt menevät palveluun {{provider}} omalla avaimellasi.",
+    "connectedLine": "Pyynnöt menevät palveluun {{provider}} omalla avaimellasi (••••{{hint}}).",
     "disconnect": "Katkaise yhteys",
     "disconnected": "Tekoälypalvelu irrotettu. Avain poistettiin tästä laitteesta.",
     "pseudonymizeLabel": "Korvaa pelaajien nimet koodeilla ennen luonnostelua",

@@ -54,7 +54,8 @@ describe('AiSettingsCard', () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId('ai-connect'));
     });
-    await waitFor(() => expect(screen.getByTestId('ai-status')).toHaveTextContent('••••9876'));
+    await waitFor(() => expect(screen.getByTestId('ai-status')).toHaveTextContent('Connected'));
+    expect(screen.getByTestId('ai-connected-line')).toHaveTextContent('••••9876');
     expect(getAiProviderState().connected).toBe(true);
     expect(showToast).toHaveBeenCalledWith('AI provider connected.', 'success');
 
