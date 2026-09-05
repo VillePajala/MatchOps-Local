@@ -38,6 +38,8 @@ import logger from '@/utils/logger';
 export interface ReportDraftPanelProps {
   /** Opens app settings, where a provider is connected. */
   onOpenSettings?: () => void;
+  /** The coach's language: the draft is written in it, not always in Finnish. */
+  language: string;
   /** The finished game the draft is about. */
   game: AppState;
   /** Full roster, so names outside the squad are redacted too. */
@@ -59,7 +61,14 @@ const SECONDARY =
 const CHECKBOX =
   'mt-0.5 h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer';
 
-const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stamp, onApply, onOpenSettings }) => {
+const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
+  game,
+  players,
+  stamp,
+  onApply,
+  onOpenSettings,
+  language,
+}) => {
   const { t } = useTranslation();
   const ai = useAiProviderState();
   const { showToast } = useToast();
@@ -79,12 +88,12 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
   const estimate = useMemo(() => {
     if (!ai.connected) return 0;
     try {
-      const { packet } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize });
+      const { packet } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize, language });
       return estimateDraftUsd(packet);
     } catch {
       return 0;
     }
-  }, [ai.connected, ai.pseudonymize, game, players]);
+  }, [ai.connected, ai.pseudonymize, game, players, language]);
 
   /**
    * Codes are what the provider saw; the coach should see the child. The mapping
@@ -148,7 +157,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const { packet, refToPlayerId } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize });
+      const { packet, refToPlayerId } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize, language });
       const result = await draftMatchReport({ packet, signal: controller.signal });
       // Real token usage when the provider reported it, else our own estimate.
       recordAiUsage('drafting', result.usage?.estimatedUsd ?? estimateDraftUsd(packet));
@@ -180,10 +189,14 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
         'error',
       );
     } finally {
-      abortRef.current = null;
-      setDrafting(false);
+      // Only clear what THIS request owns. Cancelling and pressing Draft again
+      // starts a second request; the first one's finally would otherwise wipe
+      // the new controller and put the UI back to "Draft", leaving the coach
+      // unable to cancel a request they are still paying for.
+      if (abortRef.current === controller) abortRef.current = null;
+      if (!controller.signal.aborted) setDrafting(false);
     }
-  }, [ai.pseudonymize, drafting, game, players, showToast, t]);
+  }, [ai.pseudonymize, drafting, game, players, showToast, t, language]);
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();

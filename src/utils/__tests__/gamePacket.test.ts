@@ -260,9 +260,13 @@ describe('buildGamePacket - events, notes and coverage', () => {
     ]);
   });
 
-  /** @critical - a goal at clock zero has no time on it; sending minute 0 made
-   *  the draft state an invented fact ("merkittiin 0. minuutilla"). */
-  it('omits the minute when the clock was not running, and keeps it when it was', () => {
+  /**
+   * @critical - a goal at clock ZERO has no time on it, and sending minute 0
+   * made the draft state an invented fact ("merkittiin 0. minuutilla"). A goal
+   * at 0:45 is a real reading and must survive: an earlier fix dropped
+   * everything under a minute and threw those away with the unset ones.
+   */
+  it('omits the minute only when the clock never ran', () => {
     const { packet } = buildGamePacket({
       game: baseGame({
         gameEvents: [
@@ -276,13 +280,13 @@ describe('buildGamePacket - events, notes and coverage', () => {
       players: roster,
     });
 
-    // Under a minute is not "minute 0": it is no minute at all.
+    // Clock never ran: no minute at all.
     expect(packet.recorded.goals[0]).not.toHaveProperty('minute');
-    expect(packet.recorded.goals[1]).not.toHaveProperty('minute');
-    expect(packet.recorded.goals[2].minute).toBe(15);
     expect(packet.attested.notes[0]).not.toHaveProperty('minute');
+    // A real reading in the opening minute survives as minute 0.
+    expect(packet.recorded.goals[1].minute).toBe(0);
+    expect(packet.recorded.goals[2].minute).toBe(15);
     expect(packet.attested.notes[1].minute).toBe(10);
-    expect(JSON.stringify(packet)).not.toContain('"minute":0');
   });
 
   it('carries note source, period, subject and tag, in clock order', () => {

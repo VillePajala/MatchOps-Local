@@ -1538,6 +1538,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       period: updatedEvent.period,
       text: updatedEvent.text,
       source: updatedEvent.source,
+      tag: updatedEvent.tag,
+      aiMeta: updatedEvent.aiMeta,
     };
 
     dispatchGameSession({ type: 'UPDATE_GAME_EVENT', payload: cleanUpdatedEvent });

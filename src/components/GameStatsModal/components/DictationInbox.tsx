@@ -49,6 +49,8 @@ interface DictationInboxProps {
    * a clip the list has not seen cannot be transcribed.
    */
   latestClipId?: string | null;
+  /** The coach's language, so speech is transcribed as what they actually spoke. */
+  language?: string;
 }
 
 interface Draft {
@@ -71,6 +73,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
   onAccept,
   onCountChange,
   latestClipId,
+  language = 'fi',
 }) => {
   const { t } = useTranslation();
   const { userId } = useDataStore();
@@ -280,10 +283,11 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
         try {
           const blob = await getClipBlob(clip.id, userId ?? undefined);
           if (!blob || controller.signal.aborted) continue;
-          const text = (await engine.transcribe(blob, { language: 'fi', vocabulary, signal: controller.signal })).slice(0, MAX_NOTE_CHARS);
-          if (controller.signal.aborted) return;
-          // Billed by the provider whether or not words came back.
+          const text = (await engine.transcribe(blob, { language, vocabulary, signal: controller.signal })).slice(0, MAX_NOTE_CHARS);
+          // Counted BEFORE the abort check: the provider answered, so the coach
+          // was charged, whether or not they are still on this screen.
           recordAiUsage('transcription', estimateTranscriptionUsd(clip.durationMs));
+          if (controller.signal.aborted) return;
           if (text) {
             setDrafts((prev) => ({ ...prev, [clip.id]: { ...(prev[clip.id] ?? { playerId: 'auto' }), text } }));
             // Paid for once: remember it on the clip. Best effort in the
@@ -334,7 +338,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
       if (batchAbortRef.current === controller) batchAbortRef.current = null;
       if (!controller.signal.aborted) setTranscribing(null);
     }
-  }, [transcribing, untranscribed, userId, vocabulary, showToast, t]);
+  }, [transcribing, untranscribed, userId, vocabulary, showToast, t, language]);
 
   if (!clips || clips.length === 0) return null;
   const pendingMs = untranscribed.reduce((sum, c) => sum + c.durationMs, 0);

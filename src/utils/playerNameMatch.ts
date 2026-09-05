@@ -44,7 +44,10 @@ export function playerSpeechHandles(player: Player): string[] {
 function scoreToken(token: string, handle: string): number {
   if (token === handle) return 3;
   const stem = handle.slice(0, Math.max(3, handle.length - 2));
-  if (handle.length >= 3 && token.startsWith(stem)) return 2;
+  // Bounded like the packet's redaction matcher: without a length limit a
+  // three-letter name ("Leo") claims every long word starting the same way
+  // ("leopardin"), and the inbox then pre-selects that player for the note.
+  if (handle.length >= 3 && token.startsWith(stem) && token.length <= handle.length + 3) return 2;
   if (handle.length >= 4 && Math.abs(token.length - handle.length) <= 1 && levenshtein(token, handle) <= 1) return 1;
   return 0;
 }

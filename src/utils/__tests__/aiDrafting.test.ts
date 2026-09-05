@@ -392,8 +392,10 @@ describe('instructions and cost hint', () => {
     expect(text).toMatch(/NEVER WRITE ABOUT THE RECORD ITSELF/);
     expect(text).toMatch(/kirjattiin/);
     expect(text).toMatch(/merkittiin/);
-    expect(text).toMatch(/Never say it happened in minute zero/i);
-    expect(text).toMatch(/never guess a minute/i);
+    expect(text).toMatch(/never guess one/i);
+    // Minute 0 is real - the opening minute - and must be phrased, not denied.
+    expect(text).toMatch(/opening minute/i);
+    expect(text).toMatch(/never "0\. minuutilla"/i);
   });
 
   it('estimates a cost the UI can show before spending anything', () => {

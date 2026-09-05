@@ -38,6 +38,12 @@ export const gameEventSchema = z.object({
   period: z.number().optional(),
   text: z.string().optional(),
   source: z.enum(['dictation', 'ai', 'manual']).optional(),
+  // Zod strips what it does not know and the parsed object is what gets saved,
+  // so anything missing here is silently lost on every import. The debrief tag
+  // is what tells a later draft "this is the coach's own account", and aiMeta
+  // is the only record of which model wrote a line.
+  tag: z.enum(['halftime', 'debrief', 'technique', 'attitude', 'gameSense']).optional(),
+  aiMeta: z.object({ model: z.string(), packet: z.string() }).optional(),
 });
 
 export const intervalLogSchema = z.object({
@@ -81,6 +87,7 @@ export const appStateSchema = z.object({
   homeScore: z.number().min(0, 'Score cannot be negative').int('Score must be an integer'),
   awayScore: z.number().min(0, 'Score cannot be negative').int('Score must be an integer'),
   gameNotes: z.string(),
+  gameNotesAiMeta: z.object({ model: z.string(), packet: z.string() }).optional(),
   homeOrAway: z.enum(['home', 'away']),
   numberOfPeriods: z.union([z.literal(1), z.literal(2)]),
   periodDurationMinutes: z.number()

@@ -53,3 +53,33 @@ describe('gameEventSchema - Kirjuri note events (migration 041)', () => {
     expect(() => gameEventSchema.parse({ id: 'n1', type: 'note', time: 1, text: 'x', source: 'robot' })).toThrow();
   });
 });
+
+describe('fields the AI work added survive an import', () => {
+  /**
+   * @critical - Zod strips unknown keys and the PARSED object is what gets
+   * saved, so a field missing from the schema is lost on every import. The
+   * debrief tag is what tells a later draft "this is the coach's own account",
+   * and aiMeta is the only record of which model wrote a line.
+   */
+  it('keeps a note tag and its provenance', () => {
+    const parsed = gameEventSchema.parse({
+      id: 'n1',
+      type: 'note',
+      time: 3000,
+      period: 2,
+      text: 'Oma yhteenvetoni ottelusta',
+      source: 'dictation',
+      tag: 'debrief',
+      aiMeta: { model: 'gpt-5-mini', packet: 'v1-abcdef0123456789' },
+    });
+
+    expect(parsed.tag).toBe('debrief');
+    expect(parsed.aiMeta).toEqual({ model: 'gpt-5-mini', packet: 'v1-abcdef0123456789' });
+  });
+
+  it('rejects a tag it does not know rather than storing it', () => {
+    expect(() =>
+      gameEventSchema.parse({ id: 'n1', type: 'note', time: 1, text: 'x', tag: 'invented' }),
+    ).toThrow();
+  });
+});
