@@ -35,6 +35,8 @@ import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { dictationVocabularyFor } from '@/utils/transcription';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { queryKeys } from '@/config/queryKeys';
 
@@ -631,21 +633,25 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     () => localGameEvents.reduce<GameEvent | undefined>((latest, e) => (!latest || e.time > latest.time ? e : latest), undefined),
     [localGameEvents],
   );
-  /** First names and nicknames, so the transcript keeps Finnish names intact. */
+  /**
+   * First names and nicknames, so the transcript keeps Finnish names intact.
+   *
+   * This match's players only. It used to fall back to the whole club roster,
+   * which sent the first names of children who were not in this match and were
+   * never spoken about - to a provider, as text, on every clip.
+   */
   const dictationVocabulary = useMemo(() => {
-    const seen = new Set<string>();
-    const terms: string[] = [];
-    for (const player of masterRoster.length > 0 ? masterRoster : availablePlayers) {
-      for (const term of [player.nickname?.trim(), player.name.trim().split(/\s+/)[0]]) {
-        if (!term || term.length < 2) continue;
-        const key = term.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        terms.push(term);
-      }
-    }
-    return terms;
-  }, [masterRoster, availablePlayers]);
+    // `availablePlayers` is already this match's squad upstream
+    // (useRoster's playersForCurrentGame filters by selectedPlayerIds), so the
+    // scoping happens there, not here. The belt-and-braces filter stays because
+    // this list is the one thing on this screen that gets uploaded, and a
+    // future change to that upstream definition must not silently widen it
+    // back to the club.
+    const squad = selectedPlayerIds.length > 0
+      ? availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))
+      : availablePlayers;
+    return dictationVocabularyFor(squad);
+  }, [availablePlayers, selectedPlayerIds]);
 
   const draftStamp = useMemo(
     () => ({
@@ -964,8 +970,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 // open editor may hold a paragraph the coach has not saved.
                 const base = (isEditingNotes ? editGameNotes : gameNotes ?? '').trimEnd();
                 const next = base ? `${base}\n\n${spoken}` : spoken;
+                // Over the cap, saving the game throws inside an autosave that
+                // suppresses its own errors - so nothing about this match would
+                // persist again, silently. Refuse, and keep the recording.
+                if (next.length > VALIDATION_LIMITS.GAME_NOTES_MAX) return false;
+                // Store it, not just the editor buffer. The recording is
+                // deleted the moment this returns true, and component state
+                // would be the only copy of the words until the coach happened
+                // to press Save - one Cancel away from losing them for good.
+                onGameNotesChange(next);
                 if (isEditingNotes) setEditGameNotes(next);
-                else onGameNotesChange?.(next);
+                return true;
               }}
             />
           )}

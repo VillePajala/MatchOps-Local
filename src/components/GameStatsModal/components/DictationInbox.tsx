@@ -12,6 +12,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import { useTranslation } from 'react-i18next';
 import { HiOutlinePlay, HiOutlineStop } from 'react-icons/hi2';
 import type { Player } from '@/types';
@@ -30,7 +31,7 @@ import {
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { matchPlayerInText } from '@/utils/playerNameMatch';
 import { useAiProviderState } from '@/utils/aiProvider';
-import { TranscriptionError, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
+import { TranscriptionError, dictationVocabularyFor, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
 import { recordAiUsage } from '@/utils/aiUsage';
 import WorkingIndicator from '@/components/WorkingIndicator';
 import logger from '@/utils/logger';
@@ -237,26 +238,18 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
   );
 
   // Clips whose text field is still empty - the batch works on these only.
+  // A clip is the only copy of what the coach said and cannot be re-recorded,
+  // so discarding one asks first - the same rule the note list already applies
+  // to a note, which is strictly more recoverable than the audio behind it.
+  const [pendingDiscard, setPendingDiscard] = useState<string | null>(null);
+
   const untranscribed = useMemo(
     () => (clips ?? []).filter((c) => !(drafts[c.id]?.text ?? '').trim()),
     [clips, drafts],
   );
-  // Original casing on purpose: the recognizer mirrors the prompt's spelling,
-  // so "Emma" must be sent as "Emma" (review #750). Dedupe case-insensitively.
-  const vocabulary = useMemo(() => {
-    const seen = new Set<string>();
-    const terms: string[] = [];
-    for (const p of availablePlayers) {
-      for (const term of [p.nickname?.trim(), p.name.trim().split(/\s+/)[0]]) {
-        if (!term || term.length < 2) continue;
-        const key = term.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        terms.push(term);
-      }
-    }
-    return terms;
-  }, [availablePlayers]);
+  // One rule for what leaves the device as a recognizer hint, shared with the
+  // spoken-report panel - two copies of a privacy rule is two chances to drift.
+  const vocabulary = useMemo(() => dictationVocabularyFor(availablePlayers), [availablePlayers]);
 
   // The batch is abortable: closing the modal mid-batch must stop uploads to
   // the coach's own (paid) key, not just hide the progress (review #750).
@@ -463,7 +456,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                 )}
                 <button
                   type="button"
-                  onClick={() => void remove(clip.id)}
+                  onClick={() => setPendingDiscard(clip.id)}
                   disabled={busy}
                   data-testid="dictation-discard"
                   className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
@@ -475,6 +468,23 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
           );
         })}
       </ul>
+      <ConfirmationModal
+        isOpen={pendingDiscard !== null}
+        title={t('dictation.discardClipTitle', 'Discard this recording?')}
+        message={t(
+          'dictation.discardClipBody',
+          'The recording is deleted for good. Anything you have not saved as a note goes with it.',
+        )}
+        confirmLabel={t('dictation.discard', 'Discard')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        variant="danger"
+        onConfirm={() => {
+          const id = pendingDiscard;
+          setPendingDiscard(null);
+          if (id) void remove(id);
+        }}
+        onCancel={() => setPendingDiscard(null)}
+      />
     </div>
   );
 };

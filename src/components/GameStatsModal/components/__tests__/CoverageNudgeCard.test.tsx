@@ -5,10 +5,22 @@ import type { Player } from '@/types';
 import type { CoverageGame } from '@/utils/noteCoverage';
 import type { GameEvent } from '@/types/game';
 
+// Resolves _one/_other the way i18next does. A mock that ignored plural
+// suffixes would render "1 matches" happily and prove nothing.
+const EN: Record<string, string> = {
+  'coverageNudge.matchesPlayed_one': '{{count}} match',
+  'coverageNudge.matchesPlayed_other': '{{count}} matches',
+  'coverageNudge.andMore_one': 'and {{count}} more',
+  'coverageNudge.andMore_other': 'and {{count}} more',
+};
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_key: string, fallback?: string, options?: Record<string, unknown>) =>
-      (fallback ?? _key).replace(/\{\{(\w+)\}\}/g, (_m, name) => String(options?.[name] ?? '')),
+    t: (key: string, fallback?: string, options?: Record<string, unknown>) => {
+      const count = options?.count;
+      const plural = typeof count === 'number' ? `${key}_${count === 1 ? 'one' : 'other'}` : key;
+      const template = EN[plural] ?? fallback ?? key;
+      return template.replace(/\{\{(\w+)\}\}/g, (_m, name) => String(options?.[name] ?? ''));
+    },
   }),
 }));
 
@@ -50,6 +62,24 @@ describe('CoverageNudgeCard', () => {
     render(<CoverageNudgeCard games={[game()]} players={roster} />);
     const card = screen.getByTestId('coverage-nudge');
     expect(card.textContent).not.toMatch(/rating|score|best|worst|weak|strong|top|poor/i);
+  });
+
+  /**
+   * @critical - a single match is the case this card exists to distinguish:
+   * nothing written across eight matches is a gap, nothing across one is a
+   * substitute who played once. "1 matches" (and the Finnish "1 ottelua") got
+   * that exact sentence wrong.
+   */
+  it('says one match in the singular', () => {
+    render(
+      <CoverageNudgeCard
+        games={[game({ selectedPlayerIds: ['p1'] })]}
+        players={roster}
+      />,
+    );
+    const list = screen.getByTestId('coverage-nudge-list');
+    expect(list).toHaveTextContent('1 match');
+    expect(list).not.toHaveTextContent('1 matches');
   });
 
   it('tells a coach who has covered everyone, rather than showing an empty list', () => {

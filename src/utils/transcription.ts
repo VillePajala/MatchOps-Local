@@ -50,6 +50,33 @@ const REQUEST_TIMEOUT_MS = 60_000;
 /** Whisper-style prompts are capped; keep the vocabulary hint short. */
 const MAX_VOCABULARY_TERMS = 40;
 
+/**
+ * The names worth sending as a recognizer hint for one match.
+ *
+ * Scoped to the players in THIS match on purpose. The hint is text about
+ * children that leaves the device, so it is defensible only for the people the
+ * recording is plausibly about - the same names already spoken in the audio.
+ * Sending the whole club roster shipped the first names of children who were
+ * not in the match, not in the squad, and never mentioned.
+ *
+ * Original casing is deliberate: the recognizer mirrors the prompt's spelling,
+ * so "Emma" must be sent as "Emma". Dedupe is case-insensitive.
+ */
+export function dictationVocabularyFor(players: Array<{ name: string; nickname?: string }>): string[] {
+  const seen = new Set<string>();
+  const terms: string[] = [];
+  for (const player of players) {
+    for (const term of [player.nickname?.trim(), player.name.trim().split(/\s+/)[0]]) {
+      if (!term || term.length < 2) continue;
+      const key = term.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      terms.push(term);
+    }
+  }
+  return terms;
+}
+
 export function buildVocabularyPrompt(vocabulary: string[]): string {
   const terms = [...new Set(vocabulary.map((v) => v.trim()).filter(Boolean))].slice(0, MAX_VOCABULARY_TERMS);
   return terms.length ? `Pelaajat: ${terms.join(', ')}.` : '';
