@@ -52,6 +52,7 @@ export function GameNotesEditor({
       {isEditingNotes ? (
         <div className="space-y-3">
           <textarea
+            data-testid="report-editor-text"
             ref={notesTextareaRef}
             value={editGameNotes}
             onChange={(e) => onEditNotesChange(e.target.value)}
@@ -85,6 +86,7 @@ export function GameNotesEditor({
         </div>
       ) : (
         <div
+          data-testid="report-editor-open"
           className="cursor-pointer whitespace-pre-wrap min-h-[6rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50 text-sm text-slate-300 hover:text-yellow-400 transition-colors"
           onClick={onStartEdit}
         >

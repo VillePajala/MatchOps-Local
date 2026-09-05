@@ -973,7 +973,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               players={masterRoster.length > 0 ? masterRoster : availablePlayers}
               stamp={draftStamp}
               language={i18n.language}
-              onApply={onApplyReportDraft}
+              existingReport={isEditingNotes ? editGameNotes : gameNotes ?? ''}
+              onApply={(payload) => {
+                const stored = onApplyReportDraft(payload);
+                // The draft was built on what the editor was showing, and that
+                // text is now saved, so an editor still holding the old value
+                // would overwrite the result the moment the coach saved it.
+                if (stored) setIsEditingNotes(false);
+                return stored;
+              }}
               onOpenSettings={onOpenSettings}
             />
           )}
