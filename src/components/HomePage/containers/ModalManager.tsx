@@ -126,6 +126,8 @@ interface ModalManagerHandlers {
   wrapUpToAssessments: () => void;
   /** Phase 1b: the Goals step's add button - leave the stats view, open the goal log. */
   wrapUpToGoalLog: () => void;
+  /** Leave the stats view, then open app settings (same layer, so order matters). */
+  wrapUpToAppSettings: () => void;
 }
 
 export interface ModalManagerProps {
@@ -220,7 +222,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             onGameNotesChange={handlers.gameNotesChange}
             onPlayerPositionsChange={handlers.playerPositionsChange}
             gameType={data.gameSessionState.gameType}
-          onOpenSettings={handlers.openSettingsModal}
+          onOpenSettings={handlers.wrapUpToAppSettings}
           onOpenGameSettings={handlers.wrapUpToGameSettings}
           onOpenAssessments={handlers.wrapUpToAssessments}
           onAddGoal={handlers.wrapUpToGoalLog}

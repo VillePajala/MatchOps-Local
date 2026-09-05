@@ -703,6 +703,29 @@ describe('useModalOrchestration', () => {
   });
 
   describe('wrap-up hand-offs (Phase 1b)', () => {
+    /**
+     * @critical - the owner's report: "Avaa asetukset button does nothing". App
+     * settings sits at the same z-layer as the stats modal, so opening it from
+     * inside that modal put it underneath and nothing appeared to happen.
+     */
+    it('wrapUpToAppSettings closes the stats modal before opening settings', () => {
+      const props = createMockProps();
+      const { result } = renderHook(() => useModalOrchestration(props), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.modalManagerProps.handlers.toggleGameStatsModal();
+      });
+      expect(result.current.modalManagerProps.state.isGameStatsModalOpen).toBe(true);
+
+      act(() => {
+        result.current.modalManagerProps.handlers.wrapUpToAppSettings();
+      });
+
+      // Leaving first is the whole point: two modals on one layer means the
+      // second one is invisible.
+      expect(result.current.modalManagerProps.state.isGameStatsModalOpen).toBe(false);
+    });
+
   it('wrapUpToGoalLog closes the stats modal and opens the goal log explicitly', () => {
     const handleOpenGoalLogModal = jest.fn();
     const props = createMockProps();

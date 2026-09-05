@@ -32,6 +32,7 @@ import { matchPlayerInText } from '@/utils/playerNameMatch';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { TranscriptionError, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
 import { recordAiUsage } from '@/utils/aiUsage';
+import WorkingIndicator from '@/components/WorkingIndicator';
 import logger from '@/utils/logger';
 
 interface DictationInboxProps {
@@ -353,18 +354,27 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
         {t('dictation.inboxHint', 'Listen, write what you said, check the player, save.')}
       </p>
       {ai.connected ? (
-        untranscribed.length > 0 && (
-          <button
-            type="button"
-            onClick={() => void transcribeAll()}
-            disabled={!!transcribing}
-            data-testid="dictation-transcribe"
-            className="w-full mb-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
-          >
-            {transcribing
-              ? t('dictation.transcribing', 'Transcribing {{done}}/{{total}}...', { done: transcribing.done, total: transcribing.total })
-              : t('dictation.transcribe', 'Transcribe {{count}} clips (about ${{cost}})', { count: untranscribed.length, cost: costUsd })}
-          </button>
+        // The indicator sits OUTSIDE the untranscribed check on purpose: that
+        // count shrinks as clips fill in, so a progress line inside it would
+        // vanish partway through the batch it is reporting on.
+        transcribing ? (
+          <WorkingIndicator
+            className="mb-3"
+            label={t('dictation.transcribingHint', 'Sending each clip to your AI provider.')}
+            detail={`${transcribing.done}/${transcribing.total}`}
+            data-testid="dictation-working"
+          />
+        ) : (
+          untranscribed.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void transcribeAll()}
+              data-testid="dictation-transcribe"
+              className="w-full mb-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {t('dictation.transcribe', 'Transcribe {{count}} clips (about ${{cost}})', { count: untranscribed.length, cost: costUsd })}
+            </button>
+          )
         )
       ) : (
         <p className="text-xs text-slate-500 mb-3" data-testid="dictation-transcribe-hint">

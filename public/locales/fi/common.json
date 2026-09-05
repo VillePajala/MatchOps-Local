@@ -229,7 +229,8 @@
     "transcribeNetwork": "Palveluun ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen.",
     "transcribeRejected": "Palvelu ei pystynyt litteroimaan yhtä klippiä - kirjoita se itse.",
     "transcribeDone": "{{count}} klippiä litteroitu - tarkista teksti ja pelaaja, tallenna sitten.",
-    "transcribeRejectedCount": "{{count}} klippiä ei voitu litteroida - kirjoita ne itse."
+    "transcribeRejectedCount": "{{count}} klippiä ei voitu litteroida - kirjoita ne itse.",
+    "transcribingHint": "Lähetetään klippejä tekoälypalveluusi."
   },
   "undoToast": {
     "goal": "Maali kirjattu",
@@ -3532,7 +3533,8 @@
     "unknownPlayer": "Tuntematon pelaaja",
     "errorNoOutput": "Tekoälypalvelu vastasi mutta ei kirjoittanut mitään. Se ehkä käytti budjettinsa ajatteluun. Yritä uudelleen, tai kerro mikä malli tilillesi kuuluu.",
     "openSettings": "Avaa asetukset",
-    "duplicationNote": "Luonnos on kirjoitettu tietäen mitä olet jo kirjoittanut, joten se voi käsitellä samoja asioita kahdesti. Korvaa välttää sen, ja voit peruuttaa."
+    "duplicationNote": "Luonnos on kirjoitettu tietäen mitä olet jo kirjoittanut, joten se voi käsitellä samoja asioita kahdesti. Korvaa välttää sen, ja voit peruuttaa.",
+    "working": "Luonnosta kirjoitetaan tekoälypalvelussasi. Tämä kestää muutaman sekunnin."
   },
   "spokenReport": {
     "title": "Sanele raportti",

@@ -143,6 +143,42 @@ describe('DictationInbox', () => {
     expect(screen.getByTestId('dictation-transcribe')).toHaveTextContent('Transcribe 1 clips');
   });
 
+  /** The count shrinks as clips fill in, so the progress must not live inside it. */
+  it('keeps the progress on screen for the whole batch', async () => {
+    aiState.connected = true;
+    // Both clips stay pending: settling only the first would let the second
+    // resolve instantly and finish the batch before the assertion.
+    const settle: Array<(t: string) => void> = [];
+    // mockReset, not clearAllMocks: a queued ...Once from an earlier test
+    // survives clearing and would be consumed here instead of these.
+    transcribe.mockReset();
+    transcribe.mockImplementation(() => new Promise<string>((resolve) => { settle.push(resolve); }));
+    render(<DictationInbox gameId="g1" availablePlayers={players} />);
+    await screen.findAllByTestId('dictation-clip');
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('dictation-transcribe'));
+    });
+
+    const working = screen.getByTestId('dictation-working');
+    expect(working).toHaveTextContent('0/2');
+    expect(working).toHaveAttribute('role', 'status');
+    expect(screen.queryByTestId('dictation-transcribe')).not.toBeInTheDocument();
+
+    await act(async () => {
+      settle[0]('Ensimmäinen litterointi');
+    });
+
+    // One down, one to go: the progress moves and stays on screen, even though
+    // the untranscribed count that used to gate it has just dropped.
+    expect(screen.getByTestId('dictation-working')).toHaveTextContent('1/2');
+
+    await act(async () => {
+      settle[1]('Toinen litterointi');
+    });
+    expect(screen.queryByTestId('dictation-working')).not.toBeInTheDocument();
+  });
+
   it('renders nothing when there is nothing to review', async () => {
     (listClips as jest.Mock).mockResolvedValueOnce([]);
     const onCountChange = jest.fn();
