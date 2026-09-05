@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import logger from '@/utils/logger';
 import { setRecordingSessionActive } from '@/utils/recordingSessionSignal';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import {
   AudioQuotaError,
   countClips,
@@ -28,6 +29,8 @@ export type DictationPermission = 'unknown' | 'granted' | 'denied';
 
 export interface DictationControls {
   isSupported: boolean;
+  /** False on the scratch (unsaved) game: autosave is off there, so a note would vanish. */
+  available: boolean;
   permission: DictationPermission;
   isRecording: boolean;
   /** Clips stored for the current game (shown as a badge until the inbox lands). */
@@ -115,6 +118,7 @@ export function useDictationCapture({
   const [counts, setCounts] = useState<{ gameId: string | null; count: number }>({ gameId: null, count: 0 });
   const clipCount = counts.gameId === currentGameId ? counts.count : 0;
   const [needsIntro, setNeedsIntro] = useState(() => !readIntroSeen());
+  const available = !!currentGameId && currentGameId !== DEFAULT_GAME_ID;
 
   // Latest values without re-creating the press handlers every clock tick.
   const elapsedRef = useRef(timeElapsedInSeconds);
@@ -301,7 +305,8 @@ export function useDictationCapture({
   const start = useCallback(() => {
     if (isRecordingRef.current) return;
     const gameId = gameIdRef.current;
-    if (!gameId) {
+    if (!gameId || gameId === DEFAULT_GAME_ID) {
+      // The scratch game is never autosaved - a clip keyed to it would be orphaned.
       toastRef.current(tRef.current('dictation.noGame', 'Open a game before dictating.'), 'info');
       return;
     }
@@ -352,7 +357,7 @@ export function useDictationCapture({
 
   // Badge count follows the game (state is set only from the async result).
   useEffect(() => {
-    if (!currentGameId) return;
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return;
     let cancelled = false;
     const gameId = currentGameId;
     countClips(gameId, userId)
@@ -375,5 +380,5 @@ export function useDictationCapture({
     return () => disarm();
   }, [currentGameId, disarm]);
 
-  return { isSupported, permission, isRecording, clipCount, needsIntro, acknowledgeIntro, start, stop };
+  return { isSupported, available, permission, isRecording, clipCount, needsIntro, acknowledgeIntro, start, stop };
 }

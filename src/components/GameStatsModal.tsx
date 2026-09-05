@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
 import { HiOutlineChevronUpDown } from 'react-icons/hi2';
@@ -1129,7 +1130,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
                       />
 
-                      {currentGameId && (
+                      {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
                         <DictationInbox
                           gameId={currentGameId}
                           availablePlayers={availablePlayers}

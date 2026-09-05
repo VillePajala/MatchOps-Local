@@ -151,14 +151,17 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Kirjuri (PR 2): the first press explains + asks for the mic (the app's
   // first runtime permission) before any recording starts.
   const [showDictationIntro, setShowDictationIntro] = React.useState(false);
-  const dictationDisabled = !!dictation && (!dictation.isSupported || dictation.permission === 'denied');
+  const dictationDisabled =
+    !!dictation && (!dictation.isSupported || !dictation.available || dictation.permission === 'denied');
   const dictationTitle = !dictation
     ? undefined
     : !dictation.isSupported
       ? t('dictation.unsupported', 'Voice notes are not supported on this device.')
-      : dictation.permission === 'denied'
-        ? t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")
-        : t('dictation.holdToTalk', 'Hold to dictate');
+      : !dictation.available
+        ? t('dictation.noGame', 'Open a game before dictating.')
+        : dictation.permission === 'denied'
+          ? t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")
+          : t('dictation.holdToTalk', 'Hold to dictate');
   const handleDictationPress = (event: React.PointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     if (!dictation || dictationDisabled) return;

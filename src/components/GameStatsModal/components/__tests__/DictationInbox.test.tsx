@@ -6,7 +6,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import DictationInbox from '../DictationInbox';
-import { deleteClip, getClipBlob, listClips } from '@/utils/audioClipStore';
+import { deleteClip, getClipBlob, listClips, rotateOldClips } from '@/utils/audioClipStore';
 import type { Player } from '@/types';
 
 jest.mock('react-i18next', () => ({
@@ -34,6 +34,7 @@ jest.mock('@/utils/audioClipStore', () => ({
   listClips: jest.fn(),
   getClipBlob: jest.fn(),
   deleteClip: jest.fn().mockResolvedValue(undefined),
+  rotateOldClips: jest.fn().mockResolvedValue(0),
 }));
 
 jest.mock('@/utils/logger', () => ({
@@ -69,6 +70,40 @@ describe('DictationInbox', () => {
     expect(screen.getByText('P1 02:00')).toBeInTheDocument();
     expect(listClips).toHaveBeenCalledWith('g1', 'u1');
     expect(onCountChange).toHaveBeenLastCalledWith(2);
+  });
+
+  it('rotates expired clips on open, before listing', async () => {
+    render(<DictationInbox gameId="g1" availablePlayers={players} />);
+    await screen.findAllByTestId('dictation-clip');
+    expect(rotateOldClips).toHaveBeenCalledWith(expect.any(Number), 'u1');
+  });
+
+  /** @critical - without a place to put the note, the audio must never be deleted. */
+  it('offers no Save when there is no accept handler, and discard still works', async () => {
+    render(<DictationInbox gameId="g1" availablePlayers={players} />);
+    await screen.findAllByTestId('dictation-clip');
+    expect(screen.queryByTestId('dictation-accept')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('dictation-discard')).toHaveLength(2);
+  });
+
+  /** @critical - an over-long note would fail the whole game save downstream. */
+  it('caps note text at the validation limit, transcripts included', async () => {
+    aiState.connected = true;
+    transcribe.mockResolvedValue('x'.repeat(1500));
+    const onAccept = jest.fn();
+    render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
+    const [text] = (await screen.findAllByTestId('dictation-text')) as HTMLTextAreaElement[];
+    expect(text.maxLength).toBe(1000);
+    const button = screen.getByTestId('dictation-transcribe');
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    expect((screen.getAllByTestId('dictation-text')[0] as HTMLTextAreaElement).value).toHaveLength(1000);
+    expect(screen.getAllByTestId('dictation-char-count')[0]).toHaveTextContent('1000/1000');
+    await act(async () => {
+      fireEvent.click(screen.getAllByTestId('dictation-accept')[0]);
+    });
+    expect(onAccept.mock.calls[0][0].text).toHaveLength(1000);
   });
 
   it('renders nothing when there is nothing to review', async () => {
