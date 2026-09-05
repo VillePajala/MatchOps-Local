@@ -84,6 +84,7 @@ const renderPanel = (
   const result = render(
     <ReportDraftPanel
       game={props.game ?? game()}
+      gameId={props.gameId ?? 'g1'}
       players={props.players ?? players}
       stamp={props.stamp ?? { time: 3000, period: 2 }}
       language="fi"
@@ -125,6 +126,7 @@ describe('ReportDraftPanel - before any request', () => {
     render(
       <ReportDraftPanel
         game={game()}
+        gameId="g1"
         players={players}
         stamp={{ time: 3000, period: 2 }}
         language="fi"
@@ -257,6 +259,102 @@ describe('ReportDraftPanel - reviewing a draft', () => {
       settle(draft);
     });
     expect(screen.queryByTestId('report-draft-working')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - every hand-off this panel offers (open the squad, open
+   * assessments, open settings) closes the modal the panel lives in. The undo
+   * for a Replace lived only in component state, so leaving the screen made the
+   * overwrite permanent - and game notes have no version history.
+   */
+  it('still offers the undo after the panel has been closed and reopened', async () => {
+    const onApply = jest.fn(() => true);
+    const view = renderPanel({ game: game({ gameNotes: 'Omani.' }), existingReport: 'Omani.', onApply });
+    await produceDraft();
+
+    fireEvent.click(screen.getByTestId('report-draft-mode-replace'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+
+    // The coach taps a checklist row; the whole modal goes away.
+    view.unmount();
+    renderPanel({ game: game({ gameNotes: 'Luonnos.' }), existingReport: 'Luonnos.', onApply });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-undo'));
+    });
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
+  });
+
+  /**
+   * @critical - the review caught this: discarding a draft used to clear the
+   * undo for an ALREADY-APPLIED Replace. A coach who tried a second draft and
+   * decided against it lost the safety net for the first one, silently, and
+   * the overwritten report has no other copy.
+   */
+  it('keeps the undo for an applied replace when a later draft is discarded', async () => {
+    const onApply = jest.fn(() => true);
+    renderPanel({ game: game({ gameNotes: 'Omani.' }), existingReport: 'Omani.', onApply });
+    await produceDraft();
+
+    fireEvent.click(screen.getByTestId('report-draft-mode-replace'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+
+    // Second thoughts: draft again, then throw that draft away. The undo is
+    // out of sight while a draft is under review, which is fine - what matters
+    // is that it comes back rather than having been thrown away with the draft.
+    await produceDraft();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-discard'));
+    });
+
+    // The first Replace's original text is still recoverable.
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-undo'));
+    });
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
+  });
+
+  /**
+   * @critical - only a Replace overwrites anything, so only a Replace has an
+   * undo to offer or to take away. An append used to blank the button while
+   * the stored slot survived, so the undo reappeared on a remount and vanished
+   * again on the next apply.
+   */
+  it('leaves an existing undo alone when the next apply only appends', async () => {
+    const onApply = jest.fn(() => true);
+    renderPanel({ game: game({ gameNotes: 'Omani.' }), existingReport: 'Omani.', onApply });
+    await produceDraft();
+
+    fireEvent.click(screen.getByTestId('report-draft-mode-replace'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+
+    // A second draft, appended this time: it overwrites nothing.
+    await produceDraft();
+    fireEvent.click(screen.getByTestId('report-draft-mode-append'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-undo'));
+    });
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
+  });
+
+  it('offers no undo belonging to a different match', () => {
+    renderPanel({ gameId: 'g-other' });
+    expect(screen.queryByTestId('report-draft-undo')).not.toBeInTheDocument();
   });
 
   /** Tidying replaces by intent, so the coach is not left with both versions. */

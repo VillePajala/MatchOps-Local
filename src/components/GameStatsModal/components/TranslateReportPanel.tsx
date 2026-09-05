@@ -17,7 +17,7 @@
  * resolved on the device from a mapping that never left it.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useAiProviderState } from '@/utils/aiProvider';
@@ -28,12 +28,13 @@ import {
   translateReport,
   type TranslationLanguage,
 } from '@/utils/aiDrafting';
-import { buildGamePacket, redactPlayerNames } from '@/utils/gamePacket';
+import { redactPlayerNames } from '@/utils/gamePacket';
 import { resolveRefsInText } from '@/utils/applyReportDraft';
 import WorkingIndicator from '@/components/WorkingIndicator';
 import logger from '@/utils/logger';
 import type { AppState } from '@/types/game';
 import type { Player } from '@/types';
+import type { TranslationKey } from '@/i18n-types';
 
 interface TranslateReportPanelProps {
   /** The report as it stands on screen. Never written back to. */
@@ -63,6 +64,12 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
   const [language, setLanguage] = useState<TranslationLanguage>('en');
   const [working, setWorking] = useState(false);
   const [translated, setTranslated] = useState<string | null>(null);
+  // Same pattern as the other panels that call out: the coach can abandon a
+  // request, and one still in flight when the modal closes resolves into
+  // nothing rather than into an unmounted component.
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const pseudonymize = pseudonymizeOverride ?? ai.pseudonymize;
 
@@ -70,32 +77,44 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
     if (working) return;
     setWorking(true);
     setTranslated(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      // The packet is built only for its ref mapping and its redaction rules -
-      // none of it is sent. The report alone goes out, with names already gone.
-      const { refToPlayerId } = buildGamePacket({ game, players, pseudonymize, language: 'fi' });
-      const refOf = (playerId: string): string | undefined =>
-        Object.keys(refToPlayerId).find((ref) => refToPlayerId[ref] === playerId);
+      // Refs follow the coach's squad selection, so they match what a drafted
+      // report for this same match would have used. Built directly: a whole
+      // GamePacket would be built only to read one map back out of it.
+      const refFor = new Map<string, string>();
+      (game.selectedPlayerIds ?? []).forEach((id, i) => refFor.set(id, `P${i + 1}`));
+      // Anyone named who was not selected still needs a code, not their name.
+      players.forEach((p) => {
+        if (!refFor.has(p.id)) refFor.set(p.id, `P${refFor.size + 1}`);
+      });
+      const refOf = (playerId: string): string | undefined => refFor.get(playerId);
       const outgoing = pseudonymize ? redactPlayerNames(report, players, refOf) : report;
 
-      const result = await translateReport({ text: outgoing, language });
-      recordAiUsage('drafting', result.estimatedUsd);
+      const result = await translateReport({ text: outgoing, language, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      // Not a report draft: nothing was drafted and nothing was saved.
+      recordAiUsage('readback', result.estimatedUsd);
 
       const nameForRef = (ref: string): string => {
-        const player = players.find((p) => p.id === refToPlayerId[ref]);
-        return player?.nickname?.trim() || player?.name || ref;
+        for (const [id, r] of refFor) {
+          if (r !== ref) continue;
+          const found = players.find((p) => p.id === id);
+          return found?.nickname?.trim() || found?.name || ref;
+        }
+        return ref;
       };
       // Codes back to the children they stand for, on this device.
       setTranslated(
-        pseudonymize
-          ? resolveRefsInText(result.text, Object.keys(refToPlayerId), nameForRef)
-          : result.text,
+        pseudonymize ? resolveRefsInText(result.text, [...refFor.values()], nameForRef) : result.text,
       );
     } catch (error) {
+      if (controller.signal.aborted) return;
       const kind = error instanceof DraftingError ? error.kind : 'network';
       // A provider that answered has already billed for it.
       const billed = error instanceof DraftingError ? error.billedUsd : undefined;
-      if (billed) recordAiUsage('drafting', billed);
+      if (billed) recordAiUsage('readback', billed);
       logger.warn('[translateReport] translation failed', { kind });
       showToast(
         {
@@ -110,9 +129,17 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
         'error',
       );
     } finally {
-      setWorking(false);
+      // Only clear what THIS request owns, so a second one is still cancellable.
+      if (abortRef.current === controller) abortRef.current = null;
+      if (!controller.signal.aborted) setWorking(false);
     }
   }, [game, language, players, pseudonymize, report, showToast, t, working]);
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setWorking(false);
+  }, []);
 
   const copy = useCallback(async () => {
     if (!translated) return;
@@ -152,7 +179,7 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
       >
         {TRANSLATION_LANGUAGES.map((code) => (
           <option key={code} value={code}>
-            {t(`translateReport.lang.${code}` as never, code)}
+            {t(`translateReport.lang.${code}` as TranslationKey, code)}
           </option>
         ))}
       </select>
@@ -167,11 +194,16 @@ const TranslateReportPanel: React.FC<TranslateReportPanelProps> = ({
         {t('translateReport.action', 'Translate')}
       </button>
       {working && (
-        <WorkingIndicator
-          label={t('translateReport.working', 'Translating...')}
-          className="mt-2"
-          data-testid="translate-working"
-        />
+        <>
+          <WorkingIndicator
+            label={t('translateReport.working', 'Translating...')}
+            className="mt-2"
+            data-testid="translate-working"
+          />
+          <button type="button" onClick={cancel} className={`${SECONDARY} mt-2`} data-testid="translate-cancel">
+            {t('reportDraft.cancel', 'Cancel')}
+          </button>
+        </>
       )}
 
       {translated !== null && (

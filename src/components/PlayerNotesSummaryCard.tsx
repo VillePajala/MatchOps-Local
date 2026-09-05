@@ -101,7 +101,8 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
       );
 
       const result = await groupPlayerNotes({ notes: outgoing, language });
-      recordAiUsage('drafting', result.estimatedUsd);
+      // Not a report draft: this is text to read, and nothing is saved.
+      recordAiUsage('readback', result.estimatedUsd);
       if (result.noteCount !== outgoing.length) {
         // The disclosure said one number and the request carried another. Not
         // worth failing over, but it means the two caps have drifted.
@@ -125,7 +126,7 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
     } catch (error) {
       const kind = error instanceof DraftingError ? error.kind : 'network';
       const billed = error instanceof DraftingError ? error.billedUsd : undefined;
-      if (billed) recordAiUsage('drafting', billed);
+      if (billed) recordAiUsage('readback', billed);
       logger.warn('[playerNotesSummary] grouping failed', { kind });
       showToast(
         {

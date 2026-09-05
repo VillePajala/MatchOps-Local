@@ -883,7 +883,9 @@
       "deleteFailedNotFound": "Pelin poistaminen epäonnistui: {gameId}. Peliä ei löytynyt tai tunnus oli virheellinen.",
       "deleteFailedCatch": "Pelin poistaminen epäonnistui. Yritä uudelleen.",
       "quickSaveFailed": "Pelin pikallennus epäonnistui.",
-      "createGameFailed": "Uuden pelin luominen epäonnistui."
+      "createGameFailed": "Uuden pelin luominen epäonnistui.",
+      "quickSaveInvalid": "Tätä ottelua ei voi tallentaa tällaisena, joten viimeisimmät muutoksesi eivät säily.",
+      "quickSaveNotesTooLong": "Viimeisimmät muutoksesi eivät säily: otteluraportti on liian pitkä. Lyhennä sitä, niin tallennus toimii taas."
     }
   },
   "errors": {
@@ -3473,7 +3475,7 @@
     "rateLimited": "Palvelu rajoittaa pyyntöjä juuri nyt. Yritä uudelleen hetken kuluttua.",
     "usageLabel": "Arvioitu kulu tekoälypalvelusi tilillä",
     "usageAmount": "~{{usd}} $ alkaen {{since}}",
-    "usageBreakdown": "{{transcriptions}} litterointia, {{drafts}} raporttiluonnosta. Arvio listahinnoista - palveluntarjoajan lasku on oikea luku.",
+    "usageBreakdown": "{{transcriptions}} litterointia, {{drafts}} raporttiluonnosta, {{readbacks}} käännöstä ja koostetta. Arvio listahinnoista - palveluntarjoajasi lasku on oikea luku.",
     "usageReset": "Aloita laskenta uudelleen",
     "usageNone": "Tällä laitteella ei ole vielä käytetty mitään.",
     "modelLabel": "Raporttiluonnoksissa käytettävä malli",

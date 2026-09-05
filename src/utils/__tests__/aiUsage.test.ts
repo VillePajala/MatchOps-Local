@@ -19,7 +19,7 @@ beforeEach(() => {
 
 describe('aiUsage', () => {
   it('starts empty, with no date claimed before anything was used', () => {
-    expect(getAiUsage()).toEqual({ since: '', transcriptions: 0, drafts: 0, estimatedUsd: 0 });
+    expect(getAiUsage()).toEqual({ since: '', transcriptions: 0, drafts: 0, readbacks: 0, estimatedUsd: 0 });
   });
 
   it('counts each kind separately and sums the estimates', () => {
@@ -55,16 +55,49 @@ describe('aiUsage', () => {
     localStorage.setItem('matchops_ai_usage', 'not json at all');
     resetAiUsageStateForTests();
 
-    expect(getAiUsage()).toEqual({ since: '', transcriptions: 0, drafts: 0, estimatedUsd: 0 });
+    expect(getAiUsage()).toEqual({ since: '', transcriptions: 0, drafts: 0, readbacks: 0, estimatedUsd: 0 });
     recordAiUsage('drafting', 0.001);
     expect(getAiUsage().drafts).toBe(1);
+  });
+
+  /**
+   * @critical - this module claims to be honest by construction. Counting a
+   * translation as a report draft told the coach they had drafted reports they
+   * never drafted.
+   */
+  it('counts a read-back separately from a report draft', () => {
+    recordAiUsage('drafting', 0.002);
+    recordAiUsage('readback', 0.001);
+    recordAiUsage('readback', 0.001);
+
+    const usage = getAiUsage();
+    expect(usage.drafts).toBe(1);
+    expect(usage.readbacks).toBe(2);
+    expect(usage.estimatedUsd).toBeCloseTo(0.004, 4);
+  });
+
+  it('reads a counter written before read-backs existed', () => {
+    localStorage.setItem(
+      'matchops_ai_usage',
+      JSON.stringify({ since: '2026-09-01', transcriptions: 3, drafts: 2, estimatedUsd: 0.05 }),
+    );
+    resetAiUsageStateForTests();
+
+    // The missing field is nothing counted, not a broken counter.
+    expect(getAiUsage()).toEqual({
+      since: '2026-09-01',
+      transcriptions: 3,
+      drafts: 2,
+      readbacks: 0,
+      estimatedUsd: 0.05,
+    });
   });
 
   it('reset clears the counter and the date', () => {
     recordAiUsage('transcription', 0.01);
     resetAiUsage();
 
-    expect(getAiUsage()).toEqual({ since: '', transcriptions: 0, drafts: 0, estimatedUsd: 0 });
+    expect(getAiUsage()).toEqual({ since: '', transcriptions: 0, drafts: 0, readbacks: 0, estimatedUsd: 0 });
   });
 
   /** @critical - device-local like the key, and it must not touch the key itself. */

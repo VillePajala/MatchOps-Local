@@ -158,6 +158,68 @@ describe('TranslateReportPanel', () => {
   });
 
   /**
+   * Copy is half of what this feature is for, and the test environment stubs no
+   * clipboard - so without an explicit mock a naive test would silently take
+   * the failure branch and pass anyway.
+   */
+  it('copies the translation, and says so', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+
+    renderPanel();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('translate-start'));
+    });
+    await waitFor(() => expect(screen.getByTestId('translate-output')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('translate-copy'));
+    });
+
+    // The resolved names, not the codes that went out.
+    expect(writeText).toHaveBeenCalledWith('Emma played beautifully.');
+    expect(showToast).toHaveBeenCalledWith('Copied.', 'success');
+  });
+
+  it('tells the coach to select the text when the clipboard refuses', async () => {
+    const writeText = jest.fn().mockRejectedValue(new Error('denied'));
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+
+    renderPanel();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('translate-start'));
+    });
+    await waitFor(() => expect(screen.getByTestId('translate-output')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('translate-copy'));
+    });
+
+    expect(showToast).toHaveBeenCalledWith('Could not copy. Select the text instead.', 'error');
+    // The text stays on screen, which is the fallback the message promises.
+    expect(screen.getByTestId('translate-output')).toBeInTheDocument();
+  });
+
+  it('lets the coach abandon a translation that is taking too long', async () => {
+    let rejectIt: (e: unknown) => void = () => {};
+    translateReport.mockReturnValueOnce(new Promise((_r, reject) => { rejectIt = reject; }));
+    renderPanel();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('translate-start'));
+    });
+    expect(screen.getByTestId('translate-working')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('translate-cancel'));
+    });
+    expect(screen.queryByTestId('translate-working')).not.toBeInTheDocument();
+
+    // The abandoned request must not shout at the coach when it lands.
+    await act(async () => {
+      rejectIt(new Error('aborted'));
+    });
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  /**
    * @critical - the whole safety argument for this feature is that it has no
    * way to touch the report. If an apply path ever appears here, this fails.
    */
