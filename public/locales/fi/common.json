@@ -3525,7 +3525,8 @@
     "errorInvalid": "Luonnos tuli lukukelvottomana. Yritä uudelleen.",
     "unknownPlayer": "Tuntematon pelaaja",
     "errorNoOutput": "Tekoälypalvelu vastasi mutta ei kirjoittanut mitään. Se ehkä käytti budjettinsa ajatteluun. Yritä uudelleen, tai kerro mikä malli tilillesi kuuluu.",
-    "openSettings": "Avaa asetukset"
+    "openSettings": "Avaa asetukset",
+    "duplicationNote": "Luonnos on kirjoitettu tietäen mitä olet jo kirjoittanut, joten se voi käsitellä samoja asioita kahdesti. Korvaa välttää sen, ja voit peruuttaa."
   },
   "spokenReport": {
     "title": "Sanele raportti",
