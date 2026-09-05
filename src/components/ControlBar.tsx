@@ -17,6 +17,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineXMark,
   HiOutlineHome,
+  HiOutlineCog6Tooth,
   HiOutlineTableCells,
   HiOutlineScale,
   HiOutlineBookOpen,
@@ -103,6 +104,8 @@ interface ControlBarProps {
   /** R6: game-day reference material stays reachable mid-match. */
   onOpenTraining?: () => void;
   onOpenRules?: () => void;
+  /** App settings (where the AI provider key lives), without going via Home. */
+  onOpenAppSettings?: () => void;
   onGoToStartScreen?: () => void;
 }
 
@@ -139,6 +142,7 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
   onOpenPlanner,
   onOpenTraining,
   onOpenRules,
+  onOpenAppSettings,
   onGoToStartScreen,
 }) => {
   const { t } = useTranslation();
@@ -636,17 +640,33 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </a>
           </div>
 
-          {/* The one way back to club scope (mirrored by hardware back).
-              Autosave makes leaving always safe. */}
-          {onGoToStartScreen && (
+          {/* App settings sat behind Home, so changing anything during a match
+              meant leaving the match to do it - and the AI provider key lives
+              there, which is exactly what a coach needs mid-session when
+              transcription says it is not connected. */}
+          {(onOpenAppSettings || onGoToStartScreen) && (
             <div className="pt-2 border-t border-slate-700/60">
-              <button
-                onClick={wrapImmediate(onGoToStartScreen)}
-                className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              >
-                <HiOutlineHome className="w-5 h-5 mr-2" />
-                {t('controlBar.home', 'Home')}
-              </button>
+              {onOpenAppSettings && (
+                <button
+                  onClick={wrapModal(onOpenAppSettings)}
+                  data-testid="menu-app-settings"
+                  className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                >
+                  <HiOutlineCog6Tooth className="w-5 h-5 mr-2" />
+                  {t('controlBar.appSettings', 'Settings')}
+                </button>
+              )}
+              {/* The one way back to club scope (mirrored by hardware back).
+                  Autosave makes leaving always safe. */}
+              {onGoToStartScreen && (
+                <button
+                  onClick={wrapImmediate(onGoToStartScreen)}
+                  className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                >
+                  <HiOutlineHome className="w-5 h-5 mr-2" />
+                  {t('controlBar.home', 'Home')}
+                </button>
+              )}
             </div>
           )}
         </nav>

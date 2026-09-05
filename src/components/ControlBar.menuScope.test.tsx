@@ -182,6 +182,28 @@ describe('ControlBar - bar-level Home button without a handler', () => {
   });
 });
 
+/**
+ * The owner's report: the AI provider key lives in app settings, "not
+ * connected" turns up mid-match, and the only route there was via Home - which
+ * means leaving the match to fix something the match needs.
+ */
+describe('app settings from inside the match', () => {
+  it('opens settings without sending the coach back to Home first', async () => {
+    const onOpenAppSettings = jest.fn();
+    const onGoToStartScreen = jest.fn();
+    renderBar({ onOpenAppSettings, onGoToStartScreen });
+    fireEvent.click(screen.getByTestId('menu-app-settings'));
+    // The menu defers handlers until its close animation settles.
+    await waitFor(() => expect(onOpenAppSettings).toHaveBeenCalledTimes(1));
+    expect(onGoToStartScreen).not.toHaveBeenCalled();
+  });
+
+  it('shows no settings row when there is nothing to open', () => {
+    renderBar({ onOpenAppSettings: undefined });
+    expect(screen.queryByTestId('menu-app-settings')).not.toBeInTheDocument();
+  });
+});
+
 describe('finishing progress on the menu row', () => {
   /**
    * @critical - state, not decoration: the dot is amber while work remains and
