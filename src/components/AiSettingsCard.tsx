@@ -24,6 +24,7 @@ import {
   useAiProviderState,
 } from '@/utils/aiProvider';
 import logger from '@/utils/logger';
+import { resetAiUsage, useAiUsage } from '@/utils/aiUsage';
 
 interface AiSettingsCardProps {
   userId?: string;
@@ -41,6 +42,7 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const state = useAiProviderState();
+  const usage = useAiUsage();
   const [gateOpen, setGateOpen] = useState(false);
   const [keyInput, setKeyInput] = useState('');
   const [testing, setTesting] = useState(false);
@@ -184,6 +186,33 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
           </span>
         </label>
       )}
+
+      <div className={`${rowStyle} space-y-1`} data-testid="ai-usage">
+        <p className="text-sm text-slate-200">
+          {t('aiSettings.usageLabel', 'Estimated cost on your provider account')}
+        </p>
+        {usage.since ? (
+          <>
+            <p className="text-sm font-semibold text-slate-100">
+              {t('aiSettings.usageAmount', '~${{usd}} since {{since}}', {
+                usd: usage.estimatedUsd.toFixed(2),
+                since: usage.since,
+              })}
+            </p>
+            <p className="text-xs text-slate-400">
+              {t('aiSettings.usageBreakdown', '{{transcriptions}} transcriptions, {{drafts}} report drafts. An estimate from list prices - your provider\'s bill is the real number.', {
+                transcriptions: usage.transcriptions,
+                drafts: usage.drafts,
+              })}
+            </p>
+            <button type="button" onClick={resetAiUsage} className={`${secondary} mt-1`} data-testid="ai-usage-reset">
+              {t('aiSettings.usageReset', 'Start counting again')}
+            </button>
+          </>
+        ) : (
+          <p className="text-xs text-slate-400">{t('aiSettings.usageNone', 'Nothing used on this device yet.')}</p>
+        )}
+      </div>
 
       <div className={`${rowStyle} flex items-center gap-3`}>
         <p className="flex-1 text-sm text-slate-200">{t('aiSettings.deleteRecordingsLabel', 'Delete all voice recordings on this device')}</p>

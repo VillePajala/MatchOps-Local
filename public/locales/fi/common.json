@@ -3466,7 +3466,12 @@
     "copy": "Kopioi",
     "copied": "Kopioitu.",
     "copyFailed": "Kopiointi ei onnistunut. Valitse teksti ja kopioi se itse.",
-    "rateLimited": "Palvelu rajoittaa pyyntöjä juuri nyt. Yritä uudelleen hetken kuluttua."
+    "rateLimited": "Palvelu rajoittaa pyyntöjä juuri nyt. Yritä uudelleen hetken kuluttua.",
+    "usageLabel": "Arvioitu kulu tekoälypalvelusi tilillä",
+    "usageAmount": "~{{usd}} $ alkaen {{since}}",
+    "usageBreakdown": "{{transcriptions}} litterointia, {{drafts}} raporttiluonnosta. Arvio listahinnoista - palveluntarjoajan lasku on oikea luku.",
+    "usageReset": "Aloita laskenta uudelleen",
+    "usageNone": "Tällä laitteella ei ole vielä käytetty mitään."
   },
   "aiConsent": {
     "title": "Ennen kuin yhdistät tekoälypalvelun",
@@ -3517,6 +3522,7 @@
     "errorNetwork": "Tekoälypalveluun ei saatu yhteyttä.",
     "errorRejected": "Tekoälypalvelusi hylkäsi pyynnön.",
     "errorTooLarge": "Tässä ottelussa on liikaa tietoa yhteen luonnokseen.",
-    "errorInvalid": "Luonnos tuli lukukelvottomana. Yritä uudelleen."
+    "errorInvalid": "Luonnos tuli lukukelvottomana. Yritä uudelleen.",
+    "unknownPlayer": "Tuntematon pelaaja"
   }
 }

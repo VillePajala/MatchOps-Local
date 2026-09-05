@@ -3466,7 +3466,12 @@
     "copy": "Copy",
     "copied": "Copied.",
     "copyFailed": "Could not copy. Select the text and copy it manually.",
-    "rateLimited": "The provider is rate-limiting requests right now. Try again in a minute."
+    "rateLimited": "The provider is rate-limiting requests right now. Try again in a minute.",
+    "usageLabel": "Estimated cost on your provider account",
+    "usageAmount": "~${{usd}} since {{since}}",
+    "usageBreakdown": "{{transcriptions}} transcriptions, {{drafts}} report drafts. An estimate from list prices - your provider's bill is the real number.",
+    "usageReset": "Start counting again",
+    "usageNone": "Nothing used on this device yet."
   },
   "aiConsent": {
     "title": "Before you connect an AI provider",
@@ -3517,6 +3522,7 @@
     "errorNetwork": "Could not reach your AI provider.",
     "errorRejected": "Your AI provider refused this request.",
     "errorTooLarge": "This match has too much data for one draft.",
-    "errorInvalid": "The draft came back unreadable. Try again."
+    "errorInvalid": "The draft came back unreadable. Try again.",
+    "unknownPlayer": "Unidentified player"
   }
 }
