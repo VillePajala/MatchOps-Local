@@ -10,6 +10,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+/**
+ * Jest 30 removed the global `fail`, so every guard below that "failed" was
+ * throwing a ReferenceError instead of reporting what it had actually found -
+ * the check still went red, but never said why.
+ */
+const failWith = (message: string): never => {
+  throw new Error(message);
+};
+
 // Helper to recursively get all keys from a nested object
 function getAllKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   let keys: string[] = [];
@@ -98,7 +107,7 @@ describe('Translation File Validation', () => {
         const details = duplicates
           .map((d) => `${d.key} at lines ${d.lines.join(', ')}`)
           .join('; ');
-        fail(`EN file has duplicate keys: ${details}`);
+        failWith(`EN file has duplicate keys: ${details}`);
       }
     });
 
@@ -108,7 +117,7 @@ describe('Translation File Validation', () => {
         const details = duplicates
           .map((d) => `${d.key} at lines ${d.lines.join(', ')}`)
           .join('; ');
-        fail(`FI file has duplicate keys: ${details}`);
+        failWith(`FI file has duplicate keys: ${details}`);
       }
     });
   });
@@ -123,7 +132,7 @@ describe('Translation File Validation', () => {
       const missingInFi = enKeys.filter((k) => !fiKeySet.has(k));
 
       if (missingInFi.length > 0) {
-        fail(
+        failWith(
           `${missingInFi.length} EN keys missing from FI:\n${missingInFi.slice(0, 10).join('\n')}${missingInFi.length > 10 ? `\n... and ${missingInFi.length - 10} more` : ''}`
         );
       }
@@ -134,7 +143,7 @@ describe('Translation File Validation', () => {
       const missingInEn = fiKeys.filter((k) => !enKeySet.has(k));
 
       if (missingInEn.length > 0) {
-        fail(
+        failWith(
           `${missingInEn.length} FI keys missing from EN:\n${missingInEn.slice(0, 10).join('\n')}${missingInEn.length > 10 ? `\n... and ${missingInEn.length - 10} more` : ''}`
         );
       }
@@ -145,36 +154,39 @@ describe('Translation File Validation', () => {
     it('no empty string values in EN', () => {
       const emptyKeys = enKeys.filter((k) => getValueAtPath(en, k) === '');
       if (emptyKeys.length > 0) {
-        fail(`EN has empty values for: ${emptyKeys.join(', ')}`);
+        failWith(`EN has empty values for: ${emptyKeys.join(', ')}`);
       }
     });
 
     it('no empty string values in FI', () => {
       const emptyKeys = fiKeys.filter((k) => getValueAtPath(fi, k) === '');
       if (emptyKeys.length > 0) {
-        fail(`FI has empty values for: ${emptyKeys.join(', ')}`);
+        failWith(`FI has empty values for: ${emptyKeys.join(', ')}`);
       }
     });
 
     it('no TODO/FIXME/TRANSLATE placeholders in EN', () => {
-      const placeholderPattern = /\b(TODO|FIXME|TRANSLATE|XXX)\b/i;
+      // Case-SENSITIVE on purpose. A placeholder shouts: "TODO", "TRANSLATE".
+      // Matching case-insensitively also caught the ordinary English words, so
+      // an app that offers to translate something could never pass this.
+      const placeholderPattern = /\b(TODO|FIXME|TRANSLATE|XXX)\b/;
       const badKeys = enKeys.filter((k) => {
         const value = getValueAtPath(en, k);
         return typeof value === 'string' && placeholderPattern.test(value);
       });
       if (badKeys.length > 0) {
-        fail(`EN has placeholder text in: ${badKeys.join(', ')}`);
+        failWith(`EN has placeholder text in: ${badKeys.join(', ')}`);
       }
     });
 
     it('no TODO/FIXME/TRANSLATE placeholders in FI', () => {
-      const placeholderPattern = /\b(TODO|FIXME|TRANSLATE|XXX)\b/i;
+      const placeholderPattern = /\b(TODO|FIXME|TRANSLATE|XXX)\b/;
       const badKeys = fiKeys.filter((k) => {
         const value = getValueAtPath(fi, k);
         return typeof value === 'string' && placeholderPattern.test(value);
       });
       if (badKeys.length > 0) {
-        fail(`FI has placeholder text in: ${badKeys.join(', ')}`);
+        failWith(`FI has placeholder text in: ${badKeys.join(', ')}`);
       }
     });
   });
@@ -204,7 +216,7 @@ describe('Translation File Validation', () => {
       });
 
       if (mismatches.length > 0) {
-        fail(
+        failWith(
           `Interpolation variable mismatches:\n${mismatches.slice(0, 5).join('\n')}${mismatches.length > 5 ? `\n... and ${mismatches.length - 5} more` : ''}`
         );
       }
@@ -232,7 +244,7 @@ describe('Translation File Validation', () => {
       });
 
       if (incompletePairs.length > 0) {
-        fail(`Incomplete pluralization pairs:\n${incompletePairs.join('\n')}`);
+        failWith(`Incomplete pluralization pairs:\n${incompletePairs.join('\n')}`);
       }
     });
   });
@@ -425,7 +437,7 @@ describe('Translation File Validation', () => {
       // +1: controlBar.formationMenu - the formation picker's accessible name
       //     ('Muodostelmavalikko'), unifying the control's four names (audit
       //     6.1). Lands at 2847.
-      expect(enKeys.length).toBe(3052) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7, settings in the game menu +1, audit +2 (save blocked warnings);
+      expect(enKeys.length).toBe(3071) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7, settings in the game menu +1, audit +2 (save blocked warnings), translate +19;
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -555,7 +567,7 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
-      expect(fiKeys.length).toBe(3052) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7, settings in the game menu +1, audit +2 (save blocked warnings);
+      expect(fiKeys.length).toBe(3071) // 2026-09-05 Kirjuri: PR 4 +68, PR 5 +9, 7b-1 +4, 7c +1, 9a +7 -1, 9b +28, 9c +6, 10 +16, 12 +1, 14 +2, 17 +1 (duplication note), 19 +6 (model picker), tidy +2, coverage nudge +7, settings in the game menu +1, audit +2 (save blocked warnings), translate +19;
     });
   });
 });

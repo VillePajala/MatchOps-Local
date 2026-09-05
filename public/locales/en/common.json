@@ -3475,7 +3475,7 @@
     "rateLimited": "The provider is rate-limiting requests right now. Try again in a minute.",
     "usageLabel": "Estimated cost on your provider account",
     "usageAmount": "~${{usd}} since {{since}}",
-    "usageBreakdown": "{{transcriptions}} transcriptions, {{drafts}} report drafts. An estimate from list prices - your provider's bill is the real number.",
+    "usageBreakdown": "{{transcriptions}} transcriptions, {{drafts}} report drafts, {{readbacks}} translations and summaries. An estimate from list prices - your provider's bill is the real number.",
     "usageReset": "Start counting again",
     "usageNone": "Nothing used on this device yet.",
     "modelLabel": "Model used for report drafts",
@@ -3566,6 +3566,29 @@
     "savedWhere": "Saved as a note, not as report text. It is further up this page under Notes, and the AI draft will use it as your own account.",
     "showNotes": "Show me the notes",
     "insertFailed": "Could not add that to the report. Your recording is kept."
+  },
+  "translateReport": {
+    "title": "Read this report in another language",
+    "blurb": "For sharing with a family who reads another language. This never changes your report.",
+    "language": "Language",
+    "action": "Translate",
+    "working": "Translating...",
+    "copy": "Copy",
+    "copied": "Copied.",
+    "copyFailed": "Could not copy. Select the text instead.",
+    "errorTooLarge": "This report is too long to translate in one go.",
+    "errorNoOutput": "The translation came back empty or unfinished.",
+    "errorNothing": "There is nothing to translate yet.",
+    "lang": {
+      "en": "English",
+      "sv": "Swedish",
+      "fi": "Finnish",
+      "et": "Estonian",
+      "ru": "Russian",
+      "uk": "Ukrainian",
+      "so": "Somali",
+      "ar": "Arabic"
+    }
   },
   "coverageNudge": {
     "title": "Who you have written about",
