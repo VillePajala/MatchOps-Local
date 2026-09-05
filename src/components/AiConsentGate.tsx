@@ -79,11 +79,12 @@ const AiConsentGate: React.FC<AiConsentGateProps> = ({ isOpen, onAccepted, onCan
           <section className="space-y-2">
             <h3 className="text-sm font-semibold text-slate-200">{t('aiConsent.dataTitle', 'What happens with your data')}</h3>
             <ul className="list-disc pl-5 space-y-1 text-sm text-slate-300">
-              <li>{t('aiConsent.data1', 'Recordings stay on this phone. MatchOps never receives your recordings, transcripts or AI results.')}</li>
+              <li>{t('aiConsent.data1', 'Recordings stay on this phone. MatchOps never receives your audio.')}</li>
+              <li>{t('aiConsent.data1b', 'A note or report you choose to SAVE is ordinary match data from then on. If you use MatchOps with an account, it syncs and is backed up like the rest of your match notes.')}</li>
               <li>{t('aiConsent.data2', 'When you press Transcribe or Draft, the recording or notes are sent from this phone to the AI provider YOU connected, under YOUR account and YOUR key.')}</li>
               <li>{t('aiConsent.data3', 'The provider may keep the data for a limited time under its own terms (OpenAI: not used for training, abuse-monitoring logs up to 30 days, processed in the US). Read your provider\'s terms - MatchOps is not a party to them.')}</li>
               <li>{t('aiConsent.data4', 'Costs are billed to your provider account. Create a dedicated key with a monthly spend cap.')}</li>
-              <li>{t('aiConsent.data5', 'Player names are replaced with codes before any drafting request (you can turn this off). Transcription necessarily contains what you said.')}</li>
+              <li>{t('aiConsent.data5', 'Player names are replaced with codes before any drafting request (you can turn this off). Transcription necessarily contains what you said, and the first names of the players in that match are sent with the audio so the provider spells them correctly.')}</li>
               <li>{t('aiConsent.data6', 'You can disconnect the provider and delete all recordings at any time from Settings.')}</li>
             </ul>
           </section>

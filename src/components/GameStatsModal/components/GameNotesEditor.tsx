@@ -9,6 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TranslationKey } from '@/i18n-types';
 import { reportSectionHeadings } from '@/utils/reportSections';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 
 interface GameNotesEditorProps {
   gameNotes: string;
@@ -57,9 +58,22 @@ export function GameNotesEditor({
             value={editGameNotes}
             onChange={(e) => onEditNotesChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Escape') onCancelEdit(); }}
+            // Past this length saving the game throws, inside an autosave that
+            // hides its own errors - after which nothing about the match
+            // persists and nothing on screen says so. Stop at the cap instead.
+            maxLength={VALIDATION_LIMITS.GAME_NOTES_MAX}
             className="w-full h-64 min-h-[10rem] resize-y p-3 bg-slate-700 border border-slate-600 rounded-md shadow-sm text-sm text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder={t('gameStatsModal.notesPlaceholder', 'Notes...') ?? undefined}
           />
+          {/* Silent until it matters: a counter over a long report is noise,
+              but running out of room without warning is a lost paragraph. */}
+          {editGameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX * 0.9 && (
+            <p className="text-xs text-amber-300 tabular-nums" data-testid="report-editor-remaining">
+              {t('gameStatsModal.notesRemaining', '{{remaining}} characters left', {
+                remaining: VALIDATION_LIMITS.GAME_NOTES_MAX - editGameNotes.length,
+              })}
+            </p>
+          )}
           <div className="flex gap-2">
             <button
               type="button"
