@@ -267,6 +267,15 @@ export function useGamePersistence({
   // Returns true only if the game is now persisted; false if the save was skipped
   // (transient empty-field state) or failed. Callers that discard/replace the
   // current session (e.g. "Save before new game") MUST check this before proceeding.
+  /**
+   * The game we have already told the coach cannot be saved.
+   *
+   * A ValidationError repeats on every autosave tick, so without this the
+   * warning would fire every few seconds and become noise. Cleared on the next
+   * successful save, so a second, different break is still announced.
+   */
+  const blockedSaveGameIdRef = useRef<string | null>(null);
+
   const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false): Promise<boolean> => {
     // Create snapshot first (needed for both validation and save)
     const currentSnapshot = createGameSnapshot();
@@ -329,6 +338,8 @@ export function useGamePersistence({
           showToast(t('loadGameModal.gameSaved', 'Game saved!'));
         }
 
+        // Saving works again, so a later break deserves to be said out loud.
+        blockedSaveGameIdRef.current = null;
         return true;
       } catch (error) {
         // Network errors are transient — warn only, don't flood Sentry
@@ -362,10 +373,24 @@ export function useGamePersistence({
         // there means the coach keeps working while nothing is being kept -
         // goals, positions and assessments included - and finds out on reload.
         // Transient failures stay silent, as designed.
-        if (!suppressErrorToast || error instanceof ValidationError) {
+        //
+        // Said once per game, not once per autosave tick. The condition
+        // persists by definition, and a warning that repeats every few seconds
+        // stops being read as one.
+        const deterministic = error instanceof ValidationError;
+        if (deterministic) {
+          // The reason is an internal English string from the datastore, so it
+          // belongs in the log rather than inside a translated sentence.
+          logger.warn('[autosave] game will not validate; changes are not being kept', {
+            reason: error.message,
+          });
+        }
+        const alreadyWarned = deterministic && blockedSaveGameIdRef.current === currentGameId;
+        if (deterministic) blockedSaveGameIdRef.current = currentGameId;
+        if (!suppressErrorToast || (deterministic && !alreadyWarned)) {
           showToast(
-            error instanceof ValidationError
-              ? t('loadGameModal.errors.quickSaveInvalid', 'This game cannot be saved right now, so your latest changes are not being kept. {{reason}}', { reason: error.message })
+            deterministic
+              ? t('loadGameModal.errors.quickSaveInvalid', 'This match cannot be saved as it is, so your latest changes are not being kept. Shortening the match report usually fixes it.')
               : t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'),
             'error',
           );

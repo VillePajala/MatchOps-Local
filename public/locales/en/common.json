@@ -881,7 +881,7 @@
       "deleteFailedCatch": "Failed to delete game. Please try again.",
       "quickSaveFailed": "Error quick saving game.",
       "createGameFailed": "Error creating new saved game.",
-      "quickSaveInvalid": "This game cannot be saved right now, so your latest changes are not being kept. {{reason}}"
+      "quickSaveInvalid": "This match cannot be saved as it is, so your latest changes are not being kept. Shortening the match report usually fixes it."
     }
   },
   "newGameSetupModal": {
