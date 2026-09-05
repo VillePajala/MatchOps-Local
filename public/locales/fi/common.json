@@ -3557,5 +3557,13 @@
     "storedOnly": "Nauhoitettu ja tallennettu. Sitä ei saatu kirjoitettua auki, joten se odottaa tämän sivun Muistiinpanot-kohdassa.",
     "savedWhere": "Tallennettu muistiinpanoksi, ei raporttitekstiksi. Se on ylempänä tällä sivulla kohdassa Muistiinpanot, ja tekoälyluonnos käyttää sitä omana kertomuksenasi.",
     "showNotes": "Näytä muistiinpanot"
+  },
+  "coverageNudge": {
+    "title": "Kenestä olet kirjoittanut",
+    "summary": "Muistiinpanoja {{covered}}/{{total}} pelaajasta {{matches}} ottelun aikana.",
+    "everyone": "Jokaisesta on tällä jaksolla ainakin yksi muistiinpano.",
+    "lead": "Ei vielä mitään kirjoitettuna:",
+    "matchesPlayed": "{{count}} ottelua",
+    "andMore": "ja {{count}} muuta"
   }
 }
