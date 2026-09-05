@@ -3587,5 +3587,15 @@
       "so": "Somali",
       "ar": "Arabic"
     }
+  },
+  "coverageNudge": {
+    "title": "Who you have written about",
+    "summary": "Notes on {{covered}} of {{total}} players over {{matches}} matches.",
+    "everyone": "Everyone in this stretch has at least one note.",
+    "lead": "Nothing written yet about:",
+    "matchesPlayed_one": "{{count}} match",
+    "matchesPlayed_other": "{{count}} matches",
+    "andMore_one": "and {{count}} more",
+    "andMore_other": "and {{count}} more"
   }
 }
