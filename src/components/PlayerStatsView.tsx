@@ -281,6 +281,26 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     return getPlayerAssessmentNotes(player.id, assessmentGames);
   }, [player, assessmentGames]);
 
+  // Kirjuri notes about this player across ALL games, newest game first -
+  // independent of assessments (which may be hidden or absent).
+  const playerNotes = useMemo(() => {
+    if (!player) return [];
+    return Object.entries(savedGames)
+      .flatMap(([gameId, g]) =>
+        (g.gameEvents ?? [])
+          .filter((e) => e.type === 'note' && e.entityId === player.id)
+          .map((e) => ({
+            id: `${gameId}-${e.id}`,
+            gameDate: g.gameDate ?? '',
+            opponentName: g.opponentName ?? '',
+            time: e.time,
+            period: e.period,
+            text: e.text ?? '',
+          })),
+      )
+      .sort((a, b) => b.gameDate.localeCompare(a.gameDate) || a.time - b.time);
+  }, [player, savedGames]);
+
   // Filter games by selected club season and game type
   const filteredGamesByClubSeason = useMemo(() => {
     // Inline filtering to avoid redundant object transformations
@@ -1315,6 +1335,25 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           )}
         </div>
       )}
+
+        {playerNotes.length > 0 && (
+          <div data-testid="player-notes" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner mt-2">
+            <h3 className="text-lg font-semibold text-slate-200 mb-2">{t('playerStats.notesTitle', 'Notes')}</h3>
+            <ul className="space-y-2">
+              {playerNotes.map((n) => (
+                <li key={n.id} className="text-sm text-slate-200">
+                  <span className="text-xs text-slate-400">
+                    {n.gameDate ? formatDisplayDate(n.gameDate) : ''}{n.opponentName ? ` - ${n.opponentName}` : ''}
+                    {' - '}
+                    {n.period ? `P${n.period} ` : ''}
+                    {`${String(Math.floor(n.time / 60)).padStart(2, '0')}:${String(Math.floor(n.time % 60)).padStart(2, '0')}`}
+                  </span>
+                  <p className="whitespace-pre-wrap break-words">{n.text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Performance by Season/Tournament */}
         <div className="space-y-4 mt-2">

@@ -202,7 +202,25 @@
     "saveFailed": "Muistiinpanoa ei voitu tallentaa.",
     "firstRunTitle": "Äänimuistiinpanot",
     "firstRunBody": "Pidä painiketta pohjassa ja puhu - yksi havainto per muistiinpano. Tallenteet pysyvät tässä puhelimessa. MatchOps pyytää nyt mikrofonin käyttöoikeutta.",
-    "firstRunConfirm": "Jatka"
+    "firstRunConfirm": "Jatka",
+    "inboxTitle": "Käsiteltävät äänimuistiinpanot",
+    "inboxHint": "Kuuntele, kirjoita mitä sanoit, tarkista pelaaja, tallenna.",
+    "play": "Kuuntele",
+    "stop": "Pysäytä",
+    "textPlaceholder": "Mitä sanoit?",
+    "playerLabel": "Koskee",
+    "gameNote": "Ottelua (ei pelaajaa)",
+    "accept": "Tallenna muistiinpano",
+    "discard": "Hylkää",
+    "accepted": "Muistiinpano tallennettu",
+    "notesTitle": "Muistiinpanot",
+    "deleteNoteTitle": "Poistetaanko muistiinpano?",
+    "deleteNoteBody": "Muistiinpano poistetaan ottelusta.",
+    "periodClock": "J{{period}} {{clock}}",
+    "sourceDictation": "puhe",
+    "sourceAi": "tekoäly",
+    "sourceManual": "kirjoitettu",
+    "deleteFailed": "Muistiinpanoa ei voitu poistaa."
   },
   "undoToast": {
     "goal": "Maali kirjattu",
@@ -682,6 +700,7 @@
     "opponentPlaceholder": "Vastustajan Nimi",
     "playerStatsTitle": "Pelaajatilastot",
     "wrapUpTitle": "Viimeistele ottelu",
+    "wrapUpVoiceNotes": "{{count}} äänimuistiinpanoa käsittelemättä",
     "wrapUpComplete": "Valmis",
     "wrapUpPartial": "Vaatii viimeistelyä",
     "wrapUpReport": "Otteluraportti",
@@ -1819,6 +1838,7 @@
     "insufficient": "Liian aikaista sanoa"
   },
   "playerStats": {
+    "notesTitle": "Muistiinpanot",
     "selectPlayer": "Valitse pelaaja tarkastellaksesi tilastoja.",
     "selectPlayerLabel": "Valitse pelaaja",
     "searchPlaceholder": "Etsi pelaajaa...",

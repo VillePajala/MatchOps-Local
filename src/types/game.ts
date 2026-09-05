@@ -69,6 +69,14 @@ export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEn
 /** Provenance of a `note` event (Kirjuri): who wrote the words. */
 export type GameNoteSource = 'dictation' | 'ai' | 'manual';
 
+/** What the dictation inbox hands over when the coach accepts a clip. */
+export interface GameNoteInput {
+  time: number;
+  period: number;
+  text: string;
+  entityId?: string;
+}
+
 export interface GameEvent {
   id: string;
   type: GameEventType;

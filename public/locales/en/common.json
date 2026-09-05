@@ -202,7 +202,25 @@
     "saveFailed": "Could not save the note.",
     "firstRunTitle": "Voice notes",
     "firstRunBody": "Hold the button and speak - one observation per note. Recordings stay on this phone. MatchOps will now ask for microphone access.",
-    "firstRunConfirm": "Continue"
+    "firstRunConfirm": "Continue",
+    "inboxTitle": "Voice notes to review",
+    "inboxHint": "Listen, write what you said, check the player, save.",
+    "play": "Play",
+    "stop": "Stop",
+    "textPlaceholder": "What did you say?",
+    "playerLabel": "About",
+    "gameNote": "The game (no player)",
+    "accept": "Save note",
+    "discard": "Discard",
+    "accepted": "Note saved",
+    "notesTitle": "Notes",
+    "deleteNoteTitle": "Delete note?",
+    "deleteNoteBody": "This removes the note from the game.",
+    "periodClock": "P{{period}} {{clock}}",
+    "sourceDictation": "voice",
+    "sourceAi": "AI",
+    "sourceManual": "typed",
+    "deleteFailed": "Could not delete the note."
   },
   "undoToast": {
     "goal": "Goal logged",
@@ -469,6 +487,7 @@
     "opponentPlaceholder": "Opponent Name",
     "playerStatsTitle": "Player Stats",
     "wrapUpTitle": "Finish this game",
+    "wrapUpVoiceNotes": "{{count}} voice notes to review",
     "wrapUpComplete": "Complete",
     "wrapUpPartial": "Needs finishing",
     "wrapUpReport": "Match report",
@@ -1819,6 +1838,7 @@
     "insufficient": "Too early to tell"
   },
   "playerStats": {
+    "notesTitle": "Notes",
     "selectPlayer": "Select a player to view their stats.",
     "selectPlayerLabel": "Select Player",
     "searchPlaceholder": "Search players...",
