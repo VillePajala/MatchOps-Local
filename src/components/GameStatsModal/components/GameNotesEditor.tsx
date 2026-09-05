@@ -70,7 +70,9 @@ export function GameNotesEditor({
           {editGameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX * 0.9 && (
             <p className="text-xs text-amber-300 tabular-nums" data-testid="report-editor-remaining">
               {t('gameStatsModal.notesRemaining', '{{remaining}} characters left', {
-                remaining: VALIDATION_LIMITS.GAME_NOTES_MAX - editGameNotes.length,
+                // Older data can already sit past the cap, and "-50 characters
+                // left" is not a thing. Zero is the honest floor.
+                remaining: Math.max(0, VALIDATION_LIMITS.GAME_NOTES_MAX - editGameNotes.length),
               })}
             </p>
           )}

@@ -639,6 +639,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
    * never spoken about - to a provider, as text, on every clip.
    */
   const dictationVocabulary = useMemo(() => {
+    // `availablePlayers` is already this match's squad upstream
+    // (useRoster's playersForCurrentGame filters by selectedPlayerIds), so the
+    // scoping happens there, not here. The belt-and-braces filter stays because
+    // this list is the one thing on this screen that gets uploaded, and a
+    // future change to that upstream definition must not silently widen it
+    // back to the club.
     const squad = selectedPlayerIds.length > 0
       ? availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))
       : availablePlayers;
