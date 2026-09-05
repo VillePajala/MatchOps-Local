@@ -33,6 +33,8 @@ import type { Player } from '@/types';
 
 export interface PlayerNoteEntry {
   id: string;
+  /** Which match it came from. Counts matches, so two games on one date count as two. */
+  gameId: string;
   gameDate: string;
   text: string;
 }
@@ -70,7 +72,9 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
     const capped = withText.slice(0, MAX_GROUPED_NOTES);
     return {
       notes: capped,
-      matches: new Set(capped.map((n) => n.gameDate).filter(Boolean)).size,
+      // By game, not by date: two matches on one Saturday are two matches, and
+      // this number is a disclosure, so it has to be right.
+      matches: new Set(capped.map((n) => n.gameId).filter(Boolean)).size,
       // Told plainly rather than silently dropped.
       omitted: withText.length - capped.length,
     };
@@ -98,6 +102,14 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
 
       const result = await groupPlayerNotes({ notes: outgoing, language });
       recordAiUsage('drafting', result.estimatedUsd);
+      if (result.noteCount !== outgoing.length) {
+        // The disclosure said one number and the request carried another. Not
+        // worth failing over, but it means the two caps have drifted.
+        logger.warn('[playerNotesSummary] sent a different number of notes than disclosed', {
+          disclosed: outgoing.length,
+          sent: result.noteCount,
+        });
+      }
 
       const nameFor = (ref: string): string => {
         for (const [id, r] of refFor) {
@@ -142,7 +154,12 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
     }
   }, [showToast, summary, t]);
 
-  if (!ai.connected || scope.notes.length < 2) return null;
+  // Without a roster there is nothing to build handles from, so redaction would
+  // return every name untouched while the card still implied codes. Refusing to
+  // offer the button is the only honest option; silently sending cleartext is not.
+  const canRedact = !ai.pseudonymize || roster.some((p) => p.id === player.id);
+
+  if (!ai.connected || scope.notes.length < 2 || !canRedact) return null;
 
   return (
     <div className={CARD} data-testid="player-notes-summary">
@@ -154,7 +171,7 @@ const PlayerNotesSummaryCard: React.FC<PlayerNotesSummaryCardProps> = ({
         {t(
           'playerNotesSummary.scope',
           'Sends {{notes}} of your notes about this player, from {{matches}} matches, to your AI provider. Nothing is saved or changed.',
-          { notes: scope.notes.length, matches: scope.matches },
+          { notes: scope.notes.length, count: scope.matches, matches: scope.matches },
         )}
       </p>
       {scope.omitted > 0 && (

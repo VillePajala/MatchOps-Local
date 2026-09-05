@@ -294,6 +294,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           .filter((e) => e.type === 'note' && e.entityId === player.id)
           .map((e) => ({
             id: `${gameId}-${e.id}`,
+            gameId,
             gameDate: g.gameDate ?? '',
             opponentName: g.opponentName ?? '',
             time: e.time,

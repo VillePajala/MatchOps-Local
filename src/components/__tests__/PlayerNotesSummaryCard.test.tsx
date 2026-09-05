@@ -42,9 +42,9 @@ const matti = { id: 'p2', name: 'Matti Korhonen', nickname: 'Matti' } as Player;
 const roster = [emma, matti];
 
 const notes = [
-  { id: 'n3', gameDate: '2026-09-01', text: 'Emma otti vastuuta.' },
-  { id: 'n2', gameDate: '2026-08-20', text: 'Hyvä syöttö Matille.' },
-  { id: 'n1', gameDate: '2026-08-20', text: 'Emma rohkeni yrittää.' },
+  { id: 'n3', gameId: 'g2', gameDate: '2026-09-01', text: 'Emma otti vastuuta.' },
+  { id: 'n2', gameId: 'g1', gameDate: '2026-08-20', text: 'Hyvä syöttö Matille.' },
+  { id: 'n1', gameId: 'g1', gameDate: '2026-08-20', text: 'Emma rohkeni yrittää.' },
 ];
 
 const renderCard = (over: Record<string, unknown> = {}) =>
@@ -77,6 +77,32 @@ describe('PlayerNotesSummaryCard', () => {
   it('offers nothing when there is barely anything to group', () => {
     const { container } = renderCard({ notes: notes.slice(0, 1) });
     expect(container).toBeEmptyDOMElement();
+  });
+
+  /**
+   * @critical - with no roster there are no handles, so redaction returns every
+   * name untouched while the card still says codes are sent. Refusing is the
+   * only honest option.
+   */
+  it('offers nothing at all when it could not redact the names', () => {
+    const { container } = renderCard({ roster: [] });
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('still offers itself when the coach has turned pseudonymization off', () => {
+    aiState.pseudonymize = false;
+    renderCard({ roster: [] });
+    expect(screen.getByTestId('player-notes-summary')).toBeInTheDocument();
+  });
+
+  it('counts two matches on the same day as two', () => {
+    renderCard({
+      notes: [
+        { id: 'a', gameId: 'g1', gameDate: '2026-08-20', text: 'Yksi.' },
+        { id: 'b', gameId: 'g2', gameDate: '2026-08-20', text: 'Kaksi.' },
+      ],
+    });
+    expect(screen.getByTestId('player-notes-summary-scope')).toHaveTextContent('from 2 matches');
   });
 
   it('offers nothing when no provider is connected', () => {

@@ -725,6 +725,9 @@ export async function groupPlayerNotes({
     throw new DraftingError('unauthorized', 'No AI provider is connected on this device');
   }
 
+  // The caller caps too, and shows the coach the number before sending. This
+  // cap is the one that binds: it is what any future caller gets for free, and
+  // what stops a UI change from quietly widening the request.
   const usable = notes.map((n) => n.trim()).filter(Boolean).slice(0, MAX_GROUPED_NOTES);
   if (usable.length === 0) {
     throw new DraftingError('invalidResponse', 'There are no notes about this player yet');
