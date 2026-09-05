@@ -3543,8 +3543,8 @@
     "transcribing": "Kirjoitetaan mitä sanoit...",
     "textLabel": "Mitä sanoit",
     "editHint": "Korjaa mahdolliset litterointivirheet ennen tallennusta.",
-    "save": "Pidä omana yhteenvetonani",
-    "insert": "Lisää raporttitekstiin",
+    "save": "Tallenna sen sijaan muistiinpanoksi tekoälyluonnokseen",
+    "insert": "Lisää tämä otteluraporttiin",
     "discard": "Heitä nauhoitus pois",
     "saved": "Tallennettu omaksi yhteenvedoksesi.",
     "inserted": "Lisätty otteluraporttiin.",
@@ -3552,6 +3552,8 @@
     "errorTranscribe": "Litterointi ei onnistunut. Nauhoitus on äänimuistiinpanoissa.",
     "errorUnauthorized": "Tekoälypalvelu hylkäsi avaimen. Tarkista se asetuksista.",
     "costHint": "Kirjoittaminen kustantaa noin {{usd}} dollaria minuutilta tekoälypalvelusi tilillä, ja alkaa kun lopetat nauhoituksen.",
-    "storedOnly": "Nauhoitettu ja tallennettu. Sitä ei saatu kirjoitettua auki, joten se odottaa tämän sivun Muistiinpanot-kohdassa."
+    "storedOnly": "Nauhoitettu ja tallennettu. Sitä ei saatu kirjoitettua auki, joten se odottaa tämän sivun Muistiinpanot-kohdassa.",
+    "savedWhere": "Tallennettu muistiinpanoksi, ei raporttitekstiksi. Se on ylempänä tällä sivulla kohdassa Muistiinpanot, ja tekoälyluonnos käyttää sitä omana kertomuksenasi.",
+    "showNotes": "Näytä muistiinpanot"
   }
 }

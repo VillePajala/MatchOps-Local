@@ -401,6 +401,17 @@ first. One intent per surface, organised by WHEN:
      A true TWA answer only arrives when this reaches production; if the standalone result
      is positive we accept that residual risk, and the per-coach self-test above is what
      catches it in the field anyway.
+- PR 21 (owner: "I recorded the match report and chose the first option to keep omanani.
+  nothing happened and there was no text in otteluraportti field"). The note WAS saved
+  correctly and was sitting under Muistiinpanot. The bug was the design: the PRIMARY button
+  of a panel that lives in the Otteluraportti step did not touch the report at all, and the
+  only feedback was a missable toast. A coach who records "the match report" and taps the
+  first button expects report text - that expectation was right and the layout was wrong.
+  Fixed: "Put this in the match report" is now the primary action; "Keep as a note for the
+  AI draft instead" is secondary; and saving a note shows a persistent line saying it is
+  NOT report text, that it is under Notes further up the page, and offering a button that
+  scrolls there. The notes step's `id` had to come back for that - it was deleted in 7d as
+  dead, which it was until this needed it.
 - PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
 - PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.

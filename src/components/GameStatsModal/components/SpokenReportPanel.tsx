@@ -52,6 +52,8 @@ export interface SpokenReportPanelProps {
   onSaveSummary: (note: GameNoteInput) => boolean;
   /** Adds the transcript to the report text the coach is writing. */
   onInsertIntoReport: (text: string) => void;
+  /** Scrolls to the notes list, so a note the coach cannot see is not lost. */
+  onShowNotes?: () => void;
   /** Clock stamp for the note: where the match ended. */
   stamp: { time: number; period: number };
 }
@@ -69,6 +71,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   vocabulary,
   onSaveSummary,
   onInsertIntoReport,
+  onShowNotes,
   stamp,
 }) => {
   const { t } = useTranslation();
@@ -82,6 +85,8 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   /** Recorded and stored, but there was nothing to write it out with. */
   const [storedOnly, setStoredOnly] = useState(false);
   const [busy, setBusy] = useState(false);
+  /** Set after a note is stored, so the coach is told where it went. */
+  const [savedAsNote, setSavedAsNote] = useState(false);
   // Only claim a clip this panel's own button produced; the in-match mic writes
   // to the same store and its notes belong in the inbox, not here.
   const miningRef = useRef(false);
@@ -171,6 +176,7 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
     setText('');
     setClipId(null);
     setStoredOnly(false);
+    setSavedAsNote(false);
     // Anything already stored is old news; only a clip written after this point
     // belongs to the recording we are starting now.
     claimedIdRef.current = dictation.lastClip?.id ?? null;
@@ -206,6 +212,9 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
       }
       await dropClip();
       setText('');
+      // A toast is missable, and this text went somewhere the coach is not
+      // looking - the notes step, further up the page. Say so, and offer to go.
+      setSavedAsNote(true);
       showToast(t('spokenReport.saved', 'Saved as your spoken summary.'), 'success');
     } finally {
       setBusy(false);
@@ -284,6 +293,22 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
         </button>
       )}
 
+      {savedAsNote && (
+        <div className="mt-3 space-y-2" data-testid="spoken-report-saved-note">
+          <p className="text-xs text-slate-300">
+            {t(
+              'spokenReport.savedWhere',
+              'Saved as a note, not as report text. It is further up this page under Notes, and the AI draft will use it as your own account.',
+            )}
+          </p>
+          {onShowNotes && (
+            <button type="button" onClick={onShowNotes} className={SECONDARY} data-testid="spoken-report-show-notes">
+              {t('spokenReport.showNotes', 'Show me the notes')}
+            </button>
+          )}
+        </div>
+      )}
+
       {storedOnly && !transcribing && (
         <p className="mt-3 text-xs text-amber-300" data-testid="spoken-report-stored-only">
           {t(
@@ -315,21 +340,21 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
           </p>
           <button
             type="button"
-            onClick={() => void saveAsSummary()}
+            onClick={() => void insert()}
             disabled={busy}
             className={PRIMARY}
-            data-testid="spoken-report-save"
+            data-testid="spoken-report-insert"
           >
-            {t('spokenReport.save', 'Keep as my spoken summary')}
+            {t('spokenReport.insert', 'Put this in the match report')}
           </button>
           <button
             type="button"
-            onClick={() => void insert()}
+            onClick={() => void saveAsSummary()}
             disabled={busy}
             className={SECONDARY}
-            data-testid="spoken-report-insert"
+            data-testid="spoken-report-save"
           >
-            {t('spokenReport.insert', 'Add it to the report text')}
+            {t('spokenReport.save', 'Keep as a note for the AI draft instead')}
           </button>
           <button
             type="button"

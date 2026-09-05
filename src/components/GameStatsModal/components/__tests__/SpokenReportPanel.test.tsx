@@ -73,6 +73,7 @@ const clip = {
 const renderPanel = (over: { dictation?: Partial<DictationControls>; onSaveSummary?: jest.Mock } = {}) => {
   const onSaveSummary = over.onSaveSummary ?? jest.fn(() => true);
   const onInsertIntoReport = jest.fn();
+  const onShowNotes = jest.fn();
   const dictation = controls(over.dictation);
   const view = render(
     <SpokenReportPanel
@@ -81,9 +82,10 @@ const renderPanel = (over: { dictation?: Partial<DictationControls>; onSaveSumma
       stamp={{ time: 3000, period: 2 }}
       onSaveSummary={onSaveSummary as unknown as SpokenReportPanelSave}
       onInsertIntoReport={onInsertIntoReport}
+      onShowNotes={onShowNotes}
     />,
   );
-  return { ...view, dictation, onSaveSummary, onInsertIntoReport };
+  return { ...view, dictation, onSaveSummary, onInsertIntoReport, onShowNotes };
 };
 
 type SpokenReportPanelSave = React.ComponentProps<typeof SpokenReportPanel>['onSaveSummary'];
@@ -100,6 +102,7 @@ const recordAndFinish = async (view: ReturnType<typeof renderPanel>) => {
         stamp={{ time: 3000, period: 2 }}
         onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
         onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
       />,
     );
   });
@@ -177,6 +180,7 @@ describe('SpokenReportPanel - recording', () => {
           stamp={{ time: 3000, period: 2 }}
           onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
           onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
         />,
       );
     });
@@ -201,6 +205,7 @@ describe('SpokenReportPanel - recording', () => {
           stamp={{ time: 3000, period: 2 }}
           onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
           onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
         />,
       );
     });
@@ -239,6 +244,7 @@ describe('SpokenReportPanel - recording a second time', () => {
           stamp={{ time: 3000, period: 2 }}
           onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
           onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
         />,
       );
     });
@@ -252,6 +258,7 @@ describe('SpokenReportPanel - recording a second time', () => {
           stamp={{ time: 3000, period: 2 }}
           onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
           onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
         />,
       );
     });
@@ -271,6 +278,7 @@ describe('SpokenReportPanel - recording a second time', () => {
           stamp={{ time: 3000, period: 2 }}
           onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
           onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
         />,
       );
     });
@@ -331,6 +339,32 @@ describe('SpokenReportPanel - the transcript', () => {
     expect(showToast).toHaveBeenCalledWith(expect.stringMatching(/could not save/i), 'error');
   });
 
+  /** @critical - the owner recorded the report, chose the first option, and saw
+   *  nothing: the primary action in the REPORT step did not touch the report. */
+  it('offers the report as the primary action, and says where a note went', async () => {
+    const view = renderPanel();
+    await recordAndFinish(view);
+
+    // Both buttons exist; the report one is the primary.
+    const insert = screen.getByTestId('spoken-report-insert');
+    const save = screen.getByTestId('spoken-report-save');
+    expect(insert).toHaveTextContent(/match report/i);
+    expect(insert.className).toContain('bg-indigo-600');
+    expect(save).toHaveTextContent(/note for the AI/i);
+    expect(save.className).toContain('bg-slate-700');
+
+    await act(async () => {
+      fireEvent.click(save);
+    });
+
+    // Not a toast the coach can miss: a line saying it is NOT report text.
+    const where = screen.getByTestId('spoken-report-saved-note');
+    expect(where).toHaveTextContent(/not as report text/i);
+    expect(where).toHaveTextContent(/under Notes/i);
+    fireEvent.click(screen.getByTestId('spoken-report-show-notes'));
+    expect(view.onShowNotes).toHaveBeenCalledTimes(1);
+  });
+
   it('can put the words straight into the report instead', async () => {
     const view = renderPanel();
     await recordAndFinish(view);
@@ -371,6 +405,7 @@ describe('SpokenReportPanel - the transcript', () => {
           stamp={{ time: 3000, period: 2 }}
           onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
           onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
         />,
       );
     });

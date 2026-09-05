@@ -887,6 +887,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     });
     spineSteps.push({
       key: 'notes',
+      id: 'game-notes-step',
       content: (
         <>
           {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
@@ -945,6 +946,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               vocabulary={dictationVocabulary}
               stamp={draftStamp}
               onSaveSummary={onAddGameNote}
+              onShowNotes={() => scrollToId('game-notes-step')}
               onInsertIntoReport={(spoken) => {
                 // Never replace: the coach's typed report keeps its place above.
                 const base = (gameNotes ?? '').trimEnd();
