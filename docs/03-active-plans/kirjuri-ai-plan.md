@@ -368,10 +368,19 @@ first. One intent per surface, organised by WHEN:
   them. `gamePacketFingerprint` gives PR 9's `aiMeta` something to record.
   Note `tag` shipped here: type + migration 042 (APPLIED TO STAGING ONLY) + both
   Supabase transform directions; nothing writes a tag yet.
-- PR 8b: the client call (chat completion on the coach's key, structured output,
-  max_output_tokens cap, 60 s timeout, abortable) + response validation.
+- PR 8b (done): `src/utils/aiDrafting.ts` - chat completion on the coach's key,
+  structured outputs (strict json_schema), `max_completion_tokens` 2000, 60 s timeout,
+  caller AbortSignal honoured. Refusals BEFORE spending: no key = no request, and a
+  packet over 60k chars is refused rather than billed. `validateDraft` drops any
+  player note whose ref was not in the packet (an invented "P9" must never be mapped
+  onto a real child), keeps only the seven known sections, de-duplicates them, restores
+  template order and clamps lengths. A provider refusal and a cut-off answer are
+  distinct failures. Returns model + packet fingerprint + token usage for `aiMeta` and
+  the "used this season" counter. MODEL ID `gpt-5-mini` needs owner confirmation
+  against the provider's current list before release.
 - PR 9: review screen + apply-on-approve with provenance; match report draft under the
-  7 headings; `gameNotes` cap 4000.
+  7 headings; `gameNotes` cap 4000. OPEN DECISION for PR 9: whether assessment slider
+  values join the packet (8a deliberately sends only coverage counts).
 
 **Phase 4 - Spoken debrief**
 - PR 10: 60-second post-match voice memo (optional halftime memo) feeding the
