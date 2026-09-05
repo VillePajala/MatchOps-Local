@@ -29,6 +29,8 @@ interface TimerOverlayProps {
    *  Finish this game spine. When wired, it replaces the assess-players button
    *  (assessments are step 5 of the spine). */
   onFinishGame?: () => void;
+  /** Finishing progress, so the whistle answers "how much is left". */
+  finishProgress?: { done: number; total: number } | null;
   onRecordOpponentGoal?: () => void;
   teamName: string;
   opponentName: string;
@@ -71,6 +73,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onToggleGoalLogModal = () => { logger.warn('onToggleGoalLogModal handler not provided'); },
   onOpenPlayerAssessmentModal,
   onFinishGame,
+  finishProgress,
   onRecordOpponentGoal = () => { logger.warn('onRecordOpponentGoal handler not provided'); },
   teamName = "Team",
   opponentName = "Opponent",
@@ -434,6 +437,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
               >
                 {t('timerOverlay.finishGameButton', 'Finish this game')}
+                {finishProgress && (
+                  <span className="ml-2 text-xs font-semibold tabular-nums opacity-90" data-testid="timer-finish-progress">
+                    {finishProgress.done}/{finishProgress.total}
+                  </span>
+                )}
               </button>
             )}
             {/* Legacy fallback for hosts that do not wire onFinishGame. */}

@@ -106,6 +106,8 @@ export interface TimerInteractions {
 }
 
 export interface FieldContainerProps {
+  /** Finishing progress for the current game, or null when it does not apply. */
+  finishProgress?: { done: number; total: number } | null;
   // Optional grouped state to reduce prop count (2.4.4)
   fieldVM: {
     playersOnField: AppState['playersOnField'];
@@ -181,6 +183,7 @@ export function FieldContainer({
   onWentToPenaltiesChange,
   interactions,
   timerInteractions,
+  finishProgress,
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -315,6 +318,7 @@ export function FieldContainer({
           onToggleGoalLogModal={toggleGoalLogModal}
           onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
           onFinishGame={onFinishGame}
+          finishProgress={finishProgress}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}
