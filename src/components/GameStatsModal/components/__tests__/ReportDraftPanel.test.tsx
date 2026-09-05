@@ -233,6 +233,28 @@ describe('ReportDraftPanel - reviewing a draft', () => {
     expect(review.textContent).not.toMatch(/\bP[0-9?]\b/);
   });
 
+  /** @critical - the owner: a wait with nothing moving reads as a dead button. */
+  it('shows that something is happening while the provider is thinking', async () => {
+    let settle: (d: unknown) => void = () => {};
+    draftMatchReport.mockReturnValueOnce(new Promise((resolve) => { settle = resolve; }));
+    renderPanel();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-start'));
+    });
+
+    const working = screen.getByTestId('report-draft-working');
+    expect(working).toHaveTextContent(/takes a few seconds/i);
+    // Announced, not just drawn.
+    expect(working).toHaveAttribute('role', 'status');
+    expect(screen.getByTestId('report-draft-cancel')).toBeInTheDocument();
+
+    await act(async () => {
+      settle(draft);
+    });
+    expect(screen.queryByTestId('report-draft-working')).not.toBeInTheDocument();
+  });
+
   it('cannot apply when the coach unticked everything', async () => {
     renderPanel();
     await produceDraft();

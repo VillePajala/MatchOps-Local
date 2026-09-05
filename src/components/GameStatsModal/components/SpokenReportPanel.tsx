@@ -43,6 +43,7 @@ import {
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import WorkingIndicator from '@/components/WorkingIndicator';
 
 export interface SpokenReportPanelProps {
   dictation: DictationControls;
@@ -319,9 +320,11 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
       )}
 
       {transcribing && (
-        <p className="mt-3 text-xs text-slate-400" data-testid="spoken-report-transcribing">
-          {t('spokenReport.transcribing', 'Writing out what you said...')}
-        </p>
+        <WorkingIndicator
+          className="mt-3"
+          label={t('spokenReport.transcribing', 'Writing out what you said...')}
+          data-testid="spoken-report-transcribing"
+        />
       )}
 
       {text && !transcribing && (

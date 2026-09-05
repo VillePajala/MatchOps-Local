@@ -29,6 +29,7 @@ import { applyReportDraft, composeReportText, resolveRefsInText, type ApplyMode 
 import { UNKNOWN_PLAYER_REF, buildGamePacket } from '@/utils/gamePacket';
 import { reportSectionLabel } from '@/utils/reportSections';
 import { useAiProviderState } from '@/utils/aiProvider';
+import WorkingIndicator from '@/components/WorkingIndicator';
 import { recordAiUsage } from '@/utils/aiUsage';
 import { useToast } from '@/contexts/ToastProvider';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
@@ -267,9 +268,16 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
             {t('reportDraft.costHint', 'Roughly ${{usd}} on your account.', { usd: estimate.toFixed(2) })}
           </p>
           {drafting ? (
-            <button type="button" onClick={cancel} className={SECONDARY} data-testid="report-draft-cancel">
-              {t('reportDraft.cancel', 'Cancel')}
-            </button>
+            <>
+              <WorkingIndicator
+                label={t('reportDraft.working', 'Writing the draft on your AI provider. This takes a few seconds.')}
+                className="mb-2"
+                data-testid="report-draft-working"
+              />
+              <button type="button" onClick={cancel} className={SECONDARY} data-testid="report-draft-cancel">
+                {t('reportDraft.cancel', 'Cancel')}
+              </button>
+            </>
           ) : (
             <button type="button" onClick={() => void runDraft()} className={PRIMARY} data-testid="report-draft-start">
               <HiOutlineSparkles className="text-base" />
