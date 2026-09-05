@@ -267,9 +267,10 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
               })}
             </p>
             <p className="text-xs text-slate-400">
-              {t('aiSettings.usageBreakdown', '{{transcriptions}} transcriptions, {{drafts}} report drafts. An estimate from list prices - your provider\'s bill is the real number.', {
+              {t('aiSettings.usageBreakdown', '{{transcriptions}} transcriptions, {{drafts}} report drafts, {{readbacks}} translations and summaries. An estimate from list prices - your provider\'s bill is the real number.', {
                 transcriptions: usage.transcriptions,
                 drafts: usage.drafts,
+                readbacks: usage.readbacks,
               })}
             </p>
             <button type="button" onClick={resetAiUsage} className={`${secondary} mt-1`} data-testid="ai-usage-reset">

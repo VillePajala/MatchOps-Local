@@ -22,18 +22,26 @@ import logger from '@/utils/logger';
 
 const STORAGE_KEY = 'matchops_ai_usage';
 
-export type AiUsageKind = 'transcription' | 'drafting';
+/**
+ * 'readback' covers the requests that only ever produce text to READ - a
+ * translation, a player's notes grouped into an account. Counting those as
+ * report drafts made the breakdown say the coach had drafted reports they
+ * never drafted, which is exactly what this module claims not to do.
+ */
+export type AiUsageKind = 'transcription' | 'drafting' | 'readback';
 
 export interface AiUsage {
   /** ISO date the count started (first use, or the last reset). */
   since: string;
   transcriptions: number;
   drafts: number;
+  /** Translations and grouped notes: text produced to read, never saved. */
+  readbacks: number;
   /** Sum of per-request estimates, in USD. */
   estimatedUsd: number;
 }
 
-const EMPTY: AiUsage = { since: '', transcriptions: 0, drafts: 0, estimatedUsd: 0 };
+const EMPTY: AiUsage = { since: '', transcriptions: 0, drafts: 0, readbacks: 0, estimatedUsd: 0 };
 
 const listeners = new Set<() => void>();
 let snapshot: AiUsage | null = null;
@@ -48,6 +56,8 @@ function read(): AiUsage {
       since: typeof parsed.since === 'string' ? parsed.since : '',
       transcriptions: Number.isFinite(parsed.transcriptions) ? Number(parsed.transcriptions) : 0,
       drafts: Number.isFinite(parsed.drafts) ? Number(parsed.drafts) : 0,
+      // Absent in counters written before this field existed.
+      readbacks: Number.isFinite(parsed.readbacks) ? Number(parsed.readbacks) : 0,
       estimatedUsd: Number.isFinite(parsed.estimatedUsd) ? Number(parsed.estimatedUsd) : 0,
     };
   } catch {
@@ -82,6 +92,7 @@ export function recordAiUsage(kind: AiUsageKind, estimatedUsd: number): void {
     since: current.since || new Date().toISOString().slice(0, 10),
     transcriptions: current.transcriptions + (kind === 'transcription' ? 1 : 0),
     drafts: current.drafts + (kind === 'drafting' ? 1 : 0),
+    readbacks: current.readbacks + (kind === 'readback' ? 1 : 0),
     // Kept to four decimals: single requests here cost fractions of a cent.
     estimatedUsd: Math.round((current.estimatedUsd + usd) * 10_000) / 10_000,
   });
