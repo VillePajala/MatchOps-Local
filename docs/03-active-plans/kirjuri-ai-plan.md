@@ -483,6 +483,20 @@ first. One intent per surface, organised by WHEN:
   a parent may read it", the period structure (two periods = halves) and clock basis,
   which side "us" and "them" mean, and that position codes are pitch roles with their
   line - GK / back line / holding, central, attacking midfield / front line.
+- DECIDED 2026-09-05 (owner): assessment slider VALUES stay out of the packet - "the
+  ratings do not need to be on the report, but from the recordings yes". Coverage counts
+  only, as 8a built it. Dictated notes ARE the material the report is built from.
+- PR 18 (found while answering "if I record someone's good performance, it should not be
+  prevented from appearing on the match report"). It was not prevented - it arrived as a
+  CODE. Player notes were mapped back through `entityId`; drafted SECTION TEXT was not, so
+  the coach's own report read "P1 teki paljon tyota". Pseudonymization protects the child
+  from the PROVIDER, not from the coach who wrote the note. `resolveRefsInText` now puts
+  names back into section text AND note text, longest ref first so "P1" cannot eat the
+  front of "P10", word boundaries both sides. Owner's follow-up: the name is the NICKNAME
+  or FIRST name, never the surname.
+- MODEL ID VERIFIED 2026-09-05 (owner pasted their account's list): `gpt-5-mini` exists,
+  so `DRAFTING_MODEL` is valid and the price constants match it. Newer mini-class models
+  are available to them too (gpt-5.4-mini; flagships to 5.6).
 - PR 17 (owner picked option B). The draft is written KNOWING the coach's existing report
   (it goes into the packet as `attested.coachReport`), so with append it can cover the same
   ground twice. A note now says so where the choice is made - not after the coach is

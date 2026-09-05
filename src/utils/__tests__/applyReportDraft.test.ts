@@ -43,6 +43,7 @@ const base = {
   mode: 'append' as const,
   labelFor,
   refToPlayerId: { P1: 'p1', P2: 'p2' },
+  nameForRef: (ref: string) => ({ P1: 'Emma', P2: 'Matti' }[ref] ?? 'Tuntematon pelaaja'),
   stamp: { time: 3000, period: 2 },
   idFactory: (i: number) => `n${i}`,
 };
@@ -119,8 +120,70 @@ describe('applyReportDraft - section text', () => {
   });
 
   it('composeReportText is usable on its own for a preview', () => {
-    expect(composeReportText(draft(), ['overview'], labelFor)).toBe('Yleiskuva:\nTasainen ottelu.');
-    expect(composeReportText(draft(), [], labelFor)).toBe('');
+    const refs = ['P1', 'P2'];
+    const nameForRef = (ref: string) => ({ P1: 'Emma', P2: 'Matti' }[ref] ?? ref);
+    expect(composeReportText(draft(), ['overview'], labelFor, refs, nameForRef)).toBe(
+      'Yleiskuva:\nTasainen ottelu.',
+    );
+    expect(composeReportText(draft(), [], labelFor, refs, nameForRef)).toBe('');
+  });
+});
+
+describe('applyReportDraft - codes become names again', () => {
+  /**
+   * @critical - the packet sends codes so the provider never learns who these
+   * children are. That protects them from the PROVIDER, not from the coach: a
+   * report reading "P1 pelasi rohkeasti" in the coach's own document is broken.
+   */
+  it('puts names back into the drafted prose and into note text', () => {
+    const withRefs = draft({
+      sections: [{ section: 'mentions', text: 'P1 teki paljon työtä ilman palloa, ja P2 tuki hyvin.' }],
+      playerNotes: [{ ref: 'P1', text: 'Rohkea. Yhteistyö P2:n kanssa toimi.' }],
+    });
+    const result = applyReportDraft({
+      ...base,
+      draft: withRefs,
+      approvedSections: ['mentions'],
+      approvedPlayerNoteIndexes: [0],
+    });
+
+    expect(result.report).toBe('Erityismaininnat:\nEmma teki paljon työtä ilman palloa, ja Matti tuki hyvin.');
+    expect(result.noteEvents[0].text).toBe('Rohkea. Yhteistyö Matti:n kanssa toimi.');
+    expect(result.report).not.toMatch(/\bP[0-9?]/);
+  });
+
+  /** "P1" must not eat the front of "P10" in a squad of a dozen or more. */
+  it('does not let a short ref swallow a longer one', () => {
+    const many = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`P${i + 1}`, `p${i + 1}`]));
+    const withRefs = draft({ sections: [{ section: 'overview', text: 'P1 ja P10 ja P12 pelasivat.' }] });
+    const result = applyReportDraft({
+      ...base,
+      draft: withRefs,
+      approvedSections: ['overview'],
+      approvedPlayerNoteIndexes: [],
+      refToPlayerId: many,
+      nameForRef: (ref) => ({ P1: 'Emma', P10: 'Leo', P12: 'Sofia' }[ref] ?? ref),
+    });
+
+    expect(result.report).toBe('Yleiskuva:\nEmma ja Leo ja Sofia pelasivat.');
+  });
+
+  it('leaves the unidentified marker readable rather than as a code', () => {
+    const withRefs = draft({ sections: [{ section: 'overview', text: 'P? sai hyvän paikan.' }] });
+    const result = applyReportDraft({
+      ...base,
+      draft: withRefs,
+      approvedSections: ['overview'],
+      approvedPlayerNoteIndexes: [],
+      nameForRef: (ref) => (ref === 'P?' ? 'yksi pelaajista' : 'Emma'),
+    });
+
+    expect(result.report).toBe('Yleiskuva:\nyksi pelaajista sai hyvän paikan.');
+  });
+
+  it('leaves ordinary text with no refs untouched', () => {
+    const result = applyReportDraft({ ...base, approvedSections: ['overview'], approvedPlayerNoteIndexes: [] });
+    expect(result.report).toBe('Yleiskuva:\nTasainen ottelu.');
   });
 });
 
