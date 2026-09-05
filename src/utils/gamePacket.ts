@@ -14,8 +14,9 @@
  *      - recorded  = it happened, the app captured it (score, goals, cards,
  *                    penalties, the clock stamp on a note)
  *      - attested  = the coach entered it afterwards (positions played, note
- *                    text, the coach's own report). A draft may say "the coach
- *                    noted", never "it happened".
+ *                    text, the coach's own report). It may be written in the
+ *                    report's own voice - the coach is the author and the
+ *                    reader - but never dressed up as something measured.
  *      - planned   = intent from before kick-off (planner minutes, demand
  *                    level). Context only, never a claim about a player.
  *
@@ -163,7 +164,7 @@ export interface BuildGamePacketOptions {
 const TRUST_EXPLANATION: GamePacket['trust'] = {
   recorded: 'The app captured this as it happened. Safe to state as fact.',
   attested:
-    'The coach entered this after the match. Attribute it to the coach ("the coach noted"), never as an observed fact.',
+    "The coach entered this after the match, and this report is the coach's own document, so it belongs in the report's own voice. Do not attribute it back to them, and do not dress it up as something the app measured: no invented detail, no numbers that are not here.",
   planned:
     'Intent from before kick-off, not a record of what happened. Use as context only; never make a claim about a player from it.',
 };

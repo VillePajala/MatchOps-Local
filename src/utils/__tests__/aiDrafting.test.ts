@@ -322,7 +322,12 @@ describe('instructions and cost hint', () => {
   it('tells the model the trust tiers, the unknown ref and the coverage rule', () => {
     const text = buildDraftingInstructions(makePacket());
     expect(text).toContain('recorded');
-    expect(text).toContain('the coach noted');
+    // The report is the coach's own document, so it is written in the report's
+    // voice, not attributed back to the person reading it.
+    expect(text).toMatch(/impersonal/i);
+    expect(text).toMatch(/passive/i);
+    expect(text).not.toMatch(/the coach noted/i);
+    expect(text).toMatch(/not licence to claim more than the data holds/i);
     expect(text).toContain('P?');
     expect(text).toMatch(/coverage/i);
     expect(text).toMatch(/never invent/i);
