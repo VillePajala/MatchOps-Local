@@ -895,6 +895,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               availablePlayers={availablePlayers}
               onAccept={onAddGameNote}
               onCountChange={setVoiceClipCount}
+              latestClipId={dictation?.lastClip?.id ?? null}
             />
           )}
           <GameNotesList

@@ -36,6 +36,7 @@ jest.mock('@/utils/audioClipStore', () => ({
   getClipBlob: jest.fn(),
   deleteClip: jest.fn().mockResolvedValue(undefined),
   rotateOldClips: jest.fn().mockResolvedValue(0),
+  setClipTranscript: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('@/utils/logger', () => ({
@@ -105,6 +106,41 @@ describe('DictationInbox', () => {
       fireEvent.click(screen.getAllByTestId('dictation-accept')[0]);
     });
     expect(onAccept.mock.calls[0][0].text).toHaveLength(1000);
+  });
+
+  /** @critical - the owner's report: transcribe, record again, and the new clip
+   *  could not be transcribed because the list never refreshed. The spoken-report
+   *  panel is on this same page, so recording without closing it is normal. */
+  it('picks up a clip recorded while this screen stayed open', async () => {
+    const { listClips } = jest.requireMock('@/utils/audioClipStore') as { listClips: jest.Mock };
+    listClips.mockResolvedValue([clips[0]]);
+    aiState.connected = true;
+    const { rerender } = render(<DictationInbox gameId="g1" availablePlayers={players} latestClipId="c1" />);
+    await waitFor(() => expect(screen.getAllByTestId('dictation-clip')).toHaveLength(1));
+
+    // A new recording lands while the screen is still mounted.
+    listClips.mockResolvedValue(clips);
+    await act(async () => {
+      rerender(<DictationInbox gameId="g1" availablePlayers={players} latestClipId="c2" />);
+    });
+
+    await waitFor(() => expect(screen.getAllByTestId('dictation-clip')).toHaveLength(2));
+    expect(screen.getByTestId('dictation-transcribe')).toBeInTheDocument();
+  });
+
+  /** @critical - a transcript is paid for; closing the screen must not bin it. */
+  it('shows a transcript the clip already remembers, without paying again', async () => {
+    const { listClips } = jest.requireMock('@/utils/audioClipStore') as { listClips: jest.Mock };
+    listClips.mockResolvedValue([{ ...clips[0], transcript: 'Aiemmin litteroitu teksti.' }, clips[1]]);
+    aiState.connected = true;
+
+    render(<DictationInbox gameId="g1" availablePlayers={players} />);
+
+    const texts = (await screen.findAllByTestId('dictation-text')) as HTMLTextAreaElement[];
+    expect(texts[0].value).toBe('Aiemmin litteroitu teksti.');
+    expect(transcribe).not.toHaveBeenCalled();
+    // Only the clip without words is still worth paying for.
+    expect(screen.getByTestId('dictation-transcribe')).toHaveTextContent('Transcribe 1 clips');
   });
 
   it('renders nothing when there is nothing to review', async () => {

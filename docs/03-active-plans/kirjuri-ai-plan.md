@@ -422,6 +422,19 @@ first. One intent per surface, organised by WHEN:
   2. **The spoken report transcribed on stop with no price shown**, while the inbox
      shows a cost and waits for a tap. The panel now states the per-minute price and
      that writing out starts when recording stops, before the coach records.
+- PR 13 (owner found it while testing: "if I have transcribed the clips and then record
+  new ones, I cannot transcribe the new ones"). TWO bugs, both real:
+  1. **The inbox listed clips once, on mount, and never again.** A clip recorded without
+     leaving the screen was invisible, so it could not be transcribed. That is a normal
+     path now, because the spoken-report panel sits on the same page. The inbox re-reads
+     its list whenever the recorder reports a new clip (`latestClipId`).
+  2. **Transcripts lived in component state, so closing the screen binned words the coach
+     had PAID for** - reopening meant paying again. The transcript now lives on the clip
+     record (`AudioClipMeta.transcript`, written by `setClipTranscript`) and seeds the
+     drafts on open; only clips with no words are offered for transcription.
+  Found while fixing: the transcript write could abort the whole paid batch if it threw
+  (an undefined mock proved it). It is now wrapped so it cannot - every remaining clip in
+  that loop is money the coach already decided to spend.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 

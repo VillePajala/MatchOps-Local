@@ -19,7 +19,14 @@ import type { GameNoteInput } from '@/types/game';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import { DictationRules } from '@/components/AiConsentGate';
-import { deleteClip, getClipBlob, listClips, rotateOldClips, type AudioClipMeta } from '@/utils/audioClipStore';
+import {
+  deleteClip,
+  getClipBlob,
+  listClips,
+  rotateOldClips,
+  setClipTranscript,
+  type AudioClipMeta,
+} from '@/utils/audioClipStore';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import { matchPlayerInText } from '@/utils/playerNameMatch';
 import { useAiProviderState } from '@/utils/aiProvider';
@@ -34,6 +41,13 @@ interface DictationInboxProps {
   onAccept?: (note: GameNoteInput) => boolean;
   /** Reports how many clips await review (the wrap-up card row). */
   onCountChange?: (count: number) => void;
+  /**
+   * Id of the clip the recorder stored most recently. The inbox re-reads its
+   * list whenever this changes, because a coach can record again without ever
+   * closing this screen - the spoken-report panel sits on the same page - and
+   * a clip the list has not seen cannot be transcribed.
+   */
+  latestClipId?: string | null;
 }
 
 interface Draft {
@@ -50,7 +64,13 @@ export const formatClock = (seconds: number): string => {
 
 const MAX_NOTE_CHARS = VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX;
 
-const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayers, onAccept, onCountChange }) => {
+const DictationInbox: React.FC<DictationInboxProps> = ({
+  gameId,
+  availablePlayers,
+  onAccept,
+  onCountChange,
+  latestClipId,
+}) => {
   const { t } = useTranslation();
   const { userId } = useDataStore();
   const { showToast } = useToast();
@@ -85,7 +105,19 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
       .catch((error) => logger.warn('[dictation] rotation on inbox open failed', error))
       .then(() => listClips(gameId, userId ?? undefined))
       .then((list) => {
-        if (!cancelled) applyClips(list);
+        if (cancelled) return;
+        applyClips(list);
+        // Seed from what each clip already says, so a transcript the coach has
+        // paid for survives closing and reopening this screen.
+        setDrafts((prev) => {
+          const next = { ...prev };
+          for (const clip of list) {
+            if (clip.transcript && !(next[clip.id]?.text ?? '').trim()) {
+              next[clip.id] = { ...(next[clip.id] ?? { playerId: 'auto' }), text: clip.transcript };
+            }
+          }
+          return next;
+        });
       })
       .catch((error) => {
         logger.warn('[dictation] inbox load failed', error);
@@ -94,7 +126,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
     return () => {
       cancelled = true;
     };
-  }, [gameId, userId, applyClips]);
+  }, [gameId, userId, applyClips, latestClipId]);
 
   // One object URL at a time; revoked on switch and unmount.
   useEffect(() => {
@@ -253,6 +285,13 @@ const DictationInbox: React.FC<DictationInboxProps> = ({ gameId, availablePlayer
           recordAiUsage('transcription', estimateTranscriptionUsd(clip.durationMs));
           if (text) {
             setDrafts((prev) => ({ ...prev, [clip.id]: { ...(prev[clip.id] ?? { playerId: 'auto' }), text } }));
+            // Paid for once: remember it on the clip. Best effort in the
+            // strongest sense - this must never be able to abort the batch,
+            // including by throwing synchronously, because every remaining
+            // clip in the loop is money the coach has already decided to spend.
+            void Promise.resolve()
+              .then(() => setClipTranscript(clip.id, text, userId ?? undefined))
+              .catch((error) => logger.warn('[dictation] could not store the transcript', error));
             done += 1;
           }
         } catch (error) {
