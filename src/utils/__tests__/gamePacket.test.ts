@@ -260,6 +260,31 @@ describe('buildGamePacket - events, notes and coverage', () => {
     ]);
   });
 
+  /** @critical - a goal at clock zero has no time on it; sending minute 0 made
+   *  the draft state an invented fact ("merkittiin 0. minuutilla"). */
+  it('omits the minute when the clock was not running, and keeps it when it was', () => {
+    const { packet } = buildGamePacket({
+      game: baseGame({
+        gameEvents: [
+          { id: 'g1', type: 'goal', time: 0, scorerId: 'p1' },
+          { id: 'g2', type: 'goal', time: 45, scorerId: 'p2' },
+          { id: 'g3', type: 'opponentGoal', time: 900 },
+          note('n1', 0, 'Hyvä alku'),
+          note('n2', 600, 'Hyvä paine'),
+        ] as GameEvent[],
+      }),
+      players: roster,
+    });
+
+    // Under a minute is not "minute 0": it is no minute at all.
+    expect(packet.recorded.goals[0]).not.toHaveProperty('minute');
+    expect(packet.recorded.goals[1]).not.toHaveProperty('minute');
+    expect(packet.recorded.goals[2].minute).toBe(15);
+    expect(packet.attested.notes[0]).not.toHaveProperty('minute');
+    expect(packet.attested.notes[1].minute).toBe(10);
+    expect(JSON.stringify(packet)).not.toContain('"minute":0');
+  });
+
   it('carries note source, period, subject and tag, in clock order', () => {
     const { packet } = buildGamePacket({
       game: baseGame({

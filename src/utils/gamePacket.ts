@@ -64,8 +64,8 @@ export interface PacketPlayer {
 }
 
 export interface PacketGoal {
-  /** Whole minutes from kick-off, rounded down - the clock stamp, not a guess. */
-  minute: number;
+  /** Whole minutes from kick-off. ABSENT when the clock was not running. */
+  minute?: number;
   period?: number;
   team: 'us' | 'them';
   scorer?: string;
@@ -73,7 +73,8 @@ export interface PacketGoal {
 }
 
 export interface PacketNote {
-  minute: number;
+  /** Whole minutes from kick-off. ABSENT when the clock was not running. */
+  minute?: number;
   period?: number;
   /** Player ref the note is about; absent = a note about the game. */
   about?: string;
@@ -169,9 +170,16 @@ const TRUST_EXPLANATION: GamePacket['trust'] = {
     'Intent from before kick-off, not a record of what happened. Use as context only; never make a claim about a player from it.',
 };
 
-/** Whole minutes from kick-off. Note stamps are seconds on the game clock. */
-const toMinute = (seconds: number): number =>
-  Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds / 60) : 0;
+/**
+ * Whole minutes from kick-off, or undefined when the clock was not running.
+ *
+ * A goal logged at clock zero is not a goal in the opening minute - it is a
+ * goal with no time on it, usually because the coach never started the timer.
+ * Sending `minute: 0` produced drafts reading "merkittiin 0. minuutilla", which
+ * is an invented fact dressed as a precise one. Absence is the honest answer.
+ */
+const toMinute = (seconds: number): number | undefined =>
+  Number.isFinite(seconds) && seconds >= 60 ? Math.floor(seconds / 60) : undefined;
 
 /**
  * Every word that could identify this player: nickname plus each part of the
@@ -324,9 +332,10 @@ export function buildGamePacket({
     .slice()
     .sort((a, b) => a.time - b.time)
     .map((e) => {
+      const minute = toMinute(e.time);
       const goal: PacketGoal = {
-        minute: toMinute(e.time),
         team: e.type === 'goal' ? 'us' : 'them',
+        ...(minute === undefined ? {} : { minute }),
       };
       if (typeof e.period === 'number') goal.period = e.period;
       const scorerRef = e.scorerId ? refOf(e.scorerId) : undefined;
@@ -339,10 +348,11 @@ export function buildGamePacket({
   const noteEvents = events.filter(isNote).slice().sort((a, b) => a.time - b.time);
   const notes: PacketNote[] = noteEvents.map((e) => {
     const raw = (e.text ?? '').trim();
+    const minute = toMinute(e.time);
     const note: PacketNote = {
-      minute: toMinute(e.time),
       text: pseudonymize ? redactPlayerNames(raw, players, refOf) : raw,
       source: e.source ?? 'manual',
+      ...(minute === undefined ? {} : { minute }),
     };
     if (typeof e.period === 'number') note.period = e.period;
     const aboutRef = e.entityId ? refOf(e.entityId) : undefined;

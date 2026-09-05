@@ -412,6 +412,24 @@ first. One intent per surface, organised by WHEN:
   NOT report text, that it is under Notes further up the page, and offering a button that
   scrolls there. The notes step's `id` had to come back for that - it was deleted in 7d as
   dead, which it was until this needed it.
+- PR 22 (owner tested a real draft and sent screenshots). FIVE fixes, all from what the
+  drafts actually said:
+  1. **The review list showed codes.** Refs were resolved when a draft was APPLIED but not
+     in the review list, so the screen where the coach DECIDES read "tekijana P5 ja
+     syottajana P3" while the saved report had names.
+  2. **"maali merkittiin 0. minuutilla".** A goal logged at clock zero has no time on it -
+     the coach never started the timer - and `minute: 0` stated that as a fact. `toMinute`
+     returns undefined below a minute, the field is omitted, and the prompt says a missing
+     minute means the clock was not running: write without a time, never guess one.
+  3. **"maalivahdin torjuntoja kirjattiin tarkeiksi".** The model narrated the BOOKKEEPING
+     instead of the football, probably encouraged by trust-tier wording about what the app
+     captured versus what the coach entered. New prompt block: never write about the record
+     itself; kirjattiin / merkittiin / tallennettiin / havainnoitiin banned by name.
+  4. **"Keijo:lle", "Esko:n".** Finnish inflects a CODE with a colon; a name takes the
+     ending directly. The resolver swallows the colon: "P2:lle" -> "Keijolle".
+  5. **The lone "Nykyinen" tab.** At match level the aggregate tabs are hidden, leaving a
+     single full-width tab that looked like a button and did nothing. The tab bar now
+     renders only when there is more than one tab.
 - PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
 - PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.

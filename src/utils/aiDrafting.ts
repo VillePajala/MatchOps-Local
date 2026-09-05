@@ -181,6 +181,7 @@ function matchContext(packet: GamePacket): string[] {
     }. Goal minutes are counted from kick-off across the whole match.`,
     `SIDE: the team being reported on is ${r.teamName}, playing ${r.homeOrAway === 'home' ? 'at home' : 'away'} against ${r.opponentName}. "us" in the goal list means ${r.teamName}; "them" means the opponent.`,
     'POSITIONS: codes are pitch roles, not initials. GK goalkeeper; LB CB RB the back line; LDM CDM RDM holding midfield; LM CM RM central midfield; LAM CAM RAM attacking midfield; LW ST RW the front line. A player listed in several codes moved around during the match.',
+    'MINUTES: a goal or note with NO minute has no time on it, because the clock was not running. Write about it without a time. Never say it happened in minute zero, and never guess a minute.',
   );
   if (r.wentToOvertime || r.wentToPenalties) {
     lines.push(
@@ -202,6 +203,13 @@ export function buildDraftingInstructions(packet: GamePacket): string {
     'Finnish that means the passive: "toisella puoliajalla prassattiin paremmin", never',
     '"valmentajan mukaan prassattiin paremmin". Do not write "according to the coach" or',
     'anything like it: the coach was there, and the coach is the one reading this.',
+    '',
+    'NEVER WRITE ABOUT THE RECORD ITSELF. The report is about the match, not about what was',
+    'noted, logged, marked or entered. Real drafts came back saying "maalivahdin torjuntoja',
+    'kirjattiin tarkeiksi" and "maali merkittiin 0. minuutilla" - both describe the',
+    'bookkeeping instead of the football. Write "maalivahti torjui ratkaisevasti" instead.',
+    'Words like kirjattiin, merkittiin, tallennettiin and havainnoitiin have no place in it:',
+    'if a note says the keeper made great saves, the report says the keeper made great saves.',
     '',
     ...matchContext(packet),
     '',
