@@ -4,7 +4,7 @@
  * audio is deleted on accept AND on discard.
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import DictationInbox from '../DictationInbox';
 import { deleteClip, getClipBlob, listClips, rotateOldClips } from '@/utils/audioClipStore';
 import type { Player } from '@/types';
@@ -259,15 +259,36 @@ describe('DictationInbox', () => {
     expect(onAccept).toHaveBeenCalledWith(expect.objectContaining({ entityId: undefined }));
   });
 
-  it('discard deletes the audio without creating a note', async () => {
+  it('discard deletes the audio without creating a note, once confirmed', async () => {
     const onAccept = jest.fn(() => true);
     render(<DictationInbox gameId="g1" availablePlayers={players} onAccept={onAccept} />);
     const [discard] = await screen.findAllByTestId('dictation-discard');
     await act(async () => {
       fireEvent.click(discard);
     });
+    // The recording is the only copy of what the coach said, so the tap alone
+    // does not delete it.
+    expect(deleteClip).not.toHaveBeenCalled();
+
+    // The row buttons share the label, so reach into the dialog itself.
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Discard' }));
+    });
     expect(deleteClip).toHaveBeenCalledWith('c1', 'u1');
     expect(onAccept).not.toHaveBeenCalled();
+  });
+
+  /** @critical - a mis-tap must not cost a recording that cannot be redone. */
+  it('keeps the recording when the coach backs out of discarding', async () => {
+    render(<DictationInbox gameId="g1" availablePlayers={players} />);
+    const [discard] = await screen.findAllByTestId('dictation-discard');
+    await act(async () => {
+      fireEvent.click(discard);
+    });
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+    });
+    expect(deleteClip).not.toHaveBeenCalled();
   });
 
   it('play loads the blob into an audio element; stop removes it', async () => {
