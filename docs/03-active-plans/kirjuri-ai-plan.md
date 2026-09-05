@@ -446,6 +446,22 @@ first. One intent per surface, organised by WHEN:
   2. The draft card correctly hides its button with no key, but only named the problem.
      It now offers "Open settings" (`onOpenSettings`, already a prop of the modal).
   Rule this reinforces: a degraded path must be as loud as a working one.
+- PR 16 (owner, after testing the whole feature: "I would like to hear the report in
+  passive format, not 'Valmentajan mukaan oli prassia' but 'oli prassia'"). The honesty
+  rule was aimed at the wrong AUDIENCE. "Attribute it to the coach" exists so attested
+  data is not passed off as something the app measured - but the report is the coach's own
+  document about their own team, and attributing their observations back to them reads
+  like a diary saying "according to the author". In Finnish it produced bureaucratic prose
+  no coach would write.
+  Reworked: the prompt opens with a VOICE block asking for the impersonal register a match
+  report uses (Finnish passive, with the owner's own example of the right and wrong form),
+  the `attested` tier says the datum belongs in the report's own voice while still
+  forbidding invented detail and numbers that are not in the data, and rule 4 now spells
+  out that the report's voice "changes who is speaking, not what is known". Substance
+  rules untouched: never invent, never turn planner intent into a claim about a player, no
+  player note without a note behind it.
+  LESSON: a data-honesty rule has to be written for the document's actual reader. Hedging
+  aimed at a stranger reads as evasion when the author is the audience.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 
