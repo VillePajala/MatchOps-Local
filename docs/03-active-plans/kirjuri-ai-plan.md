@@ -386,6 +386,21 @@ first. One intent per surface, organised by WHEN:
      mic-in-pocket logging is what gets deleted.
   This also means a NEGATIVE spike result does not kill Phase 2 for everyone - it tells us
   how loudly the self-test has to speak.
+- **HOW TO RUN THE SPIKE (owner: "I cannot see logs in installed app").** Two problems,
+  both handled:
+  1. No console in an installed app, so the harness prints its log ON SCREEN and now has
+     a Copy button (clipboard, then the share sheet, then a text file as the last resort).
+     The exported log carries the user agent and whether the page was running standalone
+     or in a browser tab, because that changes what the result means.
+  2. **The Play Store app CANNOT run branch code.** The installed TWA loads PRODUCTION and
+     has no address bar, so `/kirjuri-spike` on a Vercel preview is unreachable from it.
+     The closest available proxy: open the preview in Chrome, "Add to home screen", and
+     run the spike from that icon - a standalone window on the preview origin, no address
+     bar. The page detects this and says which mode it is in, because a browser tab is
+     more permissive than an installed app and a pass in a tab can still fail in the TWA.
+     A true TWA answer only arrives when this reaches production; if the standalone result
+     is positive we accept that residual risk, and the per-coach self-test above is what
+     catches it in the field anyway.
 - PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
 - PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.

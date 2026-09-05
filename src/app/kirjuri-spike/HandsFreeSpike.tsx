@@ -252,6 +252,47 @@ const HandsFreeSpike: React.FC = () => {
 
   // --- 3. what the buds present as ----------------------------------------
 
+  /**
+   * Getting the log OUT of the app.
+   *
+   * In an installed app there is no console and no developer tools, so a log
+   * that can only be read on screen is a log that cannot be reported. Copy
+   * first, share as the fallback, and a file download if neither is allowed.
+   */
+  const exportLog = useCallback(async () => {
+    const header = [
+      `Kirjuri hands-free spike ${new Date().toISOString()}`,
+      `display-mode: ${window.matchMedia('(display-mode: standalone)').matches ? 'standalone (installed)' : 'browser tab'}`,
+      `userAgent: ${navigator.userAgent}`,
+      '',
+    ].join('\n');
+    const body = header + log.map((l) => `${l.at}  ${l.text}`).reverse().join('\n');
+    try {
+      await navigator.clipboard.writeText(body);
+      say('log copied - paste it wherever you need it');
+      return;
+    } catch {
+      /* no clipboard permission in this context */
+    }
+    try {
+      const nav = navigator as Navigator & { share?: (d: { title?: string; text?: string }) => Promise<void> };
+      if (nav.share) {
+        await nav.share({ title: 'Kirjuri spike log', text: body });
+        return;
+      }
+    } catch {
+      /* the share sheet was dismissed */
+    }
+    // Last resort: hand it over as a file.
+    const url = URL.createObjectURL(new Blob([body], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kirjuri-spike-${Date.now()}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+    say('log saved as a file');
+  }, [log, say]);
+
   const listDevices = useCallback(async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -349,6 +390,20 @@ const HandsFreeSpike: React.FC = () => {
             clear
           </button>
         </div>
+        <p className="text-xs text-slate-400">
+          {window.matchMedia('(display-mode: standalone)').matches
+            ? 'Running as an installed app, which is the case that matters.'
+            : 'Running in a browser tab. Install this preview to the home screen and run it from there: a browser tab is more permissive than an installed app, so a pass here can still fail there.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => void exportLog()}
+          disabled={log.length === 0}
+          className={BTN2}
+          data-testid="spike-export"
+        >
+          Copy the log (there is no console in an installed app)
+        </button>
         <pre className="text-[11px] leading-relaxed whitespace-pre-wrap text-slate-300 max-h-96 overflow-y-auto" data-testid="spike-log">
           {log.length === 0 ? 'nothing yet' : log.map((l) => `${l.at}  ${l.text}`).join('\n')}
         </pre>
