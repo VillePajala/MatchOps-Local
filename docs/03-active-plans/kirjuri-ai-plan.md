@@ -347,8 +347,27 @@ first. One intent per surface, organised by WHEN:
   text updates. PR 7c: completeness dot on Home + the Peli ohi hand-off.
 
 **Phase 2 - Hands-free**
-- Spike first (half a day, throwaway): silent-track Media Session in the TWA - do
-  earbud play/pause taps reach the page, and does the mic stream survive a pocketed
+- SPIKE HARNESS BUILT (PR 20, `/kirjuri-spike`): a throwaway diagnostic route, no
+  navigation to it and `robots: noindex` - the only way in is typing the address.
+  **DELETE IT BEFORE THE MASTER MERGE** (checklist item below). It answers the two
+  questions that cannot be answered from a desk:
+  1. Does an earbud button reach the page? Holds a looping WAV built in the browser
+     (silent, with a barely-audible tone as the fallback, because some systems ignore a
+     silent player and never grant a media session), registers EVERY MediaSession action
+     including `hangup` / `togglemicrophone`, AND listens for media KEY events, since some
+     devices deliver keys rather than session actions. Every arrival is timestamped.
+     Why this matters for the owner's two pairs: a single-button media bud normally sends
+     play/pause over AVRCP, which can surface as a session action; a headset built for
+     calls (Jabra Evolve 2) tends to send CALL CONTROL over the hands-free profile, which
+     may never surface as a media action at all. The log tells them apart.
+  2. Does the mic survive a pocketed phone? Opens the stream, holds the screen wake lock
+     like the app does, and logs one line a second with the input level, track readyState,
+     mute flag, page visibility and AudioContext state - readable after the phone comes
+     back out of the pocket. Plus `enumerateDevices`, because media buds and call headsets
+     appear differently there, which is the likeliest reason one pair works and another
+     does not.
+  Original spike question (kept for the record): silent-track Media Session in the TWA -
+  do earbud play/pause taps reach the page, and does the mic stream survive a pocketed
   screen-on phone?
 - PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
@@ -563,6 +582,15 @@ carries neither the key, the consent flag nor the usage counter. The export buil
 an allowlist so they were already excluded; the test is there so a future "back up
 everything" change fails instead of shipping credentials in a file coaches share. A manual device checklist per phase (Android phone,
 earbuds, TWA build) because none of the media APIs run in jsdom or Playwright.
+
+## Before the master merge (checklist)
+
+- [ ] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). It is a diagnostic.
+- [ ] Apply migrations 041, 042, 043 to PROD - diff the live definitions first; they are
+      on staging only.
+- [ ] Owner decision: POLICY_VERSION bump (deliberately not bumped so far).
+- [ ] Recheck Play Data Safety declarations against what the feature now does.
+- [ ] Lawyer / Tietosuojavaltuutettu review of the drafting phase, as this doc recommends.
 
 ## Later (not in this build)
 
