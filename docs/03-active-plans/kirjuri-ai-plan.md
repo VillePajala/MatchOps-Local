@@ -274,6 +274,11 @@ not a measurement:
   contract, explicit goal-log open, audio-DB existence guard, dead `applyFormation`
   handler, coverage gaps). Unused locale keys are NOT pruned: several are addressed
   dynamically (template keys), so a static "unused" list is unsafe.
+- 7b-2 #754 and 7c: 'Peli ohi' now offers one CTA, Viimeistele ottelu, which closes the
+  overlay and opens the spine (assessments are step 5 there); the assess-players button
+  stays only as a fallback for hosts that do not wire the hand-off. The Home completeness
+  dot already existed (saved-games list: green = record complete, amber = Kaipaa
+  viimeistelyä) - no new work. Phase 1b is complete; next is the Phase 2 spike.
 - Correction from PR 5: Web Speech (also Chrome's on-device mode) only transcribes live
   mic input, never a stored clip - the "on-device probe" cannot apply to post-game
   clips. An on-device engine over clips needs a WASM model; the slot stays open.

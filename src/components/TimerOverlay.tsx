@@ -25,6 +25,10 @@ interface TimerOverlayProps {
   onResetTimer: () => void;
   onToggleGoalLogModal?: () => void;
   onOpenPlayerAssessmentModal?: () => void;
+  /** Phase 1b (7c): the one CTA at game end - closes the overlay and opens the
+   *  Finish this game spine. When wired, it replaces the assess-players button
+   *  (assessments are step 5 of the spine). */
+  onFinishGame?: () => void;
   onRecordOpponentGoal?: () => void;
   teamName: string;
   opponentName: string;
@@ -66,6 +70,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   onResetTimer,
   onToggleGoalLogModal = () => { logger.warn('onToggleGoalLogModal handler not provided'); },
   onOpenPlayerAssessmentModal,
+  onFinishGame,
   onRecordOpponentGoal = () => { logger.warn('onRecordOpponentGoal handler not provided'); },
   teamName = "Team",
   opponentName = "Opponent",
@@ -420,8 +425,19 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             
           {/* Main Action Buttons Section - Improved layout */}
           <div className="flex flex-col space-y-2">
-            {/* Game over: prompt to assess players (the natural post-game moment) */}
-            {gameStatus === 'gameEnd' && onOpenPlayerAssessmentModal && (
+            {/* Game over: one hand-off into the Finish this game spine (7c). */}
+            {gameStatus === 'gameEnd' && onFinishGame && (
+              <button
+                type="button"
+                onClick={() => { onClose?.(); onFinishGame(); }}
+                data-testid="timer-finish-game"
+                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-400 transition-colors"
+              >
+                {t('timerOverlay.finishGameButton', 'Finish this game')}
+              </button>
+            )}
+            {/* Legacy fallback for hosts that do not wire onFinishGame. */}
+            {gameStatus === 'gameEnd' && !onFinishGame && onOpenPlayerAssessmentModal && (
               <button
                 type="button"
                 onClick={() => { onClose?.(); onOpenPlayerAssessmentModal(); }}

@@ -214,4 +214,37 @@ describe('TimerOverlay', () => {
     });
   });
 
+
+  describe('game end hand-off (Phase 1b 7c)', () => {
+    it('offers Finish this game, which closes the overlay and opens the spine', () => {
+      const onFinishGame = jest.fn();
+      const onClose = jest.fn();
+      const onOpenPlayerAssessmentModal = jest.fn();
+      render(
+        <TimerOverlay
+          {...baseProps}
+          gameStatus="gameEnd"
+          onFinishGame={onFinishGame}
+          onClose={onClose}
+          onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
+        />,
+      );
+      expect(screen.queryByText('Assess players')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('timer-finish-game'));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onFinishGame).toHaveBeenCalledTimes(1);
+      expect(onOpenPlayerAssessmentModal).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the assess-players button when no hand-off is wired', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" onOpenPlayerAssessmentModal={jest.fn()} />);
+      expect(screen.queryByTestId('timer-finish-game')).not.toBeInTheDocument();
+      expect(screen.getByText('Assess players')).toBeInTheDocument();
+    });
+
+    it('shows neither before the game has ended', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" onFinishGame={jest.fn()} />);
+      expect(screen.queryByTestId('timer-finish-game')).not.toBeInTheDocument();
+    });
+  });
 });
