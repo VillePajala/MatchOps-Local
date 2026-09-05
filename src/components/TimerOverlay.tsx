@@ -431,7 +431,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 type="button"
                 onClick={() => { onClose?.(); onFinishGame(); }}
                 data-testid="timer-finish-game"
-                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-400 transition-colors"
+                className="w-full px-4 py-3 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/30 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
               >
                 {t('timerOverlay.finishGameButton', 'Finish this game')}
               </button>

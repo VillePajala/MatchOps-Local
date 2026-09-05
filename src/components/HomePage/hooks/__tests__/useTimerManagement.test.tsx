@@ -82,6 +82,7 @@ describe('useTimerManagement', () => {
 
   const mockDispatch = jest.fn<void, [GameSessionAction]>();
   const mockSetIsGoalLogModalOpen = jest.fn();
+  const mockSetIsGameStatsModalOpen = jest.fn();
 
   // Mock useGameTimer return value
   const mockGameTimerReturn = {
@@ -103,7 +104,7 @@ describe('useTimerManagement', () => {
     availablePlayers: mockPlayers,
     masterRoster: mockPlayers,
     setIsGoalLogModalOpen: mockSetIsGoalLogModalOpen,
-    setIsGameStatsModalOpen: mockSetIsGoalLogModalOpen,
+    setIsGameStatsModalOpen: mockSetIsGameStatsModalOpen,
     setIsPlayerAssessmentModalOpen: jest.fn(),
   };
 
@@ -398,6 +399,24 @@ describe('useTimerManagement', () => {
    * Verifies functional update pattern works correctly
    */
   describe('Modal State Management', () => {
+    it('opens the goal log explicitly for hand-offs (never toggles it closed)', () => {
+      const { result } = renderHook(() => useTimerManagement(defaultProps));
+      act(() => {
+        result.current.handleOpenGoalLogModal();
+      });
+      expect(mockSetIsGoalLogModalOpen).toHaveBeenCalledWith(true);
+      expect(mockSetIsGameStatsModalOpen).not.toHaveBeenCalled();
+    });
+
+    it('finish-game hand-off opens the stats modal, not the goal log', () => {
+      const { result } = renderHook(() => useTimerManagement(defaultProps));
+      act(() => {
+        result.current.timerInteractions.onFinishGame?.();
+      });
+      expect(mockSetIsGameStatsModalOpen).toHaveBeenCalledWith(true);
+      expect(mockSetIsGoalLogModalOpen).not.toHaveBeenCalled();
+    });
+
     it('should toggle goal log modal correctly', () => {
       const { result } = renderHook(() => useTimerManagement(defaultProps));
 

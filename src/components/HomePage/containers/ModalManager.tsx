@@ -212,6 +212,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             masterRoster={data.masterRoster}
             onGameNotesChange={handlers.gameNotesChange}
             onPlayerPositionsChange={handlers.playerPositionsChange}
+            gameType={data.gameSessionState.gameType}
           onOpenSettings={handlers.openSettingsModal}
           onOpenGameSettings={handlers.wrapUpToGameSettings}
           onOpenAssessments={handlers.wrapUpToAssessments}
