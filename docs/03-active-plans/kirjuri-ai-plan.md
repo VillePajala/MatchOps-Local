@@ -359,7 +359,11 @@ first. One intent per surface, organised by WHEN:
   STRUCTURAL (`recorded` / `attested` / `planned` top-level sections plus a `trust`
   explanation for the model), `coverage` carries denominators, and pseudonymization
   redacts names inside note text AND the coach's own report via `redactPlayerNames`
-  (nickname + every name part, Finnish inflections, 1-char slips). Assessment VALUES
+  (nickname + every name part, across the WHOLE roster because coaches name
+  unselected players too; Finnish declension + kk/pp/tt gradation; ambiguous
+  words become `P?` rather than a guess). Redaction runs BEFORE the request, so
+  nobody reviews its mistakes - hence every rule is length-bounded and tested
+  against ordinary Finnish words. Assessment VALUES
   are deliberately excluded - only coverage counts; revisit in PR 9 if the draft needs
   them. `gamePacketFingerprint` gives PR 9's `aiMeta` something to record.
   Note `tag` shipped here: type + migration 042 (APPLIED TO STAGING ONLY) + both

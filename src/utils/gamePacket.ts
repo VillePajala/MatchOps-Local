@@ -26,9 +26,15 @@
  * 3. Pseudonymization means no names anywhere, including inside note text.
  *    The consent gate promises "player names are replaced with codes before any
  *    drafting request", and a dictated note says "Emman syöttö", not "P3's
- *    pass". `redactPlayerNames` therefore rewrites name mentions (Finnish
- *    inflections included) to codes. It is deliberately eager: redacting an
- *    innocent word costs a little meaning, leaking a child's name costs trust.
+ *    pass". `redactPlayerNames` therefore rewrites name mentions to codes,
+ *    across the WHOLE roster (a coach names unselected players too) and with
+ *    Finnish declension and consonant gradation handled.
+ *
+ *    Its mistakes are never reviewed by a human - redaction happens before the
+ *    request, and only the draft that comes back is reviewed - so each matching
+ *    rule is bounded to keep ordinary words ("paine", "laittaa", "matkalla")
+ *    out of it, while a word that could be two different players becomes
+ *    `UNKNOWN_PLAYER_REF` rather than a guess about which child it was.
  *
  * Assessment slider values are deliberately NOT in the packet - only their
  * coverage counts. They are the coach's own judgement on a 1-10 scale, and
@@ -141,7 +147,11 @@ export interface GamePacketResult {
 
 export interface BuildGamePacketOptions {
   game: AppState;
-  /** Roster for the squad; only `selectedPlayerIds` members reach the packet. */
+  /**
+   * The FULL roster the game was picked from. Only `selectedPlayerIds` members
+   * get a ref in the packet, but every roster name is used for redaction: a
+   * coach may name an unselected player, and that name must not go out either.
+   */
   players: Player[];
   /** Off = real names are sent. Defaults to on, matching the provider default. */
   pseudonymize?: boolean;
@@ -177,12 +187,67 @@ export function playerRedactionHandles(player: Player): string[] {
 }
 
 /**
+ * Ref used when a name belongs to somebody outside this game's squad, or when
+ * two players cannot be told apart from the word alone. The name is still
+ * removed; what is dropped is only the claim about *which* player it was.
+ */
+export const UNKNOWN_PLAYER_REF = 'P?';
+
+/** Longest case ending we accept after a name ("Emma" -> "Emmalle", +3). */
+const MAX_ENDING = 4;
+/** Longest ending after a gradated stem ("Matti" -> "Matille": stem "mat", +4). */
+const MAX_GRADATED_ENDING = 4;
+/**
+ * Consonant gradation in Finnish only weakens k, p and t, and for names it
+ * shows up as a doubled consonant before the final vowel: Matti -> Matin,
+ * Pekka -> Pekalle. Only those names get a shortened stem, which is why
+ * "Laine" cannot match "laittaa" while "Matti" still matches "Matille".
+ */
+const GRADATING_NAME = /([kpt])\1[aeiouyäö]$/;
+
+/**
+ * Is this word the player's name, possibly inflected or mis-transcribed?
+ *
+ * Finnish declines names ("Emma" -> "Emman", "Emmalle") and gradates consonants
+ * ("Matti" -> "Matin"), so an exact compare is not enough. Each rule below is
+ * bounded, because this decides whether an ordinary word gets replaced by a
+ * code: an earlier draft matched a truncated stem with no length bound and
+ * turned "paine" into a code (one letter from the surname "Laine") and
+ * "leopardin" into one (three letters from "Leo").
+ */
+function tokenMatchesHandle(token: string, handle: string): boolean {
+  if (token === handle) return true;
+  // The whole name plus a case ending.
+  if (token.startsWith(handle) && token.length - handle.length <= MAX_ENDING) return true;
+  // Consonant gradation eats one of the doubled letters, so allow a shortened
+  // stem - only for the names that actually gradate.
+  if (handle.length >= 5 && GRADATING_NAME.test(handle)) {
+    const stem = handle.slice(0, -2);
+    if (token.startsWith(stem) && token.length - stem.length <= MAX_GRADATED_ENDING) return true;
+  }
+  // A one-character transcription slip, but only when the word starts the same
+  // way. Without that guard, every five-letter word one edit from a surname
+  // ("paine" / "Laine") would be redacted.
+  return (
+    handle.length >= 4 &&
+    token.slice(0, 2) === handle.slice(0, 2) &&
+    Math.abs(token.length - handle.length) <= 1 &&
+    levenshtein(token, handle) <= 1
+  );
+}
+
+/**
  * Replace player-name mentions in free text with their refs.
  *
  * Matches an exact handle, a Finnish inflection of it ("Emman", "Emmalle" for
  * "Emma") and a one-character typo, then swaps the whole word for the ref.
  * Word boundaries come from the same Unicode split the matcher uses, so the
  * surrounding punctuation and spacing survive untouched.
+ *
+ * Pass the FULL roster, not just the squad: a coach dictating about this match
+ * may still name a player who was not selected, and that name has to go too.
+ * Anyone without a ref, and any word that could be two different players,
+ * becomes `UNKNOWN_PLAYER_REF` - removing the name without inventing a subject.
  *
  * Eager on purpose: a false positive costs a word, a false negative leaks a
  * name. The coach still reviews every drafted line before it is saved.
@@ -193,26 +258,20 @@ export function redactPlayerNames(
   refOf: (playerId: string) => string | undefined,
 ): string {
   const handled = players
-    .map((p) => ({ ref: refOf(p.id), handles: playerRedactionHandles(p) }))
-    .filter((p): p is { ref: string; handles: string[] } => !!p.ref && p.handles.length > 0);
+    .map((p) => ({ ref: refOf(p.id) ?? UNKNOWN_PLAYER_REF, handles: playerRedactionHandles(p) }))
+    .filter((p) => p.handles.length > 0);
   if (handled.length === 0) return text;
 
   return text.replace(/[\p{L}\p{N}]+/gu, (word) => {
     const token = normalizeNameForCompare(word);
     if (token.length < 3) return word;
+    const refs = new Set<string>();
     for (const { ref, handles } of handled) {
-      for (const handle of handles) {
-        if (token === handle) return ref;
-        // Finnish inflection: the stem survives, the ending changes.
-        const stem = handle.slice(0, Math.max(3, handle.length - 2));
-        if (token.startsWith(stem)) return ref;
-        // One-character typo or transcription slip.
-        if (handle.length >= 4 && Math.abs(token.length - handle.length) <= 1 && levenshtein(token, handle) <= 1) {
-          return ref;
-        }
-      }
+      if (handles.some((handle) => tokenMatchesHandle(token, handle))) refs.add(ref);
     }
-    return word;
+    if (refs.size === 0) return word;
+    // Two players answer to this word: drop the name, never guess the child.
+    return refs.size === 1 ? [...refs][0] : UNKNOWN_PLAYER_REF;
   });
 }
 
@@ -281,7 +340,7 @@ export function buildGamePacket({
     const raw = (e.text ?? '').trim();
     const note: PacketNote = {
       minute: toMinute(e.time),
-      text: pseudonymize ? redactPlayerNames(raw, squadPlayers, refOf) : raw,
+      text: pseudonymize ? redactPlayerNames(raw, players, refOf) : raw,
       source: e.source ?? 'manual',
     };
     if (typeof e.period === 'number') note.period = e.period;
@@ -340,7 +399,7 @@ export function buildGamePacket({
   // dictated note is; it goes through the same redaction.
   if (coachReport) {
     packet.attested.coachReport = pseudonymize
-      ? redactPlayerNames(coachReport, squadPlayers, refOf)
+      ? redactPlayerNames(coachReport, players, refOf)
       : coachReport;
   }
   if (typeof game.demandFactor === 'number') packet.planned.demandLevel = game.demandFactor;

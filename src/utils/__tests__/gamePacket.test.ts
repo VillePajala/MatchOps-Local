@@ -157,6 +157,20 @@ describe('buildGamePacket - pseudonymization', () => {
   });
 });
 
+describe('buildGamePacket - names outside the squad', () => {
+  /** @critical - the leak this test was written to catch: a roster player who
+   *  was not selected still gets named in dictation, and had gone out in full. */
+  it('redacts a roster name that has no ref in this game', () => {
+    const { packet } = buildGamePacket({
+      game: baseGame({ gameEvents: [note('n1', 60, 'Leo tuli hyvin mukaan, Emma syötti')] }),
+      players: roster,
+    });
+
+    expect(packet.attested.notes[0].text).toBe('P? tuli hyvin mukaan, P1 syötti');
+    expect(JSON.stringify(packet)).not.toContain('Leo');
+  });
+});
+
 describe('redactPlayerNames', () => {
   const refOf = (id: string) => ({ p1: 'P1', p2: 'P2' }[id]);
 
@@ -173,9 +187,52 @@ describe('redactPlayerNames', () => {
     expect(redactPlayerNames('Emna otti pallon', [emma], refOf)).toBe('P1 otti pallon');
   });
 
-  it('leaves text alone when nothing matches, and when there is no mapping', () => {
+  it('leaves text alone when nothing matches', () => {
     expect(redactPlayerNames('Joukkue puolusti hyvin', [emma, matti], refOf)).toBe('Joukkue puolusti hyvin');
-    expect(redactPlayerNames('Emman syöttö', [emma], () => undefined)).toBe('Emman syöttö');
+  });
+
+  /** @critical - a name with no ref is still a child's name. */
+  it('removes a name that has no ref instead of leaving it in cleartext', () => {
+    expect(redactPlayerNames('Emman syöttö', [emma], () => undefined)).toBe('P? syöttö');
+  });
+
+  /** @critical - two Emmas in one team: drop the name, never guess the child. */
+  it('uses the unknown ref when a word could be either of two players', () => {
+    const otherEmma = player('p9', 'Emma Salo', 'Emma');
+    expect(redactPlayerNames('Emman veto', [emma, otherEmma], (id) => ({ p1: 'P1', p9: 'P2' }[id]))).toBe(
+      'P? veto',
+    );
+  });
+
+  it('tells similar but distinct names apart instead of giving up', () => {
+    const emmi = player('p9', 'Emmi Koski', 'Emmi');
+    const ref = (id: string) => ({ p1: 'P1', p9: 'P2' }[id]);
+    expect(redactPlayerNames('Emman ja Emmin veto', [emma, emmi], ref)).toBe('P1 ja P2 veto');
+  });
+
+  /** @critical - redaction happens BEFORE the request, so its mistakes are never
+   *  reviewed by anyone; ordinary Finnish words must survive it. */
+  it('leaves ordinary Finnish words alone next to similar names', () => {
+    const leo = player('p8', 'Leo Laine', 'Leo');
+    const squad = [emma, matti, sofia, leo];
+    const ref = (id: string) => ({ p1: 'P1', p2: 'P2', p3: 'P3', p8: 'P4' }[id]);
+    const words = 'Hyvä paine ja laittaa pallo, aikaa oli, sofalla istuttiin, emmekä luovuttaneet';
+    expect(redactPlayerNames(words, squad, ref)).toBe(words);
+  });
+
+  it('still catches real inflections and gradation', () => {
+    const squad = [emma, matti, sofia];
+    const ref = (id: string) => ({ p1: 'P1', p2: 'P2', p3: 'P3' }[id]);
+    expect(redactPlayerNames('Matin pallo Emmalle, Sofian veto', squad, ref)).toBe('P2 pallo P1, P3 veto');
+    expect(redactPlayerNames('Matille ja Mattia kehuttiin', squad, ref)).toBe('P2 ja P2 kehuttiin');
+    expect(redactPlayerNames('Niemisen kulmapotku', squad, ref)).toBe('P3 kulmapotku');
+  });
+
+  it('does not let a three-letter name swallow a long unrelated word', () => {
+    const leo = player('p8', 'Leo Laine', 'Leo');
+    const ref = (id: string) => (id === 'p8' ? 'P1' : undefined);
+    expect(redactPlayerNames('leopardin nopeus', [leo], ref)).toBe('leopardin nopeus');
+    expect(redactPlayerNames('Leolle syöttö', [leo], ref)).toBe('P1 syöttö');
   });
 
   it('collects nickname and every name part as a handle, ignoring short ones', () => {
