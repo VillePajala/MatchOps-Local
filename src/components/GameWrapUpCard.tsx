@@ -9,7 +9,10 @@ interface GameWrapUpCardProps {
   completeness: GameCompleteness;
   /** Routes the settings-backed rows to GAME settings (Ottelun tiedot),
    *  scrolled to the row's own section (W6 + R3). */
-  onOpenSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  onOpenSettings?: (section: 'roster' | 'competition') => void;
+  /** Report and positions live on this same page (Phase 1b): scroll, don't leave. */
+  onOpenReport?: () => void;
+  onOpenPositions?: () => void;
   /** Routes the assessments row to the player-assessment editor. */
   onOpenAssessments?: () => void;
   /** Kirjuri: recorded clips not yet turned into notes (0 = row hidden). */
@@ -27,7 +30,7 @@ const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.to
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
 
   interface Row {
@@ -57,14 +60,14 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     key: 'report',
     label: t('gameStatsModal.wrapUpReport', 'Match report'),
     status: completeness.report ? 'done' : 'todo',
-    onClick: onOpenSettings && (() => onOpenSettings('report')),
+    onClick: onOpenReport,
   });
   rows.push({
     key: 'positions',
     label: t('gameStatsModal.wrapUpPositions', 'Positions played'),
     status: countStatus(completeness.positions),
     count: completeness.positions,
-    onClick: onOpenSettings && (() => onOpenSettings('positions')),
+    onClick: onOpenPositions,
   });
   rows.push({
     key: 'assessments',

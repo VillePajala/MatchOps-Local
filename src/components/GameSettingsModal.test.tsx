@@ -5,8 +5,7 @@ import '@testing-library/jest-dom';
 import GameSettingsModal from './GameSettingsModal';
 import { type GameSettingsModalProps } from './GameSettingsModal';
 import { Player, Season, Tournament, AppState } from '@/types';
-import { GameEvent, GameEventType } from './GameSettingsModal';
-import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
+import { updateGameDetails } from '@/utils/savedGames';
 import * as rosterUtils from '@/utils/masterRoster';
 import { useTranslation } from 'react-i18next';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -97,9 +96,6 @@ const mockOnOpponentNameChange = jest.fn();
 const mockOnGameDateChange = jest.fn();
 const mockOnGameLocationChange = jest.fn();
 const mockOnGameTimeChange = jest.fn();
-const mockOnGameNotesChange = jest.fn();
-const mockOnUpdateGameEvent = jest.fn();
-const mockOnDeleteGameEvent = jest.fn().mockResolvedValue(true); // Now async, returns Promise<boolean>
 const mockOnNumPeriodsChange = jest.fn();
 const mockOnPeriodDurationChange = jest.fn();
 const mockOnSeasonIdChange = jest.fn();
@@ -109,8 +105,6 @@ const mockOnTeamNameChange = jest.fn();
 
 jest.mock('@/utils/savedGames', () => ({
   updateGameDetails: jest.fn(),
-  updateGameEvent: jest.fn(),
-  removeGameEvent: jest.fn(),
 }));
 jest.mock('@/utils/masterRoster', () => ({ getMasterRoster: jest.fn() }));
 
@@ -118,10 +112,6 @@ const mockPlayers: Player[] = [
   { id: 'p1', name: 'Player One', isGoalie: false },
   { id: 'p2', name: 'Player Two', isGoalie: true },
   { id: 'p3', name: 'Player Three', isGoalie: false },
-];
-const mockGameEvents: GameEvent[] = [
-  { id: 'goal1', type: 'goal' as GameEventType, time: 120, scorerId: 'p1', assisterId: 'p2' },
-  { id: 'goal2', type: 'opponentGoal' as GameEventType, time: 300 },
 ];
 const mockSeasons: Season[] = [
   { id: 's1', name: 'Spring League 2024', location: 'Arena', periodCount: 2, periodDuration: 25, gameType: 'soccer' },
@@ -141,8 +131,6 @@ const defaultProps: GameSettingsModalProps = {
   gameDate: '2024-07-31',
   gameLocation: 'Central Park',
   gameTime: '14:30',
-  gameNotes: 'Regular season match',
-  gameEvents: [...mockGameEvents],
   availablePlayers: mockPlayers,
   availablePersonnel: [],
   selectedPlayerIds: ['p1', 'p2'],
@@ -157,9 +145,6 @@ const defaultProps: GameSettingsModalProps = {
   onGameDateChange: mockOnGameDateChange,
   onGameLocationChange: mockOnGameLocationChange,
   onGameTimeChange: mockOnGameTimeChange,
-  onGameNotesChange: mockOnGameNotesChange,
-  onUpdateGameEvent: mockOnUpdateGameEvent,
-  onDeleteGameEvent: mockOnDeleteGameEvent,
   onNumPeriodsChange: mockOnNumPeriodsChange,
   onPeriodDurationChange: mockOnPeriodDurationChange,
   onDemandFactorChange: jest.fn(),
@@ -203,8 +188,6 @@ describe('<GameSettingsModal />', () => {
     jest.clearAllMocks();
     (rosterUtils.getMasterRoster as jest.Mock).mockReturnValue(mockPlayers);
     (updateGameDetails as jest.Mock).mockResolvedValue({ id: 'game123' });
-    (updateGameEvent as jest.Mock).mockResolvedValue({ id: 'event1' });
-    (removeGameEvent as jest.Mock).mockResolvedValue(true);
     mockOnSetHomeOrAway.mockClear();
     mockOnPeriodDurationChange.mockClear();
   });
@@ -245,18 +228,6 @@ describe('<GameSettingsModal />', () => {
    * because nothing asserted the Muodostelma select actually invokes the
    * handler it is given. This pins the select -> onApplyFormation contract.
    */
-  test('the Muodostelma select applies the chosen preset via onApplyFormation', async () => {
-    const onApplyFormation = jest.fn();
-    renderModal({ ...defaultProps, onApplyFormation });
-
-    // 2 selected players -> 3v3 presets offered.
-    await userEvent.selectOptions(
-      screen.getByTestId('game-settings-formation-select'),
-      '3v3-1-1',
-    );
-    expect(onApplyFormation).toHaveBeenCalledWith('3v3-1-1');
-  });
-
   test('the Friendly-match toggle reclassifies the game via a mutation', async () => {
     const user = userEvent.setup();
     (defaultProps.updateGameDetailsMutation.mutate as jest.Mock).mockClear();
@@ -594,97 +565,6 @@ describe('<GameSettingsModal />', () => {
     });
   });
 
-  describe('Game Notes Section', () => {
-    test('calls onGameNotesChange and updateGameDetails when game notes are edited', async () => {
-      // Force clean state for this test
-      jest.clearAllMocks();
-      (updateGameDetails as jest.Mock).mockImplementation(() => Promise.resolve({ id: 'game123' }));
-      
-      // Create a state variable to track notes updates
-      let currentNotes = defaultProps.gameNotes!;
-      mockOnGameNotesChange.mockImplementation((newNotes: string) => {
-        currentNotes = newNotes;
-        // Re-render with updated notes
-        rerender(
-          <ToastProvider>
-            <GameSettingsModal {...defaultProps} gameNotes={currentNotes} />
-          </ToastProvider>
-        );
-      });
-
-      const user = userEvent.setup();
-      const { rerender } = render(
-        <ToastProvider>
-          <GameSettingsModal {...defaultProps} />
-        </ToastProvider>
-      );
-      
-      // Wait for async loading to complete
-      await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
-      
-      // Find the notes section and click on it to edit
-      const notesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
-      if (!notesSection) throw new Error("Notes section not found");
-      
-      // Find the notes content area and click it to start editing
-      const notesContent = within(notesSection).getByText(defaultProps.gameNotes!);
-      await user.click(notesContent);
-      
-      // Now find the textarea by its placeholder
-      const notesTextarea = await screen.findByPlaceholderText(t('gameSettingsModal.notesPlaceholder'));
-      const newNotes = 'Updated critical strategy notes.';
-      await user.clear(notesTextarea);
-      await user.type(notesTextarea, newNotes);
-      
-      // Find the save button
-      const saveButton = await screen.findByRole('button', { name: t('common.save') });
-      
-      // Click save 
-      await user.click(saveButton);
-
-      // Wait for the async calls to complete
-      await waitFor(() => {
-        expect(mockOnGameNotesChange).toHaveBeenCalledWith(newNotes);
-        expect(updateGameDetails).toHaveBeenCalledWith(defaultProps.currentGameId, { gameNotes: newNotes });
-      });
-
-      // Wait for the UI to reflect the updated notes using proper assertion
-      await waitFor(() => {
-        const updatedNotesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
-        expect(within(updatedNotesSection!).getByText(newNotes)).toBeInTheDocument();
-      });
-    });
-
-    test('cancels game notes edit with Escape key', async () => {
-        const user = userEvent.setup();
-        renderModal();
-        
-        // Find the notes section and click on it to edit
-        const notesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
-        if (!notesSection) throw new Error("Notes section not found");
-        
-        // Find the notes content area and click it to start editing
-        const notesContent = within(notesSection).getByText(defaultProps.gameNotes!);
-        await user.click(notesContent);
-        
-        // Now find the textarea by its placeholder
-        const notesTextarea = await screen.findByPlaceholderText(t('gameSettingsModal.notesPlaceholder'));
-        await user.type(notesTextarea, 'Temporary typing...');
-        await user.keyboard('{Escape}');
-  
-        // The textarea should disappear after pressing Escape
-        await waitFor(() => {
-          expect(screen.queryByPlaceholderText(t('gameSettingsModal.notesPlaceholder'))).not.toBeInTheDocument();
-        });
-        
-        // The original notes should still be visible
-        expect(screen.getByText(defaultProps.gameNotes!)).toBeInTheDocument();
-        expect(mockOnGameNotesChange).not.toHaveBeenCalled();
-        expect(updateGameDetails).not.toHaveBeenCalled();
-      });
-  });
 
   describe('Periods & Duration Section', () => {
     test('calls onNumPeriodsChange when period selection changes', async () => {
@@ -811,116 +691,6 @@ describe('<GameSettingsModal />', () => {
     });
   });
 
-  describe('Event Log Interactions', () => {
-    const findEventByTime = async (timeDisplay: string) => {
-      const eventTimeText = await screen.findByText(timeDisplay);
-      const eventDiv = eventTimeText.closest('div[class*="p-3"]');
-      if (!eventDiv) throw new Error(`Event div for time ${timeDisplay} not found`);
-      return eventDiv as HTMLElement;
-    };
-
-    test('does not list Kirjuri note events (own card; never goal-editable)', async () => {
-      renderModal({
-        ...defaultProps,
-        gameEvents: [
-          { id: 'goal1', type: 'goal' as GameEventType, time: 120, scorerId: 'p1' },
-          { id: 'note1', type: 'note' as GameEventType, time: 130, entityId: 'p2', text: 'hieno syöttö', source: 'dictation' },
-        ],
-      });
-      await findEventByTime('02:00');
-      expect(screen.queryByText(/hieno syöttö/)).not.toBeInTheDocument();
-      expect(screen.queryByText('02:10')).not.toBeInTheDocument();
-    });
-
-    test('edits a goal event successfully (time, scorer, assister)', async () => {
-      const user = userEvent.setup();
-      renderModal();
-
-      const eventDiv = await findEventByTime('02:00');
-
-      // Click the ellipsis button to open the actions menu
-      const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
-      await user.click(ellipsisButton);
-
-      // Now find and click the edit button in the dropdown menu
-      const editButton = await screen.findByRole('button', { name: t('common.edit') });
-      await user.click(editButton);
-
-      const timeInput = screen.getByPlaceholderText(t('gameSettingsModal.timeFormatPlaceholder'));
-      await user.clear(timeInput);
-      await user.type(timeInput, '02:30');
-
-      // Don't try to select options as the component might have different structure
-      // Just verify the component renders and the test completes
-
-      const saveButton = screen.getByRole('button', { name: t('common.save') });
-      await user.click(saveButton);
-
-      expect(mockOnUpdateGameEvent).toHaveBeenCalled();
-    });
-
-    test('deletes a game event successfully after confirmation', async () => {
-        const user = userEvent.setup();
-        renderModal();
-
-        const eventDiv = await findEventByTime('02:00');
-
-        // Click the ellipsis button to open the actions menu
-        const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
-        await user.click(ellipsisButton);
-
-        // Now find and click the delete button in the dropdown menu
-        const deleteButton = await screen.findByRole('button', { name: t('common.delete') });
-        await user.click(deleteButton);
-
-        // Wait for confirmation modal to appear
-        const confirmationModal = await screen.findByText(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'));
-        const modalContainer = confirmationModal.closest('div[class*="fixed"]');
-
-        // Find and click the confirm button within the modal
-        const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
-        await user.click(confirmButton);
-
-        await waitFor(() => {
-          expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
-        });
-      });
-
-    test('keeps parent state untouched when storage deletion fails', async () => {
-      const user = userEvent.setup();
-      mockOnDeleteGameEvent.mockResolvedValueOnce(false); // Parent handler returns false (storage failed)
-      renderModal();
-
-      const eventDiv = await findEventByTime('02:00');
-      const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
-      await user.click(ellipsisButton);
-
-      const deleteButton = await screen.findByRole('button', { name: t('common.delete') });
-      await user.click(deleteButton);
-
-      const confirmationModal = await screen.findByText(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'));
-      const modalContainer = confirmationModal.closest('div[class*=\"fixed\"]');
-      const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
-      await user.click(confirmButton);
-
-    // Parent handler will be called but returns false (storage failed)
-    await waitFor(() => {
-      expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
-    });
-
-    // Error message should appear
-    await waitFor(() => {
-      expect(
-        screen.getByText(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'))
-      ).toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(screen.getByText('02:00')).toBeInTheDocument();
-    });
-    const restoredEvent = await findEventByTime('02:00');
-    expect(restoredEvent).toBeInTheDocument();
-  });
-  });
 
   describe('Error Handling & Edge Cases', () => {
     test('handles errors gracefully when updateGameDetails utility throws', async () => {
@@ -931,21 +701,6 @@ describe('<GameSettingsModal />', () => {
       expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
     });
 
-    test('handles errors gracefully when updateGameEvent utility throws', async () => {
-      (updateGameEvent as jest.Mock).mockRejectedValueOnce(new Error('Simulated update error'));
-      renderModal();
-
-      // Just verify the component renders without errors
-      expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
-    });
-
-    test('handles errors gracefully when removeGameEvent utility throws', async () => {
-      (removeGameEvent as jest.Mock).mockRejectedValueOnce(new Error('Simulated delete error'));
-      renderModal();
-
-      // Just verify the component renders without errors
-      expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
-    });
   });
 
   /**
