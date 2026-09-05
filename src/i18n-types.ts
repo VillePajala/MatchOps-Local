@@ -2098,6 +2098,7 @@ export type TranslationKey =
   | 'reportDraft.droppedWarning'
   | 'reportDraft.errorInvalid'
   | 'reportDraft.errorNetwork'
+  | 'reportDraft.errorNoOutput'
   | 'reportDraft.errorRateLimited'
   | 'reportDraft.errorRejected'
   | 'reportDraft.errorTooLarge'
