@@ -739,11 +739,55 @@ row shows an outline tick rather than a solid one, so it never claims all-done a
 ## Before the master merge (checklist)
 
 - [ ] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). It is a diagnostic.
-- [ ] Apply migrations 041, 042, 043 to PROD - diff the live definitions first; they are
-      on staging only.
-- [ ] Owner decision: POLICY_VERSION bump (deliberately not bumped so far).
+- [ ] Apply migrations 041, 042, 043 AND 044 to PROD - diff the live definitions first;
+      they are on staging only. 044 recreates `save_game_with_relations`, so it is the one
+      that most needs the diff: prod was bootstrapped from a different history.
+- [ ] Owner decision: POLICY_VERSION bump (deliberately not bumped so far). The consent
+      gate's wording CHANGED after the audit below - it used to say MatchOps never receives
+      transcripts or AI results, which is true of audio and false of a saved note. Nobody
+      has consented to the old text in production, since none of this has shipped, so no
+      re-consent is owed; but the text a user agrees to is now different from the text
+      reviewed earlier.
+- [ ] Owner decision: whether "group a player's notes" ships. It is the only request that
+      crosses matches, i.e. the closest the app comes to the season-summary escalation.
 - [ ] Recheck Play Data Safety declarations against what the feature now does.
 - [ ] Lawyer / Tietosuojavaltuutettu review of the drafting phase, as this doc recommends.
+
+## Audit: data loss and privacy (2026-09-05)
+
+A pass over the whole branch looking for exactly two things - work a coach can lose, and
+personal data that can leave the device. Nine findings, all reachable, all fixed. Recorded
+here because several were invisible from inside the PR that introduced them.
+
+Privacy:
+- A hyphenated or apostrophed first name was never redacted at ALL. "Juha-Pekka" was one
+  handle while the tokeniser split the word at the hyphen, so neither half met its handle
+  and the child's real name went to the provider in cleartext. Names under three letters
+  ("Bo") were excluded from redaction by construction.
+- Every transcription sent the whole CLUB roster as a recognizer hint - the first names of
+  children who were not in the match and were never mentioned. Now this match's squad.
+- The consent gate promised more than the app delivers, twice.
+
+Data loss:
+- Inserting a spoken report while the editor was open wrote to component state only, then
+  deleted the recording regardless. One Cancel lost both.
+- An over-length report made every later autosave for that match throw inside a handler
+  that suppresses its own errors: goals, positions and assessments stopped persisting,
+  silently. Deterministic save failures are now surfaced.
+- Discarding a recording asked nothing, while deleting a note already confirmed.
+- The undo for a Replace lived only in component state, and every hand-off the panel offers
+  closes the modal it lives in.
+- The spoken transcript was never stored on its clip, so re-recording binned paid words.
+- `games.game_notes_ai_meta` was never written in cloud mode - migration 043 assumed the
+  RPC would pick it up, but its UPDATE path names every column. Migration 044 fixes it.
+
+Two process notes worth keeping:
+- Three separate bugs were hidden by mocks weaker than the contracts they stood for. A mock
+  that returns `undefined` where the real callback returns a boolean will pass a test the
+  app itself fails.
+- The same bug shape appeared twice in one PR (aggregate disagreeing with the row) and
+  three times in another (what may clear the undo). Both were parallel copies of one rule.
+  The fix in each case was one shared function, not a more careful second copy.
 
 ## Later (not in this build)
 
