@@ -30,7 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineMicrophone, HiOutlineStop } from 'react-icons/hi2';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import type { GameNoteInput } from '@/types/game';
-import { deleteClip, getClipBlob } from '@/utils/audioClipStore';
+import { deleteClip, getClipBlob, setClipTranscript } from '@/utils/audioClipStore';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useAiProviderState } from '@/utils/aiProvider';
 import { recordAiUsage } from '@/utils/aiUsage';
@@ -132,7 +132,20 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
         // Billed whether or not words came back.
         recordAiUsage('transcription', estimateTranscriptionUsd(durationMs));
         if (controller.signal.aborted) return;
-        setText(spoken.slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX));
+        const capped = spoken.slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX);
+        setText(capped);
+        // Keep the words WITH the recording, the way the voice-notes inbox
+        // does. Without this, re-recording or leaving the page threw away a
+        // transcript the coach had already paid for, and the clip was left in
+        // the inbox looking as though it had never been transcribed.
+        try {
+          await setClipTranscript(id, capped, userId ?? undefined);
+        } catch (error) {
+          // The words are on screen either way; this only costs a repeat later.
+          logger.warn('[spokenReport] could not store the transcript on the clip', {
+            name: error instanceof Error ? error.name : 'unknown',
+          });
+        }
       } catch (error) {
         if (controller.signal.aborted) return;
         const kind = error instanceof TranscriptionError ? error.kind : 'network';

@@ -84,6 +84,7 @@ const renderPanel = (
   const result = render(
     <ReportDraftPanel
       game={props.game ?? game()}
+      gameId={props.gameId ?? 'g1'}
       players={props.players ?? players}
       stamp={props.stamp ?? { time: 3000, period: 2 }}
       language="fi"
@@ -125,6 +126,7 @@ describe('ReportDraftPanel - before any request', () => {
     render(
       <ReportDraftPanel
         game={game()}
+        gameId="g1"
         players={players}
         stamp={{ time: 3000, period: 2 }}
         language="fi"
@@ -257,6 +259,38 @@ describe('ReportDraftPanel - reviewing a draft', () => {
       settle(draft);
     });
     expect(screen.queryByTestId('report-draft-working')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - every hand-off this panel offers (open the squad, open
+   * assessments, open settings) closes the modal the panel lives in. The undo
+   * for a Replace lived only in component state, so leaving the screen made the
+   * overwrite permanent - and game notes have no version history.
+   */
+  it('still offers the undo after the panel has been closed and reopened', async () => {
+    const onApply = jest.fn(() => true);
+    const view = renderPanel({ game: game({ gameNotes: 'Omani.' }), existingReport: 'Omani.', onApply });
+    await produceDraft();
+
+    fireEvent.click(screen.getByTestId('report-draft-mode-replace'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-apply'));
+    });
+    expect(screen.getByTestId('report-draft-undo')).toBeInTheDocument();
+
+    // The coach taps a checklist row; the whole modal goes away.
+    view.unmount();
+    renderPanel({ game: game({ gameNotes: 'Luonnos.' }), existingReport: 'Luonnos.', onApply });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-undo'));
+    });
+    expect(onApply).toHaveBeenLastCalledWith(expect.objectContaining({ gameNotes: 'Omani.' }));
+  });
+
+  it('offers no undo belonging to a different match', () => {
+    renderPanel({ gameId: 'g-other' });
+    expect(screen.queryByTestId('report-draft-undo')).not.toBeInTheDocument();
   });
 
   it('cannot apply when the coach unticked everything', async () => {

@@ -880,7 +880,8 @@
       "deleteFailedNotFound": "Pelin poistaminen epäonnistui: {gameId}. Peliä ei löytynyt tai tunnus oli virheellinen.",
       "deleteFailedCatch": "Pelin poistaminen epäonnistui. Yritä uudelleen.",
       "quickSaveFailed": "Pelin pikallennus epäonnistui.",
-      "createGameFailed": "Uuden pelin luominen epäonnistui."
+      "createGameFailed": "Uuden pelin luominen epäonnistui.",
+      "quickSaveInvalid": "Tätä ottelua ei voi juuri nyt tallentaa, joten viimeisimmät muutoksesi eivät säily. {{reason}}"
     }
   },
   "errors": {

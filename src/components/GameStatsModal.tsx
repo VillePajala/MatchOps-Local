@@ -970,6 +970,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {onApplyReportDraft && currentGame && (
             <ReportDraftPanel
               game={currentGame}
+              gameId={currentGameId}
               players={masterRoster.length > 0 ? masterRoster : availablePlayers}
               stamp={draftStamp}
               language={i18n.language}

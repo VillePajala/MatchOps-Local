@@ -880,7 +880,8 @@
       "deleteFailedNotFound": "Error deleting game: {gameId}. Game not found or ID was invalid.",
       "deleteFailedCatch": "Failed to delete game. Please try again.",
       "quickSaveFailed": "Error quick saving game.",
-      "createGameFailed": "Error creating new saved game."
+      "createGameFailed": "Error creating new saved game.",
+      "quickSaveInvalid": "This game cannot be saved right now, so your latest changes are not being kept. {{reason}}"
     }
   },
   "newGameSetupModal": {

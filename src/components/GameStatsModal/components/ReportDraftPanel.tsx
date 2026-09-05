@@ -26,6 +26,7 @@ import type { Player } from '@/types';
 import type { AppState } from '@/types/game';
 import { DraftingError, draftMatchReport, estimateDraftUsd, type ReportDraft } from '@/utils/aiDrafting';
 import { applyReportDraft, composeReportText, resolveRefsInText, type ApplyMode } from '@/utils/applyReportDraft';
+import { forgetReplacedReport, readReplacedReport, rememberReplacedReport } from '@/utils/reportUndo';
 import { UNKNOWN_PLAYER_REF, buildGamePacket } from '@/utils/gamePacket';
 import { reportSectionLabel } from '@/utils/reportSections';
 import { useAiProviderState } from '@/utils/aiProvider';
@@ -48,6 +49,11 @@ export interface ReportDraftPanelProps {
   existingReport: string;
   /** The finished game the draft is about. */
   game: AppState;
+  /**
+   * Which saved game this is. Only used to key the durable undo slot, so an
+   * Undo offered here can never revert a different match.
+   */
+  gameId: string | null;
   /** Full roster, so names outside the squad are redacted too. */
   players: Player[];
   /** Clock stamp for applied notes: where the match ended. */
@@ -69,6 +75,7 @@ const CHECKBOX =
 
 const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   game,
+  gameId,
   players,
   stamp,
   onApply,
@@ -86,7 +93,12 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const [skippedSections, setSkippedSections] = useState<Set<string>>(new Set());
   const [skippedNotes, setSkippedNotes] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<ApplyMode>('append');
-  const [undoText, setUndoText] = useState<string | null>(null);
+  // Read from the device, not just from this component: every hand-off this
+  // panel offers closes the modal it lives in, and the replaced report has no
+  // other copy once the notes are overwritten.
+  const [undoText, setUndoText] = useState<string | null>(() =>
+    gameId ? readReplacedReport(gameId) : null,
+  );
   const [applying, setApplying] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -225,18 +237,21 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
         return;
       }
       setUndoText(preview.replacedReport ?? null);
+      // Outlive this component: the coach can leave the screen from inside it.
+      if (gameId && preview.replacedReport) rememberReplacedReport(gameId, preview.replacedReport);
       setDraft(null);
       showToast(t('reportDraft.applied', 'Draft saved to the match report.'), 'success');
     } finally {
       setApplying(false);
     }
-  }, [applying, onApply, preview, showToast, t]);
+  }, [applying, gameId, onApply, preview, showToast, t]);
 
   const undo = useCallback(() => {
     if (undoText === null) return;
     const stored = onApply({ gameNotes: undoText, aiMeta: undefined, noteEvents: [] });
     if (stored) {
       setUndoText(null);
+      forgetReplacedReport();
       showToast(t('reportDraft.undone', 'Your earlier report text is back.'), 'success');
     }
   }, [onApply, showToast, t, undoText]);
@@ -244,6 +259,9 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const discard = useCallback(() => {
     setDraft(null);
     setUndoText(null);
+    // The coach declined the undo, so the old text has served its purpose and
+    // should not sit on the device any longer.
+    forgetReplacedReport();
   }, []);
 
   if (!ai.connected) {

@@ -54,7 +54,7 @@ import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import { NetworkError } from '@/interfaces/DataStoreErrors';
+import { NetworkError, ValidationError } from '@/interfaces/DataStoreErrors';
 import type { AppState, GameEvent, PlayerAssessment, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
@@ -355,9 +355,20 @@ export function useGamePersistence({
           }
         }
 
-        // Show error toast unless explicitly suppressed (for retry logic)
-        if (!suppressErrorToast) {
-          showToast(t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'), 'error');
+        // Show error toast unless explicitly suppressed (for retry logic).
+        //
+        // A ValidationError is the exception: it is deterministic, so the next
+        // autosave and every one after it fails the same way. Staying quiet
+        // there means the coach keeps working while nothing is being kept -
+        // goals, positions and assessments included - and finds out on reload.
+        // Transient failures stay silent, as designed.
+        if (!suppressErrorToast || error instanceof ValidationError) {
+          showToast(
+            error instanceof ValidationError
+              ? t('loadGameModal.errors.quickSaveInvalid', 'This game cannot be saved right now, so your latest changes are not being kept. {{reason}}', { reason: error.message })
+              : t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'),
+            'error',
+          );
         }
         return false;
       }
