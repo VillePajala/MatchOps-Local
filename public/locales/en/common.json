@@ -3534,7 +3534,9 @@
     "errorNoOutput": "Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers.",
     "openSettings": "Open settings",
     "duplicationNote": "The draft was written knowing what you already wrote, so it may cover the same ground twice. Replace avoids that, and you can undo it.",
-    "working": "Writing the draft on your AI provider. This takes a few seconds."
+    "working": "Writing the draft on your AI provider. This takes a few seconds.",
+    "tidy": "Tidy up what I wrote",
+    "reviewHintTidy": "Your own account, organised under the headings. Untick anything that lost your meaning."
   },
   "spokenReport": {
     "title": "Say the report out loud",

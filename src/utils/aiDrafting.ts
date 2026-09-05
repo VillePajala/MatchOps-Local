@@ -193,7 +193,16 @@ function matchContext(packet: GamePacket): string[] {
   return lines;
 }
 
-export function buildDraftingInstructions(packet: GamePacket): string {
+/**
+ * What the coach asked for.
+ *
+ * `full` writes a report from everything recorded. `tidy` starts from the
+ * report the coach already wrote and organises THEIR words - a different job,
+ * and the one that removes the main reason a report never gets written at all.
+ */
+export type DraftingMode = 'full' | 'tidy';
+
+export function buildDraftingInstructions(packet: GamePacket, mode: DraftingMode = 'full'): string {
   return [
     'You draft a youth football match report for the coach who was there.',
     `Write in ${packet.language}. Plain prose, no markdown, no headings inside a section's text.`,
@@ -227,6 +236,20 @@ export function buildDraftingInstructions(packet: GamePacket): string {
     '6. A note tagged "debrief" is the coach\'s own spoken account of the match. Treat it as the primary source for the report and keep their judgement, rather than reducing it to one observation among many.',
     '7. Be concrete and short. A coach reads this on a phone after a match.',
     '8. If the data is too thin for a section, write one honest sentence instead of padding.',
+    '',
+    ...(mode === 'tidy'
+      ? [
+          '',
+          'THIS IS A TIDYING JOB, NOT A NEW REPORT. The coach has already written the report',
+          'in `attested.coachReport`. Organise THEIR account under the seven headings, keep',
+          'their judgements and their turns of phrase, and cut repetition. Do not add an',
+          'observation they did not make, and do not replace their opinion with your own. The',
+          'rest of the data is there so you can place their words correctly and fix a detail',
+          'they plainly meant - never to introduce material they left out. If they wrote',
+          'nothing for a heading, leave that heading out rather than inventing content for it.',
+          'Player notes: only where the coach\'s own text says something about that player.',
+        ]
+      : []),
     '',
     'Return the seven sections in the given order, plus player notes only where the data supports them.',
   ].join('\n');
@@ -362,6 +385,8 @@ export interface DraftReportOptions {
   signal?: AbortSignal;
   /** Override for tests and for a future model picker in Settings. */
   model?: string;
+  /** Write from everything recorded, or tidy what the coach already wrote. */
+  mode?: DraftingMode;
 }
 
 /**
@@ -374,6 +399,7 @@ export async function draftMatchReport({
   packet,
   signal,
   model,
+  mode = 'full',
 }: DraftReportOptions): Promise<ReportDraft> {
   const state = getAiProviderState();
   if (!state.connected) {
@@ -402,7 +428,7 @@ export async function draftMatchReport({
         model: chosenModel,
         max_completion_tokens: MAX_COMPLETION_TOKENS,
         messages: [
-          { role: 'system', content: buildDraftingInstructions(packet) },
+          { role: 'system', content: buildDraftingInstructions(packet, mode) },
           { role: 'user', content: packetJson },
         ],
         response_format: {

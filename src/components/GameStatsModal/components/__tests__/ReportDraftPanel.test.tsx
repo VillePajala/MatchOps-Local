@@ -259,6 +259,24 @@ describe('ReportDraftPanel - reviewing a draft', () => {
     expect(screen.queryByTestId('report-draft-working')).not.toBeInTheDocument();
   });
 
+  /** Tidying replaces by intent, so the coach is not left with both versions. */
+  it('offers tidying only when there is something to tidy, and defaults it to replace', async () => {
+    const empty = renderPanel();
+    expect(screen.queryByTestId('report-draft-tidy')).not.toBeInTheDocument();
+    empty.unmount();
+
+    renderPanel({ game: game({ gameNotes: 'Omat muistiinpanoni.' }), existingReport: 'Omat muistiinpanoni.' });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+    });
+    await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
+
+    expect(draftMatchReport).toHaveBeenCalledWith(expect.objectContaining({ mode: 'tidy' }));
+    expect((screen.getByTestId('report-draft-mode-replace') as HTMLInputElement).checked).toBe(true);
+    // Destructive by intent, so the warning and the undo still stand.
+    expect(screen.getByTestId('report-draft-replace-warning')).toBeInTheDocument();
+  });
+
   it('cannot apply when the coach unticked everything', async () => {
     renderPanel();
     await produceDraft();

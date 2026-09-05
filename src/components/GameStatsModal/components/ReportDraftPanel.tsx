@@ -24,7 +24,13 @@ import { HiOutlineSparkles } from 'react-icons/hi2';
 import type { GameEvent } from '@/types/game';
 import type { Player } from '@/types';
 import type { AppState } from '@/types/game';
-import { DraftingError, draftMatchReport, estimateDraftUsd, type ReportDraft } from '@/utils/aiDrafting';
+import {
+  DraftingError,
+  draftMatchReport,
+  estimateDraftUsd,
+  type DraftingMode,
+  type ReportDraft,
+} from '@/utils/aiDrafting';
 import { applyReportDraft, composeReportText, resolveRefsInText, type ApplyMode } from '@/utils/applyReportDraft';
 import { UNKNOWN_PLAYER_REF, buildGamePacket } from '@/utils/gamePacket';
 import { reportSectionLabel } from '@/utils/reportSections';
@@ -86,6 +92,8 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const [skippedSections, setSkippedSections] = useState<Set<string>>(new Set());
   const [skippedNotes, setSkippedNotes] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<ApplyMode>('append');
+  /** Which job produced the draft on screen, for wording and for the default. */
+  const [draftedAs, setDraftedAs] = useState<DraftingMode>('full');
   const [undoText, setUndoText] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -157,7 +165,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
     });
   }, [draft, approvedSections, approvedNoteIndexes, existingReport, mode, refMap, nameForRef, stamp, t]);
 
-  const runDraft = useCallback(async () => {
+  const runDraft = useCallback(async (job: DraftingMode = 'full') => {
     if (drafting) return;
     setDrafting(true);
     setUndoText(null);
@@ -165,10 +173,15 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
     abortRef.current = controller;
     try {
       const { packet, refToPlayerId } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize, language });
-      const result = await draftMatchReport({ packet, signal: controller.signal });
+      const result = await draftMatchReport({ packet, signal: controller.signal, mode: job });
       // Real token usage when the provider reported it, else our own estimate.
       recordAiUsage('drafting', result.usage?.estimatedUsd ?? estimateDraftUsd(packet));
       setDraft(result);
+      setDraftedAs(job);
+      // Tidying returns the coach's own words organised, so keeping the untidy
+      // original above it would defeat the point. Replace is the intent here,
+      // and it still warns and still offers undo.
+      setMode(job === 'tidy' ? 'replace' : 'append');
       setRefMap(refToPlayerId);
       setSkippedSections(new Set());
       setSkippedNotes(new Set());
@@ -299,9 +312,22 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
               </button>
             </>
           ) : (
-            <button type="button" onClick={() => void runDraft()} className={PRIMARY} data-testid="report-draft-start">
+            <button type="button" onClick={() => void runDraft('full')} className={PRIMARY} data-testid="report-draft-start">
               <HiOutlineSparkles className="text-base" />
               {t('reportDraft.start', 'Draft the report')}
+            </button>
+          )}
+          {!drafting && existingReport.trim() && (
+            // Only offered when there IS something to tidy: a different job
+            // from writing one, and the one that removes the main reason a
+            // report never gets written at all.
+            <button
+              type="button"
+              onClick={() => void runDraft('tidy')}
+              className={`${SECONDARY} mt-2`}
+              data-testid="report-draft-tidy"
+            >
+              {t('reportDraft.tidy', 'Tidy up what I wrote')}
             </button>
           )}
           {undoText !== null && (
@@ -315,7 +341,9 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
       {draft && preview && (
         <div className="space-y-4" data-testid="report-draft-review">
           <p className="text-xs text-slate-400">
-            {t('reportDraft.reviewHint', 'Untick anything you do not want. Only ticked items are saved.')}
+            {draftedAs === 'tidy'
+              ? t('reportDraft.reviewHintTidy', 'Your own account, organised under the headings. Untick anything that lost your meaning.')
+              : t('reportDraft.reviewHint', 'Untick anything you do not want. Only ticked items are saved.')}
           </p>
 
           {draft.dataCaveat && (
