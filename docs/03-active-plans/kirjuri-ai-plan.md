@@ -369,6 +369,23 @@ first. One intent per surface, organised by WHEN:
   Original spike question (kept for the record): silent-track Media Session in the TWA -
   do earbud play/pause taps reach the page, and does the mic stream survive a pocketed
   screen-on phone?
+- **DESIGN DECISION from the owner's point that "users might have a variety of bud styles
+  too" (2026-09-05).** The spike answers whether hands-free works on HIS two pairs. It
+  cannot answer it for the next coach, and we will never enumerate the market: media buds,
+  call headsets, single-button, multi-button, phone-brand buds with their own gesture
+  layer. So Phase 2 must NOT be "hands-free works" - it must be:
+  1. The on-screen press-hold stays the guaranteed path, always. Hands-free is an
+     enhancement on top, never a replacement.
+  2. Ship a SELF-TEST the coach runs with their own buds, in settings, before they ever
+     rely on it in a match. It reports plainly: "your earbuds reach the app - hands-free
+     will work" or "your earbuds do not reach the app - use the button on screen". A coach
+     who believes hands-free works and discovers otherwise mid-match has been failed by us,
+     not by their hardware.
+  3. That self-test is the button half of this spike harness, trimmed. So the harness is
+     only half throwaway: the media-session detection graduates into the feature, and the
+     mic-in-pocket logging is what gets deleted.
+  This also means a NEGATIVE spike result does not kill Phase 2 for everyone - it tells us
+  how loudly the self-test has to speak.
 - PR 6: Media Session action handlers toggling the recording controller; earcon
   confirmations into the bud.
 - PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.
