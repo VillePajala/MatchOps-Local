@@ -367,6 +367,14 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
               />
               {t('reportDraft.modeReplace', 'Replace it with the draft')}
             </label>
+            {mode === 'append' && (game.gameNotes ?? '').trim() && (
+              // The coach's own report was sent as source material, so the draft
+              // can cover the same ground. Say so where the choice is made,
+              // rather than after they are looking at it twice.
+              <p className="text-xs text-slate-400" data-testid="report-draft-duplication-note">
+                {t('reportDraft.duplicationNote', 'The draft was written knowing what you already wrote, so it may cover the same ground twice. Replace avoids that, and you can undo it.')}
+              </p>
+            )}
             {mode === 'replace' && (game.gameNotes ?? '').trim() && (
               <p className="text-xs text-amber-300" data-testid="report-draft-replace-warning">
                 {t('reportDraft.replaceWarning', 'Your current report text will be overwritten. You can undo it right after.')}

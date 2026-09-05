@@ -497,6 +497,43 @@ first. One intent per surface, organised by WHEN:
 - MODEL ID VERIFIED 2026-09-05 (owner pasted their account's list): `gpt-5-mini` exists,
   so `DRAFTING_MODEL` is valid and the price constants match it. Newer mini-class models
   are available to them too (gpt-5.4-mini; flagships to 5.6).
+- PR 17 (owner picked option B). The draft is written KNOWING the coach's existing report
+  (it goes into the packet as `attested.coachReport`), so with append it can cover the same
+  ground twice. A note now says so where the choice is made - not after the coach is
+  reading it twice - and points at Replace, which has undo. Shown only when there IS
+  existing text, and it gives way to the replace warning when Replace is picked.
+  Two options DECLINED for now, recorded so they are not re-invented:
+  (A) a prompt line telling the model to extend rather than restate - models are
+      unreliable about "do not repeat", so it would help without fixing;
+  (C) split the two jobs the one button conflates - "write a report from my notes"
+      (coachReport should not be source material at all) vs "finish what I wrote"
+      (coachReport is the primary source, Replace the natural ending). The proper fix,
+      held until the owner knows from real use which job they actually do.
+  NOT DONE and not to be done: defaulting to Replace when text exists. Existing text is
+  precisely where destroying something matters most.
+- OPEN DECISION for 9b: whether assessment slider values join the packet (8a
+  deliberately sends only coverage counts).
+- PR 19 (owner: "should we have a fallback model? or are you building a model chooser?"
+  then "we cant know what model a specific user has - also I would restrict the usage of
+  high cost models altogether so no accidents happen"). Both answered:
+  NO automatic fallback, deliberately. Silently swapping the model would change the prose,
+  the price and the result without telling anyone - the exact class of hidden behaviour
+  this phase kept removing. A wrong model id is rejected before generation, so it is not
+  billed either; there is no cost argument for an auto-retry.
+  A CHOOSER instead, on the AI settings card, with two guards:
+  1. The list is read from the coach's OWN account (`listAiModels`, the free `/v1/models`
+     endpoint the key test already uses), because we cannot know what any account has.
+  2. Only the cheap tiers are offered - ids ending `-mini` or `-nano`, with codex/search/
+     audio/embedding variants and date-stamped duplicates filtered out. A match report does
+     not need a flagship, a mis-tap must not be able to run up a bill, AND it keeps the
+     cost figures meaningful: they are the DEFAULT model's prices, so allowing a pro model
+     would make every estimate in the app a lie. The card says so when a non-default model
+     is chosen. On the owner's account this offers exactly gpt-5-mini, gpt-5-nano,
+     gpt-5.4-mini, gpt-5.4-nano.
+  The choice is device-local like the key (`matchops_ai_model`), and `ReportDraft.model`
+  records which model actually wrote a draft, so provenance stays truthful.
+  PROCESS NOTE: two plan-doc notes failed to apply today because their anchor text lived
+  on a sibling branch still open. Branch from the merged state, or expect the conflict.
 
 **Phase 4 - Spoken debrief**
 - PR 10 (done, RESHAPED from the plan on the owner's steer): not a separate memo

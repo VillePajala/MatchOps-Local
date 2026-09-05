@@ -3471,7 +3471,13 @@
     "usageAmount": "~${{usd}} since {{since}}",
     "usageBreakdown": "{{transcriptions}} transcriptions, {{drafts}} report drafts. An estimate from list prices - your provider's bill is the real number.",
     "usageReset": "Start counting again",
-    "usageNone": "Nothing used on this device yet."
+    "usageNone": "Nothing used on this device yet.",
+    "modelLabel": "Model used for report drafts",
+    "modelDefault": "{{model}} (default)",
+    "modelLoad": "Show the models on my account",
+    "modelLoading": "Reading your model list...",
+    "modelHint": "Only the low-cost models on your account are offered, so a mis-tap here cannot run up a bill. There is no automatic fallback either: if a model stops working the draft says so, rather than quietly using another one.",
+    "modelCustomHint": "The cost figures here are the default model's prices, so they are only a rough guide for {{model}}. Larger models write better and cost more."
   },
   "aiConsent": {
     "title": "Before you connect an AI provider",
@@ -3525,7 +3531,8 @@
     "errorInvalid": "The draft came back unreadable. Try again.",
     "unknownPlayer": "Unidentified player",
     "errorNoOutput": "Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers.",
-    "openSettings": "Open settings"
+    "openSettings": "Open settings",
+    "duplicationNote": "The draft was written knowing what you already wrote, so it may cover the same ground twice. Replace avoids that, and you can undo it."
   },
   "spokenReport": {
     "title": "Say the report out loud",

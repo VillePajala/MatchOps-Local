@@ -26,6 +26,7 @@ const KEY = 'matchops_ai_key';
 const PROVIDER = 'matchops_ai_provider';
 const CONSENT = 'matchops_ai_consent';
 const PSEUDONYMIZE = 'matchops_ai_pseudonymize';
+const MODEL = 'matchops_ai_model';
 
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
@@ -61,6 +62,12 @@ export interface AiProviderState {
   /** Consent + key: the AI features are usable. */
   connected: boolean;
   pseudonymize: boolean;
+  /**
+   * The drafting model the coach picked, or null for the app's default. Stored
+   * per device like the key: it is a property of this phone's setup, not of the
+   * team's data, and it must never travel in a backup or to another device.
+   */
+  model: string | null;
 }
 
 // Cached snapshot: useSyncExternalStore needs referential stability.
@@ -83,6 +90,7 @@ function compute(): AiProviderState {
     hasConsent,
     connected: hasConsent && hasKey,
     pseudonymize: read(PSEUDONYMIZE) !== '0',
+    model: read(MODEL),
   };
 }
 
@@ -131,6 +139,52 @@ export function setPseudonymizeNames(enabled: boolean): void {
   refresh();
 }
 
+/** Pick the drafting model, or pass null to go back to the app's default. */
+export function setAiModel(model: string | null): void {
+  write(MODEL, model && model.trim() ? model.trim() : null);
+  refresh();
+}
+
+/**
+ * Models from THIS account that are safe to offer for a match report.
+ *
+ * Two filters, for two different reasons.
+ *
+ * 1. We cannot know what any given account has, so the list is read from the
+ *    account itself. The models endpoint is free - it is the same one the key
+ *    test uses - so listing costs nothing.
+ *
+ * 2. Only the cheap tiers are offered: ids ending in `-mini` or `-nano`. A
+ *    match report is a summarising job and does not need a flagship model, and
+ *    a mis-tap in a settings list should not be able to run up a real bill. It
+ *    also keeps the cost figures meaningful, since they are the default's
+ *    prices and the cheap tiers sit in the same ballpark - a flagship would
+ *    make every estimate in the app a lie.
+ */
+export async function listAiModels(provider: AiProviderId = 'openai'): Promise<string[]> {
+  const key = getAiProviderKey();
+  if (!key) return [];
+  try {
+    const response = await fetch(`${AI_PROVIDERS[provider].host}/v1/models`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(KEY_TEST_TIMEOUT_MS) : undefined,
+    });
+    if (!response.ok) return [];
+    const body = (await response.json()) as { data?: Array<{ id?: unknown }> };
+    const ids = (body.data ?? [])
+      .map((m) => (typeof m.id === 'string' ? m.id : ''))
+      .filter((id) => id.startsWith('gpt-'))
+      .filter((id) => !/(codex|search|audio|realtime|transcribe|tts|image|embedding|instruct)/.test(id))
+      .filter((id) => !/-\d{4}-\d{2}-\d{2}$/.test(id))
+      // Cheap tiers only - see (2) above.
+      .filter((id) => /-(mini|nano)$/.test(id));
+    return [...new Set(ids)].sort();
+  } catch {
+    // A picker that cannot list simply offers the default.
+    return [];
+  }
+}
+
 const subscribe = (listener: () => void) => {
   listeners.add(listener);
   return () => {
@@ -138,7 +192,7 @@ const subscribe = (listener: () => void) => {
   };
 };
 const serverSnapshot: AiProviderState = {
-  provider: 'openai', hasKey: false, keyHint: null, consentVersion: null, hasConsent: false, connected: false, pseudonymize: true,
+  provider: 'openai', hasKey: false, keyHint: null, consentVersion: null, hasConsent: false, connected: false, pseudonymize: true, model: null,
 };
 const getServerSnapshot = () => serverSnapshot;
 

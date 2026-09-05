@@ -3471,7 +3471,13 @@
     "usageAmount": "~{{usd}} $ alkaen {{since}}",
     "usageBreakdown": "{{transcriptions}} litterointia, {{drafts}} raporttiluonnosta. Arvio listahinnoista - palveluntarjoajan lasku on oikea luku.",
     "usageReset": "Aloita laskenta uudelleen",
-    "usageNone": "Tällä laitteella ei ole vielä käytetty mitään."
+    "usageNone": "Tällä laitteella ei ole vielä käytetty mitään.",
+    "modelLabel": "Raporttiluonnoksissa käytettävä malli",
+    "modelDefault": "{{model}} (oletus)",
+    "modelLoad": "Näytä tilini mallit",
+    "modelLoading": "Luetaan mallilistaa...",
+    "modelHint": "Vain tilisi edulliset mallit ovat valittavissa, joten vahinkovalinta ei voi kasvattaa laskua. Automaattista varamallia ei myöskään ole: jos malli lakkaa toimimasta, luonnos kertoo sen sen sijaan että vaihtaisi hiljaa toiseen.",
+    "modelCustomHint": "Tässä näkyvät kulut ovat oletusmallin hintoja, joten ne ovat vain karkea arvio mallille {{model}}. Isommat mallit kirjoittavat paremmin ja kustantavat enemmän."
   },
   "aiConsent": {
     "title": "Ennen kuin yhdistät tekoälypalvelun",
@@ -3525,7 +3531,8 @@
     "errorInvalid": "Luonnos tuli lukukelvottomana. Yritä uudelleen.",
     "unknownPlayer": "Tuntematon pelaaja",
     "errorNoOutput": "Tekoälypalvelu vastasi mutta ei kirjoittanut mitään. Se ehkä käytti budjettinsa ajatteluun. Yritä uudelleen, tai kerro mikä malli tilillesi kuuluu.",
-    "openSettings": "Avaa asetukset"
+    "openSettings": "Avaa asetukset",
+    "duplicationNote": "Luonnos on kirjoitettu tietäen mitä olet jo kirjoittanut, joten se voi käsitellä samoja asioita kahdesti. Korvaa välttää sen, ja voit peruuttaa."
   },
   "spokenReport": {
     "title": "Sanele raportti",
