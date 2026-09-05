@@ -132,6 +132,43 @@ describe('buildGamePacket - pseudonymization', () => {
     expect(json).not.toContain('refToPlayerId');
   });
 
+  /**
+   * @critical - the report editor has no autosave, so what the coach can see is
+   * routinely newer than what the game holds. A caller with the live text says
+   * so, and it must be that text that goes out - and it is redacted like any
+   * other, not waved through because it arrived by a different route.
+   */
+  it('prefers the on-screen report over the saved one, and still redacts it', () => {
+    const { packet } = buildGamePacket({
+      game: baseGame({ gameNotes: 'Vanha tallennettu teksti.' }),
+      players: roster,
+      coachReport: 'Emma ja Matti johtivat peliä.',
+    });
+
+    expect(packet.attested.coachReport).toBe('P1 ja P2 johtivat peliä.');
+    expect(JSON.stringify(packet)).not.toContain('Vanha tallennettu');
+  });
+
+  it('falls back to the saved report when no on-screen text is given', () => {
+    const { packet } = buildGamePacket({
+      game: baseGame({ gameNotes: 'Tallennettu.' }),
+      players: roster,
+    });
+    expect(packet.attested.coachReport).toBe('Tallennettu.');
+  });
+
+  it('treats an emptied editor as no report rather than falling back to the saved one', () => {
+    // The coach cleared the box. Reviving the old text would put words back
+    // that they deliberately deleted.
+    const { packet } = buildGamePacket({
+      game: baseGame({ gameNotes: 'Vanha teksti.' }),
+      players: roster,
+      coachReport: '   ',
+    });
+    expect(packet.attested).not.toHaveProperty('coachReport');
+    expect(packet.coverage.coachReport).toBe(false);
+  });
+
   it('uses real names when the coach turned pseudonymization off, and keeps refs unique', () => {
     const otherEmma = player('p5', 'Emma Salo', 'Emma');
     const { packet, refToPlayerId } = buildGamePacket({
