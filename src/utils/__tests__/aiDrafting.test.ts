@@ -19,6 +19,9 @@ import {
   draftMatchReport,
   estimateDraftUsd,
   translateReport,
+
+  groupPlayerNotes,
+  MAX_GROUPED_NOTES,
   validateDraft,
 } from '../aiDrafting';
 import { buildGamePacket } from '../gamePacket';
@@ -528,6 +531,121 @@ describe('translateReport', () => {
         json: async () => ({ error: {} }),
       }) as unknown as typeof fetch;
       await expect(translateReport({ text: 'Raportti', language: 'en' })).rejects.toMatchObject({ kind });
+    }
+  });
+});
+
+
+describe('groupPlayerNotes', () => {
+  const okResponse = (text: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      choices: [{ message: { content: text }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 200 },
+    }),
+  });
+
+  beforeEach(() => {
+    connect();
+  });
+
+  it('refuses without a connected provider and never calls out', async () => {
+    localStorage.clear();
+    resetAiProviderStateForTests();
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await expect(groupPlayerNotes({ notes: ['a', 'b'], language: 'fi' })).rejects.toMatchObject({
+      kind: 'unauthorized',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  /** @critical - neither an empty request nor an oversized one is billed. */
+  it('refuses nothing to group, and more than one request should carry', async () => {
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(groupPlayerNotes({ notes: ['  ', ''], language: 'fi' })).rejects.toMatchObject({
+      kind: 'invalidResponse',
+    });
+    await expect(
+      groupPlayerNotes({ notes: Array.from({ length: 5 }, () => 'x'.repeat(2_000)), language: 'fi' }),
+    ).rejects.toMatchObject({ kind: 'tooLarge' });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * @critical - this is the request that carries most about one child, so the
+   * cap is the thing that bounds it. A UI that stopped capping must not widen it.
+   */
+  it('never sends more notes than the cap, whatever the caller passes', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(okResponse('Kooste.'));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await groupPlayerNotes({
+      notes: Array.from({ length: MAX_GROUPED_NOTES + 25 }, (_, i) => `Muistiinpano ${i}`),
+      language: 'fi',
+    });
+
+    expect(result.noteCount).toBe(MAX_GROUPED_NOTES);
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body).messages[1].content as string;
+    expect(sent.split('\n')).toHaveLength(MAX_GROUPED_NOTES);
+    // The one past the cap never left.
+    expect(sent).not.toContain(`Muistiinpano ${MAX_GROUPED_NOTES}`);
+  });
+
+  it('keeps the coach order and numbers the notes for the model', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(okResponse('Kooste.'));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await groupPlayerNotes({ notes: ['Vanhin.', 'Uusin.'], language: 'fi' });
+
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body).messages[1].content as string;
+    expect(sent).toBe('1. Vanhin.\n2. Uusin.');
+  });
+
+  /** @critical - organising, not judging: the whole basis for shipping this. */
+  it('tells the model to organise only, and to leave the codes alone', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(okResponse('Kooste.'));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await groupPlayerNotes({ notes: ['a', 'b'], language: 'fi' });
+
+    const instructions = JSON.parse(fetchMock.mock.calls[0][1].body).messages[0].content as string;
+    expect(instructions).toMatch(/ORGANISE ONLY/);
+    expect(instructions).toMatch(/do not rate/i);
+    expect(instructions).toMatch(/do not predict/i);
+    expect(instructions).toMatch(/P1/);
+    // The language the coach reads, not the model's default.
+    expect(instructions).toMatch(/Write in fi\./);
+  });
+
+  it('refuses to hand back a summary that was cut off', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: 'Puolikas' }, finish_reason: 'length' }],
+        usage: { prompt_tokens: 100, completion_tokens: 4000 },
+      }),
+    }) as unknown as typeof fetch;
+
+    // Half an account of a child, read as a whole one, is worse than none.
+    await expect(groupPlayerNotes({ notes: ['a', 'b'], language: 'fi' })).rejects.toMatchObject({
+      kind: 'noOutput',
+    });
+  });
+
+  it('maps provider failures to the same typed errors drafting uses', async () => {
+    for (const [status, kind] of [[401, 'unauthorized'], [429, 'rateLimited'], [500, 'network']] as const) {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status,
+        json: async () => ({ error: {} }),
+      }) as unknown as typeof fetch;
+      await expect(groupPlayerNotes({ notes: ['a', 'b'], language: 'fi' })).rejects.toMatchObject({ kind });
     }
   });
 });

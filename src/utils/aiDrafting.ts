@@ -679,3 +679,103 @@ export async function translateReport({
 
   return { text: content, language, model: chosenModel, estimatedUsd: billed };
 }
+
+
+/** Most notes we will send in one grouping request. */
+export const MAX_GROUPED_NOTES = 60;
+/** Longest combined note text for one grouping request. */
+export const MAX_GROUPING_CHARS = 8_000;
+
+export interface GroupedNotes {
+  text: string;
+  model: string;
+  estimatedUsd: number;
+  /** How many notes actually went, after any cap. */
+  noteCount: number;
+}
+
+/**
+ * Turn scattered notes about one player into a paragraph the coach can read.
+ *
+ * The coach wrote all of it, a line at a time, across matches. Read back as a
+ * list it is a pile of fragments; read back as prose it is what they have
+ * actually observed. So this ORGANISES and adds nothing - the same contract as
+ * tidying a report, applied to one player.
+ *
+ * NOTE ON SCOPE: this is the first request that carries observations about one
+ * child from several matches at once rather than from one. That is a real
+ * widening of what leaves the device, which is why the caller tells the coach
+ * exactly how many notes and how many matches are about to be sent, and why
+ * what comes back is text to read rather than anything that gets saved.
+ */
+export async function groupPlayerNotes({
+  notes,
+  language,
+  signal,
+  model,
+}: {
+  /** Already redacted by the caller, oldest first. */
+  notes: string[];
+  /** BCP-47-ish language to write in, e.g. 'fi'. */
+  language: string;
+  signal?: AbortSignal;
+  model?: string;
+}): Promise<GroupedNotes> {
+  const state = getAiProviderState();
+  if (!state.connected) {
+    throw new DraftingError('unauthorized', 'No AI provider is connected on this device');
+  }
+
+  // The caller caps too, and shows the coach the number before sending. This
+  // cap is the one that binds: it is what any future caller gets for free, and
+  // what stops a UI change from quietly widening the request.
+  const usable = notes.map((n) => n.trim()).filter(Boolean).slice(0, MAX_GROUPED_NOTES);
+  if (usable.length === 0) {
+    throw new DraftingError('invalidResponse', 'There are no notes about this player yet');
+  }
+  const body = usable.map((n, i) => `${i + 1}. ${n}`).join('\n');
+  if (body.length > MAX_GROUPING_CHARS) {
+    // Refused here rather than billed to the coach.
+    throw new DraftingError('tooLarge', 'There are more notes here than one request should carry');
+  }
+
+  const chosenModel = model ?? state.model ?? DRAFTING_MODEL;
+
+  const { content, ranOut, billed } = await postChatCompletion({
+    model: chosenModel,
+    messages: [
+      {
+        role: 'system',
+        content: [
+          `Write in ${language}.`,
+          "These are one coach's own notes about a single player, written a line at a time",
+          'across several matches, oldest first.',
+          'Group them into a few short paragraphs so they read as one account rather than a list.',
+          'ORGANISE ONLY. Every statement must rest on something in the notes. Do not add an',
+          'observation the coach did not make, do not rate the player, do not predict, and do',
+          'not turn a single remark into a pattern. Where the notes disagree with each other,',
+          'say so rather than resolving it.',
+          "Keep the coach's own judgements and their wording where you can.",
+          'Codes like P1, P2 and P? are player references. Leave every one exactly as written.',
+          'Return plain text only: no headings, no bullet list, no preamble.',
+        ].join('\n'),
+      },
+      { role: 'user', content: body },
+    ],
+    signal,
+  });
+
+  if (!content) {
+    throw new DraftingError(
+      'noOutput',
+      ranOut ? 'The model spent its whole output budget before writing anything' : 'Provider returned nothing',
+      billed,
+    );
+  }
+  if (ranOut) {
+    // Half an account of a child, read as a whole one, is worse than none.
+    throw new DraftingError('noOutput', 'The summary was cut off before it finished', billed);
+  }
+
+  return { text: content, model: chosenModel, estimatedUsd: billed, noteCount: usable.length };
+}
