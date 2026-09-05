@@ -176,6 +176,45 @@ box is ticked. Plain language, EN + FI:
   section with a Finnish data-protection lawyer or a written question to the
   Tietosuojavaltuutettu.
 
+## Data honesty rules (sparse data must not become signal)
+
+Coaches will note some players and not others, fill positions sometimes, and
+almost never touch the demand slider. Absence is not evidence and a default is
+not a measurement:
+
+- **Only deliberately entered values reach the AI.** A field that cannot be
+  told apart from its default is omitted, not sent as the default (demand level
+  only when the coach changed it; positions only for players who have them;
+  minutes only where the planner recorded them). The packet carries a
+  `coverage` block: notes per player, games with positions, games with minutes.
+- **The AI states what it does not know and may not fill gaps.** Every returned
+  claim carries `evidence` (note/event ids). A player with no observations in
+  the packet gets no note suggestion and no summary - none, not a bland one.
+  Report sections without material come back empty. Malformed or
+  evidence-less items are dropped before review.
+- **The UI shows coverage, never a smooth surface.** Denominators everywhere:
+  "3 observations over 8 games", "positions recorded in 2/8 games", "no notes
+  this season". No averages over sparse fields (no mean demand, no
+  minutes-fairness percentages below a coverage threshold).
+- **The equalizer is the coach; the app nudges the coach.** A coverage view
+  ("notes on 6 of 14 players this month - nothing on Aino, Veeti, Leo") on the
+  team page and in the post-game wrap-up turns gaps into next game's watching
+  plan. Ratings forced a number for every player every game; notes exist only
+  where the coach looked, and coverage shows where they did not.
+
+## Future-proofing decisions (decided 2026-09-05, land in PR 8)
+
+- **`tag` on note events** (additive column): `debrief`, `halftime`, or an
+  AI-assigned category (technique / attitude / game-sense) added later from the
+  text. The spoken debrief is saved as a tagged game note, not just consumed.
+- **AI provenance**: AI-accepted notes and report drafts record which model and
+  which packet hash produced them (`aiMeta`), so later, better models can be
+  told apart from today's.
+- **Season summaries** get their own small per-player, per-season record;
+  decided before PR 11, never squeezed into the 1000-char player notes field.
+- Audio is deliberately never kept: text is the durable asset; no future
+  re-transcription or voice-tone features. Privacy over optionality.
+
 ## Data rules
 
 **Voice clips and notes**
@@ -294,6 +333,10 @@ parent share cards fed by AI summaries.
   three header blockers + wake lock + Sentry scrub; Media Session spike before the
   hands-free PRs; match report stays plain text under the 7 real headings (cap 2000 ->
   4000).
+- 2026-09-05: data honesty rules (absence is not evidence, defaults are not
+  measurements, coverage shown with denominators, coach-nudging coverage view);
+  note `tag`, AI provenance `aiMeta`, own record for season summaries; audio
+  never kept.
 - 2026-09-04 (privacy): Google Web Speech dropped; on-device not viable for Finnish
   today (probe kept); BYOK transcription moved into Phase 1 behind a versioned consent
   gate with dictation rules; 30-day hard audio cap; risk assessment kept in this doc;
