@@ -483,6 +483,20 @@ first. One intent per surface, organised by WHEN:
   a parent may read it", the period structure (two periods = halves) and clock basis,
   which side "us" and "them" mean, and that position codes are pitch roles with their
   line - GK / back line / holding, central, attacking midfield / front line.
+- PR 17 (owner picked option B). The draft is written KNOWING the coach's existing report
+  (it goes into the packet as `attested.coachReport`), so with append it can cover the same
+  ground twice. A note now says so where the choice is made - not after the coach is
+  reading it twice - and points at Replace, which has undo. Shown only when there IS
+  existing text, and it gives way to the replace warning when Replace is picked.
+  Two options DECLINED for now, recorded so they are not re-invented:
+  (A) a prompt line telling the model to extend rather than restate - models are
+      unreliable about "do not repeat", so it would help without fixing;
+  (C) split the two jobs the one button conflates - "write a report from my notes"
+      (coachReport should not be source material at all) vs "finish what I wrote"
+      (coachReport is the primary source, Replace the natural ending). The proper fix,
+      held until the owner knows from real use which job they actually do.
+  NOT DONE and not to be done: defaulting to Replace when text exists. Existing text is
+  precisely where destroying something matters most.
 - OPEN DECISION for 9b: whether assessment slider values join the packet (8a
   deliberately sends only coverage counts).
 
