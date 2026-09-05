@@ -3543,8 +3543,8 @@
     "transcribing": "Writing out what you said...",
     "textLabel": "What you said",
     "editHint": "Fix anything the transcription got wrong before you keep it.",
-    "save": "Keep as my spoken summary",
-    "insert": "Add it to the report text",
+    "save": "Keep as a note for the AI draft instead",
+    "insert": "Put this in the match report",
     "discard": "Throw this recording away",
     "saved": "Saved as your spoken summary.",
     "inserted": "Added to the match report.",
@@ -3552,6 +3552,8 @@
     "errorTranscribe": "Could not transcribe that. The recording is in your voice notes.",
     "errorUnauthorized": "Your AI provider rejected the key. Check it in Settings.",
     "costHint": "Writing it out costs about ${{usd}} a minute on your provider account, and starts when you stop recording.",
-    "storedOnly": "Recorded and saved. It could not be written out, so it is waiting under Voice notes on this page."
+    "storedOnly": "Recorded and saved. It could not be written out, so it is waiting under Voice notes on this page.",
+    "savedWhere": "Saved as a note, not as report text. It is further up this page under Notes, and the AI draft will use it as your own account.",
+    "showNotes": "Show me the notes"
   }
 }
