@@ -27,8 +27,10 @@ import ConfirmationModal from './ConfirmationModal';
 import DictationInbox from './GameStatsModal/components/DictationInbox';
 import GameNotesList from './GameStatsModal/components/GameNotesList';
 import ReportDraftPanel from './GameStatsModal/components/ReportDraftPanel';
+import SpokenReportPanel from './GameStatsModal/components/SpokenReportPanel';
 import PlayerPositionsEditor from './PlayerPositionsEditor';
 import type { AiMeta, GameNoteInput } from '@/types/game';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
@@ -102,6 +104,8 @@ interface GameStatsModalProps {
   /** Kirjuri (PR 3): the dictation inbox accepted a clip. */
   /** Returns true when the note was stored; the inbox deletes the clip's audio only then. */
   onAddGameNote?: (note: GameNoteInput) => boolean;
+  /** Phase 4: shared mic controls, so the spoken report reuses the overlay's recorder. */
+  dictation?: DictationControls;
   /** Phase 3: stores an approved AI report draft. False = nothing was stored. */
   onApplyReportDraft?: (payload: { gameNotes: string; aiMeta?: AiMeta; noteEvents: GameEvent[] }) => boolean;
   selectedPlayerIds: string[];
@@ -170,6 +174,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onUpdateGameEvent = NOOP,
   onAddGameNote,
   onApplyReportDraft,
+  dictation,
   selectedPlayerIds,
   savedGames,
   currentGameId,
@@ -616,6 +621,22 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     () => localGameEvents.reduce<GameEvent | undefined>((latest, e) => (!latest || e.time > latest.time ? e : latest), undefined),
     [localGameEvents],
   );
+  /** First names and nicknames, so the transcript keeps Finnish names intact. */
+  const dictationVocabulary = useMemo(() => {
+    const seen = new Set<string>();
+    const terms: string[] = [];
+    for (const player of masterRoster.length > 0 ? masterRoster : availablePlayers) {
+      for (const term of [player.nickname?.trim(), player.name.trim().split(/\s+/)[0]]) {
+        if (!term || term.length < 2) continue;
+        const key = term.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        terms.push(term);
+      }
+    }
+    return terms;
+  }, [masterRoster, availablePlayers]);
+
   const draftStamp = useMemo(
     () => ({
       time: lastEvent?.time ?? (numPeriods ?? 2) * (periodDurationMinutes ?? 0) * 60,
@@ -917,6 +938,19 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           onCancelEdit={handleCancelEditNotes}
           onEditNotesChange={setEditGameNotes}
         />
+          {dictation && onAddGameNote && (
+            <SpokenReportPanel
+              dictation={dictation}
+              vocabulary={dictationVocabulary}
+              stamp={draftStamp}
+              onSaveSummary={onAddGameNote}
+              onInsertIntoReport={(spoken) => {
+                // Never replace: the coach's typed report keeps its place above.
+                const base = (gameNotes ?? '').trimEnd();
+                onGameNotesChange?.(base ? `${base}\n\n${spoken}` : spoken);
+              }}
+            />
+          )}
           {onApplyReportDraft && currentGame && (
             <ReportDraftPanel
               game={currentGame}

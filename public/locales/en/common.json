@@ -3525,5 +3525,23 @@
     "errorInvalid": "The draft came back unreadable. Try again.",
     "unknownPlayer": "Unidentified player",
     "errorNoOutput": "Your AI provider answered but wrote nothing. It may have spent its budget thinking. Try again, or tell me which model your account offers."
+  },
+  "spokenReport": {
+    "title": "Say the report out loud",
+    "intro": "Record your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.",
+    "introNoProvider": "Record your account of the match. Without an AI provider connected it stays as a recording in your voice notes, ready to write out later.",
+    "start": "Record the report",
+    "stop": "Stop recording",
+    "transcribing": "Writing out what you said...",
+    "textLabel": "What you said",
+    "editHint": "Fix anything the transcription got wrong before you keep it.",
+    "save": "Keep as my spoken summary",
+    "insert": "Add it to the report text",
+    "discard": "Throw this recording away",
+    "saved": "Saved as your spoken summary.",
+    "inserted": "Added to the match report.",
+    "saveFailed": "Could not save that.",
+    "errorTranscribe": "Could not transcribe that. The recording is in your voice notes.",
+    "errorUnauthorized": "Your AI provider rejected the key. Check it in Settings."
   }
 }

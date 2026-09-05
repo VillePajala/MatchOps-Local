@@ -29,6 +29,7 @@ import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import type { UseGamePersistenceReturn } from './useGamePersistence';
 import type { UseTimerManagementReturn } from './useTimerManagement';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState, UpdateGameDetailsMutationVariables, ShootoutKick } from '@/types';
 import type { UseMutationResult } from '@tanstack/react-query';
 
@@ -59,6 +60,8 @@ export interface ModalUIState {
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
   canReapplyPlan: boolean;
+  /** Shared mic controls; the spoken report reuses the overlay's recorder. */
+  dictation?: DictationControls;
   playerAssessments: Record<string, PlayerAssessment>;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
@@ -177,6 +180,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     savedGames,
     currentGameId,
     canReapplyPlan,
+    dictation,
     playerAssessments,
     availableTeams,
     orphanedGameInfo,
@@ -381,6 +385,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       savedGames,
       currentGameId,
       canReapplyPlan,
+      dictation,
       teams: gameDataManagement.teams,
       seasons: gameDataManagement.seasons,
       tournaments: gameDataManagement.tournaments,

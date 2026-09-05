@@ -413,8 +413,18 @@ first. One intent per surface, organised by WHEN:
   deliberately sends only coverage counts).
 
 **Phase 4 - Spoken debrief**
-- PR 10: 60-second post-match voice memo (optional halftime memo) feeding the
-  GamePacket.
+- PR 10 (done, RESHAPED from the plan on the owner's steer): not a separate memo
+  surface. `SpokenReportPanel` sits in the spine's Otteluraportti step, uses the SAME
+  recorder as the in-match mic (so two recordings can never overlap), tap-to-start /
+  tap-to-stop rather than press-and-hold, transcribes its own clip on the spot instead
+  of sending it to the inbox, and offers three endings: keep as a `debrief`-tagged note
+  (the drafting prompt now treats such a note as the coach's own account and the primary
+  source), add straight into the report text (append only, never replacing), or throw
+  away. Audio is deleted once the words are kept; a refused save keeps both.
+  WHY RESHAPED: a second recording surface would duplicate capture, which is exactly
+  what the Phase 1b restructure removed. The value was the debrief TAG, not a new screen.
+  `useDictationCapture` gained `lastClip` so a caller can claim the clip it started;
+  `GameNoteInput` gained an optional `tag`.
 
 **Phase 5 - Season synthesis**
 - PR 11: per-player season summary over accumulated notes + minutes + positions;

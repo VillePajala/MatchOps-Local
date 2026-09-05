@@ -149,8 +149,9 @@ export function buildDraftingInstructions(packet: GamePacket): string {
     `3. "${'P?'}" means the note did not identify which player it was. Write about it without attributing it to anyone.`,
     '4. The coverage numbers say how thin the data is. Say nothing about a player nobody wrote a note about, and do not turn a few observations into a verdict on the team.',
     '5. Player notes must each rest on something in the notes for that same player. If nothing was written about a player, they get no note.',
-    '6. Be concrete and short. A coach reads this on a phone after a match.',
-    '7. If the data is too thin for a section, write one honest sentence instead of padding.',
+    '6. A note tagged "debrief" is the coach\'s own spoken account of the match. Treat it as the primary source for the report and keep their judgement, rather than reducing it to one observation among many.',
+    '7. Be concrete and short. A coach reads this on a phone after a match.',
+    '8. If the data is too thin for a section, write one honest sentence instead of padding.',
     '',
     'Return the seven sections in the given order, plus player notes only where the data supports them.',
   ].join('\n');
