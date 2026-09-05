@@ -1,4 +1,4 @@
-import { completenessProgress, computeGameCompleteness, type CompletenessGame } from './gameCompleteness';
+import { completenessProgress, computeGameCompleteness, countRowStatus, type CompletenessGame } from './gameCompleteness';
 
 const base: CompletenessGame = {
   isPlayed: true,
@@ -106,6 +106,43 @@ describe('completenessProgress', () => {
     });
 
     expect(completenessProgress(partial)).toEqual({ done: 5, total: 5 });
+    // ...and the rows say the same thing in their own words: started, not done.
+    expect(countRowStatus(partial.positions)).toBe('partial');
+    expect(countRowStatus(partial.assessments)).toBe('partial');
+  });
+
+  /**
+   * @critical - the bar counting a row the list showed as outstanding is the
+   * bug this model exists to make impossible, and it has happened twice. Both
+   * surfaces now read countRowStatus, so this pins the rule itself.
+   */
+  it('leaves a row out of the count exactly when it has nothing recorded', () => {
+    const none = computeGameCompleteness({
+      ...base,
+      gameNotes: 'r',
+      seasonId: 's1',
+      teamId: 't1',
+    });
+    expect(countRowStatus(none.positions)).toBe('todo');
+    expect(countRowStatus(none.assessments)).toBe('todo');
+    expect(completenessProgress(none)).toEqual({ done: 3, total: 5 });
+
+    const all = computeGameCompleteness({
+      ...base,
+      gameNotes: 'r',
+      seasonId: 's1',
+      teamId: 't1',
+      playerPositions: { p1: ['CM'], p2: ['RB'], p3: ['LB'], p4: ['ST'] },
+      assessments: { p1: {}, p2: {}, p3: {}, p4: {} },
+    });
+    expect(countRowStatus(all.positions)).toBe('done');
+    expect(countRowStatus(all.assessments)).toBe('done');
+    expect(completenessProgress(all)).toEqual({ done: 5, total: 5 });
+  });
+
+  it('reports an empty squad as nothing recorded rather than all done', () => {
+    // 0/0 is vacuously "all done" if you only compare done >= total.
+    expect(countRowStatus({ done: 0, total: 0 })).toBe('todo');
   });
 
   /**

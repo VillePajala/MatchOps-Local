@@ -46,17 +46,31 @@ export interface GameCompleteness {
 
 const nonEmpty = (s?: string): boolean => typeof s === 'string' && s.trim().length > 0;
 
+/** How a checklist row reads: nothing yet, some of the squad, or all of them. */
+export type CompletenessRowStatus = 'done' | 'partial' | 'todo';
+
+/**
+ * The status of a per-player row (positions, assessments).
+ *
+ * `partial` exists because the two honest answers disagree: "three of fourteen
+ * assessed" is neither finished nor untouched, and forcing it into one of those
+ * is what made the bar and the list contradict each other twice. A coach who
+ * wrote about the players they watched has done that job for this match, so
+ * partial counts toward the bar - and the row says so in its own colour instead
+ * of claiming a green tick at 1/14.
+ */
+export function countRowStatus(c: CountCheck): CompletenessRowStatus {
+  if (c.total === 0 || c.done === 0) return 'todo';
+  return c.done >= c.total ? 'done' : 'partial';
+}
+
 /**
  * How much of the finishing work is done, as a fraction the UI can show.
  *
- * Counts exactly the rows the checklist card shows, so a bar, a menu badge and
- * the list can never disagree - the same reason the completeness model itself
- * is shared rather than recomputed per surface.
- *
- * Positions and assessments count as done when SOME are recorded, not all: a
- * coach who wrote about the three players they watched has finished that job
- * for this match, and a bar that only fills at fourteen of fourteen would call
- * every real match unfinished.
+ * The bar counts exactly the rows the checklist does not show in amber, because
+ * both read this same function - not two parallel expressions that have twice
+ * drifted apart. A bar, a menu badge and the list therefore cannot disagree
+ * without the shared rule itself changing.
  */
 export function completenessProgress(c: GameCompleteness): { done: number; total: number } {
   if (!c.applicable) return { done: 0, total: 0 };
@@ -67,8 +81,8 @@ export function completenessProgress(c: GameCompleteness): { done: number; total
     // both are set. Counting just one made the badge claim all-done while the
     // list underneath still showed the row outstanding.
     c.competition && c.team,
-    c.positions.total > 0 && c.positions.done > 0,
-    c.assessments.total > 0 && c.assessments.done > 0,
+    countRowStatus(c.positions) !== 'todo',
+    countRowStatus(c.assessments) !== 'todo',
   ];
   return { done: items.filter(Boolean).length, total: items.length };
 }

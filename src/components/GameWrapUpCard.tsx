@@ -3,9 +3,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ProgressBar from '@/components/ProgressBar';
-import { completenessProgress } from '@/utils/gameCompleteness';
-import { HiCheckCircle, HiOutlineExclamationCircle, HiChevronRight } from 'react-icons/hi';
-import type { GameCompleteness, CountCheck } from '@/utils/gameCompleteness';
+import { completenessProgress, countRowStatus } from '@/utils/gameCompleteness';
+import { HiCheckCircle, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiChevronRight } from 'react-icons/hi';
+import type { GameCompleteness, CountCheck, CompletenessRowStatus } from '@/utils/gameCompleteness';
 
 interface GameWrapUpCardProps {
   completeness: GameCompleteness;
@@ -22,9 +22,7 @@ interface GameWrapUpCardProps {
   onOpenVoiceNotes?: () => void;
 }
 
-type RowStatus = 'done' | 'todo';
-
-const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.total ? 'done' : 'todo');
+type RowStatus = CompletenessRowStatus;
 
 /**
  * Post-game "Finish this game" checklist. A router-with-progress over the
@@ -68,14 +66,14 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
   rows.push({
     key: 'positions',
     label: t('gameStatsModal.wrapUpPositions', 'Positions played'),
-    status: countStatus(completeness.positions),
+    status: countRowStatus(completeness.positions),
     count: completeness.positions,
     onClick: onOpenPositions,
   });
   rows.push({
     key: 'assessments',
     label: t('gameStatsModal.wrapUpAssessments', 'Player assessments'),
-    status: countStatus(completeness.assessments),
+    status: countRowStatus(completeness.assessments),
     count: completeness.assessments,
     onClick: onOpenAssessments,
   });
@@ -124,9 +122,13 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
                   row.onClick ? 'hover:bg-slate-800/50 transition-colors' : ''
                 }`}
               >
+                {/* Amber means nothing recorded, and amber is exactly what the
+                    progress bar does not count - see countRowStatus. */}
                 {row.status === 'done'
-                  ? <HiCheckCircle className="shrink-0 text-emerald-400 text-lg" />
-                  : <HiOutlineExclamationCircle className="shrink-0 text-amber-400 text-lg" />}
+                  ? <HiCheckCircle className="shrink-0 text-emerald-400 text-lg" data-testid={`wrap-up-status-${row.key}-done`} />
+                  : row.status === 'partial'
+                    ? <HiOutlineCheckCircle className="shrink-0 text-emerald-400 text-lg" data-testid={`wrap-up-status-${row.key}-partial`} />
+                    : <HiOutlineExclamationCircle className="shrink-0 text-amber-400 text-lg" data-testid={`wrap-up-status-${row.key}-todo`} />}
                 <span className="flex-1 text-sm text-slate-200">{row.label}</span>
                 {row.count && row.count.total > 0 && (
                   <span className="text-xs font-medium text-slate-400">{row.count.done}/{row.count.total}</span>

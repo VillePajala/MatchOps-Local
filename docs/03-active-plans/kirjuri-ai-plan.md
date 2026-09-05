@@ -706,9 +706,13 @@ list can never disagree - and it appears in three places:
 DELIBERATELY NOT during play. A completeness bar while the match is running is noise at
 best and nags a coach about paperwork while they are coaching at worst.
 
-Counting rule: positions and assessments count as done once SOME are recorded, not all. A
-coach who wrote about the three players they watched has finished that job for this match,
-and a bar that only filled at 14/14 would call every real match unfinished.
+Counting rule: the bar counts exactly the rows the checklist does not show in amber, because
+both read `countRowStatus`. Per-player rows have three states, not two - nothing, some, all -
+because "three of fourteen assessed" is neither finished nor untouched, and squeezing it into
+one of those is what made the bar and the list contradict each other twice in review. Some
+counts toward the bar: a coach who wrote about the players they watched has done that job for
+this match, and a bar that only filled at 14/14 would call every real match unfinished. The
+row shows an outline tick rather than a solid one, so it never claims all-done at 1/14.
 
 ## Before the master merge (checklist)
 

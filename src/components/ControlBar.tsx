@@ -571,24 +571,24 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             </button>
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />
-                {t('controlBar.gameReport', 'Finish this game')}
-                {finishProgress && (
+              {t('controlBar.gameReport', 'Finish this game')}
+              {finishProgress && (
                   // State, not a permanent badge: it appears because the match
                   // is unfinished and turns green when it is done, so the menu
                   // answers "is there anything left" without opening a screen.
+                <span
+                  className="ml-auto flex items-center gap-1.5 text-xs font-semibold tabular-nums text-slate-300"
+                  data-testid="menu-finish-progress"
+                >
                   <span
-                    className="ml-auto flex items-center gap-1.5 text-xs font-semibold tabular-nums text-slate-300"
-                    data-testid="menu-finish-progress"
-                  >
-                    <span
-                      className={`h-2 w-2 rounded-full ${
-                        finishProgress.done >= finishProgress.total ? 'bg-emerald-500' : 'bg-amber-400'
-                      }`}
-                      aria-hidden="true"
-                    />
-                    {finishProgress.done}/{finishProgress.total}
-                  </span>
-                )}
+                    className={`h-2 w-2 rounded-full ${
+                      finishProgress.done >= finishProgress.total ? 'bg-emerald-500' : 'bg-amber-400'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {finishProgress.done}/{finishProgress.total}
+                </span>
+              )}
             </button>
             {/* Deep-review: the separate "Match stats" entry was identical to
                 Finish this game (same modal, same landing) - collapsed into one.
