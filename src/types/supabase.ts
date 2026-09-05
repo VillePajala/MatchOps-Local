@@ -41,6 +41,7 @@ export type Database = {
           period: number | null
           scorer_id: string | null
           source: string | null
+          tag: string | null
           time_seconds: number
           user_id: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           period?: number | null
           scorer_id?: string | null
           source?: string | null
+          tag?: string | null
           time_seconds: number
           user_id: string
         }
@@ -71,6 +73,7 @@ export type Database = {
           period?: number | null
           scorer_id?: string | null
           source?: string | null
+          tag?: string | null
           time_seconds?: number
           user_id?: string
         }

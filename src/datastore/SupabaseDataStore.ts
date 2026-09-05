@@ -2947,6 +2947,7 @@ export class SupabaseDataStore implements DataStore {
       note_text: e.text ?? null,
       period: e.period ?? null,
       source: e.source ?? null,
+      tag: e.tag ?? null,
     }));
 
     // Build assessment rows with flattened sliders
@@ -3150,6 +3151,7 @@ export class SupabaseDataStore implements DataStore {
         period: e.period ?? undefined,
         text: e.note_text ?? undefined,
         source: (e.source as GameNoteSource | null) ?? undefined,
+        tag: (e.tag as GameEvent['tag'] | null) ?? undefined,
       }));
 
     // Reconstruct assessments as Record<playerId, Assessment>
