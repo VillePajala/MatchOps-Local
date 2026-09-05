@@ -3566,5 +3566,15 @@
     "savedWhere": "Tallennettu muistiinpanoksi, ei raporttitekstiksi. Se on ylempänä tällä sivulla kohdassa Muistiinpanot, ja tekoälyluonnos käyttää sitä omana kertomuksenasi.",
     "showNotes": "Näytä muistiinpanot",
     "insertFailed": "Raporttiin ei voitu lisätä tätä. Äänitys säilyy."
+  },
+  "coverageNudge": {
+    "title": "Kenestä olet kirjoittanut",
+    "summary": "Muistiinpanoja {{covered}}/{{total}} pelaajasta {{matches}} ottelun aikana.",
+    "everyone": "Jokaisesta on tällä jaksolla ainakin yksi muistiinpano.",
+    "lead": "Ei vielä mitään kirjoitettuna:",
+    "matchesPlayed_one": "{{count}} ottelu",
+    "matchesPlayed_other": "{{count}} ottelua",
+    "andMore_one": "ja {{count}} muu",
+    "andMore_other": "ja {{count}} muuta"
   }
 }
