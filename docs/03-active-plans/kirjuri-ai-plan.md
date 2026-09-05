@@ -279,6 +279,11 @@ not a measurement:
   stays only as a fallback for hosts that do not wire the hand-off. The Home completeness
   dot already existed (saved-games list: green = record complete, amber = Kaipaa
   viimeistelyä) - no new work. Phase 1b is complete; next is the Phase 2 spike.
+- 2026-09-05 evening: #756 (7d) merged - the GitHub review job ran on #751-#755 after the
+  limit reset and approved all five; 7d folded in the items the local reviews missed
+  (live gameType for the positions editor, a test fixture that aliased two setters).
+  Phase 3 started: PR 8a merged/open as the pure GamePacket builder. #756's own review
+  job hit the limit again - that PR has CI but no independent review yet.
 - Correction from PR 5: Web Speech (also Chrome's on-device mode) only transcribes live
   mic input, never a stored clip - the "on-device probe" cannot apply to post-game
   clips. An on-device engine over clips needs a WASM model; the slot stays open.
@@ -350,8 +355,21 @@ first. One intent per surface, organised by WHEN:
 - PR 7: Bluetooth mic input selection (enumerateDevices) + match-mode touch shield.
 
 **Phase 3 - Post-match drafting**
-- PR 8: GamePacket builder (score, events, minutes + positions, demand level, notes,
-  pseudonymized roster keyed by `entityId`) + schema v1 + client call + validation.
+- PR 8a (done): `src/utils/gamePacket.ts` - pure builder, schema v1. Trust tiers are
+  STRUCTURAL (`recorded` / `attested` / `planned` top-level sections plus a `trust`
+  explanation for the model), `coverage` carries denominators, and pseudonymization
+  redacts names inside note text AND the coach's own report via `redactPlayerNames`
+  (nickname + every name part, across the WHOLE roster because coaches name
+  unselected players too; Finnish declension + kk/pp/tt gradation; ambiguous
+  words become `P?` rather than a guess). Redaction runs BEFORE the request, so
+  nobody reviews its mistakes - hence every rule is length-bounded and tested
+  against ordinary Finnish words. Assessment VALUES
+  are deliberately excluded - only coverage counts; revisit in PR 9 if the draft needs
+  them. `gamePacketFingerprint` gives PR 9's `aiMeta` something to record.
+  Note `tag` shipped here: type + migration 042 (APPLIED TO STAGING ONLY) + both
+  Supabase transform directions; nothing writes a tag yet.
+- PR 8b: the client call (chat completion on the coach's key, structured output,
+  max_output_tokens cap, 60 s timeout, abortable) + response validation.
 - PR 9: review screen + apply-on-approve with provenance; match report draft under the
   7 headings; `gameNotes` cap 4000.
 

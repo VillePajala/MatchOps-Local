@@ -68,6 +68,12 @@ export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEn
 
 /** Provenance of a `note` event (Kirjuri): who wrote the words. */
 export type GameNoteSource = 'dictation' | 'ai' | 'manual';
+/**
+ * Optional category on a note (Kirjuri Phase 3+). 'halftime' and 'debrief' are
+ * stamped by the capture surface; the technique/attitude/gameSense labels may
+ * be assigned later from the text. Additive: notes without a tag stay valid.
+ */
+export type GameNoteTag = 'halftime' | 'debrief' | 'technique' | 'attitude' | 'gameSense';
 
 /** What the dictation inbox hands over when the coach accepts a clip. */
 export interface GameNoteInput {
@@ -91,6 +97,8 @@ export interface GameEvent {
   text?: string;
   /** `note` only. */
   source?: GameNoteSource;
+  /** `note` only: optional category (migration 042). */
+  tag?: GameNoteTag;
 }
 
 // TimerState is defined in @/utils/timerStateManager.ts (canonical location)
