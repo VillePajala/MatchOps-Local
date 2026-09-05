@@ -103,12 +103,20 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const estimate = useMemo(() => {
     if (!ai.connected) return 0;
     try {
-      const { packet } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize, language });
+      // Same packet the request will send, on-screen report included, so the
+      // number the coach reads is an estimate of the job they are about to run.
+      const { packet } = buildGamePacket({
+        game,
+        players,
+        pseudonymize: ai.pseudonymize,
+        language,
+        coachReport: existingReport,
+      });
       return estimateDraftUsd(packet);
     } catch {
       return 0;
     }
-  }, [ai.connected, ai.pseudonymize, game, players, language]);
+  }, [ai.connected, ai.pseudonymize, existingReport, game, players, language]);
 
   /**
    * Codes are what the provider saw; the coach should see the child. The mapping
@@ -172,7 +180,17 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const { packet, refToPlayerId } = buildGamePacket({ game, players, pseudonymize: ai.pseudonymize, language });
+      // `existingReport` is the textarea's live buffer, which the saved game
+      // does not have until the coach presses Save. Tidying is defined as
+      // "organise what is on my screen", so the packet has to carry that text
+      // and not the older saved copy.
+      const { packet, refToPlayerId } = buildGamePacket({
+        game,
+        players,
+        pseudonymize: ai.pseudonymize,
+        language,
+        coachReport: existingReport,
+      });
       const result = await draftMatchReport({ packet, signal: controller.signal, mode: job });
       // Real token usage when the provider reported it, else our own estimate.
       recordAiUsage('drafting', result.usage?.estimatedUsd ?? estimateDraftUsd(packet));
@@ -216,7 +234,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
       if (abortRef.current === controller) abortRef.current = null;
       if (!controller.signal.aborted) setDrafting(false);
     }
-  }, [ai.pseudonymize, drafting, game, players, showToast, t, language]);
+  }, [ai.pseudonymize, drafting, existingReport, game, players, showToast, t, language]);
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();

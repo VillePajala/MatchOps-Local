@@ -239,7 +239,6 @@ export function buildDraftingInstructions(packet: GamePacket, mode: DraftingMode
     '',
     ...(mode === 'tidy'
       ? [
-          '',
           'THIS IS A TIDYING JOB, NOT A NEW REPORT. The coach has already written the report',
           'in `attested.coachReport`. Organise THEIR account under the seven headings, keep',
           'their judgements and their turns of phrase, and cut repetition. Do not add an',

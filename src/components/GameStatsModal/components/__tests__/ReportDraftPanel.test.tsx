@@ -277,6 +277,40 @@ describe('ReportDraftPanel - reviewing a draft', () => {
     expect(screen.getByTestId('report-draft-replace-warning')).toBeInTheDocument();
   });
 
+  /**
+   * @critical - the editor has no autosave, so the saved game and the text on
+   * screen routinely differ. Drafting from the saved copy tidied a document the
+   * coach was not looking at, then offered to replace what they had typed with
+   * it. The packet must carry the on-screen text.
+   */
+  it('tidies the text on screen, not the last saved report', async () => {
+    renderPanel({
+      // Nothing saved yet: the coach has typed a first report and not pressed Save.
+      game: game({ gameNotes: '' }),
+      existingReport: 'Tanaan pelattiin hyvin, puolustus piti.',
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+    });
+    await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
+
+    const sent = draftMatchReport.mock.calls.at(-1)?.[0] as { packet: { attested: { coachReport?: string } } };
+    expect(sent.packet.attested.coachReport).toContain('puolustus piti');
+  });
+
+  it('sends the saved report when the panel has no newer text', async () => {
+    renderPanel({ game: game({ gameNotes: 'Tallennettu raportti.' }) });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+    });
+    await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
+
+    const sent = draftMatchReport.mock.calls.at(-1)?.[0] as { packet: { attested: { coachReport?: string } } };
+    expect(sent.packet.attested.coachReport).toContain('Tallennettu raportti');
+  });
+
   it('cannot apply when the coach unticked everything', async () => {
     renderPanel();
     await produceDraft();
