@@ -10,7 +10,7 @@ import React from 'react';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import SpokenReportPanel from '../SpokenReportPanel';
 import type { DictationControls } from '@/hooks/useDictationCapture';
-import { deleteClip, getClipBlob } from '@/utils/audioClipStore';
+import { deleteClip, getClipBlob, setClipTranscript } from '@/utils/audioClipStore';
 
 const showToast = jest.fn();
 const transcribe = jest.fn();
@@ -23,6 +23,7 @@ jest.mock('@/utils/aiUsage', () => ({ recordAiUsage: jest.fn() }));
 jest.mock('@/utils/audioClipStore', () => ({
   deleteClip: jest.fn().mockResolvedValue(undefined),
   getClipBlob: jest.fn().mockResolvedValue(new Blob(['audio'])),
+  setClipTranscript: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/utils/transcription', () => {
   const actual = jest.requireActual('@/utils/transcription');
@@ -386,6 +387,23 @@ describe('SpokenReportPanel - the transcript', () => {
     expect(view.onInsertIntoReport).toHaveBeenCalledWith('Tasainen ottelu, hyvä prässi toisella puoliajalla.');
     expect(view.onSaveSummary).not.toHaveBeenCalled();
     expect(deleteClip).toHaveBeenCalledWith('clip-1', 'u1');
+  });
+
+  /**
+   * @critical - a transcript is billed to the coach's own key. It used to live
+   * only in component state, so re-recording or leaving the page binned it and
+   * left the clip in the inbox looking untranscribed - a second charge for
+   * words already bought.
+   */
+  it('keeps the transcript with the recording it came from', async () => {
+    const view = renderPanel();
+    await recordAndFinish(view);
+
+    expect(setClipTranscript).toHaveBeenCalledWith(
+      'clip-1',
+      'Tasainen ottelu, hyvä prässi toisella puoliajalla.',
+      'u1',
+    );
   });
 
   /**
