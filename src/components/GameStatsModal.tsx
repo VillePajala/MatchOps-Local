@@ -61,6 +61,7 @@ import {
   PositionBalanceSection,
 } from './GameStatsModal/components';
 import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
+import TranslateReportPanel from './GameStatsModal/components/TranslateReportPanel';
 import type { DiversityGame } from '@/utils/positionDiversity';
 
 // Import types
@@ -999,6 +1000,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               }}
               onOpenSettings={onOpenSettings}
             />
+          )}
+          {currentGame && (
+            <div className="mt-4">
+              {/* Read-only by construction: it is handed the report text and no
+                  way to write one back. */}
+              <TranslateReportPanel
+                report={isEditingNotes ? editGameNotes : gameNotes ?? ''}
+                game={currentGame}
+                players={masterRoster.length > 0 ? masterRoster : availablePlayers}
+              />
+            </div>
           )}
         </>
       ),
