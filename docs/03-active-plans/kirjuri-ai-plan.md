@@ -698,8 +698,12 @@ spine is cheap. Ordered by value for effort:
   something to tidy. It defaults to REPLACE, unlike drafting: keeping the untidy original
   above a tidied version of itself defeats the point, and the warning and undo still stand.
   This is the one that removes the main reason a report never gets written at all.
-- **Translate the report** (next): read-only output with copy/share, NOT an apply path, so
-  there is no data-loss surface at all.
+- **Translate the report (done).** Read-only output with copy, and NO apply path, so it has
+  no data-loss surface at all - the panel is handed the report text and no way to write one
+  back, and a test asserts no apply/save control and no editable field exists in it. Names
+  leave as codes like every other request and are resolved back on the device. The shared
+  `postChatCompletion` was extracted at the same time, so drafting and translation cannot
+  drift on what counts as unauthorized, what is billed, or what may be logged.
 - **Group the notes about one player** (after that).
 - **Season summaries: NOT low-hanging.** They widen what leaves the device from one match
   to a season of observations about a child. That is a real privacy escalation and the
