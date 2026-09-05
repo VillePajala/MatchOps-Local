@@ -108,10 +108,24 @@ export class DraftingError extends Error {
   constructor(
     public readonly kind: DraftingFailure,
     message: string = kind,
+    /**
+     * What this failed attempt still cost, when the provider answered and had
+     * already spent tokens on it. A model that thinks itself out of budget
+     * bills for the thinking, so a failure is not always free - and a cost the
+     * coach cannot see is the definition of a billing surprise.
+     */
+    public readonly billedUsd?: number,
   ) {
     super(message);
     this.name = 'DraftingError';
   }
+}
+
+/** Cost of a completion from its own token counts. */
+export function completionUsd(inputTokens: number, outputTokens: number): number {
+  const usd =
+    (inputTokens / 1_000_000) * DRAFTING_USD_PER_1M_INPUT + (outputTokens / 1_000_000) * DRAFTING_USD_PER_1M_OUTPUT;
+  return Math.ceil(usd * 10_000) / 10_000;
 }
 
 /** Chars per token, near enough for a pre-flight cost hint. */
@@ -386,6 +400,10 @@ export async function draftMatchReport({
     reasoningTokens: Number(completion.usage?.completion_tokens_details?.reasoning_tokens ?? 0),
   };
 
+  // The provider answered, so these tokens are on the coach's bill whatever
+  // happens to the answer from here.
+  const billed = completionUsd(shape.promptTokens, shape.completionTokens);
+
   if (!content) {
     logger.warn('[aiDrafting] provider returned no content', shape);
     throw new DraftingError(
@@ -393,6 +411,7 @@ export async function draftMatchReport({
       ranOut
         ? 'The model spent its whole output budget before writing anything'
         : 'Provider returned no draft content',
+      billed,
     );
   }
 
@@ -403,9 +422,9 @@ export async function draftMatchReport({
     logger.warn('[aiDrafting] draft content was not JSON', shape);
     // A cut-off answer lands here too: the budget ended mid-string.
     if (ranOut) {
-      throw new DraftingError('noOutput', 'The draft was cut off before it finished');
+      throw new DraftingError('noOutput', 'The draft was cut off before it finished', billed);
     }
-    throw new DraftingError('invalidResponse', 'Draft was not valid JSON');
+    throw new DraftingError('invalidResponse', 'Draft was not valid JSON', billed);
   }
 
   const draft = validateDraft(parsed, packet);
@@ -421,12 +440,7 @@ export async function draftMatchReport({
           usage: {
             inputTokens,
             outputTokens,
-            estimatedUsd:
-              Math.ceil(
-                ((inputTokens / 1_000_000) * DRAFTING_USD_PER_1M_INPUT +
-                  (outputTokens / 1_000_000) * DRAFTING_USD_PER_1M_OUTPUT) *
-                  10_000,
-              ) / 10_000,
+            estimatedUsd: completionUsd(inputTokens, outputTokens),
           },
         }
       : {}),

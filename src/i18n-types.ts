@@ -2496,6 +2496,7 @@ export type TranslationKey =
   | 'shootoutModal.youWin'
   | 'shootoutModal.yourKick'
   | 'shootoutModal.yourPlayer'
+  | 'spokenReport.costHint'
   | 'spokenReport.discard'
   | 'spokenReport.editHint'
   | 'spokenReport.errorTranscribe'

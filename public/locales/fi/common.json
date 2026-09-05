@@ -3542,6 +3542,7 @@
     "inserted": "Lisätty otteluraporttiin.",
     "saveFailed": "Tallennus ei onnistunut.",
     "errorTranscribe": "Litterointi ei onnistunut. Nauhoitus on äänimuistiinpanoissa.",
-    "errorUnauthorized": "Tekoälypalvelu hylkäsi avaimen. Tarkista se asetuksista."
+    "errorUnauthorized": "Tekoälypalvelu hylkäsi avaimen. Tarkista se asetuksista.",
+    "costHint": "Kirjoittaminen kustantaa noin {{usd}} dollaria minuutilta tekoälypalvelusi tilillä, ja alkaa kun lopetat nauhoituksen."
   }
 }

@@ -137,6 +137,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({ game, players, stam
     } catch (error) {
       if (controller.signal.aborted) return;
       const kind = error instanceof DraftingError ? error.kind : 'network';
+      // A provider that answered has already billed for it: count it, or the
+      // running total quietly under-reports what the coach spent.
+      const billed = error instanceof DraftingError ? error.billedUsd : undefined;
+      if (billed) recordAiUsage('drafting', billed);
       logger.warn('[reportDraft] drafting failed', { kind });
       showToast(
         {

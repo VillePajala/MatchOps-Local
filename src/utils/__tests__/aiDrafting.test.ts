@@ -186,6 +186,8 @@ describe('draftMatchReport - the request', () => {
     await expect(draftMatchReport({ packet: makePacket() })).rejects.toMatchObject({
       kind: 'noOutput',
       message: expect.stringMatching(/budget/i),
+      // 1200/1M * 0.25 + 4000/1M * 2.00 = 0.0003 + 0.008, rounded up to 4 places.
+      billedUsd: 0.0083,
     });
 
     const logged = JSON.stringify(logger.warn.mock.calls);

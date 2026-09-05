@@ -38,7 +38,10 @@ jest.mock('@/utils/logger', () => ({
 }));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (_key: string, fallback?: string) => fallback ?? _key,
+    // Interpolates like the real one: a mock that ignores options would let an
+    // assertion about a rendered number pass against a raw placeholder.
+    t: (_key: string, fallback?: string, options?: Record<string, unknown>) =>
+      (fallback ?? _key).replace(/\{\{(\w+)\}\}/g, (_m, name) => String(options?.[name] ?? '')),
   }),
 }));
 
@@ -143,6 +146,20 @@ describe('SpokenReportPanel - recording', () => {
 
     expect(transcribe).not.toHaveBeenCalled();
     expect(screen.queryByTestId('spoken-report-result')).not.toBeInTheDocument();
+  });
+
+  /** @critical - writing out starts on stop, so the price must be visible first. */
+  it('states the price before the coach records, and only when it applies', () => {
+    const view = renderPanel();
+    expect(screen.getByTestId('spoken-report-cost')).toHaveTextContent(/costs about \$0\.003 a minute/i);
+    expect(screen.getByTestId('spoken-report-cost')).toHaveTextContent(/starts when you stop recording/i);
+
+    // Unmount first: RTL queries reach the whole document, so a second render
+    // would still find the first panel's node.
+    view.unmount();
+    aiState.connected = false;
+    renderPanel();
+    expect(screen.queryByTestId('spoken-report-cost')).not.toBeInTheDocument();
   });
 
   it('says what it is for differently when no provider is connected', () => {
