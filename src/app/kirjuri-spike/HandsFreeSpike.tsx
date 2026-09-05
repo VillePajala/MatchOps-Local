@@ -26,7 +26,25 @@
  * Everything stays on the device: no recording is stored, nothing is uploaded.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+
+/**
+ * Whether this is running as an installed app or a browser tab - and read in a
+ * way that survives prerendering, since the server has no `window` and this
+ * route is statically generated like every other page here.
+ */
+const STANDALONE_QUERY = '(display-mode: standalone)';
+const subscribeToDisplayMode = (onChange: () => void) => {
+  const media = window.matchMedia(STANDALONE_QUERY);
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+};
+const useStandalone = (): boolean =>
+  useSyncExternalStore(
+    subscribeToDisplayMode,
+    () => window.matchMedia(STANDALONE_QUERY).matches,
+    () => false,
+  );
 
 type LogLine = { at: string; text: string };
 
@@ -96,6 +114,7 @@ const HandsFreeSpike: React.FC = () => {
   const [listening, setListening] = useState(false);
   const [level, setLevel] = useState(0);
   const [quiet, setQuiet] = useState(false);
+  const standalone = useStandalone();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
@@ -262,7 +281,7 @@ const HandsFreeSpike: React.FC = () => {
   const exportLog = useCallback(async () => {
     const header = [
       `Kirjuri hands-free spike ${new Date().toISOString()}`,
-      `display-mode: ${window.matchMedia('(display-mode: standalone)').matches ? 'standalone (installed)' : 'browser tab'}`,
+      `display-mode: ${standalone ? 'standalone (installed)' : 'browser tab'}`,
       `userAgent: ${navigator.userAgent}`,
       '',
     ].join('\n');
@@ -291,7 +310,7 @@ const HandsFreeSpike: React.FC = () => {
     link.click();
     URL.revokeObjectURL(url);
     say('log saved as a file');
-  }, [log, say]);
+  }, [log, say, standalone]);
 
   const listDevices = useCallback(async () => {
     try {
@@ -391,7 +410,7 @@ const HandsFreeSpike: React.FC = () => {
           </button>
         </div>
         <p className="text-xs text-slate-400">
-          {window.matchMedia('(display-mode: standalone)').matches
+          {standalone
             ? 'Running as an installed app, which is the case that matters.'
             : 'Running in a browser tab. Install this preview to the home screen and run it from there: a browser tab is more permissive than an installed app, so a pass here can still fail there.'}
         </p>
