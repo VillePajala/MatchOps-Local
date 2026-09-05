@@ -2516,6 +2516,8 @@ export type TranslationKey =
   | 'spokenReport.save'
   | 'spokenReport.saveFailed'
   | 'spokenReport.saved'
+  | 'spokenReport.savedWhere'
+  | 'spokenReport.showNotes'
   | 'spokenReport.start'
   | 'spokenReport.stop'
   | 'spokenReport.storedOnly'
