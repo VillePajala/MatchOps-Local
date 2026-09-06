@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-06",
+      "en": [
+        "Team statistics no longer count games played for other teams. Games you recorded by hand for matches outside the app now only count toward the team you recorded them against, so picking a team shows that team's record."
+      ],
+      "fi": [
+        "Joukkueen tilastot eivät enää laske mukaan muille joukkueille pelattuja otteluita. Käsin kirjaamasi sovelluksen ulkopuoliset ottelut lasketaan nyt vain sille joukkueelle, jolle ne on kirjattu, joten joukkueen valitseminen näyttää juuri sen joukkueen tiedot."
+      ]
+    },
+    {
       "date": "2026-09-04",
       "en": [
         "Signing in is quicker on a phone you have used before: the login screen now opens on Sign in instead of Create account."
