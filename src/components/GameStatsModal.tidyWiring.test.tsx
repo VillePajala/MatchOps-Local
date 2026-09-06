@@ -107,6 +107,28 @@ describe('GameStatsModal - Tidy beside the report', () => {
     expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
   });
 
+  /**
+   * @critical - the button lives in the editor and the machinery lives in a
+   * card that is only mounted for a saved game. On an unsaved game the coach
+   * could type a report, see a PRICED Tidy button, press it, and have nothing
+   * happen at all: no panel, no handle, not even a card to scroll to. That is
+   * the precise failure this whole file exists to prevent, and the first
+   * version of it shipped with the bug because the harness always supplied a
+   * resolvable game.
+   */
+  it('offers no Tidy on a game that has never been saved', () => {
+    // currentGameId resolves to nothing, so ReportDraftPanel never mounts.
+    renderModal({ currentGameId: 'unsaved_game' });
+    expect(screen.queryByTestId('report-draft-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('report-editor-tidy')).not.toBeInTheDocument();
+  });
+
+  it('offers no Tidy when nothing can store the result', () => {
+    // No apply handler means no panel either, whatever the game.
+    renderModal({ onApplyReportDraft: undefined });
+    expect(screen.queryByTestId('report-editor-tidy')).not.toBeInTheDocument();
+  });
+
   it('offers no Tidy when the report is still empty', () => {
     renderModal({ gameNotes: '' });
     expect(screen.queryByTestId('report-editor-tidy')).not.toBeInTheDocument();

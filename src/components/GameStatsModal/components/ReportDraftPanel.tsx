@@ -19,7 +19,6 @@
  */
 
 import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import type { GameEvent } from '@/types/game';
@@ -58,6 +57,12 @@ export interface ReportDraftPanelProps {
   game: AppState;
   /** Lets the report editor's own Tidy button start the job down here. */
   handleRef?: React.RefObject<ReportDraftHandle | null>;
+  /**
+   * Rough cost of this job, computed once by the screen that owns the report.
+   * Passed in rather than recomputed here so this card and the Tidy button
+   * beside the text can never show different prices for the same request.
+   */
+  estimate: number;
   /**
    * Which saved game this is. Only used to key the durable undo slot, so an
    * Undo offered here can never revert a different match.
@@ -104,6 +109,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   language,
   existingReport,
   handleRef,
+  estimate,
 }) => {
   const { t } = useTranslation();
   const ai = useAiProviderState();
@@ -128,9 +134,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
   // Built fresh for the estimate so a settings change (pseudonymization) is
   // reflected before the coach sees a number.
-  // Shared with the tidy button beside the report text, so the two cannot
-  // quote different prices for the same job.
-  const estimate = useDraftEstimate({ game, players, language, coachReport: existingReport });
+
 
   /**
    * Codes are what the provider saw; the coach should see the child. The mapping

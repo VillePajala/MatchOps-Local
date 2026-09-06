@@ -88,6 +88,7 @@ const renderPanel = (
       game={props.game ?? game()}
       gameId={props.gameId ?? 'g1'}
       handleRef={handleRef}
+      estimate={props.estimate ?? 0.02}
       players={props.players ?? players}
       stamp={props.stamp ?? { time: 3000, period: 2 }}
       language="fi"
@@ -130,6 +131,7 @@ describe('ReportDraftPanel - before any request', () => {
       <ReportDraftPanel
         game={game()}
         gameId="g1"
+        estimate={0.02}
         players={players}
         stamp={{ time: 3000, period: 2 }}
         language="fi"

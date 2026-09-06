@@ -3,6 +3,11 @@
 /**
  * What one AI report request would cost, roughly.
  *
+ * Computed ONCE by the screen that owns the report and handed to everything
+ * that shows it. Two independent copies could each defer on their own schedule
+ * and quote different numbers for the same job for a beat, which is exactly
+ * what sharing the logic was supposed to rule out.
+ *
  * Shared by the drafting card and by the tidy button that now sits next to the
  * report text, so the two can never quote different numbers for the same job.
  * A button that spends the coach's money says the price on itself, wherever it
@@ -25,7 +30,8 @@ export function useDraftEstimate({
   language,
   coachReport,
 }: {
-  game: AppState;
+  /** Absent while no saved game is in scope: there is no job to price. */
+  game: AppState | undefined;
   players: Player[];
   language: string;
   /** The report as it stands on screen, which is what would be sent. */
@@ -38,7 +44,7 @@ export function useDraftEstimate({
   const deferredReport = useDeferredValue(coachReport);
 
   return useMemo(() => {
-    if (!ai.connected) return 0;
+    if (!ai.connected || !game) return 0;
     try {
       const { packet } = buildGamePacket({
         game,
