@@ -8,7 +8,7 @@ import { GameEvent, PlayerStatRow, PlayerStatAdjustment } from '@/types';
 import { GameStatsParams, SavedGame } from '../types';
 import { filterGameIds } from '../utils/gameFilters';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
-import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { adjustmentInScope } from '@/utils/adjustmentScope';
 
 interface UseGameStatsResult {
   stats: PlayerStatRow[];
@@ -103,29 +103,16 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
        * another team is worse than one that omits an unclassifiable game.
        */
       const matchingAdjustments = adjustments.filter((adj: PlayerStatAdjustment) => {
-        // Team: the reported bug. An external game recorded against another
-        // team, or against none, is not part of THIS team's record.
-        if (selectedTeamIdFilter && selectedTeamIdFilter !== 'all') {
-          if (selectedTeamIdFilter === 'legacy') {
-            if ((adj.teamId ?? '') !== '') return false;
-          } else if (adj.teamId !== selectedTeamIdFilter) {
-            return false;
-          }
-        }
-
-        // Year (club season): judged from the date the coach recorded. An
-        // adjustment with no date cannot be placed in a year.
-        if (selectedClubSeason && selectedClubSeason !== 'all') {
-          if (!adj.gameDate) return false;
-          if (getClubSeasonForDate(adj.gameDate, clubSeasonStartDate, clubSeasonEndDate) !== selectedClubSeason) {
-            return false;
-          }
-        }
-
-        // Sport and gender are not recorded on an adjustment at all, so under a
-        // specific filter there is no way to say it belongs. Left out.
-        if (selectedGameTypeFilter && selectedGameTypeFilter !== 'all') return false;
-        if (selectedGenderFilter && selectedGenderFilter !== 'all') return false;
+        // Scope filters, shared with the per-player drill-down so the two
+        // cannot disagree about the same external game.
+        if (!adjustmentInScope(adj, {
+          teamFilter: selectedTeamIdFilter,
+          clubSeason: selectedClubSeason,
+          clubSeasonStartDate,
+          clubSeasonEndDate,
+          gameTypeFilter: selectedGameTypeFilter,
+          genderFilter: selectedGenderFilter,
+        })) return false;
 
         if (activeTab === 'season') {
           if (!adj.includeInSeasonTournament) return false;
