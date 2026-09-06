@@ -144,13 +144,17 @@ export const calculatePlayerStats = (
   });
 
   // Apply adjustments (external games) scoped by season and tournament
-  // Filter adjustments by player and optionally by team
+  //
+  // An adjustment counts toward a team only when it is recorded against that
+  // team. This used to also let through adjustments with NO team on them, for
+  // backward compatibility with ones created before the field existed - but an
+  // external game we cannot attribute is, by definition, not known to be this
+  // team's, and counting it is what made a team's totals include games played
+  // elsewhere. Untagged adjustments still show under "all teams", where they
+  // are true: they belong to the player rather than to any one team.
   const adjustmentsForPlayer = (adjustments || []).filter(a => {
     if (a.playerId !== player.id) return false;
-    // If team filter is active, only include adjustments for that team or legacy adjustments without teamId
-    if (teamId) {
-      return a.teamId === teamId || !a.teamId; // Include legacy adjustments
-    }
+    if (teamId) return a.teamId === teamId;
     return true;
   });
 

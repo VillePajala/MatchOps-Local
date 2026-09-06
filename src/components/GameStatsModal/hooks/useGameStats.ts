@@ -8,6 +8,7 @@ import { GameEvent, PlayerStatRow, PlayerStatAdjustment } from '@/types';
 import { GameStatsParams, SavedGame } from '../types';
 import { filterGameIds } from '../utils/gameFilters';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
 
 interface UseGameStatsResult {
   stats: PlayerStatRow[];
@@ -88,8 +89,44 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
         includeFriendlies,
       });
 
-      // Filter adjustments matching the current tab context
+      /**
+       * Filter adjustments to the SAME scope the games above were filtered to.
+       *
+       * These are games played outside the app, recorded by hand. They used to
+       * bypass every filter on the Overall tab, so picking one team showed that
+       * team's games plus every external game the player had anywhere - a
+       * coach reported 19 games for a team that had played 7.
+       *
+       * An adjustment is only counted when we can show it belongs in the scope
+       * on screen. Where it carries no data to judge by, it is left out rather
+       * than assumed to match: a number that silently includes games from
+       * another team is worse than one that omits an unclassifiable game.
+       */
       const matchingAdjustments = adjustments.filter((adj: PlayerStatAdjustment) => {
+        // Team: the reported bug. An external game recorded against another
+        // team, or against none, is not part of THIS team's record.
+        if (selectedTeamIdFilter && selectedTeamIdFilter !== 'all') {
+          if (selectedTeamIdFilter === 'legacy') {
+            if ((adj.teamId ?? '') !== '') return false;
+          } else if (adj.teamId !== selectedTeamIdFilter) {
+            return false;
+          }
+        }
+
+        // Year (club season): judged from the date the coach recorded. An
+        // adjustment with no date cannot be placed in a year.
+        if (selectedClubSeason && selectedClubSeason !== 'all') {
+          if (!adj.gameDate) return false;
+          if (getClubSeasonForDate(adj.gameDate, clubSeasonStartDate, clubSeasonEndDate) !== selectedClubSeason) {
+            return false;
+          }
+        }
+
+        // Sport and gender are not recorded on an adjustment at all, so under a
+        // specific filter there is no way to say it belongs. Left out.
+        if (selectedGameTypeFilter && selectedGameTypeFilter !== 'all') return false;
+        if (selectedGenderFilter && selectedGenderFilter !== 'all') return false;
+
         if (activeTab === 'season') {
           if (!adj.includeInSeasonTournament) return false;
           if (selectedSeasonIdFilter === 'all') return !!adj.seasonId;
@@ -100,7 +137,8 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
           if (selectedTournamentIdFilter === 'all') return !!adj.tournamentId;
           return adj.tournamentId === selectedTournamentIdFilter;
         }
-        // overall tab: include all adjustments regardless of includeInSeasonTournament
+        // Overall: every external game the player has, once the scope filters
+        // above have had their say.
         return true;
       });
 
