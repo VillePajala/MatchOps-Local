@@ -36,7 +36,7 @@ const adj = (over: Partial<PlayerStatAdjustment> = {}): PlayerStatAdjustment =>
   }) as PlayerStatAdjustment;
 
 const run = (over: Partial<GameStatsParams> = {}) => {
-  const savedGames = { g1: game() } as unknown as SavedGamesCollection;
+  const savedGames = (over.savedGames ?? { g1: game() }) as unknown as SavedGamesCollection;
   const { result } = renderHook(() =>
     useGameStats({
       activeTab: 'overall',
@@ -78,6 +78,22 @@ describe('useGameStats - a team filter scopes external games too', () => {
 
   it('counts every external game when no team is selected', () => {
     expect(run({ adjustments: [adj({ teamId: 'teamB' }), adj({})] })).toBe(3);
+  });
+
+  /**
+   * "Legacy Games" is its own scope: what names no team. New logic here, and
+   * leaving it untested is what let the same gap survive in the drill-down.
+   */
+  it('under Legacy Games, counts the external games that name no team', () => {
+    const savedGames = { g1: game({ teamId: undefined }) } as unknown as SavedGamesCollection;
+    expect(run({ savedGames, selectedTeamIdFilter: 'legacy', adjustments: [adj({})] })).toBe(2);
+  });
+
+  it('under Legacy Games, leaves out an external game recorded against a team', () => {
+    const savedGames = { g1: game({ teamId: undefined }) } as unknown as SavedGamesCollection;
+    expect(
+      run({ savedGames, selectedTeamIdFilter: 'legacy', adjustments: [adj({ teamId: 'teamA' })] }),
+    ).toBe(1);
   });
 
   it('scopes external games to the selected year, by the date they carry', () => {

@@ -45,7 +45,13 @@ export const calculatePlayerStats = (
   seasons: Season[],
   tournaments: Tournament[],
   adjustments?: PlayerStatAdjustment[],
-  teamId?: string,  // Optional team filtering
+  /**
+   * Team scope: a team id, or 'legacy' for the games and external games that
+   * name no team at all. The table can already express 'legacy'; without it
+   * here the drill-down showed every team's games under that filter, which
+   * contradicted the table the coach had just tapped.
+   */
+  teamId?: string | 'legacy',
   includeFriendlies: boolean = false  // Fold friendly/practice games into totals
 ): PlayerStats => {
   const gameByGameStats: GameStats[] = [];
@@ -65,7 +71,9 @@ export const calculatePlayerStats = (
     }
 
     // Filter by team if specified
-    if (teamId && game.teamId !== teamId) {
+    if (teamId === 'legacy') {
+      if ((game.teamId ?? '') !== '') return;
+    } else if (teamId && game.teamId !== teamId) {
       return;
     }
     
@@ -154,6 +162,7 @@ export const calculatePlayerStats = (
   // are true: they belong to the player rather than to any one team.
   const adjustmentsForPlayer = (adjustments || []).filter(a => {
     if (a.playerId !== player.id) return false;
+    if (teamId === 'legacy') return (a.teamId ?? '') === '';
     if (teamId) return a.teamId === teamId;
     return true;
   });

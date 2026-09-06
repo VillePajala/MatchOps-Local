@@ -469,6 +469,26 @@ describe('calculatePlayerStats - external games belong to the team they were pla
     expect(stats.totalGames).toBe(1);
   });
 
+  /**
+   * @critical - "Legacy Games" is a scope of its own: the games that name no
+   * team. The table already understood it; the drill-down did not, so opening
+   * a player from that table showed every team's games and contradicted the
+   * row that had just been tapped.
+   */
+  it('under Legacy Games, counts only what names no team', () => {
+    const legacyGame = { ...teamGame, teamId: undefined } as unknown as AppState;
+    const stats = calculatePlayerStats(
+      player,
+      { legacy: legacyGame, teamed: teamGame },
+      seasons,
+      tournaments,
+      [adj({ id: 'a1', teamId: 'teamA' }), adj({ id: 'a2' })],
+      'legacy',
+    );
+    // One untagged game and one untagged external game; nothing of team A's.
+    expect(stats.totalGames).toBe(2);
+  });
+
   it('still counts every external game when no team is selected', () => {
     const stats = calculatePlayerStats(
       player, { g: teamGame }, seasons, tournaments,
