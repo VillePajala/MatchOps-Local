@@ -10,6 +10,7 @@ import { AppState } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/playerStats';
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
+import { adjustmentInScope } from '@/utils/adjustmentScope';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { PlayerStatAdjustment } from '@/types';
 import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection, type AssessmentScope } from '@/utils/assessmentStats';
@@ -314,10 +315,31 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     );
   }, [savedGames, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
+  /**
+   * External games narrowed to the same scope the games above were narrowed
+   * to, by the same rule the stats table uses. Without this the table could
+   * show a coach one total and this view another for the same filter, which is
+   * the contradiction that started all of this.
+   */
+  const adjustmentsInScope = useMemo(
+    () =>
+      adjustments.filter(a =>
+        adjustmentInScope(a, {
+          teamFilter: teamId ?? 'all',
+          clubSeason: selectedClubSeason,
+          clubSeasonStartDate,
+          clubSeasonEndDate,
+          gameTypeFilter: selectedGameTypeFilter,
+          genderFilter: selectedGenderFilter,
+        }),
+      ),
+    [adjustments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter, selectedGenderFilter],
+  );
+
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId, includeFriendlies);
-  }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId, includeFriendlies]);
+    return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustmentsInScope, teamId, includeFriendlies);
+  }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustmentsInScope, teamId, includeFriendlies]);
 
   // This player's position spread over the current scope, for the compact
   // "Positions played" card (games where they were recorded at a position).
