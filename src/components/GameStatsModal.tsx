@@ -63,6 +63,8 @@ import {
 import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
 import CoverageNudgeCard from './GameStatsModal/components/CoverageNudgeCard';
 import TranslateReportPanel from './GameStatsModal/components/TranslateReportPanel';
+import type { ReportDraftHandle } from './GameStatsModal/components/ReportDraftPanel';
+import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
@@ -654,6 +656,32 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return dictationVocabularyFor(squad);
   }, [availablePlayers, selectedPlayerIds]);
 
+  // Tidying is driven from the report editor, where the text is; the request
+  // and everything that reviews it live in the drafting card further down.
+  const reportDraftRef = useRef<ReportDraftHandle | null>(null);
+  const tidyEstimate = useDraftEstimate({
+    game: currentGame,
+    players: masterRoster.length > 0 ? masterRoster : availablePlayers,
+    language: i18n.language,
+    coachReport: isEditingNotes ? editGameNotes : gameNotes ?? '',
+  });
+
+  /**
+   * Whether tidying can be offered at all.
+   *
+   * Exactly the condition ReportDraftPanel is mounted under, because the
+   * button in the editor is useless without it. Derived once so the two cannot
+   * drift, which is the same lesson the completeness bar taught twice.
+   */
+  const canTidy = Boolean(onApplyReportDraft) && Boolean(currentGame);
+  const handleTidy = useCallback(() => {
+    reportDraftRef.current?.tidy();
+    // The review, the price and the undo all live in the card below, so take
+    // the coach there rather than leaving them looking at a button that
+    // appears to have done nothing.
+    scrollToId('report-draft-panel');
+  }, [scrollToId]);
+
   const draftStamp = useMemo(
     () => ({
       time: lastEvent?.time ?? (numPeriods ?? 2) * (periodDurationMinutes ?? 0) * 60,
@@ -949,6 +977,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       content: (
         <>
         <GameNotesEditor
+          // Offered ONLY when the card that does the work is actually mounted.
+          // The button is up here and the machinery is down there, so without
+          // this the two can come apart: on an unsaved game there is no panel,
+          // and the coach would get a priced button that silently does nothing.
+          onTidy={canTidy ? handleTidy : undefined}
+          tidyEstimateUsd={tidyEstimate}
           gameNotes={gameNotes}
           isEditingNotes={isEditingNotes}
           editGameNotes={editGameNotes}
@@ -987,6 +1021,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           )}
           {onApplyReportDraft && currentGame && (
             <ReportDraftPanel
+              handleRef={reportDraftRef}
+              estimate={tidyEstimate}
               game={currentGame}
               gameId={currentGameId}
               players={masterRoster.length > 0 ? masterRoster : availablePlayers}

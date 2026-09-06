@@ -18,7 +18,7 @@
  * - The draft is discarded on close. Nothing persists until Apply.
  */
 
-import React, { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import type { GameEvent } from '@/types/game';
@@ -55,6 +55,14 @@ export interface ReportDraftPanelProps {
   existingReport: string;
   /** The finished game the draft is about. */
   game: AppState;
+  /** Lets the report editor's own Tidy button start the job down here. */
+  handleRef?: React.RefObject<ReportDraftHandle | null>;
+  /**
+   * Rough cost of this job, computed once by the screen that owns the report.
+   * Passed in rather than recomputed here so this card and the Tidy button
+   * beside the text can never show different prices for the same request.
+   */
+  estimate: number;
   /**
    * Which saved game this is. Only used to key the durable undo slot, so an
    * Undo offered here can never revert a different match.
@@ -79,6 +87,18 @@ const SECONDARY =
 const CHECKBOX =
   'mt-0.5 h-4 w-4 shrink-0 rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer';
 
+/**
+ * What the report editor can ask this panel to do.
+ *
+ * Tidying belongs beside the text it tidies, which is two cards above this
+ * one, but the request, its price, its review screen and its undo all live
+ * here. So the button lives up there and reaches down here, rather than the
+ * whole machine moving up.
+ */
+export interface ReportDraftHandle {
+  tidy: () => void;
+}
+
 const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   game,
   gameId,
@@ -88,6 +108,8 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   onOpenSettings,
   language,
   existingReport,
+  handleRef,
+  estimate,
 }) => {
   const { t } = useTranslation();
   const ai = useAiProviderState();
@@ -112,28 +134,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
 
   // Built fresh for the estimate so a settings change (pseudonymization) is
   // reflected before the coach sees a number.
-  // The estimate has to reflect the text that will actually be sent, but that
-  // text is the textarea buffer and changes on every keystroke. Deferring it
-  // keeps typing responsive: the number catches up a beat later, which is all a
-  // "roughly $X" hint needs.
-  const estimateReport = useDeferredValue(existingReport);
-  const estimate = useMemo(() => {
-    if (!ai.connected) return 0;
-    try {
-      // Same packet the request will send, on-screen report included, so the
-      // number the coach reads is an estimate of the job they are about to run.
-      const { packet } = buildGamePacket({
-        game,
-        players,
-        pseudonymize: ai.pseudonymize,
-        language,
-        coachReport: estimateReport,
-      });
-      return estimateDraftUsd(packet);
-    } catch {
-      return 0;
-    }
-  }, [ai.connected, ai.pseudonymize, estimateReport, game, players, language]);
+
 
   /**
    * Codes are what the provider saw; the coach should see the child. The mapping
@@ -256,6 +257,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
     }
   }, [ai.pseudonymize, drafting, existingReport, game, players, showToast, t, language]);
 
+  // The editor's Tidy button drives this. runDraft already refuses a second
+  // request while one is in flight, so a double press cannot double-charge.
+  useImperativeHandle(handleRef, () => ({ tidy: () => void runDraft('tidy') }), [runDraft]);
+
   const cancel = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
@@ -340,7 +345,7 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   const nothingApproved = approvedSections.length === 0 && approvedNoteIndexes.length === 0;
 
   return (
-    <div className={CARD} data-testid="report-draft-panel">
+    <div id="report-draft-panel" className={CARD} data-testid="report-draft-panel">
       <h4 className="text-sm font-semibold text-slate-200 mb-1">{t('reportDraft.title', 'Draft with AI')}</h4>
 
       {!draft && (
@@ -367,19 +372,6 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
             <button type="button" onClick={() => void runDraft('full')} className={PRIMARY} data-testid="report-draft-start">
               <HiOutlineSparkles className="text-base" />
               {t('reportDraft.start', 'Draft the report')}
-            </button>
-          )}
-          {!drafting && existingReport.trim() && (
-            // Only offered when there IS something to tidy: a different job
-            // from writing one, and the one that removes the main reason a
-            // report never gets written at all.
-            <button
-              type="button"
-              onClick={() => void runDraft('tidy')}
-              className={`${SECONDARY} mt-2`}
-              data-testid="report-draft-tidy"
-            >
-              {t('reportDraft.tidy', 'Tidy up what I wrote')}
             </button>
           )}
           {undoText !== null && (

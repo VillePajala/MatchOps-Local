@@ -3542,7 +3542,8 @@
     "duplicationNote": "Luonnos on kirjoitettu tietäen mitä olet jo kirjoittanut, joten se voi käsitellä samoja asioita kahdesti. Korvaa välttää sen, ja voit peruuttaa.",
     "working": "Luonnosta kirjoitetaan tekoälypalvelussasi. Tämä kestää muutaman sekunnin.",
     "tidy": "Siisti se mitä kirjoitin",
-    "reviewHintTidy": "Oma kertomuksesi järjestettynä otsikoiden alle. Poista rasti kohdista joissa merkitys muuttui."
+    "reviewHintTidy": "Oma kertomuksesi järjestettynä otsikoiden alle. Poista rasti kohdista joissa merkitys muuttui.",
+    "tidyWithCost": "Siisti tämä (~${{usd}})"
   },
   "spokenReport": {
     "title": "Sanele raportti",

@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
-import ReportDraftPanel from '../ReportDraftPanel';
+import ReportDraftPanel, { type ReportDraftHandle } from '../ReportDraftPanel';
 import type { ReportDraft } from '@/utils/aiDrafting';
 import type { AppState } from '@/types/game';
 import type { Player } from '@/types';
@@ -81,10 +81,14 @@ const renderPanel = (
   props: Partial<Omit<React.ComponentProps<typeof ReportDraftPanel>, 'onApply'>> & { onApply?: jest.Mock } = {},
 ) => {
   const onApply: jest.Mock = props.onApply ?? jest.fn(() => true);
+  // Tidy is triggered from the report editor now, through this handle.
+  const handleRef = React.createRef<ReportDraftHandle | null>() as React.RefObject<ReportDraftHandle | null>;
   const result = render(
     <ReportDraftPanel
       game={props.game ?? game()}
       gameId={props.gameId ?? 'g1'}
+      handleRef={handleRef}
+      estimate={props.estimate ?? 0.02}
       players={props.players ?? players}
       stamp={props.stamp ?? { time: 3000, period: 2 }}
       language="fi"
@@ -92,7 +96,7 @@ const renderPanel = (
       onApply={onApply as unknown as ApplyFn}
     />,
   );
-  return { ...result, onApply };
+  return { ...result, onApply, handleRef };
 };
 
 const produceDraft = async () => {
@@ -127,6 +131,7 @@ describe('ReportDraftPanel - before any request', () => {
       <ReportDraftPanel
         game={game()}
         gameId="g1"
+        estimate={0.02}
         players={players}
         stamp={{ time: 3000, period: 2 }}
         language="fi"
@@ -359,13 +364,14 @@ describe('ReportDraftPanel - reviewing a draft', () => {
 
   /** Tidying replaces by intent, so the coach is not left with both versions. */
   it('offers tidying only when there is something to tidy, and defaults it to replace', async () => {
-    const empty = renderPanel();
-    expect(screen.queryByTestId('report-draft-tidy')).not.toBeInTheDocument();
-    empty.unmount();
-
-    renderPanel({ game: game({ gameNotes: 'Omat muistiinpanoni.' }), existingReport: 'Omat muistiinpanoni.' });
+    // The button itself now lives beside the report text; this panel only
+    // still owns the request, its review screen and its undo.
+    const view = renderPanel({
+      game: game({ gameNotes: 'Omat muistiinpanoni.' }),
+      existingReport: 'Omat muistiinpanoni.',
+    });
     await act(async () => {
-      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+      view.handleRef.current?.tidy();
     });
     await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
 
@@ -382,14 +388,14 @@ describe('ReportDraftPanel - reviewing a draft', () => {
    * it. The packet must carry the on-screen text.
    */
   it('tidies the text on screen, not the last saved report', async () => {
-    renderPanel({
+    const view = renderPanel({
       // Nothing saved yet: the coach has typed a first report and not pressed Save.
       game: game({ gameNotes: '' }),
       existingReport: 'Tanaan pelattiin hyvin, puolustus piti.',
     });
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+      view.handleRef.current?.tidy();
     });
     await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
 
@@ -398,10 +404,10 @@ describe('ReportDraftPanel - reviewing a draft', () => {
   });
 
   it('sends the saved report when the panel has no newer text', async () => {
-    renderPanel({ game: game({ gameNotes: 'Tallennettu raportti.' }) });
+    const view = renderPanel({ game: game({ gameNotes: 'Tallennettu raportti.' }) });
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId('report-draft-tidy'));
+      view.handleRef.current?.tidy();
     });
     await waitFor(() => expect(screen.getByTestId('report-draft-review')).toBeInTheDocument());
 

@@ -2150,6 +2150,7 @@ export type TranslationKey =
   | 'reportDraft.sectionsTitle'
   | 'reportDraft.start'
   | 'reportDraft.tidy'
+  | 'reportDraft.tidyWithCost'
   | 'reportDraft.title'
   | 'reportDraft.truncationWarning'
   | 'reportDraft.undo'
