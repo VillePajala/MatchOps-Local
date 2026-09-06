@@ -691,13 +691,18 @@ The expensive parts are built - consent, key handling, redaction, a capped and v
 call, the approve-item-by-item screen, provenance, cost tracking - so anything reusing that
 spine is cheap. Ordered by value for effort:
 
-- **Tidy my report (done, PR 27).** A `DraftingMode` on the existing call: `full` writes
+- **Tidy my report (done, PR 27; button moved to the editor after owner testing).** A `DraftingMode` on the existing call: `full` writes
   from everything recorded, `tidy` organises what the coach ALREADY wrote under the seven
   headings without adding observations they did not make. Same packet, same schema, same
   review screen, one extra prompt block and one extra button - offered only when there is
   something to tidy. It defaults to REPLACE, unlike drafting: keeping the untidy original
   above a tidied version of itself defeats the point, and the warning and undo still stand.
   This is the one that removes the main reason a report never gets written at all.
+  The BUTTON lives in the report editor, beside Template, not in the AI card: it acts on
+  the text in that field, and sitting under a heading that says "Luonnostele tekoalylla"
+  described the wrong action. The owner read the two options as interchangeable, which is
+  what prompted the move. The request, its price, its review screen and its undo all stay
+  in the card; the button carries the cost estimate and scrolls there when pressed.
 - **Translate the report (done).** Read-only output with copy, and NO apply path, so it has
   no data-loss surface at all - the panel is handed the report text and no way to write one
   back, and a test asserts no apply/save control and no editable field exists in it. Names

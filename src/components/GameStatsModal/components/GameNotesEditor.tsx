@@ -20,6 +20,15 @@ interface GameNotesEditorProps {
   onSaveNotes: () => void;
   onCancelEdit: () => void;
   onEditNotesChange: (notes: string) => void;
+  /**
+   * Tidy the text in THIS field with AI. Lives here rather than in the AI card
+   * below because it acts on this text: a coach who has just typed a report
+   * should not have to scroll past two cards to find the button that organises
+   * it, under a heading that says "draft".
+   */
+  onTidy?: () => void;
+  /** Rough cost of that request, so a billed button says its own price. */
+  tidyEstimateUsd?: number;
 }
 
 // One-line, full-width buttons in the app's segmented-control style.
@@ -34,8 +43,25 @@ export function GameNotesEditor({
   onSaveNotes,
   onCancelEdit,
   onEditNotesChange,
+  onTidy,
+  tidyEstimateUsd = 0,
 }: GameNotesEditorProps) {
   const { t } = useTranslation();
+
+  // Nothing written yet is nothing to tidy, and the other button writes one.
+  const canTidy = Boolean(onTidy) && (isEditingNotes ? editGameNotes : gameNotes).trim().length > 0;
+  const tidyButton = canTidy ? (
+    <button
+      type="button"
+      onClick={onTidy}
+      className={`${ROW_BTN} bg-slate-700 text-slate-300 hover:bg-slate-600`}
+      data-testid="report-editor-tidy"
+    >
+      {tidyEstimateUsd > 0
+        ? t('reportDraft.tidyWithCost', 'Tidy this up (~${{usd}})', { usd: tidyEstimateUsd.toFixed(2) })
+        : t('reportDraft.tidy', 'Tidy up what I wrote')}
+    </button>
+  ) : null;
 
   const handleUseTemplate = () => {
     // Composed from the same seven heading keys the AI draft uses, so the blank
@@ -84,6 +110,9 @@ export function GameNotesEditor({
             >
               {t('gameSettingsModal.useTemplate' as TranslationKey, 'Template')}
             </button>
+            {/* Beside Template, because they are the same kind of thing: tools
+                that reshape the text in this box. */}
+            {tidyButton}
             <button
               type="button"
               onClick={onCancelEdit}
@@ -113,6 +142,9 @@ export function GameNotesEditor({
           )}
         </div>
       )}
+      {/* Offered while reading too: the coach does not have to enter edit mode
+          to ask for the text they are looking at to be organised. */}
+      {!isEditingNotes && canTidy && <div className="flex gap-2 mt-3">{tidyButton}</div>}
     </div>
   );
 }

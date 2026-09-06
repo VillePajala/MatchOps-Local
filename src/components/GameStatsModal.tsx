@@ -63,6 +63,8 @@ import {
 import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
 import CoverageNudgeCard from './GameStatsModal/components/CoverageNudgeCard';
 import TranslateReportPanel from './GameStatsModal/components/TranslateReportPanel';
+import type { ReportDraftHandle } from './GameStatsModal/components/ReportDraftPanel';
+import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
@@ -654,6 +656,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return dictationVocabularyFor(squad);
   }, [availablePlayers, selectedPlayerIds]);
 
+  // Tidying is driven from the report editor, where the text is; the request
+  // and everything that reviews it live in the drafting card further down.
+  const reportDraftRef = useRef<ReportDraftHandle | null>(null);
+  const tidyEstimate = useDraftEstimate({
+    game: currentGame ?? ({} as AppState),
+    players: masterRoster.length > 0 ? masterRoster : availablePlayers,
+    language: i18n.language,
+    coachReport: isEditingNotes ? editGameNotes : gameNotes ?? '',
+  });
+
   const draftStamp = useMemo(
     () => ({
       time: lastEvent?.time ?? (numPeriods ?? 2) * (periodDurationMinutes ?? 0) * 60,
@@ -949,6 +961,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       content: (
         <>
         <GameNotesEditor
+          onTidy={() => {
+            reportDraftRef.current?.tidy();
+            // The review, the price and the undo all live in the card below,
+            // so take the coach there rather than leaving them looking at a
+            // button that appears to have done nothing.
+            scrollToId('report-draft-panel');
+          }}
+          tidyEstimateUsd={tidyEstimate}
           gameNotes={gameNotes}
           isEditingNotes={isEditingNotes}
           editGameNotes={editGameNotes}
@@ -987,6 +1007,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           )}
           {onApplyReportDraft && currentGame && (
             <ReportDraftPanel
+              handleRef={reportDraftRef}
               game={currentGame}
               gameId={currentGameId}
               players={masterRoster.length > 0 ? masterRoster : availablePlayers}
