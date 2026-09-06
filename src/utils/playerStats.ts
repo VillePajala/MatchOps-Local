@@ -1,5 +1,6 @@
 import { Player, Season, Tournament, PlayerStatAdjustment } from '@/types';
 import { AppState } from '@/types';
+import { adjustmentInScope } from '@/utils/adjustmentScope';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { resolveGameResult } from '@/utils/gameResult';
 
@@ -162,9 +163,10 @@ export const calculatePlayerStats = (
   // are true: they belong to the player rather than to any one team.
   const adjustmentsForPlayer = (adjustments || []).filter(a => {
     if (a.playerId !== player.id) return false;
-    if (teamId === 'legacy') return (a.teamId ?? '') === '';
-    if (teamId) return a.teamId === teamId;
-    return true;
+    // The one rule, not a second copy of it. Callers may already have narrowed
+    // by year and sport; team is applied here because it arrives as this
+    // function's own parameter.
+    return adjustmentInScope(a, { teamFilter: teamId ?? 'all' });
   });
 
   // Merge adjustments into season and tournament performance

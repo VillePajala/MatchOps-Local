@@ -19,8 +19,8 @@ import { getClubSeasonForDate } from '@/utils/clubSeason';
 import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
 export interface AdjustmentScope {
-  /** Team id, 'legacy' for games naming no team, or 'all'. */
-  teamFilter?: string | 'all' | 'legacy';
+  /** Team id, or the literals 'legacy' (games naming no team) and 'all'. */
+  teamFilter?: string;
   /** Club season label such as '24/25', or 'all'. */
   clubSeason?: string | 'all';
   clubSeasonStartDate?: string;

@@ -367,3 +367,82 @@ describe('External game cards styling', () => {
     expect(screen.getByText(/ST/)).toBeInTheDocument();
   });
 });
+
+/**
+ * @critical - the wiring, not the rule.
+ *
+ * Two of the four review rounds on this fix were the same shape: the rule was
+ * right and the component was not handed what it needed to apply it. Pure and
+ * hook-level tests could not see either. These render the component.
+ */
+describe('PlayerStatsView - external games respect the filters on screen', () => {
+  const teamGame = createGame({
+    teamId: 'teamA',
+    gameDate: '2024-12-01',
+    selectedPlayerIds: [player.id],
+  } as Partial<AppState>);
+
+  const external = (over: Record<string, unknown> = {}) => ({
+    id: `adj-${Math.random()}`,
+    playerId: player.id,
+    gamesPlayedDelta: 1,
+    goalsDelta: 0,
+    assistsDelta: 0,
+    appliedAt: '2024-12-02T00:00:00Z',
+    ...over,
+  });
+
+  const setAdjustments = (list: unknown[]) => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue(list);
+  };
+
+  const gamesPlayedShown = async (): Promise<string> => {
+    const label = await screen.findByText('Games Played');
+    return label.previousElementSibling?.textContent ?? '';
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('counts an external game recorded against the selected team', async () => {
+    setAdjustments([external({ teamId: 'teamA' })]);
+    render(<PlayerStatsView {...baseProps} savedGames={{ g1: teamGame }} teamId="teamA" />);
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('2'));
+  });
+
+  it('leaves out one played for another team', async () => {
+    setAdjustments([external({ teamId: 'teamB' })]);
+    render(<PlayerStatsView {...baseProps} savedGames={{ g1: teamGame }} teamId="teamA" />);
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('1'));
+  });
+
+  /** The gap the review found: the table dropped these, this view kept them. */
+  it('leaves out every external game once a sport is chosen', async () => {
+    setAdjustments([external({ teamId: 'teamA' })]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{ g1: teamGame }}
+        teamId="teamA"
+        selectedGameTypeFilter="soccer"
+      />,
+    );
+    // The team game itself is soccer and still counts; the external one cannot
+    // be shown to be soccer, so it does not.
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('1'));
+  });
+
+  it('under Legacy Games, counts only what names no team', async () => {
+    setAdjustments([external({ teamId: 'teamA' }), external({})]);
+    const legacyGame = createGame({
+      gameDate: '2024-12-01',
+      selectedPlayerIds: [player.id],
+    } as Partial<AppState>);
+    render(
+      <PlayerStatsView {...baseProps} savedGames={{ g1: legacyGame }} teamId="legacy" />,
+    );
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('2'));
+  });
+});
