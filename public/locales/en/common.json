@@ -1903,7 +1903,9 @@
     "periodNotConfiguredMessage": "To filter statistics by period, first configure your season period (e.g., October to May) in Settings.",
     "configurePeriodDates": "Configure Period Dates",
     "configurePeriodDatesFirst": "Configure period dates in Settings first",
-    "tapGearToConfigurePeriods": "Tap gear icon to configure period dates"
+    "tapGearToConfigurePeriods": "Tap gear icon to configure period dates",
+    "adjustmentsPartlyCounted": "External stats are added to totals. The dimmed ones fall outside the filters you have chosen and are not counted here.",
+    "adjustmentNotCounted": "Not counted under the current filters"
   },
   "months": {
     "january": "January",
