@@ -434,6 +434,30 @@ describe('PlayerStatsView - external games respect the filters on screen', () =>
     await waitFor(async () => expect(await gamesPlayedShown()).toBe('1'));
   });
 
+  /**
+   * @critical - the list is captioned "added to totals". Once a filter starts
+   * excluding some of them that caption is a lie, and a list disagreeing with
+   * its own numbers is the exact fault this change exists to fix. Every game
+   * stays visible and editable; the uncounted ones say so.
+   */
+  it('marks the external games a filter has excluded, rather than hiding or miscounting them', async () => {
+    setAdjustments([external({ teamId: 'teamA' }), external({ teamId: 'teamB' })]);
+    render(<PlayerStatsView {...baseProps} savedGames={{ g1: teamGame }} teamId="teamA" />);
+
+    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('External Games'));
+    });
+
+    // Both are still listed, so neither looks lost and both stay editable.
+    await waitFor(() => {
+      expect(screen.getAllByTestId('external-game-counted')).toHaveLength(1);
+      expect(screen.getAllByTestId('external-game-uncounted')).toHaveLength(1);
+    });
+    // ...and the total counts only the one that belongs, plus the team game.
+    expect(await gamesPlayedShown()).toBe('2');
+  });
+
   it('under Legacy Games, counts only what names no team', async () => {
     setAdjustments([external({ teamId: 'teamA' }), external({})]);
     const legacyGame = createGame({

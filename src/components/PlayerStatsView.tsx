@@ -336,6 +336,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     [adjustments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter, selectedGenderFilter],
   );
 
+  /** Ids that actually reach the totals, so the list can say which do. */
+  const countedAdjustmentIds = useMemo(
+    () => new Set(adjustmentsInScope.map(a => a.id)),
+    [adjustmentsInScope],
+  );
+
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
     return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustmentsInScope, teamId, includeFriendlies);
@@ -707,7 +713,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* External stats list - inside collapsible section */}
         {hasAdjustments && (
           <div className="mb-4 text-xs text-slate-400">
-            {t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')}
+            {/* The old caption promised every game here was in the totals. Once
+                filters started excluding some, that stopped being true, and a
+                list that lies about its own numbers is the bug this whole
+                change is about. Every game is still SHOWN, so none looks lost
+                and all stay editable; the ones outside the filter say so. */}
+            {countedAdjustmentIds.size === adjustments.length
+              ? t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')
+              : t(
+                  'playerStats.adjustmentsPartlyCounted',
+                  'External stats are added to totals. The dimmed ones fall outside the filters you have chosen and are not counted here.',
+                )}
             <div className="mt-1 space-y-3">
               {adjustments
                 .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
@@ -941,8 +957,19 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   };
                   const adjResult = getAdjustmentResult();
 
+                  const counted = countedAdjustmentIds.has(a.id);
+
                   return (
-                    <div key={a.id} className="relative bg-gradient-to-br from-slate-600/50 to-slate-800/30 border border-slate-700/50 p-4 rounded-md transition-all shadow-inner">
+                    <div
+                      key={a.id}
+                      data-testid={counted ? 'external-game-counted' : 'external-game-uncounted'}
+                      className={`relative bg-gradient-to-br from-slate-600/50 to-slate-800/30 border border-slate-700/50 p-4 rounded-md transition-all shadow-inner ${counted ? '' : 'opacity-50'}`}
+                    >
+                      {!counted && (
+                        <p className="pl-2 mb-1 text-[11px] font-medium text-amber-300/90">
+                          {t('playerStats.adjustmentNotCounted', 'Not counted under the current filters')}
+                        </p>
+                      )}
                       {/* Result color strip */}
                       <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(adjResult)}`}></span>
 

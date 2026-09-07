@@ -1903,7 +1903,9 @@
     "periodNotConfiguredMessage": "Suodattaaksesi tilastoja ajanjakson mukaan, määritä ensin ajanjakso (esim. lokakuu - toukokuu) asetuksista.",
     "configurePeriodDates": "Määritä ajanjakso",
     "configurePeriodDatesFirst": "Määritä ajanjakso asetuksista ensin",
-    "tapGearToConfigurePeriods": "Napauta ratas-kuvaketta määrittääksesi ajanjakso"
+    "tapGearToConfigurePeriods": "Napauta ratas-kuvaketta määrittääksesi ajanjakso",
+    "adjustmentsPartlyCounted": "Ulkopuoliset tilastot lisätään summiin. Himmennetyt jäävät valitsemiesi suodattimien ulkopuolelle, eikä niitä lasketa tässä.",
+    "adjustmentNotCounted": "Ei lasketa nykyisillä suodattimilla"
   },
   "months": {
     "january": "Tammikuu",
