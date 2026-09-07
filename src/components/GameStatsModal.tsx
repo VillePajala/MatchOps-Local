@@ -820,7 +820,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 onGameClick={onGameClick}
                 seasons={seasons}
                 tournaments={tournaments}
-                teamId={selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' ? selectedTeamIdFilter : undefined}
+                // 'legacy' is a real scope, not the absence of one: it means the
+                // games that name no team. Dropping it here made the drill-down
+                // disagree with the table the coach had just tapped.
+                teamId={selectedTeamIdFilter !== 'all' ? selectedTeamIdFilter : undefined}
                 selectedClubSeason={selectedClubSeason}
                 clubSeasonStartDate={clubSeasonStartDate}
                 clubSeasonEndDate={clubSeasonEndDate}
