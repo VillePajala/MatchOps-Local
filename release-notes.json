@@ -4,10 +4,12 @@
     {
       "date": "2026-09-06",
       "en": [
-        "Team statistics no longer count games played for other teams. Games you recorded by hand for matches outside the app now only count toward the team you recorded them against, so picking a team shows that team's record."
+        "Team statistics no longer count games played for other teams. Games you recorded by hand for matches outside the app now only count toward the team you recorded them against, so picking a team shows that team's record.",
+        "In a player's external games list, any game that falls outside the filters you have chosen is now dimmed and marked, so the list always agrees with the totals above it."
       ],
       "fi": [
-        "Joukkueen tilastot eivät enää laske mukaan muille joukkueille pelattuja otteluita. Käsin kirjaamasi sovelluksen ulkopuoliset ottelut lasketaan nyt vain sille joukkueelle, jolle ne on kirjattu, joten joukkueen valitseminen näyttää juuri sen joukkueen tiedot."
+        "Joukkueen tilastot eivät enää laske mukaan muille joukkueille pelattuja otteluita. Käsin kirjaamasi sovelluksen ulkopuoliset ottelut lasketaan nyt vain sille joukkueelle, jolle ne on kirjattu, joten joukkueen valitseminen näyttää juuri sen joukkueen tiedot.",
+        "Pelaajan ulkoisten otteluiden listassa ottelut, jotka jäävät valitsemiesi suodattimien ulkopuolelle, näkyvät nyt himmennettyinä ja merkittyinä, joten lista vastaa aina yläpuolella olevia summia."
       ]
     },
     {
