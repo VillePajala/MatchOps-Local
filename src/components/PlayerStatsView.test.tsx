@@ -369,6 +369,53 @@ describe('External game cards styling', () => {
 });
 
 /**
+ * Correcting an existing entry.
+ *
+ * @critical - every external game recorded before this feature has no team on
+ * it, so the edit form is the only way to say that one of them was in fact
+ * your own team's match.
+ */
+describe('PlayerStatsView - editing which team an external game was for', () => {
+  const myTeam = { id: 'teamA', name: 'FC Oma' } as never;
+  const existing = {
+    id: 'adj-1',
+    playerId: 'player-1',
+    teamId: 'teamA',
+    externalTeamName: 'FC Oma',
+    opponentName: 'Vastus',
+    gamesPlayedDelta: 1,
+    goalsDelta: 0,
+    assistsDelta: 0,
+    appliedAt: '2024-12-02T00:00:00Z',
+  };
+
+  const openEditForm = async () => {
+    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('External Games'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([existing]);
+  });
+
+  it('opens showing the team the game is already recorded against', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openEditForm();
+    expect((screen.getByTestId('edit-team-select') as HTMLSelectElement).value).toBe('teamA');
+  });
+});
+
+/**
  * Saying which team an external game was for.
  *
  * @critical - this is the only thing that separates "my team played and I
@@ -432,6 +479,26 @@ describe('PlayerStatsView - which team was this external game for', () => {
     await waitFor(() =>
       expect((screen.getByTestId('adj-season-select') as HTMLSelectElement).value).toBe('season-1'),
     );
+  });
+
+  /**
+   * @critical - leaving the team's name in the box under "another team"
+   * describes a game that did not happen, and the coach has to remember to
+   * clear it.
+   */
+  it('undoes what the team filled in when you change your mind back', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} seasons={[{ id: 'season-1', name: 'Aluesarja' } as never]} />);
+    await openAddForm();
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() =>
+      expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('FC Oma'),
+    );
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+
+    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('');
+    expect(screen.queryByTestId('adj-season-select')).not.toBeInTheDocument();
   });
 
   it('sends no team when the game was for somebody else', async () => {

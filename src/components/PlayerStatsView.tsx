@@ -367,7 +367,18 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
    */
   const applyAdjTeam = useCallback((teamId: string) => {
     setAdjTeamId(teamId);
-    if (!teamId) return;
+    if (!teamId) {
+      // Changing your mind back has to undo what the team filled in. Leaving
+      // "FC Oma" in the team-name box under "another team" describes a game
+      // that did not happen, and the coach would have to remember to clear it.
+      // Reaching here always means a team was picked first, so there is no
+      // hand-typed value to lose.
+      setAdjExternalTeam('');
+      setAdjSeasonId('');
+      setAdjTournamentId('');
+      setAdjIncludeInSeasonTournament(false);
+      return;
+    }
     const team = teams.find(t => t.id === teamId);
     if (!team) return;
     setAdjExternalTeam(team.name);
