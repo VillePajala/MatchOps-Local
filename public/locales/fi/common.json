@@ -413,7 +413,8 @@
     "reset": "Nollaa",
     "startNew": "Aloita uusi",
     "continue": "Jatka",
-    "futsal": "Futsal"
+    "futsal": "Futsal",
+    "all": "Kaikki"
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -702,14 +703,10 @@
     "filterAllTournaments": "Kaikki turnaukset",
     "filterAllSeries": "Kaikki tasot",
     "filterAllGameTypes": "Kaikki lajit",
-    "filtersButton": "Suodattimet",
-    "filtersTitle": "Suodatusvalinnat",
-    "clearFilters": "Tyhjennä kaikki",
     "activeFiltersHint": "Aktiiviset suodattimet",
     "seasonFilterLabel": "Sarja",
     "tournamentFilterLabel": "Turnaus",
     "seriesFilterLabel": "Taso",
-    "teamFilterLabel": "Joukkue",
     "titleSeason": "Sarjatilastot",
     "positionBalance": {
       "title": "Pelipaikkojen tasapaino",

@@ -413,7 +413,8 @@
     "continue": "Continue",
     "backButton": "Back",
     "next": "Next",
-    "futsal": "Futsal"
+    "futsal": "Futsal",
+    "all": "All"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -489,14 +490,10 @@
     "filterAllTournaments": "All Tournaments",
     "filterAllSeries": "All Levels",
     "filterAllGameTypes": "All Sports",
-    "filtersButton": "Filters",
-    "filtersTitle": "Filter Options",
-    "clearFilters": "Clear all",
     "activeFiltersHint": "Active filters",
     "seasonFilterLabel": "League",
     "tournamentFilterLabel": "Tournament",
     "seriesFilterLabel": "Level",
-    "teamFilterLabel": "Team",
     "titleSeason": "League Stats",
     "positionBalance": {
       "title": "Position balance",

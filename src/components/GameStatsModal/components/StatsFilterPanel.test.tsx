@@ -10,6 +10,7 @@ import type { StatsFiltersState, StatsFiltersHandlers } from '../hooks/useStatsF
 import type { Season, Tournament, Team } from '@/types';
 
 const EN: Record<string, string> = {
+  'common.all': 'All',
   'common.levelKilpa': 'Competition',
   'common.levelElite': 'Elite',
   'common.genderGirls': 'Girls',
@@ -41,7 +42,6 @@ const makeHandlers = (): StatsFiltersHandlers => ({
   onGameTypeFilterChange: jest.fn(),
   onGenderFilterChange: jest.fn(),
   onClubSeasonChange: jest.fn(),
-  clearCollapsibleFilters: jest.fn(),
   resetAllFilters: jest.fn(),
 });
 
@@ -154,6 +154,18 @@ describe('StatsFilterPanel', () => {
     fireEvent.click(screen.getByTestId('stats-filter-bar'));
     expect(screen.getByRole('option', { name: 'Competition' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'Kilpa' })).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the "All" options had no key behind them at all, so a Finnish
+   * coach read English. A fallback that happens to match the English copy hides
+   * exactly this, which is why the mock resolves real keys.
+   */
+  it('translates the All options rather than relying on a fallback', () => {
+    renderPanel();
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
+    const sport = screen.getByLabelText('Sport Type') as HTMLSelectElement;
+    expect(sport.querySelector('option[value="all"]')?.textContent).toBe('All');
   });
 
   it('translates the gender in the closed-bar summary', () => {
