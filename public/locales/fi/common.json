@@ -1905,7 +1905,11 @@
     "configurePeriodDatesFirst": "Määritä ajanjakso asetuksista ensin",
     "tapGearToConfigurePeriods": "Napauta ratas-kuvaketta määrittääksesi ajanjakso",
     "adjustmentsPartlyCounted": "Ulkopuoliset tilastot lisätään summiin. Himmennetyt jäävät valitsemiesi suodattimien ulkopuolelle, eikä niitä lasketa tässä.",
-    "adjustmentNotCounted": "Ei lasketa nykyisillä suodattimilla"
+    "adjustmentNotCounted": "Ei lasketa nykyisillä suodattimilla",
+    "whichTeam": "Mille joukkueelle tämä ottelu oli?",
+    "anotherTeam": "Toinen joukkue (ei omani)",
+    "whichTeamMineHint": "Lasketaan tälle joukkueelle joukkuetilastoissa.",
+    "whichTeamOtherHint": "Lasketaan pelaajalle, mutta ei millekään omalle joukkueellesi."
   },
   "months": {
     "january": "Tammikuu",

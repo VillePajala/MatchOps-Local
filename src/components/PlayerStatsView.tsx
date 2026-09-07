@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import type { TranslationKey } from '@/i18n-types';
-import { Player, Season, Tournament } from '@/types';
+import { Player, Season, Tournament, Team } from '@/types';
 import { AppState } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/playerStats';
@@ -51,9 +51,15 @@ interface PlayerStatsViewProps {
   /** Optional gender filter - 'boys', 'girls', or 'all' */
   selectedGenderFilter?: Gender | 'all';
   includeFriendlies?: boolean;
+  /**
+   * The coach's own teams. An external game can name one of them - the match
+   * your team played that you could not sit and track - and that is the only
+   * way the app can tell it apart from a game played for somebody else.
+   */
+  teams?: Team[];
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, teams = [] }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -73,6 +79,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [adjSeasonId, setAdjSeasonId] = useState('');
   const [adjTournamentId, setAdjTournamentId] = useState('');
   const [adjExternalTeam, setAdjExternalTeam] = useState('');
+  /** Which of the coach's own teams this game was for. '' = another team. */
+  const [adjTeamId, setAdjTeamId] = useState('');
   const [adjOpponentName, setAdjOpponentName] = useState('');
   const [adjScoreFor, setAdjScoreFor] = useState<number | ''>('');
   const [adjScoreAgainst, setAdjScoreAgainst] = useState<number | ''>('');
@@ -95,6 +103,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editOpponentName, setEditOpponentName] = useState('');
   const [editSeasonId, setEditSeasonId] = useState('');
   const [editTournamentId, setEditTournamentId] = useState('');
+  /** Which of the coach's own teams an existing external game was for. */
+  const [editTeamId, setEditTeamId] = useState('');
   const [editGameDate, setEditGameDate] = useState('');
   const [editScoreFor, setEditScoreFor] = useState<number | ''>('');
   const [editScoreAgainst, setEditScoreAgainst] = useState<number | ''>('');
@@ -342,6 +352,36 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     [adjustmentsInScope],
   );
 
+
+  /**
+   * Picking one of the coach's own teams for an external game.
+   *
+   * Mirrors what new game setup does: the team fills in its own name and
+   * carries its bound competition across, and both stay editable afterwards -
+   * a team bound to the league may still have played a cup match.
+   *
+   * '' means the game was for somebody else, which is the common case and the
+   * default. That is the difference between "my team played and I could not
+   * track it" and "he guested for another team", and it is the only thing that
+   * lets team statistics tell them apart.
+   */
+  const applyAdjTeam = useCallback((teamId: string) => {
+    setAdjTeamId(teamId);
+    if (!teamId) return;
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+    setAdjExternalTeam(team.name);
+    if (team.boundSeasonId) {
+      setAdjSeasonId(team.boundSeasonId);
+      setAdjTournamentId('');
+      setAdjIncludeInSeasonTournament(true);
+    } else if (team.boundTournamentId) {
+      setAdjTournamentId(team.boundTournamentId);
+      setAdjSeasonId('');
+      setAdjIncludeInSeasonTournament(true);
+    }
+  }, [teams]);
+
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
     return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustmentsInScope, teamId, includeFriendlies);
@@ -502,6 +542,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <button
                 type="button"
                 className="text-sm px-3 py-1.5 bg-slate-700 text-slate-200 rounded border border-slate-600 hover:bg-slate-600"
+                data-testid="add-external-game"
                 onClick={() => { setShowAdjForm(v => !v); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add external stats')}
@@ -544,6 +585,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     playerId: player.id,
                     seasonId: adjSeasonId || undefined,
                     tournamentId: adjTournamentId || undefined,
+                    teamId: adjTeamId || undefined,
                     externalTeamName: adjExternalTeam.trim(),
                     opponentName: adjOpponentName.trim(),
                     scoreFor: typeof adjScoreFor === 'number' ? adjScoreFor : undefined,
@@ -562,6 +604,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   // Reset form
                   setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjFairPlayCards(0); setAdjNote('');
                   setAdjSeasonId(''); setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
+                  setAdjTeamId('');
                   setAdjGameDate(new Date().toISOString().split('T')[0]);
                   setAdjHomeAway('neutral');
                   setAdjIncludeInSeasonTournament(false);
@@ -571,6 +614,32 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 }
               }}
             >
+              {/* Who was this game for? Asked BEFORE the competition, because
+                  the answer often fills the competition in. */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="adj-team">
+                  {t('playerStats.whichTeam', 'Which team was this game for?')}
+                </label>
+                <select
+                  id="adj-team"
+                  data-testid="adj-team-select"
+                  value={adjTeamId}
+                  onChange={e => applyAdjTeam(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                >
+                  {/* Default, and the common case: he played for somebody else. */}
+                  <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
+                  {teams.map(team => (
+                    <option key={team.id} value={team.id}>{team.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  {adjTeamId
+                    ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
+                    : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
+                </p>
+              </div>
+
               {/* Season / Tournament tabs — mutually exclusive, matching GameSettingsModal */}
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
@@ -587,6 +656,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </div>
                 {adjSeasonId !== '' && (
                   <select
+                    data-testid="adj-season-select"
                     value={adjSeasonId}
                     onChange={(e) => { setAdjSeasonId(e.target.value); }}
                     className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
@@ -705,7 +775,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               </div>
               <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowAdjForm(false)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
+                <button type="submit" data-testid="save-external-game" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
               </div>
             </form>
           )}
@@ -798,6 +868,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               opponentName: editOpponentName.trim(),
                               seasonId: editSeasonId || undefined,
                               tournamentId: editTournamentId || undefined,
+                              teamId: editTeamId || undefined,
                               gameDate: editGameDate || undefined,
                               scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
                               scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
@@ -863,6 +934,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
                           <input type="text" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          {/* Editable too: existing entries predate this question
+                              and all read as "another team" until corrected. */}
+                          <label className="block text-xs font-medium text-slate-400 mt-2 mb-1" htmlFor={`edit-team-${a.id}`}>
+                            {t('playerStats.whichTeam', 'Which team was this game for?')}
+                          </label>
+                          <select
+                            id={`edit-team-${a.id}`}
+                            data-testid="edit-team-select"
+                            value={editTeamId}
+                            onChange={e => setEditTeamId(e.target.value)}
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
+                            {teams.map(team => (
+                              <option key={team.id} value={team.id}>{team.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
@@ -1037,6 +1125,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                       setEditOpponentName(a.opponentName || '');
                                       setEditSeasonId(a.seasonId || '');
                                       setEditTournamentId(a.tournamentId || '');
+                                      setEditTeamId(a.teamId || '');
                                       setEditGameDate(a.gameDate || '');
                                       setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
                                       setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');

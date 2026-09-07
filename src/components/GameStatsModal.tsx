@@ -830,6 +830,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 selectedGameTypeFilter={selectedGameTypeFilter}
                 selectedGenderFilter={selectedGenderFilter}
                 includeFriendlies={includeFriendlies}
+                teams={teams}
               />
             </div>
           ) : (
