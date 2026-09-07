@@ -41,14 +41,6 @@ export function writeHomeTeamScope(scope: HomeTeamScope): void {
 }
 
 /**
- * The scope to open on.
- *
- * A remembered team wins, but only while it still exists - a deleted team must
- * not leave Home showing an empty record with no way to tell why. Otherwise the
- * team of the most recent played game, which is almost always the one the coach
- * just finished. Failing that, everything.
- */
-/**
  * The team of the most recently played match.
  *
  * Excludes the scratch workspace, like every other reader of a saved-games
@@ -64,13 +56,21 @@ export function mostRecentTeamId(
   return played[0]?.[1]?.teamId || null;
 }
 
+/**
+ * The scope to open on.
+ *
+ * A remembered team wins, but only while it still exists - a deleted team must
+ * not leave Home showing an empty record with no way to tell why. Otherwise the
+ * team of the most recent played game, which is almost always the one the coach
+ * just finished. Failing that, everything.
+ */
 export function resolveHomeTeamScope(
   remembered: HomeTeamScope | null,
   knownTeamIds: string[],
-  mostRecentTeamId: string | null,
+  recentTeamId: string | null,
 ): HomeTeamScope {
   if (remembered === 'all' || remembered === 'legacy') return remembered;
   if (remembered && knownTeamIds.includes(remembered)) return remembered;
-  if (mostRecentTeamId && knownTeamIds.includes(mostRecentTeamId)) return mostRecentTeamId;
+  if (recentTeamId && knownTeamIds.includes(recentTeamId)) return recentTeamId;
   return 'all';
 }

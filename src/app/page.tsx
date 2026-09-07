@@ -455,12 +455,15 @@ export default function Home() {
 
   const refreshSetupSignals = useCallback(async () => {
     try {
-      const [roster, games, seasonsList, tournamentsList, teamsList] = await Promise.all([
+      const [roster, games, seasonsList, tournamentsList, teamsList, personnel] = await Promise.all([
         getMasterRoster(userId),
         getSavedGames(userId),
         getSeasons(userId),
         getTournaments(userId),
         getTeams(userId),
+        // Read here too: this refresh also runs after the personnel manager
+        // closes, and the dashboard counts every entity, not only teams.
+        getAllPersonnel(userId),
       ]);
       setHasPlayers(roster.length > 0);
       setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
@@ -471,9 +474,20 @@ export default function Home() {
         )
       );
       // Teams may have been renamed, added or deleted in the modal that just
-      // closed, so the pills and the numbers have to follow.
+      // closed, so the pills and the numbers have to follow. Every count, not
+      // just teams: this same path runs after managing seasons, tournaments and
+      // personnel, and leaving those stale is the staleness this set out to end.
       const prev = homeSummaryInputsRef.current;
-      if (prev) applyTeamScope(games, teamsList, { ...prev[1], roster, teamsCount: teamsList.length });
+      if (prev) {
+        applyTeamScope(games, teamsList, {
+          ...prev[1],
+          roster,
+          teamsCount: teamsList.length,
+          seasonsCount: seasonsList.length,
+          tournamentsCount: tournamentsList.length,
+          personnelCount: personnel.length,
+        });
+      }
     } catch (err) {
       logger.warn('Failed to refresh setup signals', { error: err });
     }

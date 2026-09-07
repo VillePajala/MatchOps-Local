@@ -30,11 +30,11 @@ interface StartScreenProps {
   /** Home tab: master roster / teams / personnel (opens the existing modal). */
   onManageRoster?: () => void;
   /** Home tab: seasons & tournaments (opens the existing modal). */
+  onManageSeasons?: () => void;
   /** Teams the coach can scope Home to, and the current choice. */
   teamScopeOptions?: Array<{ id: string; name: string }>;
   teamScope?: string;
   onTeamScopeChange?: (scope: string) => void;
-  onManageSeasons?: () => void;
   onManageTournaments?: () => void;
   /** Front-page entry: open the Playing-Time Planner. */
   onOpenPlanner?: () => void;
