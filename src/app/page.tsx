@@ -32,6 +32,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
+import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope } from '@/utils/homeTeamScope';
 import { queryKeys } from '@/config/queryKeys';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
@@ -110,6 +111,31 @@ export default function Home() {
   const [hasTeamLinkedGame, setHasTeamLinkedGame] = useState(false);
   // Home dashboard (opt-in): the view preference + the computed Pelit-tab summary.
   const [homeSummary, setHomeSummary] = useState<HomeSummary | null>(null);
+  /**
+   * Which team Home is about. Kept here because it decides what the dashboard
+   * numbers mean, and the summary has to be rebuilt when it changes.
+   */
+  const [teamScope, setTeamScope] = useState<string>('all');
+  const [teamScopeOptions, setTeamScopeOptions] = useState<Array<{ id: string; name: string }>>([]);
+  /** The last inputs the summary was built from, so a scope change can reuse them. */
+  const homeSummaryInputsRef = useRef<Parameters<typeof buildHomeSummary> | null>(null);
+  /** Mirrors teamScope for the async load, which closes over its own scope. */
+  const teamScopeRef = useRef<string>('all');
+
+  /**
+   * Switching team re-derives the dashboard from the inputs already read, so
+   * the numbers change without another trip to storage.
+   */
+  const handleTeamScopeChange = useCallback((scope: string) => {
+    teamScopeRef.current = scope;
+    setTeamScope(scope);
+    writeHomeTeamScope(scope);
+    const prev = homeSummaryInputsRef.current;
+    if (!prev) return;
+    const next: Parameters<typeof buildHomeSummary> = [prev[0], { ...prev[1], teamFilter: scope }];
+    homeSummaryInputsRef.current = next;
+    setHomeSummary(buildHomeSummary(...next));
+  }, []);
   const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -323,13 +349,16 @@ export default function Home() {
         homeSettings = await getAppSettings(userId);
         // Dashboard is the default; only an explicit 'simple' preference opts out.
         setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
-        setHomeSummary(buildHomeSummary(games, {
+        const firstArgs: Parameters<typeof buildHomeSummary> = [games, {
           today,
           clubSeasonStartDate: homeSettings.clubSeasonStartDate,
           clubSeasonEndDate: homeSettings.clubSeasonEndDate,
           hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
           currentGameId: resolvedCurrentId,
-        }));
+          teamFilter: teamScopeRef.current,
+        }];
+        homeSummaryInputsRef.current = firstArgs;
+        setHomeSummary(buildHomeSummary(...firstArgs));
       } catch (summaryErr) {
         logger.warn('Failed to build home summary', { error: summaryErr });
       }
@@ -359,7 +388,22 @@ export default function Home() {
           // checkAppState call; single-tab usage means no interleave race in
           // practice (a stale enrichment would at worst show counts a beat old).
           if (homeSettings) {
-            setHomeSummary(buildHomeSummary(games, {
+            // The remembered team, unless it has been deleted since; otherwise
+            // the team of the most recent match, which is almost always the one
+            // the coach just finished.
+            const mostRecentTeamId = Object.values(games ?? {})
+              .filter((g) => g && g.isPlayed !== false && g.gameDate)
+              .sort((a, b) => (b.gameDate || '').localeCompare(a.gameDate || ''))[0]?.teamId ?? null;
+            const scope = resolveHomeTeamScope(
+              readHomeTeamScope(),
+              teamsList.map((t) => t.id),
+              mostRecentTeamId || null,
+            );
+            teamScopeRef.current = scope;
+            setTeamScope(scope);
+            setTeamScopeOptions(teamsList.map((t) => ({ id: t.id, name: t.name })));
+
+            const args: Parameters<typeof buildHomeSummary> = [games, {
               today,
               clubSeasonStartDate: homeSettings.clubSeasonStartDate,
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
@@ -370,7 +414,10 @@ export default function Home() {
               personnelCount: personnel.length,
               seasonsCount: seasonsList.length,
               tournamentsCount: tournamentsList.length,
-            }));
+              teamFilter: scope,
+            }];
+            homeSummaryInputsRef.current = args;
+            setHomeSummary(buildHomeSummary(...args));
           }
         })
         .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
@@ -1633,6 +1680,9 @@ export default function Home() {
               isCloudAvailable={isCloudAvailable()}
               homeView={homeView}
               homeSummary={homeSummary}
+              teamScopeOptions={teamScopeOptions}
+              teamScope={teamScope}
+              onTeamScopeChange={handleTeamScopeChange}
               onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
               onSetupModalsClosed={refreshSetupSignals}
