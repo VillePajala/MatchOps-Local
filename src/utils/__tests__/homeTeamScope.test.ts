@@ -1,4 +1,4 @@
-import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope } from '../homeTeamScope';
+import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId } from '../homeTeamScope';
 
 describe('homeTeamScope - remembering it', () => {
   beforeEach(() => localStorage.clear());
@@ -40,5 +40,45 @@ describe('homeTeamScope - which team Home opens on', () => {
   it('keeps the two scopes that are not teams', () => {
     expect(resolveHomeTeamScope('all', teams, 'teamA')).toBe('all');
     expect(resolveHomeTeamScope('legacy', teams, 'teamA')).toBe('legacy');
+  });
+});
+
+describe('mostRecentTeamId', () => {
+  const SCRATCH = 'unsaved_game';
+  const game = (o: Record<string, unknown>) => ({ isPlayed: true, ...o });
+
+  it('picks the team of the newest played match', () => {
+    const games = {
+      old: game({ teamId: 'teamA', gameDate: '2024-03-01' }),
+      new: game({ teamId: 'teamB', gameDate: '2024-05-01' }),
+    };
+    expect(mostRecentTeamId(games, SCRATCH)).toBe('teamB');
+  });
+
+  /**
+   * @critical - the scratch workspace is a phantom entry every other reader
+   * of a saved-games collection excludes. Letting it decide would open Home on
+   * whatever team the half-finished game happened to carry.
+   */
+  it('ignores the scratch workspace even when it looks newest', () => {
+    const games = {
+      [SCRATCH]: game({ teamId: 'teamScratch', gameDate: '2099-01-01' }),
+      real: game({ teamId: 'teamA', gameDate: '2024-03-01' }),
+    };
+    expect(mostRecentTeamId(games, SCRATCH)).toBe('teamA');
+  });
+
+  it('ignores matches that were never played, and dateless ones', () => {
+    const games = {
+      planned: game({ teamId: 'teamB', gameDate: '2099-01-01', isPlayed: false }),
+      undated: game({ teamId: 'teamC' }),
+      real: game({ teamId: 'teamA', gameDate: '2024-03-01' }),
+    };
+    expect(mostRecentTeamId(games, SCRATCH)).toBe('teamA');
+  });
+
+  it('reports nothing when no played match names a team', () => {
+    expect(mostRecentTeamId({}, SCRATCH)).toBeNull();
+    expect(mostRecentTeamId({ a: game({ gameDate: '2024-01-01' }) }, SCRATCH)).toBeNull();
   });
 });

@@ -48,6 +48,22 @@ export function writeHomeTeamScope(scope: HomeTeamScope): void {
  * team of the most recent played game, which is almost always the one the coach
  * just finished. Failing that, everything.
  */
+/**
+ * The team of the most recently played match.
+ *
+ * Excludes the scratch workspace, like every other reader of a saved-games
+ * collection: a phantom entry must never decide which team Home opens on.
+ */
+export function mostRecentTeamId(
+  games: Record<string, { teamId?: string; gameDate?: string; isPlayed?: boolean } | undefined> | null,
+  scratchId: string,
+): string | null {
+  const played = Object.entries(games ?? {})
+    .filter(([id, g]) => id !== scratchId && g && g.isPlayed !== false && !!g.gameDate)
+    .sort((a, b) => (b[1]!.gameDate || '').localeCompare(a[1]!.gameDate || ''));
+  return played[0]?.[1]?.teamId || null;
+}
+
 export function resolveHomeTeamScope(
   remembered: HomeTeamScope | null,
   knownTeamIds: string[],

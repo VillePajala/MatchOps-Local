@@ -32,7 +32,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
-import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope } from '@/utils/homeTeamScope';
+import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId } from '@/utils/homeTeamScope';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
@@ -274,6 +275,32 @@ export default function Home() {
   // Joukkue/Kaudet/Tilastot tabs; the || form locked them out of Home.
   const isFirstTimeUser = !hasPlayers && !hasSavedGames;
 
+  /**
+   * Re-derive the team scope and the dashboard from a fresh read.
+   *
+   * Shared by the initial load and by the refresh that runs when a setup modal
+   * closes. Without the second caller, renaming or deleting a team left the
+   * pills and the numbers stale until the coach navigated back into Home -
+   * including the deleted-team case this is meant to prevent.
+   */
+  const applyTeamScope = useCallback((
+    games: Awaited<ReturnType<typeof getSavedGames>>,
+    teamsList: Array<{ id: string; name: string }>,
+    rest: Omit<Parameters<typeof buildHomeSummary>[1], 'teamFilter'>,
+  ) => {
+    const scope = resolveHomeTeamScope(
+      readHomeTeamScope(),
+      teamsList.map((team) => team.id),
+      mostRecentTeamId(games, DEFAULT_GAME_ID),
+    );
+    teamScopeRef.current = scope;
+    setTeamScope(scope);
+    setTeamScopeOptions(teamsList.map((team) => ({ id: team.id, name: team.name })));
+    const args: Parameters<typeof buildHomeSummary> = [games, { ...rest, teamFilter: scope }];
+    homeSummaryInputsRef.current = args;
+    setHomeSummary(buildHomeSummary(...args));
+  }, []);
+
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
     // Consume the "first check" slot once per page load (boot / WebView recreation),
@@ -388,22 +415,7 @@ export default function Home() {
           // checkAppState call; single-tab usage means no interleave race in
           // practice (a stale enrichment would at worst show counts a beat old).
           if (homeSettings) {
-            // The remembered team, unless it has been deleted since; otherwise
-            // the team of the most recent match, which is almost always the one
-            // the coach just finished.
-            const mostRecentTeamId = Object.values(games ?? {})
-              .filter((g) => g && g.isPlayed !== false && g.gameDate)
-              .sort((a, b) => (b.gameDate || '').localeCompare(a.gameDate || ''))[0]?.teamId ?? null;
-            const scope = resolveHomeTeamScope(
-              readHomeTeamScope(),
-              teamsList.map((t) => t.id),
-              mostRecentTeamId || null,
-            );
-            teamScopeRef.current = scope;
-            setTeamScope(scope);
-            setTeamScopeOptions(teamsList.map((t) => ({ id: t.id, name: t.name })));
-
-            const args: Parameters<typeof buildHomeSummary> = [games, {
+            applyTeamScope(games, teamsList, {
               today,
               clubSeasonStartDate: homeSettings.clubSeasonStartDate,
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
@@ -414,10 +426,7 @@ export default function Home() {
               personnelCount: personnel.length,
               seasonsCount: seasonsList.length,
               tournamentsCount: tournamentsList.length,
-              teamFilter: scope,
-            }];
-            homeSummaryInputsRef.current = args;
-            setHomeSummary(buildHomeSummary(...args));
+            })
           }
         })
         .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
@@ -432,7 +441,7 @@ export default function Home() {
     } finally {
       setIsCheckingState(false);
     }
-  }, [userId, setAction]);
+  }, [userId, setAction, applyTeamScope]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
@@ -443,6 +452,7 @@ export default function Home() {
   // players -> the account is no longer "first-time", but the tour still needs
   // hasTeam / hasTeamLinkedGame to refresh so its later steps auto-advance), and
   // the Start Screen recommended-setup card wants fresh signals too.
+
   const refreshSetupSignals = useCallback(async () => {
     try {
       const [roster, games, seasonsList, tournamentsList, teamsList] = await Promise.all([
@@ -460,10 +470,14 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
+      // Teams may have been renamed, added or deleted in the modal that just
+      // closed, so the pills and the numbers have to follow.
+      const prev = homeSummaryInputsRef.current;
+      if (prev) applyTeamScope(games, teamsList, { ...prev[1], roster, teamsCount: teamsList.length });
     } catch (err) {
       logger.warn('Failed to refresh setup signals', { error: err });
     }
-  }, [userId]);
+  }, [userId, applyTeamScope]);
 
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered
