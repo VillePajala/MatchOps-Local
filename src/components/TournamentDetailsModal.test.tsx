@@ -456,15 +456,15 @@ describe('TournamentDetailsModal', () => {
       });
 
       // Click add series button
-      const addButton = screen.getByRole('button', { name: /add series/i });
+      const addButton = screen.getByRole('button', { name: /add level/i });
       await user.click(addButton);
 
       // Select a level for the new series (using raw value, not translated)
-      const levelSelect = screen.getByRole('combobox', { name: /select level for new series/i });
+      const levelSelect = screen.getByRole('combobox', { name: /select the new level/i });
       await user.selectOptions(levelSelect, 'Kilpa');
 
       // Confirm adding the series (look for Add button by aria-label)
-      const confirmButton = screen.getByRole('button', { name: /confirm add series/i });
+      const confirmButton = screen.getByRole('button', { name: /confirm add level/i });
       await user.click(confirmButton);
 
       // Should now show both series (translated)
@@ -487,7 +487,7 @@ describe('TournamentDetailsModal', () => {
       });
 
       // Find and click remove button for Kilpa series
-      const removeButtons = screen.getAllByRole('button', { name: /remove series/i });
+      const removeButtons = screen.getAllByRole('button', { name: /remove level/i });
       await user.click(removeButtons[1]); // Remove second series (Kilpa)
 
       // Should only show Elite now
@@ -537,11 +537,11 @@ describe('TournamentDetailsModal', () => {
       });
 
       // Click add series button
-      const addButton = screen.getByRole('button', { name: /add series/i });
+      const addButton = screen.getByRole('button', { name: /add level/i });
       await user.click(addButton);
 
       // Elite should be disabled or not available since it already exists
-      const levelSelect = screen.getByRole('combobox', { name: /select level for new series/i });
+      const levelSelect = screen.getByRole('combobox', { name: /select the new level/i });
       const eliteOption = levelSelect.querySelector('option[value="Elite"]') as HTMLOptionElement;
       expect(eliteOption.disabled).toBe(true);
     });

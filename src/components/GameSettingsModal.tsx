@@ -932,7 +932,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             logger.log('[GameSettingsModal] Component unmounted during mutation, skipping error state update');
             return;
           }
-          setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
+          setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply league settings'));
           // Reset ref on error so it can be retried
           appliedSeasonRef.current = null;
           pendingSeasonPrefillRef.current = targetSeasonId;
@@ -1114,7 +1114,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       (error) => {
         logger.error('[GameSettingsModal] Season selection mutation failed:', error);
         if (isMountedRef.current) {
-          setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
+          setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply league settings'));
         }
       }
     );
@@ -1831,7 +1831,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
-                  {t('gameSettingsModal.kausi', 'Season')}
+                  {t('gameSettingsModal.kausi', 'League')}
                 </button>
                 <button
                   onClick={() => handleTabChange('tournament')}
@@ -1855,7 +1855,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     onChange={handleSeasonChange}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
-                    <option value="">{t('gameSettingsModal.selectSeason', '-- Select Season --')}</option>
+                    <option value="">{t('gameSettingsModal.selectSeason', '-- Select League --')}</option>
                     {sortedSeasons.map((season) => (
                       <option key={season.id} value={season.id}>
                         {getSeasonDisplayName(season)}
@@ -1867,7 +1867,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   {seasonId && (
                     <div className="mt-3">
                       <label htmlFor="leagueSelectGameSettings" className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('gameSettingsModal.leagueLabel', 'League')}
+                        {t('gameSettingsModal.leagueLabel', 'Official league')}
                       </label>
 
                       {/* League Filters */}
@@ -1938,7 +1938,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         }}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                       >
-                        <option value="">{t('gameSettingsModal.selectLeague', '-- Select League --')}</option>
+                        <option value="">{t('gameSettingsModal.selectLeague', '-- Select official league --')}</option>
                         {/* CR-M4: keep the saved league visible even when the current
                             filters would exclude it, so changing a filter never makes the
                             selection "disappear" (and never tempts a clear-on-filter). */}
@@ -1974,7 +1974,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                                 { source: 'stateSync' }
                               );
                             }}
-                            placeholder={t('gameSettingsModal.customLeaguePlaceholder', 'Enter league name')}
+                            placeholder={t('gameSettingsModal.customLeaguePlaceholder', 'Enter the official league name')}
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           />
                         </div>
@@ -2008,7 +2008,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 <div className="mb-4">
                   <label htmlFor="seriesLevelInput" className="block text-sm font-medium text-slate-300 mb-1">
                     {hasSeries
-                      ? t('gameSettingsModal.seriesLabel', 'Series')
+                      ? t('gameSettingsModal.seriesLabel', 'Level')
                       : t('gameSettingsModal.levelLabel', 'Level')}
                   </label>
                   {hasSeries ? (

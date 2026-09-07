@@ -473,11 +473,11 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                 <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-md border border-slate-600/50">
                   <span className="w-2 h-2 rounded-full bg-green-400"></span>
                   <span className="text-sm text-slate-300">
-                    {t('tournamentDetailsModal.clubSeasonLabel', 'Club Season')}:
+                    {t('tournamentDetailsModal.clubSeasonLabel', 'Season')}:
                   </span>
                   <span className="text-sm font-medium text-slate-100">{calculatedClubSeason}</span>
                   <span className="text-xs text-slate-500 ml-auto">
-                    {t('tournamentDetailsModal.clubSeasonHint', 'Auto-calculated from start date')}
+                    {t('tournamentDetailsModal.clubSeasonHint', 'Auto-calculated from start date. Usually your club\'s operating season.')}
                   </span>
                 </div>
               )}

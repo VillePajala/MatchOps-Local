@@ -505,7 +505,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   />
                 )}
                 {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
-                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a season or tournament to group your games.')}</p>
+                  <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
                 )}
                 <button
                   type="button"
@@ -518,7 +518,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   }`}
                 >
                   <span className="text-sm font-semibold text-white">
-                    {t('seasonTournamentModal.seasons', 'Seasons')}
+                    {t('seasonTournamentModal.seasons', 'Leagues')}
                   </span>
                   <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                 </button>
@@ -550,7 +550,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
                 )}
                 {([
-                  ['season', t('startScreen.statsSeason', 'Season stats')],
+                  ['season', t('startScreen.statsSeason', 'League stats')],
                   ['tournament', t('startScreen.statsTournament', 'Tournament stats')],
                   ['overall', t('startScreen.statsOverall', 'Overall stats')],
                   ['player', t('startScreen.statsPlayer', 'Player stats')],

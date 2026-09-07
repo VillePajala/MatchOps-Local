@@ -526,7 +526,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           {team.boundSeasonId && seasonMap[team.boundSeasonId] && (
                             <span
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
-                              aria-label={t('teamManager.seasonContext', 'Season: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
+                              aria-label={t('teamManager.seasonContext', 'League: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                               {getSeasonDisplayName(seasonMap[team.boundSeasonId])}
@@ -549,7 +549,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                             return (
                               <span
                                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
-                                aria-label={t('teamManager.seriesContext', 'Series: {{level}}', { level: series.level })}
+                                aria-label={t('teamManager.seriesContext', 'Level: {{level}}', { level: series.level })}
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                                 {t(`common.level${series.level}`, series.level)}

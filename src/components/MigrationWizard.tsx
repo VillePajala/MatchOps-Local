@@ -264,7 +264,7 @@ const MigrationWizard: React.FC<MigrationWizardProps> = ({
       'players': t('migration.summary.players', 'Players'),
       'teams': t('migration.summary.teams', 'Teams'),
       'teamRosters': t('migration.summary.teamRosters', 'Team Rosters'),
-      'seasons': t('migration.summary.seasons', 'Seasons'),
+      'seasons': t('migration.summary.seasons', 'Leagues'),
       'tournaments': t('migration.summary.tournaments', 'Tournaments'),
       'games': t('migration.summary.games', 'Games'),
       'personnel': t('migration.summary.personnel', 'Personnel'),
