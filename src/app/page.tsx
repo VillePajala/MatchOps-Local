@@ -32,7 +32,10 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
-import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId } from '@/utils/homeTeamScope';
+import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId, buildHomeTeamScopeOptions } from '@/utils/homeTeamScope';
+import type { HomeTeamScopeOption } from '@/utils/homeTeamScope';
+import type { Season, Team, Tournament } from '@/types';
+import type { TranslationKey } from '@/i18n-types';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
@@ -117,7 +120,7 @@ export default function Home() {
    * numbers mean, and the summary has to be rebuilt when it changes.
    */
   const [teamScope, setTeamScope] = useState<string>('all');
-  const [teamScopeOptions, setTeamScopeOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [teamScopeOptions, setTeamScopeOptions] = useState<HomeTeamScopeOption[]>([]);
   /** The last inputs the summary was built from, so a scope change can reuse them. */
   const homeSummaryInputsRef = useRef<Parameters<typeof buildHomeSummary> | null>(null);
   /** Mirrors teamScope for the async load, which closes over its own scope. */
@@ -285,7 +288,9 @@ export default function Home() {
    */
   const applyTeamScope = useCallback((
     games: Awaited<ReturnType<typeof getSavedGames>>,
-    teamsList: Array<{ id: string; name: string }>,
+    teamsList: Team[],
+    seasonsList: Season[],
+    tournamentsList: Tournament[],
     rest: Omit<Parameters<typeof buildHomeSummary>[1], 'teamFilter'>,
   ) => {
     const scope = resolveHomeTeamScope(
@@ -295,11 +300,14 @@ export default function Home() {
     );
     teamScopeRef.current = scope;
     setTeamScope(scope);
-    setTeamScopeOptions(teamsList.map((team) => ({ id: team.id, name: team.name })));
+    setTeamScopeOptions(buildHomeTeamScopeOptions(teamsList, seasonsList, tournamentsList, {
+      futsal: t('common.gameTypeFutsal', 'Futsal'),
+      level: (level) => t(`common.level${level}` as TranslationKey, level),
+    }));
     const args: Parameters<typeof buildHomeSummary> = [games, { ...rest, teamFilter: scope }];
     homeSummaryInputsRef.current = args;
     setHomeSummary(buildHomeSummary(...args));
-  }, []);
+  }, [t]);
 
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
@@ -415,7 +423,7 @@ export default function Home() {
           // checkAppState call; single-tab usage means no interleave race in
           // practice (a stale enrichment would at worst show counts a beat old).
           if (homeSettings) {
-            applyTeamScope(games, teamsList, {
+            applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
               today,
               clubSeasonStartDate: homeSettings.clubSeasonStartDate,
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
@@ -479,7 +487,7 @@ export default function Home() {
       // personnel, and leaving those stale is the staleness this set out to end.
       const prev = homeSummaryInputsRef.current;
       if (prev) {
-        applyTeamScope(games, teamsList, {
+        applyTeamScope(games, teamsList, seasonsList, tournamentsList, {
           ...prev[1],
           roster,
           teamsCount: teamsList.length,
