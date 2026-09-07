@@ -750,7 +750,11 @@
     "game": "Ottelu",
     "games": "Ottelut",
     "noGoals": "Ei kirjattuja maaleja.",
-    "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen."
+    "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen.",
+    "filters": "Suodattimet",
+    "filtersApply": "Käytä",
+    "filtersClear": "Tyhjennä",
+    "filterAllClubSeasons": "Kaikki seurakaudet"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."

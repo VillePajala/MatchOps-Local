@@ -537,7 +537,11 @@
     "noSeasonGames": "No games found for this league.",
     "noTournamentGames": "No games found for this tournament.",
     "noGoals": "No goals recorded.",
-    "deleteEventFailed": "Failed to delete the event. Please try again."
+    "deleteEventFailed": "Failed to delete the event. Please try again.",
+    "filters": "Filters",
+    "filtersApply": "Apply",
+    "filtersClear": "Clear",
+    "filterAllClubSeasons": "All seasons"
   },
   "importResults": {
     "title": "Import Results",

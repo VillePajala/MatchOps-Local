@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-08",
+      "en": [
+        "Filtering statistics is one control now. A single bar shows what you are filtering by in words, opens to every filter for that tab in one list, and applies only when you press Apply - so the numbers stop jumping while you are still choosing."
+      ],
+      "fi": [
+        "Tilastojen suodatus on nyt yksi hallinta. Yksi palkki kertoo sanoin, millä suodatat, avautuu näyttämään kaikki välilehden suodattimet yhdessä listassa ja ottaa ne käyttöön vasta kun painat Käytä - joten luvut eivät enää hyppele kesken valinnan."
+      ]
+    },
+    {
       "date": "2026-09-07",
       "en": [
         "Clearer wording for competitions. What you create to group games is now called a league, since Aluesarja Itä taso 2 is a league rather than a season. Season now means only your club's own period, and a tournament's sub-competitions are called levels, matching how the football association names them."

@@ -49,7 +49,7 @@ import {
   PersonnelSummaryCard,
   PositionBalanceSection,
 } from './GameStatsModal/components';
-import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
+import { StatsFilterPanel } from './GameStatsModal/components/StatsFilterPanel';
 import type { DiversityGame } from '@/utils/positionDiversity';
 
 // Import types
@@ -274,12 +274,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     onTeamFilterChange,
     onSeriesFilterChange,
     onGameTypeFilterChange,
-    // onClubSeasonChange is passed via handlers object to CollapsibleFilters
+    // onClubSeasonChange is passed via handlers object to StatsFilterPanel
     resetAllFilters,
   } = handlers;
 
   // Use React Query for settings management (user-scoped)
-  const { data: settings, isLoading: isLoadingSettings } = useQuery({
+  const { data: settings } = useQuery({
     queryKey: [...queryKeys.settings.detail(), userId],
     queryFn: () => getAppSettings(userId),
     staleTime: Infinity, // Settings rarely change during session
@@ -763,7 +763,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {activeTab === 'player' ? (
             <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Player filter with collapsible Game Type and Season filters */}
-              <CollapsibleFilters
+              <StatsFilterPanel
                 activeTab={activeTab}
                 seasons={seasons}
                 tournaments={tournaments}
@@ -772,7 +772,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 handlers={handlers}
                 availableClubSeasons={availableClubSeasons}
                 hasConfiguredSeasonDates={hasConfiguredSeasonDates}
-                isLoadingSettings={isLoadingSettings}
                 onOpenSettings={handleOpenSeasonSettings}
               >
                 {/* Player Combobox as primary filter */}
@@ -812,7 +811,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     )}
                   </div>
                 </Combobox>
-              </CollapsibleFilters>
+              </StatsFilterPanel>
               {/* Player Stats View */}
               <PlayerStatsView
                 player={selectedPlayer}
@@ -838,7 +837,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               {/* Filters */}
               {activeTab === 'overall' || activeTab === 'tournament' || activeTab === 'season' ? (
                 /* Overall, Tournament and Season tabs - collapsible filters for space efficiency */
-                <CollapsibleFilters
+                <StatsFilterPanel
                   activeTab={activeTab}
                   seasons={seasons}
                   tournaments={tournaments}
@@ -848,8 +847,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   // Club Season Filter props (for Season tab)
                   availableClubSeasons={availableClubSeasons}
                   hasConfiguredSeasonDates={hasConfiguredSeasonDates}
-                  isLoadingSettings={isLoadingSettings}
-                  onOpenSettings={handleOpenSeasonSettings}
+                    onOpenSettings={handleOpenSeasonSettings}
                 />
               ) : (
                 /* Current Game tab - normal layout */
