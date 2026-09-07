@@ -373,7 +373,6 @@
     "genderBoys": "Pojat",
     "genderGirls": "Tytöt",
     "genderLabel": "Sukupuoli",
-    "genderAll": "Kaikki",
     "genderNotSet": "Ei asetettu",
     "selectAgeGroup": "-- Valitse ikäluokka --",
     "selectLevel": "-- Valitse taso --",
@@ -413,7 +412,8 @@
     "reset": "Nollaa",
     "startNew": "Aloita uusi",
     "continue": "Jatka",
-    "futsal": "Futsal"
+    "futsal": "Futsal",
+    "all": "Kaikki"
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -702,9 +702,6 @@
     "filterAllTournaments": "Kaikki turnaukset",
     "filterAllSeries": "Kaikki tasot",
     "filterAllGameTypes": "Kaikki lajit",
-    "filtersButton": "Suodattimet",
-    "filtersTitle": "Suodatusvalinnat",
-    "clearFilters": "Tyhjennä kaikki",
     "activeFiltersHint": "Aktiiviset suodattimet",
     "seasonFilterLabel": "Sarja",
     "tournamentFilterLabel": "Turnaus",
@@ -750,7 +747,10 @@
     "game": "Ottelu",
     "games": "Ottelut",
     "noGoals": "Ei kirjattuja maaleja.",
-    "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen."
+    "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen.",
+    "filters": "Suodattimet",
+    "filtersApply": "Käytä",
+    "filtersClear": "Tyhjennä"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."

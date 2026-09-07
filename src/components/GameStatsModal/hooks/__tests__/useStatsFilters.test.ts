@@ -40,31 +40,6 @@ describe('useStatsFilters', () => {
     assertDefaults(result);
   });
 
-  it('clears collapsible filters with clearCollapsibleFilters respecting flags', () => {
-    const { result } = renderHook(() => useStatsFilters());
-
-    act(() => {
-      result.current.handlers.onSeriesFilterChange('series-1');
-      result.current.handlers.onTeamFilterChange('team-1');
-      result.current.handlers.onGameTypeFilterChange('futsal');
-      result.current.handlers.onClubSeasonChange('club-2024');
-    });
-
-    // Clear only series + game type, leave team/club season untouched
-    act(() => {
-      result.current.handlers.clearCollapsibleFilters({
-        resetSeries: true,
-        resetTeam: false,
-        resetGameType: true,
-        resetClubSeason: false,
-      });
-    });
-
-    expect(result.current.filters.selectedSeriesIdFilter).toBe('all');
-    expect(result.current.filters.selectedGameTypeFilter).toBe('all');
-    expect(result.current.filters.selectedTeamIdFilter).toBe('team-1');
-    expect(result.current.filters.selectedClubSeason).toBe('club-2024');
-  });
 
   it('resets series when tournament changes', () => {
     const { result } = renderHook(() => useStatsFilters());

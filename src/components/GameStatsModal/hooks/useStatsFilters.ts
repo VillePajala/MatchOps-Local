@@ -19,13 +19,6 @@ export interface StatsFiltersHandlers {
   onGameTypeFilterChange: (gameType: GameType | 'all') => void;
   onGenderFilterChange: (gender: Gender | 'all') => void;
   onClubSeasonChange: (season: string) => void;
-  clearCollapsibleFilters: (options?: {
-    resetSeries?: boolean;
-    resetTeam?: boolean;
-    resetGameType?: boolean;
-    resetGender?: boolean;
-    resetClubSeason?: boolean;
-  }) => void;
   /**
    * Resets all filters to their default 'all' values.
    * Call this from tab button onClick handlers to ensure each tab starts clean.
@@ -71,28 +64,6 @@ export function useStatsFilters() {
     setSelectedClubSeason(season);
   }, []);
 
-  const clearCollapsibleFilters = useCallback(
-    ({
-      resetSeries = true,
-      resetTeam = true,
-      resetGameType = true,
-      resetGender = true,
-      resetClubSeason = true,
-    }: {
-      resetSeries?: boolean;
-      resetTeam?: boolean;
-      resetGameType?: boolean;
-      resetGender?: boolean;
-      resetClubSeason?: boolean;
-    } = {}) => {
-      if (resetSeries) setSelectedSeriesIdFilter('all');
-      if (resetTeam) setSelectedTeamIdFilter('all');
-      if (resetGameType) setSelectedGameTypeFilter('all');
-      if (resetGender) setSelectedGenderFilter('all');
-      if (resetClubSeason) setSelectedClubSeason('all');
-    },
-    []
-  );
 
   const resetAllFilters = useCallback(() => {
     setSelectedSeasonIdFilter('all');
@@ -122,7 +93,6 @@ export function useStatsFilters() {
       onGameTypeFilterChange,
       onGenderFilterChange,
       onClubSeasonChange,
-      clearCollapsibleFilters,
       resetAllFilters,
     },
   };

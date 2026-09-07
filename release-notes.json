@@ -4,6 +4,15 @@
     {
       "date": "2026-09-08",
       "en": [
+        "Filtering statistics is one control now. A single bar shows what you are filtering by in words, opens to every filter for that tab in one list, and applies only when you press Apply - so the numbers stop jumping while you are still choosing."
+      ],
+      "fi": [
+        "Tilastojen suodatus on nyt yksi hallinta. Yksi palkki kertoo sanoin, millä suodatat, avautuu näyttämään kaikki välilehden suodattimet yhdessä listassa ja ottaa ne käyttöön vasta kun painat Käytä - joten luvut eivät enää hyppele kesken valinnan."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "en": [
         "The team pills on Home now say which team is which. Junior teams often share a name across competitions, so each pill carries the league, tournament or level it plays in, the same way teams read in the statistics filters. The row also wraps instead of scrolling sideways, so nothing is cut off at the edge."
       ],
       "fi": [

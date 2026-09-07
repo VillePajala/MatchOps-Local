@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { HiCog6Tooth } from 'react-icons/hi2';
 
 interface ClubSeasonFilterProps {
+  /** Lets a caller's <label htmlFor> reach the select. */
+  id?: string;
   selectedSeason: string;
   onChange: (season: string) => void;
   seasons: string[];
@@ -18,6 +20,7 @@ interface ClubSeasonFilterProps {
  * Used in both Player tab and Overall tab for consistent season filtering UI.
  */
 export const ClubSeasonFilter: React.FC<ClubSeasonFilterProps> = ({
+  id,
   selectedSeason,
   onChange,
   seasons,
@@ -30,6 +33,7 @@ export const ClubSeasonFilter: React.FC<ClubSeasonFilterProps> = ({
   return (
     <div className="flex items-center gap-2 min-w-0">
       <select
+        id={id}
         value={selectedSeason}
         onChange={(e) => onChange(e.target.value)}
         disabled={!hasConfigured || isLoading}
