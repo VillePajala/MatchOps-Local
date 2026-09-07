@@ -413,6 +413,33 @@ describe('PlayerStatsView - editing which team an external game was for', () => 
     await openEditForm();
     expect((screen.getByTestId('edit-team-select') as HTMLSelectElement).value).toBe('teamA');
   });
+
+  /**
+   * @critical - this path exists to correct entries made before the question
+   * was asked, so picking a team here has to fill the rest in exactly as the
+   * add form does. Otherwise the coach retypes what the app already knows.
+   */
+  it('fills in the team details when correcting an old entry', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([
+      { ...existing, teamId: undefined, externalTeamName: 'Joku muu' },
+    ]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', boundSeasonId: 'season-1' } as never]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja' } as never]}
+      />,
+    );
+    await openEditForm();
+
+    fireEvent.change(screen.getByTestId('edit-team-select'), { target: { value: 'teamA' } });
+
+    await waitFor(() =>
+      expect((screen.getByTestId('edit-external-team') as HTMLInputElement).value).toBe('FC Oma'),
+    );
+  });
 });
 
 /**
@@ -499,6 +526,43 @@ describe('PlayerStatsView - which team was this external game for', () => {
 
     expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('');
     expect(screen.queryByTestId('adj-season-select')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - team A is bound to a season, team B is bound to nothing.
+   * Switching A to B used to leave A's season in place, describing B's game as
+   * played in a competition it had nothing to do with. New game setup still
+   * has this gap; this deliberately does not inherit it.
+   */
+  it('does not leave one team competition on another team game', async () => {
+    const unbound = { id: 'teamB', name: 'FC Toinen' } as never;
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[myTeam, unbound]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja' } as never]}
+      />,
+    );
+    await openAddForm();
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-season-select')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamB' } });
+    expect(screen.queryByTestId('adj-season-select')).not.toBeInTheDocument();
+    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('FC Toinen');
+  });
+
+  it('keeps a name the coach typed when switching to another team', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openAddForm();
+
+    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'Alue-joukkue' } });
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+
+    // Nothing of ours to undo, so their own words survive.
+    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('Alue-joukkue');
   });
 
   it('sends no team when the game was for somebody else', async () => {

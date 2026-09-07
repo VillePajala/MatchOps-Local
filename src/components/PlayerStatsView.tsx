@@ -354,44 +354,62 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
 
   /**
-   * Picking one of the coach's own teams for an external game.
+   * What picking a team means for the rest of the form.
    *
-   * Mirrors what new game setup does: the team fills in its own name and
-   * carries its bound competition across, and both stay editable afterwards -
-   * a team bound to the league may still have played a cup match.
+   * Written once and used by both the add and the edit form. Two copies of
+   * this would drift, and drifting copies of one rule is what put another
+   * team's games in a team's totals to begin with.
    *
-   * '' means the game was for somebody else, which is the common case and the
-   * default. That is the difference between "my team played and I could not
-   * track it" and "he guested for another team", and it is the only thing that
-   * lets team statistics tell them apart.
+   * Mirrors new game setup: the team brings its name and its bound competition
+   * across, and both stay editable, since a team bound to the league may still
+   * have played a cup match. A team with NO binding clears the competition
+   * rather than leaving the previous team's - new game setup has that gap and
+   * this deliberately does not inherit it.
+   *
+   * The name is only cleared when it is the one we filled in ourselves, so
+   * correcting an old entry never silently discards what the coach typed.
    */
+  const teamAutofill = useCallback(
+    (teamId: string, currentName: string, previousTeamId: string) => {
+      const team = teamId ? teams.find(t => t.id === teamId) : undefined;
+      if (team) {
+        return {
+          name: team.name,
+          seasonId: team.boundSeasonId ?? '',
+          tournamentId: team.boundSeasonId ? '' : (team.boundTournamentId ?? ''),
+          include: Boolean(team.boundSeasonId || team.boundTournamentId),
+        };
+      }
+      const previous = previousTeamId ? teams.find(t => t.id === previousTeamId) : undefined;
+      const wasOurs = Boolean(previous && currentName === previous.name);
+      return {
+        name: wasOurs ? '' : currentName,
+        seasonId: '',
+        tournamentId: '',
+        include: false,
+      };
+    },
+    [teams],
+  );
+
   const applyAdjTeam = useCallback((teamId: string) => {
+    const filled = teamAutofill(teamId, adjExternalTeam, adjTeamId);
     setAdjTeamId(teamId);
-    if (!teamId) {
-      // Changing your mind back has to undo what the team filled in. Leaving
-      // "FC Oma" in the team-name box under "another team" describes a game
-      // that did not happen, and the coach would have to remember to clear it.
-      // Reaching here always means a team was picked first, so there is no
-      // hand-typed value to lose.
-      setAdjExternalTeam('');
-      setAdjSeasonId('');
-      setAdjTournamentId('');
-      setAdjIncludeInSeasonTournament(false);
-      return;
-    }
-    const team = teams.find(t => t.id === teamId);
-    if (!team) return;
-    setAdjExternalTeam(team.name);
-    if (team.boundSeasonId) {
-      setAdjSeasonId(team.boundSeasonId);
-      setAdjTournamentId('');
-      setAdjIncludeInSeasonTournament(true);
-    } else if (team.boundTournamentId) {
-      setAdjTournamentId(team.boundTournamentId);
-      setAdjSeasonId('');
-      setAdjIncludeInSeasonTournament(true);
-    }
-  }, [teams]);
+    setAdjExternalTeam(filled.name);
+    setAdjSeasonId(filled.seasonId);
+    setAdjTournamentId(filled.tournamentId);
+    setAdjIncludeInSeasonTournament(filled.include);
+  }, [teamAutofill, adjExternalTeam, adjTeamId]);
+
+  /** The same, for correcting an entry that predates the question. */
+  const applyEditTeam = useCallback((teamId: string) => {
+    const filled = teamAutofill(teamId, editExternalTeam, editTeamId);
+    setEditTeamId(teamId);
+    setEditExternalTeam(filled.name);
+    setEditSeasonId(filled.seasonId);
+    setEditTournamentId(filled.tournamentId);
+    setEditIncludeInSeasonTournament(filled.include);
+  }, [teamAutofill, editExternalTeam, editTeamId]);
 
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
@@ -944,7 +962,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                          <input type="text" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <input type="text" data-testid="edit-external-team" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
                           {/* Editable too: existing entries predate this question
                               and all read as "another team" until corrected. */}
                           <label className="block text-xs font-medium text-slate-400 mt-2 mb-1" htmlFor={`edit-team-${a.id}`}>
@@ -954,7 +972,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             id={`edit-team-${a.id}`}
                             data-testid="edit-team-select"
                             value={editTeamId}
-                            onChange={e => setEditTeamId(e.target.value)}
+                            onChange={e => applyEditTeam(e.target.value)}
                             className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                           >
                             <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
@@ -962,6 +980,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               <option key={team.id} value={team.id}>{team.name}</option>
                             ))}
                           </select>
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            {editTeamId
+                              ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
+                              : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
+                          </p>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
