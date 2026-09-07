@@ -7,7 +7,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopePills, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
@@ -31,6 +31,10 @@ interface StartScreenProps {
   onManageRoster?: () => void;
   /** Home tab: seasons & tournaments (opens the existing modal). */
   onManageSeasons?: () => void;
+  /** Teams the coach can scope Home to, and the current choice. */
+  teamScopeOptions?: Array<{ id: string; name: string }>;
+  teamScope?: string;
+  onTeamScopeChange?: (scope: string) => void;
   onManageTournaments?: () => void;
   /** Front-page entry: open the Playing-Time Planner. */
   onOpenPlanner?: () => void;
@@ -80,6 +84,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onSignOut,
   onOpenSettings,
   onManageRoster,
+  teamScopeOptions,
+  teamScope,
+  onTeamScopeChange,
   onManageSeasons,
   onManageTournaments,
   onOpenPlanner,
@@ -662,6 +669,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {dashboardOn && homeSummary ? (
                   /* Opt-in dashboard: informative resume card + Vuosi record +
                      recent strip, in place of the plain Continue button. */
+                  <>
+                  {/* Above the numbers, because it decides what they mean. */}
+                  <HomeTeamScopePills
+                    teams={teamScopeOptions ?? []}
+                    scope={teamScope ?? 'all'}
+                    onChange={onTeamScopeChange ?? (() => {})}
+                    t={t}
+                  />
                   <HomeDashboard
                     summary={homeSummary}
                     onResume={onResumeGame}
@@ -669,6 +684,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onOpenGame={onOpenGameById}
                     t={t}
                   />
+                  </>
                 ) : canResume ? (
                   <button
                     type="button"

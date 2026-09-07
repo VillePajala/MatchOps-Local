@@ -84,6 +84,16 @@ export interface HomeSummaryOptions {
   currentGameId?: string | null;
   /** Master roster - for the players count AND top-scorer name resolution. */
   roster?: Player[];
+  /**
+   * Which team the dashboard is about: a team id, 'legacy' for games naming no
+   * team, or 'all'.
+   *
+   * A coach with one team per competition was shown every team's games added
+   * together - a goal difference summing squads that never played each other,
+   * and a top scorer who beat teammates he never had. The record has to say
+   * whose it is.
+   */
+  teamFilter?: string;
   teamsCount?: number;
   personnelCount?: number;
   seasonsCount?: number;
@@ -139,6 +149,7 @@ export function buildHomeSummary(
     const label = getClubSeasonForDate(opts.today, opts.clubSeasonStartDate, opts.clubSeasonEndDate);
     const ids = filterGameIds(all, {
       playedOnly: true,
+      teamFilter: opts.teamFilter ?? 'all',
       clubSeasonFilter: label,
       clubSeasonStartDate: opts.clubSeasonStartDate,
       clubSeasonEndDate: opts.clubSeasonEndDate,
@@ -175,8 +186,15 @@ export function buildHomeSummary(
   }
 
   // --- Recent strip ---
+  const scoped = opts.teamFilter && opts.teamFilter !== 'all' ? opts.teamFilter : null;
   const recent: HomeRecentGame[] = Object.entries(all)
-    .filter(([, g]) => g && g.isPlayed !== false && !!g.gameDate)
+    // Scoped too: showing another team's matches under this team's record is
+    // the same confusion one line down.
+    .filter(([, g]) => {
+      if (!g || g.isPlayed === false || !g.gameDate) return false;
+      if (!scoped) return true;
+      return scoped === 'legacy' ? !(g.teamId ?? '') : g.teamId === scoped;
+    })
     .sort((a, b) => (b[1].gameDate || '').localeCompare(a[1].gameDate || ''))
     .slice(0, recentLimit)
     .map(([id, g]) => {

@@ -115,6 +115,60 @@ export function HomeDashboard({
   );
 }
 
+/**
+ * Which team the numbers below are about.
+ *
+ * Only shown when there is more than one team to choose between: a coach with
+ * one team should not be asked a question with one answer. Hidden entirely
+ * rather than shown disabled, because a control that cannot change anything is
+ * noise on the busiest screen in the app.
+ */
+export function HomeTeamScopePills({
+  teams,
+  scope,
+  onChange,
+  t,
+}: {
+  teams: Array<{ id: string; name: string }>;
+  scope: string;
+  onChange: (scope: string) => void;
+  t: TFunction;
+}) {
+  if (teams.length < 2) return null;
+  const options: Array<{ id: string; label: string }> = [
+    { id: 'all', label: t('startScreen.dashAllTeams', 'All teams') },
+    ...teams.map((team) => ({ id: team.id, label: team.name })),
+  ];
+  return (
+    <div
+      className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5 mb-3"
+      style={{ scrollbarWidth: 'none' }}
+      role="group"
+      aria-label={t('startScreen.dashTeamScope', 'Which team these numbers are about')}
+      data-testid="home-team-scope"
+    >
+      {options.map((option) => {
+        const active = option.id === scope;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            aria-pressed={active}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-colors ${
+              active
+                ? 'bg-indigo-600 border-indigo-500 text-white'
+                : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-700/60'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Joukkue tab: a one-line roster/team/personnel count header. */
 export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t: TFunction }) {
   const parts = [
