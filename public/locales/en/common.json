@@ -494,6 +494,7 @@
     "seasonFilterLabel": "League",
     "tournamentFilterLabel": "Tournament",
     "seriesFilterLabel": "Level",
+    "teamFilterLabel": "Team",
     "titleSeason": "League Stats",
     "positionBalance": {
       "title": "Position balance",
@@ -537,8 +538,7 @@
     "deleteEventFailed": "Failed to delete the event. Please try again.",
     "filters": "Filters",
     "filtersApply": "Apply",
-    "filtersClear": "Clear",
-    "filterAllClubSeasons": "All seasons"
+    "filtersClear": "Clear"
   },
   "importResults": {
     "title": "Import Results",

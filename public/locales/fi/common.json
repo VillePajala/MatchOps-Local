@@ -707,6 +707,7 @@
     "seasonFilterLabel": "Sarja",
     "tournamentFilterLabel": "Turnaus",
     "seriesFilterLabel": "Taso",
+    "teamFilterLabel": "Joukkue",
     "titleSeason": "Sarjatilastot",
     "positionBalance": {
       "title": "Pelipaikkojen tasapaino",
@@ -750,8 +751,7 @@
     "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen.",
     "filters": "Suodattimet",
     "filtersApply": "Käytä",
-    "filtersClear": "Tyhjennä",
-    "filterAllClubSeasons": "Kaikki seurakaudet"
+    "filtersClear": "Tyhjennä"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."

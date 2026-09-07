@@ -9,18 +9,35 @@ import { StatsFilterPanel } from './StatsFilterPanel';
 import type { StatsFiltersState, StatsFiltersHandlers } from '../hooks/useStatsFilters';
 import type { Season, Tournament, Team } from '@/types';
 
-const EN: Record<string, string> = {
-  'common.all': 'All',
-  'common.levelKilpa': 'Competition',
-  'common.levelElite': 'Elite',
-  'common.genderGirls': 'Girls',
-  'common.genderBoys': 'Boys',
-};
+/**
+ * The whole real EN dictionary, not a handful of keys.
+ *
+ * Every earlier round of this component shipped a label pointing at a key that
+ * did not exist (`common.team`, `common.all`), and nothing caught it: t()
+ * returns the hardcoded English fallback, i18n-validation only compares EN
+ * against FI, so a key missing from BOTH files reads as correct in English and
+ * as English in Finnish. Resolving against the real file, and recording every
+ * miss, is what makes that visible here.
+ */
+const mockEN: Record<string, string> = (() => {
+  const flat: Record<string, string> = {};
+  const walk = (node: unknown, prefix: string) => {
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      if (v && typeof v === 'object') walk(v, `${prefix}${k}.`);
+      else flat[`${prefix}${k}`] = String(v);
+    }
+  };
+  walk(jest.requireActual('../../../../public/locales/en/common.json'), '');
+  return flat;
+})();
+
+const mockMissingKeys = new Set<string>();
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    // Resolves real keys, so passing a raw enum where a key belongs shows up
-    // as a difference instead of matching the fallback by luck.
-    t: (key: string, fallback?: string) => EN[key] ?? fallback ?? key,
+    t: (key: string, fallback?: string) => {
+      if (!(key in mockEN)) mockMissingKeys.add(key);
+      return mockEN[key] ?? fallback ?? key;
+    },
   }),
 }));
 
@@ -166,6 +183,53 @@ describe('StatsFilterPanel', () => {
     fireEvent.click(screen.getByTestId('stats-filter-bar'));
     const sport = screen.getByLabelText('Sport Type') as HTMLSelectElement;
     expect(sport.querySelector('option[value="all"]')?.textContent).toBe('All');
+  });
+
+  it('asks only for keys that exist in the locale file, on every tab', () => {
+    mockMissingKeys.clear();
+    for (const tab of ['season', 'tournament', 'overall', 'player', 'currentGame'] as const) {
+      const { unmount } = render(
+        <StatsFilterPanel
+          activeTab={tab}
+          seasons={seasons}
+          tournaments={tournaments}
+          teams={teams}
+          filters={{ ...filters, selectedTournamentIdFilter: 't1', selectedTeamIdFilter: 'legacy',
+            selectedClubSeason: 'off-season', selectedGameTypeFilter: 'futsal', selectedGenderFilter: 'girls' }}
+          handlers={makeHandlers()}
+          availableClubSeasons={['24/25', 'off-season']}
+          onOpenSettings={jest.fn()}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('stats-filter-bar'));
+      unmount();
+    }
+    expect([...mockMissingKeys]).toEqual([]);
+  });
+
+  it('summarises the off-season period in words, not as its internal token', () => {
+    renderPanel({ activeTab: 'overall', filters: { ...filters, selectedClubSeason: 'off-season' } });
+    const summary = screen.getByTestId('stats-filter-summary').textContent ?? '';
+    expect(summary).toContain('Off-Period');
+    expect(summary).not.toContain('off-season');
+  });
+
+  it('Escape closes the panel and does not reach the modal behind it', () => {
+    const outer = jest.fn();
+    document.addEventListener('keydown', outer);
+    try {
+      renderPanel();
+      fireEvent.click(screen.getByTestId('stats-filter-bar'));
+      expect(screen.getByTestId('stats-filter-panel')).toBeInTheDocument();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.queryByTestId('stats-filter-panel')).not.toBeInTheDocument();
+      expect(outer).not.toHaveBeenCalled();
+      // Closed now, so the next Escape is the modal's to handle.
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(outer).toHaveBeenCalledTimes(1);
+    } finally {
+      document.removeEventListener('keydown', outer);
+    }
   });
 
   it('translates the gender in the closed-bar summary', () => {

@@ -17,7 +17,7 @@
  * rest of the modal reads is untouched until the coach says so.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiAdjustmentsHorizontal, HiChevronDown } from 'react-icons/hi2';
 import { Season, Tournament, Team } from '@/types';
@@ -38,6 +38,9 @@ interface StatsFilterPanelProps {
   handlers: StatsFiltersHandlers;
   availableClubSeasons?: string[];
   hasConfiguredSeasonDates?: boolean;
+  /** Settings still in flight: keeps the club-season select disabled and the
+      "not configured" nudge quiet until we actually know. */
+  isLoadingClubSeasons?: boolean;
   onOpenSettings?: () => void;
   /** The subject of the view (e.g. the player picker) - not a filter. */
   children?: React.ReactNode;
@@ -56,6 +59,7 @@ export function StatsFilterPanel({
   handlers,
   availableClubSeasons = [],
   hasConfiguredSeasonDates = true,
+  isLoadingClubSeasons = false,
   onOpenSettings,
   children,
 }: StatsFilterPanelProps) {
@@ -109,7 +113,15 @@ export function StatsFilterPanel({
             : '',
       );
     }
-    if (showClubSeason && filters.selectedClubSeason !== 'all') parts.push(filters.selectedClubSeason);
+    if (showClubSeason && filters.selectedClubSeason !== 'all') {
+      // Say it the way ClubSeasonFilter says it. Pushing the raw value put the
+      // internal token 'off-season' on screen, untranslated.
+      parts.push(
+        filters.selectedClubSeason === 'off-season'
+          ? t('playerStats.offPeriod', 'Off-Period')
+          : `${t('common.year', 'Year')} ${filters.selectedClubSeason}`,
+      );
+    }
     if (showSport && filters.selectedGameTypeFilter !== 'all') {
       parts.push(
         filters.selectedGameTypeFilter === 'futsal'
@@ -167,6 +179,26 @@ export function StatsFilterPanel({
     });
   }, []);
 
+  /**
+   * Escape closes the panel and stops there.
+   *
+   * GameStatsModal listens for Escape on the document to close itself, so
+   * without this a coach mid-edit loses the whole modal and the draft with it.
+   * Capture phase, because that handler is already bound by the time this one
+   * mounts and bubble-phase listeners on document run in registration order.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      setOpenForTab(null);
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [open]);
+
   const set = <K extends keyof StatsFiltersState>(key: K, value: StatsFiltersState[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
@@ -210,7 +242,7 @@ export function StatsFilterPanel({
         >
           {showSeason && (
             <div>
-              <label className={LABEL} htmlFor="filter-season">{t('gameStatsModal.tabs.season', 'League')}</label>
+              <label className={LABEL} htmlFor="filter-season">{t('gameStatsModal.seasonFilterLabel', 'League')}</label>
               <select id="filter-season" className={SELECT} value={draft.selectedSeasonIdFilter}
                 onChange={(e) => set('selectedSeasonIdFilter', e.target.value)}>
                 <option value="all">{t('gameStatsModal.filterAllSeasons', 'All Leagues')}</option>
@@ -221,7 +253,7 @@ export function StatsFilterPanel({
 
           {showTournament && (
             <div>
-              <label className={LABEL} htmlFor="filter-tournament">{t('gameStatsModal.tabs.tournament', 'Tournament')}</label>
+              <label className={LABEL} htmlFor="filter-tournament">{t('gameStatsModal.tournamentFilterLabel', 'Tournament')}</label>
               <select id="filter-tournament" className={SELECT} value={draft.selectedTournamentIdFilter}
                 onChange={(e) => setDraft((d) => ({ ...d, selectedTournamentIdFilter: e.target.value, selectedSeriesIdFilter: 'all' }))}>
                 <option value="all">{t('gameStatsModal.filterAllTournaments', 'All Tournaments')}</option>
@@ -247,7 +279,7 @@ export function StatsFilterPanel({
 
           {showTeam && (
             <div>
-              <label className={LABEL} htmlFor="filter-team">{t('common.team', 'Team')}</label>
+              <label className={LABEL} htmlFor="filter-team">{t('gameStatsModal.teamFilterLabel', 'Team')}</label>
               <select id="filter-team" className={SELECT} value={draft.selectedTeamIdFilter}
                 onChange={(e) => set('selectedTeamIdFilter', e.target.value as StatsFiltersState['selectedTeamIdFilter'])}>
                 <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
@@ -267,7 +299,7 @@ export function StatsFilterPanel({
                 onChange={(value) => set('selectedClubSeason', value)}
                 seasons={availableClubSeasons}
                 hasConfigured={hasConfiguredSeasonDates}
-                isLoading={false}
+                isLoading={isLoadingClubSeasons}
                 onOpenSettings={onOpenSettings ?? (() => {})}
               />
             </div>

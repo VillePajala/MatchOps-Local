@@ -279,7 +279,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   } = handlers;
 
   // Use React Query for settings management (user-scoped)
-  const { data: settings } = useQuery({
+  const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: [...queryKeys.settings.detail(), userId],
     queryFn: () => getAppSettings(userId),
     staleTime: Infinity, // Settings rarely change during session
@@ -772,6 +772,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 handlers={handlers}
                 availableClubSeasons={availableClubSeasons}
                 hasConfiguredSeasonDates={hasConfiguredSeasonDates}
+                isLoadingClubSeasons={isLoadingSettings}
                 onOpenSettings={handleOpenSeasonSettings}
               >
                 {/* Player Combobox as primary filter */}
@@ -847,7 +848,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   // Club Season Filter props (for Season tab)
                   availableClubSeasons={availableClubSeasons}
                   hasConfiguredSeasonDates={hasConfiguredSeasonDates}
-                    onOpenSettings={handleOpenSeasonSettings}
+                  isLoadingClubSeasons={isLoadingSettings}
+                  onOpenSettings={handleOpenSeasonSettings}
                 />
               ) : (
                 /* Current Game tab - normal layout */
