@@ -13,6 +13,15 @@
     {
       "date": "2026-09-07",
       "en": [
+        "Home now shows one team at a time. If you run more than one team, pick it at the top and the record, goal difference, top scorer and recent matches are all about that team. Previously they added every team together, which made the totals meaningless for anyone coaching more than one. Your choice is remembered."
+      ],
+      "fi": [
+        "Etusivu näyttää nyt yhden joukkueen kerrallaan. Jos sinulla on useampi joukkue, valitse se ylhäältä, niin tulokset, maaliero, maalintekijä ja viimeisimmät ottelut koskevat juuri sitä joukkuetta. Aiemmin ne laskettiin kaikista joukkueista yhteen, mikä teki luvuista merkityksettömiä useampaa joukkuetta valmentavalle. Valintasi muistetaan."
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "en": [
         "Clearer wording for competitions. What you create to group games is now called a league, since Aluesarja Itä taso 2 is a league rather than a season. Season now means only your club's own period, and a tournament's sub-competitions are called levels, matching how the football association names them."
       ],
       "fi": [

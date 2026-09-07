@@ -1140,7 +1140,9 @@
     "welcomeStripStart": "Welcome! Start by adding your players.",
     "welcomeStripTeam": "Good start! Next, create your team.",
     "welcomeStripTour": "Want the getting-started guide?",
-    "gearSetup": "Setup checklist ({{done}}/4)"
+    "gearSetup": "Setup checklist ({{done}}/4)",
+    "dashAllTeams": "All teams",
+    "dashTeamScope": "Which team these numbers are about"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
