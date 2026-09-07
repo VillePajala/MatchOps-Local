@@ -1294,8 +1294,8 @@
       "customLeagueRequired": "Please enter a custom league name or select a different league."
     },
     "title": "Season Details",
-    "clubSeasonLabel": "Club Season",
-    "clubSeasonHint": "Auto-calculated from start date",
+    "clubSeasonLabel": "Season",
+    "clubSeasonHint": "Auto-calculated from start date. Usually your club's operating season.",
     "gameSingular": "Game",
     "games": "Games",
     "goalSingular": "Goal",
@@ -1353,8 +1353,8 @@
       "updateFailed": "Failed to update tournament. Please try again."
     },
     "title": "Tournament Details",
-    "clubSeasonLabel": "Club Season",
-    "clubSeasonHint": "Auto-calculated from start date",
+    "clubSeasonLabel": "Season",
+    "clubSeasonHint": "Auto-calculated from start date. Usually your club's operating season.",
     "gameSingular": "Game",
     "games": "Games",
     "goalSingular": "Goal",
