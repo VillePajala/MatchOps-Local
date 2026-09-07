@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-07",
+      "en": [
+        "When you add a game played outside the app, you can now say which team it was for. Pick one of your own teams and it counts in that team's statistics, along with that team's league or tournament. Leave it as another team and it counts for the player only, which keeps guest and stand-in games out of your team's totals."
+      ],
+      "fi": [
+        "Kun lisäät sovelluksen ulkopuolella pelatun ottelun, voit nyt kertoa mille joukkueelle se oli. Valitse jokin omista joukkueistasi, niin se lasketaan sen joukkueen tilastoihin yhdessä joukkueen sarjan tai turnauksen kanssa. Jätä valinnaksi toinen joukkue, niin se lasketaan vain pelaajalle, jolloin vieras- ja paikkausottelut eivät sekoitu oman joukkueesi lukuihin."
+      ]
+    },
+    {
       "date": "2026-09-06",
       "en": [
         "Team statistics no longer count games played for other teams. Games you recorded by hand for matches outside the app now only count toward the team you recorded them against, so picking a team shows that team's record.",

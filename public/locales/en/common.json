@@ -1905,7 +1905,11 @@
     "configurePeriodDatesFirst": "Configure period dates in Settings first",
     "tapGearToConfigurePeriods": "Tap gear icon to configure period dates",
     "adjustmentsPartlyCounted": "External stats are added to totals. The dimmed ones fall outside the filters you have chosen and are not counted here.",
-    "adjustmentNotCounted": "Not counted under the current filters"
+    "adjustmentNotCounted": "Not counted under the current filters",
+    "whichTeam": "Which team was this game for?",
+    "anotherTeam": "Another team (not one of mine)",
+    "whichTeamMineHint": "Counts toward this team in team statistics.",
+    "whichTeamOtherHint": "Counts toward the player, but not toward any of your teams."
   },
   "months": {
     "january": "January",
