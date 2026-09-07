@@ -659,14 +659,14 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // Competitions tab -> two entry rows (Seasons, Tournaments); the tab opens nothing.
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
     expect(props.onManageSeasons).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Seasons' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Leagues' }));
     expect(props.onManageSeasons).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: 'Tournaments' }));
     expect(props.onManageTournaments).toHaveBeenCalledTimes(1);
     // Stats tab -> one row PER aggregate stats tab (W8).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(props.onViewStatsTab).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Season stats' }));
+    fireEvent.click(screen.getByRole('button', { name: 'League stats' }));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('season');
     fireEvent.click(screen.getByRole('button', { name: 'Player stats' }));
     expect(props.onViewStatsTab).toHaveBeenCalledWith('player');
@@ -678,7 +678,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     // 3.1b: the tab always switches; the PANEL ROWS are what disable
     // without saved games (never silently dead-clickable).
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
-    expect(screen.getByRole('button', { name: 'Season stats' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'League stats' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     // The sheet holds the whole device/account bucket.
     const sheet = screen.getByRole('dialog', { name: 'App & account' });
@@ -727,7 +727,7 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     const props = { ...shellProps(), onManageSeasons: undefined, onManageTournaments: undefined };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    expect(screen.getByRole('button', { name: 'Seasons' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Leagues' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Tournaments' })).toBeDisabled();
   });
 
@@ -819,7 +819,7 @@ describe('Home dashboard view (opt-in)', () => {
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
     expect(screen.getByText('This season')).toBeInTheDocument();
-    expect(screen.getByText(/3 seasons · 2 tournaments/)).toBeInTheDocument();
+    expect(screen.getByText(/3 leagues · 2 tournaments/)).toBeInTheDocument();
     // The card shows the club-season (Vuosi) record, so it must open OVERALL
     // stats - NOT the 'season' tab (a user Kausi). Guards the #688 fix.
     (props.onViewStatsTab as jest.Mock).mockClear();
@@ -883,7 +883,7 @@ describe('Home guide + empty-state guidance', () => {
   it('Competitions tab shows the create-competition hint when none exist', () => {
     render(<StartScreen {...props({ homeSummary: emptySummary() })} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Competitions' }));
-    expect(screen.getByText('Create a season or tournament to group your games.')).toBeInTheDocument();
+    expect(screen.getByText('Create a league or tournament to group your games.')).toBeInTheDocument();
   });
 
   it('Stats tab explains stats are empty when there are no games', () => {

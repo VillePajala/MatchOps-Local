@@ -156,11 +156,11 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
     const trimmedCustomLeague = customLeagueName.trim();
     if (leagueId === CUSTOM_LEAGUE_ID) {
       if (trimmedCustomLeague.length === 0) {
-        setErrorMessage(t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter a custom league name or select a different league.'));
+        setErrorMessage(t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter the other league name or pick a different league.'));
         return;
       }
       if (trimmedCustomLeague.length < 2) {
-        setErrorMessage(t('seasonDetailsModal.errors.customLeagueTooShort', 'Custom league name must be at least 2 characters.'));
+        setErrorMessage(t('seasonDetailsModal.errors.customLeagueTooShort', 'The league name must be at least 2 characters.'));
         return;
       }
     }
@@ -195,12 +195,12 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
             onClose();
           } else {
             setErrorMessage(
-              t('seasonDetailsModal.errors.duplicateName', 'A season with this name already exists. Please choose a different name.')
+              t('seasonDetailsModal.errors.duplicateName', 'A league with this name already exists. Please choose a different name.')
             );
           }
         },
         onError: () => {
-          setErrorMessage(t('seasonDetailsModal.errors.createFailed', 'Failed to create season. Please try again.'));
+          setErrorMessage(t('seasonDetailsModal.errors.createFailed', 'Failed to create league. Please try again.'));
         }
       });
     } else {
@@ -230,12 +230,12 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
             onClose();
           } else {
             setErrorMessage(
-              t('seasonDetailsModal.errors.duplicateName', 'A season with this name already exists. Please choose a different name.')
+              t('seasonDetailsModal.errors.duplicateName', 'A league with this name already exists. Please choose a different name.')
             );
           }
         },
         onError: () => {
-          setErrorMessage(t('seasonDetailsModal.errors.updateFailed', 'Failed to update season. Please try again.'));
+          setErrorMessage(t('seasonDetailsModal.errors.updateFailed', 'Failed to update league. Please try again.'));
         }
       });
     }
@@ -268,8 +268,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         {/* Chrome slimming: X-header (Cancel) + sticky Save. */}
         <CollapsibleModalHeader
           title={mode === 'create'
-                ? t('seasonDetailsModal.createTitle', 'Create Season')
-                : season?.name || t('seasonDetailsModal.editTitle', 'Season Details')}
+                ? t('seasonDetailsModal.createTitle', 'Create League')
+                : season?.name || t('seasonDetailsModal.editTitle', 'Edit League')}
           onClose={handleCancel}
           closeLabel={t('common.cancel', 'Cancel')}
         />
@@ -317,7 +317,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('seasonDetailsModal.nameLabel', 'Season Name')} *
+                  {t('seasonDetailsModal.nameLabel', 'Name')} *
                 </label>
                 <input
                   type="text"
@@ -327,7 +327,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     // Clear error when user starts typing
                     if (errorMessage) setErrorMessage(null);
                   }}
-                  placeholder={t('seasonDetailsModal.namePlaceholder', 'Enter season name')}
+                  placeholder={t('seasonDetailsModal.namePlaceholder', 'Enter a name')}
                   className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 ${
                     errorMessage ? 'border-red-500' : 'border-slate-600'
                   }`}
@@ -443,7 +443,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               {/* League Selection */}
               <div>
                 <label htmlFor="season-league" className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('seasonDetailsModal.leagueLabel', 'League')}
+                  {t('seasonDetailsModal.leagueLabel', 'Official league')}
                 </label>
 
                 {/* League Filters */}
@@ -505,7 +505,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   }}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                 >
-                  <option value="">{t('seasonDetailsModal.selectLeague', '-- Select League --')}</option>
+                  <option value="">{t('seasonDetailsModal.selectLeague', '-- Select official league --')}</option>
                   {filteredLeagues.map(league => (
                     <option key={league.id} value={league.id}>{league.name}</option>
                   ))}
@@ -523,14 +523,14 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               {leagueId === CUSTOM_LEAGUE_ID && (
                 <div>
                   <label htmlFor="season-custom-league" className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('seasonDetailsModal.customLeagueLabel', 'Custom League Name')}
+                    {t('seasonDetailsModal.customLeagueLabel', 'Other league name')}
                   </label>
                   <input
                     id="season-custom-league"
                     type="text"
                     value={customLeagueName}
                     onChange={(e) => setCustomLeagueName(e.target.value)}
-                    placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
+                    placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter the official league name')}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -567,11 +567,11 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                 <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-md border border-slate-600/50">
                   <span className="w-2 h-2 rounded-full bg-green-400"></span>
                   <span className="text-sm text-slate-300">
-                    {t('seasonDetailsModal.clubSeasonLabel', 'Club Season')}:
+                    {t('seasonDetailsModal.clubSeasonLabel', 'Season')}:
                   </span>
                   <span className="text-sm font-medium text-slate-100">{calculatedClubSeason}</span>
                   <span className="text-xs text-slate-500 ml-auto">
-                    {t('seasonDetailsModal.clubSeasonHint', 'Auto-calculated from start date')}
+                    {t('seasonDetailsModal.clubSeasonHint', 'Auto-calculated from start date. Usually your club\'s operating season.')}
                   </span>
                 </div>
               )}

@@ -4,6 +4,15 @@
     {
       "date": "2026-09-07",
       "en": [
+        "Clearer wording for competitions. What you create to group games is now called a league, since Aluesarja Itä taso 2 is a league rather than a season. Season now means only your club's own period, and a tournament's sub-competitions are called levels, matching how the football association names them."
+      ],
+      "fi": [
+        "Selkeämmät termit kilpailuille. Otteluiden ryhmittelyyn luomaasi kokonaisuutta kutsutaan nyt sarjaksi, koska Aluesarja Itä taso 2 on sarja eikä kausi. Seurakausi tarkoittaa nyt vain seurasi omaa kautta, ja turnauksen osakilpailut ovat tasoja, kuten Palloliitto ne nimeää."
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "en": [
         "When you add a game played outside the app, you can now say which team it was for. Pick one of your own teams and it counts in that team's statistics, along with that team's league or tournament. Leave it as another team and it counts for the player only, which keeps guest and stand-in games out of your team's totals."
       ],
       "fi": [

@@ -32,8 +32,8 @@ describe('TournamentSeriesManager', () => {
       />
     );
 
-    expect(screen.getByText('Series (Competition Levels)')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /add series/i })).toBeInTheDocument();
+    expect(screen.getByText('Competition levels')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add level/i })).toBeInTheDocument();
   });
 
   it('displays existing series as chips', () => {
@@ -66,7 +66,7 @@ describe('TournamentSeriesManager', () => {
       />
     );
 
-    const removeButtons = screen.getAllByRole('button', { name: /remove series/i });
+    const removeButtons = screen.getAllByRole('button', { name: /remove level/i });
     fireEvent.click(removeButtons[0]);
 
     expect(mockOnSeriesChange).toHaveBeenCalledWith([{ id: 's2', level: 'Kilpa' }]);
@@ -80,12 +80,12 @@ describe('TournamentSeriesManager', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /add series/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add level/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('combobox', { name: /select level/i })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: /select the new level/i })).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /confirm add series/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /confirm add level/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
   });
 
@@ -98,14 +98,14 @@ describe('TournamentSeriesManager', () => {
     );
 
     // Click add button
-    fireEvent.click(screen.getByRole('button', { name: /add series/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add level/i }));
 
     // Select a level
-    const select = screen.getByRole('combobox', { name: /select level/i });
+    const select = screen.getByRole('combobox', { name: /select the new level/i });
     fireEvent.change(select, { target: { value: 'Elite' } });
 
     // Confirm add
-    fireEvent.click(screen.getByRole('button', { name: /confirm add series/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm add level/i }));
 
     await waitFor(() => {
       expect(mockOnSeriesChange).toHaveBeenCalled();
@@ -126,13 +126,13 @@ describe('TournamentSeriesManager', () => {
     );
 
     // Click add button
-    fireEvent.click(screen.getByRole('button', { name: /add series/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add level/i }));
 
     // Click cancel
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /add series/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /add level/i })).toBeInTheDocument();
     });
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(mockOnSeriesChange).not.toHaveBeenCalled();
@@ -154,7 +154,7 @@ describe('TournamentSeriesManager', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /add series/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /add level/i })).toBeDisabled();
   });
 
   it('disables already-used levels in dropdown', async () => {
@@ -169,9 +169,9 @@ describe('TournamentSeriesManager', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /add series/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add level/i }));
 
-    const select = screen.getByRole('combobox', { name: /select level/i });
+    const select = screen.getByRole('combobox', { name: /select the new level/i });
     const eliteOption = select.querySelector('option[value="Elite"]') as HTMLOptionElement;
 
     expect(eliteOption).toBeDisabled();
@@ -185,8 +185,8 @@ describe('TournamentSeriesManager', () => {
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /add series/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add level/i }));
 
-    expect(screen.getByRole('button', { name: /confirm add series/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /confirm add level/i })).toBeDisabled();
   });
 });

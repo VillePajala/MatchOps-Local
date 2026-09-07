@@ -677,7 +677,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     {t('gameSettingsModal.eiMitaan', 'None')}
                   </button>
                   <button type="button" onClick={() => { setAdjTournamentId(''); if (seasons.length > 0) { if (!adjSeasonId) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                    {t('gameSettingsModal.kausi', 'Season')}
+                    {t('gameSettingsModal.kausi', 'League')}
                   </button>
                   <button type="button" onClick={() => { setAdjSeasonId(''); if (tournaments.length > 0) { if (!adjTournamentId) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.turnaus', 'Tournament')}
@@ -792,7 +792,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   pressed={adjIncludeInSeasonTournament}
                   onToggle={() => setAdjIncludeInSeasonTournament(v => !v)}
                 >
-                  {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                  {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                 </ModalToggleButton>
                 <p className="text-xs text-slate-500 mt-1 ml-1">
                   {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
@@ -923,7 +923,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               {t('gameSettingsModal.eiMitaan', 'None')}
                             </button>
                             <button type="button" onClick={() => { setEditTournamentId(''); if (!editSeasonId && seasons.length > 0) setEditSeasonId(seasons[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                              {t('gameSettingsModal.kausi', 'Season')}
+                              {t('gameSettingsModal.kausi', 'League')}
                             </button>
                             <button type="button" onClick={() => { setEditSeasonId(''); if (!editTournamentId && tournaments.length > 0) setEditTournamentId(tournaments[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.turnaus', 'Tournament')}
@@ -1052,7 +1052,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             pressed={editIncludeInSeasonTournament}
                             onToggle={() => setEditIncludeInSeasonTournament(v => !v)}
                           >
-                            {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                            {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                           </ModalToggleButton>
                           <p className="text-xs text-slate-500 mt-1 ml-1">
                             {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
@@ -1492,7 +1492,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         <div className="space-y-4 mt-2">
           {Object.keys(playerStats.performanceBySeason).length > 0 && (
             <div className="bg-slate-800/60 p-3 rounded-lg">
-              <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.seasonPerformance', 'Season Performance')}</h4>
+              <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.seasonPerformance', 'League Performance')}</h4>
               <div className="space-y-2">
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
                   <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">

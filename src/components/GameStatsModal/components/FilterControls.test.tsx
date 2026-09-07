@@ -88,7 +88,7 @@ describe('FilterControls', () => {
       ];
       renderFilterControls({ activeTab: 'season', seasons });
 
-      const seasonSelect = screen.getByDisplayValue('All Seasons');
+      const seasonSelect = screen.getByDisplayValue('All Leagues');
       expect(seasonSelect).toBeInTheDocument();
       expect(screen.getByText('Season 2024')).toBeInTheDocument();
       expect(screen.getByText('Season 2025')).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('FilterControls', () => {
       const seasons = [createSeason({ id: 'season-1', name: 'Season 2024' })];
       renderFilterControls({ activeTab: 'season', seasons, onSeasonFilterChange });
 
-      const seasonSelect = screen.getByDisplayValue('All Seasons');
+      const seasonSelect = screen.getByDisplayValue('All Leagues');
       fireEvent.change(seasonSelect, { target: { value: 'season-1' } });
 
       expect(onSeasonFilterChange).toHaveBeenCalledWith('season-1');
@@ -169,7 +169,7 @@ describe('FilterControls', () => {
         seasons: [createSeason()],
       });
 
-      expect(screen.queryByText('All Seasons')).not.toBeInTheDocument();
+      expect(screen.queryByText('All Leagues')).not.toBeInTheDocument();
     });
   });
 
@@ -190,7 +190,7 @@ describe('FilterControls', () => {
         selectedTournamentIdFilter: 'tournament-1',
       });
 
-      expect(screen.getByDisplayValue('All Series')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('All Levels')).toBeInTheDocument();
       expect(screen.getByText('A-sarja')).toBeInTheDocument();
       expect(screen.getByText('B-sarja')).toBeInTheDocument();
     });
@@ -202,7 +202,7 @@ describe('FilterControls', () => {
         selectedTournamentIdFilter: 'all',
       });
 
-      expect(screen.queryByDisplayValue('All Series')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('All Levels')).not.toBeInTheDocument();
     });
 
     it('does not show series dropdown when tournament has no series', () => {
@@ -217,7 +217,7 @@ describe('FilterControls', () => {
         selectedTournamentIdFilter: 'tournament-1',
       });
 
-      expect(screen.queryByDisplayValue('All Series')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('All Levels')).not.toBeInTheDocument();
     });
 
     it('does not show series dropdown when tournament series is undefined', () => {
@@ -232,7 +232,7 @@ describe('FilterControls', () => {
         selectedTournamentIdFilter: 'tournament-1',
       });
 
-      expect(screen.queryByDisplayValue('All Series')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('All Levels')).not.toBeInTheDocument();
     });
 
     it('does not show series dropdown on season tab', () => {
@@ -243,7 +243,7 @@ describe('FilterControls', () => {
         selectedTournamentIdFilter: 'tournament-1',
       });
 
-      expect(screen.queryByDisplayValue('All Series')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('All Levels')).not.toBeInTheDocument();
     });
 
     it('calls onSeriesFilterChange when series selection changes', () => {
@@ -255,7 +255,7 @@ describe('FilterControls', () => {
         onSeriesFilterChange,
       });
 
-      const seriesSelect = screen.getByDisplayValue('All Series');
+      const seriesSelect = screen.getByDisplayValue('All Levels');
       fireEvent.change(seriesSelect, { target: { value: 'series-a' } });
 
       expect(onSeriesFilterChange).toHaveBeenCalledWith('series-a');
@@ -379,7 +379,7 @@ describe('FilterControls', () => {
         teams,
       });
 
-      expect(screen.queryByText('All Seasons')).not.toBeInTheDocument();
+      expect(screen.queryByText('All Leagues')).not.toBeInTheDocument();
       expect(screen.queryByText('All Tournaments')).not.toBeInTheDocument();
       expect(screen.queryByText('All Teams')).not.toBeInTheDocument();
     });
@@ -393,7 +393,7 @@ describe('FilterControls', () => {
         teams,
       });
 
-      expect(screen.queryByText('All Seasons')).not.toBeInTheDocument();
+      expect(screen.queryByText('All Leagues')).not.toBeInTheDocument();
       expect(screen.queryByText('All Tournaments')).not.toBeInTheDocument();
       expect(screen.getByText('All Teams')).toBeInTheDocument();
     });
@@ -407,7 +407,7 @@ describe('FilterControls', () => {
         teams,
       });
 
-      expect(screen.queryByText('All Seasons')).not.toBeInTheDocument();
+      expect(screen.queryByText('All Leagues')).not.toBeInTheDocument();
       expect(screen.queryByText('All Tournaments')).not.toBeInTheDocument();
       expect(screen.getByText('All Teams')).toBeInTheDocument();
     });

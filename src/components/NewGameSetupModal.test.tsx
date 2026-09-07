@@ -49,12 +49,16 @@ const translations: { [key: string]: string } = {
   'common.levelHarraste': 'Recreational',
   'common.levelElite': 'Elite',
   'common.levelHaaste': 'Challenger',
-  'common.selectSeries': '-- Select Series --',
-  'newGameSetupModal.seriesLabel': 'Series',
-  // League translations
-  'seasonDetailsModal.leagueLabel': 'League',
-  'seasonDetailsModal.selectLeague': '-- Select League --',
-  'seasonDetailsModal.customLeaguePlaceholder': 'Enter league name',
+  'common.selectSeries': '-- Select level --',
+  'newGameSetupModal.seriesLabel': 'Level',
+  // The official Palloliitto competition, distinct from the league the coach
+  // created and named.
+  'seasonDetailsModal.leagueLabel': 'Official league',
+  'seasonDetailsModal.selectLeague': '-- Select official league --',
+  'seasonDetailsModal.customLeaguePlaceholder': 'Enter the official league name',
+  'newGameSetupModal.leagueLabel': 'Official league',
+  'newGameSetupModal.selectLeague': '-- Select official league --',
+  'newGameSetupModal.customLeaguePlaceholder': 'Enter the official league name',
   // Game type translations
   'newGameSetupModal.gameTypeLabel': 'Game Type',
   'common.gameTypeLabel': 'Sport Type',
@@ -185,7 +189,7 @@ describe('NewGameSetupModal', () => {
     renderModal();
 
     // Seasons are hidden until the "Season" tab is clicked
-    const seasonTab = screen.getByRole('button', { name: /Season/i });
+    const seasonTab = screen.getByRole('button', { name: /League/i });
     await act(async () => {
       fireEvent.click(seasonTab);
     });
@@ -466,7 +470,7 @@ describe('NewGameSetupModal', () => {
 
       // Verify series dropdown appears
       await waitFor(() => {
-        expect(screen.getByText('-- Select Series --')).toBeInTheDocument();
+        expect(screen.getByText('-- Select level --')).toBeInTheDocument();
       });
 
       // Now switch to tournament WITHOUT series
@@ -477,7 +481,7 @@ describe('NewGameSetupModal', () => {
       // Series dropdown should be replaced with level dropdown
       // Check that the level dropdown (tournamentLevelInput) now shows level options instead of series
       await waitFor(() => {
-        expect(screen.queryByText('-- Select Series --')).not.toBeInTheDocument();
+        expect(screen.queryByText('-- Select level --')).not.toBeInTheDocument();
         // The level dropdown should have the standard level options (Elite, Competition, etc.)
         const levelSelect = document.getElementById('tournamentLevelInput') as HTMLSelectElement;
         expect(levelSelect).toBeInTheDocument();
@@ -601,7 +605,7 @@ describe('NewGameSetupModal', () => {
       // Should show level dropdown (not series dropdown) since series is empty
       await waitFor(() => {
         // Series placeholder should NOT be present
-        expect(screen.queryByText('-- Select Series --')).not.toBeInTheDocument();
+        expect(screen.queryByText('-- Select level --')).not.toBeInTheDocument();
         // Standard level options should be available
         const levelSelect = document.getElementById('tournamentLevelInput') as HTMLSelectElement;
         expect(levelSelect).toBeInTheDocument();
@@ -628,7 +632,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Switch to season tab
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -657,7 +661,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Switch to season tab and select season with league
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -687,7 +691,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Switch to season tab and select season
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -724,7 +728,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Switch to season tab and select season
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -748,7 +752,7 @@ describe('NewGameSetupModal', () => {
 
       // Custom name input should appear
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Enter league name')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Enter the official league name')).toBeInTheDocument();
       });
     });
 
@@ -765,7 +769,7 @@ describe('NewGameSetupModal', () => {
       fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
 
       // Switch to season tab and select season with league
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -836,7 +840,7 @@ describe('NewGameSetupModal', () => {
       fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
 
       // Switch to season tab and select season
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -859,9 +863,9 @@ describe('NewGameSetupModal', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Enter league name')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Enter the official league name')).toBeInTheDocument();
       });
-      const customInput = screen.getByPlaceholderText('Enter league name');
+      const customInput = screen.getByPlaceholderText('Enter the official league name');
       await act(async () => {
         fireEvent.change(customInput, { target: { value: 'My Custom League' } });
       });
@@ -926,7 +930,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Switch to season tab and select season
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -970,7 +974,7 @@ describe('NewGameSetupModal', () => {
       fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
 
       // Switch to season tab and select season
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -1038,7 +1042,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Switch to season tab
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -1231,7 +1235,7 @@ describe('NewGameSetupModal', () => {
       });
 
       // Switch to season tab
-      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      const seasonTab = screen.getByRole('button', { name: /League/i });
       await act(async () => {
         fireEvent.click(seasonTab);
       });
@@ -1413,7 +1417,7 @@ describe('NewGameSetupModal', () => {
 
       // The season picker sits behind the Season tab.
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /Season/i }));
+        fireEvent.click(screen.getByRole('button', { name: /League/i }));
       });
       await waitFor(() => expect(document.getElementById('seasonSelect')).toBeInTheDocument());
       const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;

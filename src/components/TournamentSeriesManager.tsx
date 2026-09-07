@@ -59,7 +59,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
   return (
     <div>
       <label className="block text-sm font-medium text-slate-300 mb-1">
-        {t('tournamentDetailsModal.seriesLabel', 'Series (Competition Levels)')}
+        {t('tournamentDetailsModal.seriesLabel', 'Competition levels')}
       </label>
 
       {/* Display existing series */}
@@ -75,7 +75,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
                 type="button"
                 onClick={() => handleRemoveSeries(s.id)}
                 className="text-slate-400 hover:text-red-400 ml-1"
-                aria-label={`${t('tournamentDetailsModal.removeSeries', 'Remove series')}: ${t(`common.level${s.level}` as TranslationKey, s.level)}`}
+                aria-label={`${t('tournamentDetailsModal.removeSeries', 'Remove level')}: ${t(`common.level${s.level}` as TranslationKey, s.level)}`}
               >
                 ×
               </button>
@@ -91,7 +91,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             value={newSeriesLevel}
             onChange={(e) => setNewSeriesLevel(e.target.value)}
             className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
-            aria-label={t('tournamentDetailsModal.selectLevelForNewSeries', 'Select level for new series')}
+            aria-label={t('tournamentDetailsModal.selectLevelForNewSeries', 'Select the new level')}
           >
             <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
             {LEVELS.map(lvl => (
@@ -109,7 +109,7 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
             onClick={handleAddSeries}
             disabled={!newSeriesLevel}
             className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-indigo-400/30"
-            aria-label={t('tournamentDetailsModal.confirmAddSeries', 'Confirm add series')}
+            aria-label={t('tournamentDetailsModal.confirmAddSeries', 'Confirm add level')}
           >
             {t('common.add', 'Add')}
           </button>
@@ -127,9 +127,9 @@ const TournamentSeriesManager: React.FC<TournamentSeriesManagerProps> = ({
           onClick={() => setIsAddingNewSeries(true)}
           disabled={availableLevels.length === 0}
           className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-sm text-sm font-medium border border-slate-400/30"
-          aria-label={t('tournamentDetailsModal.addSeries', 'Add series')}
+          aria-label={t('tournamentDetailsModal.addSeries', 'Add level')}
         >
-          + {t('tournamentDetailsModal.addSeries', 'Add Series')}
+          + {t('tournamentDetailsModal.addSeries', 'Add level')}
         </button>
       )}
     </div>

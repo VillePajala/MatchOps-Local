@@ -672,7 +672,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
     // Validate custom league name when "Muu" is selected
     if (leagueId === CUSTOM_LEAGUE_ID && !customLeagueName.trim()) {
-        setCustomLeagueError(t('newGameSetupModal.customLeagueNameRequired', 'Please enter a custom league name.'));
+        setCustomLeagueError(t('newGameSetupModal.customLeagueNameRequired', 'Please enter the other league name.'));
         return;
     }
 
@@ -807,7 +807,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   a different layout from everyone else). */}
               <FirstVisitIntro
                 surface="game-setup"
-                text={t('firstVisit.gameSetup', 'Pick your team - a season or tournament can be added now or later.')}
+                text={t('firstVisit.gameSetup', 'Pick your team - a league or tournament can be added now or later.')}
               />
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
@@ -989,7 +989,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
-                          {t('gameSettingsModal.kausi', 'Season')}
+                          {t('gameSettingsModal.kausi', 'League')}
                         </button>
                         <button
                           onClick={() => handleTabChange('tournament')}
@@ -1013,7 +1013,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             onChange={handleSeasonChange}
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           >
-                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
+                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select League --')}</option>
                             {sortedSeasons.map((season) => (
                               <option key={season.id} value={season.id}>
                                 {getSeasonDisplayName(season)}
@@ -1025,7 +1025,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           {selectedSeasonId && (
                             <div className="mt-3">
                               <label htmlFor="leagueSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                                {t('newGameSetupModal.leagueLabel', 'League')}
+                                {t('newGameSetupModal.leagueLabel', 'Official league')}
                               </label>
                               <select
                                 id="leagueSelect"
@@ -1038,7 +1038,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                 onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                               >
-                                <option value="">{t('newGameSetupModal.selectLeague', '-- Select League --')}</option>
+                                <option value="">{t('newGameSetupModal.selectLeague', '-- Select official league --')}</option>
                                 {FINNISH_YOUTH_LEAGUES.map(league => (
                                   <option key={league.id} value={league.id}>{league.name}</option>
                                 ))}
@@ -1051,7 +1051,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                     value={customLeagueName}
                                     onChange={(e) => { setCustomLeagueName(e.target.value); if (customLeagueError) setCustomLeagueError(null); }}
                                     onKeyDown={handleKeyDown}
-                                    placeholder={t('newGameSetupModal.customLeaguePlaceholder', 'Enter league name')}
+                                    placeholder={t('newGameSetupModal.customLeaguePlaceholder', 'Enter the official league name')}
                                     className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm ${customLeagueError ? 'border-red-500' : 'border-slate-600'}`}
                                   />
                                   {customLeagueError && <p className="mt-1 text-sm text-red-400">{customLeagueError}</p>}
@@ -1100,7 +1100,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                   onKeyDown={handleKeyDown}
                                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                                 >
-                                  <option value="">{t('common.selectSeries', '-- Select Series --')}</option>
+                                  <option value="">{t('common.selectSeries', '-- Select level --')}</option>
                                   {validSeries.map((series) => (
                                     <option key={series.id} value={series.id}>
                                       {t(`common.level${series.level}` as TranslationKey, series.level)}
