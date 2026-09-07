@@ -4,6 +4,17 @@
     {
       "date": "2026-09-07",
       "en": [
+        "New: record voice notes during a match and turn them into your match report afterwards. Press once, speak, done - the phone stays a dictaphone during play. After the match you review every clip, and nothing is saved until you accept it.",
+        "The AI features use your own provider account, set up in Settings. Recordings stay on your phone, player names are replaced with codes before anything is sent, and you approve every line before it reaches your report."
+      ],
+      "fi": [
+        "Uutta: nauhoita ääni-muistiinpanoja ottelun aikana ja tee niistä otteluraportti jälkikäteen. Paina kerran, puhu, valmis - puhelin on ottelun ajan pelkkä sanelin. Ottelun jälkeen käyt jokaisen klipin läpi, eikä mitään tallenneta ennen kuin hyväksyt sen.",
+        "Tekoälytoiminnot käyttävät omaa palveluntarjoajatiliäsi, joka määritetään asetuksissa. Äänitykset pysyvät puhelimessasi, pelaajien nimet korvataan koodeilla ennen lähetystä, ja hyväksyt jokaisen rivin ennen kuin se päätyy raporttiisi."
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "en": [
         "Clearer wording for competitions. What you create to group games is now called a league, since Aluesarja Itä taso 2 is a league rather than a season. Season now means only your club's own period, and a tournament's sub-competitions are called levels, matching how the football association names them."
       ],
       "fi": [
