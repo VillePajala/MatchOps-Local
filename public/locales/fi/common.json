@@ -1185,8 +1185,8 @@
       "customLeagueTooShort": "Oman sarjan nimen tulee olla vähintään 2 merkkiä.",
       "customLeagueRequired": "Kirjoita sarjan nimi tai valitse eri sarja."
     },
-    "seasonDatesNotConfigured": "Pelikauden päivämääriä ei ole määritetty",
-    "configureInSettings": "Määritä asetuksissa laskeaksesi pelikaudet oikein."
+    "seasonDatesNotConfigured": "Seurakauden päivämääriä ei ole määritetty",
+    "configureInSettings": "Määritä asetuksissa laskeaksesi seurakaudet oikein."
   },
   "leagues": {
     "areas": {
@@ -1247,8 +1247,8 @@
       "createFailed": "Turnauksen luominen epäonnistui. Yritä uudelleen.",
       "updateFailed": "Turnauksen päivittäminen epäonnistui. Yritä uudelleen."
     },
-    "seasonDatesNotConfigured": "Pelikauden päivämääriä ei ole määritetty",
-    "configureInSettings": "Määritä asetuksissa laskeaksesi pelikaudet oikein."
+    "seasonDatesNotConfigured": "Seurakauden päivämääriä ei ole määritetty",
+    "configureInSettings": "Määritä asetuksissa laskeaksesi seurakaudet oikein."
   },
   "tournaments": {
     "selectAwardWinner": "-- Valitse turnauksen pelaaja --",
@@ -1580,7 +1580,7 @@
     "title": "Asetukset",
     "tabs": {
       "general": "Yleiset",
-      "season": "Sarja",
+      "season": "Seurakausi",
       "data": "Tiedot",
       "premium": "Premium",
       "account": "Tili",
@@ -1696,12 +1696,12 @@
     "importGamesButton": "Tuo pelejä",
     "importing": "Tuodaan...",
     "gameImportError": "Virhe pelien tuonnissa: ",
-    "seasonStartTitle": "Sarjan alkamispäivä",
-    "seasonStartDescription": "Milloin seurasi uusi sarja alkaa? Tämä on tyypillisesti silloin kun pelaajat siirtyvät uusiin ikäryhmiin. Edellinen sarja päättyy automaattisesti edellisenä päivänä.",
-    "newSeasonStartsLabel": "Uusi sarja alkaa",
-    "seasonEndsLabel": "Sarja päättyy",
+    "seasonStartTitle": "Seurakauden alkamispäivä",
+    "seasonStartDescription": "Milloin seurasi uusi kausi alkaa? Tämä on tyypillisesti silloin kun pelaajat siirtyvät uusiin ikäryhmiin. Edellinen kausi päättyy automaattisesti edellisenä päivänä.",
+    "newSeasonStartsLabel": "Uusi seurakausi alkaa",
+    "seasonEndsLabel": "Seurakausi päättyy",
     "autoCalculated": "laskettu automaattisesti",
-    "seasonExample": "Esimerkki: Jos kautesi alkaa {{startDate}}, sarja 2024-25 on {{startDate}} 2024 → {{endDate}} 2025.",
+    "seasonExample": "Esimerkki: Jos seurakautesi alkaa {{startDate}}, seurakausi 2024-25 on {{startDate}} 2024 → {{endDate}} 2025.",
     "monthLabel": "Kuukausi",
     "dayLabel": "Päivä",
     "savePeriodDateError": "Jakson päivämäärän tallennus epäonnistui. Yritä uudelleen.",
@@ -1812,7 +1812,7 @@
     "positionsPlayed": {
       "title": "Pelipaikat",
       "linesPlayed": "{{n}}/4 linjaa",
-      "narrowHint": "Pelannut vain yhtä linjaa tällä sarjalla - tilaisuus monipuolistaa.",
+      "narrowHint": "Pelannut vain yhtä linjaa tällä seurakaudella - tilaisuus monipuolistaa.",
       "allPositions": "Kaikki pelipaikat"
     },
     "gamesPlayed_short": "O",
@@ -1849,12 +1849,12 @@
     "focusAreas": "Kehityskohteet",
     "strengths": "Vahvuudet",
     "radarNow": "Nyt",
-    "radarBaseline": "Sarjan alku",
+    "radarBaseline": "Seurakauden alku",
     "scopeAll": "Kaikki pelit",
     "scopeLast10": "Viim. 10",
     "scopeLast5": "Viim. 5",
-    "seasonAll": "Kaikki sarjat",
-    "seasonCurrent": "Nykyinen sarja",
+    "seasonAll": "Kaikki seurakaudet",
+    "seasonCurrent": "Nykyinen seurakausi",
     "developmentReport": "Kehitysraportti",
     "exportReport": "Vie kehitysraportti",
     "exportReportFailed": "Raportin vienti epäonnistui",

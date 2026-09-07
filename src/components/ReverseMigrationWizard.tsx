@@ -291,7 +291,7 @@ const ReverseMigrationWizard: React.FC<ReverseMigrationWizardProps> = ({
       { label: t('migration.summary.players', 'Players'), count: counts.players },
       { label: t('migration.summary.teams', 'Teams'), count: counts.teams },
       { label: t('migration.summary.teamRosters', 'Team Roster Assignments'), count: counts.teamRosters },
-      { label: t('migration.summary.seasons', 'Seasons'), count: counts.seasons },
+      { label: t('migration.summary.seasons', 'Leagues'), count: counts.seasons },
       { label: t('migration.summary.tournaments', 'Tournaments'), count: counts.tournaments },
       { label: t('migration.summary.games', 'Games'), count: counts.games },
       { label: t('migration.summary.personnel', 'Personnel'), count: counts.personnel },

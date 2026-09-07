@@ -1322,8 +1322,8 @@
     "selectLeague": "-- Select official league --",
     "customLeagueLabel": "Other league name",
     "customLeaguePlaceholder": "Enter the official league name",
-    "seasonDatesNotConfigured": "League dates not configured",
-    "configureInSettings": "Configure in Settings to calculate club leagues correctly."
+    "seasonDatesNotConfigured": "Season dates not configured",
+    "configureInSettings": "Configure in Settings to calculate club seasons correctly."
   },
   "leagues": {
     "areas": {
@@ -1384,8 +1384,8 @@
     "removeSeries": "Remove level",
     "selectLevelForNewSeries": "Select the new level",
     "confirmAddSeries": "Confirm add level",
-    "seasonDatesNotConfigured": "League dates not configured",
-    "configureInSettings": "Configure in Settings to calculate club leagues correctly."
+    "seasonDatesNotConfigured": "Season dates not configured",
+    "configureInSettings": "Configure in Settings to calculate club seasons correctly."
   },
   "tournaments": {
     "selectAwardWinner": "-- Select Player of Tournament --",
@@ -1580,7 +1580,7 @@
     "title": "Settings",
     "tabs": {
       "general": "General",
-      "season": "League",
+      "season": "Season",
       "data": "Data",
       "premium": "Premium",
       "account": "Account",
@@ -1696,12 +1696,12 @@
     "importGamesButton": "Import Games",
     "importing": "Importing...",
     "gameImportError": "Error importing games: ",
-    "seasonStartTitle": "League Start Date",
-    "seasonStartDescription": "When does your club's new league begin? This is typically when players move to new age groups. The previous league automatically ends the day before.",
-    "newSeasonStartsLabel": "New league starts",
-    "seasonEndsLabel": "League ends",
+    "seasonStartTitle": "Season Start Date",
+    "seasonStartDescription": "When does your club's new season begin? This is typically when players move to new age groups. The previous season automatically ends the day before.",
+    "newSeasonStartsLabel": "New season starts",
+    "seasonEndsLabel": "Season ends",
     "autoCalculated": "auto-calculated",
-    "seasonExample": "Example: If your league starts {{startDate}}, the 2024-25 league runs {{startDate}}, 2024 → {{endDate}}, 2025.",
+    "seasonExample": "Example: If your season starts {{startDate}}, the 2024-25 season runs {{startDate}}, 2024 → {{endDate}}, 2025.",
     "monthLabel": "Month",
     "dayLabel": "Day",
     "savePeriodDateError": "Failed to save period date. Please try again.",
@@ -1812,7 +1812,7 @@
     "positionsPlayed": {
       "title": "Positions played",
       "linesPlayed": "{{n}} of 4 lines",
-      "narrowHint": "Played only one line this league - a chance to broaden.",
+      "narrowHint": "Played only one line this season - a chance to broaden.",
       "allPositions": "All positions"
     },
     "gamesPlayed_short": "GP",
@@ -1843,12 +1843,12 @@
     "focusAreas": "Focus areas",
     "strengths": "Strengths",
     "radarNow": "Now",
-    "radarBaseline": "League start",
+    "radarBaseline": "Season start",
     "scopeAll": "All games",
     "scopeLast10": "Last 10",
     "scopeLast5": "Last 5",
-    "seasonAll": "All leagues",
-    "seasonCurrent": "Current league",
+    "seasonAll": "All seasons",
+    "seasonCurrent": "Current season",
     "developmentReport": "Development report",
     "exportReport": "Export development report",
     "exportReportFailed": "Failed to export report",
@@ -1899,8 +1899,8 @@
     "fairPlayTrophy": "Fair Play Trophy",
     "playerOfTournament": "Player of Tournament",
     "periodLabel": "Period",
-    "periodNotConfiguredTitle": "League Period Not Configured",
-    "periodNotConfiguredMessage": "To filter statistics by period, first configure your league period (e.g., October to May) in Settings.",
+    "periodNotConfiguredTitle": "Season Period Not Configured",
+    "periodNotConfiguredMessage": "To filter statistics by period, first configure your season period (e.g., October to May) in Settings.",
     "configurePeriodDates": "Configure Period Dates",
     "configurePeriodDatesFirst": "Configure period dates in Settings first",
     "tapGearToConfigurePeriods": "Tap gear icon to configure period dates",

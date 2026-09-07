@@ -643,7 +643,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Tab title helper
   const getTabTitle = () => {
     switch (activeTab) {
-      case 'season': return t('gameStatsModal.titleSeason', 'Kausitilastot');
+      case 'season': return t('gameStatsModal.titleSeason', 'League Stats');
       case 'tournament': return t('gameStatsModal.titleTournament', 'Turnaustilastot');
       case 'overall': return t('gameStatsModal.titleOverall', 'Kokonaisstilastot');
       case 'player': {
@@ -758,7 +758,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           <FirstVisitIntro
             surface="stats"
             className="mx-4 my-4 sm:mx-6"
-            text={t('firstVisit.stats', 'Game stats live here: this game, season, tournament and per-player views from the tabs.')}
+            text={t('firstVisit.stats', 'Game stats live here: this game, league, tournament and per-player views from the tabs.')}
           />
           {activeTab === 'player' ? (
             <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
@@ -929,7 +929,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                           <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
                             <div>
                               {activeTab === 'season'
-                                ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
+                                ? t('gameStatsModal.noSeasonGames', 'No games found for this league.')
                                 : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
                               }
                             </div>
@@ -945,7 +945,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
                           <h3 className="text-xl font-semibold text-slate-200 mb-4">
                             {activeTab === 'season'
-                              ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
+                              ? t('gameStatsModal.filterAllSeasons', 'All Leagues')
                               : t('gameStatsModal.filterAllTournaments', 'All Tournaments')
                             }
                           </h3>

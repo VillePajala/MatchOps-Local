@@ -597,7 +597,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {season && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true"></span>
-                          <span className="sr-only">{t('common.season', 'Season')}: </span>
+                          <span className="sr-only">{t('common.season', 'League')}: </span>
                           {getSeasonDisplayName(season)}
                         </span>
                       )}
