@@ -129,7 +129,7 @@ export function HomeTeamScopePills({
   onChange,
   t,
 }: {
-  teams: Array<{ id: string; name: string }>;
+  teams: Array<{ id: string; label: string }>;
   scope: string;
   onChange: (scope: string) => void;
   t: TFunction;
@@ -137,12 +137,13 @@ export function HomeTeamScopePills({
   if (teams.length < 2) return null;
   const options: Array<{ id: string; label: string }> = [
     { id: 'all', label: t('startScreen.dashAllTeams', 'All teams') },
-    ...teams.map((team) => ({ id: team.id, label: team.name })),
+    ...teams,
   ];
   return (
     <div
-      className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5 mb-3"
-      style={{ scrollbarWidth: 'none' }}
+      // Wraps rather than scrolls: a sideways-scrolling row on the first
+      // screen cut pills off at the edge and swallowed horizontal swipes.
+      className="flex flex-wrap gap-2 mb-3"
       role="group"
       aria-label={t('startScreen.dashTeamScope', 'Which team these numbers are about')}
       data-testid="home-team-scope"
@@ -155,7 +156,7 @@ export function HomeTeamScopePills({
             type="button"
             onClick={() => onChange(option.id)}
             aria-pressed={active}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-colors ${
+            className={`max-w-full truncate px-3 py-1.5 rounded-full text-[13px] font-medium border transition-colors ${
               active
                 ? 'bg-indigo-600 border-indigo-500 text-white'
                 : 'bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-700/60'

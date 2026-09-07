@@ -32,7 +32,7 @@ interface StartScreenProps {
   /** Home tab: seasons & tournaments (opens the existing modal). */
   onManageSeasons?: () => void;
   /** Teams the coach can scope Home to, and the current choice. */
-  teamScopeOptions?: Array<{ id: string; name: string }>;
+  teamScopeOptions?: Array<{ id: string; label: string }>;
   teamScope?: string;
   onTeamScopeChange?: (scope: string) => void;
   onManageTournaments?: () => void;

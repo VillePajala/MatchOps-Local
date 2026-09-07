@@ -1,4 +1,11 @@
-import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId } from '../homeTeamScope';
+import {
+  buildHomeTeamScopeOptions,
+  readHomeTeamScope,
+  writeHomeTeamScope,
+  resolveHomeTeamScope,
+  mostRecentTeamId,
+} from '../homeTeamScope';
+import type { Season, Team, Tournament } from '@/types';
 
 describe('homeTeamScope - remembering it', () => {
   beforeEach(() => localStorage.clear());
@@ -80,5 +87,38 @@ describe('mostRecentTeamId', () => {
   it('reports nothing when no played match names a team', () => {
     expect(mostRecentTeamId({}, SCRATCH)).toBeNull();
     expect(mostRecentTeamId({ a: game({ gameDate: '2024-01-01' }) }, SCRATCH)).toBeNull();
+  });
+});
+
+describe('buildHomeTeamScopeOptions', () => {
+  const labels = { futsal: 'Futsal', level: (level: string) => `L:${level}` };
+  const seasons = [{ id: 's1', name: 'Aluesarja U10', clubSeason: '25/26' }] as unknown as Season[];
+  const tournaments = [
+    { id: 't1', name: 'Kesäcup', clubSeason: '25/26', series: [{ id: 'x1', level: 'Kilpa' }] },
+  ] as unknown as Tournament[];
+
+  /**
+   * @critical - junior teams are named after colours and reused per
+   * competition, so three "PePo Lila" is normal. Bare names left the coach
+   * guessing which one the numbers were about.
+   */
+  it('tells same-named teams apart by what they are bound to', () => {
+    const teams = [
+      { id: 'a', name: 'PePo Lila', boundSeasonId: 's1' },
+      { id: 'b', name: 'PePo Lila', boundTournamentId: 't1', boundTournamentSeriesId: 'x1' },
+      { id: 'c', name: 'PePo Lila', gameType: 'futsal' },
+    ] as unknown as Team[];
+    const labelsOut = buildHomeTeamScopeOptions(teams, seasons, tournaments, labels).map((o) => o.label);
+    expect(new Set(labelsOut).size).toBe(3);
+    expect(labelsOut[0]).toBe('PePo Lila (Aluesarja U10 25/26)');
+    expect(labelsOut[1]).toBe('PePo Lila (Kesäcup 25/26 / L:Kilpa)');
+    expect(labelsOut[2]).toBe('PePo Lila (Futsal)');
+  });
+
+  it('leaves an unbound team as its plain name', () => {
+    const teams = [{ id: 'a', name: 'PePo Lila' }] as unknown as Team[];
+    expect(buildHomeTeamScopeOptions(teams, seasons, tournaments, labels)).toEqual([
+      { id: 'a', label: 'PePo Lila' },
+    ]);
   });
 });

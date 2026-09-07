@@ -17,7 +17,38 @@ import logger from '@/utils/logger';
 const STORAGE_KEY = 'matchops_home_team_scope';
 
 /** A team id, 'legacy' for games naming no team, or 'all'. */
+import type { Season, Team, Tournament } from '@/types';
+import { getTeamDisplayName } from './teams';
+
 export type HomeTeamScope = string;
+
+export interface HomeTeamScopeOption {
+  id: string;
+  label: string;
+}
+
+/**
+ * The pill labels.
+ *
+ * Junior clubs name teams after colours and reuse them per competition, so a
+ * coach can have three "PePo Lila" with different rosters. The bare name told
+ * them apart nowhere. Same display name as the stats and load-game filters,
+ * so a team reads the same on every surface.
+ */
+export function buildHomeTeamScopeOptions(
+  teams: Team[],
+  seasons: Season[],
+  tournaments: Tournament[],
+  labels: { futsal: string; level: (level: string) => string },
+): HomeTeamScopeOption[] {
+  return teams.map((team) => ({
+    id: team.id,
+    label: getTeamDisplayName(team, seasons, tournaments, {
+      futsalLabel: labels.futsal,
+      seriesLabel: labels.level,
+    }),
+  }));
+}
 
 export function readHomeTeamScope(): HomeTeamScope | null {
   try {

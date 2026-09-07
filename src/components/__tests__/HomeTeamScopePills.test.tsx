@@ -9,8 +9,8 @@ import { HomeTeamScopePills } from '../HomeDashboard';
 
 const t = ((_k: string, fallback?: string) => fallback ?? _k) as never;
 const teams = [
-  { id: 'teamA', name: 'P10 Aluesarja' },
-  { id: 'teamB', name: 'P10 Futsal' },
+  { id: 'teamA', label: 'P10 Aluesarja' },
+  { id: 'teamB', label: 'P10 Futsal' },
 ];
 
 describe('HomeTeamScopePills', () => {
