@@ -429,9 +429,9 @@ describe('Translation File Validation', () => {
       //     filtersClear and dropped the keys only the old control used
       //     (filtersButton, filtersTitle, clearFilters); +1 common.all, which
       //     the Sport/Gender "All" options had been reading from a fallback with
-      //     no key behind it (Finnish saw English). Net +1 over master. Lands
-      //     at 2856.
-      expect(enKeys.length).toBe(2856);
+      //     no key behind it (Finnish saw English); -1 common.genderAll, which
+      //     only the old control used. Net 0 over master. Lands at 2855.
+      expect(enKeys.length).toBe(2855);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -565,9 +565,9 @@ describe('Translation File Validation', () => {
       //     filtersClear and dropped the keys only the old control used
       //     (filtersButton, filtersTitle, clearFilters); +1 common.all, which
       //     the Sport/Gender "All" options had been reading from a fallback with
-      //     no key behind it (Finnish saw English). Net +1 over master. Lands
-      //     at 2856.
-      expect(fiKeys.length).toBe(2856);
+      //     no key behind it (Finnish saw English); -1 common.genderAll, which
+      //     only the old control used. Net 0 over master. Lands at 2855.
+      expect(fiKeys.length).toBe(2855);
     });
   });
 });

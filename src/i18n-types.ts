@@ -335,7 +335,6 @@ export type TranslationKey =
   | 'common.gameTypeSoccer'
   | 'common.gamesPlayed'
   | 'common.gamesPlayedShort'
-  | 'common.genderAll'
   | 'common.genderBoys'
   | 'common.genderGirls'
   | 'common.genderLabel'

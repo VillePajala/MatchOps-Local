@@ -232,6 +232,39 @@ describe('StatsFilterPanel', () => {
     }
   });
 
+  /**
+   * @critical - the first version derived "open" from the tab it was opened
+   * on. Leaving and coming back made it equal again, so the panel reopened on
+   * its own with a draft the coach never applied, and Apply would commit it.
+   */
+  it('stays closed on returning to a tab and forgets the draft left there', () => {
+    const handlers = makeHandlers();
+    const props = { seasons, tournaments, teams, handlers, availableClubSeasons: ['24/25'], onOpenSettings: jest.fn() };
+    const { rerender } = render(<StatsFilterPanel {...props} activeTab="season" filters={filters} />);
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
+    fireEvent.change(screen.getByLabelText('League'), { target: { value: 's1' } });
+
+    rerender(<StatsFilterPanel {...props} activeTab="tournament" filters={filters} />);
+    expect(screen.queryByTestId('stats-filter-panel')).not.toBeInTheDocument();
+    rerender(<StatsFilterPanel {...props} activeTab="season" filters={filters} />);
+    expect(screen.queryByTestId('stats-filter-panel')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
+    expect((screen.getByLabelText('League') as HTMLSelectElement).value).toBe('all');
+    fireEvent.click(screen.getByTestId('stats-filter-apply'));
+    expect(handlers.onSeasonFilterChange).not.toHaveBeenCalled();
+  });
+
+  it('names the level in the closed-bar summary, not only the tournament', () => {
+    renderPanel({
+      activeTab: 'tournament',
+      filters: { ...filters, selectedTournamentIdFilter: 't1', selectedSeriesIdFilter: 'x1' },
+    });
+    const summary = screen.getByTestId('stats-filter-summary').textContent ?? '';
+    expect(summary).toContain('Cup');
+    expect(summary).toContain('Competition');
+  });
+
   it('translates the gender in the closed-bar summary', () => {
     renderPanel({ filters: { ...filters, selectedGenderFilter: 'girls' } });
     const summary = screen.getByTestId('stats-filter-summary');

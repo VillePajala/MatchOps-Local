@@ -58,28 +58,27 @@ export function StatsFilterPanel({
   filters,
   handlers,
   availableClubSeasons = [],
-  hasConfiguredSeasonDates = true,
+  hasConfiguredSeasonDates = false,
   isLoadingClubSeasons = false,
   onOpenSettings,
   children,
 }: StatsFilterPanelProps) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
   /**
-   * Which tab the panel was opened on, rather than a plain boolean.
+   * A tab change closes the panel, during render rather than in an effect.
    *
-   * Switching tab changes which filters exist and resets them, so a panel left
-   * standing open would be showing the previous tab's question. Keying it this
-   * way closes it on a tab change without an effect.
+   * Switching tab resets the filters and changes which ones exist, so a panel
+   * left open would be showing the previous tab's question. The first version
+   * derived "open" from the tab it was opened on; that closed on the way out
+   * but reopened by itself on the way back, carrying a draft the coach never
+   * applied. Closing on the change itself has no way back.
    */
-  const [openForTab, setOpenForTab] = useState<StatsTab | null>(null);
-  const open = openForTab === activeTab;
-  const setOpen = (next: boolean | ((v: boolean) => boolean)) => {
-    setOpenForTab((prev) => {
-      const wasOpen = prev === activeTab;
-      const wantOpen = typeof next === 'function' ? next(wasOpen) : next;
-      return wantOpen ? activeTab : null;
-    });
-  };
+  const [tabSeen, setTabSeen] = useState(activeTab);
+  if (tabSeen !== activeTab) {
+    setTabSeen(activeTab);
+    setOpen(false);
+  }
   const [draft, setDraft] = useState<StatsFiltersState>(filters);
 
   const showSeason = activeTab === 'season';
@@ -102,6 +101,8 @@ export function StatsFilterPanel({
     if (showTournament && filters.selectedTournamentIdFilter !== 'all') {
       const x = tournaments.find((y) => y.id === filters.selectedTournamentIdFilter);
       if (x) parts.push(getTournamentDisplayName(x));
+      const level = x?.series?.find((y) => y.id === filters.selectedSeriesIdFilter);
+      if (level) parts.push(t(`common.level${level.level}` as TranslationKey, level.level));
     }
     if (showTeam && filters.selectedTeamIdFilter !== 'all') {
       const team = teams.find((x) => x.id === filters.selectedTeamIdFilter);
@@ -163,7 +164,7 @@ export function StatsFilterPanel({
     if (draft.selectedClubSeason !== filters.selectedClubSeason) {
       handlers.onClubSeasonChange(draft.selectedClubSeason);
     }
-    setOpenForTab(null);
+    setOpen(false);
   }, [draft, filters, handlers]);
 
   const clear = useCallback(() => {
@@ -193,7 +194,7 @@ export function StatsFilterPanel({
       if (e.key !== 'Escape') return;
       e.stopPropagation();
       e.stopImmediatePropagation();
-      setOpenForTab(null);
+      setOpen(false);
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
@@ -291,10 +292,11 @@ export function StatsFilterPanel({
 
           {showClubSeason && (
             <div>
-              <label className={LABEL}>{t('seasonDetailsModal.clubSeasonLabel', 'Season')}</label>
+              <label className={LABEL} htmlFor="filter-club-season">{t('seasonDetailsModal.clubSeasonLabel', 'Season')}</label>
               {/* The existing control, not a second copy of it - it already
                   handles the not-yet-configured case and its gear button. */}
               <ClubSeasonFilter
+                id="filter-club-season"
                 selectedSeason={draft.selectedClubSeason}
                 onChange={(value) => set('selectedClubSeason', value)}
                 seasons={availableClubSeasons}
