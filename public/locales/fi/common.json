@@ -1002,7 +1002,9 @@
     "welcomeStripStart": "Tervetuloa! Aloita lisäämällä pelaajasi.",
     "welcomeStripTeam": "Hyvä alku! Luo seuraavaksi joukkue.",
     "welcomeStripTour": "Haluatko aloitusopastuksen?",
-    "gearSetup": "Käyttöönotto ({{done}}/4)"
+    "gearSetup": "Käyttöönotto ({{done}}/4)",
+    "dashAllTeams": "Kaikki joukkueet",
+    "dashTeamScope": "Mistä joukkueesta nämä luvut ovat"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

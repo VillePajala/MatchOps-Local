@@ -180,3 +180,66 @@ describe('buildHomeSummary — recent strip', () => {
     expect(recent).toHaveLength(6);
   });
 });
+
+/**
+ * @critical - the owner runs one team per competition, so an unscoped Home
+ * added several squads together: a goal difference for teams that never played
+ * each other, and a top scorer who out-scored teammates he never had.
+ */
+describe('buildHomeSummary - scoped to one team', () => {
+  const games: SavedGamesCollection = {
+    a1: g({ teamId: 'teamA', gameDate: '2024-03-01', homeScore: 3, awayScore: 1 }),
+    a2: g({ teamId: 'teamA', gameDate: '2024-03-08', homeScore: 2, awayScore: 0 }),
+    b1: g({ teamId: 'teamB', gameDate: '2024-04-01', homeScore: 0, awayScore: 5 }),
+    old: g({ gameDate: '2024-04-05', homeScore: 1, awayScore: 1 }),
+  };
+
+  it('counts only that team when one is chosen', () => {
+    const { vuosi } = buildHomeSummary(games, { ...opts, teamFilter: 'teamA' });
+    expect(vuosi!.gamesPlayed).toBe(2);
+    expect(vuosi!.wins).toBe(2);
+    expect(vuosi!.goalsFor).toBe(5);
+    expect(vuosi!.goalsAgainst).toBe(1);
+  });
+
+  it('counts every team when none is chosen, as before', () => {
+    const { vuosi } = buildHomeSummary(games, { ...opts, teamFilter: 'all' });
+    expect(vuosi!.gamesPlayed).toBe(4);
+  });
+
+  it('defaults to every team when the caller says nothing', () => {
+    expect(buildHomeSummary(games, opts).vuosi!.gamesPlayed).toBe(4);
+  });
+
+  it('treats legacy as the games that name no team', () => {
+    const { vuosi } = buildHomeSummary(games, { ...opts, teamFilter: 'legacy' });
+    expect(vuosi!.gamesPlayed).toBe(1);
+    expect(vuosi!.ties).toBe(1);
+  });
+
+  it('scopes the recent strip to the same team, not just the record', () => {
+    const { recent } = buildHomeSummary(games, { ...opts, teamFilter: 'teamA' });
+    expect(recent).toHaveLength(2);
+    expect(recent.every((r) => ['a1', 'a2'].includes(r.id))).toBe(true);
+  });
+
+  /** A tile naming the wrong child is worse than a tile naming nobody. */
+  it('picks the top scorer from that team alone', () => {
+    const roster = [
+      { id: 'p1', name: 'Emma' },
+      { id: 'p2', name: 'Matti' },
+    ] as never;
+    const withGoals: SavedGamesCollection = {
+      a1: g({ teamId: 'teamA', gameDate: '2024-03-01', gameEvents: [
+        { id: 'e1', type: 'goal', time: 10, scorerId: 'p1' },
+      ] } as Partial<AppState>),
+      b1: g({ teamId: 'teamB', gameDate: '2024-03-02', gameEvents: [
+        { id: 'e2', type: 'goal', time: 10, scorerId: 'p2' },
+        { id: 'e3', type: 'goal', time: 20, scorerId: 'p2' },
+        { id: 'e4', type: 'goal', time: 30, scorerId: 'p2' },
+      ] } as Partial<AppState>),
+    };
+    const { topScorer } = buildHomeSummary(withGoals, { ...opts, teamFilter: 'teamA', roster });
+    expect(topScorer).toEqual({ name: 'Emma', goals: 1 });
+  });
+});

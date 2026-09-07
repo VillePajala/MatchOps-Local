@@ -32,6 +32,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import { useAuth } from '@/contexts/AuthProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting, getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { buildHomeSummary, type HomeSummary } from '@/utils/homeSummary';
+import { readHomeTeamScope, writeHomeTeamScope, resolveHomeTeamScope, mostRecentTeamId } from '@/utils/homeTeamScope';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import { shouldAutoResumeOnLaunch } from '@/utils/launchResume';
 import type { GameType } from '@/types/game';
@@ -110,6 +112,31 @@ export default function Home() {
   const [hasTeamLinkedGame, setHasTeamLinkedGame] = useState(false);
   // Home dashboard (opt-in): the view preference + the computed Pelit-tab summary.
   const [homeSummary, setHomeSummary] = useState<HomeSummary | null>(null);
+  /**
+   * Which team Home is about. Kept here because it decides what the dashboard
+   * numbers mean, and the summary has to be rebuilt when it changes.
+   */
+  const [teamScope, setTeamScope] = useState<string>('all');
+  const [teamScopeOptions, setTeamScopeOptions] = useState<Array<{ id: string; name: string }>>([]);
+  /** The last inputs the summary was built from, so a scope change can reuse them. */
+  const homeSummaryInputsRef = useRef<Parameters<typeof buildHomeSummary> | null>(null);
+  /** Mirrors teamScope for the async load, which closes over its own scope. */
+  const teamScopeRef = useRef<string>('all');
+
+  /**
+   * Switching team re-derives the dashboard from the inputs already read, so
+   * the numbers change without another trip to storage.
+   */
+  const handleTeamScopeChange = useCallback((scope: string) => {
+    teamScopeRef.current = scope;
+    setTeamScope(scope);
+    writeHomeTeamScope(scope);
+    const prev = homeSummaryInputsRef.current;
+    if (!prev) return;
+    const next: Parameters<typeof buildHomeSummary> = [prev[0], { ...prev[1], teamFilter: scope }];
+    homeSummaryInputsRef.current = next;
+    setHomeSummary(buildHomeSummary(...next));
+  }, []);
   const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -248,6 +275,32 @@ export default function Home() {
   // Joukkue/Kaudet/Tilastot tabs; the || form locked them out of Home.
   const isFirstTimeUser = !hasPlayers && !hasSavedGames;
 
+  /**
+   * Re-derive the team scope and the dashboard from a fresh read.
+   *
+   * Shared by the initial load and by the refresh that runs when a setup modal
+   * closes. Without the second caller, renaming or deleting a team left the
+   * pills and the numbers stale until the coach navigated back into Home -
+   * including the deleted-team case this is meant to prevent.
+   */
+  const applyTeamScope = useCallback((
+    games: Awaited<ReturnType<typeof getSavedGames>>,
+    teamsList: Array<{ id: string; name: string }>,
+    rest: Omit<Parameters<typeof buildHomeSummary>[1], 'teamFilter'>,
+  ) => {
+    const scope = resolveHomeTeamScope(
+      readHomeTeamScope(),
+      teamsList.map((team) => team.id),
+      mostRecentTeamId(games, DEFAULT_GAME_ID),
+    );
+    teamScopeRef.current = scope;
+    setTeamScope(scope);
+    setTeamScopeOptions(teamsList.map((team) => ({ id: team.id, name: team.name })));
+    const args: Parameters<typeof buildHomeSummary> = [games, { ...rest, teamFilter: scope }];
+    homeSummaryInputsRef.current = args;
+    setHomeSummary(buildHomeSummary(...args));
+  }, []);
+
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
     // Consume the "first check" slot once per page load (boot / WebView recreation),
@@ -323,13 +376,16 @@ export default function Home() {
         homeSettings = await getAppSettings(userId);
         // Dashboard is the default; only an explicit 'simple' preference opts out.
         setHomeView(homeSettings.homeView === 'simple' ? 'simple' : 'dashboard');
-        setHomeSummary(buildHomeSummary(games, {
+        const firstArgs: Parameters<typeof buildHomeSummary> = [games, {
           today,
           clubSeasonStartDate: homeSettings.clubSeasonStartDate,
           clubSeasonEndDate: homeSettings.clubSeasonEndDate,
           hasConfiguredSeasonDates: homeSettings.hasConfiguredSeasonDates,
           currentGameId: resolvedCurrentId,
-        }));
+          teamFilter: teamScopeRef.current,
+        }];
+        homeSummaryInputsRef.current = firstArgs;
+        setHomeSummary(buildHomeSummary(...firstArgs));
       } catch (summaryErr) {
         logger.warn('Failed to build home summary', { error: summaryErr });
       }
@@ -359,7 +415,7 @@ export default function Home() {
           // checkAppState call; single-tab usage means no interleave race in
           // practice (a stale enrichment would at worst show counts a beat old).
           if (homeSettings) {
-            setHomeSummary(buildHomeSummary(games, {
+            applyTeamScope(games, teamsList, {
               today,
               clubSeasonStartDate: homeSettings.clubSeasonStartDate,
               clubSeasonEndDate: homeSettings.clubSeasonEndDate,
@@ -370,7 +426,7 @@ export default function Home() {
               personnelCount: personnel.length,
               seasonsCount: seasonsList.length,
               tournamentsCount: tournamentsList.length,
-            }));
+            })
           }
         })
         .catch((setupErr) => logger.warn('Failed to compute recommended-setup signals', { error: setupErr }));
@@ -385,7 +441,7 @@ export default function Home() {
     } finally {
       setIsCheckingState(false);
     }
-  }, [userId, setAction]);
+  }, [userId, setAction, applyTeamScope]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
@@ -396,14 +452,18 @@ export default function Home() {
   // players -> the account is no longer "first-time", but the tour still needs
   // hasTeam / hasTeamLinkedGame to refresh so its later steps auto-advance), and
   // the Start Screen recommended-setup card wants fresh signals too.
+
   const refreshSetupSignals = useCallback(async () => {
     try {
-      const [roster, games, seasonsList, tournamentsList, teamsList] = await Promise.all([
+      const [roster, games, seasonsList, tournamentsList, teamsList, personnel] = await Promise.all([
         getMasterRoster(userId),
         getSavedGames(userId),
         getSeasons(userId),
         getTournaments(userId),
         getTeams(userId),
+        // Read here too: this refresh also runs after the personnel manager
+        // closes, and the dashboard counts every entity, not only teams.
+        getAllPersonnel(userId),
       ]);
       setHasPlayers(roster.length > 0);
       setHasCompetition(seasonsList.length > 0 || tournamentsList.length > 0);
@@ -413,10 +473,25 @@ export default function Home() {
           (g) => !!g?.teamId && g.teamId !== '' && g.teamId !== 'External'
         )
       );
+      // Teams may have been renamed, added or deleted in the modal that just
+      // closed, so the pills and the numbers have to follow. Every count, not
+      // just teams: this same path runs after managing seasons, tournaments and
+      // personnel, and leaving those stale is the staleness this set out to end.
+      const prev = homeSummaryInputsRef.current;
+      if (prev) {
+        applyTeamScope(games, teamsList, {
+          ...prev[1],
+          roster,
+          teamsCount: teamsList.length,
+          seasonsCount: seasonsList.length,
+          tournamentsCount: tournamentsList.length,
+          personnelCount: personnel.length,
+        });
+      }
     } catch (err) {
       logger.warn('Failed to refresh setup signals', { error: err });
     }
-  }, [userId]);
+  }, [userId, applyTeamScope]);
 
   // 3.1: hardware back mirrors "Koti" - with the match on screen and no
   // modal open, back returns to Home instead of leaving the app. Registered
@@ -1633,6 +1708,9 @@ export default function Home() {
               isCloudAvailable={isCloudAvailable()}
               homeView={homeView}
               homeSummary={homeSummary}
+              teamScopeOptions={teamScopeOptions}
+              teamScope={teamScope}
+              onTeamScopeChange={handleTeamScopeChange}
               onSetHomeView={handleSetHomeView}
               onOpenGameById={handleOpenGameById}
               onSetupModalsClosed={refreshSetupSignals}
