@@ -846,7 +846,7 @@
     "homeTeamNameRequired": "Home Team Name is required.",
     "opponentNameRequired": "Opponent Name is required.",
     "invalidPeriodDuration": "Period duration must be a positive number.",
-    "customLeagueNameRequired": "Please enter a custom league name.",
+    "customLeagueNameRequired": "Please enter the other league name.",
     "loadingData": "Loading setup data...",
     "homeTeamName": "Your Team Name",
     "homeTeamPlaceholder": "e.g., Galaxy U10",
@@ -1290,8 +1290,8 @@
       "duplicateName": "A league with this name already exists. Please choose a different name.",
       "createFailed": "Failed to create league. Please try again.",
       "updateFailed": "Failed to update league. Please try again.",
-      "customLeagueTooShort": "Custom league name must be at least 2 characters.",
-      "customLeagueRequired": "Please enter a custom league name or select a different league."
+      "customLeagueTooShort": "The league name must be at least 2 characters.",
+      "customLeagueRequired": "Please enter the other league name or pick a different league."
     },
     "title": "League Details",
     "clubSeasonLabel": "Season",
@@ -2148,7 +2148,7 @@
         "playerRosters": "Player rosters and information",
         "gameRecords": "Game records and statistics",
         "settings": "Settings and preferences",
-        "seasonData": "Season and tournament data",
+        "seasonData": "League and tournament data",
         "personnelInfo": "Personnel information (names, roles, contact details if you choose to enter them)"
       },
       "localDataNote": "This on-device copy is protected by your device and is not directly accessible to us. The synced copy is stored in your private cloud account (see Cloud Sync below).",
@@ -2298,7 +2298,7 @@
         "trackTime": "Track game time and scores",
         "manageRosters": "Manage player rosters",
         "recordStats": "Record player statistics",
-        "organizeSeasons": "Organize seasons and tournaments"
+        "organizeSeasons": "Organize leagues and tournaments"
       },
       "note": "Your data is stored in your private cloud account and cached on your device for offline use."
     },
@@ -2385,7 +2385,7 @@
       "intro": "We may introduce paid subscription plans in the future. If offered, paid features may include:",
       "features": {
         "cloudSync": "Cloud Sync: Access your data across multiple devices",
-        "unlimitedEntities": "Unlimited players, teams, seasons, and tournaments",
+        "unlimitedEntities": "Unlimited players, teams, leagues, and tournaments",
         "prioritySupport": "Priority support"
       },
       "billing": "If paid subscriptions are introduced, they will be billed through Google Play Store. See Google Play's terms for billing, cancellation, and refund policies.",
@@ -2453,8 +2453,8 @@
       "teamPlural": "teams",
       "player": "player",
       "playerPlural": "players",
-      "season": "season",
-      "seasonPlural": "seasons",
+      "season": "league",
+      "seasonPlural": "leagues",
       "tournament": "tournament",
       "tournamentPlural": "tournaments",
       "game": "game",
@@ -2464,7 +2464,7 @@
     "benefit": {
       "unlimitedTeams": "Unlimited teams",
       "unlimitedPlayers": "Unlimited players",
-      "unlimitedSeasons": "Unlimited seasons & tournaments",
+      "unlimitedSeasons": "Unlimited leagues & tournaments",
       "unlimitedGames": "Unlimited games per competition"
     },
     "oneTimePayment": "one-time payment",

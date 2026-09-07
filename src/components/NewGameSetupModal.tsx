@@ -672,7 +672,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
     // Validate custom league name when "Muu" is selected
     if (leagueId === CUSTOM_LEAGUE_ID && !customLeagueName.trim()) {
-        setCustomLeagueError(t('newGameSetupModal.customLeagueNameRequired', 'Please enter a custom league name.'));
+        setCustomLeagueError(t('newGameSetupModal.customLeagueNameRequired', 'Please enter the other league name.'));
         return;
     }
 

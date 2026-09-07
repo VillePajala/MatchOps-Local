@@ -156,11 +156,11 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
     const trimmedCustomLeague = customLeagueName.trim();
     if (leagueId === CUSTOM_LEAGUE_ID) {
       if (trimmedCustomLeague.length === 0) {
-        setErrorMessage(t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter a custom league name or select a different league.'));
+        setErrorMessage(t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter the other league name or pick a different league.'));
         return;
       }
       if (trimmedCustomLeague.length < 2) {
-        setErrorMessage(t('seasonDetailsModal.errors.customLeagueTooShort', 'Custom league name must be at least 2 characters.'));
+        setErrorMessage(t('seasonDetailsModal.errors.customLeagueTooShort', 'The league name must be at least 2 characters.'));
         return;
       }
     }

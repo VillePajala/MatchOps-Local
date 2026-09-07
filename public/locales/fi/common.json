@@ -861,7 +861,7 @@
     "homeTeamNameRequired": "Kotijoukkueen nimi on pakollinen.",
     "opponentNameRequired": "Vastustajan nimi on pakollinen.",
     "invalidPeriodDuration": "Jakson keston on oltava positiivinen luku.",
-    "customLeagueNameRequired": "Anna mukautetun sarjan nimi.",
+    "customLeagueNameRequired": "Anna muun sarjan nimi.",
     "loadingData": "Ladataan tietoja...",
     "homeTeamName": "Joukkueesi nimi",
     "homeTeamPlaceholder": "esim. Galaxy U10",
@@ -1182,8 +1182,8 @@
       "duplicateName": "Sarja tällä nimellä on jo olemassa. Valitse eri nimi.",
       "createFailed": "Sarjan luominen epäonnistui. Yritä uudelleen.",
       "updateFailed": "Sarjan päivittäminen epäonnistui. Yritä uudelleen.",
-      "customLeagueTooShort": "Oman sarjan nimen tulee olla vähintään 2 merkkiä.",
-      "customLeagueRequired": "Kirjoita sarjan nimi tai valitse eri sarja."
+      "customLeagueTooShort": "Sarjan nimen tulee olla vähintään 2 merkkiä.",
+      "customLeagueRequired": "Kirjoita muun sarjan nimi tai valitse toinen sarja."
     },
     "seasonDatesNotConfigured": "Seurakauden päivämääriä ei ole määritetty",
     "configureInSettings": "Määritä asetuksissa laskeaksesi seurakaudet oikein."
@@ -2148,7 +2148,7 @@
         "playerRosters": "Pelaajalistat ja -tiedot",
         "gameRecords": "Pelitallenteet ja tilastot",
         "settings": "Asetukset ja mieltymykset",
-        "seasonData": "Kausi- ja turnaustiedot",
+        "seasonData": "Sarja- ja turnaustiedot",
         "personnelInfo": "Henkilöstötiedot (nimet, roolit, yhteystiedot jos valitset syöttää ne)"
       },
       "localDataNote": "Tämä laitteella oleva kopio on laitteesi suojaama, eikä se ole suoraan meidän käytettävissämme. Synkronoitu kopio tallennetaan yksityiselle pilvitilillesi (katso Pilvisynkronointi alla).",
@@ -2298,7 +2298,7 @@
         "trackTime": "Seuraamaan peliaikaa ja tuloksia",
         "manageRosters": "Hallitsemaan pelaajalistoja",
         "recordStats": "Tallentamaan pelaajatilastoja",
-        "organizeSeasons": "Järjestämään kausia ja turnauksia"
+        "organizeSeasons": "Järjestämään sarjoja ja turnauksia"
       },
       "note": "Tietosi tallennetaan yksityiselle pilvitilillesi ja välimuistiin laitteellesi offline-käyttöä varten."
     },
@@ -2385,7 +2385,7 @@
       "intro": "Saatamme tulevaisuudessa ottaa käyttöön maksullisia tilaussuunnitelmia. Jos niitä tarjotaan, maksulliset ominaisuudet voivat sisältää:",
       "features": {
         "cloudSync": "Pilvisynkronointi: Pääsy tietoihisi useilta laitteilta",
-        "unlimitedEntities": "Rajattomat pelaajat, joukkueet, kaudet ja turnaukset",
+        "unlimitedEntities": "Rajattomat pelaajat, joukkueet, sarjat ja turnaukset",
         "prioritySupport": "Ensisijainen tuki"
       },
       "billing": "Jos maksullisia tilauksia otetaan käyttöön, ne laskutetaan Google Play Kaupan kautta. Katso Google Playn ehdot laskutuksesta, peruutuksesta ja hyvityksistä.",
@@ -2502,7 +2502,7 @@
     "statusGrace": "Lisäaika",
     "statusExpired": "Päättynyt",
     "statusNone": "Ei tilausta",
-    "periodEnds": "Sarja päättyy: {{date}}",
+    "periodEnds": "Tilauskausi päättyy: {{date}}",
     "graceEnds": "Lisäaika päättyy: {{date}}"
   },
   "playBilling": {
