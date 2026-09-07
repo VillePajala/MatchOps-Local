@@ -425,6 +425,12 @@ describe('Translation File Validation', () => {
       // +1: controlBar.formationMenu - the formation picker's accessible name
       //     ('Muodostelmavalikko'), unifying the control's four names (audit
       //     6.1). Lands at 2847.
+      // Stats filter panel: the redesigned bar added filters/filtersApply/
+      //     filtersClear and dropped the keys only the old control used
+      //     (filtersButton, filtersTitle, clearFilters); +1 common.all, which
+      //     the Sport/Gender "All" options had been reading from a fallback with
+      //     no key behind it (Finnish saw English); -1 common.genderAll, which
+      //     only the old control used. Net 0 over master. Lands at 2855.
       expect(enKeys.length).toBe(2855);
     });
 
@@ -555,6 +561,12 @@ describe('Translation File Validation', () => {
       //     off its own kind-scoped managerTitle; net branch count lands at 2855.
       // -1: auth.errors.passwordTooWeak removed - the 3-of-4 password composition
       //     rule was deleted (funnel Phase 1), so the message is no longer thrown.
+      // Stats filter panel: the redesigned bar added filters/filtersApply/
+      //     filtersClear and dropped the keys only the old control used
+      //     (filtersButton, filtersTitle, clearFilters); +1 common.all, which
+      //     the Sport/Gender "All" options had been reading from a fallback with
+      //     no key behind it (Finnish saw English); -1 common.genderAll, which
+      //     only the old control used. Net 0 over master. Lands at 2855.
       expect(fiKeys.length).toBe(2855);
     });
   });

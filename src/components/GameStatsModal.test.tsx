@@ -530,8 +530,9 @@ describe('GameStatsModal', () => {
 
     // Switch to Season tab and check for season-specific elements
     fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') }));
+    // Filters live behind one bar now, so open it before looking for them.
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
     await waitFor(() => {
-      // With game type filter, we now have multiple comboboxes
       expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
       // Check for the fallback text since translations might not be loaded in tests
       // Use getAllByText since it appears in both the dropdown and heading
@@ -540,11 +541,10 @@ describe('GameStatsModal', () => {
     });
 
     // Switch to Tournament tab and check for tournament-specific elements
-    // Note: Tournament tab uses CollapsibleFilters with tournament dropdown visible by default
     fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
 
     await waitFor(() => {
-      // Tournament dropdown is visible by default (not behind collapsible)
       expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
       // Check for the fallback text since translations might not be loaded in tests
       // "All Tournaments" appears in the dropdown and potentially in the stats heading
@@ -741,11 +741,12 @@ describe('GameStatsModal', () => {
         fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.tournament') }));
       });
 
-      // Wait for tournament stats to render
-      // Tournament dropdown is visible by default (not behind collapsible)
+      // The tournament picker lives behind the filter bar now.
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('stats-filter-bar'));
+      });
       await waitFor(
         () => {
-          // The tournament should appear in the visible filter dropdown
           const tournamentElements = screen.getAllByText('Championship Cup');
           expect(tournamentElements.length).toBeGreaterThan(0);
         },

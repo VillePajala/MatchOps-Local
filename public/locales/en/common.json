@@ -373,7 +373,6 @@
     "genderBoys": "Boys",
     "genderGirls": "Girls",
     "genderLabel": "Gender",
-    "genderAll": "All Genders",
     "genderNotSet": "Not Set",
     "selectAgeGroup": "-- Select Age Group --",
     "selectLevel": "-- Select Level --",
@@ -413,7 +412,8 @@
     "continue": "Continue",
     "backButton": "Back",
     "next": "Next",
-    "futsal": "Futsal"
+    "futsal": "Futsal",
+    "all": "All"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -489,9 +489,6 @@
     "filterAllTournaments": "All Tournaments",
     "filterAllSeries": "All Levels",
     "filterAllGameTypes": "All Sports",
-    "filtersButton": "Filters",
-    "filtersTitle": "Filter Options",
-    "clearFilters": "Clear all",
     "activeFiltersHint": "Active filters",
     "seasonFilterLabel": "League",
     "tournamentFilterLabel": "Tournament",
@@ -537,7 +534,10 @@
     "noSeasonGames": "No games found for this league.",
     "noTournamentGames": "No games found for this tournament.",
     "noGoals": "No goals recorded.",
-    "deleteEventFailed": "Failed to delete the event. Please try again."
+    "deleteEventFailed": "Failed to delete the event. Please try again.",
+    "filters": "Filters",
+    "filtersApply": "Apply",
+    "filtersClear": "Clear"
   },
   "importResults": {
     "title": "Import Results",
