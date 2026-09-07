@@ -618,7 +618,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                               : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                           }`}
                         >
-                          {t('gameSettingsModal.kausi', 'Season')}
+                          {t('gameSettingsModal.kausi', 'League')}
                         </button>
                         <button
                           type="button"
@@ -641,7 +641,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             onChange={(e) => handleSeasonChange(e.target.value)}
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
-                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
+                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select League --')}</option>
                             {sortedSeasons.map((s) => (
                               <option key={s.id} value={s.id}>
                                 {getSeasonDisplayName(s)}
@@ -673,7 +673,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       {activeTab === 'tournament' && boundTournamentId && selectedTournament?.series && selectedTournament.series.length > 0 && (
                         <div className="mb-3">
                           <label htmlFor="boundTournamentSeriesSelect" className="block text-xs font-medium text-slate-400 mb-1">
-                            {t('teamDetailsModal.seriesLabel', 'Series')}
+                            {t('teamDetailsModal.seriesLabel', 'Level')}
                           </label>
                           <select
                             id="boundTournamentSeriesSelect"
@@ -681,7 +681,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             onChange={(e) => setBoundTournamentSeriesId(e.target.value)}
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           >
-                            <option value="">{t('teamDetailsModal.selectSeries', '-- Select Series --')}</option>
+                            <option value="">{t('teamDetailsModal.selectSeries', '-- Select level --')}</option>
                             {selectedTournament.series.map((series) => (
                               <option key={series.id} value={series.id}>
                                 {t(`common.level${series.level}`, series.level)}
@@ -750,7 +750,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     {teamId && (teamHistory.tournaments.length > 0 || teamHistory.seasons.length > 0) && (
                       <div className="mt-2">
                         <label className="block text-sm font-medium text-slate-300 mb-2">
-                          {t('unifiedTeamModal.placementsTitle', 'Tournament & Season Placements')} ({teamHistory.tournaments.length + teamHistory.seasons.length})
+                          {t('unifiedTeamModal.placementsTitle', 'Tournament & League Placements')} ({teamHistory.tournaments.length + teamHistory.seasons.length})
                         </label>
 
                         <div className="space-y-3">

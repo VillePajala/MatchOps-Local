@@ -369,6 +369,325 @@ describe('External game cards styling', () => {
   });
 });
 
+/**
+ * Correcting an existing entry.
+ *
+ * @critical - every external game recorded before this feature has no team on
+ * it, so the edit form is the only way to say that one of them was in fact
+ * your own team's match.
+ */
+describe('PlayerStatsView - editing which team an external game was for', () => {
+  const myTeam = { id: 'teamA', name: 'FC Oma' } as never;
+  const existing = {
+    id: 'adj-1',
+    playerId: 'player-1',
+    teamId: 'teamA',
+    externalTeamName: 'FC Oma',
+    opponentName: 'Vastus',
+    gamesPlayedDelta: 1,
+    goalsDelta: 0,
+    assistsDelta: 0,
+    appliedAt: '2024-12-02T00:00:00Z',
+  };
+
+  const openEditForm = async () => {
+    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('External Games'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Actions'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Edit'));
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([existing]);
+  });
+
+  it('opens showing the team the game is already recorded against', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openEditForm();
+    expect((screen.getByTestId('edit-team-select') as HTMLSelectElement).value).toBe('teamA');
+  });
+
+  /**
+   * @critical - this path exists to correct entries made before the question
+   * was asked, so picking a team here has to fill the rest in exactly as the
+   * add form does. Otherwise the coach retypes what the app already knows.
+   */
+  it('fills in the team details when correcting an old entry', async () => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([
+      { ...existing, teamId: undefined, externalTeamName: 'Joku muu' },
+    ]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[{ id: 'teamA', name: 'FC Oma', boundSeasonId: 'season-1' } as never]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja' } as never]}
+      />,
+    );
+    await openEditForm();
+
+    fireEvent.change(screen.getByTestId('edit-team-select'), { target: { value: 'teamA' } });
+
+    await waitFor(() =>
+      expect((screen.getByTestId('edit-external-team') as HTMLInputElement).value).toBe('FC Oma'),
+    );
+  });
+});
+
+/**
+ * Saying which team an external game was for.
+ *
+ * @critical - this is the only thing that separates "my team played and I
+ * could not track it" from "he guested for another team". Without it the app
+ * has to guess, and any guess is wrong for one of those.
+ */
+describe('PlayerStatsView - which team was this external game for', () => {
+  const myTeam = { id: 'teamA', name: 'FC Oma', boundSeasonId: 'season-1' } as never;
+
+  const openAddForm = async () => {
+    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('External Games'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('add-external-game'));
+    });
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue([]);
+  });
+
+  it('defaults to another team, because that is the common case', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openAddForm();
+    expect((screen.getByTestId('adj-team-select') as HTMLSelectElement).value).toBe('');
+  });
+
+  it('offers the coach own teams alongside it', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openAddForm();
+    expect(screen.getByRole('option', { name: 'FC Oma' })).toBeInTheDocument();
+  });
+
+  it('saves the team so the game can count toward it', async () => {
+    const { addPlayerAdjustment } = require('@/utils/playerAdjustments');
+    addPlayerAdjustment.mockResolvedValue({ id: 'new', playerId: player.id, gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-12-02T00:00:00Z' });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openAddForm();
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    fireEvent.change(screen.getByPlaceholderText('Opponent name'), { target: { value: 'Vastus' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('save-external-game'));
+    });
+
+    expect(addPlayerAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: 'teamA' }),
+      undefined,
+    );
+  });
+
+  it('carries the team own competition across, the way new game setup does', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} seasons={[{ id: 'season-1', name: 'Aluesarja' } as never]} />);
+    await openAddForm();
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    // The team is bound to a season, so the season comes with it.
+    await waitFor(() =>
+      expect((screen.getByTestId('adj-season-select') as HTMLSelectElement).value).toBe('season-1'),
+    );
+  });
+
+  /**
+   * @critical - leaving the team's name in the box under "another team"
+   * describes a game that did not happen, and the coach has to remember to
+   * clear it.
+   */
+  it('undoes what the team filled in when you change your mind back', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} seasons={[{ id: 'season-1', name: 'Aluesarja' } as never]} />);
+    await openAddForm();
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() =>
+      expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('FC Oma'),
+    );
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+
+    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('');
+    expect(screen.queryByTestId('adj-season-select')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - team A is bound to a season, team B is bound to nothing.
+   * Switching A to B used to leave A's season in place, describing B's game as
+   * played in a competition it had nothing to do with. New game setup still
+   * has this gap; this deliberately does not inherit it.
+   */
+  it('does not leave one team competition on another team game', async () => {
+    const unbound = { id: 'teamB', name: 'FC Toinen' } as never;
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{}}
+        teams={[myTeam, unbound]}
+        seasons={[{ id: 'season-1', name: 'Aluesarja' } as never]}
+      />,
+    );
+    await openAddForm();
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamA' } });
+    await waitFor(() => expect(screen.getByTestId('adj-season-select')).toBeInTheDocument());
+
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: 'teamB' } });
+    expect(screen.queryByTestId('adj-season-select')).not.toBeInTheDocument();
+    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('FC Toinen');
+  });
+
+  it('keeps a name the coach typed when switching to another team', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openAddForm();
+
+    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'Alue-joukkue' } });
+    fireEvent.change(screen.getByTestId('adj-team-select'), { target: { value: '' } });
+
+    // Nothing of ours to undo, so their own words survive.
+    expect((screen.getByPlaceholderText('External team') as HTMLInputElement).value).toBe('Alue-joukkue');
+  });
+
+  it('sends no team when the game was for somebody else', async () => {
+    const { addPlayerAdjustment } = require('@/utils/playerAdjustments');
+    addPlayerAdjustment.mockResolvedValue({ id: 'new', playerId: player.id, gamesPlayedDelta: 1, goalsDelta: 0, assistsDelta: 0, appliedAt: '2024-12-02T00:00:00Z' });
+    render(<PlayerStatsView {...baseProps} savedGames={{}} teams={[myTeam]} />);
+    await openAddForm();
+
+    fireEvent.change(screen.getByPlaceholderText('External team'), { target: { value: 'Alue-joukkue' } });
+    fireEvent.change(screen.getByPlaceholderText('Opponent name'), { target: { value: 'Vastus' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('save-external-game'));
+    });
+
+    expect(addPlayerAdjustment).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: undefined }),
+      undefined,
+    );
+  });
+});
+
+/**
+ * @critical - the wiring, not the rule.
+ *
+ * Two of the four review rounds on this fix were the same shape: the rule was
+ * right and the component was not handed what it needed to apply it. Pure and
+ * hook-level tests could not see either. These render the component.
+ */
+describe('PlayerStatsView - external games respect the filters on screen', () => {
+  const teamGame = createGame({
+    teamId: 'teamA',
+    gameDate: '2024-12-01',
+    selectedPlayerIds: [player.id],
+  } as Partial<AppState>);
+
+  const external = (over: Record<string, unknown> = {}) => ({
+    id: `adj-${Math.random()}`,
+    playerId: player.id,
+    gamesPlayedDelta: 1,
+    goalsDelta: 0,
+    assistsDelta: 0,
+    appliedAt: '2024-12-02T00:00:00Z',
+    ...over,
+  });
+
+  const setAdjustments = (list: unknown[]) => {
+    const { getAdjustmentsForPlayer } = require('@/utils/playerAdjustments');
+    getAdjustmentsForPlayer.mockResolvedValue(list);
+  };
+
+  const gamesPlayedShown = async (): Promise<string> => {
+    const label = await screen.findByText('Games Played');
+    return label.previousElementSibling?.textContent ?? '';
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('counts an external game recorded against the selected team', async () => {
+    setAdjustments([external({ teamId: 'teamA' })]);
+    render(<PlayerStatsView {...baseProps} savedGames={{ g1: teamGame }} teamId="teamA" />);
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('2'));
+  });
+
+  it('leaves out one played for another team', async () => {
+    setAdjustments([external({ teamId: 'teamB' })]);
+    render(<PlayerStatsView {...baseProps} savedGames={{ g1: teamGame }} teamId="teamA" />);
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('1'));
+  });
+
+  /** The gap the review found: the table dropped these, this view kept them. */
+  it('leaves out every external game once a sport is chosen', async () => {
+    setAdjustments([external({ teamId: 'teamA' })]);
+    render(
+      <PlayerStatsView
+        {...baseProps}
+        savedGames={{ g1: teamGame }}
+        teamId="teamA"
+        selectedGameTypeFilter="soccer"
+      />,
+    );
+    // The team game itself is soccer and still counts; the external one cannot
+    // be shown to be soccer, so it does not.
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('1'));
+  });
+
+  /**
+   * @critical - the list is captioned "added to totals". Once a filter starts
+   * excluding some of them that caption is a lie, and a list disagreeing with
+   * its own numbers is the exact fault this change exists to fix. Every game
+   * stays visible and editable; the uncounted ones say so.
+   */
+  it('marks the external games a filter has excluded, rather than hiding or miscounting them', async () => {
+    setAdjustments([external({ teamId: 'teamA' }), external({ teamId: 'teamB' })]);
+    render(<PlayerStatsView {...baseProps} savedGames={{ g1: teamGame }} teamId="teamA" />);
+
+    await waitFor(() => expect(screen.getByText('External Games')).toBeInTheDocument());
+    await act(async () => {
+      fireEvent.click(screen.getByText('External Games'));
+    });
+
+    // Both are still listed, so neither looks lost and both stay editable.
+    await waitFor(() => {
+      expect(screen.getAllByTestId('external-game-counted')).toHaveLength(1);
+      expect(screen.getAllByTestId('external-game-uncounted')).toHaveLength(1);
+    });
+    // ...and the total counts only the one that belongs, plus the team game.
+    expect(await gamesPlayedShown()).toBe('2');
+  });
+
+  it('under Legacy Games, counts only what names no team', async () => {
+    setAdjustments([external({ teamId: 'teamA' }), external({})]);
+    const legacyGame = createGame({
+      gameDate: '2024-12-01',
+      selectedPlayerIds: [player.id],
+    } as Partial<AppState>);
+    render(
+      <PlayerStatsView {...baseProps} savedGames={{ g1: legacyGame }} teamId="legacy" />,
+    );
+    await waitFor(async () => expect(await gamesPlayedShown()).toBe('2'));
+  });
+});
+
 describe('PlayerStatsView Kirjuri notes', () => {
   it('lists notes about the player across games, newest game first, never other players', async () => {
     const savedGames = {

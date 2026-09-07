@@ -164,7 +164,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
         )}
       </div>
       <div className="text-xs text-indigo-200/70 mt-1 tabular-nums">
-        {counts.seasons} {t('startScreen.dashSeasons', 'seasons')} · {counts.tournaments} {t('startScreen.dashTournaments', 'tournaments')}
+        {counts.seasons} {t('startScreen.dashSeasons', 'leagues')} · {counts.tournaments} {t('startScreen.dashTournaments', 'tournaments')}
       </div>
     </button>
   );

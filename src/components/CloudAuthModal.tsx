@@ -480,7 +480,7 @@ const CloudAuthModal: React.FC<CloudAuthModalProps> = ({
               <ul className="text-sm text-amber-300 space-y-1 ml-4">
                 <li>&bull; {t('cloudAuth.confirm.allGames', 'All games and game data')}</li>
                 <li>&bull; {t('cloudAuth.confirm.allPlayers', 'All players and rosters')}</li>
-                <li>&bull; {t('cloudAuth.confirm.allOther', 'All seasons, tournaments, and settings')}</li>
+                <li>&bull; {t('cloudAuth.confirm.allOther', 'All leagues, tournaments, and settings')}</li>
               </ul>
               <p className="text-amber-200 mt-3 font-medium">
                 {t('cloudAuth.confirm.cannotUndo', 'This action cannot be undone.')}

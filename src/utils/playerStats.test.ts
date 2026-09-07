@@ -414,3 +414,87 @@ describe('calculatePlayerStats', () => {
     });
   });
 });
+
+/**
+ * @critical - a coach reported 19 games for a team that had played 7. External
+ * games recorded by hand were being counted toward whichever team was
+ * selected, whether or not they were played for it.
+ */
+describe('calculatePlayerStats - external games belong to the team they were played for', () => {
+  const player: Player = { id: 'p1', name: 'John' } as Player;
+  const seasons: Season[] = [];
+  const tournaments: Tournament[] = [];
+
+  const teamGame = {
+    teamId: 'teamA',
+    gameDate: '2024-03-01',
+    selectedPlayerIds: ['p1'],
+    gameEvents: [],
+    isPlayed: true,
+  } as unknown as AppState;
+
+  const adj = (over: Partial<PlayerStatAdjustment>): PlayerStatAdjustment =>
+    ({
+      id: 'a1',
+      playerId: 'p1',
+      gamesPlayedDelta: 1,
+      goalsDelta: 0,
+      assistsDelta: 0,
+      appliedAt: '2024-03-02T00:00:00Z',
+      ...over,
+    }) as PlayerStatAdjustment;
+
+  it('counts an external game recorded against the selected team', () => {
+    const stats = calculatePlayerStats(
+      player, { g: teamGame }, seasons, tournaments, [adj({ teamId: 'teamA' })], 'teamA',
+    );
+    expect(stats.totalGames).toBe(2);
+  });
+
+  it('leaves out an external game played for another team', () => {
+    const stats = calculatePlayerStats(
+      player, { g: teamGame }, seasons, tournaments, [adj({ teamId: 'teamB' })], 'teamA',
+    );
+    expect(stats.totalGames).toBe(1);
+  });
+
+  /**
+   * The one that produced the wrong number. An adjustment with no team on it
+   * cannot be shown to belong to this team, so it is not counted toward it.
+   */
+  it('leaves out an external game that names no team at all', () => {
+    const stats = calculatePlayerStats(
+      player, { g: teamGame }, seasons, tournaments, [adj({})], 'teamA',
+    );
+    expect(stats.totalGames).toBe(1);
+  });
+
+  /**
+   * @critical - "Legacy Games" is a scope of its own: the games that name no
+   * team. The table already understood it; the drill-down did not, so opening
+   * a player from that table showed every team's games and contradicted the
+   * row that had just been tapped.
+   */
+  it('under Legacy Games, counts only what names no team', () => {
+    const legacyGame = { ...teamGame, teamId: undefined } as unknown as AppState;
+    const stats = calculatePlayerStats(
+      player,
+      { legacy: legacyGame, teamed: teamGame },
+      seasons,
+      tournaments,
+      [adj({ id: 'a1', teamId: 'teamA' }), adj({ id: 'a2' })],
+      'legacy',
+    );
+    // One untagged game and one untagged external game; nothing of team A's.
+    expect(stats.totalGames).toBe(2);
+  });
+
+  it('still counts every external game when no team is selected', () => {
+    const stats = calculatePlayerStats(
+      player, { g: teamGame }, seasons, tournaments,
+      [adj({ id: 'a1', teamId: 'teamB' }), adj({ id: 'a2' })],
+    );
+    // The player really did play them; they just are not team A's.
+    expect(stats.totalGames).toBe(3);
+  });
+});

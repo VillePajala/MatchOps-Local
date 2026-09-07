@@ -5,11 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useDataStore } from '@/hooks/useDataStore';
 import type { TranslationKey } from '@/i18n-types';
-import { Player, Season, Tournament } from '@/types';
+import { Player, Season, Tournament, Team } from '@/types';
 import { AppState } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/playerStats';
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
+import { adjustmentInScope } from '@/utils/adjustmentScope';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { PlayerStatAdjustment } from '@/types';
 import { calculatePlayerDevelopment, getPlayerAssessmentTrends, getPlayerAssessmentNotes, type TrendDirection, type AssessmentScope } from '@/utils/assessmentStats';
@@ -53,9 +54,15 @@ interface PlayerStatsViewProps {
   includeFriendlies?: boolean;
   /** Full roster: only needed so other children named in a note are redacted too. */
   masterRoster?: Player[];
+  /**
+   * The coach's own teams. An external game can name one of them - the match
+   * your team played that you could not sit and track - and that is the only
+   * way the app can tell it apart from a game played for somebody else.
+   */
+  teams?: Team[];
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster, teams = [] }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -75,6 +82,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [adjSeasonId, setAdjSeasonId] = useState('');
   const [adjTournamentId, setAdjTournamentId] = useState('');
   const [adjExternalTeam, setAdjExternalTeam] = useState('');
+  /** Which of the coach's own teams this game was for. '' = another team. */
+  const [adjTeamId, setAdjTeamId] = useState('');
   const [adjOpponentName, setAdjOpponentName] = useState('');
   const [adjScoreFor, setAdjScoreFor] = useState<number | ''>('');
   const [adjScoreAgainst, setAdjScoreAgainst] = useState<number | ''>('');
@@ -97,6 +106,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editOpponentName, setEditOpponentName] = useState('');
   const [editSeasonId, setEditSeasonId] = useState('');
   const [editTournamentId, setEditTournamentId] = useState('');
+  /** Which of the coach's own teams an existing external game was for. */
+  const [editTeamId, setEditTeamId] = useState('');
   const [editGameDate, setEditGameDate] = useState('');
   const [editScoreFor, setEditScoreFor] = useState<number | ''>('');
   const [editScoreAgainst, setEditScoreAgainst] = useState<number | ''>('');
@@ -338,10 +349,96 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     );
   }, [savedGames, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
+  /**
+   * External games narrowed to the same scope the games above were narrowed
+   * to, by the same rule the stats table uses. Without this the table could
+   * show a coach one total and this view another for the same filter, which is
+   * the contradiction that started all of this.
+   */
+  const adjustmentsInScope = useMemo(
+    () =>
+      adjustments.filter(a =>
+        adjustmentInScope(a, {
+          teamFilter: teamId ?? 'all',
+          clubSeason: selectedClubSeason,
+          clubSeasonStartDate,
+          clubSeasonEndDate,
+          gameTypeFilter: selectedGameTypeFilter,
+          genderFilter: selectedGenderFilter,
+        }),
+      ),
+    [adjustments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter, selectedGenderFilter],
+  );
+
+  /** Ids that actually reach the totals, so the list can say which do. */
+  const countedAdjustmentIds = useMemo(
+    () => new Set(adjustmentsInScope.map(a => a.id)),
+    [adjustmentsInScope],
+  );
+
+
+  /**
+   * What picking a team means for the rest of the form.
+   *
+   * Written once and used by both the add and the edit form. Two copies of
+   * this would drift, and drifting copies of one rule is what put another
+   * team's games in a team's totals to begin with.
+   *
+   * Mirrors new game setup: the team brings its name and its bound competition
+   * across, and both stay editable, since a team bound to the league may still
+   * have played a cup match. A team with NO binding clears the competition
+   * rather than leaving the previous team's - new game setup has that gap and
+   * this deliberately does not inherit it.
+   *
+   * The name is only cleared when it is the one we filled in ourselves, so
+   * correcting an old entry never silently discards what the coach typed.
+   */
+  const teamAutofill = useCallback(
+    (teamId: string, currentName: string, previousTeamId: string) => {
+      const team = teamId ? teams.find(t => t.id === teamId) : undefined;
+      if (team) {
+        return {
+          name: team.name,
+          seasonId: team.boundSeasonId ?? '',
+          tournamentId: team.boundSeasonId ? '' : (team.boundTournamentId ?? ''),
+          include: Boolean(team.boundSeasonId || team.boundTournamentId),
+        };
+      }
+      const previous = previousTeamId ? teams.find(t => t.id === previousTeamId) : undefined;
+      const wasOurs = Boolean(previous && currentName === previous.name);
+      return {
+        name: wasOurs ? '' : currentName,
+        seasonId: '',
+        tournamentId: '',
+        include: false,
+      };
+    },
+    [teams],
+  );
+
+  const applyAdjTeam = useCallback((teamId: string) => {
+    const filled = teamAutofill(teamId, adjExternalTeam, adjTeamId);
+    setAdjTeamId(teamId);
+    setAdjExternalTeam(filled.name);
+    setAdjSeasonId(filled.seasonId);
+    setAdjTournamentId(filled.tournamentId);
+    setAdjIncludeInSeasonTournament(filled.include);
+  }, [teamAutofill, adjExternalTeam, adjTeamId]);
+
+  /** The same, for correcting an entry that predates the question. */
+  const applyEditTeam = useCallback((teamId: string) => {
+    const filled = teamAutofill(teamId, editExternalTeam, editTeamId);
+    setEditTeamId(teamId);
+    setEditExternalTeam(filled.name);
+    setEditSeasonId(filled.seasonId);
+    setEditTournamentId(filled.tournamentId);
+    setEditIncludeInSeasonTournament(filled.include);
+  }, [teamAutofill, editExternalTeam, editTeamId]);
+
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId, includeFriendlies);
-  }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId, includeFriendlies]);
+    return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustmentsInScope, teamId, includeFriendlies);
+  }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustmentsInScope, teamId, includeFriendlies]);
 
   // This player's position spread over the current scope, for the compact
   // "Positions played" card (games where they were recorded at a position).
@@ -498,6 +595,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <button
                 type="button"
                 className="text-sm px-3 py-1.5 bg-slate-700 text-slate-200 rounded border border-slate-600 hover:bg-slate-600"
+                data-testid="add-external-game"
                 onClick={() => { setShowAdjForm(v => !v); setEditingAdjId(null); }}
               >
                 {t('playerStats.addExternalStats', 'Add external stats')}
@@ -540,6 +638,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     playerId: player.id,
                     seasonId: adjSeasonId || undefined,
                     tournamentId: adjTournamentId || undefined,
+                    teamId: adjTeamId || undefined,
                     externalTeamName: adjExternalTeam.trim(),
                     opponentName: adjOpponentName.trim(),
                     scoreFor: typeof adjScoreFor === 'number' ? adjScoreFor : undefined,
@@ -558,6 +657,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   // Reset form
                   setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjFairPlayCards(0); setAdjNote('');
                   setAdjSeasonId(''); setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
+                  setAdjTeamId('');
                   setAdjGameDate(new Date().toISOString().split('T')[0]);
                   setAdjHomeAway('neutral');
                   setAdjIncludeInSeasonTournament(false);
@@ -567,6 +667,32 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 }
               }}
             >
+              {/* Who was this game for? Asked BEFORE the competition, because
+                  the answer often fills the competition in. */}
+              <div className="lg:col-span-3">
+                <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="adj-team">
+                  {t('playerStats.whichTeam', 'Which team was this game for?')}
+                </label>
+                <select
+                  id="adj-team"
+                  data-testid="adj-team-select"
+                  value={adjTeamId}
+                  onChange={e => applyAdjTeam(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                >
+                  {/* Default, and the common case: he played for somebody else. */}
+                  <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
+                  {teams.map(team => (
+                    <option key={team.id} value={team.id}>{team.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-slate-400">
+                  {adjTeamId
+                    ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
+                    : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
+                </p>
+              </div>
+
               {/* Season / Tournament tabs — mutually exclusive, matching GameSettingsModal */}
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('gameSettingsModal.seasonOrTournament', 'Season / Tournament')}</label>
@@ -575,7 +701,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     {t('gameSettingsModal.eiMitaan', 'None')}
                   </button>
                   <button type="button" onClick={() => { setAdjTournamentId(''); if (seasons.length > 0) { if (!adjSeasonId) setAdjSeasonId(seasons[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                    {t('gameSettingsModal.kausi', 'Season')}
+                    {t('gameSettingsModal.kausi', 'League')}
                   </button>
                   <button type="button" onClick={() => { setAdjSeasonId(''); if (tournaments.length > 0) { if (!adjTournamentId) setAdjTournamentId(tournaments[0].id); setAdjIncludeInSeasonTournament(true); } }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${adjTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {t('gameSettingsModal.turnaus', 'Tournament')}
@@ -583,6 +709,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </div>
                 {adjSeasonId !== '' && (
                   <select
+                    data-testid="adj-season-select"
                     value={adjSeasonId}
                     onChange={(e) => { setAdjSeasonId(e.target.value); }}
                     className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
@@ -689,7 +816,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   pressed={adjIncludeInSeasonTournament}
                   onToggle={() => setAdjIncludeInSeasonTournament(v => !v)}
                 >
-                  {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                  {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                 </ModalToggleButton>
                 <p className="text-xs text-slate-500 mt-1 ml-1">
                   {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
@@ -701,7 +828,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               </div>
               <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowAdjForm(false)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
+                <button type="submit" data-testid="save-external-game" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
               </div>
             </form>
           )}
@@ -709,7 +836,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         {/* External stats list - inside collapsible section */}
         {hasAdjustments && (
           <div className="mb-4 text-xs text-slate-400">
-            {t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')}
+            {/* The old caption promised every game here was in the totals. Once
+                filters started excluding some, that stopped being true, and a
+                list that lies about its own numbers is the bug this whole
+                change is about. Every game is still SHOWN, so none looks lost
+                and all stay editable; the ones outside the filter say so. */}
+            {countedAdjustmentIds.size === adjustments.length
+              ? t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')
+              : t(
+                  'playerStats.adjustmentsPartlyCounted',
+                  'External stats are added to totals. The dimmed ones fall outside the filters you have chosen and are not counted here.',
+                )}
             <div className="mt-1 space-y-3">
               {adjustments
                 .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
@@ -784,6 +921,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               opponentName: editOpponentName.trim(),
                               seasonId: editSeasonId || undefined,
                               tournamentId: editTournamentId || undefined,
+                              teamId: editTeamId || undefined,
                               gameDate: editGameDate || undefined,
                               scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
                               scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
@@ -809,7 +947,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                               {t('gameSettingsModal.eiMitaan', 'None')}
                             </button>
                             <button type="button" onClick={() => { setEditTournamentId(''); if (!editSeasonId && seasons.length > 0) setEditSeasonId(seasons[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editSeasonId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
-                              {t('gameSettingsModal.kausi', 'Season')}
+                              {t('gameSettingsModal.kausi', 'League')}
                             </button>
                             <button type="button" onClick={() => { setEditSeasonId(''); if (!editTournamentId && tournaments.length > 0) setEditTournamentId(tournaments[0].id); setEditIncludeInSeasonTournament(true); }} className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${editTournamentId ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                               {t('gameSettingsModal.turnaus', 'Tournament')}
@@ -848,7 +986,29 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-                          <input type="text" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          <input type="text" data-testid="edit-external-team" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                          {/* Editable too: existing entries predate this question
+                              and all read as "another team" until corrected. */}
+                          <label className="block text-xs font-medium text-slate-400 mt-2 mb-1" htmlFor={`edit-team-${a.id}`}>
+                            {t('playerStats.whichTeam', 'Which team was this game for?')}
+                          </label>
+                          <select
+                            id={`edit-team-${a.id}`}
+                            data-testid="edit-team-select"
+                            value={editTeamId}
+                            onChange={e => applyEditTeam(e.target.value)}
+                            className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <option value="">{t('playerStats.anotherTeam', 'Another team (not one of mine)')}</option>
+                            {teams.map(team => (
+                              <option key={team.id} value={team.id}>{team.name}</option>
+                            ))}
+                          </select>
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            {editTeamId
+                              ? t('playerStats.whichTeamMineHint', 'Counts toward this team in team statistics.')
+                              : t('playerStats.whichTeamOtherHint', 'Counts toward the player, but not toward any of your teams.')}
+                          </p>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
@@ -916,7 +1076,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                             pressed={editIncludeInSeasonTournament}
                             onToggle={() => setEditIncludeInSeasonTournament(v => !v)}
                           >
-                            {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                            {t('playerStats.includeInSeasonTournament', 'Include in league/tournament statistics')}
                           </ModalToggleButton>
                           <p className="text-xs text-slate-500 mt-1 ml-1">
                             {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
@@ -943,8 +1103,19 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   };
                   const adjResult = getAdjustmentResult();
 
+                  const counted = countedAdjustmentIds.has(a.id);
+
                   return (
-                    <div key={a.id} className="relative bg-gradient-to-br from-slate-600/50 to-slate-800/30 border border-slate-700/50 p-4 rounded-md transition-all shadow-inner">
+                    <div
+                      key={a.id}
+                      data-testid={counted ? 'external-game-counted' : 'external-game-uncounted'}
+                      className={`relative bg-gradient-to-br from-slate-600/50 to-slate-800/30 border border-slate-700/50 p-4 rounded-md transition-all shadow-inner ${counted ? '' : 'opacity-50'}`}
+                    >
+                      {!counted && (
+                        <p className="pl-2 mb-1 text-[11px] font-medium text-amber-300/90">
+                          {t('playerStats.adjustmentNotCounted', 'Not counted under the current filters')}
+                        </p>
+                      )}
                       {/* Result color strip */}
                       <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(adjResult)}`}></span>
 
@@ -1012,6 +1183,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                       setEditOpponentName(a.opponentName || '');
                                       setEditSeasonId(a.seasonId || '');
                                       setEditTournamentId(a.tournamentId || '');
+                                      setEditTeamId(a.teamId || '');
                                       setEditGameDate(a.gameDate || '');
                                       setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
                                       setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
@@ -1376,7 +1548,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         <div className="space-y-4 mt-2">
           {Object.keys(playerStats.performanceBySeason).length > 0 && (
             <div className="bg-slate-800/60 p-3 rounded-lg">
-              <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.seasonPerformance', 'Season Performance')}</h4>
+              <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.seasonPerformance', 'League Performance')}</h4>
               <div className="space-y-2">
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
                   <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">

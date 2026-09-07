@@ -46,7 +46,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const headerCollapse = useCollapsingHeader();
     // Title/aria label track the kind (Kaudet / Turnaukset).
     const managerTitle = kind === 'season'
-        ? t('seasonTournamentModal.seasons', 'Seasons')
+        ? t('seasonTournamentModal.seasons', 'Leagues')
         : t('seasonTournamentModal.tournaments', 'Tournaments');
     const { getStore } = useDataStore();
 
@@ -253,7 +253,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                     {filtered.length === 0 && (
                         <p className="text-sm text-slate-400 py-2">
                             {type === 'season'
-                                ? t('seasonTournamentModal.noSeasonsNudge', 'No seasons yet. Create one, then link your teams and games to it to track season-level stats.')
+                                ? t('seasonTournamentModal.noSeasonsNudge', 'No leagues yet. Create one, then link your teams and games to it to track league-level stats.')
                                 : t('seasonTournamentModal.noTournamentsNudge', 'No tournaments yet. Create one, then link your teams and games to it to track tournament-level stats.')}
                         </p>
                     )}
@@ -283,7 +283,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         {item.clubSeason && item.clubSeason !== CLUB_SEASON_OFF_SEASON && (
                                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true"></span>
-                                                <span className="sr-only">{t('seasonDetailsModal.clubSeasonLabel', 'Club Season')}: </span>
+                                                <span className="sr-only">{t('seasonDetailsModal.clubSeasonLabel', 'Season')}: </span>
                                                 {item.clubSeason}
                                             </span>
                                         )}
@@ -307,7 +307,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         {type === 'tournament' && (item as Tournament).series?.map(series => (
                                             <span key={series.id} className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true"></span>
-                                                <span className="sr-only">{t('common.seriesLabel', 'Series')}: </span>
+                                                <span className="sr-only">{t('common.seriesLabel', 'Level')}: </span>
                                                 {t(`common.level${series.level}`, series.level)}
                                             </span>
                                         ))}
@@ -378,7 +378,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
               className="w-full px-4 py-2 rounded-sm text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-indigo-600 text-white hover:bg-indigo-500 border border-indigo-400/30"
             >
               {kind === 'season'
-                ? t('seasonTournamentModal.addSeason', 'Add Season')
+                ? t('seasonTournamentModal.addSeason', 'Add League')
                 : t('seasonTournamentModal.addTournament', 'Add Tournament')}
             </button>
           </div>
@@ -389,7 +389,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             <FirstVisitIntro
               surface="seasons"
               className="mb-4"
-              text={t('firstVisit.seasons', 'Group games into a season or tournament to get standings and per-competition stats.')}
+              text={t('firstVisit.seasons', 'Group games into a league or tournament to get standings and per-competition stats.')}
             />
             {/* Search Field and Show Archived Toggle */}
             <div className="mb-4 flex flex-col sm:flex-row gap-3">

@@ -539,7 +539,7 @@ describe('GameStatsModal', () => {
       expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
       // Check for the fallback text since translations might not be loaded in tests
       // Use getAllByText since it appears in both the dropdown and heading
-      const allSeasons = screen.getAllByText('All Seasons');
+      const allSeasons = screen.getAllByText('All Leagues');
       expect(allSeasons.length).toBeGreaterThan(0);
     });
 

@@ -123,10 +123,10 @@ describe('SeasonTournamentManagementModal', () => {
 
     // Now a modal should open - find the input in the modal
     await waitFor(() => {
-      expect(screen.getByText('Create Season')).toBeInTheDocument();
+      expect(screen.getByText('Create League')).toBeInTheDocument();
     });
 
-    const input = screen.getByPlaceholderText(/Enter season name/i);
+    const input = screen.getByPlaceholderText(/Enter a name/i);
     await user.type(input, 'New Amazing Season');
 
     // Find and click the Create button in the modal
@@ -538,7 +538,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     expect(mockSeasonCheckAndPrompt).toHaveBeenCalled();
 
     // Modal should NOT open (no season create modal visible)
-    expect(screen.queryByText('Create Season')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create League')).not.toBeInTheDocument();
 
     // Restore original mock
     usePremiumModule.useResourceLimit = originalUseResourceLimit;
@@ -620,7 +620,7 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
 
     // Modal should open
     await waitFor(() => {
-      expect(screen.getByText('Create Season')).toBeInTheDocument();
+      expect(screen.getByText('Create League')).toBeInTheDocument();
     });
   });
 
