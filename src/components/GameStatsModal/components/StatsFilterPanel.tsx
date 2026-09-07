@@ -25,6 +25,8 @@ import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDi
 import { getTeamDisplayName } from '@/utils/teams';
 import type { GameType, Gender } from '@/types/game';
 import { StatsTab } from '../types';
+import { ClubSeasonFilter } from './ClubSeasonFilter';
+import type { TranslationKey } from '@/i18n-types';
 import type { StatsFiltersHandlers, StatsFiltersState } from '../hooks/useStatsFilters';
 
 interface StatsFilterPanelProps {
@@ -115,7 +117,13 @@ export function StatsFilterPanel({
           : t('common.gameTypeSoccer', 'Soccer'),
       );
     }
-    if (showGender && filters.selectedGenderFilter !== 'all') parts.push(filters.selectedGenderFilter);
+    if (showGender && filters.selectedGenderFilter !== 'all') {
+      parts.push(
+        filters.selectedGenderFilter === 'girls'
+          ? t('common.genderGirls', 'Girls')
+          : t('common.genderBoys', 'Boys'),
+      );
+    }
     return parts.filter(Boolean);
   }, [filters, seasons, tournaments, teams, showSeason, showTournament, showTeam, showClubSeason, showSport, showGender, t]);
 
@@ -228,7 +236,11 @@ export function StatsFilterPanel({
               <select id="filter-series" className={SELECT} value={draft.selectedSeriesIdFilter}
                 onChange={(e) => set('selectedSeriesIdFilter', e.target.value)}>
                 <option value="all">{t('gameStatsModal.filterAllSeries', 'All Levels')}</option>
-                {draftTournament?.series?.map((s) => <option key={s.id} value={s.id}>{s.level}</option>)}
+                {/* s.level is a raw enum ('Kilpa'), which has a translation.
+                    Rendering it directly showed Finnish to English users. */}
+                {draftTournament?.series?.map((s) => (
+                  <option key={s.id} value={s.id}>{t(`common.level${s.level}` as TranslationKey, s.level)}</option>
+                ))}
               </select>
             </div>
           )}
@@ -247,18 +259,17 @@ export function StatsFilterPanel({
 
           {showClubSeason && (
             <div>
-              <label className={LABEL} htmlFor="filter-club-season">{t('seasonDetailsModal.clubSeasonLabel', 'Season')}</label>
-              {hasConfiguredSeasonDates ? (
-                <select id="filter-club-season" className={SELECT} value={draft.selectedClubSeason}
-                  onChange={(e) => set('selectedClubSeason', e.target.value)}>
-                  <option value="all">{t('gameStatsModal.filterAllClubSeasons', 'All seasons')}</option>
-                  {availableClubSeasons.map((label) => <option key={label} value={label}>{label}</option>)}
-                </select>
-              ) : (
-                <button type="button" onClick={onOpenSettings} className={`${SELECT} text-left text-slate-400`}>
-                  {t('playerStats.periodNotConfiguredTitle', 'Season Period Not Configured')}
-                </button>
-              )}
+              <label className={LABEL}>{t('seasonDetailsModal.clubSeasonLabel', 'Season')}</label>
+              {/* The existing control, not a second copy of it - it already
+                  handles the not-yet-configured case and its gear button. */}
+              <ClubSeasonFilter
+                selectedSeason={draft.selectedClubSeason}
+                onChange={(value) => set('selectedClubSeason', value)}
+                seasons={availableClubSeasons}
+                hasConfigured={hasConfiguredSeasonDates}
+                isLoading={false}
+                onOpenSettings={onOpenSettings ?? (() => {})}
+              />
             </div>
           )}
 

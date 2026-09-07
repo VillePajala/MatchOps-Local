@@ -9,8 +9,18 @@ import { StatsFilterPanel } from './StatsFilterPanel';
 import type { StatsFiltersState, StatsFiltersHandlers } from '../hooks/useStatsFilters';
 import type { Season, Tournament, Team } from '@/types';
 
+const EN: Record<string, string> = {
+  'common.levelKilpa': 'Competition',
+  'common.levelElite': 'Elite',
+  'common.genderGirls': 'Girls',
+  'common.genderBoys': 'Boys',
+};
 jest.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (_k: string, fallback?: string) => fallback ?? _k }),
+  useTranslation: () => ({
+    // Resolves real keys, so passing a raw enum where a key belongs shows up
+    // as a difference instead of matching the fallback by luck.
+    t: (key: string, fallback?: string) => EN[key] ?? fallback ?? key,
+  }),
 }));
 
 const filters: StatsFiltersState = {
@@ -36,7 +46,7 @@ const makeHandlers = (): StatsFiltersHandlers => ({
 });
 
 const seasons = [{ id: 's1', name: 'Aluesarja' }] as Season[];
-const tournaments = [{ id: 't1', name: 'Cup', series: [{ id: 'x1', level: 'Elite' }] }] as unknown as Tournament[];
+const tournaments = [{ id: 't1', name: 'Cup', series: [{ id: 'x1', level: 'Kilpa' }] }] as unknown as Tournament[];
 const teams = [{ id: 'teamA', name: 'FC Oma' }] as Team[];
 
 const renderPanel = (over: Partial<React.ComponentProps<typeof StatsFilterPanel>> = {}) => {
@@ -131,6 +141,26 @@ describe('StatsFilterPanel', () => {
     renderPanel({ activeTab: 'tournament', filters: { ...filters, selectedTournamentIdFilter: 't1' } });
     fireEvent.click(screen.getByTestId('stats-filter-bar'));
     expect(screen.getByLabelText('Level')).toBeInTheDocument();
+  });
+
+  /**
+   * @critical - a level is stored as a raw enum ('Kilpa') that has a
+   * translation. The first version of this rendered the enum, so an English
+   * coach saw Finnish. The old fixture used 'Elite', which reads the same in
+   * both languages and so could never have caught it.
+   */
+  it('translates the level names rather than showing the raw value', () => {
+    renderPanel({ activeTab: 'tournament', filters: { ...filters, selectedTournamentIdFilter: 't1' } });
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
+    expect(screen.getByRole('option', { name: 'Competition' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Kilpa' })).not.toBeInTheDocument();
+  });
+
+  it('translates the gender in the closed-bar summary', () => {
+    renderPanel({ filters: { ...filters, selectedGenderFilter: 'girls' } });
+    const summary = screen.getByTestId('stats-filter-summary');
+    expect(summary).toHaveTextContent('Girls');
+    expect(summary).not.toHaveTextContent('girls');
   });
 
   it('does not offer a team filter on the player tab', () => {
