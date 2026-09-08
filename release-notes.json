@@ -4,6 +4,17 @@
     {
       "date": "2026-09-08",
       "en": [
+        "New: record voice notes during a match and turn them into your match report afterwards. Press once, speak, done - the phone stays a dictaphone during play. After the match you review every clip, and nothing is saved until you accept it.",
+        "The AI features use your own provider account, set up in Settings. Recordings stay on your phone, player names are replaced with codes before anything is sent, and you approve every line before it reaches your report."
+      ],
+      "fi": [
+        "Uutta: nauhoita ääni-muistiinpanoja ottelun aikana ja tee niistä otteluraportti jälkikäteen. Paina kerran, puhu, valmis - puhelin on ottelun ajan pelkkä sanelin. Ottelun jälkeen käyt jokaisen klipin läpi, eikä mitään tallenneta ennen kuin hyväksyt sen.",
+        "Tekoälytoiminnot käyttävät omaa palveluntarjoajatiliäsi, joka määritetään asetuksissa. Äänitykset pysyvät puhelimessasi, pelaajien nimet korvataan koodeilla ennen lähetystä, ja hyväksyt jokaisen rivin ennen kuin se päätyy raporttiisi."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "en": [
         "The team choice on Home now lives on the Stats tab only. The Games tab shows your club season as one block, every team together, as it did before."
       ],
       "fi": [
@@ -44,17 +55,6 @@
       ],
       "fi": [
         "Etusivu näyttää nyt yhden joukkueen kerrallaan. Jos sinulla on useampi joukkue, valitse se ylhäältä, niin tulokset, maaliero, maalintekijä ja viimeisimmät ottelut koskevat juuri sitä joukkuetta. Aiemmin ne laskettiin kaikista joukkueista yhteen, mikä teki luvuista merkityksettömiä useampaa joukkuetta valmentavalle. Valintasi muistetaan."
-      ]
-    },
-    {
-      "date": "2026-09-07",
-      "en": [
-        "New: record voice notes during a match and turn them into your match report afterwards. Press once, speak, done - the phone stays a dictaphone during play. After the match you review every clip, and nothing is saved until you accept it.",
-        "The AI features use your own provider account, set up in Settings. Recordings stay on your phone, player names are replaced with codes before anything is sent, and you approve every line before it reaches your report."
-      ],
-      "fi": [
-        "Uutta: nauhoita ääni-muistiinpanoja ottelun aikana ja tee niistä otteluraportti jälkikäteen. Paina kerran, puhu, valmis - puhelin on ottelun ajan pelkkä sanelin. Ottelun jälkeen käyt jokaisen klipin läpi, eikä mitään tallenneta ennen kuin hyväksyt sen.",
-        "Tekoälytoiminnot käyttävät omaa palveluntarjoajatiliäsi, joka määritetään asetuksissa. Äänitykset pysyvät puhelimessasi, pelaajien nimet korvataan koodeilla ennen lähetystä, ja hyväksyt jokaisen rivin ennen kuin se päätyy raporttiisi."
       ]
     },
     {

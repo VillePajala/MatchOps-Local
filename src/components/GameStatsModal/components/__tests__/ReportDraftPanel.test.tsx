@@ -267,6 +267,23 @@ describe('ReportDraftPanel - reviewing a draft', () => {
   });
 
   /**
+   * @critical - closing the modal mid-draft used to leave the request running
+   * against the coach's key. The sibling panels abort on unmount; this pins
+   * that this one does too.
+   */
+  it('aborts an in-flight draft when the panel unmounts', async () => {
+    draftMatchReport.mockReturnValueOnce(new Promise(() => {}));
+    const view = renderPanel();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('report-draft-start'));
+    });
+    const { signal } = draftMatchReport.mock.calls[0][0] as { signal: AbortSignal };
+    expect(signal.aborted).toBe(false);
+    view.unmount();
+    expect(signal.aborted).toBe(true);
+  });
+
+  /**
    * @critical - every hand-off this panel offers (open the squad, open
    * assessments, open settings) closes the modal the panel lives in. The undo
    * for a Replace lived only in component state, so leaving the screen made the
