@@ -2199,8 +2199,8 @@
   },
   "privacyPolicy": {
     "title": "MatchOpsin tietosuojakäytäntö",
-    "version": "Käytännön versio: 2026-06",
-    "lastUpdated": "Päivitetty: kesäkuu 2026",
+    "version": "Käytännön versio: 2026-09",
+    "lastUpdated": "Päivitetty: syyskuu 2026",
     "dataController": {
       "title": "Rekisterinpitäjä",
       "content": "MatchOpsin kehittää ja ylläpitää Ville Pajala, Suomi. Rekisterinpitäjänä olemme vastuussa henkilötietojesi käsittelystä tässä käytännössä kuvatulla tavalla."
@@ -2358,13 +2358,13 @@
         "onDevice": "Tallenteet säilytetään vain laitteellasi. Niitä ei koskaan lähetetä MatchOpsin palvelimille, synkronoida laitteiden välillä eikä sisällytetä varmuuskopioihin tai vienteihin.",
         "deleted": "Tallenne poistetaan laitteeltasi heti, kun muutat sen muistiinpanoksi tai hylkäät sen, ja joka tapauksessa 30 päivän kuluttua.",
         "notes": "Tallentamasi kirjalliset muistiinpanot ovat osa ottelutietoja, ja niitä käsitellään kuten muitakin yllä kuvattuja ottelutietoja (laitteellasi ja pilvitilassa tiliisi synkronoituna).",
-        "neverReceived": "MatchOps ei koskaan vastaanota tallenteitasi, litterointeja tai tekoälyn tuloksia."
+        "neverReceived": "MatchOps ei koskaan vastaanota tallenteitasi. Muistiinpanot ja raporttiteksti, jotka päätät tallentaa, ovat pelitietoa ja niitä käsitellään yllä kuvatulla tavalla."
       },
       "aiTitle": "Valinnainen tekoälypalvelu (oma tilisi)",
-      "aiIntro": "Voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia sekä otteluraporttien ja muistiinpanojen luonnostelua varten. Jos teet niin:",
+      "aiIntro": "Voit yhdistää oman tilisi tekoälypalveluun (esimerkiksi OpenAI) tallenteiden litterointia, otteluraporttien luonnostelua ja siistimistä, raportin kääntämistä sekä yhtä pelaajaa koskevien omien muistiinpanojesi lukemista yhtenäisenä tekstinä varten. Jos teet niin:",
       "aiItems": {
         "yourAccount": "Tiedot lähetetään suoraan laitteeltasi valitsemallesi palvelulle omalla tililläsi ja omalla API-avaimellasi. MatchOps ei ole tämän käsittelyn osapuoli eikä pääse siihen käsiksi.",
-        "onlyOnAction": "Mitään ei lähetetä automaattisesti. Tiedot lähtevät laitteeltasi vain, kun painat Litteroi tai Luonnostele.",
+        "onlyOnAction": "Mitään ei lähetetä automaattisesti. Tiedot lähtevät laitteeltasi vain, kun painat sen sanovaa painiketta (Litteroi, Luonnostele, Siisti, Käännä, Kokoa muistiinpanot), ja sovellus kertoo ensin, mitä se on lähettämässä.",
         "providerTerms": "Palvelu käsittelee ja säilyttää tietoja omien ehtojensa mukaan, jotka hyväksyit tiliä luodessasi. MatchOps ei voi vaikuttaa tähän säilytykseen.",
         "pseudonymized": "Ennen luonnostelupyyntöjä pelaajien nimet korvataan laitteellasi koodeilla (oletuksena päällä). Litterointipyynnöt sisältävät väistämättä puhumasi sanat.",
         "disconnect": "Voit irrottaa palvelun ja poistaa kaikki tallenteet milloin tahansa asetuksista. Avain säilytetään vain laitteellasi."
@@ -2373,8 +2373,8 @@
   },
   "termsOfService": {
     "title": "MatchOpsin käyttöehdot",
-    "version": "Ehtojen versio: 2026-06",
-    "lastUpdated": "Päivitetty: kesäkuu 2026",
+    "version": "Ehtojen versio: 2026-09",
+    "lastUpdated": "Päivitetty: syyskuu 2026",
     "agreement": {
       "title": "Ehtojen hyväksyminen",
       "content": "Lataamalla, asentamalla tai käyttämällä MatchOpsia (\"sovellus\") hyväksyt nämä käyttöehdot. Jos et hyväksy ehtoja, älä käytä sovellusta."

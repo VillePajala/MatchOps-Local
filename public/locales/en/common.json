@@ -2199,8 +2199,8 @@
   },
   "privacyPolicy": {
     "title": "Privacy Policy for MatchOps",
-    "version": "Policy Version: 2026-06",
-    "lastUpdated": "Last Updated: June 2026",
+    "version": "Policy Version: 2026-09",
+    "lastUpdated": "Last Updated: September 2026",
     "dataController": {
       "title": "Data Controller",
       "content": "MatchOps is developed and operated by Ville Pajala, based in Finland. As the data controller, we are responsible for the processing of your personal data as described in this policy."
@@ -2358,13 +2358,13 @@
         "onDevice": "Recordings are stored only on your device. They are never uploaded to MatchOps servers, never synced between devices, and never included in backups or exports.",
         "deleted": "A recording is deleted from your device as soon as you turn it into a note or discard it, and in any case after 30 days.",
         "notes": "The written notes you save become part of the game record and are handled like all other game data described above (stored on your device and, in cloud mode, synced to your account).",
-        "neverReceived": "MatchOps never receives your recordings, transcripts or AI results."
+        "neverReceived": "MatchOps never receives your recordings. Notes and report text you choose to save are game data and are handled as described above."
       },
       "aiTitle": "Optional AI provider (your own account)",
-      "aiIntro": "You may connect your own account with an AI provider (for example OpenAI) to transcribe recordings and to draft match reports and notes. If you do:",
+      "aiIntro": "You may connect your own account with an AI provider (for example OpenAI) to transcribe recordings, draft or tidy match reports, translate a report, and read back your own notes about one player as prose. If you do:",
       "aiItems": {
         "yourAccount": "Data is sent directly from your device to the provider you chose, under your own account and your own API key. MatchOps is not a party to that processing and has no access to it.",
-        "onlyOnAction": "Nothing is sent automatically. Data leaves your device only when you press Transcribe or Draft.",
+        "onlyOnAction": "Nothing is sent automatically. Data leaves your device only when you press a button that says so (Transcribe, Draft, Tidy, Translate, Group these notes), and the app tells you what it is about to send first.",
         "providerTerms": "The provider processes and retains data under its own terms, which you accepted when you created the account. MatchOps has no control over that retention.",
         "pseudonymized": "Before drafting requests, player names are replaced with codes on your device (on by default). Transcription requests necessarily contain the words you spoke.",
         "disconnect": "You can disconnect the provider and delete all recordings at any time from Settings. The key is stored only on your device."
@@ -2373,8 +2373,8 @@
   },
   "termsOfService": {
     "title": "Terms of Service for MatchOps",
-    "version": "Terms Version: 2026-06",
-    "lastUpdated": "Last Updated: June 2026",
+    "version": "Terms Version: 2026-09",
+    "lastUpdated": "Last Updated: September 2026",
     "agreement": {
       "title": "Agreement to Terms",
       "content": "By downloading, installing, or using MatchOps (\"the app\"), you agree to these Terms of Service. If you do not agree, do not use the app."

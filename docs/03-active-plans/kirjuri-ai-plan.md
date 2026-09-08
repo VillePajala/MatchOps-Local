@@ -678,9 +678,15 @@ first. One intent per surface, organised by WHEN:
   `useDictationCapture` gained `lastClip` so a caller can claim the clip it started;
   `GameNoteInput` gained an optional `tag`.
 
-**Phase 5 - Season synthesis**
-- PR 11: per-player season summary over accumulated notes + minutes + positions;
-  decide its storage. Closes the AI Assistant "richer data collection" prerequisite.
+**Phase 5 - Season synthesis: DROPPED (owner decision 2026-09-08)**
+- Was: PR 11, per-player season summary over accumulated notes + minutes + positions.
+- Dropped because it is a different ball game from Phases 0-4: it would generate
+  judgement about a child from a season of data, where everything shipped so far only
+  organises what the coach wrote. Not before a legal look, and not part of Kirjuri v1.
+- If it ever returns, the order that keeps it honest: (1) player-level notes at any time,
+  text or voice, dated, no new AI surface; (2) grouping made timeline-aware by sending
+  dates; (3) store the read-back as a dated, AI-marked, deletable snapshot on the player;
+  (4) only then synthesis over minutes, positions and assessments, after the legal review.
 
 ## Testing
 
@@ -780,13 +786,16 @@ row shows an outline tick rather than a solid one, so it never claims all-done a
       `game_events.ai_meta` / `note_text` / `tag` / `period` / `source` all absent), which
       is what we expect. 041 and 042 do not touch the function - child rows go through
       `jsonb_populate_recordset`, which is column-agnostic.
-- [ ] Owner decision: POLICY_VERSION bump (deliberately not bumped so far). The consent
+- [x] Owner decision (2026-09-08): POLICY_VERSION bumped to 2026-09; privacy policy and
+      terms dated September 2026; the policy's over-promise ("never receives transcripts
+      or AI results") corrected to match the consent gate. Cloud users re-consent at next
+      sign-in. Background: the consent
       gate's wording CHANGED after the audit below - it used to say MatchOps never receives
       transcripts or AI results, which is true of audio and false of a saved note. Nobody
       has consented to the old text in production, since none of this has shipped, so no
       re-consent is owed; but the text a user agrees to is now different from the text
       reviewed earlier.
-- [ ] Owner decision: whether "group a player's notes" ships. It is the only request that
+- [x] Owner decision (2026-09-08): "group a player's notes" SHIPS in v1. It is the only request that
       crosses matches, i.e. the closest the app comes to the season-summary escalation.
 - [ ] Recheck Play Data Safety declarations against what the feature now does.
 - [ ] Lawyer / Tietosuojavaltuutettu review of the drafting phase, as this doc recommends.
