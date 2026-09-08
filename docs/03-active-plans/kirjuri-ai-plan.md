@@ -678,15 +678,19 @@ first. One intent per surface, organised by WHEN:
   `useDictationCapture` gained `lastClip` so a caller can claim the clip it started;
   `GameNoteInput` gained an optional `tag`.
 
-**Phase 5 - Season synthesis: DROPPED (owner decision 2026-09-08)**
+**Phase 5 - Season synthesis: OUT OF KIRJURI, TO BE RETHOUGHT (owner decision 2026-09-08)**
 - Was: PR 11, per-player season summary over accumulated notes + minutes + positions.
-- Dropped because it is a different ball game from Phases 0-4: it would generate
-  judgement about a child from a season of data, where everything shipped so far only
-  organises what the coach wrote. Not before a legal look, and not part of Kirjuri v1.
-- If it ever returns, the order that keeps it honest: (1) player-level notes at any time,
-  text or voice, dated, no new AI surface; (2) grouping made timeline-aware by sending
-  dates; (3) store the read-back as a dated, AI-marked, deletable snapshot on the player;
-  (4) only then synthesis over minutes, positions and assessments, after the legal review.
+- Not part of Kirjuri v1 (Phases 0-4 ship alone). It is a different ball game: it would
+  generate judgement about a child from a season of data, where everything shipped so far
+  only organises what the coach wrote. Needs a legal look before any code.
+- The owner's steer is bigger than "later": the app may stay the DATA COLLECTOR and the
+  robust analysis may live in a separate solution that need not be an app at all. That
+  is an ecosystem decision, tracked in UNIFIED-ROADMAP.md under Big bets.
+- If it is built inside the app after all, the order that keeps it honest: (1) player-level
+  notes at any time, text or voice, dated, no new AI surface; (2) grouping made
+  timeline-aware by sending dates; (3) store the read-back as a dated, AI-marked,
+  deletable snapshot on the player; (4) only then synthesis over minutes, positions and
+  assessments, after the legal review.
 
 ## Testing
 

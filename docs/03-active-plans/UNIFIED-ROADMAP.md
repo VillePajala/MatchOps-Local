@@ -148,6 +148,49 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 
 ---
 
+### Ecosystem: the app as data collector, analysis elsewhere (owner, 2026-09-08)
+
+Not a feature; a shape for everything after Kirjuri. To elaborate before any of it is built.
+
+- **Premise.** Kirjuri Phases 0-4 make the app a good collector: minutes, positions,
+  goals, assessments, dictated notes, reports. Kirjuri's Phase 5 (season synthesis over a
+  child's data) was taken out of Kirjuri because it is a different kind of product:
+  analysis and judgement, not collection. That work may not belong in the phone app at all.
+- **Option on the table.** MatchOps app = collect and maintain game data, on the phone, at
+  the pitch. A separate solution = the robust analysis (season views, development arcs,
+  club-level comparisons), fed from the same data, possibly not an app (a report, a web
+  view, an export a club analyst opens). Different privacy posture, different legal review,
+  different users (club, not only coach).
+- **Open questions.** Where the boundary sits (what the app may still show inline);
+  what the exchange format is (the backup JSON already exists as a candidate); whether the
+  analysis side is ours, a partner's, or the coach's own tools over an export; consent
+  model when data leaves the coach's device for analysis; who pays.
+
+### Palloliitto Taso integration - the absolute killer (owner, 2026-09-08)
+
+Taso (Palloliitto's competition system) already does part of what MatchOps does: it holds
+the schedule, the lineups and the results. Today the app only links out to it (game menu).
+
+- **The perfect-world flow.** Palloliitto schedules the matches in Taso -> they sync into
+  MatchOps -> a club assigns each match to a coach -> the coach runs the match in MatchOps
+  -> filling the app updates Taso (lineup before, result and events after). Two-way. The
+  coach stops entering the same match twice.
+- **What that implies for the app.** Matches would have an external identity (Taso match
+  id) and an origin; teams and players would need to reconcile against Taso identities
+  (see local-first-philosophy.md, "Future: Palloliitto TASO Integration": Taso as the
+  authoritative source for identities); a club-level role appears (assigning matches to
+  coaches), which the current one-coach model does not have; conflict rules when both sides
+  edit.
+- **What to find out first.** Whether Taso exposes an API at all, and to whom. Public
+  results widgets on club sites suggest a read API exists behind Torneopal (Taso's
+  platform); write access (lineups, results) is almost certainly a partnership with
+  Palloliitto, not a developer key. Read-only sync of fixtures and results would already
+  remove most of the double entry and needs no write access. Explored 2026-07-01: an
+  in-app Taso embed is blocked by Custom-Tab/iframe security.
+- **Order that makes sense.** (1) Ask Palloliitto / Torneopal what exists. (2) Read-only:
+  fixtures in, results compared. (3) Club role and match assignment. (4) Write-back, if
+  ever granted.
+
 ## 🎯 Growth & business (gated — not engineering priorities)
 
 Business activities, tracked so the strategy is visible alongside the product work. Both are deliberately **gated**: don't market into a weak first-run, don't monetize without traction.
