@@ -187,9 +187,16 @@ the schedule, the lineups and the results. Today the app only links out to it (g
   Palloliitto, not a developer key. Read-only sync of fixtures and results would already
   remove most of the double entry and needs no write access. Explored 2026-07-01: an
   in-app Taso embed is blocked by Custom-Tab/iframe security.
-- **Order that makes sense.** (1) Ask Palloliitto / Torneopal what exists. (2) Read-only:
-  fixtures in, results compared. (3) Club role and match assignment. (4) Write-back, if
-  ever granted.
+- **Investigated 2026-09-08: `docs/10-analysis/taso-torneopal-api.md`.** Short version:
+  an official club-level REST key exists (read-only, server-to-server only, no write
+  methods at all, every precedent (myClub, ASIO) is fixtures-in only); results enter Taso
+  through a browser UI by a person with a PalloID or a match code; Torneopal sells API
+  support outside standard pricing. So: read sync is real work but doable with a backend;
+  write-back needs a partnership; a "Taso helper" copy view needs nothing.
+- **Order that makes sense.** (1) One email to Palloliitto and Torneopal about terms and
+  any write interface. (2) Read-only prototype on staging with the owner's club key:
+  fixtures in, results compared. (3) Taso helper view regardless. (4) Club role and match
+  assignment. (5) Write-back, if ever granted.
 
 ## 🎯 Growth & business (gated — not engineering priorities)
 
