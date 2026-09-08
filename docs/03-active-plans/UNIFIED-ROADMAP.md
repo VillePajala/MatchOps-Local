@@ -109,6 +109,7 @@ Found by a 7-agent whole-app review; top claims hand-verified against code.
 
 ## 🟢 P3 — Feature backlog (value/effort ordered)
 
+- [ ] **Taso helper: the match report in Taso's order** 📋 *owner: pretty high priority, 2026-09-08* — after a match, one view that shows exactly what the coach has to type into Taso's electronic match report, in Taso's own order and form: lineup with shirt numbers and captain, goals as minute + scorer (+ assist), substitutions as out-then-in pairs at the same minute, cautions and sending-offs with the player, added time per half, attendance. Copy buttons per block. No API, no key, no terms: the app already holds all of it. Replaces recall with copying, which is most of the real double entry between MatchOps and Taso. Lives in match mode next to the existing Taso link (owner decision 2026-07-14: Taso is a game-day tool). Background and the reason the read-only API sync is NOT being built: `docs/10-analysis/taso-torneopal-api.md`.
 Low-effort, high-value first. Detailed concepts in `docs/04-features/future-vision.md`.
 
 | Feature | Effort | Note |
@@ -193,10 +194,11 @@ the schedule, the lineups and the results. Today the app only links out to it (g
   through a browser UI by a person with a PalloID or a match code; Torneopal sells API
   support outside standard pricing. So: read sync is real work but doable with a backend;
   write-back needs a partnership; a "Taso helper" copy view needs nothing.
-- **Order that makes sense.** (1) One email to Palloliitto and Torneopal about terms and
-  any write interface. (2) Read-only prototype on staging with the owner's club key:
-  fixtures in, results compared. (3) Taso helper view regardless. (4) Club role and match
-  assignment. (5) Write-back, if ever granted.
+- **Owner decision 2026-09-08: read-only sync is not worth doing.** Fixtures-in does not
+  reduce the number of platforms a coach uses, which was the whole point. Only a write
+  interface would, and none exists publicly. What remains: (1) the Taso helper view (P3,
+  top); (2) one email to Palloliitto and Torneopal asking whether a write interface exists
+  or is planned, and on what terms; (3) everything else only if that email opens a door.
 
 ## 🎯 Growth & business (gated — not engineering priorities)
 

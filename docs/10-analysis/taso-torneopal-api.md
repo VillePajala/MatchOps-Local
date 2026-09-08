@@ -153,6 +153,21 @@ the club's behalf (myClub does, so presumably yes); which competitions publish l
 Taso at all, or without events); how to reconcile MatchOps players with Taso players
 without importing PalloIDs.
 
+## Decision (owner, 2026-09-08)
+
+- **Read-only sync: not worth doing.** The point of a Taso integration was one ecosystem
+  in which the coach stops using several platforms. Fixtures-in does not achieve that;
+  results and lineups still get typed into Taso by hand. It also needs a backend and a
+  club key for a minor convenience, and covers least the levels where MatchOps is used
+  most. Revisit only if a write interface appears.
+- **Taso helper view: build it, high priority.** Removes most of the real double entry
+  with no API, no key, no terms. See UNIFIED-ROADMAP.md, P3 top.
+- **Write API: none exists publicly.** Checked 2026-09-08: Palloliitto's help page,
+  Torneopal's generic `api.torneopal.com/taso/rest/help` (same read-only set), Torneopal's
+  FAQ/features, and every public integration (myClub, ASIO, GitHub). If one exists it is
+  a private partner arrangement. The one email (section 5, step 1) is the only way to
+  learn that, and it costs nothing to send.
+
 ## Sources
 
 - Palloliitto: Tason rajapinta, https://tuki.palloliitto.fi/fi/support/solutions/articles/103000036813-tason-rajapinta
