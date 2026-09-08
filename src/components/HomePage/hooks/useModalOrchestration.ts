@@ -29,6 +29,7 @@ import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import type { UseGamePersistenceReturn } from './useGamePersistence';
 import type { UseTimerManagementReturn } from './useTimerManagement';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState, UpdateGameDetailsMutationVariables, ShootoutKick } from '@/types';
 import type { UseMutationResult } from '@tanstack/react-query';
 
@@ -59,6 +60,8 @@ export interface ModalUIState {
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
   canReapplyPlan: boolean;
+  /** Shared mic controls; the spoken report reuses the overlay's recorder. */
+  dictation?: DictationControls;
   playerAssessments: Record<string, PlayerAssessment>;
   availableTeams: Team[];
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
@@ -76,8 +79,14 @@ export interface ModalUIState {
  */
 export interface ModalHandlers {
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
+  /** Kirjuri: an accepted dictation clip becomes a note event on the current game. */
+  handleAddGameNote?: (note: import('@/types/game').GameNoteInput) => boolean;
+  handleApplyReportDraft?: (payload: {
+    gameNotes: string;
+    aiMeta?: import('@/types/game').AiMeta;
+    noteEvents: import('@/types/game').GameEvent[];
+  }) => boolean;
   /** TRACKED place-all (counts toward the guided tour's formation signal). */
-  handlePlaceAllPlayersTracked: (presetId: string | null) => void;
   handleExportOneExcel: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
   // New-game handlers LIFTED to useNewGameSetupController (L.3b).
@@ -171,6 +180,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     savedGames,
     currentGameId,
     canReapplyPlan,
+    dictation,
     playerAssessments,
     availableTeams,
     orphanedGameInfo,
@@ -186,7 +196,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   // Destructure handlers
   const {
     handleUpdateGameEvent,
-    handlePlaceAllPlayersTracked,
+    handleAddGameNote,
+    handleApplyReportDraft,
     handleExportOneExcel,
     handleExportOneJson,
     handleTeamNameChange,
@@ -246,7 +257,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
   // R3: which wrap-up section GameSettings should open scrolled to (cleared
   // when the modal closes so a plain open starts at the top).
   const [gameSettingsInitialSection, setGameSettingsInitialSection] = useState<
-    'roster' | 'report' | 'positions' | 'competition' | undefined
+    'roster' | 'competition' | undefined
   >(undefined);
 
   // --- Local Modal State ---
@@ -374,6 +385,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       savedGames,
       currentGameId,
       canReapplyPlan,
+      dictation,
       teams: gameDataManagement.teams,
       seasons: gameDataManagement.seasons,
       tournaments: gameDataManagement.tournaments,
@@ -391,6 +403,8 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       logOpponentGoal: timerManagement.handleLogOpponentGoal,
       recalculateScore: timerManagement.handleRecalculateScoreFromEvents,
       updateGameEvent: handleUpdateGameEvent,
+      addGameNote: handleAddGameNote,
+      applyReportDraft: handleApplyReportDraft,
       deleteGameEvent: persistence.handleDeleteGameEvent,
       toggleGameStatsModal: handleToggleGameStatsModal,
       exportOneExcel: handleExportOneExcel,
@@ -439,11 +453,10 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       // formation. Routed through the TRACKED wrapper (review #734 Bug): the
       // guided tour's set-formation step must advance no matter which surface
       // applies the formation.
-      applyFormation: handlePlaceAllPlayersTracked,
       openSettingsModal: handleOpenSettingsModal,
       // W6 + R3: leave the stats modal and land where the item is
       // completed, scrolled to its section.
-      wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => {
+      wrapUpToGameSettings: (section: 'roster' | 'competition') => {
         setGameSettingsInitialSection(section);
         setIsGameStatsModalOpen(false);
         setIsGameSettingsModalOpen(true);
@@ -451,6 +464,17 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       wrapUpToAssessments: () => {
         setIsGameStatsModalOpen(false);
         setIsPlayerAssessmentModalOpen(true);
+      },
+      wrapUpToGoalLog: () => {
+        setIsGameStatsModalOpen(false);
+        timerManagement.handleOpenGoalLogModal();
+      },
+      // App settings sits at the same layer as the stats modal, so opening it
+      // from inside that modal put it UNDERNEATH and looked like a dead button.
+      // Every hand-off out of this modal has to leave it first.
+      wrapUpToAppSettings: () => {
+        setIsGameStatsModalOpen(false);
+        handleOpenSettingsModal();
       },
     },
   };

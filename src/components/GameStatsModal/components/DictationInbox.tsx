@@ -1,0 +1,492 @@
+/**
+ * Kirjuri dictation inbox (PR 3): the post-game place where a recorded clip
+ * becomes a written note.
+ *
+ * Per clip: clock stamp, replay, a text field (typed in PR 3; transcription
+ * fills it in PR 5), a player chip guessed from the text, accept / discard.
+ * Accepting hands a `GameNoteInput` up (the orchestration adds the `note`
+ * event) and deletes the audio; discarding deletes the audio. Raw audio never
+ * outlives this decision.
+ */
+
+'use client';
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { useTranslation } from 'react-i18next';
+import { HiOutlinePlay, HiOutlineStop } from 'react-icons/hi2';
+import type { Player } from '@/types';
+import type { GameNoteInput } from '@/types/game';
+import { useDataStore } from '@/hooks/useDataStore';
+import { useToast } from '@/contexts/ToastProvider';
+import { DictationRules } from '@/components/AiConsentGate';
+import {
+  deleteClip,
+  getClipBlob,
+  listClips,
+  rotateOldClips,
+  setClipTranscript,
+  type AudioClipMeta,
+} from '@/utils/audioClipStore';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { matchPlayerInText } from '@/utils/playerNameMatch';
+import { useAiProviderState } from '@/utils/aiProvider';
+import { TranscriptionError, dictationVocabularyFor, estimateTranscriptionUsd, getTranscriptionEngine } from '@/utils/transcription';
+import { recordAiUsage } from '@/utils/aiUsage';
+import WorkingIndicator from '@/components/WorkingIndicator';
+import logger from '@/utils/logger';
+
+interface DictationInboxProps {
+  gameId: string;
+  availablePlayers: Player[];
+  /** Must return true only when the note was actually stored - the audio is deleted on true. */
+  onAccept?: (note: GameNoteInput) => boolean;
+  /** Reports how many clips await review (the wrap-up card row). */
+  onCountChange?: (count: number) => void;
+  /**
+   * Id of the clip the recorder stored most recently. The inbox re-reads its
+   * list whenever this changes, because a coach can record again without ever
+   * closing this screen - the spoken-report panel sits on the same page - and
+   * a clip the list has not seen cannot be transcribed.
+   */
+  latestClipId?: string | null;
+  /** The coach's language, so speech is transcribed as what they actually spoke. */
+  language?: string;
+}
+
+interface Draft {
+  text: string;
+  /** 'auto' = follow the guess; '' = a note about the game; else a player id. */
+  playerId: string;
+}
+
+export const formatClock = (seconds: number): string => {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+const MAX_NOTE_CHARS = VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX;
+
+const DictationInbox: React.FC<DictationInboxProps> = ({
+  gameId,
+  availablePlayers,
+  onAccept,
+  onCountChange,
+  latestClipId,
+  language = 'fi',
+}) => {
+  const { t } = useTranslation();
+  const { userId } = useDataStore();
+  const { showToast } = useToast();
+  const ai = useAiProviderState();
+  const [clips, setClips] = useState<AudioClipMeta[] | null>(null);
+  // Batch transcription progress (PR 5); null = idle.
+  const [transcribing, setTranscribing] = useState<{ done: number; total: number } | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  // One accept/discard in flight per clip: a double-tap must not create two notes.
+  const [busyIds, setBusyIds] = useState<Set<string>>(() => new Set());
+  const busyRef = useRef<Set<string>>(new Set());
+  const countRef = useRef(onCountChange);
+  useEffect(() => {
+    countRef.current = onCountChange;
+  }, [onCountChange]);
+
+  // Latest clips for callbacks that must not act on a stale render.
+  const clipsRef = useRef<AudioClipMeta[]>([]);
+  const applyClips = useCallback((next: AudioClipMeta[]) => {
+    clipsRef.current = next;
+    setClips(next);
+    countRef.current?.(next.length);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    // The 30-day cap must hold even for a coach who stopped recording, so
+    // rotate on every inbox open, not only when the mic arms.
+    rotateOldClips(Date.now(), userId ?? undefined)
+      .catch((error) => logger.warn('[dictation] rotation on inbox open failed', error))
+      .then(() => listClips(gameId, userId ?? undefined))
+      .then((list) => {
+        if (cancelled) return;
+        applyClips(list);
+        // Seed from what each clip already says, so a transcript the coach has
+        // paid for survives closing and reopening this screen.
+        setDrafts((prev) => {
+          const next = { ...prev };
+          for (const clip of list) {
+            if (clip.transcript && !(next[clip.id]?.text ?? '').trim()) {
+              next[clip.id] = { ...(next[clip.id] ?? { playerId: 'auto' }), text: clip.transcript };
+            }
+          }
+          return next;
+        });
+      })
+      .catch((error) => {
+        logger.warn('[dictation] inbox load failed', error);
+        if (!cancelled) applyClips([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId, userId, applyClips, latestClipId]);
+
+  // One object URL at a time; revoked on switch and unmount.
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
+
+  const stopPlayback = useCallback(() => {
+    setPlayingId(null);
+    setAudioUrl(null);
+  }, []);
+
+  const play = useCallback(
+    async (id: string) => {
+      if (playingId === id) {
+        stopPlayback();
+        return;
+      }
+      const blob = await getClipBlob(id, userId ?? undefined);
+      if (!blob) return;
+      setAudioUrl(URL.createObjectURL(blob));
+      setPlayingId(id);
+    },
+    [playingId, stopPlayback, userId],
+  );
+
+  const draftFor = useCallback((id: string): Draft => drafts[id] ?? { text: '', playerId: 'auto' }, [drafts]);
+
+  const resolvePlayerId = useCallback(
+    (draft: Draft): string => {
+      if (draft.playerId !== 'auto') return draft.playerId;
+      return matchPlayerInText(draft.text, availablePlayers)?.id ?? '';
+    },
+    [availablePlayers],
+  );
+
+  const claim = useCallback((id: string): boolean => {
+    if (busyRef.current.has(id)) return false;
+    busyRef.current.add(id);
+    setBusyIds(new Set(busyRef.current));
+    return true;
+  }, []);
+  const release = useCallback((id: string) => {
+    busyRef.current.delete(id);
+    setBusyIds(new Set(busyRef.current));
+  }, []);
+
+  const removeClip = useCallback(
+    async (id: string) => {
+      if (playingId === id) stopPlayback();
+      try {
+        await deleteClip(id, userId ?? undefined);
+      } catch (error) {
+        logger.warn('[dictation] clip delete failed', error);
+      }
+      setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      applyClips(clipsRef.current.filter((c) => c.id !== id));
+    },
+    [applyClips, playingId, stopPlayback, userId],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (!claim(id)) return;
+      try {
+        await removeClip(id);
+      } finally {
+        release(id);
+      }
+    },
+    [claim, release, removeClip],
+  );
+
+  const accept = useCallback(
+    async (clip: AudioClipMeta) => {
+      // No handler = nowhere to put the note; never delete the audio in that case.
+      if (!onAccept) return;
+      const draft = draftFor(clip.id);
+      const text = draft.text.trim().slice(0, MAX_NOTE_CHARS);
+      if (!text) return;
+      if (!claim(clip.id)) return;
+      try {
+        const playerId = resolvePlayerId(draft);
+        // The audio is the only copy of what was said: delete it only once the
+        // handler confirms the note exists somewhere else.
+        const stored = onAccept({ time: clip.time, period: clip.period, text, entityId: playerId || undefined });
+        if (!stored) return;
+        await removeClip(clip.id);
+      } finally {
+        release(clip.id);
+      }
+    },
+    [claim, draftFor, onAccept, release, removeClip, resolvePlayerId],
+  );
+
+  const sortedPlayers = useMemo(
+    () => [...availablePlayers].sort((a, b) => a.name.localeCompare(b.name)),
+    [availablePlayers],
+  );
+
+  // Clips whose text field is still empty - the batch works on these only.
+  // A clip is the only copy of what the coach said and cannot be re-recorded,
+  // so discarding one asks first - the same rule the note list already applies
+  // to a note, which is strictly more recoverable than the audio behind it.
+  const [pendingDiscard, setPendingDiscard] = useState<string | null>(null);
+
+  const untranscribed = useMemo(
+    () => (clips ?? []).filter((c) => !(drafts[c.id]?.text ?? '').trim()),
+    [clips, drafts],
+  );
+  // One rule for what leaves the device as a recognizer hint, shared with the
+  // spoken-report panel - two copies of a privacy rule is two chances to drift.
+  const vocabulary = useMemo(() => dictationVocabularyFor(availablePlayers), [availablePlayers]);
+
+  // The batch is abortable: closing the modal mid-batch must stop uploads to
+  // the coach's own (paid) key, not just hide the progress (review #750).
+  const batchAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    return () => {
+      batchAbortRef.current?.abort();
+    };
+  }, []);
+
+  const transcribeAll = useCallback(async () => {
+    const engine = getTranscriptionEngine();
+    if (!engine || transcribing || untranscribed.length === 0) return;
+    const batch = untranscribed;
+    const controller = new AbortController();
+    batchAbortRef.current = controller;
+    setTranscribing({ done: 0, total: batch.length });
+    let done = 0;
+    let rejected = 0;
+    let stopped = false;
+    try {
+      for (const clip of batch) {
+        if (controller.signal.aborted) return;
+        try {
+          const blob = await getClipBlob(clip.id, userId ?? undefined);
+          if (!blob || controller.signal.aborted) continue;
+          const text = (await engine.transcribe(blob, { language, vocabulary, signal: controller.signal })).slice(0, MAX_NOTE_CHARS);
+          // Counted BEFORE the abort check: the provider answered, so the coach
+          // was charged, whether or not they are still on this screen.
+          recordAiUsage('transcription', estimateTranscriptionUsd(clip.durationMs));
+          if (controller.signal.aborted) return;
+          if (text) {
+            setDrafts((prev) => ({ ...prev, [clip.id]: { ...(prev[clip.id] ?? { playerId: 'auto' }), text } }));
+            // Paid for once: remember it on the clip. Best effort in the
+            // strongest sense - this must never be able to abort the batch,
+            // including by throwing synchronously, because every remaining
+            // clip in the loop is money the coach has already decided to spend.
+            void Promise.resolve()
+              .then(() => setClipTranscript(clip.id, text, userId ?? undefined))
+              .catch((error) => logger.warn('[dictation] could not store the transcript', error));
+            done += 1;
+          }
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          const kind = error instanceof TranscriptionError ? error.kind : 'network';
+          if (kind === 'rejected') {
+            rejected += 1; // this clip only; the rest may still work
+            continue;
+          }
+          showToast(
+            kind === 'unauthorized'
+              ? t('dictation.transcribeUnauthorized', 'The provider rejected your key. Check it in Settings.')
+              : kind === 'rateLimited'
+                ? t('dictation.transcribeRateLimited', 'The provider is rate-limiting requests. Try again in a minute.')
+                : t('dictation.transcribeNetwork', 'Could not reach the provider. Check your connection and try again.'),
+            'error',
+          );
+          stopped = true;
+          break;
+        } finally {
+          if (!controller.signal.aborted) {
+            setTranscribing((prev) => (prev ? { ...prev, done: Math.min(prev.total, prev.done + 1) } : prev));
+          }
+        }
+      }
+      if (rejected > 0) {
+        showToast(
+          t('dictation.transcribeRejectedCount', '{{count}} clips could not be transcribed - type those instead.', { count: rejected }),
+          'info',
+        );
+      }
+      if (!stopped && done > 0) {
+        showToast(
+          t('dictation.transcribeDone', '{{count}} clips transcribed - check the text and the player, then save.', { count: done }),
+          'success',
+        );
+      }
+    } finally {
+      if (batchAbortRef.current === controller) batchAbortRef.current = null;
+      if (!controller.signal.aborted) setTranscribing(null);
+    }
+  }, [transcribing, untranscribed, userId, vocabulary, showToast, t, language]);
+
+  if (!clips || clips.length === 0) return null;
+  const pendingMs = untranscribed.reduce((sum, c) => sum + c.durationMs, 0);
+  const costUsd = estimateTranscriptionUsd(pendingMs).toFixed(2);
+
+  return (
+    <div
+      id="dictation-inbox"
+      data-testid="dictation-inbox"
+      className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner"
+    >
+      <h3 className="text-xl font-semibold text-slate-200 mb-1">
+        {t('dictation.inboxTitle', 'Voice notes to review')}{' '}
+        <span className="text-sm font-medium text-slate-400">({clips.length})</span>
+      </h3>
+      <p className="text-xs text-slate-400 mb-2">
+        {t('dictation.inboxHint', 'Listen, write what you said, check the player, save.')}
+      </p>
+      {ai.connected ? (
+        // The indicator sits OUTSIDE the untranscribed check on purpose: that
+        // count shrinks as clips fill in, so a progress line inside it would
+        // vanish partway through the batch it is reporting on.
+        transcribing ? (
+          <WorkingIndicator
+            className="mb-3"
+            label={t('dictation.transcribingHint', 'Sending each clip to your AI provider.')}
+            detail={`${transcribing.done}/${transcribing.total}`}
+            data-testid="dictation-working"
+          />
+        ) : (
+          untranscribed.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void transcribeAll()}
+              data-testid="dictation-transcribe"
+              className="w-full mb-3 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {t('dictation.transcribe', 'Transcribe {{count}} clips (about ${{cost}})', { count: untranscribed.length, cost: costUsd })}
+            </button>
+          )
+        )
+      ) : (
+        <p className="text-xs text-slate-500 mb-3" data-testid="dictation-transcribe-hint">
+          {t('dictation.transcribeHint', 'Connect your own AI provider in Settings to transcribe clips automatically.')}
+        </p>
+      )}
+      <details className="mb-3 rounded-md bg-slate-800/60 border border-slate-700/60 px-3 py-2">
+        <summary className="text-xs font-medium text-slate-300 cursor-pointer">{t('aiConsent.rulesTitle', 'Dictation rules')}</summary>
+        <div className="mt-2">
+          <DictationRules />
+        </div>
+      </details>
+      {audioUrl && (
+        <audio src={audioUrl} autoPlay controls className="w-full mb-3" onEnded={stopPlayback} data-testid="dictation-audio" />
+      )}
+      <ul className="space-y-3">
+        {clips.map((clip) => {
+          const draft = draftFor(clip.id);
+          const guessedId = draft.playerId === 'auto' ? resolvePlayerId(draft) : draft.playerId;
+          const busy = busyIds.has(clip.id) || !!transcribing;
+          const canSave = draft.text.trim().length > 0 && !busy;
+          return (
+            <li key={clip.id} data-testid="dictation-clip" className="rounded-md bg-slate-800/60 border border-slate-700/60 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-300 rounded-full bg-slate-700/60 px-2 py-0.5">
+                  {t('dictation.periodClock', 'P{{period}} {{clock}}', { period: clip.period, clock: formatClock(clip.time) })}
+                </span>
+                <span className="text-xs text-slate-500">{Math.round(clip.durationMs / 1000)} s</span>
+                <button
+                  type="button"
+                  onClick={() => void play(clip.id)}
+                  aria-label={playingId === clip.id ? t('dictation.stop', 'Stop') : t('dictation.play', 'Play')}
+                  className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-3 py-1.5 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                >
+                  {playingId === clip.id ? <HiOutlineStop className="h-4 w-4" /> : <HiOutlinePlay className="h-4 w-4" />}
+                  {playingId === clip.id ? t('dictation.stop', 'Stop') : t('dictation.play', 'Play')}
+                </button>
+              </div>
+              <textarea
+                value={draft.text}
+                onChange={(e) => setDrafts((prev) => ({ ...prev, [clip.id]: { ...draftFor(clip.id), text: e.target.value } }))}
+                placeholder={t('dictation.textPlaceholder', 'What did you say?')}
+                rows={2}
+                maxLength={MAX_NOTE_CHARS}
+                aria-label={t('dictation.textPlaceholder', 'What did you say?')}
+                data-testid="dictation-text"
+                className="w-full rounded-md bg-slate-700 border border-slate-600 px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500"
+              />
+              <div className="flex items-center gap-2">
+                <label htmlFor={`dictation-player-${clip.id}`} className="text-xs text-slate-400 shrink-0">{t('dictation.playerLabel', 'About')}</label>
+                <select
+                  id={`dictation-player-${clip.id}`}
+                  value={guessedId}
+                  onChange={(e) => setDrafts((prev) => ({ ...prev, [clip.id]: { ...draftFor(clip.id), playerId: e.target.value } }))}
+                  data-testid="dictation-player"
+                  className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="">{t('dictation.gameNote', 'The game (no player)')}</option>
+                  {sortedPlayers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}{p.nickname ? ` (${p.nickname})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {draft.text.length >= MAX_NOTE_CHARS - 100 && (
+                <p className="text-right text-xs text-slate-400" data-testid="dictation-char-count">
+                  {draft.text.length}/{MAX_NOTE_CHARS}
+                </p>
+              )}
+              <div className="flex gap-2 pt-1">
+                {onAccept && (
+                <button
+                  type="button"
+                  onClick={() => void accept(clip)}
+                  disabled={!canSave}
+                  data-testid="dictation-accept"
+                  className="flex-1 rounded-md bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                >
+                  {t('dictation.accept', 'Save note')}
+                </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPendingDiscard(clip.id)}
+                  disabled={busy}
+                  data-testid="dictation-discard"
+                  className="rounded-md bg-slate-600 hover:bg-slate-500 border border-slate-400/30 px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500"
+                >
+                  {t('dictation.discard', 'Discard')}
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <ConfirmationModal
+        isOpen={pendingDiscard !== null}
+        title={t('dictation.discardClipTitle', 'Discard this recording?')}
+        message={t(
+          'dictation.discardClipBody',
+          'The recording is deleted for good. Anything you have not saved as a note goes with it.',
+        )}
+        confirmLabel={t('dictation.discard', 'Discard')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        variant="danger"
+        onConfirm={() => {
+          const id = pendingDiscard;
+          setPendingDiscard(null);
+          if (id) void remove(id);
+        }}
+        onCancel={() => setPendingDiscard(null)}
+      />
+    </div>
+  );
+};
+
+export default DictationInbox;

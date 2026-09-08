@@ -1,5 +1,6 @@
 'use client';
 
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
 import { HiOutlineChevronUpDown } from 'react-icons/hi2';
@@ -9,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team, Personnel, PlayerStatAdjustment } from '@/types';
 import { GameEvent, SavedGamesCollection, AppState } from '@/types';
+import type { GameType } from '@/types/game';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally } from '@/utils/shootout';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
@@ -22,10 +24,19 @@ import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
+import DictationInbox from './GameStatsModal/components/DictationInbox';
+import GameNotesList from './GameStatsModal/components/GameNotesList';
+import ReportDraftPanel from './GameStatsModal/components/ReportDraftPanel';
+import SpokenReportPanel from './GameStatsModal/components/SpokenReportPanel';
+import PlayerPositionsEditor from './PlayerPositionsEditor';
+import type { AiMeta, GameNoteInput } from '@/types/game';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import GameRecapModal from './GameRecapModal';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { dictationVocabularyFor } from '@/utils/transcription';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import { queryKeys } from '@/config/queryKeys';
 
@@ -50,7 +61,11 @@ import {
   PositionBalanceSection,
 } from './GameStatsModal/components';
 import { StatsFilterPanel } from './GameStatsModal/components/StatsFilterPanel';
-import type { DiversityGame } from '@/utils/positionDiversity';
+import { useAiProviderState } from '@/utils/aiProvider';
+import CoverageNudgeCard from './GameStatsModal/components/CoverageNudgeCard';
+import TranslateReportPanel from './GameStatsModal/components/TranslateReportPanel';
+import type { ReportDraftHandle } from './GameStatsModal/components/ReportDraftPanel';
+import { useDraftEstimate } from '@/hooks/useDraftEstimate';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
@@ -92,6 +107,13 @@ interface GameStatsModalProps {
   playerPositions?: Record<string, string[]>;
   onGameNotesChange?: (notes: string) => void;
   onUpdateGameEvent?: (updatedEvent: GameEvent) => void;
+  /** Kirjuri (PR 3): the dictation inbox accepted a clip. */
+  /** Returns true when the note was stored; the inbox deletes the clip's audio only then. */
+  onAddGameNote?: (note: GameNoteInput) => boolean;
+  /** Phase 4: shared mic controls, so the spoken report reuses the overlay's recorder. */
+  dictation?: DictationControls;
+  /** Phase 3: stores an approved AI report draft. False = nothing was stored. */
+  onApplyReportDraft?: (payload: { gameNotes: string; aiMeta?: AiMeta; noteEvents: GameEvent[] }) => boolean;
   selectedPlayerIds: string[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
@@ -109,8 +131,16 @@ interface GameStatsModalProps {
   onOpenSettings?: () => void;
   /** W6/W7: the wrap-up rows open GAME settings (Ottelun tiedot), NOT app
    *  settings - tapping a row lands where the item can be completed. */
-  onOpenGameSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  onOpenGameSettings?: (section: 'roster' | 'competition') => void;
+  /** Positions played moved here from Ottelun tiedot (Phase 1b). Autosave persists like notes. */
+  onPlayerPositionsChange?: (positions: Record<string, string[]>) => void;
+  /** Live session game type for the positions editor (review #752): the saved-games
+   *  cache can lag the session right after creation, so the host passes it directly. */
+  gameType?: GameType;
   onOpenAssessments?: () => void;
+  /** Phase 1b: the Goals step offers one way to add a goal - the existing goal log
+   *  modal, reached by the same leave-and-land hand-off the wrap-up rows use. */
+  onAddGoal?: () => void;
   /**
    * Club-level surface (L.4): hide the current-game tab entirely and land on
    * the aggregate side. The host renders this with NO live match behind it,
@@ -148,6 +178,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   playerPositions,
   onGameNotesChange = NOOP,
   onUpdateGameEvent = NOOP,
+  onAddGameNote,
+  onApplyReportDraft,
+  dictation,
   selectedPlayerIds,
   savedGames,
   currentGameId,
@@ -165,7 +198,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   masterRoster = [],
   onOpenSettings,
   onOpenGameSettings,
+  onPlayerPositionsChange,
+  gameType,
   onOpenAssessments,
+  onAddGoal,
 }) => {
   const { t, i18n } = useTranslation();
   const headerCollapse = useCollapsingHeader();
@@ -235,6 +271,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  // Read inside the notes-sync effect without making it re-run on every keystroke.
+  const isEditingNotesRef = useRef(isEditingNotes);
+  isEditingNotesRef.current = isEditingNotes;
   const [showRecap, setShowRecap] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
@@ -250,6 +289,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     initialTab ?? (initialSelectedPlayerId ? 'player' : aggregateOnly ? 'season' : 'currentGame'),
   );
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
+  // Current-game tab plus the four aggregate tabs, each hidden by its own host.
+  const visibleTabCount = (aggregateOnly ? 0 : 1) + (currentGameOnly ? 0 : 4);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
   );
@@ -387,7 +428,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // Sync notes with props
   useEffect(() => {
-    if (isOpen) {
+    // Never while the coach is typing. The spoken report and the AI draft both
+    // change gameNotes from INSIDE this step, directly under an open editor;
+    // resetting here threw away whatever they had not saved yet.
+    if (isOpen && !isEditingNotesRef.current) {
       setEditGameNotes(gameNotes);
       setIsEditingNotes(false);
     }
@@ -440,7 +484,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // Games in the current stats scope, resolved from the filtered ids - fed to
   // the position-balance table (each carries playerPositions).
-  const scopedGames = useMemo<DiversityGame[]>(
+  // Left as the full games rather than narrowed to DiversityGame: two cards
+  // read this now, and each wants different fields off the same scope.
+  const scopedGames = useMemo(
     () => processedGameIds.map(id => savedGames[id]).filter((g): g is NonNullable<typeof g> => Boolean(g)),
     [processedGameIds, savedGames],
   );
@@ -552,6 +598,115 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return [];
   }, [activeTab, localGameEvents]);
 
+  // Kirjuri notes on the current game, clock order (their own card - never in the goal list)
+  const noteEvents = useMemo(() => {
+    if (activeTab !== 'currentGame') return [];
+    return localGameEvents.filter((e) => e.type === 'note').sort((a, b) => a.time - b.time);
+  }, [activeTab, localGameEvents]);
+  // Clips awaiting review, reported by the inbox; drives the wrap-up row.
+  const [voiceClipCount, setVoiceClipCount] = useState(0);
+  const scrollToId = useCallback((id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+  const scrollToInbox = useCallback(() => scrollToId('dictation-inbox'), [scrollToId]);
+  const scrollToReport = useCallback(() => scrollToId('game-report-editor'), [scrollToId]);
+  const scrollToPositions = useCallback(() => scrollToId('positions-editor'), [scrollToId]);
+  const currentGameType = gameType ?? (currentGameId ? savedGames?.[currentGameId]?.gameType : undefined);
+  // Phase 3: the draft panel needs the saved game as one object plus a clock
+  // stamp for the notes it creates. The last event is where the match actually
+  // ended, which beats the planned period length for a game cut short.
+  const savedGame = currentGameId ? savedGames?.[currentGameId] : undefined;
+  /**
+   * The game as it is RIGHT NOW, not as it was last written to storage.
+   *
+   * The draft panel both reads the report text it appends to and builds the
+   * packet from this. Using the saved snapshot would mean a note accepted or a
+   * report line typed seconds ago is missing from the draft - and worse, that
+   * applying the draft would write stale text back over the newer edit.
+   */
+  const currentGame = useMemo(
+    () =>
+      savedGame
+        ? ({ ...savedGame, gameNotes, gameEvents: localGameEvents, playerPositions: playerPositions ?? savedGame.playerPositions } as AppState)
+        : undefined,
+    [savedGame, gameNotes, localGameEvents, playerPositions],
+  );
+  const lastEvent = useMemo(
+    () => localGameEvents.reduce<GameEvent | undefined>((latest, e) => (!latest || e.time > latest.time ? e : latest), undefined),
+    [localGameEvents],
+  );
+  /**
+   * First names and nicknames, so the transcript keeps Finnish names intact.
+   *
+   * This match's players only. It used to fall back to the whole club roster,
+   * which sent the first names of children who were not in this match and were
+   * never spoken about - to a provider, as text, on every clip.
+   */
+  const dictationVocabulary = useMemo(() => {
+    // `availablePlayers` is already this match's squad upstream
+    // (useRoster's playersForCurrentGame filters by selectedPlayerIds), so the
+    // scoping happens there, not here. The belt-and-braces filter stays because
+    // this list is the one thing on this screen that gets uploaded, and a
+    // future change to that upstream definition must not silently widen it
+    // back to the club.
+    const squad = selectedPlayerIds.length > 0
+      ? availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))
+      : availablePlayers;
+    return dictationVocabularyFor(squad);
+  }, [availablePlayers, selectedPlayerIds]);
+
+  // Tidying is driven from the report editor, where the text is; the request
+  // and everything that reviews it live in the drafting card further down.
+  const reportDraftRef = useRef<ReportDraftHandle | null>(null);
+  const tidyEstimate = useDraftEstimate({
+    game: currentGame,
+    players: masterRoster.length > 0 ? masterRoster : availablePlayers,
+    language: i18n.language,
+    coachReport: isEditingNotes ? editGameNotes : gameNotes ?? '',
+  });
+
+  /**
+   * Whether tidying and drafting are offered at all.
+   *
+   * One condition for the editor's Tidy button and for mounting the drafting
+   * card, so the two cannot drift. It includes a connected provider on purpose
+   * (owner decision 2026-09-08): a coach without a key should meet no AI in the
+   * match flow at all, not a button that leads to "connect a provider". The
+   * settings card is the one place the feature announces itself.
+   */
+  const ai = useAiProviderState();
+  const canTidy = Boolean(onApplyReportDraft) && Boolean(currentGame) && ai.connected;
+  const handleTidy = useCallback(() => {
+    reportDraftRef.current?.tidy();
+    // The review, the price and the undo all live in the card below, so take
+    // the coach there rather than leaving them looking at a button that
+    // appears to have done nothing.
+    scrollToId('report-draft-panel');
+  }, [scrollToId]);
+
+  const draftStamp = useMemo(
+    () => ({
+      time: lastEvent?.time ?? (numPeriods ?? 2) * (periodDurationMinutes ?? 0) * 60,
+      period: lastEvent?.period ?? numPeriods ?? 2,
+    }),
+    [lastEvent, numPeriods, periodDurationMinutes],
+  );
+  // Note deletion mirrors the goal editor: one in flight at a time, and a
+  // storage failure (handleDeleteGameEvent returns false) is told, not swallowed.
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const handleDeleteNote = useCallback(async (id: string) => {
+    if (!onDeleteGameEvent || deletingNoteId) return;
+    setDeletingNoteId(id);
+    try {
+      const result = await onDeleteGameEvent(id);
+      if (result === false) {
+        showToast(t('dictation.deleteFailed', 'Could not delete the note.'), 'error');
+      }
+    } finally {
+      setDeletingNoteId(null);
+    }
+  }, [onDeleteGameEvent, deletingNoteId, showToast, t]);
+
   // Determine display names based on home/away
   const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
@@ -650,7 +805,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           : null;
         return `${selectedPlayer?.name || t('playerStats.selectPlayerLabel', 'Select Player')}${selectedTeamName ? ` - ${selectedTeamName}` : ''}`;
       }
-      default: return t('gameStatsModal.titleCurrentGame', 'Ottelutilastot');
+      default: return t('gameStatsModal.titleCurrentGame', 'Finish this game');
     }
   };
 
@@ -694,6 +849,254 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Phase 1b (PR 7b-1): the current-game tab is the "Finish this game" spine -
+  // a read-only header (score, player stats, personnel) followed by one numbered
+  // step per post-game datum, each with its single editor inline. Order and
+  // vocabulary follow kirjuri-ai-plan.md "Phase 1b". Every editor here is the
+  // same component with the same handler it had before; only the frame moved.
+  const playerStatsCard = (
+    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+      <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
+      {noGamesInContext ? (
+        <div className="text-center text-slate-400 py-8">
+          <div className="text-lg font-semibold mb-2">
+            {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
+          </div>
+          <div className="text-sm">
+            {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
+          </div>
+          {hasActiveFilters && (
+            <div className="mt-2 text-xs text-slate-500">
+              {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Search Input */}
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={filterText}
+              onChange={handleFilterChange}
+              placeholder={t('common.filterByName', 'Filter by name...')}
+              className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div>
+            <PlayerStatsTable
+              playerStats={playerStats}
+              sortColumn={sortColumn}
+              sortDirection={sortDirection}
+              totals={totals}
+              onSort={handleSort}
+              onPlayerRowClick={handlePlayerRowClick}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+  const spineSteps: Array<{ key: string; id?: string; content: React.ReactNode }> = [];
+  if (activeTab === 'currentGame') {
+    spineSteps.push({
+      key: 'goals',
+      content: (
+        <>
+          <GoalEventList
+            goals={sortedGoals}
+            availablePlayers={availablePlayers}
+            opponentName={opponentName}
+            editingGoalId={goalEditorHook.editingGoalId}
+            editGoalTime={goalEditorHook.editGoalTime}
+            editGoalScorerId={goalEditorHook.editGoalScorerId}
+            editGoalAssisterId={goalEditorHook.editGoalAssisterId}
+            goalTimeInputRef={goalEditorHook.goalTimeInputRef}
+            onStartEditGoal={goalEditorHook.handleStartEditGoal}
+            onCancelEditGoal={goalEditorHook.handleCancelEditGoal}
+            onSaveEditGoal={goalEditorHook.handleSaveEditGoal}
+            onGoalEditKeyDown={goalEditorHook.handleGoalEditKeyDown}
+            onDeleteGoal={goalEditorHook.triggerDeleteEvent}
+            onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
+            onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
+            onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
+          />
+          {onAddGoal && (
+            <button type="button" onClick={onAddGoal} data-testid="spine-add-goal" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
+              {t('gameStatsModal.spineAddGoal', 'Add a goal')}
+            </button>
+          )}
+        </>
+      ),
+    });
+    spineSteps.push({
+      key: 'notes',
+      id: 'game-notes-step',
+      content: (
+        <>
+          {currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+            <DictationInbox
+              gameId={currentGameId}
+              availablePlayers={availablePlayers}
+              onAccept={onAddGameNote}
+              onCountChange={setVoiceClipCount}
+              latestClipId={dictation?.lastClip?.id ?? null}
+              language={i18n.language}
+            />
+          )}
+          <GameNotesList
+            notes={noteEvents}
+            availablePlayers={availablePlayers}
+            onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
+          />
+        </>
+      ),
+    });
+    if (onPlayerPositionsChange) {
+      spineSteps.push({
+        key: 'positions',
+        id: 'positions-editor',
+        content: (
+          <div data-testid="positions-editor" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameSettingsModal.lineupTitle', 'Positions played')}</h3>
+            <p className="text-xs text-slate-400 mb-4">{t('gameSettingsModal.lineupSubtitle', 'Record where each player actually played this game.')}</p>
+            <PlayerPositionsEditor
+              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+              value={playerPositions ?? {}}
+              gameType={currentGameType}
+              onChange={onPlayerPositionsChange}
+            />
+          </div>
+        ),
+      });
+    }
+    spineSteps.push({
+      key: 'report',
+      id: 'game-report-editor',
+      content: (
+        <>
+        <GameNotesEditor
+          // Offered ONLY when the card that does the work is actually mounted.
+          // The button is up here and the machinery is down there, so without
+          // this the two can come apart: on an unsaved game there is no panel,
+          // and the coach would get a priced button that silently does nothing.
+          onTidy={canTidy ? handleTidy : undefined}
+          tidyEstimateUsd={tidyEstimate}
+          gameNotes={gameNotes}
+          isEditingNotes={isEditingNotes}
+          editGameNotes={editGameNotes}
+          notesTextareaRef={notesTextareaRef}
+          onStartEdit={() => setIsEditingNotes(true)}
+          onSaveNotes={handleSaveNotes}
+          onCancelEdit={handleCancelEditNotes}
+          onEditNotesChange={setEditGameNotes}
+        />
+          {dictation && onAddGameNote && (
+            <SpokenReportPanel
+              dictation={dictation}
+              vocabulary={dictationVocabulary}
+              stamp={draftStamp}
+              language={i18n.language}
+              onSaveSummary={onAddGameNote}
+              onShowNotes={() => scrollToId('game-notes-step')}
+              onInsertIntoReport={(spoken) => {
+                // Append to what is ON SCREEN, not to the last saved value: an
+                // open editor may hold a paragraph the coach has not saved.
+                const base = (isEditingNotes ? editGameNotes : gameNotes ?? '').trimEnd();
+                const next = base ? `${base}\n\n${spoken}` : spoken;
+                // Over the cap, saving the game throws inside an autosave that
+                // suppresses its own errors - so nothing about this match would
+                // persist again, silently. Refuse, and keep the recording.
+                if (next.length > VALIDATION_LIMITS.GAME_NOTES_MAX) return false;
+                // Store it, not just the editor buffer. The recording is
+                // deleted the moment this returns true, and component state
+                // would be the only copy of the words until the coach happened
+                // to press Save - one Cancel away from losing them for good.
+                onGameNotesChange(next);
+                if (isEditingNotes) setEditGameNotes(next);
+                return true;
+              }}
+            />
+          )}
+          {canTidy && onApplyReportDraft && currentGame && (
+            <ReportDraftPanel
+              handleRef={reportDraftRef}
+              estimate={tidyEstimate}
+              game={currentGame}
+              gameId={currentGameId}
+              players={masterRoster.length > 0 ? masterRoster : availablePlayers}
+              stamp={draftStamp}
+              language={i18n.language}
+              existingReport={isEditingNotes ? editGameNotes : gameNotes ?? ''}
+              onApply={(payload) => {
+                const stored = onApplyReportDraft(payload);
+                // The draft was built on what the editor was showing, and that
+                // text is now saved, so an editor still holding the old value
+                // would overwrite the result the moment the coach saved it.
+                if (stored) setIsEditingNotes(false);
+                return stored;
+              }}
+              onOpenSettings={onOpenSettings}
+            />
+          )}
+          {currentGame && (
+            <div className="mt-4">
+              {/* Read-only by construction: it is handed the report text and no
+                  way to write one back. */}
+              <TranslateReportPanel
+                report={isEditingNotes ? editGameNotes : gameNotes ?? ''}
+                game={currentGame}
+                players={masterRoster.length > 0 ? masterRoster : availablePlayers}
+              />
+            </div>
+          )}
+        </>
+      ),
+    });
+    if (onOpenAssessments && currentGameCompleteness?.applicable) {
+      spineSteps.push({
+        key: 'assessments',
+        content: (
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('gameStatsModal.wrapUpAssessments', 'Player assessments')}</h3>
+            <p className="text-xs text-slate-400 mb-4">
+              {t('loadGameModal.assessmentsProgress', '{{done}}/{{total}} assessed', {
+                done: currentGameCompleteness.assessments.done,
+                total: currentGameCompleteness.assessments.total,
+              })}
+            </p>
+            <button type="button" onClick={onOpenAssessments} data-testid="spine-open-assessments" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 transition-colors">
+              {t('gameStatsModal.spineOpenAssessments', 'Open player assessments')}
+            </button>
+          </div>
+        ),
+      });
+    }
+    spineSteps.push({
+      key: 'share',
+      content: (
+        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-3">
+          <h3 className="text-xl font-semibold text-slate-200">{t('gameStatsModal.spineShareTitle', 'Share the match')}</h3>
+          <button
+            type="button"
+            onClick={() => setShowRecap(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+          >
+            <HiOutlineShare className="text-base" />
+            {t('recap.button', 'Generate match recap')}
+          </button>
+          {currentGameId && onExportOneExcel && (
+            <button type="button" onClick={() => onExportOneExcel(currentGameId)} data-testid="spine-export-excel" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-slate-500 transition-colors">
+              {t('common.exportExcel', 'Export Excel')}
+            </button>
+          )}
+        </div>
+      ),
+    });
+  }
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" role="dialog" aria-modal="true" aria-label={getTabTitle()}>
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
@@ -711,27 +1114,32 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         >
           <div className="px-4 sm:px-6 py-4">
             <div className="flex items-center gap-2 flex-wrap flex-1">
-              <div className="flex w-full gap-2" role="tablist">
-            {!aggregateOnly && (
-              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
-                {t('gameStatsModal.tabs.currentGame')}
+              {/* A tab bar with one tab is chrome, not navigation: at match level
+                  the aggregate tabs are hidden, which used to leave a single
+                  full-width "Nykyinen" button that did nothing when pressed. */}
+              {visibleTabCount > 1 && (
+                <div className="flex w-full gap-2" role="tablist">
+              {!aggregateOnly && (
+                <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-selected={activeTab === 'currentGame'}>
+                  {t('gameStatsModal.tabs.currentGame')}
+                </button>
+              )}
+              {!currentGameOnly && (<>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
+                {t('gameStatsModal.tabs.season')}
               </button>
-            )}
-            {!currentGameOnly && (<>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-selected={activeTab === 'season'}>
-              {t('gameStatsModal.tabs.season')}
-            </button>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('tournament'); }} className={`${getTabStyle('tournament')} flex-1`} aria-selected={activeTab === 'tournament'}>
-              {t('gameStatsModal.tabs.tournament')}
-            </button>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-selected={activeTab === 'overall'}>
-              {t('gameStatsModal.tabs.overall')}
-            </button>
-            <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
-              {t('gameStatsModal.tabs.player', 'Player')}
-            </button>
-            </>)}
-              </div>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('tournament'); }} className={`${getTabStyle('tournament')} flex-1`} aria-selected={activeTab === 'tournament'}>
+                {t('gameStatsModal.tabs.tournament')}
+              </button>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-selected={activeTab === 'overall'}>
+                {t('gameStatsModal.tabs.overall')}
+              </button>
+              <button role="tab" onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-selected={activeTab === 'player'}>
+                {t('gameStatsModal.tabs.player', 'Player')}
+              </button>
+              </>)}
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleModalHeader>
@@ -800,6 +1208,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               <PlayerStatsView
                 player={selectedPlayer}
                 savedGames={savedGames}
+                masterRoster={masterRoster}
                 onGameClick={onGameClick}
                 seasons={seasons}
                 tournaments={tournaments}
@@ -854,250 +1263,170 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 />
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  {/* Overall Statistics Section */}
-                  {activeTab === 'overall' && overallTeamStats && (
-                    <TeamPerformanceCard
-                      title={
-                        selectedTeamIdFilter === 'all'
-                          ? t('loadGameModal.allTeamsFilter', 'All Teams')
-                          : selectedTeamIdFilter === 'legacy'
-                          ? t('loadGameModal.legacyGamesFilter', 'Legacy Games')
-                          : teams.find(team => team.id === selectedTeamIdFilter)?.name || t('gameStatsModal.overallSummary', 'Overall Summary')
-                      }
-                      gamesPlayed={overallTeamStats.gamesPlayed}
-                      wins={overallTeamStats.wins}
-                      losses={overallTeamStats.losses}
-                      ties={overallTeamStats.ties}
-                      winPercentage={overallTeamStats.winPercentage}
-                      goalDifference={overallTeamStats.goalDifference}
-                      goalsFor={overallTeamStats.goalsFor}
-                      goalsAgainst={overallTeamStats.goalsAgainst}
-                      averageGoalsFor={overallTeamStats.averageGoalsFor}
-                      averageGoalsAgainst={overallTeamStats.averageGoalsAgainst}
-                      teamAssessmentAverages={teamAssessmentAverages}
-                      ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
-                    />
-                  )}
-
-                  {/* Tournament/Season Statistics Section */}
-                  {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
-                    <>
-                      {Array.isArray(tournamentSeasonStats) ? (
-                        // Specific season/tournament selected - show TeamPerformanceCard directly (no outer wrapper)
-                        tournamentSeasonStats.length > 0 ? (
-                          tournamentSeasonStats.map(stats => (
-                            <div key={stats.id} className="mb-6 last:mb-0">
-                              <TeamPerformanceCard
-                                title={stats.name}
-                                gamesPlayed={stats.gamesPlayed}
-                                wins={stats.wins}
-                                losses={stats.losses}
-                                ties={stats.ties}
-                                winPercentage={stats.winPercentage}
-                                goalDifference={stats.goalDifference}
-                                goalsFor={stats.goalsFor}
-                                goalsAgainst={stats.goalsAgainst}
-                                averageGoalsFor={stats.averageGoalsFor}
-                                averageGoalsAgainst={stats.averageGoalsAgainst}
-                                lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
-                                useGradient={false}
-                                ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
-                              />
-                            </div>
-                          ))
-                        ) : (
-                          <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
-                            <div>
-                              {activeTab === 'season'
-                                ? t('gameStatsModal.noSeasonGames', 'No games found for this league.')
-                                : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
-                              }
-                            </div>
-                            {hasActiveFilters && (
-                              <div className="mt-2 text-sm text-slate-500">
-                                {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      ) : (
-                        // "All Seasons/Tournaments" selected - show aggregate stats in a card
-                        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                          <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                            {activeTab === 'season'
-                              ? t('gameStatsModal.filterAllSeasons', 'All Leagues')
-                              : t('gameStatsModal.filterAllTournaments', 'All Tournaments')
-                            }
-                          </h3>
-                          <div className="space-y-0 text-sm">
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                              <span className="text-yellow-400 font-bold">
-                                {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
-                              <span
-                                className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
-                              >
-                                {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}
-                                {tournamentSeasonStats.totalGoalDifference}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2">
-                              <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {/* Game Info Card (Current Game only) */}
-                  {activeTab === 'currentGame' && (
-                    <GameInfoCard
-                      homeTeamName={displayHomeTeamName}
-                      awayTeamName={displayAwayTeamName}
-                      homeScore={homeScore}
-                      awayScore={awayScore}
-                      formattedDate={formatDisplayDate(gameDate)}
-                      gameTime={gameTime}
-                      gameLocation={gameLocation}
-                      numPeriods={numPeriods}
-                      periodDurationMinutes={periodDurationMinutes}
-                      wentToOvertime={wentToOvertime}
-                      wentToPenalties={wentToPenalties}
-                      shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
-                    />
-                  )}
-                  {activeTab === 'currentGame' && currentGameCompleteness?.applicable && (
-                    <GameWrapUpCard
+              {activeTab === 'currentGame' ? (
+                <div className="space-y-6" data-testid="finish-game-spine">
+                  <GameInfoCard
+                    homeTeamName={displayHomeTeamName}
+                    awayTeamName={displayAwayTeamName}
+                    homeScore={homeScore}
+                    awayScore={awayScore}
+                    formattedDate={formatDisplayDate(gameDate)}
+                    gameTime={gameTime}
+                    gameLocation={gameLocation}
+                    numPeriods={numPeriods}
+                    periodDurationMinutes={periodDurationMinutes}
+                    wentToOvertime={wentToOvertime}
+                    wentToPenalties={wentToPenalties}
+                    shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
+                  />
+                  {currentGameCompleteness?.applicable && (                    <GameWrapUpCard
                       completeness={currentGameCompleteness}
                       onOpenSettings={onOpenGameSettings}
                       onOpenAssessments={onOpenAssessments}
+                      voiceClipCount={voiceClipCount}
+                      onOpenVoiceNotes={scrollToInbox}
+                      onOpenReport={scrollToReport}
+                      onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
                     />
                   )}
-                  {activeTab === 'currentGame' && (
-                    <button
-                      type="button"
-                      onClick={() => setShowRecap(true)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800"
-                    >
-                      <HiOutlineShare className="text-base" />
-                      {t('recap.button', 'Generate match recap')}
-                    </button>
-                  )}
-                  {/* Player Stats Table or Empty State */}
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                    <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
-                    {noGamesInContext ? (
-                      <div className="text-center text-slate-400 py-8">
-                        <div className="text-lg font-semibold mb-2">
-                          {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
-                        </div>
-                        <div className="text-sm">
-                          {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
-                        </div>
-                        {hasActiveFilters && (
-                          <div className="mt-2 text-xs text-slate-500">
-                            {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+                  {playerStatsCard}
+                  <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
+                  {spineSteps.map((step, i) => (
+                    <section key={step.key} id={step.id} data-testid={`spine-${step.key}`} className="space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                        {t('gameStatsModal.spineStep', 'Step {{n}} of {{total}}', { n: i + 1, total: spineSteps.length })}
+                      </p>
+                      {step.content}
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-6">
+                    {/* Overall Statistics Section */}
+                    {activeTab === 'overall' && overallTeamStats && (
+                      <TeamPerformanceCard
+                        title={
+                          selectedTeamIdFilter === 'all'
+                            ? t('loadGameModal.allTeamsFilter', 'All Teams')
+                            : selectedTeamIdFilter === 'legacy'
+                            ? t('loadGameModal.legacyGamesFilter', 'Legacy Games')
+                            : teams.find(team => team.id === selectedTeamIdFilter)?.name || t('gameStatsModal.overallSummary', 'Overall Summary')
+                        }
+                        gamesPlayed={overallTeamStats.gamesPlayed}
+                        wins={overallTeamStats.wins}
+                        losses={overallTeamStats.losses}
+                        ties={overallTeamStats.ties}
+                        winPercentage={overallTeamStats.winPercentage}
+                        goalDifference={overallTeamStats.goalDifference}
+                        goalsFor={overallTeamStats.goalsFor}
+                        goalsAgainst={overallTeamStats.goalsAgainst}
+                        averageGoalsFor={overallTeamStats.averageGoalsFor}
+                        averageGoalsAgainst={overallTeamStats.averageGoalsAgainst}
+                        teamAssessmentAverages={teamAssessmentAverages}
+                        ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
+                      />
+                    )}
+
+                    {/* Tournament/Season Statistics Section */}
+                    {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
+                      <>
+                        {Array.isArray(tournamentSeasonStats) ? (
+                          // Specific season/tournament selected - show TeamPerformanceCard directly (no outer wrapper)
+                          tournamentSeasonStats.length > 0 ? (
+                            tournamentSeasonStats.map(stats => (
+                              <div key={stats.id} className="mb-6 last:mb-0">
+                                <TeamPerformanceCard
+                                  title={stats.name}
+                                  gamesPlayed={stats.gamesPlayed}
+                                  wins={stats.wins}
+                                  losses={stats.losses}
+                                  ties={stats.ties}
+                                  winPercentage={stats.winPercentage}
+                                  goalDifference={stats.goalDifference}
+                                  goalsFor={stats.goalsFor}
+                                  goalsAgainst={stats.goalsAgainst}
+                                  averageGoalsFor={stats.averageGoalsFor}
+                                  averageGoalsAgainst={stats.averageGoalsAgainst}
+                                  lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
+                                  useGradient={false}
+                                  ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
+                                />
+                              </div>
+                            ))
+                          ) : (
+                            <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
+                              <div>
+                                {activeTab === 'season'
+                                  ? t('gameStatsModal.noSeasonGames', 'No games found for this league.')
+                                  : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
+                                }
+                              </div>
+                              {hasActiveFilters && (
+                                <div className="mt-2 text-sm text-slate-500">
+                                  {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        ) : (
+                          // "All Seasons/Tournaments" selected - show aggregate stats in a card
+                          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                            <h3 className="text-xl font-semibold text-slate-200 mb-4">
+                              {activeTab === 'season'
+                                ? t('gameStatsModal.filterAllSeasons', 'All Leagues')
+                                : t('gameStatsModal.filterAllTournaments', 'All Tournaments')
+                              }
+                            </h3>
+                            <div className="space-y-0 text-sm">
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.record', 'Record')}</span>
+                                <span className="text-yellow-400 font-bold">
+                                  {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+                                <span
+                                  className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                                >
+                                  {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}
+                                  {tournamentSeasonStats.totalGoalDifference}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
+                              </div>
+                              <div className="flex justify-between items-center py-1.5 px-2">
+                                <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
+                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
+                              </div>
+                            </div>
                           </div>
                         )}
-                      </div>
-                    ) : (
-                      <>
-                        {/* Search Input */}
-                        <div className="relative mb-4">
-                          <input
-                            type="text"
-                            value={filterText}
-                            onChange={handleFilterChange}
-                            placeholder={t('common.filterByName', 'Filter by name...')}
-                            className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
-                          />
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <PlayerStatsTable
-                            playerStats={playerStats}
-                            sortColumn={sortColumn}
-                            sortDirection={sortDirection}
-                            totals={totals}
-                            onSort={handleSort}
-                            onPlayerRowClick={handlePlayerRowClick}
-                          />
-                        </div>
                       </>
                     )}
+                    {playerStatsCard}
                   </div>
                 </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
-                  {activeTab === 'currentGame' && (
-                    <>
-                      <GoalEventList
-                        goals={sortedGoals}
-                        availablePlayers={availablePlayers}
-                        opponentName={opponentName}
-                        editingGoalId={goalEditorHook.editingGoalId}
-                        editGoalTime={goalEditorHook.editGoalTime}
-                        editGoalScorerId={goalEditorHook.editGoalScorerId}
-                        editGoalAssisterId={goalEditorHook.editGoalAssisterId}
-                        goalTimeInputRef={goalEditorHook.goalTimeInputRef}
-                        onStartEditGoal={goalEditorHook.handleStartEditGoal}
-                        onCancelEditGoal={goalEditorHook.handleCancelEditGoal}
-                        onSaveEditGoal={goalEditorHook.handleSaveEditGoal}
-                        onGoalEditKeyDown={goalEditorHook.handleGoalEditKeyDown}
-                        onDeleteGoal={goalEditorHook.triggerDeleteEvent}
-                        onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
-                        onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
-                        onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
-                      />
-
-                      <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
-
-                      <GameNotesEditor
-                        gameNotes={gameNotes}
-                        isEditingNotes={isEditingNotes}
-                        editGameNotes={editGameNotes}
-                        notesTextareaRef={notesTextareaRef}
-                        onStartEdit={() => setIsEditingNotes(true)}
-                        onSaveNotes={handleSaveNotes}
-                        onCancelEdit={handleCancelEditNotes}
-                        onEditNotesChange={setEditGameNotes}
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* Position balance - full-width, below the two-column stats grid */}
               {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
@@ -1105,21 +1434,20 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   <PositionBalanceSection games={scopedGames} players={playerPool} />
                 </div>
               )}
+              {/* Same scope as the tables above it, so the denominator matches
+                  what the coach is already looking at. */}
+              {(activeTab === 'season' || activeTab === 'tournament' || activeTab === 'overall') && (
+                <div className="mt-6">
+                  <CoverageNudgeCard games={scopedGames} players={playerPool} />
+                </div>
+              )}
             </div>
           )}
 
           {/* Chrome slimming: Export Excel moved inline, per active tab,
               below that tab's content (was a fixed footer). */}
-          {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) && (
+          {activeTab !== 'currentGame' && (onExportAggregateExcel || onExportPlayerExcel) && (
             <div className="px-4 sm:px-6 pb-6">
-              {activeTab === 'currentGame' && currentGameId && onExportOneExcel && (
-                <button
-                  onClick={() => onExportOneExcel(currentGameId)}
-                  className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"
-                >
-                  {t('common.exportExcel', 'Export Excel')}
-                </button>
-              )}
               {activeTab === 'player' && selectedPlayer && onExportPlayerExcel && (
                 <button
                   onClick={() => {
@@ -1136,7 +1464,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
               )}
-              {activeTab !== 'currentGame' && activeTab !== 'player' && onExportAggregateExcel && !noGamesInContext && processedGameIds.length > 0 && (
+              {activeTab !== 'player' && onExportAggregateExcel && !noGamesInContext && processedGameIds.length > 0 && (
                 <button
                   onClick={() => onExportAggregateExcel(processedGameIds, playerStats)}
                   className="px-4 py-2 rounded-md text-sm font-medium transition-colors border border-transparent bg-slate-700 hover:bg-slate-600 text-slate-200"

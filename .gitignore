@@ -99,3 +99,6 @@ local.properties
 
 # Supabase CLI local config
 supabase/.temp/
+
+# Local e2e capture artifacts (screenshots, diagnostics) - never committed
+tests/e2e/captures/

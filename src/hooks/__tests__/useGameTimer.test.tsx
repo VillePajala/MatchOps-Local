@@ -14,6 +14,7 @@ import React from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { useGameTimer } from '../useGameTimer';
 import { GameSessionState, GameSessionAction, gameSessionReducer } from '../useGameSessionReducer';
+import { setRecordingSessionActive } from '@/utils/recordingSessionSignal';
 
 // Mock storage module
 jest.mock('@/utils/storage', () => ({
@@ -29,10 +30,11 @@ jest.mock('@/utils/timerStateManager', () => ({
   clearTimerState: jest.fn().mockResolvedValue(undefined),
 }));
 
-// Mock useWakeLock
+// Mock useWakeLock (shared spy so the hold/release policy is assertable)
+const mockSyncWakeLock = jest.fn();
 jest.mock('../useWakeLock', () => ({
   useWakeLock: () => ({
-    syncWakeLock: jest.fn(),
+    syncWakeLock: mockSyncWakeLock,
     isSupported: true,
     isActive: false,
     error: null,
@@ -178,6 +180,58 @@ describe('useGameTimer', () => {
       expect(typeof result.current.reset).toBe('function');
       expect(typeof result.current.ackSubstitution).toBe('function');
       expect(typeof result.current.setSubInterval).toBe('function');
+    });
+  });
+
+  // ============================================
+  // Screen wake lock policy (Kirjuri PR 0)
+  // ============================================
+  describe('screen wake lock', () => {
+    afterEach(() => {
+      setRecordingSessionActive(false);
+    });
+
+    const renderWith = (overrides: Partial<GameSessionState>) =>
+      renderHook(() => {
+        const [state, dispatch] = React.useReducer(gameSessionReducer, createInitialState(overrides));
+        return useGameTimer({ state, dispatch, currentGameId: 'game-1' });
+      });
+
+    it('is released before the game starts', () => {
+      renderWith({ gameStatus: 'notStarted' });
+      expect(mockSyncWakeLock).toHaveBeenLastCalledWith(false);
+    });
+
+    /**
+     * @critical - Half-time is when the coach dictates; the old policy
+     * (running clock only) dropped the lock exactly then.
+     */
+    it('is held at half-time (periodEnd) even though the clock is stopped', () => {
+      renderWith({ gameStatus: 'periodEnd', currentPeriod: 1, timeElapsedInSeconds: 900 });
+      expect(mockSyncWakeLock).toHaveBeenLastCalledWith(true);
+    });
+
+    it('is held during an in-play pause', () => {
+      renderWith({ gameStatus: 'inProgress', isTimerRunning: false, timeElapsedInSeconds: 100 });
+      expect(mockSyncWakeLock).toHaveBeenLastCalledWith(true);
+    });
+
+    it('is released after full time', () => {
+      renderWith({ gameStatus: 'gameEnd', timeElapsedInSeconds: 1800 });
+      expect(mockSyncWakeLock).toHaveBeenLastCalledWith(false);
+    });
+
+    it('is held while a recording session is armed, whatever the game status', () => {
+      renderWith({ gameStatus: 'notStarted' });
+      expect(mockSyncWakeLock).toHaveBeenLastCalledWith(false);
+      act(() => {
+        setRecordingSessionActive(true);
+      });
+      expect(mockSyncWakeLock).toHaveBeenLastCalledWith(true);
+      act(() => {
+        setRecordingSessionActive(false);
+      });
+      expect(mockSyncWakeLock).toHaveBeenLastCalledWith(false);
     });
   });
 

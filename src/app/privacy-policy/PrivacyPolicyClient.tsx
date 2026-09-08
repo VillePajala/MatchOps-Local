@@ -139,6 +139,26 @@ export function PrivacyPolicyClient() {
         </section>
 
         <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.voiceNotesAndAi.title')}</h2>
+          <p className="text-slate-300 mb-3">{t('privacyPolicy.voiceNotesAndAi.intro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1 mb-4">
+            <li>{t('privacyPolicy.voiceNotesAndAi.items.onDevice')}</li>
+            <li>{t('privacyPolicy.voiceNotesAndAi.items.deleted')}</li>
+            <li>{t('privacyPolicy.voiceNotesAndAi.items.notes')}</li>
+            <li>{t('privacyPolicy.voiceNotesAndAi.items.neverReceived')}</li>
+          </ul>
+          <h3 className="text-lg font-medium mb-2 text-slate-300">{t('privacyPolicy.voiceNotesAndAi.aiTitle')}</h3>
+          <p className="text-slate-300 mb-3">{t('privacyPolicy.voiceNotesAndAi.aiIntro')}</p>
+          <ul className="list-disc list-inside text-slate-300 space-y-1">
+            <li>{t('privacyPolicy.voiceNotesAndAi.aiItems.yourAccount')}</li>
+            <li>{t('privacyPolicy.voiceNotesAndAi.aiItems.onlyOnAction')}</li>
+            <li>{t('privacyPolicy.voiceNotesAndAi.aiItems.providerTerms')}</li>
+            <li>{t('privacyPolicy.voiceNotesAndAi.aiItems.pseudonymized')}</li>
+            <li>{t('privacyPolicy.voiceNotesAndAi.aiItems.disconnect')}</li>
+          </ul>
+        </section>
+
+        <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-slate-200">{t('privacyPolicy.yourRights.title')}</h2>
           <p className="text-slate-300 mb-3">{t('privacyPolicy.yourRights.intro')}</p>
           <ul className="list-disc list-inside text-slate-300 space-y-1 mb-4">

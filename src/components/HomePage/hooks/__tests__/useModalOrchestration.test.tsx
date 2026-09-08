@@ -5,7 +5,7 @@
  * @jest-environment jsdom
  */
 
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useModalOrchestration } from '../useModalOrchestration';
 import type { UseModalOrchestrationProps } from '../useModalOrchestration';
 import { ModalProvider } from '@/contexts/ModalProvider';
@@ -142,6 +142,7 @@ const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): U
     handleSetSubInterval: jest.fn(),
     handleToggleLargeTimerOverlay: jest.fn(),
     handleToggleGoalLogModal: jest.fn(),
+    handleOpenGoalLogModal: jest.fn(),
     handleAddGoalEvent: jest.fn(),
     handleLogOpponentGoal: jest.fn(),
     handleRecalculateScoreFromEvents: jest.fn(),
@@ -667,6 +668,7 @@ describe('useModalOrchestration', () => {
         handleSetSubInterval: jest.fn(),
         handleToggleLargeTimerOverlay: jest.fn(),
         handleToggleGoalLogModal: jest.fn(),
+        handleOpenGoalLogModal: jest.fn(),
         handleAddGoalEvent: jest.fn(),
         handleLogOpponentGoal: jest.fn(),
         handleRecalculateScoreFromEvents: jest.fn(),
@@ -699,4 +701,47 @@ describe('useModalOrchestration', () => {
       expect(handlers.logOpponentGoal).toBe(mockTimerManagement.handleLogOpponentGoal);
     });
   });
+
+  describe('wrap-up hand-offs (Phase 1b)', () => {
+    /**
+     * @critical - the owner's report: "Avaa asetukset button does nothing". App
+     * settings sits at the same z-layer as the stats modal, so opening it from
+     * inside that modal put it underneath and nothing appeared to happen.
+     */
+    it('wrapUpToAppSettings closes the stats modal before opening settings', () => {
+      const props = createMockProps();
+      const { result } = renderHook(() => useModalOrchestration(props), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.modalManagerProps.handlers.toggleGameStatsModal();
+      });
+      expect(result.current.modalManagerProps.state.isGameStatsModalOpen).toBe(true);
+
+      act(() => {
+        result.current.modalManagerProps.handlers.wrapUpToAppSettings();
+      });
+
+      // Leaving first is the whole point: two modals on one layer means the
+      // second one is invisible.
+      expect(result.current.modalManagerProps.state.isGameStatsModalOpen).toBe(false);
+    });
+
+  it('wrapUpToGoalLog closes the stats modal and opens the goal log explicitly', () => {
+    const handleOpenGoalLogModal = jest.fn();
+    const props = createMockProps();
+    props.hooks.timerManagement = { ...props.hooks.timerManagement, handleOpenGoalLogModal };
+    const { result } = renderHook(() => useModalOrchestration(props), { wrapper: createWrapper() });
+
+    act(() => {
+      result.current.modalManagerProps.handlers.toggleGameStatsModal();
+    });
+    expect(result.current.modalManagerProps.state.isGameStatsModalOpen).toBe(true);
+
+    act(() => {
+      result.current.modalManagerProps.handlers.wrapUpToGoalLog();
+    });
+    expect(result.current.modalManagerProps.state.isGameStatsModalOpen).toBe(false);
+    expect(handleOpenGoalLogModal).toHaveBeenCalledTimes(1);
+  });
+});
 });

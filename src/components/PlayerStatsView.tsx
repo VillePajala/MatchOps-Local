@@ -32,6 +32,7 @@ import { POSITION_IDS } from '@/config/positions';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
+import PlayerNotesSummaryCard from './PlayerNotesSummaryCard';
 
 // Line badge colours mirror the position-category colours used in the positions editor.
 interface PlayerStatsViewProps {
@@ -51,6 +52,8 @@ interface PlayerStatsViewProps {
   /** Optional gender filter - 'boys', 'girls', or 'all' */
   selectedGenderFilter?: Gender | 'all';
   includeFriendlies?: boolean;
+  /** Full roster: only needed so other children named in a note are redacted too. */
+  masterRoster?: Player[];
   /**
    * The coach's own teams. An external game can name one of them - the match
    * your team played that you could not sit and track - and that is the only
@@ -59,7 +62,7 @@ interface PlayerStatsViewProps {
   teams?: Team[];
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, teams = [] }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster, teams = [] }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -291,6 +294,27 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     if (!player) return [];
     return getPlayerAssessmentNotes(player.id, assessmentGames);
   }, [player, assessmentGames]);
+
+  // Kirjuri notes about this player across ALL games, newest game first -
+  // independent of assessments (which may be hidden or absent).
+  const playerNotes = useMemo(() => {
+    if (!player) return [];
+    return Object.entries(savedGames)
+      .flatMap(([gameId, g]) =>
+        (g.gameEvents ?? [])
+          .filter((e) => e.type === 'note' && e.entityId === player.id)
+          .map((e) => ({
+            id: `${gameId}-${e.id}`,
+            gameId,
+            gameDate: g.gameDate ?? '',
+            opponentName: g.opponentName ?? '',
+            time: e.time,
+            period: e.period,
+            text: e.text ?? '',
+          })),
+      )
+      .sort((a, b) => b.gameDate.localeCompare(a.gameDate) || a.time - b.time);
+  }, [player, savedGames]);
 
   // Filter games by selected club season and game type
   const filteredGamesByClubSeason = useMemo(() => {
@@ -1487,6 +1511,38 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           )}
         </div>
       )}
+
+        {playerNotes.length > 0 && (
+          <div data-testid="player-notes" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner mt-2">
+            <h3 className="text-lg font-semibold text-slate-200 mb-2">{t('playerStats.notesTitle', 'Notes')}</h3>
+            <ul className="space-y-2">
+              {playerNotes.map((n) => (
+                <li key={n.id} className="text-sm text-slate-200">
+                  <span className="text-xs text-slate-400">
+                    {n.gameDate ? formatDisplayDate(n.gameDate) : ''}{n.opponentName ? ` - ${n.opponentName}` : ''}
+                    {' - '}
+                    {n.period ? `P${n.period} ` : ''}
+                    {`${String(Math.floor(n.time / 60)).padStart(2, '0')}:${String(Math.floor(n.time % 60)).padStart(2, '0')}`}
+                  </span>
+                  <p className="whitespace-pre-wrap break-words">{n.text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {player && playerNotes.length > 0 && (
+          <div className="mt-2">
+            {/* Read-only, like the translation panel: it reads the record back
+                and cannot become part of it. */}
+            <PlayerNotesSummaryCard
+              player={player}
+              notes={playerNotes}
+              roster={masterRoster ?? []}
+              language={i18n.language}
+            />
+          </div>
+        )}
 
         {/* Performance by Season/Tournament */}
         <div className="space-y-4 mt-2">

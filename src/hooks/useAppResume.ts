@@ -26,6 +26,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
 import logger from '@/utils/logger';
 import { isMatchTimerRunning } from '@/utils/matchTimerSignal';
+import { isRecordingSessionActive } from '@/utils/recordingSessionSignal';
 
 interface UseAppResumeOptions {
   /** Callback when app resumes from background */
@@ -179,7 +180,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       // BUT never during a live match: the wall-clock timer reanchors itself on
       // foreground (useGameTimer), and reloading would drop the user to the start
       // screen with a paused clock. Fall through to the soft refresh instead.
-      if (backgroundDuration > forceReloadTime && !isMatchTimerRunning()) {
+      if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive()) {
         forceReloadWithNotification(backgroundDuration, 'visibilitychange');
         return;
       }
@@ -231,7 +232,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         const backgroundDuration = now - backgroundStartRef.current;
 
         // Skip the force-reload during a live match (see visibilitychange note).
-        if (backgroundDuration > forceReloadTime && !isMatchTimerRunning()) {
+        if (backgroundDuration > forceReloadTime && !isMatchTimerRunning() && !isRecordingSessionActive()) {
           forceReloadWithNotification(backgroundDuration, 'pageshow_bfcache');
           return;
         }

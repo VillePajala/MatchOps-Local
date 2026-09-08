@@ -356,9 +356,11 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     }
   }, [editingGoalId]);
 
-  // Memoize sorted events
+  // Memoize sorted events. Kirjuri note events have their own card (stats
+  // modal) - listing them here would render as "Unknown Event" and let the
+  // goal editor delete them.
   const sortedEvents = useMemo(() => {
-    return [...localGameEvents].sort((a, b) => a.time - b.time);
+    return localGameEvents.filter((e) => e.type !== 'note').sort((a, b) => a.time - b.time);
   }, [localGameEvents]);
 
 

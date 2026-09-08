@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { completenessProgress, computeGameCompleteness } from '@/utils/gameCompleteness';
+import type { AiMeta, GameNoteInput } from '@/types/game';
+import { useDictationCapture } from '@/hooks/useDictationCapture';
 import type { ComponentProps } from 'react';
 import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
@@ -43,7 +47,7 @@ import type { FieldContainerProps, FieldInteractions } from '@/components/HomePa
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 import { generateSubSlots, isFieldPosition } from '@/utils/formations';
-import { reapplyPlanToGame, type ReapplyResult } from '@/utils/playtimePlanner/reapply';
+import { reapplyPlanToGame, type ReapplyResult, hasPlayEvents } from '@/utils/playtimePlanner/reapply';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { setGameSubs } from '@/utils/playtimePlanner/gameSubs';
 import { getPlan } from '@/utils/playtimePlanner/storage';
@@ -644,6 +648,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     availablePlayers,
     masterRoster: gameDataManagement.masterRoster || [],
     setIsGoalLogModalOpen,
+    setIsGameStatsModalOpen,
     setIsPlayerAssessmentModalOpen,
     onActionLogged: notifyUndoableAction,
   });
@@ -1522,12 +1527,101 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // Handler to update an existing game event
   const handleUpdateGameEvent = useCallback((updatedEvent: GameEvent) => {
-    const cleanUpdatedEvent: GameEvent = { id: updatedEvent.id, type: updatedEvent.type, time: updatedEvent.time, scorerId: updatedEvent.scorerId, assisterId: updatedEvent.assisterId }; // Keep cleaning
+    // Keep cleaning to known fields - including the Kirjuri note fields, which
+    // the reducer's replace-by-id would otherwise silently drop.
+    const cleanUpdatedEvent: GameEvent = {
+      id: updatedEvent.id,
+      type: updatedEvent.type,
+      time: updatedEvent.time,
+      scorerId: updatedEvent.scorerId,
+      assisterId: updatedEvent.assisterId,
+      entityId: updatedEvent.entityId,
+      period: updatedEvent.period,
+      text: updatedEvent.text,
+      source: updatedEvent.source,
+      tag: updatedEvent.tag,
+      aiMeta: updatedEvent.aiMeta,
+    };
 
     dispatchGameSession({ type: 'UPDATE_GAME_EVENT', payload: cleanUpdatedEvent });
 
     logger.log("Updated game event via dispatch:", updatedEvent.id);
   }, [dispatchGameSession]);
+
+  // Kirjuri (PR 3): the inbox accepted a clip - it becomes a note event on the
+  // current game, persisted by the same autosave path goals use.
+  const handleAddGameNote = useCallback((note: GameNoteInput) => {
+    // The scratch game is never autosaved: a note added there would silently vanish.
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return false;
+    // Clamp to the validation limit: an over-long note would fail the WHOLE game save.
+    const text = note.text.trim().slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX);
+    if (!text) return false;
+    const event: GameEvent = {
+      id: `note-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      type: 'note',
+      time: Math.round(note.time * 100) / 100,
+      period: note.period,
+      entityId: note.entityId,
+      text,
+      source: 'dictation',
+      ...(note.tag ? { tag: note.tag } : {}),
+    };
+    dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: event });
+    showToast(t('dictation.accepted', 'Note saved'), 'success');
+    return true;
+  }, [currentGameId, dispatchGameSession, showToast, t]);
+
+  /**
+   * How much of the finishing work is left, for the surfaces that are not the
+   * checklist itself: the game-end button and the menu. Computed once, from the
+   * same model the checklist uses, so no two places can disagree.
+   */
+  const finishProgress = useMemo(() => {
+    const saved = currentGameId ? savedGames?.[currentGameId] : undefined;
+    if (!saved) return null;
+    const completeness = computeGameCompleteness({
+      isPlayed: saved.isPlayed,
+      gameNotes: gameSessionState.gameNotes,
+      selectedPlayerIds: gameSessionState.selectedPlayerIds,
+      seasonId: saved.seasonId,
+      tournamentId: saved.tournamentId,
+      teamId: saved.teamId,
+      playerPositions: gameSessionState.playerPositions,
+      assessments: saved.assessments,
+    });
+    if (!completeness.applicable) return null;
+    return completenessProgress(completeness);
+  }, [
+    currentGameId,
+    savedGames,
+    gameSessionState.gameNotes,
+    gameSessionState.selectedPlayerIds,
+    gameSessionState.playerPositions,
+  ]);
+
+  /**
+   * Kirjuri (PR 9b): store an approved report draft - the text plus any notes
+   * the coach ticked - through the same autosave path everything else uses.
+   * Returns false when the game cannot hold it, so the review panel keeps the
+   * draft on screen instead of pretending it saved.
+   */
+  const handleApplyReportDraft = useCallback((payload: {
+    gameNotes: string;
+    aiMeta?: AiMeta;
+    noteEvents: GameEvent[];
+  }): boolean => {
+    // The scratch game is never autosaved: an approved draft would vanish.
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) return false;
+    if (payload.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) return false;
+    dispatchGameSession({
+      type: 'APPLY_REPORT_DRAFT',
+      payload: { gameNotes: payload.gameNotes, aiMeta: payload.aiMeta },
+    });
+    for (const event of payload.noteEvents) {
+      dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: event });
+    }
+    return true;
+  }, [currentGameId, dispatchGameSession]);
 
   // Session coordination handlers
   const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
@@ -2105,7 +2199,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const canReapplyPlan =
     !!currentGamePlanLink &&
     gameSessionState.gameStatus === 'notStarted' &&
-    (gameSessionState.gameEvents?.length ?? 0) === 0;
+    !hasPlayEvents(gameSessionState.gameEvents);
 
   // Deterministic init fallback: auto-select latest real game if default or stale
   useEffect(() => {
@@ -2299,6 +2393,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     fieldCoordination.subSlots,
   ]);
 
+  // Kirjuri voice notes (PR 2): the recorder lives here, not in the overlay,
+  // so the hands-free trigger (PR 4) can reach it with the overlay closed.
+  const dictation = useDictationCapture({
+    currentGameId,
+    userId: userId ?? undefined,
+    timeElapsedInSeconds,
+    currentPeriod: gameSessionState.currentPeriod,
+    gameStatus: gameSessionState.gameStatus,
+    showToast,
+    t,
+  });
+
   // Memoize timerVM to prevent unnecessary re-renders of TimerOverlay
   const timerVM = useMemo(() => ({
     timeElapsedInSeconds,
@@ -2318,6 +2424,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
+    finishProgress,
     fieldVM,
     timerVM,
     currentGameId,
@@ -2341,6 +2448,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     onWentToPenaltiesChange: handleSetWentToPenalties,
     interactions: fieldInteractions,
     timerInteractions,
+    dictation,
   };
 
   const controlBarProps: ComponentProps<typeof ControlBar> = {
@@ -2372,10 +2480,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // L.4: "Joukkueen tilastot ->" opens the HOST-level aggregate surface
     // (works over the match too - the match modal keeps the current-game side).
     onOpenTeamStats: () => openClubStatsToTab('season'),
+    // Owner's request: reach settings without leaving the match. The AI
+    // provider key lives there, and "not connected" is discovered mid-match.
+    onOpenAppSettings: () => setIsSettingsModalOpen(true),
     onQuickSave: persistence.handleQuickSaveGame,
     onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
+    finishProgress,
     // W10: quick planner access from the match (host planner over the pitch).
     onOpenPlanner: () => setIsPlaytimePlannerOpen(true),
     // R6: game-day reference material (host modals over the pitch).
@@ -2422,6 +2534,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       savedGames,
       currentGameId,
       canReapplyPlan,
+      dictation,
       playerAssessments,
       availableTeams,
       orphanedGameInfo,
@@ -2435,7 +2548,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     },
     handlers: {
       handleUpdateGameEvent,
-      handlePlaceAllPlayersTracked,
+      handleAddGameNote,
+      handleApplyReportDraft,
       handleExportOneExcel,
       handleExportOneJson,
       handleTeamNameChange,

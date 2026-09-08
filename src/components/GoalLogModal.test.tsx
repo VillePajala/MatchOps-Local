@@ -197,4 +197,16 @@ describe('GoalLogModal', () => {
 
     expect(screen.queryByRole('button', { name: /Recalculate score from log/i })).not.toBeInTheDocument();
   });
+
+  it('does not list Kirjuri note events (they have their own card and must not be goal-editable)', () => {
+    renderModal({
+      gameEvents: [
+        { id: 'goal-1', type: 'goal', time: 15, scorerId: 'p1' },
+        { id: 'note-1', type: 'note', time: 20, entityId: 'p2', text: 'hieno syöttö', source: 'dictation' },
+      ],
+    });
+    expect(screen.queryByText(/hieno syöttö/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Unknown Event|Tuntematon/i)).not.toBeInTheDocument();
+  });
+
 });

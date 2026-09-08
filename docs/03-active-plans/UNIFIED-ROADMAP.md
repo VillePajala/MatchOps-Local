@@ -111,6 +111,8 @@ Found by a 7-agent whole-app review; top claims hand-verified against code.
 
 Low-effort, high-value first. Detailed concepts in `docs/04-features/future-vision.md`.
 
+- [ ] **Taso helper: the match report in Taso's order** 📋 *owner: pretty high priority, 2026-09-08* — after a match, one view that shows exactly what the coach has to type into Taso's electronic match report, in Taso's own order and form: lineup with shirt numbers and captain, goals as minute + scorer (+ assist), substitutions as out-then-in pairs at the same minute, cautions and sending-offs with the player, added time per half, attendance. Copy buttons per block. No API, no key, no terms: the app already holds all of it. Replaces recall with copying, which is most of the real double entry between MatchOps and Taso. Lives in match mode next to the existing Taso link (owner decision 2026-07-14: Taso is a game-day tool). Background and the reason the read-only API sync is NOT being built: `docs/10-analysis/taso-torneopal-api.md`.
+
 | Feature | Effort | Note |
 |---------|--------|------|
 | Quick Post-Game Ratings | Low | Largely covered by the existing assessment system (`PlayerAssessmentCard`/`AssessmentSlider`); revisit only if a faster 30s flow is wanted. |
@@ -135,7 +137,7 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 
 ## 🔵 P4 — Big bets (need planning before any code)
 
-- [ ] **Kirjuri — dictation capture + BYOK post-match AI** 📋 *planned 2026-09-04, plan: `kirjuri-ai-plan.md`* — in-game press-hold (later earbud-tap, hands-free) voice notes stamped to the game clock; post-game inbox turns them into player/game notes; clips transcribed only through the coach's own connected AI provider (BYOK, client-direct, behind a versioned consent gate with dictation rules; Google Web Speech rejected, on-device not available for Finnish); then structured drafts of the match report, per-player notes and season summaries, pseudonymized by default, everything coach-approved before save. Risk assessment lives in the plan. Replaces rating-based assessment with evidence and closes the AI Assistant "richer data collection" prerequisite. Build on `feat/kirjuri-ai` (sub-PRs into it; to master only when complete + owner-tested).
+- [ ] **Kirjuri — dictation capture + BYOK post-match AI** 📋 *planned 2026-09-04, plan: `kirjuri-ai-plan.md`* — in-game press-hold (later earbud-tap, hands-free) voice notes stamped to the game clock; post-game inbox turns them into player/game notes; clips transcribed only through the coach's own connected AI provider (BYOK, client-direct, behind a versioned consent gate with dictation rules; Google Web Speech rejected, on-device not available for Finnish); then structured drafts of the match report, tidy/translate, and a read-back of one player's own notes, pseudonymized by default, everything coach-approved before save. **v1 = Phases 0-4, owner-tested 2026-09-08; season summaries (Phase 5) taken out and rethought under "Ecosystem" below.** Risk assessment lives in the plan. Replaces rating-based assessment with evidence and closes the AI Assistant "richer data collection" prerequisite. Build on `feat/kirjuri-ai` (sub-PRs into it; to master only when complete + owner-tested).
 
 - [x] **Two-level app structure (Club Home vs Match Mode)** ✅ **MERGED TO MASTER + LIVE (#681, 2026-07)** — fixed the root "app feels complicated" issue: StartScreen is now a tabbed Club Home (Pelit / Seura / Kaudet / Tilastot + ⚙), the field is an explicit Match Mode with a match-only menu, auto-resume protects the game-day path. Home dashboard (resume card, season record, recent strip, top scorer) shipped as the default with a "Simplified view" toggle. Post-merge polish also landed (onboarding simplification, guide reconciliation, hotfixes). Plan: `two-level-app-structure.md` §6-7.
 - [x] **Playing-Time Planner** ✅ **MERGED TO MASTER + LIVE (2026-07; prod migrations 036–038 applied)** — plan a **tournament's** kokoonpanot + subs across all games at once so **playing time comes out equal**. Shipped: three-tab planner (Games / Minutes / Settings), fairness-ramped discs + totals strip, "Suggest fair lineups", per-game availability, game creation from plans + re-apply (per-game and bulk), live-timer sub prompts, and **plan cloud sync** (Supabase + per-plan LWW). Re-anchored after a failed 92k-line big-bang attempt (`archive/planner-integration`); standalone MVP `~/projects/matchops-planner` mined for algorithm/UX. **Absorbs the Tournament Planner (#369) and #381.** Plan: `playing-time-fairness-and-planner.md`.
@@ -147,6 +149,57 @@ Low-effort, high-value first. Detailed concepts in `docs/04-features/future-visi
 - [ ] **Timer-hardening refactor** — make the match clock a single source of truth (period "segments" with wall-clock start/stop timestamps; derive elapsed/period/status). Would end the recurring reload/background clock bugs (CR-C1, background-pause) **and** unlock a real **timed-OT clock** (the one piece the overtime feature deliberately deferred). Only worth doing if/when an in-app extra-time clock is wanted; the shipped OT/penalties feature needs none of it.
 
 ---
+
+### Ecosystem: the app as data collector, analysis elsewhere (owner, 2026-09-08)
+
+Not a feature; a shape for everything after Kirjuri. To elaborate before any of it is built.
+
+- **Premise.** Kirjuri Phases 0-4 make the app a good collector: minutes, positions,
+  goals, assessments, dictated notes, reports. Kirjuri's Phase 5 (season synthesis over a
+  child's data) was taken out of Kirjuri because it is a different kind of product:
+  analysis and judgement, not collection. That work may not belong in the phone app at all.
+- **Option on the table.** MatchOps app = collect and maintain game data, on the phone, at
+  the pitch. A separate solution = the robust analysis (season views, development arcs,
+  club-level comparisons), fed from the same data, possibly not an app (a report, a web
+  view, an export a club analyst opens). Different privacy posture, different legal review,
+  different users (club, not only coach).
+- **Open questions.** Where the boundary sits (what the app may still show inline);
+  what the exchange format is (the backup JSON already exists as a candidate); whether the
+  analysis side is ours, a partner's, or the coach's own tools over an export; consent
+  model when data leaves the coach's device for analysis; who pays.
+
+### Palloliitto Taso integration - the absolute killer (owner, 2026-09-08)
+
+Taso (Palloliitto's competition system) already does part of what MatchOps does: it holds
+the schedule, the lineups and the results. Today the app only links out to it (game menu).
+
+- **The perfect-world flow.** Palloliitto schedules the matches in Taso -> they sync into
+  MatchOps -> a club assigns each match to a coach -> the coach runs the match in MatchOps
+  -> filling the app updates Taso (lineup before, result and events after). Two-way. The
+  coach stops entering the same match twice.
+- **What that implies for the app.** Matches would have an external identity (Taso match
+  id) and an origin; teams and players would need to reconcile against Taso identities
+  (see local-first-philosophy.md, "Future: Palloliitto TASO Integration": Taso as the
+  authoritative source for identities); a club-level role appears (assigning matches to
+  coaches), which the current one-coach model does not have; conflict rules when both sides
+  edit.
+- **What to find out first.** Whether Taso exposes an API at all, and to whom. Public
+  results widgets on club sites suggest a read API exists behind Torneopal (Taso's
+  platform); write access (lineups, results) is almost certainly a partnership with
+  Palloliitto, not a developer key. Read-only sync of fixtures and results would already
+  remove most of the double entry and needs no write access. Explored 2026-07-01: an
+  in-app Taso embed is blocked by Custom-Tab/iframe security.
+- **Investigated 2026-09-08: `docs/10-analysis/taso-torneopal-api.md`.** Short version:
+  an official club-level REST key exists (read-only, server-to-server only, no write
+  methods at all, every precedent (myClub, ASIO) is fixtures-in only); results enter Taso
+  through a browser UI by a person with a PalloID or a match code; Torneopal sells API
+  support outside standard pricing. So: read sync is real work but doable with a backend;
+  write-back needs a partnership; a "Taso helper" copy view needs nothing.
+- **Owner decision 2026-09-08: read-only sync is not worth doing.** Fixtures-in does not
+  reduce the number of platforms a coach uses, which was the whole point. Only a write
+  interface would, and none exists publicly. What remains: (1) the Taso helper view (P3,
+  top); (2) one email to Palloliitto and Torneopal asking whether a write interface exists
+  or is planned, and on what terms; (3) everything else only if that email opens a door.
 
 ## 🎯 Growth & business (gated — not engineering priorities)
 

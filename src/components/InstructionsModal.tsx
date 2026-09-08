@@ -106,6 +106,9 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                   <span className="text-slate-200">{t('firstGameGuide.timerTip', 'Click timer to show/hide large overlay')}</span>
                 </li>
                 <li>
+                  <span className="text-slate-200">{t('firstGameGuide.dictationTip', 'Hold the microphone button on the timer overlay to dictate a voice note - it stays on your phone.')}</span>
+                </li>
+                <li>
                   <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field:')}</span>
                   <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
                 </li>
