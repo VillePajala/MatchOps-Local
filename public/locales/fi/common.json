@@ -726,6 +726,7 @@
     "titleTournament": "Turnaustilastot",
     "titleOverall": "Kokonaistilastot",
     "includeFriendlies": "Sisällytä harjoitusottelut",
+    "friendliesIncluded": "Harjoitusottelut mukana",
     "titleCurrentGame": "Nykyisen pelin tilastot",
     "invalidTimeFormat": "Virheellinen aikamuoto. MM:SS",
     "scorerRequired": "Maalintekijä on valittava.",
@@ -1004,6 +1005,7 @@
     "welcomeStripTour": "Haluatko aloitusopastuksen?",
     "gearSetup": "Käyttöönotto ({{done}}/4)",
     "dashAllTeams": "Kaikki joukkueet",
+    "dashTeamLabel": "Joukkue",
     "dashTeamScope": "Mistä joukkueesta nämä luvut ovat"
   },
   "workspace": {

@@ -49,6 +49,7 @@ const filters: StatsFiltersState = {
   selectedGameTypeFilter: 'all',
   selectedGenderFilter: 'all',
   selectedClubSeason: 'all',
+  includeFriendlies: false,
 };
 
 const makeHandlers = (): StatsFiltersHandlers => ({
@@ -59,6 +60,7 @@ const makeHandlers = (): StatsFiltersHandlers => ({
   onGameTypeFilterChange: jest.fn(),
   onGenderFilterChange: jest.fn(),
   onClubSeasonChange: jest.fn(),
+  onIncludeFriendliesChange: jest.fn(),
   resetAllFilters: jest.fn(),
 });
 
@@ -263,6 +265,31 @@ describe('StatsFilterPanel', () => {
     const summary = screen.getByTestId('stats-filter-summary').textContent ?? '';
     expect(summary).toContain('Cup');
     expect(summary).toContain('Competition');
+  });
+
+  /**
+   * The friendlies toggle used to sit in the modal header, apart from every
+   * other filter, and the owner reported it as not working. It is a filter;
+   * it lives with the filters and obeys Apply like the rest.
+   */
+  it('offers the friendlies toggle on the Overall and Player tabs only, applied on Apply', () => {
+    const handlers = renderPanel({ activeTab: 'overall' });
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
+    fireEvent.click(screen.getByTestId('stats-filter-friendlies'));
+    expect(handlers.onIncludeFriendliesChange).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('stats-filter-apply'));
+    expect(handlers.onIncludeFriendliesChange).toHaveBeenCalledWith(true);
+  });
+
+  it('has no friendlies toggle where friendlies never count', () => {
+    renderPanel({ activeTab: 'season' });
+    fireEvent.click(screen.getByTestId('stats-filter-bar'));
+    expect(screen.queryByTestId('stats-filter-friendlies')).not.toBeInTheDocument();
+  });
+
+  it('says in the closed bar when friendlies are counted', () => {
+    renderPanel({ activeTab: 'overall', filters: { ...filters, includeFriendlies: true } });
+    expect(screen.getByTestId('stats-filter-summary').textContent).toContain('Friendlies included');
   });
 
   it('translates the gender in the closed-bar summary', () => {

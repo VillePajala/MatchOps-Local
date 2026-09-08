@@ -88,6 +88,7 @@ export function StatsFilterPanel({
   const showTeam = teams.length > 0 && activeTab !== 'currentGame' && activeTab !== 'player';
   const showSport = activeTab !== 'currentGame';
   const showGender = activeTab !== 'currentGame';
+  const showFriendlies = activeTab === 'overall' || activeTab === 'player';
   const showClubSeason =
     !!onOpenSettings && ['season', 'tournament', 'overall', 'player'].includes(activeTab);
 
@@ -137,8 +138,11 @@ export function StatsFilterPanel({
           : t('common.genderBoys', 'Boys'),
       );
     }
+    if (showFriendlies && filters.includeFriendlies) {
+      parts.push(t('gameStatsModal.friendliesIncluded', 'Friendlies included'));
+    }
     return parts.filter(Boolean);
-  }, [filters, seasons, tournaments, teams, showSeason, showTournament, showTeam, showClubSeason, showSport, showGender, t]);
+  }, [filters, seasons, tournaments, teams, showSeason, showTournament, showTeam, showClubSeason, showSport, showGender, showFriendlies, t]);
 
   const apply = useCallback(() => {
     // Tournament first: changing it resets the series, so a series chosen in
@@ -164,6 +168,9 @@ export function StatsFilterPanel({
     if (draft.selectedClubSeason !== filters.selectedClubSeason) {
       handlers.onClubSeasonChange(draft.selectedClubSeason);
     }
+    if (draft.includeFriendlies !== filters.includeFriendlies) {
+      handlers.onIncludeFriendliesChange(draft.includeFriendlies);
+    }
     setOpen(false);
   }, [draft, filters, handlers]);
 
@@ -177,6 +184,7 @@ export function StatsFilterPanel({
       selectedGameTypeFilter: 'all',
       selectedGenderFilter: 'all',
       selectedClubSeason: 'all',
+      includeFriendlies: false,
     });
   }, []);
 
@@ -329,6 +337,21 @@ export function StatsFilterPanel({
                 <option value="girls">{t('common.genderGirls', 'Girls')}</option>
               </select>
             </div>
+          )}
+
+          {showFriendlies && (
+            /* Lived in the modal header before. A filter that sits apart from
+               the other filters is one the coach does not find. */
+            <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
+                checked={draft.includeFriendlies}
+                onChange={(e) => set('includeFriendlies', e.target.checked)}
+                data-testid="stats-filter-friendlies"
+              />
+              {t('gameStatsModal.includeFriendlies', 'Include friendly matches')}
+            </label>
           )}
 
           <div className="flex gap-2 pt-1">

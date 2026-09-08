@@ -11,6 +11,7 @@ describe('useStatsFilters', () => {
     expect(result.current.filters.selectedSeriesIdFilter).toBe('all');
     expect(result.current.filters.selectedGameTypeFilter).toBe('all');
     expect(result.current.filters.selectedClubSeason).toBe('all');
+    expect(result.current.filters.includeFriendlies).toBe(false);
   };
 
   it('resets all filters when resetAllFilters is called', () => {
@@ -24,8 +25,10 @@ describe('useStatsFilters', () => {
       result.current.handlers.onSeriesFilterChange('series-1');
       result.current.handlers.onGameTypeFilterChange('soccer');
       result.current.handlers.onClubSeasonChange('club-2024');
+      result.current.handlers.onIncludeFriendliesChange(true);
     });
 
+    expect(result.current.filters.includeFriendlies).toBe(true);
     expect(result.current.filters.selectedSeasonIdFilter).toBe('season-1');
     expect(result.current.filters.selectedTournamentIdFilter).toBe('tour-1');
     expect(result.current.filters.selectedTeamIdFilter).toBe('team-1');

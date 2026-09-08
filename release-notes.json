@@ -4,6 +4,15 @@
     {
       "date": "2026-09-08",
       "en": [
+        "The team choice on Home is one dropdown row now instead of a row of pills, so it takes the same space however many teams you have. In statistics, the friendly-matches toggle moved from the header into the filter panel with the other filters, and the closed bar says when friendlies are counted."
+      ],
+      "fi": [
+        "Etusivun joukkuevalinta on nyt yksi pudotusvalikkorivi nappirivin sijaan, joten se vie saman tilan joukkueiden määrästä riippumatta. Tilastoissa harjoitusotteluiden valinta siirtyi otsikkopalkista suodatinpaneeliin muiden suodattimien joukkoon, ja suljettu palkki kertoo, kun harjoitusottelut lasketaan mukaan."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "en": [
         "Filtering statistics is one control now. A single bar shows what you are filtering by in words, opens to every filter for that tab in one list, and applies only when you press Apply - so the numbers stop jumping while you are still choosing."
       ],
       "fi": [
