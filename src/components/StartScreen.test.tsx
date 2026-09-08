@@ -797,6 +797,22 @@ describe('Home dashboard view (opt-in)', () => {
     expect(props.onResumeGame).toHaveBeenCalled();
   });
 
+  /**
+   * Owner call: Pelit is the club as one block. The team choice belongs to
+   * Tilastot, and only narrows what Tilastot shows.
+   */
+  it('offers the team choice on Stats only, and Stats reads the team-scoped summary', () => {
+    const teams = [{ id: 'a', label: 'PePo Lila (Aluesarja)' }, { id: 'b', label: 'PePo Lila (Futsal)' }];
+    const scoped = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 3, goalsFor: 4 }, topScorer: { name: 'Virta', goals: 2 } };
+    render(<StartScreen {...dashProps({ teamScopeOptions: teams, teamScope: 'a', homeStatsSummary: scoped })} />);
+    expect(screen.queryByTestId('home-team-scope')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Virta 2/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+    expect(screen.getByTestId('home-team-scope')).toBeInTheDocument();
+    expect(screen.getByText(/Virta 2/)).toBeInTheDocument();
+    expect(screen.queryByText(/Aho 6/)).not.toBeInTheDocument();
+  });
+
   it('gear sheet toggle flips the view via onSetHomeView', () => {
     const props = dashProps();
     render(<StartScreen {...props} />);

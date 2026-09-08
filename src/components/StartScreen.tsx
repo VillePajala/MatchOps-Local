@@ -68,6 +68,8 @@ interface StartScreenProps {
   homeView?: 'simple' | 'dashboard';
   /** Computed Pelit-tab dashboard data (resume, Vuosi record, recent games). */
   homeSummary?: HomeSummary | null;
+  /** Tilastot tab only: the same summary narrowed to the chosen team. */
+  homeStatsSummary?: HomeSummary | null;
   /** Gear-sheet toggle for the view above. */
   onSetHomeView?: (view: 'simple' | 'dashboard') => void;
   /** Recent-strip deep-link: open a specific saved game by id. */
@@ -107,6 +109,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   setupProgress,
   homeView = 'simple',
   homeSummary,
+  homeStatsSummary,
   onSetHomeView,
   onOpenGameById,
 }) => {
@@ -550,8 +553,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  name exactly the surfaces that exist. Disabled until there
                  is a game to aggregate - never silently dead-clickable. */
               <>
-                {dashboardOn && homeSummary && (
-                  <HomeStatsTiles vuosi={homeSummary.vuosi} topScorer={homeSummary.topScorer} t={t} />
+                {dashboardOn && (homeStatsSummary ?? homeSummary) && (
+                  <>
+                    {/* The team choice narrows only these tiles. Pelit stays
+                        club-wide on purpose. */}
+                    <HomeTeamScopeSelect
+                      teams={teamScopeOptions ?? []}
+                      scope={teamScope ?? 'all'}
+                      onChange={onTeamScopeChange ?? (() => {})}
+                      t={t}
+                    />
+                    <HomeStatsTiles
+                      vuosi={(homeStatsSummary ?? homeSummary)!.vuosi}
+                      topScorer={(homeStatsSummary ?? homeSummary)!.topScorer}
+                      t={t}
+                    />
+                  </>
                 )}
                 {!hasSavedGames && (
                   <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
@@ -670,13 +687,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   /* Opt-in dashboard: informative resume card + Vuosi record +
                      recent strip, in place of the plain Continue button. */
                   <>
-                  {/* Above the numbers, because it decides what they mean. */}
-                  <HomeTeamScopeSelect
-                    teams={teamScopeOptions ?? []}
-                    scope={teamScope ?? 'all'}
-                    onChange={onTeamScopeChange ?? (() => {})}
-                    t={t}
-                  />
                   <HomeDashboard
                     summary={homeSummary}
                     onResume={onResumeGame}
