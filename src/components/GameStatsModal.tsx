@@ -249,9 +249,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [activeTab, setActiveTab] = useState<StatsTab>(
     initialTab ?? (initialSelectedPlayerId ? 'player' : aggregateOnly ? 'season' : 'currentGame'),
   );
-  // Fold friendly/practice games into the Overall & Player totals (off = the
-  // competitive record). Only meaningful on those two scopes.
-  const [includeFriendlies, setIncludeFriendlies] = useState(false);
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
@@ -267,6 +264,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedGameTypeFilter,
     selectedGenderFilter,
     selectedClubSeason,
+    includeFriendlies,
   } = filters;
   const {
     onSeasonFilterChange,
@@ -735,21 +733,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             </>)}
               </div>
             </div>
-            {/* Include friendlies in the competitive read (Overall / Player only). */}
-            {(activeTab === 'overall' || activeTab === 'player') && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => setIncludeFriendlies(v => !v)}
-                  aria-pressed={includeFriendlies}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                    includeFriendlies ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  {t('gameStatsModal.includeFriendlies', 'Include friendly matches')}
-                </button>
-              </div>
-            )}
           </div>
         </CollapsibleModalHeader>
 

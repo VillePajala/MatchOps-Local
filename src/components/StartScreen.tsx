@@ -7,7 +7,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeTeamScopePills, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
@@ -671,7 +671,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                      recent strip, in place of the plain Continue button. */
                   <>
                   {/* Above the numbers, because it decides what they mean. */}
-                  <HomeTeamScopePills
+                  <HomeTeamScopeSelect
                     teams={teamScopeOptions ?? []}
                     scope={teamScope ?? 'all'}
                     onChange={onTeamScopeChange ?? (() => {})}

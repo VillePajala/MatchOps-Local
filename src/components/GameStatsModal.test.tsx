@@ -279,13 +279,16 @@ describe('GameStatsModal', () => {
     ).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('shows the Include-friendlies toggle on the Overall tab', async () => {
+  test('the Include-friendlies toggle lives in the filter panel on the Overall tab', async () => {
     const props = { ...getDefaultProps(), aggregateOnly: true, initialTab: 'overall' as const };
     await act(async () => {
       renderComponent(props);
     });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('stats-filter-bar'));
+    });
     expect(
-      screen.getByRole('button', { name: i18n.t('gameStatsModal.includeFriendlies', 'Include friendly matches') }),
+      screen.getByRole('checkbox', { name: i18n.t('gameStatsModal.includeFriendlies', 'Include friendly matches') }),
     ).toBeInTheDocument();
   });
 
