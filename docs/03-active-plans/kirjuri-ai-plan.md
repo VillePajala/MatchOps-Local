@@ -284,6 +284,14 @@ not a measurement:
   (live gameType for the positions editor, a test fixture that aliased two setters).
   Phase 3 started: PR 8a merged/open as the pure GamePacket builder. #756's own review
   job hit the limit again - that PR has CI but no independent review yet.
+- 2026-09-08: master merged into the branch (stats filter bar #793, Home team scope
+  #792/#794/#795/#796, league naming #790, external-game team link #789). Four conflicts
+  resolved: both locale files, the i18n key count (3093), `GameStatsModal.tsx` imports
+  (`CollapsibleFilters` is gone; `StatsFilterPanel` replaces it). #791's two open
+  findings fixed: `ReportDraftPanel` aborts its request on unmount like its siblings, and
+  the spike route is deleted. `AI_PROVIDER_HOSTS` now has a test pinning it to
+  `AI_PROVIDERS`. Still owner-gated before master: prod migrations 041-044,
+  POLICY_VERSION, cross-match grouping in v1, a real-phone run of Phases 2-4.
 - Correction from PR 5: Web Speech (also Chrome's on-device mode) only transcribes live
   mic input, never a stored clip - the "on-device probe" cannot apply to post-game
   clips. An on-device engine over clips needs a WASM model; the slot stays open.
@@ -755,7 +763,7 @@ row shows an outline tick rather than a solid one, so it never claims all-done a
 
 ## Before the master merge (checklist)
 
-- [ ] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). It is a diagnostic.
+- [x] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). Done 2026-09-08.
 - [ ] Apply migrations 041, 042, 043 AND 044 to PROD, **in that order**. Staging only so
       far. NOT DONE - needs the owner's go-ahead; nothing has been applied to prod.
 

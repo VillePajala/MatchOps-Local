@@ -2,6 +2,51 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-08",
+      "en": [
+        "The team choice on Home now lives on the Stats tab only. The Games tab shows your club season as one block, every team together, as it did before."
+      ],
+      "fi": [
+        "Etusivun joukkuevalinta on nyt vain Tilastot-välilehdellä. Pelit-välilehti näyttää seurakauden yhtenä kokonaisuutena, kaikki joukkueet yhdessä, kuten ennenkin."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "en": [
+        "The team choice on Home is one dropdown row now instead of a row of pills, so it takes the same space however many teams you have. In statistics, the friendly-matches toggle moved from the header into the filter panel with the other filters, and the closed bar says when friendlies are counted."
+      ],
+      "fi": [
+        "Etusivun joukkuevalinta on nyt yksi pudotusvalikkorivi nappirivin sijaan, joten se vie saman tilan joukkueiden määrästä riippumatta. Tilastoissa harjoitusotteluiden valinta siirtyi otsikkopalkista suodatinpaneeliin muiden suodattimien joukkoon, ja suljettu palkki kertoo, kun harjoitusottelut lasketaan mukaan."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "en": [
+        "Filtering statistics is one control now. A single bar shows what you are filtering by in words, opens to every filter for that tab in one list, and applies only when you press Apply - so the numbers stop jumping while you are still choosing."
+      ],
+      "fi": [
+        "Tilastojen suodatus on nyt yksi hallinta. Yksi palkki kertoo sanoin, millä suodatat, avautuu näyttämään kaikki välilehden suodattimet yhdessä listassa ja ottaa ne käyttöön vasta kun painat Käytä - joten luvut eivät enää hyppele kesken valinnan."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "en": [
+        "The team pills on Home now say which team is which. Junior teams often share a name across competitions, so each pill carries the league, tournament or level it plays in, the same way teams read in the statistics filters. The row also wraps instead of scrolling sideways, so nothing is cut off at the edge."
+      ],
+      "fi": [
+        "Etusivun joukkuenapit kertovat nyt, mikä joukkue on mikä. Junioreilla sama nimi toistuu usein eri kilpailuissa, joten jokaisessa napissa näkyy sarja, turnaus tai taso, jossa joukkue pelaa - samoin kuin tilastojen suodattimissa. Rivi myös rivittyy sivuttaisvierityksen sijaan, joten mitään ei jää reunan taakse."
+      ]
+    },
+    {
+      "date": "2026-09-07",
+      "en": [
+        "Home now shows one team at a time. If you run more than one team, pick it at the top and the record, goal difference, top scorer and recent matches are all about that team. Previously they added every team together, which made the totals meaningless for anyone coaching more than one. Your choice is remembered."
+      ],
+      "fi": [
+        "Etusivu näyttää nyt yhden joukkueen kerrallaan. Jos sinulla on useampi joukkue, valitse se ylhäältä, niin tulokset, maaliero, maalintekijä ja viimeisimmät ottelut koskevat juuri sitä joukkuetta. Aiemmin ne laskettiin kaikista joukkueista yhteen, mikä teki luvuista merkityksettömiä useampaa joukkuetta valmentavalle. Valintasi muistetaan."
+      ]
+    },
+    {
       "date": "2026-09-07",
       "en": [
         "New: record voice notes during a match and turn them into your match report afterwards. Press once, speak, done - the phone stays a dictaphone during play. After the match you review every clip, and nothing is saved until you accept it.",

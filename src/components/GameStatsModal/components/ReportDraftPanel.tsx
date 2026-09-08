@@ -18,7 +18,7 @@
  * - The draft is discarded on close. Nothing persists until Apply.
  */
 
-import React, { useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import type { GameEvent } from '@/types/game';
@@ -131,6 +131,10 @@ const ReportDraftPanel: React.FC<ReportDraftPanelProps> = ({
   );
   const [applying, setApplying] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Closing the modal mid-draft must not leave a request running against
+  // the coach's key; the sibling panels do the same.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Built fresh for the estimate so a settings change (pseudonymization) is
   // reflected before the coach sees a number.

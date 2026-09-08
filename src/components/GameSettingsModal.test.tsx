@@ -223,11 +223,8 @@ describe('<GameSettingsModal />', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  /**
-   * @critical - Review #734 wiring guard: the tour-tracking bug shipped twice
-   * because nothing asserted the Muodostelma select actually invokes the
-   * handler it is given. This pins the select -> onApplyFormation contract.
-   */
+  // The #734 wiring guard that used to sit here moved with the formation
+  // control to ControlBar (see ControlBar.menuScope.test.tsx).
   test('the Friendly-match toggle reclassifies the game via a mutation', async () => {
     const user = userEvent.setup();
     (defaultProps.updateGameDetailsMutation.mutate as jest.Mock).mockClear();

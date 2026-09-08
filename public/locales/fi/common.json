@@ -419,7 +419,6 @@
     "genderBoys": "Pojat",
     "genderGirls": "Tytöt",
     "genderLabel": "Sukupuoli",
-    "genderAll": "Kaikki",
     "genderNotSet": "Ei asetettu",
     "selectAgeGroup": "-- Valitse ikäluokka --",
     "selectLevel": "-- Valitse taso --",
@@ -459,7 +458,8 @@
     "reset": "Nollaa",
     "startNew": "Aloita uusi",
     "continue": "Jatka",
-    "futsal": "Futsal"
+    "futsal": "Futsal",
+    "all": "Kaikki"
   },
   "backupRestore": {
     "resultsTitle": "Varmuuskopion palautus valmis",
@@ -750,9 +750,6 @@
     "filterAllTournaments": "Kaikki turnaukset",
     "filterAllSeries": "Kaikki tasot",
     "filterAllGameTypes": "Kaikki lajit",
-    "filtersButton": "Suodattimet",
-    "filtersTitle": "Suodatusvalinnat",
-    "clearFilters": "Tyhjennä kaikki",
     "activeFiltersHint": "Aktiiviset suodattimet",
     "seasonFilterLabel": "Sarja",
     "tournamentFilterLabel": "Turnaus",
@@ -777,6 +774,7 @@
     "titleTournament": "Turnaustilastot",
     "titleOverall": "Kokonaistilastot",
     "includeFriendlies": "Sisällytä harjoitusottelut",
+    "friendliesIncluded": "Harjoitusottelut mukana",
     "titleCurrentGame": "Viimeistele ottelu",
     "invalidTimeFormat": "Virheellinen aikamuoto. MM:SS",
     "scorerRequired": "Maalintekijä on valittava.",
@@ -812,7 +810,10 @@
       "mentions": "Erityismaininnat",
       "next": "Seuraava askel"
     },
-    "notesRemaining": "{{remaining}} merkkiä jäljellä"
+    "notesRemaining": "{{remaining}} merkkiä jäljellä",
+    "filters": "Suodattimet",
+    "filtersApply": "Käytä",
+    "filtersClear": "Tyhjennä"
   },
   "status": {
     "loadingGameData": "Ladataan pelitietoja..."
@@ -1066,7 +1067,10 @@
     "welcomeStripStart": "Tervetuloa! Aloita lisäämällä pelaajasi.",
     "welcomeStripTeam": "Hyvä alku! Luo seuraavaksi joukkue.",
     "welcomeStripTour": "Haluatko aloitusopastuksen?",
-    "gearSetup": "Käyttöönotto ({{done}}/4)"
+    "gearSetup": "Käyttöönotto ({{done}}/4)",
+    "dashAllTeams": "Kaikki joukkueet",
+    "dashTeamLabel": "Joukkue",
+    "dashTeamScope": "Mistä joukkueesta nämä luvut ovat"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

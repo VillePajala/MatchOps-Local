@@ -9,6 +9,8 @@ export interface StatsFiltersState {
   selectedGameTypeFilter: GameType | 'all';
   selectedGenderFilter: Gender | 'all';
   selectedClubSeason: string;
+  /** Fold friendlies into the Overall and Player totals (off = competitive read only). */
+  includeFriendlies: boolean;
 }
 
 export interface StatsFiltersHandlers {
@@ -19,13 +21,7 @@ export interface StatsFiltersHandlers {
   onGameTypeFilterChange: (gameType: GameType | 'all') => void;
   onGenderFilterChange: (gender: Gender | 'all') => void;
   onClubSeasonChange: (season: string) => void;
-  clearCollapsibleFilters: (options?: {
-    resetSeries?: boolean;
-    resetTeam?: boolean;
-    resetGameType?: boolean;
-    resetGender?: boolean;
-    resetClubSeason?: boolean;
-  }) => void;
+  onIncludeFriendliesChange: (include: boolean) => void;
   /**
    * Resets all filters to their default 'all' values.
    * Call this from tab button onClick handlers to ensure each tab starts clean.
@@ -41,6 +37,7 @@ export function useStatsFilters() {
   const [selectedGameTypeFilter, setSelectedGameTypeFilter] = useState<GameType | 'all'>('all');
   const [selectedGenderFilter, setSelectedGenderFilter] = useState<Gender | 'all'>('all');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
+  const [includeFriendlies, setIncludeFriendlies] = useState(false);
 
   const onSeasonFilterChange = useCallback((seasonId: string | 'all') => {
     setSelectedSeasonIdFilter(seasonId);
@@ -71,28 +68,10 @@ export function useStatsFilters() {
     setSelectedClubSeason(season);
   }, []);
 
-  const clearCollapsibleFilters = useCallback(
-    ({
-      resetSeries = true,
-      resetTeam = true,
-      resetGameType = true,
-      resetGender = true,
-      resetClubSeason = true,
-    }: {
-      resetSeries?: boolean;
-      resetTeam?: boolean;
-      resetGameType?: boolean;
-      resetGender?: boolean;
-      resetClubSeason?: boolean;
-    } = {}) => {
-      if (resetSeries) setSelectedSeriesIdFilter('all');
-      if (resetTeam) setSelectedTeamIdFilter('all');
-      if (resetGameType) setSelectedGameTypeFilter('all');
-      if (resetGender) setSelectedGenderFilter('all');
-      if (resetClubSeason) setSelectedClubSeason('all');
-    },
-    []
-  );
+  const onIncludeFriendliesChange = useCallback((include: boolean) => {
+    setIncludeFriendlies(include);
+  }, []);
+
 
   const resetAllFilters = useCallback(() => {
     setSelectedSeasonIdFilter('all');
@@ -102,6 +81,7 @@ export function useStatsFilters() {
     setSelectedGameTypeFilter('all');
     setSelectedGenderFilter('all');
     setSelectedClubSeason('all');
+    setIncludeFriendlies(false);
   }, []);
 
   return {
@@ -113,6 +93,7 @@ export function useStatsFilters() {
       selectedGameTypeFilter,
       selectedGenderFilter,
       selectedClubSeason,
+      includeFriendlies,
     },
     handlers: {
       onSeasonFilterChange,
@@ -122,7 +103,7 @@ export function useStatsFilters() {
       onGameTypeFilterChange,
       onGenderFilterChange,
       onClubSeasonChange,
-      clearCollapsibleFilters,
+      onIncludeFriendliesChange,
       resetAllFilters,
     },
   };

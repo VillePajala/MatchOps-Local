@@ -115,6 +115,50 @@ export function HomeDashboard({
   );
 }
 
+/**
+ * Which team the numbers below are about.
+ *
+ * Only shown when there is more than one team to choose between: a coach with
+ * one team should not be asked a question with one answer. Hidden entirely
+ * rather than shown disabled, because a control that cannot change anything is
+ * noise on the busiest screen in the app.
+ */
+export function HomeTeamScopeSelect({
+  teams,
+  scope,
+  onChange,
+  t,
+}: {
+  teams: Array<{ id: string; label: string }>;
+  scope: string;
+  onChange: (scope: string) => void;
+  t: TFunction;
+}) {
+  if (teams.length < 2) return null;
+  // One row whatever the roster of teams looks like. Pills wrapped into a
+  // wall once real data (six same-named teams with context) hit them.
+  return (
+    <label
+      className="w-full flex items-center gap-2 px-3.5 py-2.5 mb-3 rounded-xl bg-slate-800/70 border border-slate-700/60 text-[13px] focus-within:ring-2 focus-within:ring-indigo-500"
+      data-testid="home-team-scope"
+    >
+      <span className="font-extrabold text-indigo-200 whitespace-nowrap">{t('startScreen.dashTeamLabel', 'Team')}</span>
+      <span className="text-slate-600" aria-hidden="true">·</span>
+      <select
+        value={scope}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={t('startScreen.dashTeamScope', 'Which team these numbers are about')}
+        className="flex-1 min-w-0 bg-transparent text-slate-200 truncate focus:outline-none"
+      >
+        <option value="all">{t('startScreen.dashAllTeams', 'All teams')}</option>
+        {teams.map((team) => (
+          <option key={team.id} value={team.id}>{team.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 /** Joukkue tab: a one-line roster/team/personnel count header. */
 export function HomeCountsBar({ counts, t }: { counts: HomeSummary['counts']; t: TFunction }) {
   const parts = [

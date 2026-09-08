@@ -7,7 +7,7 @@ import i18n, { saveLanguagePreference } from '@/i18n';
 // and calling updateAppSettings could cause DataStore conflicts when switching modes.
 import RecommendedSetupCard, { type SetupProgress } from '@/components/RecommendedSetupCard';
 import type { HomeSummary } from '@/utils/homeSummary';
-import { HomeDashboard, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
+import { HomeDashboard, HomeTeamScopeSelect, HomeCountsBar, HomeSeasonCard, HomeStatsTiles } from '@/components/HomeDashboard';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
@@ -31,6 +31,10 @@ interface StartScreenProps {
   onManageRoster?: () => void;
   /** Home tab: seasons & tournaments (opens the existing modal). */
   onManageSeasons?: () => void;
+  /** Teams the coach can scope Home to, and the current choice. */
+  teamScopeOptions?: Array<{ id: string; label: string }>;
+  teamScope?: string;
+  onTeamScopeChange?: (scope: string) => void;
   onManageTournaments?: () => void;
   /** Front-page entry: open the Playing-Time Planner. */
   onOpenPlanner?: () => void;
@@ -64,6 +68,8 @@ interface StartScreenProps {
   homeView?: 'simple' | 'dashboard';
   /** Computed Pelit-tab dashboard data (resume, Vuosi record, recent games). */
   homeSummary?: HomeSummary | null;
+  /** Tilastot tab only: the same summary narrowed to the chosen team. */
+  homeStatsSummary?: HomeSummary | null;
   /** Gear-sheet toggle for the view above. */
   onSetHomeView?: (view: 'simple' | 'dashboard') => void;
   /** Recent-strip deep-link: open a specific saved game by id. */
@@ -80,6 +86,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onSignOut,
   onOpenSettings,
   onManageRoster,
+  teamScopeOptions,
+  teamScope,
+  onTeamScopeChange,
   onManageSeasons,
   onManageTournaments,
   onOpenPlanner,
@@ -100,6 +109,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   setupProgress,
   homeView = 'simple',
   homeSummary,
+  homeStatsSummary,
   onSetHomeView,
   onOpenGameById,
 }) => {
@@ -543,8 +553,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
                  name exactly the surfaces that exist. Disabled until there
                  is a game to aggregate - never silently dead-clickable. */
               <>
-                {dashboardOn && homeSummary && (
-                  <HomeStatsTiles vuosi={homeSummary.vuosi} topScorer={homeSummary.topScorer} t={t} />
+                {dashboardOn && (homeStatsSummary ?? homeSummary) && (
+                  <>
+                    {/* The team choice narrows only these tiles. Pelit stays
+                        club-wide on purpose. */}
+                    <HomeTeamScopeSelect
+                      teams={teamScopeOptions ?? []}
+                      scope={teamScope ?? 'all'}
+                      onChange={onTeamScopeChange ?? (() => {})}
+                      t={t}
+                    />
+                    <HomeStatsTiles
+                      vuosi={(homeStatsSummary ?? homeSummary)!.vuosi}
+                      topScorer={(homeStatsSummary ?? homeSummary)!.topScorer}
+                      t={t}
+                    />
+                  </>
                 )}
                 {!hasSavedGames && (
                   <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
@@ -662,6 +686,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {dashboardOn && homeSummary ? (
                   /* Opt-in dashboard: informative resume card + Vuosi record +
                      recent strip, in place of the plain Continue button. */
+                  <>
                   <HomeDashboard
                     summary={homeSummary}
                     onResume={onResumeGame}
@@ -669,6 +694,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     onOpenGame={onOpenGameById}
                     t={t}
                   />
+                  </>
                 ) : canResume ? (
                   <button
                     type="button"

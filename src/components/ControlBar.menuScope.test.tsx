@@ -230,3 +230,18 @@ describe('finishing progress on the menu row', () => {
     expect(screen.queryByTestId('menu-finish-progress')).not.toBeInTheDocument();
   });
 });
+
+describe('formation wiring', () => {
+  /**
+   * @critical - Review #734: the tour-tracking bug shipped twice because
+   * nothing asserted the formation control actually invokes the handler it is
+   * given. Moved here from GameSettingsModal when the control did.
+   */
+  it('picking a preset calls onPlaceAllPlayers with that preset', async () => {
+    const onPlaceAllPlayers = jest.fn();
+    renderBar({ onPlaceAllPlayers, selectedPlayerCount: 8 });
+    fireEvent.click(screen.getByRole('button', { name: 'Formation menu' }));
+    fireEvent.click(await screen.findByText('4-3-3'));
+    expect(onPlaceAllPlayers).toHaveBeenCalledWith('11v11-4-3-3');
+  });
+});

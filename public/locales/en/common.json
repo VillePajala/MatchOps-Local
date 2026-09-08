@@ -419,7 +419,6 @@
     "genderBoys": "Boys",
     "genderGirls": "Girls",
     "genderLabel": "Gender",
-    "genderAll": "All Genders",
     "genderNotSet": "Not Set",
     "selectAgeGroup": "-- Select Age Group --",
     "selectLevel": "-- Select Level --",
@@ -459,7 +458,8 @@
     "continue": "Continue",
     "backButton": "Back",
     "next": "Next",
-    "futsal": "Futsal"
+    "futsal": "Futsal",
+    "all": "All"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -536,9 +536,6 @@
     "filterAllTournaments": "All Tournaments",
     "filterAllSeries": "All Levels",
     "filterAllGameTypes": "All Sports",
-    "filtersButton": "Filters",
-    "filtersTitle": "Filter Options",
-    "clearFilters": "Clear all",
     "activeFiltersHint": "Active filters",
     "seasonFilterLabel": "League",
     "tournamentFilterLabel": "Tournament",
@@ -563,6 +560,7 @@
     "titleTournament": "Tournament Stats",
     "titleOverall": "Overall Stats",
     "includeFriendlies": "Include friendly matches",
+    "friendliesIncluded": "Friendlies included",
     "titleCurrentGame": "Finish this game",
     "invalidTimeFormat": "Invalid time format. MM:SS",
     "scorerRequired": "Scorer must be selected.",
@@ -598,7 +596,10 @@
       "mentions": "Highlights",
       "next": "Next step"
     },
-    "notesRemaining": "{{remaining}} characters left"
+    "notesRemaining": "{{remaining}} characters left",
+    "filters": "Filters",
+    "filtersApply": "Apply",
+    "filtersClear": "Clear"
   },
   "importResults": {
     "title": "Import Results",
@@ -1202,7 +1203,10 @@
     "welcomeStripStart": "Welcome! Start by adding your players.",
     "welcomeStripTeam": "Good start! Next, create your team.",
     "welcomeStripTour": "Want the getting-started guide?",
-    "gearSetup": "Setup checklist ({{done}}/4)"
+    "gearSetup": "Setup checklist ({{done}}/4)",
+    "dashAllTeams": "All teams",
+    "dashTeamLabel": "Team",
+    "dashTeamScope": "Which team these numbers are about"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

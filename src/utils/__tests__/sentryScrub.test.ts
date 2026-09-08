@@ -75,3 +75,16 @@ describe('sentryScrub', () => {
     expect(isAiProviderUrl('not a url')).toBe(false);
   });
 });
+
+describe('AI_PROVIDER_HOSTS stays in step with the provider table', () => {
+  /**
+   * @critical - a provider added to aiProvider.ts without its host here would
+   * send that provider's breadcrumbs to Sentry unscrubbed.
+   */
+  it('lists exactly the hosts of AI_PROVIDERS', async () => {
+    const { AI_PROVIDERS } = await import('@/utils/aiProvider');
+    const { AI_PROVIDER_HOSTS } = await import('@/utils/sentryScrub');
+    const fromTable = Object.values(AI_PROVIDERS).map((p) => new URL(p.host).hostname).sort();
+    expect([...AI_PROVIDER_HOSTS].sort()).toEqual(fromTable);
+  });
+});
