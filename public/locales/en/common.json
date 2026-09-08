@@ -513,6 +513,7 @@
     "titleTournament": "Tournament Stats",
     "titleOverall": "Overall Stats",
     "includeFriendlies": "Include friendly matches",
+    "friendliesIncluded": "Friendlies included",
     "titleCurrentGame": "Current Game Stats",
     "invalidTimeFormat": "Invalid time format. MM:SS",
     "scorerRequired": "Scorer must be selected.",
@@ -1141,6 +1142,7 @@
     "welcomeStripTour": "Want the getting-started guide?",
     "gearSetup": "Setup checklist ({{done}}/4)",
     "dashAllTeams": "All teams",
+    "dashTeamLabel": "Team",
     "dashTeamScope": "Which team these numbers are about"
   },
   "workspace": {

@@ -431,7 +431,11 @@ describe('Translation File Validation', () => {
       //     the Sport/Gender "All" options had been reading from a fallback with
       //     no key behind it (Finnish saw English); -1 common.genderAll, which
       //     only the old control used. Net 0 over master. Lands at 2855.
-      expect(enKeys.length).toBe(2855);
+      // +1: gameStatsModal.friendliesIncluded - the closed filter bar's word for
+      //     the friendlies toggle, which moved from the header into the panel.
+      // +1: startScreen.dashTeamLabel - the Home team row's caption, now a
+      //     dropdown instead of pills. Lands at 2857.
+      expect(enKeys.length).toBe(2857);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -567,7 +571,11 @@ describe('Translation File Validation', () => {
       //     the Sport/Gender "All" options had been reading from a fallback with
       //     no key behind it (Finnish saw English); -1 common.genderAll, which
       //     only the old control used. Net 0 over master. Lands at 2855.
-      expect(fiKeys.length).toBe(2855);
+      // +1: gameStatsModal.friendliesIncluded - the closed filter bar's word for
+      //     the friendlies toggle, which moved from the header into the panel.
+      // +1: startScreen.dashTeamLabel - the Home team row's caption, now a
+      //     dropdown instead of pills. Lands at 2857.
+      expect(fiKeys.length).toBe(2857);
     });
   });
 });
