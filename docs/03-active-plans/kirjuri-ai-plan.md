@@ -292,6 +292,10 @@ not a measurement:
   the spike route is deleted. `AI_PROVIDER_HOSTS` now has a test pinning it to
   `AI_PROVIDERS`. Still owner-gated before master: prod migrations 041-044,
   POLICY_VERSION, cross-match grouping in v1, a real-phone run of Phases 2-4.
+- 2026-09-08 evening: **MERGED TO MASTER** (#791 squashed as `c89a972b`) after the owner's
+  phone test, the four prod migrations, POLICY_VERSION 2026-09, the families page
+  (/voice-notes), the Experimental framing, and no-AI-without-a-key in the match flow.
+  Not announced anywhere on purpose. Phase 5 is out (see above).
 - Correction from PR 5: Web Speech (also Chrome's on-device mode) only transcribes live
   mic input, never a stored clip - the "on-device probe" cannot apply to post-game
   clips. An on-device engine over clips needs a WASM model; the slot stays open.
