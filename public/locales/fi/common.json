@@ -223,7 +223,7 @@
     "deleteFailed": "Muistiinpanoa ei voitu poistaa.",
     "transcribe": "Litteroi {{count}} klippiä (noin ${{cost}})",
     "transcribing": "Litteroidaan {{done}}/{{total}}...",
-    "transcribeHint": "Yhdistä oma tekoälypalvelusi asetuksissa, niin klipit litteroidaan automaattisesti.",
+    "transcribeHint": "Nauhoitteet säilyvät täällä, niin voit kirjoittaa ne auki, kun ehdit.",
     "transcribeUnauthorized": "Palvelu hylkäsi avaimesi. Tarkista se asetuksista.",
     "transcribeRateLimited": "Palvelu rajoittaa pyyntöjä. Yritä uudelleen hetken kuluttua.",
     "transcribeNetwork": "Palveluun ei saatu yhteyttä. Tarkista yhteys ja yritä uudelleen.",
@@ -3585,7 +3585,7 @@
   "spokenReport": {
     "title": "Sanele raportti",
     "intro": "Nauhoita oma kertomuksesi ottelusta, ja se kirjoitetaan tähän. Kun pidät sen yhteenvetona, tekoälyluonnos kohtelee sitä sinun sanoinasi.",
-    "introNoProvider": "Nauhoita oma kertomuksesi ottelusta. Ilman yhdistettyä tekoälypalvelua se jää nauhoitteeksi äänimuistiinpanoihin, valmiina kirjoitettavaksi myöhemmin.",
+    "introNoProvider": "Nauhoita oma kertomuksesi ottelusta. Se jää nauhoitteeksi äänimuistiinpanoihin, valmiina kirjoitettavaksi myöhemmin.",
     "start": "Nauhoita raportti",
     "stop": "Lopeta nauhoitus",
     "transcribing": "Kirjoitetaan mitä sanoit...",

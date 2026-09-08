@@ -39,9 +39,10 @@ jest.mock('@/hooks/useDataStore', () => ({
 }));
 
 // A connected provider, so the estimate and the button are offered at all.
+const mockAi = { connected: true, pseudonymize: true, model: null as string | null };
 jest.mock('@/utils/aiProvider', () => ({
   ...jest.requireActual('@/utils/aiProvider'),
-  useAiProviderState: () => ({ connected: true, pseudonymize: true, model: null }),
+  useAiProviderState: () => mockAi,
 }));
 
 const tidy = jest.fn();
@@ -89,6 +90,22 @@ describe('GameStatsModal - Tidy beside the report', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Element.prototype.scrollIntoView = jest.fn();
+  });
+
+  /**
+   * @critical - owner decision 2026-09-08: without a connected provider the
+   * match flow shows no AI at all. Before this, the Tidy button was offered
+   * and led to a "connect a provider" card, a dead end for most coaches.
+   */
+  it('offers neither Tidy nor the drafting card while no provider is connected', () => {
+    mockAi.connected = false;
+    try {
+      renderModal();
+      expect(screen.queryByTestId('report-draft-panel')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /tidy/i })).not.toBeInTheDocument();
+    } finally {
+      mockAi.connected = true;
+    }
   });
 
   it('starts the tidy job that lives in the drafting card below', () => {

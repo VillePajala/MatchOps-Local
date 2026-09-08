@@ -223,7 +223,7 @@
     "deleteFailed": "Could not delete the note.",
     "transcribe": "Transcribe {{count}} clips (about ${{cost}})",
     "transcribing": "Transcribing {{done}}/{{total}}...",
-    "transcribeHint": "Connect your own AI provider in Settings to transcribe clips automatically.",
+    "transcribeHint": "The recordings are kept here so you can write them out when you have a moment.",
     "transcribeUnauthorized": "The provider rejected your key. Check it in Settings.",
     "transcribeRateLimited": "The provider is rate-limiting requests. Try again in a minute.",
     "transcribeNetwork": "Could not reach the provider. Check your connection and try again.",
@@ -3585,7 +3585,7 @@
   "spokenReport": {
     "title": "Say the report out loud",
     "intro": "Record your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.",
-    "introNoProvider": "Record your account of the match. Without an AI provider connected it stays as a recording in your voice notes, ready to write out later.",
+    "introNoProvider": "Record your account of the match. It stays as a recording in your voice notes, ready to write out later.",
     "start": "Record the report",
     "stop": "Stop recording",
     "transcribing": "Writing out what you said...",

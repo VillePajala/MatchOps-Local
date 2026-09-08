@@ -61,6 +61,7 @@ import {
   PositionBalanceSection,
 } from './GameStatsModal/components';
 import { StatsFilterPanel } from './GameStatsModal/components/StatsFilterPanel';
+import { useAiProviderState } from '@/utils/aiProvider';
 import CoverageNudgeCard from './GameStatsModal/components/CoverageNudgeCard';
 import TranslateReportPanel from './GameStatsModal/components/TranslateReportPanel';
 import type { ReportDraftHandle } from './GameStatsModal/components/ReportDraftPanel';
@@ -665,13 +666,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   });
 
   /**
-   * Whether tidying can be offered at all.
+   * Whether tidying and drafting are offered at all.
    *
-   * Exactly the condition ReportDraftPanel is mounted under, because the
-   * button in the editor is useless without it. Derived once so the two cannot
-   * drift, which is the same lesson the completeness bar taught twice.
+   * One condition for the editor's Tidy button and for mounting the drafting
+   * card, so the two cannot drift. It includes a connected provider on purpose
+   * (owner decision 2026-09-08): a coach without a key should meet no AI in the
+   * match flow at all, not a button that leads to "connect a provider". The
+   * settings card is the one place the feature announces itself.
    */
-  const canTidy = Boolean(onApplyReportDraft) && Boolean(currentGame);
+  const ai = useAiProviderState();
+  const canTidy = Boolean(onApplyReportDraft) && Boolean(currentGame) && ai.connected;
   const handleTidy = useCallback(() => {
     reportDraftRef.current?.tidy();
     // The review, the price and the undo all live in the card below, so take
@@ -1017,7 +1021,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               }}
             />
           )}
-          {onApplyReportDraft && currentGame && (
+          {canTidy && onApplyReportDraft && currentGame && (
             <ReportDraftPanel
               handleRef={reportDraftRef}
               estimate={tidyEstimate}
