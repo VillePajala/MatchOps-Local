@@ -35,6 +35,12 @@ beforeEach(() => {
 });
 
 describe('AiSettingsCard', () => {
+  it('says it is experimental and links the page for families', () => {
+    render(<AiSettingsCard userId="u1" />);
+    expect(screen.getByTestId('ai-experimental')).toHaveTextContent('Experimental');
+    expect(screen.getByTestId('ai-parent-page')).toHaveAttribute('href', '/voice-notes');
+  });
+
   it('starts with Set up only - no key field before consent', () => {
     render(<AiSettingsCard userId="u1" />);
     expect(screen.getByTestId('ai-status')).toHaveTextContent('Not connected');

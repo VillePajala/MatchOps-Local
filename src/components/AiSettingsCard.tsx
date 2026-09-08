@@ -122,7 +122,14 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
   return (
     <div data-testid="ai-settings-card" className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-2">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="text-lg font-semibold text-slate-200">{t('aiSettings.title', 'Voice notes and AI')}</h3>
+        <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2 flex-wrap">
+          {t('aiSettings.title', 'Voice notes and AI')}
+          {/* Says who this is for before anyone reads further: a coach without
+              an API key should not expect a one-button AI here. */}
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-500/30" data-testid="ai-experimental">
+            {t('aiSettings.experimentalTag', 'Experimental')}
+          </span>
+        </h3>
         <span
           data-testid="ai-status"
           className={`shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-semibold border ${
@@ -137,6 +144,12 @@ const AiSettingsCard: React.FC<AiSettingsCardProps> = ({ userId }) => {
 
       <p className="text-xs text-slate-400 mb-2">
         {t('aiSettings.intro', 'Voice notes work without this. Transcription and drafts need your own AI provider account - the recordings then go from your phone to that provider only, on your key, only when you press the button.')}
+      </p>
+      <p className="text-xs text-slate-400 mb-2">
+        {t('aiSettings.experimentalNote', 'Needs your own OpenAI account and API key. Built for coaches comfortable with that; not for everyone yet.')}{' '}
+        <a href="/voice-notes" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline" data-testid="ai-parent-page">
+          {t('aiSettings.parentPageLink', 'Page for families: what leaves the phone')}
+        </a>
       </p>
 
       {!state.hasConsent && (

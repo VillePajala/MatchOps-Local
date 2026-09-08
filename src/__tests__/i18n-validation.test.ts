@@ -449,7 +449,9 @@ describe('Translation File Validation', () => {
       //     dropdown instead of pills. Lands at 2857.
       // Merged master (stats filter bar, friendlies in the panel, Home team row)
       //     into the Kirjuri branch; the count below is the union.
-      expect(enKeys.length).toBe(3093);
+      // +22 voiceNotesInfo.* (the page a coach sends to families), +3 aiSettings
+      //     experimental tag, note and family-page link. Lands at 3118.
+      expect(enKeys.length).toBe(3118);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -591,7 +593,9 @@ describe('Translation File Validation', () => {
       //     dropdown instead of pills. Lands at 2857.
       // Merged master (stats filter bar, friendlies in the panel, Home team row)
       //     into the Kirjuri branch; the count below is the union.
-      expect(fiKeys.length).toBe(3093);
+      // +22 voiceNotesInfo.* (the page a coach sends to families), +3 aiSettings
+      //     experimental tag, note and family-page link. Lands at 3118.
+      expect(fiKeys.length).toBe(3118);
     });
   });
 });
