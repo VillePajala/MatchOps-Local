@@ -32,7 +32,7 @@ const onOpenPlanner = jest.fn();
 const onOpenTraining = jest.fn();
 const onOpenRules = jest.fn();
 
-const renderBar = () =>
+const renderBar = (extra: Partial<React.ComponentProps<typeof ControlBar>> = {}) =>
   render(
     <ControlBar
       timeElapsedInSeconds={0}
@@ -67,6 +67,7 @@ const renderBar = () =>
       onOpenTraining={onOpenTraining}
       onOpenRules={onOpenRules}
       onGoToStartScreen={onGoToStartScreen}
+      {...extra}
     />,
   );
 
@@ -85,7 +86,7 @@ describe('ControlBar menu - match scope only (restructure 3.1)', () => {
 
   it('holds exactly the match-scope items plus Taso and Home', () => {
     const match = within(section('This match'));
-    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Game report', /Team stats/]) {
+    for (const item of ['Quick Save', 'Match details', 'Record Performance', 'Finish this game', /Team stats/]) {
       expect(match.getByRole('button', { name: item })).toBeInTheDocument();
     }
     // Taso is the one external link that stays: game-day workflow tool.
@@ -178,5 +179,69 @@ describe('ControlBar - bar-level Home button without a handler', () => {
       />,
     );
     expect(screen.queryByRole('button', { name: 'Back to Home' })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The owner's report: the AI provider key lives in app settings, "not
+ * connected" turns up mid-match, and the only route there was via Home - which
+ * means leaving the match to fix something the match needs.
+ */
+describe('app settings from inside the match', () => {
+  it('opens settings without sending the coach back to Home first', async () => {
+    const onOpenAppSettings = jest.fn();
+    const onGoToStartScreen = jest.fn();
+    renderBar({ onOpenAppSettings, onGoToStartScreen });
+    fireEvent.click(screen.getByTestId('menu-app-settings'));
+    // The menu defers handlers until its close animation settles.
+    await waitFor(() => expect(onOpenAppSettings).toHaveBeenCalledTimes(1));
+    expect(onGoToStartScreen).not.toHaveBeenCalled();
+  });
+
+  it('shows no settings row when there is nothing to open', () => {
+    renderBar({ onOpenAppSettings: undefined });
+    expect(screen.queryByTestId('menu-app-settings')).not.toBeInTheDocument();
+  });
+});
+
+describe('finishing progress on the menu row', () => {
+  /**
+   * @critical - state, not decoration: the dot is amber while work remains and
+   * green when it is done, and the count comes from the same model the
+   * checklist uses so the two cannot disagree.
+   */
+  it('shows the count and an amber dot while the match is unfinished', () => {
+    renderBar({ finishProgress: { done: 3, total: 5 } });
+
+    const badge = screen.getByTestId('menu-finish-progress');
+    expect(badge).toHaveTextContent('3/5');
+    expect(badge.querySelector('span')?.className).toContain('bg-amber-400');
+  });
+
+  it('turns green when there is nothing left to do', () => {
+    renderBar({ finishProgress: { done: 5, total: 5 } });
+
+    expect(screen.getByTestId('menu-finish-progress').querySelector('span')?.className).toContain('bg-emerald-500');
+  });
+
+  it('shows nothing at all for a game where it does not apply', () => {
+    renderBar({ finishProgress: null });
+
+    expect(screen.queryByTestId('menu-finish-progress')).not.toBeInTheDocument();
+  });
+});
+
+describe('formation wiring', () => {
+  /**
+   * @critical - Review #734: the tour-tracking bug shipped twice because
+   * nothing asserted the formation control actually invokes the handler it is
+   * given. Moved here from GameSettingsModal when the control did.
+   */
+  it('picking a preset calls onPlaceAllPlayers with that preset', async () => {
+    const onPlaceAllPlayers = jest.fn();
+    renderBar({ onPlaceAllPlayers, selectedPlayerCount: 8 });
+    fireEvent.click(screen.getByRole('button', { name: 'Formation menu' }));
+    fireEvent.click(await screen.findByText('4-3-3'));
+    expect(onPlaceAllPlayers).toHaveBeenCalledWith('11v11-4-3-3');
   });
 });

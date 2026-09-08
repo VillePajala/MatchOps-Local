@@ -2,21 +2,27 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiCheckCircle, HiOutlineExclamationCircle, HiChevronRight } from 'react-icons/hi';
-import type { GameCompleteness, CountCheck } from '@/utils/gameCompleteness';
+import ProgressBar from '@/components/ProgressBar';
+import { completenessProgress, countRowStatus } from '@/utils/gameCompleteness';
+import { HiCheckCircle, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiChevronRight } from 'react-icons/hi';
+import type { GameCompleteness, CountCheck, CompletenessRowStatus } from '@/utils/gameCompleteness';
 
 interface GameWrapUpCardProps {
   completeness: GameCompleteness;
   /** Routes the settings-backed rows to GAME settings (Ottelun tiedot),
    *  scrolled to the row's own section (W6 + R3). */
-  onOpenSettings?: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  onOpenSettings?: (section: 'roster' | 'competition') => void;
+  /** Report and positions live on this same page (Phase 1b): scroll, don't leave. */
+  onOpenReport?: () => void;
+  onOpenPositions?: () => void;
   /** Routes the assessments row to the player-assessment editor. */
   onOpenAssessments?: () => void;
+  /** Kirjuri: recorded clips not yet turned into notes (0 = row hidden). */
+  voiceClipCount?: number;
+  onOpenVoiceNotes?: () => void;
 }
 
-type RowStatus = 'done' | 'todo';
-
-const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.total ? 'done' : 'todo');
+type RowStatus = CompletenessRowStatus;
 
 /**
  * Post-game "Finish this game" checklist. A router-with-progress over the
@@ -24,8 +30,9 @@ const countStatus = (c: CountCheck): RowStatus => (c.total > 0 && c.done >= c.to
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenAssessments }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
+  const progress = completenessProgress(completeness);
 
   interface Row {
     key: string;
@@ -36,6 +43,17 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
   }
 
   const rows: Row[] = [];
+  // Voice clips are not part of the record's completeness (audio is transient),
+  // so the count comes from the inbox, not the model; the row exists only while
+  // something waits.
+  if (voiceClipCount > 0) {
+    rows.push({
+      key: 'voiceNotes',
+      label: t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount }),
+      status: 'todo',
+      onClick: onOpenVoiceNotes,
+    });
+  }
   if (!completeness.roster) {
     rows.push({ key: 'roster', label: t('gameStatsModal.wrapUpRoster', 'Squad selected'), status: 'todo', onClick: onOpenSettings && (() => onOpenSettings('roster')) });
   }
@@ -43,19 +61,19 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     key: 'report',
     label: t('gameStatsModal.wrapUpReport', 'Match report'),
     status: completeness.report ? 'done' : 'todo',
-    onClick: onOpenSettings && (() => onOpenSettings('report')),
+    onClick: onOpenReport,
   });
   rows.push({
     key: 'positions',
     label: t('gameStatsModal.wrapUpPositions', 'Positions played'),
-    status: countStatus(completeness.positions),
+    status: countRowStatus(completeness.positions),
     count: completeness.positions,
-    onClick: onOpenSettings && (() => onOpenSettings('positions')),
+    onClick: onOpenPositions,
   });
   rows.push({
     key: 'assessments',
     label: t('gameStatsModal.wrapUpAssessments', 'Player assessments'),
-    status: countStatus(completeness.assessments),
+    status: countRowStatus(completeness.assessments),
     count: completeness.assessments,
     onClick: onOpenAssessments,
   });
@@ -66,12 +84,19 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     onClick: onOpenSettings && (() => onOpenSettings('competition')),
   });
 
-  const done = completeness.coreComplete;
+  // Clips waiting are unfinished work even when the record itself is complete.
+  const done = completeness.coreComplete && voiceClipCount === 0;
 
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
       <div className="flex items-center justify-between gap-2 mb-3">
-        <h3 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.wrapUpTitle', 'Finish this game')}</h3>
+        <h3 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.wrapUpTitle', 'Checklist')}</h3>
+        <span
+          className="ml-auto text-sm font-semibold text-slate-300 tabular-nums"
+          data-testid="wrap-up-progress-count"
+        >
+          {progress.done}/{progress.total}
+        </span>
         <span
           className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
             done ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
@@ -81,6 +106,11 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
           {done ? t('gameStatsModal.wrapUpComplete', 'Complete') : t('gameStatsModal.wrapUpPartial', 'Needs finishing')}
         </span>
       </div>
+      {progress.total > 0 && (
+        <div className="mb-3" data-testid="wrap-up-progress-bar">
+          <ProgressBar current={progress.done} total={progress.total} />
+        </div>
+      )}
       <ul className="space-y-0.5">
         {rows.map(row => {
           const Tag = row.onClick ? 'button' : 'div';
@@ -92,9 +122,13 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
                   row.onClick ? 'hover:bg-slate-800/50 transition-colors' : ''
                 }`}
               >
+                {/* Amber means nothing recorded, and amber is exactly what the
+                    progress bar does not count - see countRowStatus. */}
                 {row.status === 'done'
-                  ? <HiCheckCircle className="shrink-0 text-emerald-400 text-lg" />
-                  : <HiOutlineExclamationCircle className="shrink-0 text-amber-400 text-lg" />}
+                  ? <HiCheckCircle className="shrink-0 text-emerald-400 text-lg" data-testid={`wrap-up-status-${row.key}-done`} />
+                  : row.status === 'partial'
+                    ? <HiOutlineCheckCircle className="shrink-0 text-emerald-400 text-lg" data-testid={`wrap-up-status-${row.key}-partial`} />
+                    : <HiOutlineExclamationCircle className="shrink-0 text-amber-400 text-lg" data-testid={`wrap-up-status-${row.key}-todo`} />}
                 <span className="flex-1 text-sm text-slate-200">{row.label}</span>
                 {row.count && row.count.total > 0 && (
                   <span className="text-xs font-medium text-slate-400">{row.count.done}/{row.count.total}</span>

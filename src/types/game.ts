@@ -64,7 +64,36 @@ export interface Opponent {
   relY: number;
 }
 
-export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
+export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard' | 'note';
+
+/** Provenance of a `note` event (Kirjuri): who wrote the words. */
+export type GameNoteSource = 'dictation' | 'ai' | 'manual';
+/**
+ * Optional category on a note (Kirjuri Phase 3+). 'halftime' and 'debrief' are
+ * stamped by the capture surface; the technique/attitude/gameSense labels may
+ * be assigned later from the text. Additive: notes without a tag stay valid.
+ */
+export type GameNoteTag = 'halftime' | 'debrief' | 'technique' | 'attitude' | 'gameSense';
+
+/**
+ * Provenance for anything an AI drafted and the coach approved (migration 043).
+ * `packet` is the GamePacket fingerprint, so a later model's work can be told
+ * from today's, and a re-draft from the same data is recognisable.
+ */
+export interface AiMeta {
+  model: string;
+  packet: string;
+}
+
+/** What the dictation inbox hands over when the coach accepts a clip. */
+export interface GameNoteInput {
+  time: number;
+  period: number;
+  text: string;
+  entityId?: string;
+  /** Optional category, e.g. 'debrief' for the coach's spoken match summary. */
+  tag?: GameNoteTag;
+}
 
 export interface GameEvent {
   id: string;
@@ -72,7 +101,18 @@ export interface GameEvent {
   time: number;
   scorerId?: string;
   assisterId?: string;
+  /** Generic subject: the carded player, or the player a `note` is about (absent = game note). */
   entityId?: string;
+  /** `note` only: the period the clock was in when the note was captured. */
+  period?: number;
+  /** `note` only: the coach's observation. */
+  text?: string;
+  /** `note` only. */
+  source?: GameNoteSource;
+  /** `note` only: optional category (migration 042). */
+  tag?: GameNoteTag;
+  /** `note` only: set when the note came from an AI draft the coach approved. */
+  aiMeta?: AiMeta;
 }
 
 // TimerState is defined in @/utils/timerStateManager.ts (canonical location)
@@ -109,6 +149,8 @@ export interface AppState {
   homeScore: number;
   awayScore: number;
   gameNotes: string;
+  /** Set when the report text came from an approved AI draft (migration 043). */
+  gameNotesAiMeta?: AiMeta;
   // Position id(s) each player was assigned post-game, keyed by player id (see positions.ts).
   playerPositions?: Record<string, string[]>;
   homeOrAway: 'home' | 'away';

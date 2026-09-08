@@ -54,7 +54,7 @@ import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import { NetworkError } from '@/interfaces/DataStoreErrors';
+import { NetworkError, ValidationError } from '@/interfaces/DataStoreErrors';
 import type { AppState, GameEvent, PlayerAssessment, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
@@ -267,6 +267,15 @@ export function useGamePersistence({
   // Returns true only if the game is now persisted; false if the save was skipped
   // (transient empty-field state) or failed. Callers that discard/replace the
   // current session (e.g. "Save before new game") MUST check this before proceeding.
+  /**
+   * The game we have already told the coach cannot be saved.
+   *
+   * A ValidationError repeats on every autosave tick, so without this the
+   * warning would fire every few seconds and become noise. Cleared on the next
+   * successful save, so a second, different break is still announced.
+   */
+  const blockedSaveGameIdRef = useRef<string | null>(null);
+
   const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false): Promise<boolean> => {
     // Create snapshot first (needed for both validation and save)
     const currentSnapshot = createGameSnapshot();
@@ -329,6 +338,8 @@ export function useGamePersistence({
           showToast(t('loadGameModal.gameSaved', 'Game saved!'));
         }
 
+        // Saving works again, so a later break deserves to be said out loud.
+        blockedSaveGameIdRef.current = null;
         return true;
       } catch (error) {
         // Network errors are transient — warn only, don't flood Sentry
@@ -355,9 +366,41 @@ export function useGamePersistence({
           }
         }
 
-        // Show error toast unless explicitly suppressed (for retry logic)
-        if (!suppressErrorToast) {
-          showToast(t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'), 'error');
+        // Show error toast unless explicitly suppressed (for retry logic).
+        //
+        // A ValidationError is the exception: it is deterministic, so the next
+        // autosave and every one after it fails the same way. Staying quiet
+        // there means the coach keeps working while nothing is being kept -
+        // goals, positions and assessments included - and finds out on reload.
+        // Transient failures stay silent, as designed.
+        //
+        // Said once per game, not once per autosave tick. The condition
+        // persists by definition, and a warning that repeats every few seconds
+        // stops being read as one.
+        const deterministic = error instanceof ValidationError;
+        if (deterministic) {
+          // The reason is an internal English string from the datastore, so it
+          // belongs in the log rather than inside a translated sentence.
+          logger.warn('[autosave] game will not validate; changes are not being kept', {
+            reason: error.message,
+          });
+        }
+        const alreadyWarned = deterministic && blockedSaveGameIdRef.current === currentGameId;
+        if (deterministic) blockedSaveGameIdRef.current = currentGameId;
+        if (!suppressErrorToast || (deterministic && !alreadyWarned)) {
+          // Advice only where we know what to advise. The over-long report is
+          // the one case a coach can act on directly; every other field that
+          // fails validation would get confidently wrong instructions from a
+          // single fixed sentence.
+          const overLongReport = deterministic && (error as ValidationError).field === 'gameNotes';
+          showToast(
+            deterministic
+              ? overLongReport
+                ? t('loadGameModal.errors.quickSaveNotesTooLong', 'Your latest changes are not being kept: the match report is too long. Shorten it and they will save again.')
+                : t('loadGameModal.errors.quickSaveInvalid', 'This match cannot be saved as it is, so your latest changes are not being kept.')
+              : t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'),
+            'error',
+          );
         }
         return false;
       }

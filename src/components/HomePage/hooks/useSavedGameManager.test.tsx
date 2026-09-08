@@ -18,6 +18,15 @@ jest.mock('@/utils/appSettings', () => ({
 }));
 
 const TEST_USER_ID = 'test-user-123';
+jest.mock('@/utils/savedGames', () => ({
+  saveGame: jest.fn(),
+  deleteGame: jest.fn(async (id: string) => id),
+  getLatestGameId: jest.fn().mockResolvedValue(null),
+}));
+jest.mock('@/utils/audioClipStore', () => ({
+  deleteClipsForGame: jest.fn().mockResolvedValue(0),
+}));
+
 jest.mock('@/hooks/useDataStore', () => ({
   useDataStore: () => ({
     userId: TEST_USER_ID,
@@ -112,6 +121,18 @@ describe('useSavedGameManager', () => {
 
     return { props, hook: renderHook(() => useSavedGameManager(props)), setCurrentGameId, onCloseLoadGameModal };
   };
+
+  /** Kirjuri: a deleted game's voice clips must not linger until the 30-day rotation. */
+  it('deleting a game also removes its voice clips', async () => {
+    const { deleteGame } = jest.requireMock('@/utils/savedGames') as { deleteGame: jest.Mock };
+    const { deleteClipsForGame } = jest.requireMock('@/utils/audioClipStore') as { deleteClipsForGame: jest.Mock };
+    const { hook } = createHook();
+    await act(async () => {
+      await hook.result.current.handleDeleteGame('game-1');
+    });
+    expect(deleteGame).toHaveBeenCalledWith('game-1', TEST_USER_ID);
+    expect(deleteClipsForGame).toHaveBeenCalledWith('game-1', TEST_USER_ID);
+  });
 
   it('skips state updates when unmounted during handleLoadGame', async () => {
     const { hook, setCurrentGameId, onCloseLoadGameModal } = createHook();

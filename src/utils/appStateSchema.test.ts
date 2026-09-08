@@ -1,4 +1,4 @@
-import { appStateSchema } from './appStateSchema';
+import { appStateSchema, gameEventSchema } from './appStateSchema';
 
 describe('appStateSchema', () => {
   const valid = {
@@ -37,5 +37,49 @@ describe('appStateSchema', () => {
 
   it('fails for invalid data', () => {
     expect(() => appStateSchema.parse({ ...valid, homeScore: 'bad' })).toThrow();
+  });
+});
+
+describe('gameEventSchema - Kirjuri note events (migration 041)', () => {
+  /** @critical - backup restore parses with this schema; a rejected note would throw the whole restore. */
+  it('parses a note event with period, text and source', () => {
+    const parsed = gameEventSchema.parse({
+      id: 'n1', type: 'note', time: 1834, period: 2, entityId: 'p2', text: 'hieno syöttö', source: 'dictation',
+    });
+    expect(parsed).toMatchObject({ type: 'note', period: 2, text: 'hieno syöttö', source: 'dictation' });
+  });
+
+  it('rejects an unknown note source', () => {
+    expect(() => gameEventSchema.parse({ id: 'n1', type: 'note', time: 1, text: 'x', source: 'robot' })).toThrow();
+  });
+});
+
+describe('fields the AI work added survive an import', () => {
+  /**
+   * @critical - Zod strips unknown keys and the PARSED object is what gets
+   * saved, so a field missing from the schema is lost on every import. The
+   * debrief tag is what tells a later draft "this is the coach's own account",
+   * and aiMeta is the only record of which model wrote a line.
+   */
+  it('keeps a note tag and its provenance', () => {
+    const parsed = gameEventSchema.parse({
+      id: 'n1',
+      type: 'note',
+      time: 3000,
+      period: 2,
+      text: 'Oma yhteenvetoni ottelusta',
+      source: 'dictation',
+      tag: 'debrief',
+      aiMeta: { model: 'gpt-5-mini', packet: 'v1-abcdef0123456789' },
+    });
+
+    expect(parsed.tag).toBe('debrief');
+    expect(parsed.aiMeta).toEqual({ model: 'gpt-5-mini', packet: 'v1-abcdef0123456789' });
+  });
+
+  it('rejects a tag it does not know rather than storing it', () => {
+    expect(() =>
+      gameEventSchema.parse({ id: 'n1', type: 'note', time: 1, text: 'x', tag: 'invented' }),
+    ).toThrow();
   });
 });

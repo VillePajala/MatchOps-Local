@@ -137,4 +137,131 @@ describe('TimerOverlay', () => {
       expect(screen.queryByRole('button', { name: /Got it/i })).not.toBeInTheDocument();
     });
   });
+
+  describe('Kirjuri dictation button (PR 2)', () => {
+    const controls = () => ({
+      isSupported: true,
+      available: true,
+      permission: 'unknown' as const,
+      isRecording: false,
+      clipCount: 0, lastClip: null,
+      needsIntro: false,
+      acknowledgeIntro: jest.fn(),
+      start: jest.fn(),
+      stop: jest.fn(),
+    });
+
+    it('is absent when the feature is not wired', () => {
+      render(<TimerOverlay {...baseProps} />);
+      expect(screen.queryByTestId('dictation-hold')).not.toBeInTheDocument();
+    });
+
+    /** @critical - press starts, release stops: the whole in-game interaction. */
+    it('press starts and release stops the recorder', () => {
+      const dictation = controls();
+      render(<TimerOverlay {...baseProps} dictation={dictation} />);
+      const button = screen.getByTestId('dictation-hold');
+      fireEvent.pointerDown(button);
+      expect(dictation.start).toHaveBeenCalledTimes(1);
+      fireEvent.pointerUp(button);
+      expect(dictation.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('the first press explains and asks instead of recording; confirming acknowledges', () => {
+      const dictation = { ...controls(), needsIntro: true };
+      render(<TimerOverlay {...baseProps} dictation={dictation} />);
+      fireEvent.pointerDown(screen.getByTestId('dictation-hold'));
+      expect(dictation.start).not.toHaveBeenCalled();
+      expect(screen.getByText('Voice notes')).toBeInTheDocument();
+      fireEvent.click(screen.getByText('Continue'));
+      expect(dictation.acknowledgeIntro).toHaveBeenCalledTimes(1);
+    });
+
+    it('a held key toggles once, not on every auto-repeat', () => {
+      const dictation = controls();
+      render(<TimerOverlay {...baseProps} dictation={dictation} />);
+      const button = screen.getByTestId('dictation-hold');
+      fireEvent.keyDown(button, { key: ' ' });
+      fireEvent.keyDown(button, { key: ' ', repeat: true });
+      fireEvent.keyDown(button, { key: ' ', repeat: true });
+      expect(dictation.start).toHaveBeenCalledTimes(1);
+      expect(dictation.stop).not.toHaveBeenCalled();
+    });
+
+    it('is disabled when unsupported or denied, with the reason as title', () => {
+      const { unmount } = render(<TimerOverlay {...baseProps} dictation={{ ...controls(), isSupported: false }} />);
+      expect(screen.getByTestId('dictation-hold')).toBeDisabled();
+      expect(screen.getByTestId('dictation-hold').title).toMatch(/not supported/i);
+      unmount();
+      render(<TimerOverlay {...baseProps} dictation={{ ...controls(), permission: 'denied' }} />);
+      expect(screen.getByTestId('dictation-hold')).toBeDisabled();
+      expect(screen.getByTestId('dictation-hold').title).toMatch(/denied/i);
+    });
+
+    it('is disabled with an explanation on the scratch (unsaved) game', () => {
+      render(<TimerOverlay {...baseProps} dictation={{ ...controls(), available: false }} />);
+      expect(screen.getByTestId('dictation-hold')).toBeDisabled();
+      expect(screen.getByTestId('dictation-hold').title).toMatch(/open a game/i);
+    });
+
+    it('shows the stored clip count and the recording state', () => {
+      const { unmount } = render(<TimerOverlay {...baseProps} dictation={{ ...controls(), clipCount: 3 }} />);
+      expect(screen.getByTestId('dictation-clip-count')).toHaveTextContent('3');
+      unmount();
+      render(<TimerOverlay {...baseProps} dictation={{ ...controls(), isRecording: true, clipCount: 3 }} />);
+      expect(screen.getByTestId('dictation-hold')).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByTestId('dictation-clip-count')).not.toBeInTheDocument();
+    });
+  });
+
+
+  describe('game end hand-off (Phase 1b 7c)', () => {
+    it('offers Finish this game, which closes the overlay and opens the spine', () => {
+      const onFinishGame = jest.fn();
+      const onClose = jest.fn();
+      const onOpenPlayerAssessmentModal = jest.fn();
+      render(
+        <TimerOverlay
+          {...baseProps}
+          gameStatus="gameEnd"
+          onFinishGame={onFinishGame}
+          onClose={onClose}
+          onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
+        />,
+      );
+      expect(screen.queryByText('Assess players')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('timer-finish-game'));
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onFinishGame).toHaveBeenCalledTimes(1);
+      expect(onOpenPlayerAssessmentModal).not.toHaveBeenCalled();
+    });
+
+    /** At the whistle the only question is how much is left. */
+    it('says how much is left, and nothing when it does not apply', () => {
+      const { unmount } = render(
+        <TimerOverlay
+          {...baseProps}
+          gameStatus="gameEnd"
+          onFinishGame={jest.fn()}
+          finishProgress={{ done: 3, total: 5 }}
+        />,
+      );
+      expect(screen.getByTestId('timer-finish-progress')).toHaveTextContent('3/5');
+
+      unmount();
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" onFinishGame={jest.fn()} finishProgress={null} />);
+      expect(screen.queryByTestId('timer-finish-progress')).not.toBeInTheDocument();
+    });
+
+    it('falls back to the assess-players button when no hand-off is wired', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="gameEnd" onOpenPlayerAssessmentModal={jest.fn()} />);
+      expect(screen.queryByTestId('timer-finish-game')).not.toBeInTheDocument();
+      expect(screen.getByText('Assess players')).toBeInTheDocument();
+    });
+
+    it('shows neither before the game has ended', () => {
+      render(<TimerOverlay {...baseProps} gameStatus="inProgress" onFinishGame={jest.fn()} />);
+      expect(screen.queryByTestId('timer-finish-game')).not.toBeInTheDocument();
+    });
+  });
 });

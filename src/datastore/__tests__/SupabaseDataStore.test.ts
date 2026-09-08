@@ -3533,6 +3533,31 @@ describe('SupabaseDataStore', () => {
     const getPrivateMethod = (methodName: string) => (dataStore as any)[methodName].bind(dataStore);
 
     describe('transformGameToTables', () => {
+      /** @critical - a note must survive the valid-type filter (silent drop otherwise) and map to the 041 columns. */
+      it('maps Kirjuri note events to note_text/period/source and nulls them for goals', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const game = {
+          teamName: 'Test Team', opponentName: 'Opponent', gameDate: '2024-01-15',
+          homeOrAway: 'home' as const, numberOfPeriods: 2 as const, periodDurationMinutes: 10,
+          currentPeriod: 2, gameStatus: 'inProgress' as const, homeScore: 1, awayScore: 0,
+          gameNotes: '', showPlayerNames: true, playersOnField: [], availablePlayers: [],
+          selectedPlayerIds: [], opponents: [], drawings: [], tacticalDiscs: [], tacticalDrawings: [],
+          tacticalBallPosition: null,
+          gameEvents: [
+            { id: 'g1', type: 'goal' as const, time: 120, scorerId: 'p1' },
+            { id: 'n1', type: 'note' as const, time: 1834, period: 2, entityId: 'p2', text: 'hieno syöttö', source: 'dictation' as const },
+          ],
+        };
+
+        const { events } = transformGameToTables('game_123', game, 'user_123');
+
+        expect(events).toHaveLength(2);
+        expect(events[0]).toMatchObject({ event_type: 'goal', note_text: null, period: null, source: null });
+        expect(events[1]).toMatchObject({
+          event_type: 'note', entity_id: 'p2', note_text: 'hieno syöttö', period: 2, source: 'dictation', order_index: 1,
+        });
+      });
+
       it('should convert empty string fields to NULL', () => {
         const transformGameToTables = getPrivateMethod('transformGameToTables');
         const game = {
@@ -4365,6 +4390,44 @@ describe('SupabaseDataStore', () => {
         expect(result.gameEvents[0].id).toBe('e1');
         expect(result.gameEvents[1].id).toBe('e2');
         expect(result.gameEvents[2].id).toBe('e3');
+      });
+
+      it('reconstructs Kirjuri note events with period/text/source (migration 041)', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const tables = {
+          game: {
+            id: 'game_123',
+            user_id: 'user_123',
+            team_name: 'Test Team',
+            opponent_name: 'Opponent',
+            game_date: '2024-01-15',
+            home_or_away: 'home',
+            number_of_periods: 2,
+            period_duration_minutes: 10,
+            current_period: 1,
+            game_status: 'inProgress',
+            is_played: true,
+            home_score: 2,
+            away_score: 1,
+            game_notes: '',
+            show_player_names: true,
+            game_personnel: [],
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-15T10:00:00Z',
+          },
+          players: [],
+          events: [
+            { id: 'n1', game_id: 'game_123', user_id: 'user_123', event_type: 'note', time_seconds: 1834, order_index: 0, entity_id: 'p2', note_text: 'hieno syöttö', period: 2, source: 'dictation', created_at: '2024-01-15T10:05:00Z' },
+          ],
+          assessments: [],
+          tacticalData: null,
+        };
+
+        const result = transformTablesToGame(tables);
+
+        expect(result.gameEvents[0]).toMatchObject({
+          id: 'n1', type: 'note', time: 1834, entityId: 'p2', period: 2, text: 'hieno syöttö', source: 'dictation',
+        });
       });
 
       it('should reconstruct assessment sliders from flat columns', () => {

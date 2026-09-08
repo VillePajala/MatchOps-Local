@@ -39,7 +39,15 @@ export interface ReapplyResult {
  * no recorded events.
  */
 export function isGamePlayed(game: AppState): boolean {
-  return game.gameStatus !== 'notStarted' || (game.gameEvents?.length ?? 0) > 0;
+  return game.gameStatus !== 'notStarted' || hasPlayEvents(game.gameEvents);
+}
+
+/**
+ * Kirjuri note events are observations, not play: a coach dictating before
+ * kick-off must not turn a `notStarted` game into a "played" one (review #745).
+ */
+export function hasPlayEvents(events: AppState['gameEvents'] | undefined): boolean {
+  return (events ?? []).some((event) => event.type !== 'note');
 }
 
 /**

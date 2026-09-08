@@ -9,6 +9,13 @@
  */
 
 import * as Sentry from '@sentry/nextjs';
+import {
+  AUTH_URL_PATTERNS,
+  isAiProviderUrl,
+  scrubSecretsDeep,
+  scrubSecretsInString,
+  scrubUrl,
+} from '@/utils/sentryScrub';
 
 /**
  * CRITICAL SECURITY CHECK: Prevent mock billing in production
@@ -56,47 +63,6 @@ const BOT_UA_PATTERNS = [
   'WhatsApp',
   'Applebot',
 ];
-
-/**
- * Patterns that indicate auth-related data that should be scrubbed from Sentry.
- * These patterns match URL paths, header names, and data fields that may contain
- * tokens, emails, or other PII from the auth flow.
- */
-const AUTH_URL_PATTERNS = [
-  '/auth/',
-  '/token',
-  '/callback',
-  'access_token=',
-  'refresh_token=',
-  'type=recovery',
-  'type=signup',
-  'type=magiclink',
-];
-
-/**
- * Scrub potential PII from a URL string.
- * Redacts query parameters and hash fragments that may contain tokens or emails.
- */
-function scrubUrl(url: string): string {
-  try {
-    const parsed = new URL(url, 'https://placeholder.local');
-    // Redact known sensitive query params
-    const sensitiveParams = ['access_token', 'refresh_token', 'token', 'email', 'code'];
-    for (const param of sensitiveParams) {
-      if (parsed.searchParams.has(param)) {
-        parsed.searchParams.set(param, '[REDACTED]');
-      }
-    }
-    // Redact hash fragments that contain tokens (e.g., #access_token=...)
-    if (parsed.hash && AUTH_URL_PATTERNS.some(p => parsed.hash.includes(p))) {
-      parsed.hash = '#[REDACTED]';
-    }
-    return parsed.toString().replace('https://placeholder.local', '');
-  } catch {
-    // If URL parsing fails, return as-is (non-URL string)
-    return url;
-  }
-}
 
 /**
  * Initialize Sentry only in production or when explicitly enabled
@@ -227,6 +193,22 @@ if (dsn && (isProduction || isForceEnabled)) {
         event.request.url = scrubUrl(event.request.url);
       }
 
+      // Kirjuri (BYOK): the user's AI provider key must never reach Sentry.
+      // logger.error ships `extra` verbatim and provider errors can echo the
+      // request, so every string the event carries is scrubbed.
+      if (event.extra) {
+        event.extra = scrubSecretsDeep(event.extra);
+      }
+      if (event.message) {
+        event.message = scrubSecretsInString(event.message);
+      }
+      event.exception?.values?.forEach((value) => {
+        if (value.value) value.value = scrubSecretsInString(value.value);
+      });
+      if (event.breadcrumbs) {
+        event.breadcrumbs = scrubSecretsDeep(event.breadcrumbs);
+      }
+
       return event;
     },
 
@@ -251,6 +233,23 @@ if (dsn && (isProduction || isForceEnabled)) {
             url: scrubUrl(url),
           };
         }
+        // Calls to a user-connected AI provider (Kirjuri): keep only the
+        // shape of the request - never any body/header data the SDK may add.
+        if (url && isAiProviderUrl(url)) {
+          breadcrumb.data = {
+            url: scrubUrl(url),
+            method: breadcrumb.data?.method,
+            status_code: breadcrumb.data?.status_code,
+          };
+        }
+      }
+
+      // Console/log breadcrumbs carry logger arguments verbatim.
+      if (breadcrumb.message) {
+        breadcrumb.message = scrubSecretsInString(breadcrumb.message);
+      }
+      if (breadcrumb.data) {
+        breadcrumb.data = scrubSecretsDeep(breadcrumb.data);
       }
 
       // Scrub auth callback URLs from navigation breadcrumbs

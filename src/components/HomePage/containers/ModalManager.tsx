@@ -1,4 +1,6 @@
 import React from 'react';
+import type { AiMeta, GameNoteInput } from '@/types/game';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import ModalPortal from '@/components/ModalPortal';
@@ -35,7 +37,7 @@ interface ModalManagerState {
   isGameStatsModalOpen: boolean;
   isGameSettingsModalOpen: boolean;
   /** R3: wrap-up rows land scrolled to their section. */
-  gameSettingsInitialSection?: 'roster' | 'report' | 'positions' | 'competition';
+  gameSettingsInitialSection?: 'roster' | 'competition';
   isPlayerAssessmentModalOpen: boolean;
   isTeamReassignModalOpen: boolean;
   showNoPlayersConfirm: boolean;
@@ -49,6 +51,8 @@ interface ModalManagerData {
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
   canReapplyPlan: boolean;
+  /** Shared mic controls, so the spoken report uses the same recorder as the overlay. */
+  dictation?: DictationControls;
   teams: Team[];
   seasons: Season[];
   tournaments: Tournament[];
@@ -67,6 +71,10 @@ interface ModalManagerHandlers {
   logOpponentGoal: (timeSeconds: number) => void;
   recalculateScore: () => void;
   updateGameEvent: (event: GameEvent) => void;
+  /** Returns true when the note was dispatched; the inbox deletes the audio only then. */
+  addGameNote?: (note: GameNoteInput) => boolean;
+  /** Stores an approved AI report draft; false = nothing was stored. */
+  applyReportDraft?: (payload: { gameNotes: string; aiMeta?: AiMeta; noteEvents: GameEvent[] }) => boolean;
   deleteGameEvent: (eventId: string) => Promise<boolean>;
   toggleGameStatsModal: () => void;
   exportOneExcel: (gameId: string) => void;
@@ -114,10 +122,12 @@ interface ModalManagerHandlers {
   resetFieldConfirmed: () => void;
   openSettingsModal: () => void;
   /** W6: wrap-up rows navigate to where the item is completed. */
-  wrapUpToGameSettings: (section: 'roster' | 'report' | 'positions' | 'competition') => void;
+  wrapUpToGameSettings: (section: 'roster' | 'competition') => void;
   wrapUpToAssessments: () => void;
-  /** Re-place the squad in a formation preset (tracked for the guided tour). */
-  applyFormation: (presetId: string | null) => void;
+  /** Phase 1b: the Goals step's add button - leave the stats view, open the goal log. */
+  wrapUpToGoalLog: () => void;
+  /** Leave the stats view, then open app settings (same layer, so order matters). */
+  wrapUpToAppSettings: () => void;
 }
 
 export interface ModalManagerProps {
@@ -199,6 +209,9 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             gamePersonnel={data.gameSessionState.gamePersonnel}
             personnelDirectory={data.personnel}
             onUpdateGameEvent={handlers.updateGameEvent}
+            onAddGameNote={handlers.addGameNote}
+            onApplyReportDraft={handlers.applyReportDraft}
+            dictation={data.dictation}
             selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
             savedGames={data.savedGames}
             currentGameId={data.currentGameId}
@@ -207,9 +220,12 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             currentGameOnly
             masterRoster={data.masterRoster}
             onGameNotesChange={handlers.gameNotesChange}
-          onOpenSettings={handlers.openSettingsModal}
+            onPlayerPositionsChange={handlers.playerPositionsChange}
+            gameType={data.gameSessionState.gameType}
+          onOpenSettings={handlers.wrapUpToAppSettings}
           onOpenGameSettings={handlers.wrapUpToGameSettings}
           onOpenAssessments={handlers.wrapUpToAssessments}
+          onAddGoal={handlers.wrapUpToGoalLog}
         />
       )}
 
@@ -220,7 +236,6 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
         <GameSettingsModal
           isOpen={state.isGameSettingsModalOpen}
           onClose={handlers.closeGameSettingsModal}
-          onApplyFormation={handlers.applyFormation}
           initialScrollSection={state.gameSettingsInitialSection}
           currentGameId={data.currentGameId}
           teamId={data.gameSessionState.teamId}
@@ -229,12 +244,9 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           gameDate={data.gameSessionState.gameDate}
           gameLocation={data.gameSessionState.gameLocation}
           gameTime={data.gameSessionState.gameTime}
-          gameNotes={data.gameSessionState.gameNotes}
-          playerPositions={data.gameSessionState.playerPositions}
           ageGroup={data.gameSessionState.ageGroup}
           tournamentLevel={data.gameSessionState.tournamentLevel}
           tournamentSeriesId={data.gameSessionState.tournamentSeriesId}
-          gameEvents={data.gameSessionState.gameEvents}
           availablePlayers={data.availablePlayers}
           availablePersonnel={data.personnel}
           selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
@@ -252,14 +264,10 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
           onGameDateChange={handlers.gameDateChange}
           onGameLocationChange={handlers.gameLocationChange}
           onGameTimeChange={handlers.gameTimeChange}
-          onGameNotesChange={handlers.gameNotesChange}
-          onPlayerPositionsChange={handlers.playerPositionsChange}
           onAgeGroupChange={handlers.ageGroupChange}
           onTournamentLevelChange={handlers.tournamentLevelChange}
           onTournamentSeriesIdChange={handlers.tournamentSeriesIdChange}
-          onUpdateGameEvent={handlers.updateGameEvent}
           onAwardFairPlayCard={handlers.awardFairPlayCard}
-          onDeleteGameEvent={handlers.deleteGameEvent}
           onNumPeriodsChange={handlers.setNumberOfPeriods}
           onPeriodDurationChange={handlers.setPeriodDuration}
           onDemandFactorChange={handlers.setDemandFactor}

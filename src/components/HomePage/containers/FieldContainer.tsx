@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useState, useMemo } from 'react';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { HiOutlineCamera, HiOutlineBookOpen, HiOutlineXMark, HiOutlineMapPin } from 'react-icons/hi2';
@@ -96,6 +97,7 @@ export interface TimerInteractions {
   toggleLargeOverlay: () => void;
   toggleGoalLogModal: () => void;
   onOpenPlayerAssessmentModal: () => void;
+  onFinishGame?: () => void;
   logOpponentGoal: (timeInSeconds: number) => void;
   substitutionMade: () => void;
   setSubInterval: (minutes: number) => void;
@@ -104,6 +106,8 @@ export interface TimerInteractions {
 }
 
 export interface FieldContainerProps {
+  /** Finishing progress for the current game, or null when it does not apply. */
+  finishProgress?: { done: number; total: number } | null;
   // Optional grouped state to reduce prop count (2.4.4)
   fieldVM: {
     playersOnField: AppState['playersOnField'];
@@ -149,6 +153,8 @@ export interface FieldContainerProps {
   onWentToPenaltiesChange: (value: boolean) => void;
   interactions: FieldInteractions;
   timerInteractions: TimerInteractions;
+  /** Kirjuri voice notes (PR 2) - recorder controls for the timer overlay. */
+  dictation?: DictationControls;
 }
 
 export function FieldContainer({
@@ -158,6 +164,7 @@ export function FieldContainer({
   currentGameId,
   plannedSubsRefreshKey,
   availablePlayers,
+  dictation,
   teams: _teams,
   seasons,
   tournaments,
@@ -176,6 +183,7 @@ export function FieldContainer({
   onWentToPenaltiesChange,
   interactions,
   timerInteractions,
+  finishProgress,
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -225,6 +233,7 @@ export function FieldContainer({
     toggleLargeOverlay,
     toggleGoalLogModal,
     onOpenPlayerAssessmentModal,
+    onFinishGame,
     logOpponentGoal,
     substitutionMade,
     setSubInterval,
@@ -308,6 +317,8 @@ export function FieldContainer({
           onDismissPlannedSub={dismissPlannedSub}
           onToggleGoalLogModal={toggleGoalLogModal}
           onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
+          onFinishGame={onFinishGame}
+          finishProgress={finishProgress}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}
@@ -326,6 +337,7 @@ export function FieldContainer({
           onRecordShootout={() => setIsShootoutModalOpen(true)}
           onClose={toggleLargeOverlay}
           isLoaded={tmInitialLoad}
+          dictation={dictation}
         />
       )}
 

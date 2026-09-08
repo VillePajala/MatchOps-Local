@@ -11,6 +11,7 @@ import { useGamePersistence } from '../useGamePersistence';
 import type { UseGamePersistenceParams } from '../useGamePersistence';
 import type { UseFieldCoordinationReturn } from '../useFieldCoordination';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import { ValidationError } from '@/interfaces/DataStoreErrors';
 import type { AppState, Player, PlayerAssessment } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import React from 'react';
@@ -1169,6 +1170,74 @@ describe('useGamePersistence', () => {
 
         expect(outcome).toBe(false);
         expect(showToast).toHaveBeenCalledWith(expect.any(String), 'error');
+      } finally {
+        consoleErrorSpy.mockRestore();
+      }
+    });
+
+    /**
+     * @critical - autosave suppresses its error toast so a network blip does
+     * not interrupt a match. A ValidationError is not a blip: it repeats
+     * identically forever, so the coach goes on recording goals, positions and
+     * assessments while none of it is kept, and learns on reload.
+     */
+    it('speaks up when an autosave fails in a way that will never succeed', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      // The reason is logged on purpose (it is internal English, not for the
+      // toast); the global console guard would otherwise fail this test.
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const savedGamesUtil = require('@/utils/savedGames');
+      savedGamesUtil.saveGame.mockRejectedValue(
+        new ValidationError('Game notes cannot exceed 4000 characters (got 4210)', 'gameNotes', 'x'),
+      );
+      const showToast = jest.fn();
+
+      try {
+        const { result } = renderHook(
+          () => useGamePersistence(createMockParams({ showToast })),
+          { wrapper: createWrapper() }
+        );
+
+        // silent + suppressErrorToast: exactly how the autosave calls it.
+        await act(async () => {
+          await result.current.handleQuickSaveGame(true, true);
+        });
+
+        expect(showToast).toHaveBeenCalledWith(expect.any(String), 'error');
+
+        // ...but only once. The condition persists by definition, and a
+        // warning repeating every autosave tick stops being read as one.
+        showToast.mockClear();
+        await act(async () => {
+          await result.current.handleQuickSaveGame(true, true);
+          await result.current.handleQuickSaveGame(true, true);
+        });
+        expect(showToast).not.toHaveBeenCalled();
+      } finally {
+        savedGamesUtil.saveGame.mockResolvedValue(true);
+        consoleWarnSpy.mockRestore();
+        consoleErrorSpy.mockRestore();
+      }
+    });
+
+    it('stays quiet for a transient autosave failure, as the design intends', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const savedGamesUtil = require('@/utils/savedGames');
+      savedGamesUtil.saveGame.mockRejectedValueOnce(new Error('storage failure'));
+      const showToast = jest.fn();
+
+      try {
+        const { result } = renderHook(
+          () => useGamePersistence(createMockParams({ showToast })),
+          { wrapper: createWrapper() }
+        );
+
+        await act(async () => {
+          await result.current.handleQuickSaveGame(true, true);
+        });
+
+        // A blip must not interrupt a match in progress.
+        expect(showToast).not.toHaveBeenCalled();
       } finally {
         consoleErrorSpy.mockRestore();
       }

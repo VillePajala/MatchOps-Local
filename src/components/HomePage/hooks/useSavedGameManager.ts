@@ -4,6 +4,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import { deleteClipsForGame } from '@/utils/audioClipStore';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import type { AppState, Player, SavedGamesCollection, Team } from '@/types';
@@ -293,6 +294,12 @@ export function useSavedGameManager({
           );
           return;
         }
+
+        // Kirjuri: unprocessed voice clips for the game would otherwise linger until
+        // the 30-day rotation. Best effort - the game itself is already gone.
+        deleteClipsForGame(gameId, userId).catch((error) =>
+          logger.warn('[DELETE GAME] Could not delete voice clips for game', { gameId, error }),
+        );
 
         const updatedSavedGames = { ...savedGames };
         delete updatedSavedGames[gameId];

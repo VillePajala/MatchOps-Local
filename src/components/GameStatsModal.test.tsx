@@ -154,6 +154,10 @@ interface TestProps {
   onHomeScoreChange: jest.Mock;
   onAwayScoreChange: jest.Mock;
   onGameNotesChange: jest.Mock;
+  onPlayerPositionsChange?: jest.Mock;
+  onAddGoal?: jest.Mock;
+  onOpenAssessments?: jest.Mock;
+  onExportOneExcel?: jest.Mock;
   onUpdateGameEvent: jest.Mock;
   onExportOneJson: jest.Mock;
   onExportOneCsv: jest.Mock;
@@ -298,7 +302,7 @@ describe('GameStatsModal', () => {
       renderComponent(props);
     });
     
-    expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.titleCurrentGame', 'Ottelutilastot') })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.titleCurrentGame', 'Finish this game') })).toBeInTheDocument();
     
     const gameInfoSection = screen.getByRole('heading', { name: i18n.t('gameStatsModal.gameInfoTitle', 'Game Information') });
     expect(gameInfoSection).toBeInTheDocument();
@@ -945,4 +949,128 @@ describe('GameStatsModal', () => {
       });
     });
   });
-}); 
+
+  describe('Kirjuri inbox and the scratch game', () => {
+    it('does not offer the dictation inbox on the unsaved scratch game', async () => {
+      renderComponent({ ...getDefaultProps(), currentGameId: 'unsaved_game' });
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('dictation-inbox')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Phase 1b: positions editor lives on the stats page', () => {
+    it('renders the positions editor when a change handler is wired', async () => {
+      renderComponent({ ...getDefaultProps(), onPlayerPositionsChange: jest.fn() });
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('positions-editor')).toBeInTheDocument();
+    });
+
+    it('does not render the positions editor without a handler (aggregate hosts)', async () => {
+      renderComponent(getDefaultProps());
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('positions-editor')).not.toBeInTheDocument();
+    });
+  });
+
+  /** @critical - the owner's report: a full-width button that does nothing. */
+  it('hides the tab bar when there is only one tab to show', async () => {
+    const props = { ...getDefaultProps(), currentGameOnly: true };
+    await act(async () => {
+      renderComponent(props);
+    });
+
+    // The match-level host hides the aggregate tabs, so a lone "Nykyinen" tab
+    // is chrome that looks like navigation.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    // The content itself is still the current game.
+    expect(screen.getByTestId('finish-game-spine')).toBeInTheDocument();
+  });
+
+  it('keeps the tab bar where there is somewhere to navigate', async () => {
+    await act(async () => {
+      renderComponent(getDefaultProps());
+    });
+
+    expect(screen.getByRole('tablist')).toBeInTheDocument();
+    expect(screen.getAllByRole('tab').length).toBeGreaterThan(1);
+  });
+
+  describe('Phase 1b: aggregate cards survive the spine rewrite', () => {
+    it('the overall tab still renders the team performance card', async () => {
+      renderComponent(getDefaultProps());
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.overall') }));
+      await waitFor(() => {
+        expect(screen.getAllByText(i18n.t('loadGameModal.allTeamsFilter', 'All Teams')).length).toBeGreaterThan(0);
+      });
+      expect(screen.getByText(i18n.t('common.gamesPlayed', 'Games Played'))).toBeInTheDocument();
+    });
+  });
+
+  describe('Phase 1b: the Finish this game spine', () => {
+    const tabReady = () =>
+      waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+    const stepKeys = () =>
+      Array.from(screen.getByTestId('finish-game-spine').querySelectorAll('section[data-testid^="spine-"]')).map((el) =>
+        el.getAttribute('data-testid'),
+      );
+
+    it('renders the six steps in the plan order when every handler is wired', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        onPlayerPositionsChange: jest.fn(),
+        onOpenAssessments: jest.fn(),
+        onAddGoal: jest.fn(),
+        onExportOneExcel: jest.fn(),
+      });
+      await tabReady();
+      expect(stepKeys()).toEqual(['spine-goals', 'spine-notes', 'spine-positions', 'spine-report', 'spine-assessments', 'spine-share']);
+      expect(screen.getByText('Step 1 of 6')).toBeInTheDocument();
+      expect(screen.getByText('Step 6 of 6')).toBeInTheDocument();
+    });
+
+    it('omits the positions and assessments steps when their handlers are absent and renumbers', async () => {
+      renderComponent(getDefaultProps());
+      await tabReady();
+      expect(stepKeys()).toEqual(['spine-goals', 'spine-notes', 'spine-report', 'spine-share']);
+      expect(screen.getByText('Step 4 of 4')).toBeInTheDocument();
+      expect(screen.queryByTestId('spine-add-goal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('spine-export-excel')).not.toBeInTheDocument();
+    });
+
+    it('the Goals step hands off to the goal log and the Share step exports the current game', async () => {
+      const onAddGoal = jest.fn();
+      const onExportOneExcel = jest.fn();
+      const onOpenAssessments = jest.fn();
+      renderComponent({ ...getDefaultProps(), onAddGoal, onExportOneExcel, onOpenAssessments });
+      await tabReady();
+      fireEvent.click(screen.getByTestId('spine-add-goal'));
+      fireEvent.click(screen.getByTestId('spine-export-excel'));
+      fireEvent.click(screen.getByTestId('spine-open-assessments'));
+      expect(onAddGoal).toHaveBeenCalledTimes(1);
+      expect(onExportOneExcel).toHaveBeenCalledWith('game1');
+      expect(onOpenAssessments).toHaveBeenCalledTimes(1);
+    });
+
+    it('aggregate tabs keep their own layout with no spine', async () => {
+      renderComponent(getDefaultProps());
+      await tabReady();
+      fireEvent.click(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.season') }));
+      await waitFor(() => {
+        expect(screen.queryByTestId('finish-game-spine')).not.toBeInTheDocument();
+      });
+      expect(screen.getByRole('heading', { name: i18n.t('gameStatsModal.playerStatsTitle') })).toBeInTheDocument();
+    });
+  });
+});

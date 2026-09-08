@@ -1523,6 +1523,31 @@ describe("generateFullBackupJson - planner stores", () => {
     // Empty store exports as null (same convention as the other entities).
     expect(json.localStorage[PLAYTIME_GAME_SUBS_KEY]).toBeNull();
   });
+
+  /**
+   * @critical - a backup is exported, shared and stored wherever the coach puts
+   * it. The AI provider key must never travel in one.
+   *
+   * The export builds from an allowlist of keys, so the key is excluded by
+   * construction today. This test exists so that a future change to "back up
+   * everything on the device" fails here instead of shipping a file with the
+   * coach's provider credentials in it.
+   */
+  it("never carries the AI provider key, its consent flag or the usage counter", async () => {
+    // Present on the device, the way they are after the coach connects a provider.
+    localStorage.setItem('matchops_ai_key', 'sk-proj-secret-value-0000');
+    localStorage.setItem('matchops_ai_consent', '2026-09');
+    localStorage.setItem('matchops_ai_usage', '{"since":"2026-09-05","drafts":3}');
+
+    const json = await generateFullBackupJson();
+
+    expect(json).not.toContain('sk-proj-secret-value-0000');
+    expect(json).not.toContain('matchops_ai_key');
+    expect(json).not.toContain('matchops_ai_consent');
+    expect(json).not.toContain('matchops_ai_usage');
+    // The device keeps them; only the backup file is free of them.
+    expect(localStorage.getItem('matchops_ai_key')).toBe('sk-proj-secret-value-0000');
+  });
 });
 
 // --- New Describe Block for exportFullBackup ---

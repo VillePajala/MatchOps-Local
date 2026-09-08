@@ -46,6 +46,8 @@ export interface UseTimerManagementProps {
   masterRoster: Player[];
   /** Setter for goal log modal state (uses functional update pattern) */
   setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  /** Setter for the stats modal - 'Peli ohi' hands off into the Finish this game spine (7c). */
+  setIsGameStatsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Setter for the player assessment modal (opened from the game-end overlay) */
   setIsPlayerAssessmentModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   /** Fired after a goal / opponent goal / substitution is logged (drives the undo toast) */
@@ -74,6 +76,8 @@ export interface UseTimerManagementReturn {
   // Timer UI controls
   handleToggleLargeTimerOverlay: () => void;
   handleToggleGoalLogModal: () => void;
+  /** Explicit open for hand-offs that must never accidentally close it. */
+  handleOpenGoalLogModal: () => void;
 
   // Goal event handlers
   handleAddGoalEvent: (scorerId: string | undefined, assisterId?: string) => void;
@@ -101,6 +105,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     availablePlayers,
     masterRoster,
     setIsGoalLogModalOpen,
+    setIsGameStatsModalOpen,
     setIsPlayerAssessmentModalOpen,
     onActionLogged,
   } = props;
@@ -142,6 +147,12 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   const handleToggleGoalLogModal = useCallback(() => {
     setIsGoalLogModalOpen((prev) => !prev);
   }, [setIsGoalLogModalOpen]);
+  const handleOpenGoalLogModal = useCallback(() => {
+    setIsGoalLogModalOpen(true);
+  }, [setIsGoalLogModalOpen]);
+  const handleFinishGame = useCallback(() => {
+    setIsGameStatsModalOpen(true);
+  }, [setIsGameStatsModalOpen]);
 
   const handleOpenPlayerAssessmentModal = useCallback(() => {
     setIsPlayerAssessmentModalOpen(true);
@@ -232,6 +243,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     toggleLargeOverlay: handleToggleLargeTimerOverlay,
     toggleGoalLogModal: handleToggleGoalLogModal,
     onOpenPlayerAssessmentModal: handleOpenPlayerAssessmentModal,
+    onFinishGame: handleFinishGame,
     logOpponentGoal: handleLogOpponentGoal,
     substitutionMade: handleSubstitutionMade,
     setSubInterval: handleSetSubInterval,
@@ -241,6 +253,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     handleToggleLargeTimerOverlay,
     handleToggleGoalLogModal,
     handleOpenPlayerAssessmentModal,
+    handleFinishGame,
     handleLogOpponentGoal,
     handleSubstitutionMade,
     handleSetSubInterval,
@@ -267,6 +280,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     // Timer UI controls
     handleToggleLargeTimerOverlay,
     handleToggleGoalLogModal,
+    handleOpenGoalLogModal,
 
     // Goal event handlers
     handleAddGoalEvent,
