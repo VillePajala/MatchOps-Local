@@ -116,6 +116,17 @@ export default function Home() {
   // Home dashboard (opt-in): the view preference + the computed Pelit-tab summary.
   const [homeSummary, setHomeSummary] = useState<HomeSummary | null>(null);
   /**
+   * The Tilastot tab's copy of the summary, narrowed to the chosen team.
+   *
+   * Pelit shows the club as one block on purpose (owner call): every team's
+   * games in one Seurakausi record. The team choice only narrows Tilastot.
+   */
+  const [homeStatsSummary, setHomeStatsSummary] = useState<HomeSummary | null>(null);
+  const publishHomeSummaries = useCallback((args: Parameters<typeof buildHomeSummary>) => {
+    setHomeSummary(buildHomeSummary(args[0], { ...args[1], teamFilter: 'all' }));
+    setHomeStatsSummary(buildHomeSummary(...args));
+  }, []);
+  /**
    * Which team Home is about. Kept here because it decides what the dashboard
    * numbers mean, and the summary has to be rebuilt when it changes.
    */
@@ -138,8 +149,8 @@ export default function Home() {
     if (!prev) return;
     const next: Parameters<typeof buildHomeSummary> = [prev[0], { ...prev[1], teamFilter: scope }];
     homeSummaryInputsRef.current = next;
-    setHomeSummary(buildHomeSummary(...next));
-  }, []);
+    publishHomeSummaries(next);
+  }, [publishHomeSummaries]);
   const [homeView, setHomeView] = useState<'simple' | 'dashboard'>('dashboard');
   const [lastGameType, setLastGameType] = useState<GameType | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -306,8 +317,8 @@ export default function Home() {
     }));
     const args: Parameters<typeof buildHomeSummary> = [games, { ...rest, teamFilter: scope }];
     homeSummaryInputsRef.current = args;
-    setHomeSummary(buildHomeSummary(...args));
-  }, [t]);
+    publishHomeSummaries(args);
+  }, [t, publishHomeSummaries]);
 
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
@@ -393,7 +404,7 @@ export default function Home() {
           teamFilter: teamScopeRef.current,
         }];
         homeSummaryInputsRef.current = firstArgs;
-        setHomeSummary(buildHomeSummary(...firstArgs));
+        publishHomeSummaries(firstArgs);
       } catch (summaryErr) {
         logger.warn('Failed to build home summary', { error: summaryErr });
       }
@@ -449,7 +460,7 @@ export default function Home() {
     } finally {
       setIsCheckingState(false);
     }
-  }, [userId, setAction, applyTeamScope]);
+  }, [userId, setAction, applyTeamScope, publishHomeSummaries]);
 
   const handleGoToStartScreen = useCallback(() => setScreen('start'), []);
 
@@ -1716,6 +1727,7 @@ export default function Home() {
               isCloudAvailable={isCloudAvailable()}
               homeView={homeView}
               homeSummary={homeSummary}
+              homeStatsSummary={homeStatsSummary}
               teamScopeOptions={teamScopeOptions}
               teamScope={teamScope}
               onTeamScopeChange={handleTeamScopeChange}
