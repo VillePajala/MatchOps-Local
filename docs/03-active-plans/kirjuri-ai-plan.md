@@ -774,8 +774,13 @@ row shows an outline tick rather than a solid one, so it never claims all-done a
 ## Before the master merge (checklist)
 
 - [x] DELETE the `/kirjuri-spike` route (`src/app/kirjuri-spike/`). Done 2026-09-08.
-- [ ] Apply migrations 041, 042, 043 AND 044 to PROD, **in that order**. Staging only so
-      far. NOT DONE - needs the owner's go-ahead; nothing has been applied to prod.
+- [x] Apply migrations 041, 042, 043 AND 044 to PROD, **in that order**. DONE 2026-09-08
+      with the owner's go, via the Supabase connector. Before: 209 games / 1006 events /
+      5785 game_players / 115 assessments / 209 tactical rows, only goal and opponentGoal
+      event types, live RPC proven identical to 044 minus the one intended line (normalized
+      hash, comment wording aside). After: every row checksum identical in all five tables,
+      new columns all NULL, RPC hash equals 044's. Local copies of games and game_events
+      taken first. Prod migration history now lists 041-044.
 
       The diff the rule asks for is DONE (read-only query, 2026-09-05). Prod's live
       `save_game_with_relations` was fetched with `pg_get_functiondef` and compared against
