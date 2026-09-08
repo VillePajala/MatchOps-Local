@@ -4,6 +4,15 @@
     {
       "date": "2026-09-08",
       "en": [
+        "The team choice on Home now lives on the Stats tab only. The Games tab shows your club season as one block, every team together, as it did before."
+      ],
+      "fi": [
+        "Etusivun joukkuevalinta on nyt vain Tilastot-välilehdellä. Pelit-välilehti näyttää seurakauden yhtenä kokonaisuutena, kaikki joukkueet yhdessä, kuten ennenkin."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "en": [
         "The team choice on Home is one dropdown row now instead of a row of pills, so it takes the same space however many teams you have. In statistics, the friendly-matches toggle moved from the header into the filter panel with the other filters, and the closed bar says when friendlies are counted."
       ],
       "fi": [
