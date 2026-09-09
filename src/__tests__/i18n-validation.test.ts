@@ -457,7 +457,9 @@ describe('Translation File Validation', () => {
       //     Lands at 3133.
       // +3: gameStatsModal.wrapUpGoals/wrapUpScorers/wrapUpNotes - the three
       //     consistency checks in the finish-game checklist. Lands at 3136.
-      expect(enKeys.length).toBe(3136);
+      // +1: gameStatsModal.spineNotesEmpty - a numbered step must never render
+      //     empty. Lands at 3137.
+      expect(enKeys.length).toBe(3137);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -607,7 +609,9 @@ describe('Translation File Validation', () => {
       //     Lands at 3133.
       // +3: gameStatsModal.wrapUpGoals/wrapUpScorers/wrapUpNotes - the three
       //     consistency checks in the finish-game checklist. Lands at 3136.
-      expect(fiKeys.length).toBe(3136);
+      // +1: gameStatsModal.spineNotesEmpty - a numbered step must never render
+      //     empty. Lands at 3137.
+      expect(fiKeys.length).toBe(3137);
     });
   });
 });

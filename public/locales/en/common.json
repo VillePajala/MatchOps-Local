@@ -602,6 +602,7 @@
     "noGoals": "No goals recorded.",
     "deleteEventFailed": "Failed to delete the event. Please try again.",
     "spineStep": "Step {{n}} of {{total}}",
+    "spineNotesEmpty": "Nothing noted from this match. Notes are recorded during the game with the microphone button and appear here afterwards.",
     "spineAddGoal": "Add a goal",
     "spineOpenAssessments": "Open player assessments",
     "spineShareTitle": "Share the match",

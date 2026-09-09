@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "Finish this game: the notes step no longer shows an empty box on a match with no notes; it now says where notes come from."
+      ],
+      "fi": [
+        "Viimeistele ottelu: muistiinpanovaihe ei enää näytä tyhjää laatikkoa ottelussa, jossa ei ole muistiinpanoja, vaan kertoo mistä muistiinpanot syntyvät."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "Finish this game now checks that the record agrees with itself: the goals in the log against the score on the board, that every goal names a scorer, and how many of the squad you have written something about. Those three are the mistakes that quietly make a player's statistics wrong."
       ],
       "fi": [
