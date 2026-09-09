@@ -135,6 +135,19 @@ describe('PlayerStatsView game type filtering', () => {
     }),
   });
 
+  /**
+   * @critical - the page a coach hands to a head coach. It must open from the
+   * numbers it is built from and carry the player's name and the games.
+   */
+  it('opens the match evidence text for the player from the summary card', async () => {
+    render(<PlayerStatsView {...baseProps} savedGames={buildSavedGames()} />);
+    await waitFor(() => expect(screen.getByTestId('player-evidence')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('player-evidence'));
+    const box = await screen.findByRole('textbox', { name: 'Player summary' });
+    expect((box as HTMLTextAreaElement).value).toContain(`${player.name} - Player summary`);
+    expect((box as HTMLTextAreaElement).value).toContain('Games:');
+  });
+
   it('shows only futsal games when futsal filter is selected', async () => {
     const savedGames = buildSavedGames();
 
