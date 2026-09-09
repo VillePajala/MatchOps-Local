@@ -179,4 +179,15 @@ describe('assessments setting', () => {
     expect(off.enriched).toBe(true);
     expect(off.overall).toBe(on.overall);
   });
+
+  /**
+   * @critical - with the feature off, the bar counted a row that no longer
+   * existed and stopped at 4/5 forever while the pill next to it said Complete.
+   */
+  it('drops assessments from the progress count when the feature is off', () => {
+    const finished: CompletenessGame = { ...base, gameNotes: 'Report', selectedPlayerIds: ['a'],
+      seasonId: 's', teamId: 't', playerPositions: { a: ['CM'] }, assessments: {} };
+    expect(completenessProgress(computeGameCompleteness(finished))).toEqual({ done: 4, total: 5 });
+    expect(completenessProgress(computeGameCompleteness(finished, { assessmentsEnabled: false }))).toEqual({ done: 4, total: 4 });
+  });
 });

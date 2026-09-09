@@ -82,7 +82,9 @@ export function completenessProgress(c: GameCompleteness): { done: number; total
     // list underneath still showed the row outstanding.
     c.competition && c.team,
     countRowStatus(c.positions) !== 'todo',
-    countRowStatus(c.assessments) !== 'todo',
+    // 0/0 = the assessment feature is off (or no squad, which the roster item
+    // already counts): not an item, or the bar could never reach the end.
+    ...(c.assessments.total > 0 ? [countRowStatus(c.assessments) !== 'todo'] : []),
   ];
   return { done: items.filter(Boolean).length, total: items.length };
 }

@@ -566,6 +566,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Tab counter memoized for performance
   // Calculate team assessment averages (applying same filters as overallTeamStats)
   const teamAssessmentAverages = useMemo(() => {
+    // Nothing reads these while the feature is off; skip the walk over every game.
+    if (!assessmentsEnabled) return null;
     if (activeTab !== 'overall') return null;
     // Apply same filters as overallTeamStats for consistency
     const filteredGames: SavedGamesCollection = {};
@@ -589,7 +591,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       filteredGames[id] = game;
     });
     return calculateTeamAssessmentAverages(filteredGames);
-  }, [activeTab, savedGames, includeFriendlies, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, includeFriendlies, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, assessmentsEnabled]);
 
   // Sorted goals for current game
   const sortedGoals = useMemo(() => {
