@@ -6,6 +6,7 @@ import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
 import { getPlans } from '@/utils/playtimePlanner/storage';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import { FIELD_SIZES } from '@/config/formationPresets';
 import { setOnboardingUserId } from '@/components/setupWizardActive';
 
 // Mock the utility functions
@@ -1156,7 +1157,10 @@ describe('NewGameSetupModal', () => {
         expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
       });
       const groups = document.querySelectorAll('#formationSelect optgroup');
-      expect(Array.from(groups).map((g) => g.getAttribute('label'))).toEqual(['3v3', '5v5', '8v8', '11v11']);
+      // "ALL" means the exported list, not a copy of it: restating the sizes
+      // here made adding 4v4 fail in a modal test rather than saying anything
+      // about the modal.
+      expect(Array.from(groups).map((g) => g.getAttribute('label'))).toEqual([...FIELD_SIZES]);
     });
 
     it('a non-recommended-size preset SURVIVES to onStart (squad size never restricts)', async () => {
