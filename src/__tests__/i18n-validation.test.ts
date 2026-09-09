@@ -92,6 +92,27 @@ describe('Translation File Validation', () => {
     fiKeys = getAllKeys(fi);
   });
 
+  /**
+   * @critical - ruleLinks.json names its translation keys as plain strings and
+   * the component casts them with `as TranslationKey`, so the compiler cannot
+   * see a typo. i18next would silently fall back to the English fallbackLabel
+   * in BOTH locales, which looks like a working screen and is a Finnish user
+   * reading English. This is the only place that can catch it.
+   */
+  describe('Rule link translation keys', () => {
+    it('every labelKey in ruleLinks.json exists in EN and FI', () => {
+      const ruleLinks = JSON.parse(
+        fs.readFileSync(path.join(process.cwd(), 'src/config/ruleLinks.json'), 'utf8'),
+      ) as { links: { id: string; labelKey: string }[] };
+
+      expect(ruleLinks.links.length).toBeGreaterThan(0);
+      for (const link of ruleLinks.links) {
+        expect(enKeys).toContain(link.labelKey);
+        expect(fiKeys).toContain(link.labelKey);
+      }
+    });
+  });
+
   describe('JSON Structure', () => {
     it('EN file should be valid JSON', () => {
       expect(() => JSON.parse(enContent)).not.toThrow();

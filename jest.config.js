@@ -42,7 +42,11 @@ const customJestConfig = {
   // Test patterns - include both src/ and tests/ directories
   testMatch: [
     '<rootDir>/src/**/*.test.{ts,tsx}',
-    '<rootDir>/tests/**/*.test.{ts,tsx}'
+    '<rootDir>/tests/**/*.test.{ts,tsx}',
+    // Maintenance scripts are plain ESM so CI can run them with bare node (no
+    // install step), which keeps a dependency problem from ever looking like a
+    // script failure. They still need their logic covered.
+    '<rootDir>/scripts/**/*.test.mjs'
   ],
   
   // Improved reporting
