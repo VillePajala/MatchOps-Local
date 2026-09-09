@@ -7,6 +7,9 @@ import { modalContainerStyle, ModalBackgroundEffects, CollapsibleModalHeader } f
 import logger from '@/utils/logger';
 
 interface GameRecapModalProps {
+  /** Header and subtitle; default to the recap's own. The Taso helper reuses this modal. */
+  title?: string;
+  subtitle?: string;
   isOpen: boolean;
   onClose: () => void;
   /** The pre-built recap text (see buildGameRecap). */
@@ -19,8 +22,10 @@ interface GameRecapModalProps {
  * share sheet (no file allowlist issues), with clipboard copy as the fallback.
  * Full-screen, matching the app's other modals (navy theme, no dark backdrop).
  */
-const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap }) => {
+const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap, title, subtitle }) => {
   const { t } = useTranslation();
+  const heading = title ?? t('recap.title', 'Game recap');
+  const hint = subtitle ?? t('recap.subtitle', 'Ready to paste into the team chat. Edit if you like.');
   const [text, setText] = useState(recap);
   const [copied, setCopied] = useState(false);
 
@@ -57,19 +62,19 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap 
       className="fixed inset-0 z-[80] font-display flex"
       role="dialog"
       aria-modal="true"
-      aria-label={t('recap.title', 'Game recap')}
+      aria-label={heading}
     >
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
         <ModalBackgroundEffects />
         <div className="relative z-10 flex flex-col h-full min-h-0">
           {/* Chrome slimming: X-header (Close->X); subtitle pinned below. */}
           <CollapsibleModalHeader
-            title={t('recap.title', 'Game recap')}
+            title={heading}
             onClose={onClose}
             closeLabel={t('common.close', 'Close')}
           >
             <p className="text-xs text-slate-400 px-6 pb-3 text-center">
-              {t('recap.subtitle', 'Ready to paste into the team chat. Edit if you like.')}
+              {hint}
             </p>
           </CollapsibleModalHeader>
 
@@ -78,7 +83,7 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap 
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}
-              aria-label={t('recap.title', 'Game recap')}
+              aria-label={heading}
               className="flex-1 w-full min-h-[16rem] resize-none bg-slate-900/60 border border-slate-600 rounded-md text-slate-100 text-sm p-3 font-mono whitespace-pre-wrap focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <div className="flex flex-wrap gap-2">

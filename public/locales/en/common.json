@@ -96,6 +96,21 @@
     "onPenalties": "on penalties",
     "unknownPlayer": "Unknown"
   },
+  "taso": {
+    "button": "Match report for Taso",
+    "title": "For Taso",
+    "subtitle": "Squad and match report in the order Taso asks for them. Copy, then type. Cards, substitutions, added time and attendance are not recorded here; fill those in Taso.",
+    "lineupTitle": "Squad for Taso",
+    "reportTitle": "Match report for Taso",
+    "halfTime": "half-time",
+    "goals": "Goals (minute, scorer, assist)",
+    "noGoals": "No goals recorded.",
+    "opponentGoal": "opponent goal",
+    "assist": "assist",
+    "goalie": "GK",
+    "noNumber": "-",
+    "unknownPlayer": "unknown"
+  },
   "playingPositions": {
     "gk": {
       "label": "Goalkeeper",

@@ -96,6 +96,21 @@
     "onPenalties": "rangaistuslaukauksilla",
     "unknownPlayer": "Tuntematon"
   },
+  "taso": {
+    "button": "Pöytäkirja Tasoon",
+    "title": "Tasoon",
+    "subtitle": "Kokoonpano ja pöytäkirja siinä järjestyksessä kuin Taso ne kysyy. Kopioi ja kirjoita. Kortteja, vaihtoja, lisäaikaa ja katsojamäärää ei kirjata täällä; täytä ne Tasossa.",
+    "lineupTitle": "Kokoonpano Tasoon",
+    "reportTitle": "Pöytäkirja Tasoon",
+    "halfTime": "puoliaika",
+    "goals": "Maalit (minuutti, tekijä, syöttäjä)",
+    "noGoals": "Ei kirjattuja maaleja.",
+    "opponentGoal": "vastustajan maali",
+    "assist": "syöttö",
+    "goalie": "Mv",
+    "noNumber": "-",
+    "unknownPlayer": "tuntematon"
+  },
   "playingPositions": {
     "gk": {
       "label": "Maalivahti",

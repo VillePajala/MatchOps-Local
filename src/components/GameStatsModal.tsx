@@ -32,6 +32,7 @@ import PlayerPositionsEditor from './PlayerPositionsEditor';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import GameRecapModal from './GameRecapModal';
+import { buildTasoReport } from '@/utils/tasoReport';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
 import { computeGameCompleteness } from '@/utils/gameCompleteness';
@@ -275,6 +276,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const isEditingNotesRef = useRef(isEditingNotes);
   isEditingNotesRef.current = isEditingNotes;
   const [showRecap, setShowRecap] = useState(false);
+  const [showTaso, setShowTaso] = useState(false);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -736,6 +738,25 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     (key, fallback) => t(key, fallback) as string,
   ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, availablePlayers, t]);
 
+  const tasoText = useMemo(() => {
+    const r = buildTasoReport(
+      {
+        teamName,
+        opponentName,
+        homeOrAway,
+        homeScore,
+        awayScore,
+        gameEvents,
+        selectedPlayerIds,
+        numberOfPeriods: numPeriods ?? 2,
+        periodDurationMinutes: periodDurationMinutes ?? 0,
+      },
+      availablePlayers,
+      (key, fallback) => t(key, fallback) as string,
+    );
+    return `${r.lineup}\n\n${r.report}`;
+  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, numPeriods, periodDurationMinutes, availablePlayers, t]);
+
   // Completeness for the current game: live-editable fields from props over the
   // saved snapshot (which carries competition/team/assessments).
   const currentGameCompleteness = useMemo(() => {
@@ -1085,6 +1106,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       content: (
         <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner space-y-3">
           <h3 className="text-xl font-semibold text-slate-200">{t('gameStatsModal.spineShareTitle', 'Share the match')}</h3>
+          {/* Taso helper: the same match in the order Taso's report wants it typed,
+              because Taso has no API a coach can write to. */}
+          <button
+            type="button"
+            onClick={() => setShowTaso(true)}
+            data-testid="spine-taso-helper"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-100"
+          >
+            {t('taso.button', 'Match report for Taso')}
+          </button>
           <button
             type="button"
             onClick={() => setShowRecap(true)}
@@ -1498,6 +1529,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           isOpen={showRecap}
           onClose={() => setShowRecap(false)}
           recap={recapText}
+        />
+        <GameRecapModal
+          isOpen={showTaso}
+          onClose={() => setShowTaso(false)}
+          recap={tasoText}
+          title={t('taso.title', 'For Taso')}
+          subtitle={t('taso.subtitle', 'Squad and match report in the order Taso asks for them. Copy, then type. Cards, substitutions, added time and attendance are not recorded here; fill those in Taso.')}
         />
       </div>
     </div>
