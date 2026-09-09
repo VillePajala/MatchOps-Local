@@ -54,9 +54,14 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
       onClick: onOpenVoiceNotes,
     });
   }
-  if (!completeness.roster) {
-    rows.push({ key: 'roster', label: t('gameStatsModal.wrapUpRoster', 'Squad selected'), status: 'todo', onClick: onOpenSettings && (() => onOpenSettings('roster')) });
-  }
+  // Always a row, done or not: the counter counts it, so the list must show
+  // it. Hiding it when done left three rows under a "3/4" (owner, 2026-09-09).
+  rows.push({
+    key: 'roster',
+    label: t('gameStatsModal.wrapUpRoster', 'Squad selected'),
+    status: completeness.roster ? 'done' : 'todo',
+    onClick: onOpenSettings && (() => onOpenSettings('roster')),
+  });
   rows.push({
     key: 'report',
     label: t('gameStatsModal.wrapUpReport', 'Match report'),
