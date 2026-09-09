@@ -10,10 +10,14 @@ One screen answering "what applies to my game". The hard part is that
 is to be a map, not a dump. Three kinds of rule live apart, and the page is
 ordered by how specific each is to the coach:
 
-1. **Your series' rules** - player count, playing time and pitch size are set
-   **per series** and live in Tulospalvelu under each series' Info > Säännöt
-   tab. This is the only one that is actually *theirs*, so it comes first. The
-   Kaikki Pelaa programme document states this move in its opening line.
+1. **Your league's rules** - player count, playing time and pitch size are set
+   **per league** (*sarja*; the app calls these Leagues / Sarjat) and live in
+   Tulospalvelu under each one's Info > Säännöt tab. This is the only one that
+   is actually *theirs*, so it comes first. The Kaikki Pelaa programme document
+   states this move in its opening line.
+   **Use the app's own word in UI copy**: EN "league", FI "sarja". Palloliitto's
+   docs say "series", and importing that vocabulary confused the owner on first
+   read - if it confused him it will confuse a coach.
 2. **Age-group formats** - the national defaults. Futsal has a published
    one-page table, which the app carries in full. Football does not (see below).
 3. **Laws of the game** - the rulebooks, the same for everyone, so last.
