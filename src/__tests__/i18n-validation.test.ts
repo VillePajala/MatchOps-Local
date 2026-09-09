@@ -455,9 +455,11 @@ describe('Translation File Validation', () => {
       //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
       // +13 taso.* - the Taso helper: squad and match report in Taso's order.
       //     Lands at 3133.
+      // +3: gameStatsModal.wrapUpGoals/wrapUpScorers/wrapUpNotes - the three
+      //     consistency checks in the finish-game checklist. Lands at 3136.
       // +1: gameStatsModal.spineNotesEmpty - a numbered step must never render
-      //     empty. Lands at 3134.
-      expect(enKeys.length).toBe(3134);
+      //     empty. Lands at 3137.
+      expect(enKeys.length).toBe(3137);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -605,9 +607,11 @@ describe('Translation File Validation', () => {
       //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
       // +13 taso.* - the Taso helper: squad and match report in Taso's order.
       //     Lands at 3133.
+      // +3: gameStatsModal.wrapUpGoals/wrapUpScorers/wrapUpNotes - the three
+      //     consistency checks in the finish-game checklist. Lands at 3136.
       // +1: gameStatsModal.spineNotesEmpty - a numbered step must never render
-      //     empty. Lands at 3134.
-      expect(fiKeys.length).toBe(3134);
+      //     empty. Lands at 3137.
+      expect(fiKeys.length).toBe(3137);
     });
   });
 });
