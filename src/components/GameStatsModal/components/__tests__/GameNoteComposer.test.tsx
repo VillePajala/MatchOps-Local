@@ -177,6 +177,31 @@ describe('writing out the recording with the coach\'s own provider', () => {
     expect(button).toHaveTextContent('Say it instead');
   });
 
+  /**
+   * @critical - a recording under 400ms is thrown away without ever reporting
+   * a clip. This card used to stay "recording" for good after one, and would
+   * then offer to stop, and claim the clip of, somebody else's recording.
+   */
+  it('stops waiting after a recording too short to keep, and leaves the next one alone', async () => {
+    const props = { players, stamp, onAdd: jest.fn(() => true) };
+    const view = render(<GameNoteComposer {...props} dictation={controls()} />);
+    fireEvent.click(screen.getByTestId('note-composer-record'));
+    // Recording starts...
+    view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: true })} />);
+    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Stop recording');
+    // ...and ends with nothing kept: no clip is ever reported.
+    view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: false })} />);
+    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Say it instead');
+
+    // Another card records. This one must neither offer to stop it...
+    view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: true })} />);
+    expect(screen.getByTestId('note-composer-record')).toBeDisabled();
+    // ...nor take its clip.
+    view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: false, lastClip: clip })} />);
+    await waitFor(() => expect(screen.getByTestId('note-composer-record')).toBeEnabled());
+    expect(transcribeFn).not.toHaveBeenCalled();
+  });
+
   it('says where the recording went when the provider refuses', async () => {
     transcribeFn.mockRejectedValue(new Error('nope'));
     const view = render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls()} />);

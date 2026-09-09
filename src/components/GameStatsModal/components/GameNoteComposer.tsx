@@ -139,6 +139,27 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
     }
   }, [language, showToast, t, userId, vocabulary]);
 
+  /**
+   * Stop expecting a clip that is never coming.
+   *
+   * A recording under 400ms is discarded without ever reporting a clip, so the
+   * claim below never runs and this card would stay "recording" forever: its
+   * button would then offer to stop somebody else's recording, and it would
+   * claim somebody else's clip. So: the moment recording ends this card is no
+   * longer the one recording, and the moment a recording starts that this card
+   * did not start, it stops waiting for a clip at all.
+   */
+  const wasRecordingRef = useRef(false);
+  const startedHereRef = useRef(false);
+  startedHereRef.current = startedHere;
+  useEffect(() => {
+    const now = !!dictation?.isRecording;
+    const was = wasRecordingRef.current;
+    wasRecordingRef.current = now;
+    if (was && !now) setStartedHere(false);
+    if (!was && now && !startedHereRef.current) miningRef.current = false;
+  }, [dictation?.isRecording]);
+
   // The recorder reports the clip it stored; pick it up only if this card asked.
   useEffect(() => {
     const clip = dictation?.lastClip;

@@ -140,11 +140,39 @@ describe('SpokenReportPanel - recording', () => {
   });
 
   it('is a tap to start and a tap to stop, not a press and hold', () => {
-    const view = renderPanel({ dictation: { isRecording: true } });
+    const view = renderPanel();
 
     fireEvent.click(screen.getByTestId('spoken-report-toggle'));
+    expect(view.dictation.start).toHaveBeenCalledTimes(1);
+
+    // The recorder reports it is running; the same button now stops it.
+    view.rerender(
+      <SpokenReportPanel
+        dictation={{ ...view.dictation, isRecording: true }}
+        vocabulary={['Emma', 'Matti']}
+        stamp={{ time: 3000, period: 2 }}
+        language="fi"
+        onSaveSummary={view.onSaveSummary as unknown as SpokenReportPanelSave}
+        onInsertIntoReport={view.onInsertIntoReport}
+        onShowNotes={view.onShowNotes}
+      />,
+    );
+    fireEvent.click(screen.getByTestId('spoken-report-toggle'));
     expect(view.dictation.stop).toHaveBeenCalledTimes(1);
-    expect(view.dictation.start).not.toHaveBeenCalled();
+  });
+
+  /**
+   * @critical - one recorder serves the whole page, and the note composer sits
+   * on it too. Offering to stop a recording this panel never started cuts off
+   * somebody else's words.
+   */
+  it('stays quiet during a recording it did not start', () => {
+    const view = renderPanel({ dictation: { isRecording: true } });
+    const button = screen.getByTestId('spoken-report-toggle');
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Record the report');
+    fireEvent.click(button);
+    expect(view.dictation.stop).not.toHaveBeenCalled();
   });
 
   /** @critical - the in-match mic writes to the same store; its clips are not ours. */
