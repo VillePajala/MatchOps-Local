@@ -1,0 +1,85 @@
+FUTSALIN VIRALLISET PELIMUODOT 2026-2027
+
+Source: https://www.datocms-assets.com/62562/1786687580-futsalin-viralliset-pelimuodot-2026-2027.pdf
+sha256: f27c34574b636213bb8d9fd3264a379515dc06d6b572d1006340c1632ca3152d
+Extracted 2026-09-09 from the PDF's own table gridlines, one line per CELL.
+Verbatim evidence for gameFormats.json; do not edit by hand - re-extract from the PDF.
+
+General note (column header): maalivahdin avaus (potkaisemalla käsistä tai heittämällä) ei saa ylittää keskirajaa
+
+AGE: P/T 7 ja nuoremmat
+  players: 3 v 3 (2+mv)
+  field: 12-15m (20m) x 18-25m
+  goal: 1,15 -1,5m x 1,6-3m (salibandymaali, käsipallon harj.maali tai madallettu futsalmaali)
+  ball: futsal 2 (varapallo)
+  time: Joustavasti paljon peliaikaa kaikille – useita pelejä tapahtumassa samaan aikaan käynnissä
+  note: Joustavat pelimuodot:
+  note: Jos salibändymaali 3 kenttäpelaajaa
+  note: Jos isompi maali 2+ lentävä mv (liivi)
+  note: Pelinjatkamistavat syöttämällä tai kuljettamalla
+  note: Maalivahdin avaus ilmassa alle puolen kentän
+  note: Maalivahdille palautussääntö ei voimassa
+
+AGE: P/T 8-9
+  players: 4 v 4
+  field: 13-15m x 20-28m
+  goal: 1,2-2m x 2,4-3m (käsipallon harj.maali, madallettu futsalmaali tai futsalmaali)
+  ball: futsal 2 (varapallo)
+  time: 2 x 15 min suora (2 x 20 min) suora (1 x 25min) suora
+  note: Pelinjatkamistavat syöttämällä tai kuljettamalla
+  note: Maalivahdin avaus ilmassa alle puolen kentän
+  note: Maalivahdille palautussääntö ei voimassa
+
+AGE: P/T 10
+  players: 4 v 4
+  field: 15-18m x 28-34m
+  goal: 1,2-2m x 2,4-3m (käsipallon harj.maali, madallettu futsalmaali tai futsalmaali)
+  ball: futsal 3 (varapallo)
+  time: 2 x 15 min suora (2 x 20 min) suora (1 x 25min) suora
+  note: Pelinjatkamistavat syöttämällä tai kuljettamalla
+  note: Maalivahdin avaus ilmassa alle puolen kentän
+  note: Maalivahdille palautussääntö ei voimassa
+
+AGE: P/T 11
+  players: 5 v 5
+  field: 16-18m (20m) x 28-34m
+  goal: 2x3m
+  ball: futsal 3 (varapallo)
+  time: 2 x 15 min suora (2 x 20 min) suora (1 x 25min) suora
+  note: Maalivahdin avaus ilmassa alle puolen kentän
+  note: Maalivahdille palautussääntö ei voimassa
+
+AGE: P/T 12
+  players: 5 v 5
+  field: 16-18m (20m) x 28-34m
+  goal: 2x3m
+  ball: futsal 3
+  time: 2 x 10 min tehokas (2 x 15 min) tehokas
+  note: Normaalit futsalsäännöt. Kumulatiivisten rikkeiden
+  note: laskeminen alkaa, suhteuttaen peliaikaan
+
+AGE: P/T 13
+  players: 5 v 5
+  field: 16-18m (20m) x 28-34m
+  goal: 2x3m
+  ball: futsal 3
+  time: 2 x 10 min tehokas (2 x 15 min) tehokas
+  note: Normaalit futsalsäännöt, kumulatiivisten rikkeiden
+  note: määrä suhteuttaen peliaikaan
+
+AGE: P/T 14-16
+  players: 5 v 5
+  field: 18-20m x 34-40m
+  goal: 2x3m
+  ball: futsal 4
+  time: 2 x 15 min (2 x 10 min) tehokas
+  note: Normaalit futsalsäännöt, kumulatiivisten rikkeiden
+  note: määrä suhteuttaen peliaikaan
+
+AGE: P/T 17 ja vanhemmat
+  players: 5 v 5
+  field: 18-20m x 34-40m
+  goal: 2x3m
+  ball: futsal 4
+  time: 2 x 20 min (2 x 15 min) tehokas
+  note: Normaalit futsalsäännöt

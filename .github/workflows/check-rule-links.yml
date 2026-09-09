@@ -18,6 +18,10 @@ on:
     branches: [master]
     paths:
       - 'src/config/ruleLinks.json'
+      # The formats data records the sha256 of its source PDF, and this job is
+      # what compares it. Changing the data without re-running the check would
+      # leave a transcription unverified against the live document.
+      - 'src/config/gameFormats.json'
       - 'scripts/check-rule-links.mjs'
       - '.github/workflows/check-rule-links.yml'
 
