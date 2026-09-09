@@ -59,7 +59,15 @@ const Section = ({
 );
 
 const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // The stored date is ISO so the config stays machine-readable; a Finnish
+  // reader should still see 9.9.2026 rather than a raw config value.
+  const checkedOn = React.useMemo(() => {
+    const parsed = new Date(ruleLinks.checkedOn);
+    if (Number.isNaN(parsed.getTime())) return ruleLinks.checkedOn;
+    return parsed.toLocaleDateString(i18n.language || undefined);
+  }, [i18n.language]);
 
   if (!isOpen) return null;
 
@@ -102,7 +110,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
               <p className="text-xs text-slate-500 text-center pt-2">
                 {t('rulesDirectory.footer', 'Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.')}
                 {' '}
-                {t('rulesDirectory.checkedOn', 'Linkit tarkistettu {{date}}.', { date: ruleLinks.checkedOn })}
+                {t('rulesDirectory.checkedOn', 'Linkit tarkistettu {{date}}.', { date: checkedOn })}
               </p>
             </div>
           </div>

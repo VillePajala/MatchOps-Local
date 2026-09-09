@@ -10,6 +10,9 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string, options?: Record<string, unknown>) =>
       (fallback || key).replace(/\{\{(\w+)\}\}/g, (_m: string, n: string) => String(options?.[n] ?? '')),
+    // The modal formats the checked-on date for the reader's locale, so the
+    // mock has to carry a language the way the real hook does.
+    i18n: { language: 'fi' },
   }),
 }));
 
@@ -101,9 +104,15 @@ describe('RulesDirectoryModal', () => {
     }
   });
 
-  it('says when the links were last checked against Palloliitto', () => {
+  /**
+   * The date is stored ISO so the config stays machine-readable, but a Finnish
+   * reader should see 9.9.2026, not a raw config value.
+   */
+  it('says when the links were last checked, in the reader’s own date format', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
-    expect(screen.getByText(new RegExp(ruleLinks.checkedOn))).toBeInTheDocument();
+    const localized = new Date(ruleLinks.checkedOn).toLocaleDateString('fi');
+    expect(screen.getByText(new RegExp(localized.replace(/\./g, '\\.')))).toBeInTheDocument();
+    expect(screen.queryByText(new RegExp(ruleLinks.checkedOn))).not.toBeInTheDocument();
   });
 
   /**

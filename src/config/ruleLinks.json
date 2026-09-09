@@ -1,5 +1,5 @@
 {
-  "_comment": "Official Palloliitto rule documents shown in the Säännöt modal. This file is the SINGLE source: the modal renders it and scripts/check-rule-links.mjs verifies it weekly in CI. Palloliitto re-issues these PDFs under NEW asset ids and leaves the old file served, so a dead link is not the failure mode - a link that still loads a superseded edition is. That is why every entry that Palloliitto lists on its rules index carries onIndexPage: true; the check fails when the URL stops appearing there, which is what supersession actually looks like. Add a link here, not in the component.",
+  "_comment": "Official Palloliitto rule documents shown in the Säännöt modal. This file is the SINGLE source: the modal renders it and scripts/check-rule-links.mjs verifies it weekly in CI. Palloliitto re-issues these PDFs under NEW asset ids and leaves the old file served, so a dead link is not the failure mode - a link that still loads a superseded edition is. That is what 'listedOn' is for: it names the Palloliitto page that should still link this document, and the check fails when the URL stops appearing there, which is what supersession actually looks like. An entry with no 'listedOn' gets a reachability check only, so prefer to give every entry one. Add a link here, not in the component.",
   "indexPage": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet",
   "checkedOn": "2026-09-09",
   "links": [
@@ -8,29 +8,29 @@
       "url": "https://www-assets.palloliitto.fi/62562/1767775686-jalkapallosaannot-2026.pdf",
       "labelKey": "rulesDirectory.soccerRules",
       "fallbackLabel": "Jalkapallosäännöt 2026",
-      "onIndexPage": true
+      "listedOn": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet"
     },
     {
       "id": "futsalRules",
       "url": "https://www-assets.palloliitto.fi/62562/1771237342-futsalsaannot-2025-26.pdf",
       "labelKey": "rulesDirectory.futsalRules",
       "fallbackLabel": "Futsalsäännöt 2025-26",
-      "onIndexPage": true
+      "listedOn": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet"
     },
     {
       "id": "futsalFormats",
       "url": "https://www.datocms-assets.com/62562/1786687580-futsalin-viralliset-pelimuodot-2026-2027.pdf",
       "labelKey": "rulesDirectory.futsalFormats",
       "fallbackLabel": "Futsalin viralliset pelimuodot 2026-2027",
-      "onIndexPage": false,
-      "note": "Announced from a news article rather than the rules index, so reachability is all the check can assert. Replaces the Kaikki Pelaa programme link: Palloliitto delisted that PDF and the age-group rules it carried now live per season and per series."
+      "listedOn": "https://www.palloliitto.fi/ajankohtaista/futsalin-uudet-pelimuodot-lapsuus-ja-nuoruusvaiheessa",
+      "note": "Announced from a news article rather than the rules index, so the article is what the check watches. Replaces the Kaikki Pelaa programme link: Palloliitto delisted that PDF and the age-group rules it carried now live per season and per series. Move listedOn to the index page if this document ever appears there."
     },
     {
       "id": "palloliitoAll",
       "url": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet",
       "labelKey": "rulesDirectory.allRules",
       "fallbackLabel": "Kaikki säännöt ja määräykset",
-      "onIndexPage": false
+      "note": "No listedOn: this IS the index page, so there is no other page that could list it."
     }
   ]
 }
