@@ -37,6 +37,24 @@ describe('GameRecapModal', () => {
     expect(screen.queryByTestId('recap-stale')).not.toBeInTheDocument();
   });
 
+  /**
+   * @critical - the instance outlives one use. An edit kept across a close
+   * showed one player's words under another player's name, which is worse than
+   * the lost edit the preservation was added to prevent.
+   */
+  it('starts fresh when it is opened again for a different subject', () => {
+    const { rerender } = render(<GameRecapModal isOpen onClose={jest.fn()} recap="Player A" />);
+    fireEvent.change(box(), { target: { value: 'A, with my own wording' } });
+
+    // Closed, then the coach looks at another player, then opens it again.
+    rerender(<GameRecapModal isOpen={false} onClose={jest.fn()} recap="Player A" />);
+    rerender(<GameRecapModal isOpen={false} onClose={jest.fn()} recap="Player B" />);
+    rerender(<GameRecapModal isOpen onClose={jest.fn()} recap="Player B" />);
+
+    expect(box().value).toBe('Player B');
+    expect(screen.queryByTestId('recap-stale')).not.toBeInTheDocument();
+  });
+
   it('offers the section switches and reports which one was tapped', () => {
     const onToggleSection = jest.fn();
     render(
