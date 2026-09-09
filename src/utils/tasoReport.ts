@@ -31,6 +31,8 @@ export interface TasoGame {
   awayScore: number;
   gameEvents: GameEvent[];
   selectedPlayerIds: string[];
+  /** Who wore the armband; Taso asks for the captain on the lineup screen. */
+  captainId?: string;
   numberOfPeriods: number;
   periodDurationMinutes: number;
 }
@@ -84,10 +86,16 @@ export function buildTasoReport(game: TasoGame, players: Player[], t: TasoTransl
       return na - nb;
     });
 
+  // Marks in Taso's own order: keeper first, then the armband. A player can be
+  // both, and Taso's lineup screen has a box for each.
   const lineupLines = squad.map((p) => {
     const n = numberOf(p);
     const num = n === undefined ? t('taso.noNumber', '-') : String(n);
-    return `${num} ${p.name.trim()}${p.isGoalie ? ` (${t('taso.goalie', 'GK')})` : ''}`;
+    const marks = [
+      p.isGoalie ? t('taso.goalie', 'GK') : undefined,
+      p.id === game.captainId ? t('taso.captain', 'C') : undefined,
+    ].filter(Boolean);
+    return `${num} ${p.name.trim()}${marks.length ? ` (${marks.join(', ')})` : ''}`;
   });
   const lineup = [t('taso.lineupTitle', 'Squad for Taso'), ...lineupLines].join('\n');
 

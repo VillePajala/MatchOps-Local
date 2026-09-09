@@ -168,6 +168,15 @@ export interface AppState {
    *  from a missing season/tournament - the coach sets it on purpose. */
   isFriendly?: boolean;
   selectedPlayerIds: string[];
+  /**
+   * Who wore the armband, if anyone.
+   *
+   * Per game and not per team: captaincy rotates in youth football, and being
+   * asked to lead once is worth having on the record. Nothing enforces that
+   * the id is in the squad - a captain who was dropped from the lineup after
+   * the fact is a wrong record to correct, not a crash.
+   */
+  captainId?: string;
   assessments?: { [playerId: string]: PlayerAssessment };
   seasonId: string;
   tournamentId: string;

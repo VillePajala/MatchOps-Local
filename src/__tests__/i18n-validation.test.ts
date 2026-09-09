@@ -469,7 +469,10 @@ describe('Translation File Validation', () => {
       // +6 net in evidence.*: the player summary lost teamGames/externalGames/
       //     external/subtitle and gained competitions, the three counted words
       //     in both plural forms, and three section labels. Lands at 3168.
-      expect(enKeys.length).toBe(3170);
+      // +8 game captains: taso.captain (the armband on the Taso lineup),
+      //     evidence.captain, four gameSettingsModal.captain* for the picker,
+      //     and playerStats.captainGames in both plural forms. Lands at 3178.
+      expect(enKeys.length).toBe(3178);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -631,7 +634,8 @@ describe('Translation File Validation', () => {
       // +6 net in evidence.*: the player summary lost teamGames/externalGames/
       //     external/subtitle and gained competitions, the three counted words
       //     in both plural forms, and three section labels. Lands at 3168.
-      expect(fiKeys.length).toBe(3170);
+      // +8 game captains (see EN above). Lands at 3178.
+      expect(fiKeys.length).toBe(3178);
     });
   });
 });

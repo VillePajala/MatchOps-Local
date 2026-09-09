@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "You can now record who wore the captain's armband, per game, in Game Settings. It shows in the game information, it is marked on the squad list you copy into Taso, and a player's statistics say how many games they led."
+      ],
+      "fi": [
+        "Voit nyt kirjata, kuka kantoi kapteeninnauhaa, ottelukohtaisesti Ottelun asetuksissa. Kapteeni näkyy ottelun tiedoissa, hänet on merkitty Tasoon kopioitavaan kokoonpanoon, ja pelaajan tilastoissa kerrotaan, kuinka monessa ottelussa hän on ollut kapteeni."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "The player summary is shorter and says more. It now lists the leagues and tournaments the player appeared in with their goals and assists in each, counts every game the same way whether you tracked it live or entered it by hand, and lets you tick which parts to include - the game-by-game list is off unless you want it.",
         "Adding a note is clearer too: an Add the note button and a microphone button that says Dictate a note. When a dictated note names a player, the app now offers that player as the subject, the same way the voice-note inbox does."
       ],
