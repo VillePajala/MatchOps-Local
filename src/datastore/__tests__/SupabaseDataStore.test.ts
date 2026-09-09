@@ -3623,6 +3623,25 @@ describe('SupabaseDataStore', () => {
         expect(transformGameToTables('g1', { ...base, isFriendly: true }, 'u1').game.is_friendly).toBe(true);
       });
 
+      /**
+       * @critical - Rule 1: an empty string must reach the column as NULL, or
+       * "no captain" is stored as a player id that matches nobody.
+       */
+      it('writes captain_id, with empty and absent both becoming NULL', () => {
+        const transformGameToTables = getPrivateMethod('transformGameToTables');
+        const base = {
+          teamName: 'T', opponentName: 'O', gameDate: '2024-01-15', homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const, periodDurationMinutes: 10, currentPeriod: 1, gameStatus: 'notStarted' as const,
+          homeScore: 0, awayScore: 0, gameNotes: '', showPlayerNames: true,
+          seasonId: '', tournamentId: '', teamId: '',
+          playersOnField: [], availablePlayers: [], selectedPlayerIds: [], gameEvents: [], opponents: [], drawings: [],
+          tacticalDiscs: [], tacticalDrawings: [], tacticalBallPosition: null,
+        };
+        expect(transformGameToTables('g1', base, 'u1').game.captain_id).toBeNull();
+        expect(transformGameToTables('g1', { ...base, captainId: '' }, 'u1').game.captain_id).toBeNull();
+        expect(transformGameToTables('g1', { ...base, captainId: 'p7' }, 'u1').game.captain_id).toBe('p7');
+      });
+
       it('writes assessment ratings as an id-keyed slider_values map (no legacy column writes)', () => {
         const transformGameToTables = getPrivateMethod('transformGameToTables');
         const game = {
@@ -4160,6 +4179,23 @@ describe('SupabaseDataStore', () => {
           players: [], events: [], assessments: [], tacticalData: null,
         };
         expect(transformTablesToGame(tables).isFriendly).toBe(true);
+      });
+
+      it('reads captain_id back, and a NULL as no captain rather than an empty id', () => {
+        const transformTablesToGame = getPrivateMethod('transformTablesToGame');
+        const row = {
+          id: 'game_123', user_id: 'user_123', season_id: null, tournament_id: null,
+          team_name: 'T', opponent_name: 'O', game_date: '2024-01-15', home_or_away: 'home',
+          number_of_periods: 2, period_duration_minutes: 10, current_period: 1, game_status: 'notStarted',
+          is_played: true, home_score: 0, away_score: 0, game_notes: '', show_player_names: true,
+          created_at: '2024-01-15T10:00:00Z', updated_at: '2024-01-15T10:00:00Z',
+        };
+        const rest = { players: [], events: [], assessments: [], tacticalData: null };
+        expect(transformTablesToGame({ game: { ...row, captain_id: 'p7' }, ...rest }).captainId).toBe('p7');
+        // Legacy rows have no column at all; neither they nor a NULL may
+        // produce an empty-string id that no player will ever match.
+        expect(transformTablesToGame({ game: { ...row, captain_id: null }, ...rest }).captainId).toBeUndefined();
+        expect(transformTablesToGame({ game: row, ...rest }).captainId).toBeUndefined();
       });
 
       // Minimal valid game row reused by the assessment reverse-transform tests.

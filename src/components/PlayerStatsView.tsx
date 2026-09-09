@@ -512,6 +512,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         // The same number the card above shows: one external entry can stand
         // for several games, so the row count is not the game count.
         gamesPlayed: playerStats.totalGames,
+        captaincies: playerStats.totalCaptaincies,
         stats: playerStats.gameByGameStats,
         competitions,
         notes: playerNotes.filter((n) => scopedIds.has(n.gameId)),
@@ -611,6 +612,15 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <p className="text-xs text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
           </div>
+          {/* Wearing the armband, only when it happened. A zero here would
+              read as a mark against the player rather than as a fact. */}
+          {playerStats.totalCaptaincies > 0 && (
+            <p className="mt-3 text-sm text-slate-300 text-center" data-testid="player-captaincies">
+              {t('playerStats.captainGames', 'Captain in {{count}} games', {
+                count: playerStats.totalCaptaincies,
+              })}
+            </p>
+          )}
           {/* The case file: what this player did, dated, for a coach who was
               not there. Fact only, so it lives next to the numbers, not the
               ratings. */}

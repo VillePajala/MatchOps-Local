@@ -22,6 +22,7 @@ const input: EvidenceInput = {
   playerName: 'Onni Virtanen',
   periodLabel: 'Seurakausi 25/26',
   gamesPlayed: 3,
+  captaincies: 0,
   games: [
     { gameId: 'g1', gameDate: '2026-09-14', opponentName: 'PaU', homeOrAway: 'home', homeScore: 1, awayScore: 6, positions: ['cm'] },
     { gameId: 'g2', gameDate: '2026-09-21', opponentName: 'MP', homeOrAway: 'away', homeScore: 2, awayScore: 1, positions: ['cm', 'rb'] },
@@ -99,6 +100,16 @@ describe('buildPlayerEvidence', () => {
   it('takes the game count as given, not as one per row', () => {
     // 3 rows, but the external one was logged as five games for another team.
     expect(buildPlayerEvidence({ ...input, gamesPlayed: 7 }, t)).toContain('Games: 7');
+  });
+
+  /**
+   * The armband belongs on the page when it happened. "Captain: 0 games"
+   * reads as a mark against a child rather than as a fact, so it is absent.
+   */
+  it('names the captaincies, and says nothing at all when there are none', () => {
+    expect(buildPlayerEvidence({ ...input, captaincies: 2 }, t)).toContain('Captain: 2 games');
+    expect(buildPlayerEvidence({ ...input, captaincies: 1 }, t)).toContain('Captain: 1 game');
+    expect(buildPlayerEvidence(input, t)).not.toContain('Captain');
   });
 
   it('leaves out blocks that have nothing in them', () => {

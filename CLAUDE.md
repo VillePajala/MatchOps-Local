@@ -106,7 +106,7 @@ npm test
 
 ### Critical Implementation Rules (MEMORIZE THESE)
 
-#### Rule 1: Game Transform — Empty String ↔ NULL (10 Fields)
+#### Rule 1: Game Transform — Empty String ↔ NULL (11 Fields)
 
 **Forward (App → DB)**: Empty string becomes NULL
 ```typescript
@@ -120,6 +120,7 @@ game_location: game.gameLocation === '' ? null : game.gameLocation,
 age_group: game.ageGroup === '' ? null : game.ageGroup,
 league_id: game.leagueId === '' ? null : game.leagueId,
 custom_league_name: game.customLeagueName === '' ? null : game.customLeagueName,
+captain_id: game.captainId === '' ? null : game.captainId ?? null,   // migration 045
 ```
 
 **Reverse (DB → App)**: NULL becomes empty string
@@ -128,6 +129,10 @@ seasonId: game.season_id ?? '',
 tournamentId: game.tournament_id ?? '',
 // ... same pattern for all 10 fields
 ```
+
+`captain_id` is the one exception on the way back: it reads as `undefined`, not
+`''`, because "no captain" is the absence of a player rather than an empty
+selection, and every reader tests it with `=== player.id`.
 
 #### Rule 2: Legacy Defaults (CRITICAL for test data compatibility)
 

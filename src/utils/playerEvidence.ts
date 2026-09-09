@@ -78,6 +78,12 @@ export interface EvidenceInput {
    * screen shows two inches above it.
    */
   gamesPlayed: number;
+  /**
+   * Games this player wore the armband. Left out of the text entirely when it
+   * is zero: "captain 0 times" says nothing about a player and reads as a mark
+   * against them, which is the opposite of what this page is for.
+   */
+  captaincies: number;
   /** Per-game lines from calculatePlayerStats, external games included. */
   stats: GameStats[];
   /** Leagues and tournaments in scope, each with this player's tally. */
@@ -152,6 +158,9 @@ export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate):
       `${t('evidence.games', 'Games')}: ${input.gamesPlayed}`,
       `${t('evidence.goals', 'Goals')} ${goals}, ${t('evidence.assists', 'assists')} ${assists}, ${t('evidence.points', 'points')} ${goals + assists}`,
       ...(positionLine ? [`${t('evidence.positions', 'Positions')}: ${positionLine}`] : []),
+      ...(input.captaincies > 0
+        ? [`${t('evidence.captain', 'Captain')}: ${counted(input.captaincies, 'gamesCount', '{{count}} game', '{{count}} games')}`]
+        : []),
     ].join('\n'));
   }
   if (input.sections.competitions && competitionLines.length) {

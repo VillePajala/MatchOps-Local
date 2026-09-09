@@ -33,6 +33,12 @@ export interface PlayerStats {
   avgGoalsPerGame: number;
   avgAssistsPerGame: number;
   totalFairPlayCards: number;  // Aggregated from Player.receivedFairPlayCard
+  /**
+   * Games this player wore the armband, in the same scope as the rest.
+   * External games (stat adjustments) never add to it: the coach was not
+   * there to name a captain, and there is no field on an adjustment to say so.
+   */
+  totalCaptaincies: number;
   gameByGameStats: GameStats[];
   performanceBySeason: { [seasonId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number } };
   performanceByTournament: { [tournamentId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number; isTournamentWinner?: boolean } };
@@ -80,6 +86,7 @@ export const calculatePlayerStats = (
   const performanceBySeason: { [seasonId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number } } = {};
   const performanceByTournament: { [tournamentId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number; isTournamentWinner?: boolean } } = {};
   let totalFairPlayCards = 0;
+  let totalCaptaincies = 0;
 
   Object.entries(savedGames).forEach(([gameId, game]) => {
     if (!isGameInPlayerScope(game, teamId, includeFriendlies)) return;
@@ -97,6 +104,11 @@ export const calculatePlayerStats = (
 
       // Add to total fair play cards
       totalFairPlayCards += fairPlayCards;
+
+      // Wearing the armband is counted only for a player who was in the squad,
+      // which is why it is inside this branch: a captain id left behind after
+      // the player was dropped from the lineup is a stale record, not a game.
+      if (game.captainId === player.id) totalCaptaincies += 1;
 
       // Aggregate stats by season. A friendly ALWAYS stays out of a season's
       // competitive breakdown, even with includeFriendlies on (which only folds
@@ -289,6 +301,7 @@ export const calculatePlayerStats = (
     avgGoalsPerGame,
     avgAssistsPerGame,
     totalFairPlayCards,
+    totalCaptaincies,
     gameByGameStats,
     performanceBySeason,
     performanceByTournament,

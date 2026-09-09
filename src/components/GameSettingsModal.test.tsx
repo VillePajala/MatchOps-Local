@@ -47,6 +47,9 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.eiMitaan': 'None',
         'gameSettingsModal.kausi': 'Season',
         'gameSettingsModal.turnaus': 'Tournament',
+        'gameSettingsModal.captainTitle': 'Kapteeni',
+        'gameSettingsModal.noCaptain': '-- Ei kapteenia --',
+        'gameSettingsModal.captainNotInSquad': 'ei kokoonpanossa',
         'gameSettingsModal.playersHeader': 'Valitse pelaajat',
         'gameSettingsModal.selectPlayers': 'Select Players',
         'gameSettingsModal.playersSelected': 'valittu',
@@ -234,6 +237,46 @@ describe('<GameSettingsModal />', () => {
       expect.objectContaining({ gameId: 'game123', updates: { isFriendly: true } }),
       expect.anything(),
     );
+  });
+
+  describe('Captain picker', () => {
+    test('offers the squad, records the pick, and clears back to no captain', async () => {
+      const user = userEvent.setup();
+      const mutate = defaultProps.updateGameDetailsMutation.mutate as jest.Mock;
+      mutate.mockClear();
+      renderModal({ ...defaultProps, captainId: 'p1' });
+
+      const select = screen.getByTestId('captain-select') as HTMLSelectElement;
+      expect(select.value).toBe('p1');
+      // Only the players in this game's squad, plus the "no captain" option.
+      expect(select.options.length).toBe(defaultProps.selectedPlayerIds.length + 1);
+
+      await user.selectOptions(select, 'p2');
+      expect(mutate).toHaveBeenCalledWith(
+        expect.objectContaining({ gameId: 'game123', updates: { captainId: 'p2' } }),
+        expect.anything(),
+      );
+
+      mutate.mockClear();
+      await user.selectOptions(select, '');
+      expect(mutate).toHaveBeenCalledWith(
+        expect.objectContaining({ gameId: 'game123', updates: { captainId: '' } }),
+        expect.anything(),
+      );
+    });
+
+    /**
+     * @edge-case - the picker and the game info must not disagree about who
+     * led. A captain dropped from the squad afterwards stays visible so the
+     * coach can see the stale record and correct it.
+     */
+    test('still shows a captain who is no longer in the squad', () => {
+      renderModal({ ...defaultProps, captainId: 'p3', selectedPlayerIds: ['p1', 'p2'] });
+      const select = screen.getByTestId('captain-select') as HTMLSelectElement;
+      expect(select.value).toBe('p3');
+      expect(select.options.length).toBe(4);
+      expect(select.options[3].textContent).toContain('ei kokoonpanossa');
+    });
   });
 
   describe('Re-apply plan', () => {
