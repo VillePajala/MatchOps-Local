@@ -114,19 +114,25 @@
   "evidence": {
     "button": "Jaa pelaajakooste",
     "title": "Pelaajakooste",
-    "subtitle": "Mitä pelaaja teki seuraamissasi otteluissa, päivämäärineen. Vain se, mitä kirjattiin; ei arvosanoja. Kopioi tai jaa sille, jonka pitäisi nähdä se.",
     "games": "Ottelut",
-    "teamGames": "joukkueen ottelua",
-    "externalGames": "ulkopuolista ottelua",
     "goals": "Maalit",
     "assists": "syötöt",
     "points": "pisteet",
     "positions": "Pelipaikat",
+    "competitions": "Sarjat ja turnaukset",
     "notes": "Valmentajan merkinnät otteluista",
     "gamesList": "Ottelut",
     "goalsShort": "m",
     "assistsShort": "s",
-    "external": "ulkopuolinen ottelu"
+    "gamesCount_one": "{{count}} ottelu",
+    "gamesCount_other": "{{count}} ottelua",
+    "goalsCount_one": "{{count}} maali",
+    "goalsCount_other": "{{count}} maalia",
+    "assistsCount_one": "{{count}} syöttö",
+    "assistsCount_other": "{{count}} syöttöä",
+    "sectionTotals": "Kokonaisluvut",
+    "sectionNotes": "Merkinnät",
+    "sectionGames": "Kaikki ottelut"
   },
   "playingPositions": {
     "gk": {

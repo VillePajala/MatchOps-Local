@@ -1,15 +1,22 @@
 /**
- * Player match evidence: one player, one period, all fact.
+ * Player summary: one player, one period, all fact.
  *
  * The reason the rating system existed was a good player overlooked by a head
  * coach who never sees the games. Ratings were one coach's opinion in numbers
  * and read as such. This is the case file instead: how many games, in which
- * positions, what they scored, and what the coach wrote down on the day, with
- * the date and the opponent. Nothing generated, nothing rated. A head coach can
- * argue with a judgement; not with "8 of 8 games, and here is 21.9."
+ * positions and competitions, what they scored, and what the coach wrote down
+ * on the day. Nothing generated, nothing rated. A head coach can argue with a
+ * judgement; not with "12 games, and here is what happened on 21.9."
  *
  * Minutes are deliberately absent: the app cannot keep them true without work
  * from the coach (owner, 2026-09-09). Games played is the number that matters.
+ *
+ * External games are NOT counted apart. They are a way of recording a match
+ * the coach could not sit and track; to the player's record it is a game like
+ * any other, and splitting the count only invited the question "which nine?".
+ *
+ * A season's worth of matches makes the game list far longer than anything
+ * anyone reads, so the caller chooses which blocks to include.
  *
  * Pure and i18n-agnostic, like gameRecap.ts and tasoReport.ts.
  */
@@ -33,21 +40,49 @@ export interface EvidenceGame {
   positions: string[];
 }
 
+/** A league or a tournament the player appeared in, with what they did there. */
+export interface EvidenceCompetition {
+  name: string;
+  games: number;
+  goals: number;
+  assists: number;
+}
+
+/** Which blocks to write. The game list is off by default: it is the long one. */
+export interface EvidenceSections {
+  totals: boolean;
+  competitions: boolean;
+  notes: boolean;
+  games: boolean;
+}
+
+export const DEFAULT_EVIDENCE_SECTIONS: EvidenceSections = {
+  totals: true,
+  competitions: true,
+  notes: true,
+  games: false,
+};
+
 export interface EvidenceInput {
   playerName: string;
-  /** What the numbers cover, in the coach's words: "Seurakausi 25/26", "Aluesarja U10". */
+  /** What the numbers cover, in the coach's words: "Seurakausi 25/26". */
   periodLabel: string;
   /** Games in scope that the player took part in, with the player's positions. */
   games: EvidenceGame[];
-  /** Games in scope in total (the team's), so "8 of 9" can be said. */
-  teamGamesInScope: number;
   /** Per-game lines from calculatePlayerStats, external games included. */
   stats: GameStats[];
+  /** Leagues and tournaments in scope, each with this player's tally. */
+  competitions: EvidenceCompetition[];
   /** The coach's dated notes about this player, within scope. */
   notes: EvidenceNote[];
+  sections: EvidenceSections;
 }
 
-export type EvidenceTranslate = (key: string, fallback: string) => string;
+export type EvidenceTranslate = (
+  key: string,
+  fallback: string,
+  options?: Record<string, unknown>,
+) => string;
 
 const dayMonth = (iso: string): string => {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
@@ -57,11 +92,6 @@ const dayMonth = (iso: string): string => {
 export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate): string {
   const goals = input.stats.reduce((n, g) => n + g.goals, 0);
   const assists = input.stats.reduce((n, g) => n + g.assists, 0);
-  // Only the app's own games can be a share of the team's games; external
-  // games (played for another team, entered by hand) are counted apart, so
-  // "2 / 9" is a fraction that actually composes.
-  const played = input.stats.filter((s) => !s.isExternal).length;
-  const external = input.stats.filter((s) => s.isExternal).length;
 
   const positionCounts = new Map<string, number>();
   input.games.forEach((g) => g.positions.forEach((p) => positionCounts.set(p, (positionCounts.get(p) ?? 0) + 1)));
@@ -87,7 +117,6 @@ export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate):
       if (s.goals) tally.push(`${s.goals} ${t('evidence.goalsShort', 'g')}`);
       if (s.assists) tally.push(`${s.assists} ${t('evidence.assistsShort', 'a')}`);
       if (tally.length) parts.push(tally.join(', '));
-      if (s.isExternal) parts.push(t('evidence.external', 'external'));
       return parts.join(' | ');
     });
 
@@ -96,14 +125,34 @@ export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate):
     .sort((a, b) => a.gameDate.localeCompare(b.gameDate))
     .map((n) => `${dayMonth(n.gameDate)} ${n.opponentName}: ${n.text.trim()}`);
 
+  // Counted words, because Finnish inflects them: "1 ottelu" but "8 ottelua".
+  const counted = (n: number, key: string, one: string, many: string) =>
+    t(`evidence.${key}`, n === 1 ? one : many, { count: n });
+
+  const competitionLines = input.competitions.map((c) => {
+    const tally = [counted(c.games, 'gamesCount', '{{count}} game', '{{count}} games')];
+    if (c.goals) tally.push(counted(c.goals, 'goalsCount', '{{count}} goal', '{{count}} goals'));
+    if (c.assists) tally.push(counted(c.assists, 'assistsCount', '{{count}} assist', '{{count}} assists'));
+    return `${c.name}: ${tally.join(', ')}`;
+  });
+
   const blocks: string[] = [];
   blocks.push([`${input.playerName} - ${t('evidence.title', 'Player summary')}`, input.periodLabel].join('\n'));
-  blocks.push([
-    `${t('evidence.games', 'Games')}: ${played}${input.teamGamesInScope > 0 ? ` / ${input.teamGamesInScope} ${t('evidence.teamGames', 'team games')}` : ''}${external ? `, ${external} ${t('evidence.externalGames', 'external games')}` : ''}`,
-    `${t('evidence.goals', 'Goals')} ${goals}, ${t('evidence.assists', 'assists')} ${assists}, ${t('evidence.points', 'points')} ${goals + assists}`,
-    ...(positionLine ? [`${t('evidence.positions', 'Positions')}: ${positionLine}`] : []),
-  ].join('\n'));
-  if (noteLines.length) blocks.push([`${t('evidence.notes', 'Coach notes from the games')}:`, ...noteLines].join('\n'));
-  if (gameLines.length) blocks.push([`${t('evidence.gamesList', 'Games')}:`, ...gameLines].join('\n'));
+  if (input.sections.totals) {
+    blocks.push([
+      `${t('evidence.games', 'Games')}: ${input.stats.length}`,
+      `${t('evidence.goals', 'Goals')} ${goals}, ${t('evidence.assists', 'assists')} ${assists}, ${t('evidence.points', 'points')} ${goals + assists}`,
+      ...(positionLine ? [`${t('evidence.positions', 'Positions')}: ${positionLine}`] : []),
+    ].join('\n'));
+  }
+  if (input.sections.competitions && competitionLines.length) {
+    blocks.push([`${t('evidence.competitions', 'Leagues and tournaments')}:`, ...competitionLines].join('\n'));
+  }
+  if (input.sections.notes && noteLines.length) {
+    blocks.push([`${t('evidence.notes', 'Coach notes from the games')}:`, ...noteLines].join('\n'));
+  }
+  if (input.sections.games && gameLines.length) {
+    blocks.push([`${t('evidence.gamesList', 'Games')}:`, ...gameLines].join('\n'));
+  }
   return blocks.join('\n\n');
 }
