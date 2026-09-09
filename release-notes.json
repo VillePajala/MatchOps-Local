@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "Rules moved out of the settings gear and onto the Club tab, next to Coaching Materials, so you can find it by looking rather than by remembering where it was."
+      ],
+      "fi": [
+        "Säännöt siirtyi asetusrattaan alta Seura-välilehdelle Valmennusmateriaalien viereen, joten sen löytää katsomalla eikä muistamalla, minne se oli piilotettu."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "4v4 is now a formation size you can pick, with 1-2 and 2-1 shapes. Palloliitto moved 8 to 10 year olds' futsal to 4v4 for the 2026-2027 season and football follows for the youngest ages in 2027, and until now the app jumped straight from 3v3 to 5v5. A squad of four is also offered 4v4 instead of 3v3."
       ],
       "fi": [
