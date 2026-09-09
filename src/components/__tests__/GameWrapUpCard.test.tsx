@@ -125,3 +125,18 @@ describe('assessments setting', () => {
     expect(screen.getByText('Positions played')).toBeInTheDocument();
   });
 });
+
+describe('rows match the counter', () => {
+  /** Every item the counter counts is a row, done or not, or the list and the number disagree. */
+  it('shows the squad row as done rather than hiding it', () => {
+    const c = computeGameCompleteness(
+      { isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {} },
+      { assessmentsEnabled: false },
+    );
+    render(<GameWrapUpCard completeness={c} />);
+    expect(screen.getByTestId('wrap-up-status-roster-done')).toBeInTheDocument();
+    const rows = screen.getAllByRole('listitem');
+    expect(rows).toHaveLength(4);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/4');
+  });
+});
