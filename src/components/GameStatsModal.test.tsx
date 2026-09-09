@@ -1059,6 +1059,19 @@ describe('GameStatsModal', () => {
       expect(screen.queryByTestId('spine-open-assessments')).not.toBeInTheDocument();
     });
 
+    /**
+     * @critical - what the coach copies into the official Taso report. The
+     * button must exist and the text must be the Taso order, not the recap.
+     */
+    it('offers the Taso helper in the Share step and opens it with squad and report', async () => {
+      renderComponent(getDefaultProps());
+      await screen.findByTestId('finish-game-spine');
+      fireEvent.click(screen.getByTestId('spine-taso-helper'));
+      const box = await screen.findByRole('textbox', { name: i18n.t('taso.title', 'For Taso') });
+      expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.lineupTitle', 'Squad for Taso'));
+      expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.reportTitle', 'Match report for Taso'));
+    });
+
     it('omits the positions and assessments steps when their handlers are absent and renumbers', async () => {
       renderComponent(getDefaultProps());
       await tabReady();
