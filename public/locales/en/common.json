@@ -114,19 +114,25 @@
   "evidence": {
     "button": "Share player summary",
     "title": "Player summary",
-    "subtitle": "What this player did in the games you tracked, with dates. Only what was recorded; nothing rated. Copy or share it with whoever should see it.",
     "games": "Games",
-    "teamGames": "team games",
-    "externalGames": "external games",
     "goals": "Goals",
     "assists": "assists",
     "points": "points",
     "positions": "Positions",
+    "competitions": "Leagues and tournaments",
     "notes": "Coach notes from the games",
     "gamesList": "Games",
     "goalsShort": "g",
     "assistsShort": "a",
-    "external": "external game"
+    "gamesCount_one": "{{count}} game",
+    "gamesCount_other": "{{count}} games",
+    "goalsCount_one": "{{count}} goal",
+    "goalsCount_other": "{{count}} goals",
+    "assistsCount_one": "{{count}} assist",
+    "assistsCount_other": "{{count}} assists",
+    "sectionTotals": "Totals",
+    "sectionNotes": "Notes",
+    "sectionGames": "Every game"
   },
   "playingPositions": {
     "gk": {
