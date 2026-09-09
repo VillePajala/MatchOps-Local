@@ -31,6 +31,24 @@ const UA =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36';
 const TIMEOUT_MS = 30000;
 
+/**
+ * Whether `html` links to `url`.
+ *
+ * Deliberately not a bare `html.includes(url)`: a page may write the same URL
+ * with HTML-escaped entities (`&amp;` in a query string is the usual one), and
+ * then a document that is perfectly current reads as superseded. A false alarm
+ * is worse than no check here, because a maintenance job that cries wolf is one
+ * people learn to ignore.
+ */
+export function pageLinksTo(html, url) {
+  const unescape = (s) =>
+    s
+      .replace(/&amp;/gi, '&')
+      .replace(/&#0*38;/g, '&')
+      .replace(/&#x0*26;/gi, '&');
+  return unescape(html).includes(unescape(url));
+}
+
 /** Exported for the unit test; `fetchImpl` lets it run without a network. */
 export async function checkRuleLinks(config, fetchImpl = fetch) {
   const problems = [];
@@ -72,9 +90,18 @@ export async function checkRuleLinks(config, fetchImpl = fetch) {
 
   for (const link of config.links) {
     try {
-      const head = await get(link.url, 'HEAD');
-      // Some CDNs refuse HEAD but serve GET; only a GET failure is a real problem.
-      const res = head.ok ? head : await get(link.url, 'GET');
+      // Some CDNs refuse HEAD and some drop it outright, so a HEAD that throws
+      // is no more conclusive than one that 405s: only a failed GET is a real
+      // problem. Hence the inner catch rather than one try around both.
+      let res = null;
+      try {
+        const head = await get(link.url, 'HEAD');
+        if (head.ok) res = head;
+      } catch {
+        // fall through to GET
+      }
+      res ??= await get(link.url, 'GET');
+
       if (!res.ok) {
         problems.push(`${link.id}: HTTP ${res.status} for ${link.url}`);
       } else {
@@ -87,7 +114,7 @@ export async function checkRuleLinks(config, fetchImpl = fetch) {
 
     if (link.listedOn) {
       const html = await listingPage(link.listedOn);
-      if (html && !html.includes(link.url)) {
+      if (html && !pageLinksTo(html, link.url)) {
         problems.push(
           `${link.id}: still loads, but ${link.listedOn} no longer links ${link.url}. ` +
             `This is what a superseded edition looks like. Find the current document at ` +

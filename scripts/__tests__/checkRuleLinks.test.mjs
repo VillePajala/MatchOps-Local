@@ -3,7 +3,8 @@
  * rulebook that quietly went out of date. Its own logic has to be regression
  * tested without the network, or the safety net is itself unverified.
  */
-import { checkRuleLinks } from '../check-rule-links.mjs';
+import { readFileSync } from 'node:fs';
+import { checkRuleLinks, pageLinksTo } from '../check-rule-links.mjs';
 
 const PDF = 'https://cdn.example.org/rules-2026.pdf';
 const INDEX = 'https://example.org/rules';
@@ -93,5 +94,62 @@ describe('checkRuleLinks', () => {
     const fetchImpl = jest.fn(async () => res(true));
     const { problems } = await checkRuleLinks(bare, fetchImpl);
     expect(problems).toEqual([]);
+  });
+
+  /**
+   * @edge-case - a HEAD that throws says no more than a HEAD that 405s. Treating
+   * it as fatal reported a perfectly reachable document as broken.
+   */
+  it('falls back to GET when HEAD throws, not just when it returns not-ok', async () => {
+    const fetchImpl = jest.fn(async (url, opts) => {
+      if (url === INDEX) return res(true, { body: `<a href="${PDF}">Rules</a>` });
+      if (opts.method === 'HEAD') throw new Error('ECONNRESET');
+      return res(true);
+    });
+    const { problems } = await checkRuleLinks(config, fetchImpl);
+    expect(problems).toEqual([]);
+  });
+});
+
+/**
+ * @critical - a false alarm is worse than no check: a maintenance job that
+ * cries wolf is one people learn to ignore, which is how the stale futsal link
+ * would survive a second time.
+ */
+describe('pageLinksTo', () => {
+  it('matches a plain href', () => {
+    expect(pageLinksTo(`<a href="${PDF}">x</a>`, PDF)).toBe(true);
+  });
+
+  it('does not match a different document', () => {
+    expect(pageLinksTo('<a href="https://cdn.example.org/other.pdf">x</a>', PDF)).toBe(false);
+  });
+
+  it('matches when the page HTML-escapes the ampersands in a query string', () => {
+    const url = 'https://cdn.example.org/r.pdf?a=1&b=2';
+    expect(pageLinksTo('<a href="https://cdn.example.org/r.pdf?a=1&amp;b=2">x</a>', url)).toBe(true);
+    expect(pageLinksTo('<a href="https://cdn.example.org/r.pdf?a=1&#38;b=2">x</a>', url)).toBe(true);
+    expect(pageLinksTo('<a href="https://cdn.example.org/r.pdf?a=1&#x26;b=2">x</a>', url)).toBe(true);
+  });
+});
+
+/**
+ * The config's own invariant, enforced rather than described: an entry without
+ * a listing page silently degrades to a reachability check, which is exactly
+ * the blind spot this whole mechanism exists to close.
+ */
+describe('ruleLinks.json', () => {
+  const real = JSON.parse(
+    readFileSync(new URL('../../src/config/ruleLinks.json', import.meta.url), 'utf8'),
+  );
+
+  it('gives every link a listing page, except the index page itself', () => {
+    for (const link of real.links) {
+      if (link.url === real.indexPage) {
+        expect(link.listedOn).toBeUndefined();
+      } else {
+        expect(typeof link.listedOn).toBe('string');
+      }
+    }
   });
 });
