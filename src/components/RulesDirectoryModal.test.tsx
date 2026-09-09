@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 
 import RulesDirectoryModal from './RulesDirectoryModal';
 import ruleLinks from '@/config/ruleLinks.json';
-import { GAME_FORMATS } from '@/config/gameFormats';
+import { GAME_FORMATS, GAME_FORMATS_SOURCE } from '@/config/gameFormats';
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
@@ -213,6 +213,20 @@ describe('RulesDirectoryModal', () => {
     // This modal's fallbacks are Finnish, like its title and footer.
     expect(screen.getByText(/valtakunnalliset oletukset ikäluokittain/i)).toBeInTheDocument();
     expect(screen.getByText(/Sarja voi poiketa näistä/i)).toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the table is futsal-only and most coaches here play football.
+   * A generic "game formats" heading would invite a football coach to read
+   * futsal's 4v4 as their own, which is the same class of confidently-wrong
+   * answer the national-defaults caveat exists to prevent.
+   */
+  it('names the sport and season it covers, and says football is not included', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    // Heading names the sport and season, and is NOT identical to the link
+    // to the same PDF below it.
+    expect(screen.getByRole('heading', { name: `Pelimuodot - futsal ${GAME_FORMATS_SOURCE.season}` })).toBeInTheDocument();
+    expect(screen.getByText(/vain futsalia/i)).toBeInTheDocument();
   });
 
   /**
