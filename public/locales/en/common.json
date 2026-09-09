@@ -279,7 +279,7 @@
     "placeholder": "What did you see? One observation is enough.",
     "save": "Add the note",
     "record": "Dictate a note",
-    "recordStop": "Stop recording",
+    "recordStop": "Stop dictating",
     "recordedHint": "Waiting in the voice notes above, where you write it out and choose the player.",
     "transcribing": "Writing out what you said."
   },
@@ -3640,10 +3640,10 @@
   },
   "spokenReport": {
     "title": "Say the report out loud",
-    "intro": "Record your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.",
-    "introNoProvider": "Record your account of the match. It stays as a recording in your voice notes, ready to write out later.",
-    "start": "Record the report",
-    "stop": "Stop recording",
+    "intro": "Dictate your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.",
+    "introNoProvider": "Dictate your account of the match. It stays as a recording in your voice notes, ready to write out later.",
+    "start": "Dictate the report",
+    "stop": "Stop dictating",
     "transcribing": "Writing out what you said...",
     "textLabel": "What you said",
     "editHint": "Fix anything the transcription got wrong before you keep it.",

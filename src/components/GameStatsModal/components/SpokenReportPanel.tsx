@@ -310,11 +310,11 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
         {ai.connected
           ? t(
               'spokenReport.intro',
-              'Record your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.',
+              'Dictate your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.',
             )
           : t(
               'spokenReport.introNoProvider',
-              'Record your account of the match. Without an AI provider connected it stays as a recording in your voice notes, ready to write out later.',
+              'Dictate your account of the match. Without an AI provider connected it stays as a recording in your voice notes, ready to write out later.',
             )}
       </p>
       {ai.connected && (
@@ -344,12 +344,12 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
           {dictation.isRecording && startedHere ? (
             <>
               <HiOutlineStop className="text-base" />
-              {t('spokenReport.stop', 'Stop recording')}
+              {t('spokenReport.stop', 'Stop dictating')}
             </>
           ) : (
             <>
               <HiOutlineMicrophone className="text-base" />
-              {t('spokenReport.start', 'Record the report')}
+              {t('spokenReport.start', 'Dictate the report')}
             </>
           )}
         </button>
