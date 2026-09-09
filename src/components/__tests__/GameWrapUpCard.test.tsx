@@ -47,7 +47,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
 
     // The number and the bar come from the same model the list does, so they
     // cannot disagree with the rows underneath.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/5$/);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/7$/);
     expect(screen.getByTestId('wrap-up-progress-bar')).toBeInTheDocument();
   });
 
@@ -69,6 +69,8 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
       teamId: 't1',
       playerPositions: { p1: ['CM'] },
       assessments: { p1: { overall: 7 } },
+      // One of the two written about: partial there too, so nothing is amber.
+      gameEvents: [{ type: 'note', entityId: 'p1' }],
     });
     render(<GameWrapUpCard completeness={partial} />);
 
@@ -79,7 +81,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.queryByTestId('wrap-up-status-assessments-todo')).not.toBeInTheDocument();
 
     // And the count agrees: nothing is amber, so the bar is full.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('5/5');
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('7/7');
   });
 
   it('shows an outstanding row in amber and leaves it out of the count', () => {
@@ -99,7 +101,8 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.getByTestId('wrap-up-status-assessments-todo')).toBeInTheDocument();
     // All squad positioned -> the solid tick, not the partial one.
     expect(screen.getByTestId('wrap-up-status-positions-done')).toBeInTheDocument();
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('4/5');
+    // Two amber rows now (assessments, notes coverage), neither counted.
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('5/7');
   });
 
   it('does not call the game Complete while clips still wait', () => {
@@ -136,7 +139,47 @@ describe('rows match the counter', () => {
     render(<GameWrapUpCard completeness={c} />);
     expect(screen.getByTestId('wrap-up-status-roster-done')).toBeInTheDocument();
     const rows = screen.getAllByRole('listitem');
-    expect(rows).toHaveLength(4);
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('2/4');
+    expect(rows).toHaveLength(6);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('3/6');
+  });
+});
+
+describe('consistency rows', () => {
+  const game = (over: Parameters<typeof computeGameCompleteness>[0] = {}) =>
+    computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a', 'b'], seasonId: 's', tournamentId: '',
+      teamId: 't', playerPositions: {}, assessments: {}, homeScore: 0, awayScore: 0, gameEvents: [], ...over,
+    }, { assessmentsEnabled: false });
+
+  it('shows the goal log against the score and routes to the goal log', () => {
+    const onAddGoal = jest.fn();
+    render(<GameWrapUpCard completeness={game({ homeScore: 2, awayScore: 1, gameEvents: [{ type: 'goal' }] })} onAddGoal={onAddGoal} />);
+    expect(screen.getByText('Goals logged')).toBeInTheDocument();
+    expect(screen.getByTestId('wrap-up-status-goals-partial')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Goals logged'));
+    expect(onAddGoal).toHaveBeenCalled();
+  });
+
+  it('asks for a scorer only when we scored', () => {
+    render(<GameWrapUpCard completeness={game({ homeScore: 1, awayScore: 0, gameEvents: [{ type: 'goal' }] })} />);
+    expect(screen.getByText('Goal scorers named')).toBeInTheDocument();
+  });
+
+  it('has no scorer row when only the opponent scored', () => {
+    render(<GameWrapUpCard completeness={game({ homeScore: 0, awayScore: 1, gameEvents: [{ type: 'opponentGoal' }] })} />);
+    expect(screen.queryByText('Goal scorers named')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - a row the counter cannot count is the mismatch this card has
+   * produced twice. Voice clips are a banner precisely because the model does
+   * not know about them.
+   */
+  it('keeps the rows equal to the counter, with clips waiting', () => {
+    render(<GameWrapUpCard completeness={game()} voiceClipCount={3} onOpenVoiceNotes={jest.fn()} />);
+    expect(screen.getByTestId('wrap-up-voice-notes')).toBeInTheDocument();
+    const rows = screen.getAllByRole('listitem');
+    const [, total] = (screen.getByTestId('wrap-up-progress-count').textContent ?? '').split('/');
+    expect(rows).toHaveLength(Number(total));
   });
 });

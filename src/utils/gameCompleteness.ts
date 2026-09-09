@@ -9,6 +9,13 @@
  * Core (makes a game `complete`) = Report + Roster. Competition/team link,
  * positions and assessments are recommended enrichment - they contribute to the
  * optional `enriched` flag but never block `complete`. Pure + i18n-free.
+ *
+ * Three of the checks ask a different question from the rest. "Did you fill in
+ * this field" is easy to see; "does the record contradict itself" is not, and
+ * that is the kind that silently corrupts everything downstream - a player's
+ * goal count, the recap, the Taso report, the player summary. So the goal log
+ * is checked against the scoreboard, every goal is checked for a scorer, and
+ * the squad is checked for who has had nothing written about them at all.
  */
 
 /** The subset of a game needed to judge completeness. */
@@ -21,6 +28,10 @@ export interface CompletenessGame {
   teamId?: string;
   playerPositions?: Record<string, string[]>;
   assessments?: Record<string, unknown>;
+  /** Goals and notes are read from here; only the fields this model needs. */
+  gameEvents?: Array<{ type: string; scorerId?: string; entityId?: string }>;
+  homeScore?: number;
+  awayScore?: number;
 }
 
 export interface CountCheck {
@@ -37,6 +48,12 @@ export interface GameCompleteness {
   team: boolean;
   positions: CountCheck;
   assessments: CountCheck;
+  /** Goals in the log vs goals on the scoreboard. done > total is possible. */
+  goalsLogged: CountCheck;
+  /** Our goals that name a scorer, out of our goals. Opponent goals never do. */
+  goalsAttributed: CountCheck;
+  /** Squad members with at least one note about them. A count, never a judgement. */
+  notesCoverage: CountCheck;
   /** Report + Roster - the bar for `complete`. */
   coreComplete: boolean;
   /** coreComplete + competition + team + at least some positions & assessments. */
@@ -65,6 +82,18 @@ export function countRowStatus(c: CountCheck): CompletenessRowStatus {
 }
 
 /**
+ * The goal log against the scoreboard, which is an equality and not a target.
+ *
+ * More goals logged than the score says is as wrong as fewer, so it cannot use
+ * countRowStatus (which reads done >= total as finished). A real 0-0 with an
+ * empty log is consistent, and therefore done.
+ */
+export function goalLogStatus(c: CountCheck): CompletenessRowStatus {
+  if (c.done === c.total) return 'done';
+  return c.done === 0 ? 'todo' : 'partial';
+}
+
+/**
  * How much of the finishing work is done, as a fraction the UI can show.
  *
  * The bar counts exactly the rows the checklist does not show in amber, because
@@ -81,9 +110,13 @@ export function completenessProgress(c: GameCompleteness): { done: number; total
     // both are set. Counting just one made the badge claim all-done while the
     // list underneath still showed the row outstanding.
     c.competition && c.team,
+    goalLogStatus(c.goalsLogged) === 'done',
     countRowStatus(c.positions) !== 'todo',
-    // 0/0 = the assessment feature is off (or no squad, which the roster item
-    // already counts): not an item, or the bar could never reach the end.
+    // 0/0 = the assessment feature is off, or there is nothing of that kind in
+    // this game (no goals to attribute, no squad): not an item, or the bar
+    // could never reach the end.
+    ...(c.goalsAttributed.total > 0 ? [countRowStatus(c.goalsAttributed) === 'done'] : []),
+    ...(c.notesCoverage.total > 0 ? [countRowStatus(c.notesCoverage) !== 'todo'] : []),
     ...(c.assessments.total > 0 ? [countRowStatus(c.assessments) !== 'todo'] : []),
   ];
   return { done: items.filter(Boolean).length, total: items.length };
@@ -112,6 +145,19 @@ export function computeGameCompleteness(game: CompletenessGame, options: Complet
   const positions: CountCheck = { done: positionsDone, total };
   const assessments: CountCheck = assessmentsEnabled ? { done: assessmentsDone, total } : { done: 0, total: 0 };
 
+  const events = game.gameEvents ?? [];
+  const ownGoals = events.filter(e => e.type === 'goal');
+  const loggedGoals = ownGoals.length + events.filter(e => e.type === 'opponentGoal').length;
+  // Side does not matter: both scores together are what the log must add up to.
+  const scoredGoals = (game.homeScore ?? 0) + (game.awayScore ?? 0);
+  const goalsLogged: CountCheck = { done: loggedGoals, total: scoredGoals };
+  const goalsAttributed: CountCheck = {
+    done: ownGoals.filter(e => nonEmpty(e.scorerId)).length,
+    total: ownGoals.length,
+  };
+  const written = new Set(events.filter(e => e.type === 'note' && nonEmpty(e.entityId)).map(e => e.entityId));
+  const notesCoverage: CountCheck = { done: squad.filter(id => written.has(id)).length, total };
+
   const coreComplete = report && roster;
   const enriched = coreComplete && competition && team && positionsDone > 0 && (!assessmentsEnabled || assessmentsDone > 0);
 
@@ -124,5 +170,5 @@ export function computeGameCompleteness(game: CompletenessGame, options: Complet
         ? 'partial'
         : 'empty';
 
-  return { applicable, report, roster, competition, team, positions, assessments, coreComplete, enriched, overall };
+  return { applicable, report, roster, competition, team, positions, assessments, goalsLogged, goalsAttributed, notesCoverage, coreComplete, enriched, overall };
 }
