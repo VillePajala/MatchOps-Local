@@ -354,6 +354,17 @@ describe('Excel Export Utilities', () => {
      * Tests handling games without assessments
      * @edge-case - Optional data handling
      */
+    /** Off in settings means no ratings sheet, even when old ratings exist. */
+    it('omits the Assessments sheet when includeAssessments is false', () => {
+      const rated = { ...mockGame, assessments: { player1: { overall: 7, sliders: {}, notes: '', minutesPlayed: 60, createdAt: 1, createdBy: 'c' } } } as unknown as typeof mockGame;
+      exportCurrentGameExcel(mockGameId, rated, mockPlayers, mockSeasons, mockTournaments);
+      const withSheet = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(withSheet.SheetNames).toContain('Assessments');
+      exportCurrentGameExcel(mockGameId, rated, mockPlayers, mockSeasons, mockTournaments, undefined, { includeAssessments: false });
+      const without = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(without.SheetNames).not.toContain('Assessments');
+    });
+
     it('should handle games without assessments gracefully', () => {
       const gameWithoutAssessments = { ...mockGame, assessments: undefined };
 

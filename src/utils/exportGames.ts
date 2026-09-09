@@ -249,6 +249,8 @@ export interface AggregateExcelDeps {
   t: TFunction;
   /** User-scoped storage (player adjustments are per user). */
   userId?: string;
+  /** The app setting; off keeps ratings out of the workbook. */
+  assessmentsEnabled?: boolean;
 }
 
 const collectGames = (savedGames: SavedGamesCollection, gameIds: string[]): SavedGamesCollection =>
@@ -272,7 +274,7 @@ export const exportAggregateStatsExcel = async (
   try {
     const { exportAggregateExcel } = await import('@/utils/exportExcel');
     const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
-    exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, [], undefined, undefined, translate);
+    exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, [], undefined, undefined, translate, { includeAssessments: deps.assessmentsEnabled ?? true });
   } catch (error) {
     const { default: logger } = await import('@/utils/logger');
     logger.error('[exportAggregateStatsExcel] Export failed:', error);
@@ -295,7 +297,7 @@ export const exportPlayerStatsExcel = async (
     ]);
     const adjustments = await getAdjustmentsForPlayer(playerId, userId);
     const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
-    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments, translate);
+    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments, translate, { includeAssessments: deps.assessmentsEnabled ?? true });
   } catch (error) {
     const { default: logger } = await import('@/utils/logger');
     logger.error('[exportPlayerStatsExcel] Export failed:', error);

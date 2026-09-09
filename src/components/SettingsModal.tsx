@@ -677,9 +677,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   choices below only matter while this is on. */}
               <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-200">
+                  <label htmlFor="assessments-enabled-toggle" className="block text-sm font-medium text-slate-200 cursor-pointer">
                     {t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
-                  </p>
+                  </label>
                   <p className="text-xs text-slate-400">
                     {t('settingsModal.assessmentsEnabledHint', 'Rate players after each game on a set of qualities. Off by default. Ratings you have already made are kept either way.')}
                   </p>

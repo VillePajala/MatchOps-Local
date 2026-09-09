@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
+import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import { getSavedGames } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
@@ -30,6 +31,7 @@ export function useClubStatsController() {
   const { t } = useTranslation();
   const { userId } = useDataStore();
   const { showToast } = useToast();
+  const assessmentsEnabled = useAssessmentsEnabled();
 
   // Shared query keys - same cache as the game side.
   const savedGamesQuery = useQuery<SavedGamesCollection | null, Error>({
@@ -61,7 +63,8 @@ export function useClubStatsController() {
     showToast,
     t,
     userId,
-  }), [savedGames, seasonsQuery.data, tournamentsQuery.data, showToast, t, userId]);
+    assessmentsEnabled,
+  }), [savedGames, seasonsQuery.data, tournamentsQuery.data, showToast, t, userId, assessmentsEnabled]);
 
   const handleExportAggregateExcel = useCallback(
     (gameIds: string[], aggregateStats: PlayerStatRow[]) =>
