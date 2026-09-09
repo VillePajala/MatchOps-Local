@@ -709,6 +709,12 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(props.onOpenRules).toHaveBeenCalledTimes(1);
   });
 
+  it('hides the Rules row when no opener is wired', () => {
+    render(<StartScreen {...shellProps()} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    expect(screen.queryByTestId('club-rules')).not.toBeInTheDocument();
+  });
+
   /**
    * @critical - one modal, one entry point per screen. A leftover gear entry
    * would drift from the Club row the moment either changed.
