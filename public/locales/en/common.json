@@ -273,12 +273,12 @@
     "discardClipBody": "The recording is deleted for good. Anything you have not saved as a note goes with it."
   },
   "noteComposer": {
-    "title": "Write a note",
+    "title": "Add a note",
     "playerLabel": "About",
     "wholeMatch": "The match",
     "placeholder": "What did you see? One observation is enough.",
-    "save": "Save the note",
-    "record": "Say it instead",
+    "save": "Add the note",
+    "record": "Dictate a note",
     "recordStop": "Stop recording",
     "recordedHint": "Waiting in the voice notes above, where you write it out and choose the player.",
     "transcribing": "Writing out what you said."
