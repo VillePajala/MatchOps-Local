@@ -196,11 +196,22 @@ describe('notes-coverage row', () => {
     render(<GameWrapUpCard completeness={c} onOpenNotes={onOpenNotes} onOpenVoiceNotes={onOpenVoiceNotes} />);
     const line = screen.getByTestId('wrap-up-notes-line');
     expect(line).toHaveTextContent('0/1');
+    expect(line.tagName).toBe('BUTTON');
     // Not one of the numbered rows, so it can never read as owed.
     expect(line.closest('li')).toBeNull();
     fireEvent.click(line);
     expect(onOpenNotes).toHaveBeenCalledTimes(1);
     expect(onOpenVoiceNotes).not.toHaveBeenCalled();
+  });
+
+  /** A button with nothing behind it invites a tap that does nothing. */
+  it('is plain text when no caller gave it somewhere to go', () => {
+    const c = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+      teamId: '', playerPositions: {}, assessments: {}, gameEvents: [], homeScore: 0, awayScore: 0,
+    }, { assessmentsEnabled: false });
+    render(<GameWrapUpCard completeness={c} />);
+    expect(screen.getByTestId('wrap-up-notes-line').tagName).toBe('DIV');
   });
 });
 

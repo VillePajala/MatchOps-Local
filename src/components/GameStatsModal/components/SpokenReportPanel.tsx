@@ -96,6 +96,14 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
   const [busy, setBusy] = useState(false);
   /** Set after a note is stored, so the coach is told where it went. */
   const [savedAsNote, setSavedAsNote] = useState(false);
+  /**
+   * Whether the recording in progress is this panel's.
+   *
+   * One recorder serves the whole page, and the note composer sits on it too:
+   * without this, its recording turned this button red and invited the coach
+   * to stop something they had not started here.
+   */
+  const [startedHere, setStartedHere] = useState(false);
   // Only claim a clip this panel's own button produced; the in-match mic writes
   // to the same store and its notes belong in the inbox, not here.
   const miningRef = useRef(false);
@@ -203,8 +211,28 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
     // belongs to the recording we are starting now.
     claimedIdRef.current = dictation.lastClip?.id ?? null;
     miningRef.current = true;
+    setStartedHere(true);
     dictation.start();
   }, [dictation]);
+
+  /**
+   * Stop expecting a clip that is never coming.
+   *
+   * A recording under 400ms is discarded without ever reporting a clip, so the
+   * claim effect never runs and this panel would stay "recording" for good:
+   * its button would offer to stop somebody else's recording, and it would
+   * claim somebody else's clip.
+   */
+  const wasRecordingRef = useRef(false);
+  const startedHereRef = useRef(false);
+  startedHereRef.current = startedHere;
+  useEffect(() => {
+    const now = dictation.isRecording;
+    const was = wasRecordingRef.current;
+    wasRecordingRef.current = now;
+    if (was && !now) setStartedHere(false);
+    if (!was && now && !startedHereRef.current) miningRef.current = false;
+  }, [dictation.isRecording]);
 
   /** The words are kept elsewhere now, so the audio has done its job. */
   const dropClip = useCallback(async () => {
@@ -307,10 +335,13 @@ const SpokenReportPanel: React.FC<SpokenReportPanelProps> = ({
         <button
           type="button"
           onClick={toggle}
-          className={dictation.isRecording ? RECORDING : PRIMARY}
+          // Someone else's recording (the note composer is on this same page):
+          // stay quiet rather than offer to stop it.
+          disabled={dictation.isRecording && !startedHere}
+          className={`${dictation.isRecording && startedHere ? RECORDING : PRIMARY} disabled:opacity-50 disabled:cursor-not-allowed`}
           data-testid="spoken-report-toggle"
         >
-          {dictation.isRecording ? (
+          {dictation.isRecording && startedHere ? (
             <>
               <HiOutlineStop className="text-base" />
               {t('spokenReport.stop', 'Stop recording')}
