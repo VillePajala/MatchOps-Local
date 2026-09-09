@@ -55,8 +55,9 @@ describe('RulesDirectoryModal', () => {
     // Verify title is present
     expect(screen.getByText('Säännöt')).toBeInTheDocument();
 
-    // Verify section header is present
-    expect(screen.getByText('Palloliitto')).toBeInTheDocument();
+    // Verify section header is present (was "Palloliitto"; the sections are
+    // now named by what kind of rule they hold).
+    expect(screen.getByText('Lajisäännöt')).toBeInTheDocument();
 
     // Substring, not the whole string: the footer also carries the
     // links-checked-on date, so the paragraph is two sentences now.
@@ -89,6 +90,8 @@ describe('RulesDirectoryModal', () => {
     for (const link of ruleLinks.links) {
       expect(screen.getByText(link.fallbackLabel)).toBeInTheDocument();
     }
+    // Both groups are rendered, not just the rulebooks.
+    expect(ruleLinks.links.some((l) => l.group === 'series')).toBe(true);
   });
 
   /**
@@ -245,6 +248,33 @@ describe('RulesDirectoryModal', () => {
     // to the same PDF below it.
     expect(screen.getByRole('heading', { name: `Pelimuodot - futsal ${GAME_FORMATS_SOURCE.season}` })).toBeInTheDocument();
     expect(screen.getByText(/vain futsalia/i)).toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the page's job is to say WHERE each kind of rule lives. The
+   * per-series numbers (players, playing time, pitch) are not in any document
+   * the app can link, so a coach who does not learn they live in Tulospalvelu
+   * leaves with the wrong answer or none.
+   */
+  it('sends the coach to their own series for the rules that are series-specific', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    expect(screen.getByText('Oman sarjasi säännöt')).toBeInTheDocument();
+    expect(screen.getByText(/sarjakohtaisia/i)).toBeInTheDocument();
+
+    const seriesLink = screen.getByText('Oman sarjasi säännöt (Tulospalvelu)').closest('button');
+    fireEvent.click(seriesLink!);
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      'https://tulospalvelu.palloliitto.fi/categories',
+      '_blank',
+      'noopener,noreferrer',
+    );
+  });
+
+  it('names the three places rules live, so the page reads as a map not a dump', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    expect(screen.getByText(/kolmessa paikassa/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Oman sarjasi säännöt' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lajisäännöt' })).toBeInTheDocument();
   });
 
   /**

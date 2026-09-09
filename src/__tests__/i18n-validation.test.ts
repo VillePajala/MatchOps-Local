@@ -505,7 +505,11 @@ describe('Translation File Validation', () => {
       //     turns the screen from a link list into an answer. Lands at 3189.
       // (+1 more on review: formatsFutsalOnly, since the table is futsal-only
       //     and most coaches here play football.) Lands at 3190.
-      expect(enKeys.length).toBe(3190);
+      // +5 rulesDirectory.*: the page now says WHERE each kind of rule lives
+      //     (intro, series section + help + link label, rulebooks heading),
+      //     because Palloliitto keeps them in three separate places and a
+      //     screen that hides that reads as half-finished. Lands at 3195.
+      expect(enKeys.length).toBe(3195);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -672,7 +676,8 @@ describe('Translation File Validation', () => {
       // +2 formations.4v4.* (see EN above). Lands at 3181.
       // +8 rulesDirectory.* game-formats table (see EN above). Lands at 3189.
       // (+1 more on review: formatsFutsalOnly - see EN above.) Lands at 3190.
-      expect(fiKeys.length).toBe(3190);
+      // +5 rulesDirectory.* the three-places map (see EN above). Lands at 3195.
+      expect(fiKeys.length).toBe(3195);
     });
   });
 });

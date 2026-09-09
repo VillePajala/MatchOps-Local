@@ -5,16 +5,22 @@
 
 ## Overview
 
-One screen answering "what applies to my game", backed by Palloliitto's own
-published material. It has two halves, deliberately in this order:
+One screen answering "what applies to my game". The hard part is that
+**Palloliitto does not publish "the rules" in one place**, so the screen's job
+is to be a map, not a dump. Three kinds of rule live apart, and the page is
+ordered by how specific each is to the coach:
 
-1. **The official game formats table** - players per side, playing time, court,
-   goal and ball, per age band. This is the part that answers a question.
-2. **Links to the rulebooks** - for the full text, when the table is not enough.
+1. **Your series' rules** - player count, playing time and pitch size are set
+   **per series** and live in Tulospalvelu under each series' Info > Säännöt
+   tab. This is the only one that is actually *theirs*, so it comes first. The
+   Kaikki Pelaa programme document states this move in its opening line.
+2. **Age-group formats** - the national defaults. Futsal has a published
+   one-page table, which the app carries in full. Football does not (see below).
+3. **Laws of the game** - the rulebooks, the same for everyone, so last.
 
-The links came first historically, and on their own they were weak: four
-documents running to hundreds of pages, none of which tells a coach how long
-their U10's halves are without a search.
+Before this structure the screen showed some futsal numbers and four document
+links, which reads as half-finished because it mirrored the publisher's mess
+instead of explaining it.
 
 ## Key components
 
