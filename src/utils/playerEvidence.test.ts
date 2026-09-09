@@ -28,7 +28,7 @@ const input: EvidenceInput = {
 describe('buildPlayerEvidence', () => {
   it('states games, totals, positions, dated notes and a game list, oldest first', () => {
     expect(buildPlayerEvidence(input, t).split('\n')).toEqual([
-      'Onni Virtanen - Match evidence',
+      'Onni Virtanen - Player summary',
       'Seurakausi 25/26',
       '',
       'Games: 3 / 9 team games',
@@ -48,6 +48,6 @@ describe('buildPlayerEvidence', () => {
 
   it('leaves out blocks that have nothing in them', () => {
     const text = buildPlayerEvidence({ ...input, notes: [], stats: [], games: [], teamGamesInScope: 0 }, t);
-    expect(text).toBe('Onni Virtanen - Match evidence\nSeurakausi 25/26\n\nGames: 0\nGoals 0, assists 0, points 0');
+    expect(text).toBe('Onni Virtanen - Player summary\nSeurakausi 25/26\n\nGames: 0\nGoals 0, assists 0, points 0');
   });
 });

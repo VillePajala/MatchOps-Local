@@ -112,8 +112,8 @@
     "unknownPlayer": "unknown"
   },
   "evidence": {
-    "button": "Match evidence to share",
-    "title": "Match evidence",
+    "button": "Share player summary",
+    "title": "Player summary",
     "subtitle": "What this player did in the games you tracked, with dates. Only what was recorded; nothing rated. Copy or share it with whoever should see it.",
     "games": "Games",
     "teamGames": "team games",

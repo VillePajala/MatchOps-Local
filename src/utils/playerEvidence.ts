@@ -93,7 +93,7 @@ export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate):
     .map((n) => `${dayMonth(n.gameDate)} ${n.opponentName}: ${n.text.trim()}`);
 
   const blocks: string[] = [];
-  blocks.push([`${input.playerName} - ${t('evidence.title', 'Match evidence')}`, input.periodLabel].join('\n'));
+  blocks.push([`${input.playerName} - ${t('evidence.title', 'Player summary')}`, input.periodLabel].join('\n'));
   blocks.push([
     `${t('evidence.games', 'Games')}: ${played}${input.teamGamesInScope > 0 ? ` / ${input.teamGamesInScope} ${t('evidence.teamGames', 'team games')}` : ''}`,
     `${t('evidence.goals', 'Goals')} ${goals}, ${t('evidence.assists', 'assists')} ${assists}, ${t('evidence.points', 'points')} ${goals + assists}`,

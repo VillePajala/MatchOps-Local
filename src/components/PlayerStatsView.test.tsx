@@ -143,8 +143,8 @@ describe('PlayerStatsView game type filtering', () => {
     render(<PlayerStatsView {...baseProps} savedGames={buildSavedGames()} />);
     await waitFor(() => expect(screen.getByTestId('player-evidence')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('player-evidence'));
-    const box = await screen.findByRole('textbox', { name: 'Match evidence' });
-    expect((box as HTMLTextAreaElement).value).toContain(`${player.name} - Match evidence`);
+    const box = await screen.findByRole('textbox', { name: 'Player summary' });
+    expect((box as HTMLTextAreaElement).value).toContain(`${player.name} - Player summary`);
     expect((box as HTMLTextAreaElement).value).toContain('Games:');
   });
 
