@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "The Rules screen now tells you where each kind of rule actually lives. Your own series comes first, with a direct link to it, because player count, playing time and pitch size are set per series and not in any rulebook. Then the age-group formats, then the laws of the game."
+      ],
+      "fi": [
+        "Säännöt-näkymä kertoo nyt, missä kukin sääntö oikeasti on. Ensin oma sarjasi ja suora linkki siihen, koska pelaajamäärä, peliaika ja kentän koko määritellään sarjakohtaisesti eikä niitä ole missään sääntökirjassa. Sitten ikäluokkien pelimuodot ja lopuksi lajisäännöt."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "The Rules screen now answers the question instead of just linking to it. It shows Palloliitto's official futsal formats for every age group: players per side, playing time, court size and ball, straight from the official table. The rulebook links are still there underneath. The formats are the national defaults, and the screen says so, because your own series is allowed to differ."
       ],
       "fi": [

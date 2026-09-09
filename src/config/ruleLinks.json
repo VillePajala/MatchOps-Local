@@ -1,21 +1,31 @@
 {
-  "_comment": "Official Palloliitto rule documents shown in the Säännöt modal. This file is the SINGLE source: the modal renders it and scripts/check-rule-links.mjs verifies it weekly in CI. Palloliitto re-issues these PDFs under NEW asset ids and leaves the old file served, so a dead link is not the failure mode - a link that still loads a superseded edition is. That is what 'listedOn' is for: it names the Palloliitto page that should still link this document, and the check fails when the URL stops appearing there, which is what supersession actually looks like. An entry with no 'listedOn' gets a reachability check only, so prefer to give every entry one. Add a link here, not in the component.",
+  "_comment": "Official Palloliitto rule documents shown in the Säännöt modal. This file is the SINGLE source: the modal renders it and scripts/check-rule-links.mjs verifies it weekly in CI. Palloliitto re-issues these PDFs under NEW asset ids and leaves the old file served, so a dead link is not the failure mode - a link that still loads a superseded edition is. That is what 'listedOn' is for: it names the Palloliitto page that should still link this document, and the check fails when the URL stops appearing there, which is what supersession actually looks like. An entry with no 'listedOn' gets a reachability check only, so it must either BE the index page or say why not in 'noListingCheck' - a test enforces that, so the blind spot can never be created by accident. Add a link here, not in the component. Each link has a 'group': 'series' is where a coach finds the rules for THEIR OWN competition (Palloliitto moved player counts, playing times and pitch sizes there, per series - the Kaikki Pelaa programme document says so in its opening line), and 'rulebooks' is the laws of the game, which are the same for everyone. The page is ordered that way on purpose: your series first, the general rulebooks last.",
   "indexPage": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet",
   "checkedOn": "2026-09-09",
   "links": [
+    {
+      "id": "seriesRules",
+      "url": "https://tulospalvelu.palloliitto.fi/categories",
+      "labelKey": "rulesDirectory.seriesRules",
+      "fallbackLabel": "Oman sarjasi säännöt (Tulospalvelu)",
+      "group": "series",
+      "noListingCheck": "Tulospalvelu is a single-page app: every path returns 200 and the series list is rendered client-side, so a URL-substring check against it would pass no matter what. Reachability only."
+    },
     {
       "id": "soccerRules",
       "url": "https://www-assets.palloliitto.fi/62562/1767775686-jalkapallosaannot-2026.pdf",
       "labelKey": "rulesDirectory.soccerRules",
       "fallbackLabel": "Jalkapallosäännöt 2026",
-      "listedOn": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet"
+      "listedOn": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet",
+      "group": "rulebooks"
     },
     {
       "id": "futsalRules",
       "url": "https://www-assets.palloliitto.fi/62562/1771237342-futsalsaannot-2025-26.pdf",
       "labelKey": "rulesDirectory.futsalRules",
       "fallbackLabel": "Futsalsäännöt 2025-26",
-      "listedOn": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet"
+      "listedOn": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet",
+      "group": "rulebooks"
     },
     {
       "id": "futsalFormats",
@@ -23,14 +33,16 @@
       "labelKey": "rulesDirectory.futsalFormats",
       "fallbackLabel": "Futsalin viralliset pelimuodot 2026-2027",
       "listedOn": "https://www.palloliitto.fi/ajankohtaista/futsalin-uudet-pelimuodot-lapsuus-ja-nuoruusvaiheessa",
-      "note": "Announced from a news article rather than the rules index, so the article is what the check watches. Replaces the Kaikki Pelaa programme link: Palloliitto delisted that PDF and the age-group rules it carried now live per season and per series. Move listedOn to the index page if this document ever appears there."
+      "note": "Announced from a news article rather than the rules index, so the article is what the check watches. Replaces the Kaikki Pelaa programme link: Palloliitto delisted that PDF and the age-group rules it carried now live per season and per series. Move listedOn to the index page if this document ever appears there.",
+      "group": "rulebooks"
     },
     {
       "id": "palloliitoAll",
       "url": "https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet",
       "labelKey": "rulesDirectory.allRules",
       "fallbackLabel": "Kaikki säännöt ja määräykset",
-      "note": "No listedOn: this IS the index page, so there is no other page that could list it."
+      "note": "No listedOn: this IS the index page, so there is no other page that could list it.",
+      "group": "rulebooks"
     }
   ]
 }
