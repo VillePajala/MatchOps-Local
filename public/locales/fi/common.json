@@ -111,6 +111,22 @@
     "noNumber": "-",
     "unknownPlayer": "tuntematon"
   },
+  "evidence": {
+    "button": "Ottelunäyttö jaettavaksi",
+    "title": "Ottelunäyttö",
+    "subtitle": "Mitä pelaaja teki seuraamissasi otteluissa, päivämäärineen. Vain se, mitä kirjattiin; ei arvosanoja. Kopioi tai jaa sille, jonka pitäisi nähdä se.",
+    "games": "Ottelut",
+    "teamGames": "joukkueen ottelua",
+    "goals": "Maalit",
+    "assists": "syötöt",
+    "points": "pisteet",
+    "positions": "Pelipaikat",
+    "notes": "Valmentajan merkinnät otteluista",
+    "gamesList": "Ottelut",
+    "goalsShort": "m",
+    "assistsShort": "s",
+    "external": "ulkopuolinen ottelu"
+  },
   "playingPositions": {
     "gk": {
       "label": "Maalivahti",
