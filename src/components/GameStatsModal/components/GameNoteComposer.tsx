@@ -12,11 +12,17 @@
  * The note is stamped to the end of the match, because a note written
  * afterwards has no moment on the clock and pretending otherwise would put a
  * made-up minute in the record.
+ *
+ * Speaking is offered beside typing, and does the same thing the microphone
+ * does during a match: the clip lands in the voice notes above, where it is
+ * written out and given a player. No second transcription path, and no AI key
+ * needed to record.
  */
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '@/types';
+import type { DictationControls } from '@/hooks/useDictationCapture';
 import type { GameNoteInput } from '@/types/game';
 import { VALIDATION_LIMITS } from '@/config/validationLimits';
 
@@ -26,12 +32,16 @@ interface GameNoteComposerProps {
   /** Where on the clock a note written afterwards belongs (the match end). */
   stamp: { time: number; period: number };
   onAdd: (note: GameNoteInput) => boolean;
+  /** Absent when the device cannot record; the text box always works. */
+  dictation?: DictationControls;
 }
 
-const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onAdd }) => {
+const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onAdd, dictation }) => {
   const { t } = useTranslation();
   const [entityId, setEntityId] = useState('');
   const [text, setText] = useState('');
+  const [recorded, setRecorded] = useState(false);
+  const canRecord = !!dictation?.isSupported && !!dictation?.available;
 
   const save = () => {
     const trimmed = text.trim();
@@ -68,6 +78,45 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         placeholder={t('noteComposer.placeholder', 'What did you see? One observation is enough.')}
         className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
       />
+      {canRecord && dictation && (
+        <div className="mt-2">
+          {dictation.permission === 'denied' ? (
+            <p className="text-xs text-amber-300">
+              {t('dictation.permissionDenied', "Microphone access was denied. Allow it in your phone's app settings to dictate notes.")}
+            </p>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  if (dictation.isRecording) {
+                    dictation.stop();
+                    setRecorded(true);
+                  } else {
+                    setRecorded(false);
+                    dictation.start();
+                  }
+                }}
+                data-testid="note-composer-record"
+                className={`w-full px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                  dictation.isRecording
+                    ? 'bg-red-600 hover:bg-red-500 text-white'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
+                }`}
+              >
+                {dictation.isRecording
+                  ? t('noteComposer.recordStop', 'Stop recording')
+                  : t('noteComposer.record', 'Say it instead')}
+              </button>
+              {recorded && !dictation.isRecording && (
+                <p className="text-xs text-slate-400 mt-1" data-testid="note-composer-recorded">
+                  {t('noteComposer.recordedHint', 'Waiting in the voice notes above, where you write it out and choose the player.')}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
       <button
         type="button"
         onClick={save}

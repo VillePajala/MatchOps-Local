@@ -271,7 +271,10 @@
     "playerLabel": "About",
     "wholeMatch": "The match",
     "placeholder": "What did you see? One observation is enough.",
-    "save": "Save the note"
+    "save": "Save the note",
+    "record": "Say it instead",
+    "recordStop": "Stop recording",
+    "recordedHint": "Waiting in the voice notes above, where you write it out and choose the player."
   },
   "undoToast": {
     "goal": "Goal logged",

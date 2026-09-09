@@ -102,19 +102,6 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
       onClick: onOpenAssessments,
     });
   }
-  // Who has had nothing written about them. A count and a denominator, never
-  // a ranking: a name here is a fact about the record, not about the child.
-  if (completeness.notesCoverage.total > 0) {
-    rows.push({
-      key: 'notes',
-      label: t('gameStatsModal.wrapUpNotes', 'Notes about players'),
-      status: countRowStatus(completeness.notesCoverage),
-      count: completeness.notesCoverage,
-      // The notes step, not the voice inbox: the inbox does not exist when no
-      // clip is waiting, so the row led nowhere for the coach who had none.
-      onClick: onOpenNotes,
-    });
-  }
   rows.push({
     key: 'competition',
     label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
@@ -157,6 +144,21 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
           className="w-full mb-2 px-3 py-2 rounded-md text-left text-sm font-medium bg-amber-500/10 border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 transition-colors"
         >
           {t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount })}
+        </button>
+      )}
+      {/* Notes are shown, not scored: no tick, no amber, not in the fraction.
+          A coach owes nobody an observation about every child in every match. */}
+      {completeness.notesCoverage.total > 0 && (
+        <button
+          type="button"
+          onClick={onOpenNotes}
+          data-testid="wrap-up-notes-line"
+          className="w-full mb-2 px-2 py-1.5 rounded-md text-left text-xs text-slate-400 hover:bg-slate-800/50 transition-colors"
+        >
+          {t('gameStatsModal.wrapUpNotes', 'Notes about players')}{' '}
+          <span className="text-slate-300 font-semibold tabular-nums">
+            {completeness.notesCoverage.done}/{completeness.notesCoverage.total}
+          </span>
         </button>
       )}
       <ul className="space-y-0.5">

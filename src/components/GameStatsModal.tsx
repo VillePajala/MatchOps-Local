@@ -990,6 +990,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
               stamp={draftStamp}
               onAdd={onAddGameNote}
+              dictation={dictation}
             />
           )}
           {noteEvents.length === 0 && voiceClipCount === 0 && (

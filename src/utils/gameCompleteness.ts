@@ -52,7 +52,10 @@ export interface GameCompleteness {
   goalsLogged: CountCheck;
   /** Our goals that name a scorer, out of our goals. Opponent goals never do. */
   goalsAttributed: CountCheck;
-  /** Squad members with at least one note about them. A count, never a judgement. */
+  /**
+   * Squad members with at least one note about them. Information only: it is
+   * shown but never scored, so the checklist never demands a note per child.
+   */
   notesCoverage: CountCheck;
   /** Report + Roster - the bar for `complete`. */
   coreComplete: boolean;
@@ -116,7 +119,10 @@ export function completenessProgress(c: GameCompleteness): { done: number; total
     // this game (no goals to attribute, no squad): not an item, or the bar
     // could never reach the end.
     ...(c.goalsAttributed.total > 0 ? [countRowStatus(c.goalsAttributed) === 'done'] : []),
-    ...(c.notesCoverage.total > 0 ? [countRowStatus(c.notesCoverage) !== 'todo'] : []),
+    // Notes coverage is NOT counted. A meter that says "not complete" is a
+    // demand however it is worded, and nobody should owe an observation about
+    // every child in every match - that is how the rating sliders filled up
+    // with "hyva peli". The number is still shown, as information.
     ...(c.assessments.total > 0 ? [countRowStatus(c.assessments) !== 'todo'] : []),
   ];
   return { done: items.filter(Boolean).length, total: items.length };
