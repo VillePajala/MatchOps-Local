@@ -953,6 +953,46 @@ describe('GameStatsModal', () => {
     });
   });
 
+  describe('Game captain', () => {
+    const captainLabel = () => i18n.t('gameSettingsModal.captainTitle', 'Captain');
+
+    it('names the captain from the saved record', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        savedGames: { game1: { ...minimalMockAppState, captainId: 'p2' } },
+      });
+      await waitFor(() => {
+        expect(screen.getByText(captainLabel())).toBeInTheDocument();
+      });
+      // Scoped to the captain cell: "Bob" also appears in the stats table.
+      expect(screen.getByText(captainLabel()).parentElement).toHaveTextContent('Bob');
+    });
+
+    it('says nothing when the game names no captain', async () => {
+      renderComponent(getDefaultProps());
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      expect(screen.queryByText(captainLabel())).not.toBeInTheDocument();
+    });
+
+    /**
+     * @edge-case - a captain deleted from the roster entirely resolves to no
+     * name. A "Captain" label with nothing beside it would be worse than no
+     * row, so the card must drop the row rather than render an empty one.
+     */
+    it('says nothing when the captain id no longer matches a player', async () => {
+      renderComponent({
+        ...getDefaultProps(),
+        savedGames: { game1: { ...minimalMockAppState, captainId: 'deleted-player' } },
+      });
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+      });
+      expect(screen.queryByText(captainLabel())).not.toBeInTheDocument();
+    });
+  });
+
   describe('Kirjuri inbox and the scratch game', () => {
     it('does not offer the dictation inbox on the unsaved scratch game', async () => {
       renderComponent({ ...getDefaultProps(), currentGameId: 'unsaved_game' });
