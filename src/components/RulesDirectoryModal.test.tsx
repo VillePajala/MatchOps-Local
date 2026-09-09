@@ -286,6 +286,25 @@ describe('RulesDirectoryModal', () => {
     );
   });
 
+  /**
+   * @edge-case - sin bin is guidance, not a law, so it takes a different code
+   * path to build its link. It shipped once with no test and no null-safety.
+   */
+  it('opens a guidance section at its own page, with no law number shown', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'sin bin' } });
+    const hits = screen.getByTestId('rules-hits');
+    const row = within(hits).getByText(/sin bin/i).closest('button')!;
+    expect(row.textContent).not.toMatch(/Sääntö \d/);
+
+    fireEvent.click(row);
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      expect.stringContaining('jalkapallosaannot-2026.pdf#page=10'),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  });
+
   it('lists all 17 laws before anything is typed, and says so when nothing matches', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     // 17 laws plus the football-only sin bin guidance entry.
