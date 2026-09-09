@@ -1,0 +1,193 @@
+{
+  "_comment": "Official Palloliitto game formats, transcribed from the one-page source PDF. These are NATIONAL DEFAULTS for an age group, not a statement about any particular series: a league may deviate, and its own rules live per series in Palloliitto's results service, which needs an API key the app does not have. Every surface showing this data must say it is the national default, or the app will confidently tell a coach the wrong period length. Verbatim strings here are checked against gameFormats.source.txt by gameFormats.test.ts; do not edit either by hand - re-extract from the PDF.",
+  "source": {
+    "sport": "futsal",
+    "season": "2026-2027",
+    "title": "Futsalin viralliset pelimuodot 2026-2027",
+    "url": "https://www.datocms-assets.com/62562/1786687580-futsalin-viralliset-pelimuodot-2026-2027.pdf",
+    "sha256": "f27c34574b636213bb8d9fd3264a379515dc06d6b572d1006340c1632ca3152d",
+    "extractedOn": "2026-09-09"
+  },
+  "generalNotes": [
+    "Maalivahdin avaus (potkaisemalla käsistä tai heittämällä) ei saa ylittää keskirajaa"
+  ],
+  "formats": [
+    {
+      "ageMin": null,
+      "ageMax": 7,
+      "sourceLabel": "P/T 7 ja nuoremmat",
+      "fieldSize": "3v3",
+      "playersNote": "2+mv",
+      "field": "12-15m (20m) x 18-25m",
+      "goal": "1,15-1,5m x 1,6-3m",
+      "goalNote": "salibandymaali, käsipallon harj.maali tai madallettu futsalmaali",
+      "ball": "futsal 2",
+      "ballNote": "varapallo",
+      "playingTimeText": "Joustavasti paljon peliaikaa kaikille – useita pelejä tapahtumassa samaan aikaan käynnissä",
+      "playingTime": null,
+      "notes": [
+        "Joustavat pelimuodot:",
+        "Jos salibändymaali 3 kenttäpelaajaa",
+        "Jos isompi maali 2+ lentävä mv (liivi)",
+        "Pelinjatkamistavat syöttämällä tai kuljettamalla",
+        "Maalivahdin avaus ilmassa alle puolen kentän",
+        "Maalivahdille palautussääntö ei voimassa"
+      ]
+    },
+    {
+      "ageMin": 8,
+      "ageMax": 9,
+      "sourceLabel": "P/T 8-9",
+      "fieldSize": "4v4",
+      "playersNote": null,
+      "field": "13-15m x 20-28m",
+      "goal": "1,2-2m x 2,4-3m",
+      "goalNote": "käsipallon harj.maali, madallettu futsalmaali tai futsalmaali",
+      "ball": "futsal 2",
+      "ballNote": "varapallo",
+      "playingTimeText": "2 x 15 min suora (2 x 20 min) suora (1 x 25min) suora",
+      "playingTime": {
+        "periods": 2,
+        "minutes": 15,
+        "clock": "running"
+      },
+      "notes": [
+        "Pelinjatkamistavat syöttämällä tai kuljettamalla",
+        "Maalivahdin avaus ilmassa alle puolen kentän",
+        "Maalivahdille palautussääntö ei voimassa"
+      ]
+    },
+    {
+      "ageMin": 10,
+      "ageMax": 10,
+      "sourceLabel": "P/T 10",
+      "fieldSize": "4v4",
+      "playersNote": null,
+      "field": "15-18m x 28-34m",
+      "goal": "1,2-2m x 2,4-3m",
+      "goalNote": "käsipallon harj.maali, madallettu futsalmaali tai futsalmaali",
+      "ball": "futsal 3",
+      "ballNote": "varapallo",
+      "playingTimeText": "2 x 15 min suora (2 x 20 min) suora (1 x 25min) suora",
+      "playingTime": {
+        "periods": 2,
+        "minutes": 15,
+        "clock": "running"
+      },
+      "notes": [
+        "Pelinjatkamistavat syöttämällä tai kuljettamalla",
+        "Maalivahdin avaus ilmassa alle puolen kentän",
+        "Maalivahdille palautussääntö ei voimassa"
+      ]
+    },
+    {
+      "ageMin": 11,
+      "ageMax": 11,
+      "sourceLabel": "P/T 11",
+      "fieldSize": "5v5",
+      "playersNote": null,
+      "field": "16-18m (20m) x 28-34m",
+      "goal": "2x3m",
+      "goalNote": null,
+      "ball": "futsal 3",
+      "ballNote": "varapallo",
+      "playingTimeText": "2 x 15 min suora (2 x 20 min) suora (1 x 25min) suora",
+      "playingTime": {
+        "periods": 2,
+        "minutes": 15,
+        "clock": "running"
+      },
+      "notes": [
+        "Maalivahdin avaus ilmassa alle puolen kentän",
+        "Maalivahdille palautussääntö ei voimassa"
+      ]
+    },
+    {
+      "ageMin": 12,
+      "ageMax": 12,
+      "sourceLabel": "P/T 12",
+      "fieldSize": "5v5",
+      "playersNote": null,
+      "field": "16-18m (20m) x 28-34m",
+      "goal": "2x3m",
+      "goalNote": null,
+      "ball": "futsal 3",
+      "ballNote": null,
+      "playingTimeText": "2 x 10 min tehokas (2 x 15 min) tehokas",
+      "playingTime": {
+        "periods": 2,
+        "minutes": 10,
+        "clock": "stopped"
+      },
+      "notes": [
+        "Normaalit futsalsäännöt. Kumulatiivisten rikkeiden",
+        "laskeminen alkaa, suhteuttaen peliaikaan"
+      ]
+    },
+    {
+      "ageMin": 13,
+      "ageMax": 13,
+      "sourceLabel": "P/T 13",
+      "fieldSize": "5v5",
+      "playersNote": null,
+      "field": "16-18m (20m) x 28-34m",
+      "goal": "2x3m",
+      "goalNote": null,
+      "ball": "futsal 3",
+      "ballNote": null,
+      "playingTimeText": "2 x 10 min tehokas (2 x 15 min) tehokas",
+      "playingTime": {
+        "periods": 2,
+        "minutes": 10,
+        "clock": "stopped"
+      },
+      "notes": [
+        "Normaalit futsalsäännöt, kumulatiivisten rikkeiden",
+        "määrä suhteuttaen peliaikaan"
+      ]
+    },
+    {
+      "ageMin": 14,
+      "ageMax": 16,
+      "sourceLabel": "P/T 14-16",
+      "fieldSize": "5v5",
+      "playersNote": null,
+      "field": "18-20m x 34-40m",
+      "goal": "2x3m",
+      "goalNote": null,
+      "ball": "futsal 4",
+      "ballNote": null,
+      "playingTimeText": "2 x 15 min (2 x 10 min) tehokas",
+      "playingTime": {
+        "periods": 2,
+        "minutes": 15,
+        "clock": "stopped"
+      },
+      "notes": [
+        "Normaalit futsalsäännöt, kumulatiivisten rikkeiden",
+        "määrä suhteuttaen peliaikaan"
+      ]
+    },
+    {
+      "ageMin": 17,
+      "ageMax": null,
+      "sourceLabel": "P/T 17 ja vanhemmat",
+      "fieldSize": "5v5",
+      "playersNote": null,
+      "field": "18-20m x 34-40m",
+      "goal": "2x3m",
+      "goalNote": null,
+      "ball": "futsal 4",
+      "ballNote": null,
+      "playingTimeText": "2 x 20 min (2 x 15 min) tehokas",
+      "playingTime": {
+        "periods": 2,
+        "minutes": 20,
+        "clock": "stopped"
+      },
+      "notes": [
+        "Normaalit futsalsäännöt"
+      ]
+    }
+  ]
+}

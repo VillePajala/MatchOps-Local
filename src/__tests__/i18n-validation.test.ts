@@ -500,7 +500,10 @@ describe('Translation File Validation', () => {
       //     Lands at 3181.
       // +-0: startScreen.gearRules renamed to rowRules when Rules moved out of
       //     the gear sheet onto the Club tab. Still 3181.
-      expect(enKeys.length).toBe(3181);
+      // +8 rulesDirectory.*: the official game-formats table (title, the
+      //     national-default caveat, five column headers, source line), which
+      //     turns the screen from a link list into an answer. Lands at 3189.
+      expect(enKeys.length).toBe(3189);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -665,7 +668,8 @@ describe('Translation File Validation', () => {
       // +8 game captains (see EN above). Lands at 3178.
       // +1 net in rulesDirectory.* (see EN above). Lands at 3179.
       // +2 formations.4v4.* (see EN above). Lands at 3181.
-      expect(fiKeys.length).toBe(3181);
+      // +8 rulesDirectory.* game-formats table (see EN above). Lands at 3189.
+      expect(fiKeys.length).toBe(3189);
     });
   });
 });

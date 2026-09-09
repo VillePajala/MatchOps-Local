@@ -5,6 +5,7 @@ import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 import ruleLinks from '@/config/ruleLinks.json';
+import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES } from '@/config/gameFormats';
 import type { TranslationKey } from '@/i18n-types';
 
 interface RulesDirectoryModalProps {
@@ -91,6 +92,54 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 space-y-6">
+
+              {/* The formats table, first: it answers the question a coach
+                  actually has ("how long are our halves?") without opening a
+                  document. The links below stay for the full text.
+
+                  The heading says NATIONAL DEFAULT deliberately. A series may
+                  deviate, and its own rules live in Palloliitto's results
+                  service behind an API key the app does not have, so stating
+                  these as "your rules" would be confidently wrong for anyone
+                  whose league differs. */}
+              <Section title={t('rulesDirectory.formatsTitle', 'Viralliset pelimuodot')}>
+                <p className="text-xs text-slate-400 -mt-1">
+                  {t(
+                    'rulesDirectory.formatsCaveat',
+                    'Palloliiton valtakunnalliset oletukset ikäluokittain. Sarja voi poiketa näistä - tarkista oman sarjasi tiedot.',
+                  )}
+                </p>
+                <div className="overflow-x-auto -mx-1 px-1">
+                  <table className="w-full text-left text-xs" data-testid="formats-table">
+                    <thead>
+                      <tr className="text-slate-400">
+                        <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colAge', 'Ikäluokka')}</th>
+                        <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colPlayers', 'Pelimuoto')}</th>
+                        <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colTime', 'Peliaika')}</th>
+                        <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colField', 'Kenttä')}</th>
+                        <th className="py-1.5 font-medium whitespace-nowrap">{t('rulesDirectory.colBall', 'Pallo')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {GAME_FORMATS.map((f) => (
+                        <tr key={f.sourceLabel} className="border-t border-slate-700/60 align-top">
+                          <td className="py-1.5 pr-3 text-slate-200 whitespace-nowrap">{f.sourceLabel}</td>
+                          <td className="py-1.5 pr-3 text-yellow-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
+                          <td className="py-1.5 pr-3 text-slate-300">{f.playingTimeText}</td>
+                          <td className="py-1.5 pr-3 text-slate-300 whitespace-nowrap">{f.field}</td>
+                          <td className="py-1.5 text-slate-300 whitespace-nowrap">{f.ball}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {GAME_FORMATS_GENERAL_NOTES.map((n) => (
+                  <p key={n} className="text-xs text-slate-400">{n}</p>
+                ))}
+                <p className="text-xs text-slate-500">
+                  {t('rulesDirectory.formatsSource', 'Lähde: {{title}}', { title: GAME_FORMATS_SOURCE.title })}
+                </p>
+              </Section>
 
               {/* Palloliitto Section */}
               <Section title="Palloliitto">
