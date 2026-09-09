@@ -112,6 +112,13 @@ Found by a 7-agent whole-app review; top claims hand-verified against code.
 
 ---
 
+## 🟠 Youth game-format change (Palloliitto, deadline attached)
+
+- [ ] **4v4 is missing, and futsal season 2026-27 has already started** 🔴 *found 2026-09-09* — Palloliitto moved youth formats: **futsal from season 2026-27** (P/T7 and younger 3v3, **P/T8-10 4v4**, P/T11+ 5v5) and **football from season 2027** (3v3/4v4 for 7 and younger, 5v5 up to 10-year-olds, 8v8 up to 13-year-olds; players may also play several series the same day). The app's `FIELD_SIZES` are `3v3, 5v5, 8v8, 11v11` (`config/formationPresets.ts`) with **no 4v4**, and `FUTSAL_FIELD_CONFIG` is a 5-player default, so every P/T8-10 futsal team is on a format MatchOps cannot represent *now*. Needs a 4v4 preset set + the futsal court/config, then the football side before season 2027. Sources: [futsal formats](https://www.palloliitto.fi/ajankohtaista/futsalin-uudet-pelimuodot-lapsuus-ja-nuoruusvaiheessa), [board decision](https://www.palloliitto.fi/ajankohtaista/muutoksia-lapsuus-ja-nuoruusvaiheen-pelimuotoihin).
+- [ ] **Bundled formats table + context-aware rules** *proposed 2026-09-09* — the age-group rules (players, field size, period length) left the Kaikki Pelaa PDF and now live per season and per series, so no single link answers "what applies to my U10 futsal game". Ship the official formats as data keyed by sport/season/age group; the rules modal then answers directly and offline, and game creation can flag a mismatch ("this age group is 4v4, your default is 5v5"). One file to refresh per season. **Checked and rejected as a source:** the Taso API's `getCategoryPlayingMethods` returns tournament bracket structures, not playing rules; and tulospalvelu is a SPA with no verified stable per-series rules URL.
+
+---
+
 ## 🟢 P3 — Feature backlog (value/effort ordered)
 
 Low-effort, high-value first. Detailed concepts in `docs/04-features/future-vision.md`.

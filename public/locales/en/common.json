@@ -835,11 +835,12 @@
   "rulesDirectory": {
     "title": "Rules",
     "buttonTitle": "View rules",
-    "soccerRules": "Soccer Rules 2025",
-    "futsalRules": "Futsal Rules 2025-2026",
-    "youthRules": "Youth Rules 2025 (Kaikki Pelaa)",
+    "soccerRules": "Football Rules 2026",
+    "futsalRules": "Futsal Rules 2025-26",
+    "futsalFormats": "Official futsal formats 2026-2027",
     "allRules": "All Rules & Regulations",
-    "footer": "Links open in browser. Rules maintained by Palloliitto."
+    "footer": "Links open in browser. Rules maintained by Palloliitto.",
+    "checkedOn": "Links checked {{date}}."
   },
   "rosterSettingsModal": {
     "errors": {

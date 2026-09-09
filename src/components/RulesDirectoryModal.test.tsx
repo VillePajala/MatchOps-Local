@@ -3,11 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import RulesDirectoryModal from './RulesDirectoryModal';
+import ruleLinks from '@/config/ruleLinks.json';
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
+    t: (key: string, fallback?: string, options?: Record<string, unknown>) =>
+      (fallback || key).replace(/\{\{(\w+)\}\}/g, (_m: string, n: string) => String(options?.[n] ?? '')),
   }),
 }));
 
@@ -52,8 +54,9 @@ describe('RulesDirectoryModal', () => {
     // Verify section header is present
     expect(screen.getByText('Palloliitto')).toBeInTheDocument();
 
-    // Verify footer text is present
-    expect(screen.getByText('Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.')).toBeInTheDocument();
+    // Substring, not the whole string: the footer also carries the
+    // links-checked-on date, so the paragraph is two sentences now.
+    expect(screen.getByText(/Linkit avautuvat selaimessa/)).toBeInTheDocument();
   });
 
   /**
@@ -74,14 +77,33 @@ describe('RulesDirectoryModal', () => {
    * Tests that all rule links are rendered
    * @critical
    */
-  it('should render all rule links correctly', () => {
+  it('should render every configured rule link', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    // Check all 4 link buttons are present
-    expect(screen.getByText('Jalkapallosäännöt 2026')).toBeInTheDocument();
-    expect(screen.getByText('Futsalsäännöt 2025-2026')).toBeInTheDocument();
-    expect(screen.getByText('Kaikki Pelaa 2025')).toBeInTheDocument();
-    expect(screen.getByText('Kaikki säännöt ja määräykset')).toBeInTheDocument();
+    // Driven by the config, so adding a link to ruleLinks.json cannot leave the
+    // modal and the CI link check disagreeing about what the app ships.
+    for (const link of ruleLinks.links) {
+      expect(screen.getByText(link.fallbackLabel)).toBeInTheDocument();
+    }
+  });
+
+  /**
+   * @critical - a rulebook label that names the wrong year is worse than no
+   * label: the app shipped "Jalkapallosäännöt 2025" over a link to the 2026
+   * PDF, so the modal told coaches it was handing them last year's rules.
+   */
+  it('labels each link with the year in its own URL', () => {
+    const yearOf = (s: string) => (s.match(/20\d{2}/g) ?? []).join(',');
+    for (const link of ruleLinks.links) {
+      const inUrl = yearOf(link.url);
+      if (!inUrl) continue;
+      expect(yearOf(link.fallbackLabel)).toBe(inUrl);
+    }
+  });
+
+  it('says when the links were last checked against Palloliitto', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    expect(screen.getByText(new RegExp(ruleLinks.checkedOn))).toBeInTheDocument();
   });
 
   /**
@@ -108,28 +130,30 @@ describe('RulesDirectoryModal', () => {
   it('should call window.open with correct parameters for Futsal Rules', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    const futsalRulesButton = screen.getByText('Futsalsäännöt 2025-2026').closest('button');
+    const futsalRulesButton = screen.getByText('Futsalsäännöt 2025-26').closest('button');
     fireEvent.click(futsalRulesButton!);
 
     expect(mockWindowOpen).toHaveBeenCalledWith(
-      'https://www-assets.palloliitto.fi/62562/1760095939-futsalsaannot-2025-2026.pdf',
+      'https://www-assets.palloliitto.fi/62562/1771237342-futsalsaannot-2025-26.pdf',
       '_blank',
       'noopener,noreferrer'
     );
   });
 
   /**
-   * Tests that clicking Youth Rules link opens correct URL
+   * Tests the game-formats link, which replaced the Kaikki Pelaa programme
+   * after Palloliitto delisted that PDF and moved the age-group rules into
+   * season- and series-specific documents.
    * @integration
    */
-  it('should call window.open with correct parameters for Youth Rules', () => {
+  it('should call window.open with correct parameters for the game formats', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    const youthRulesButton = screen.getByText('Kaikki Pelaa 2025').closest('button');
-    fireEvent.click(youthRulesButton!);
+    const formatsButton = screen.getByText('Futsalin viralliset pelimuodot 2026-2027').closest('button');
+    fireEvent.click(formatsButton!);
 
     expect(mockWindowOpen).toHaveBeenCalledWith(
-      'https://www-assets.palloliitto.fi/62562/1737814984-1710753804-kaikki-pelaa-ohjelma-2025.pdf',
+      'https://www.datocms-assets.com/62562/1786687580-futsalin-viralliset-pelimuodot-2026-2027.pdf',
       '_blank',
       'noopener,noreferrer'
     );
@@ -164,7 +188,7 @@ describe('RulesDirectoryModal', () => {
     // Filter to get only link buttons (not the Done button)
     const linkButtons = allButtons.filter(btn => btn.getAttribute('aria-label') !== 'Done');
 
-    expect(linkButtons).toHaveLength(4);
+    expect(linkButtons).toHaveLength(ruleLinks.links.length);
 
     // Click each link button and verify security params
     linkButtons.forEach(button => {
