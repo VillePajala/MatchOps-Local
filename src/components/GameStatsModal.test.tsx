@@ -226,6 +226,8 @@ describe('GameStatsModal', () => {
       clubSeasonStartDate: '2000-10-01',
       clubSeasonEndDate: '2000-05-01',
       hasConfiguredSeasonDates: false,
+      // On for these tests; the setting is off by default (owner, 2026-09-09).
+      assessmentsEnabled: true,
     });
     await i18n.changeLanguage('fi');
   });
@@ -1038,6 +1040,23 @@ describe('GameStatsModal', () => {
       expect(stepKeys()).toEqual(['spine-goals', 'spine-notes', 'spine-positions', 'spine-report', 'spine-assessments', 'spine-share']);
       expect(screen.getByText('Step 1 of 6')).toBeInTheDocument();
       expect(screen.getByText('Step 6 of 6')).toBeInTheDocument();
+    });
+
+    /**
+     * @critical - owner decision 2026-09-09: the rating feature is off by
+     * default. A coach who never switched it on must meet no assessments step,
+     * even when the host wires the handler.
+     */
+    it('omits the assessments step while the setting is off, whatever the host wires', async () => {
+      mockGetAppSettings.mockResolvedValue({
+        currentGameId: null, lastHomeTeamName: '', language: 'fi', hasSeenAppGuide: false,
+        useDemandCorrection: false, clubSeasonStartDate: '2000-10-01', clubSeasonEndDate: '2000-05-01',
+        hasConfiguredSeasonDates: false, assessmentsEnabled: false,
+      });
+      renderComponent({ ...getDefaultProps(), onOpenAssessments: jest.fn(), onPlayerPositionsChange: jest.fn() });
+      await screen.findByTestId('finish-game-spine');
+      await waitFor(() => expect(stepKeys()).not.toContain('spine-assessments'));
+      expect(screen.queryByTestId('spine-open-assessments')).not.toBeInTheDocument();
     });
 
     it('omits the positions and assessments steps when their handlers are absent and renumbers', async () => {

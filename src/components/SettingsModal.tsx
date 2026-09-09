@@ -130,6 +130,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(DEFAULT_CLUB_SEASON_START_DATE);
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
+  const [assessmentsEnabled, setAssessmentsEnabled] = useState(false);
   const [assessmentRatingStyle, setAssessmentRatingStyle] = useState<AssessmentRatingStyle>('words');
   const [assessmentTemplate, setAssessmentTemplate] = useState<AssessmentTemplate>('balanced');
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
@@ -274,6 +275,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       getAppSettings(userId).then(settings => {
         setClubSeasonStartDate(settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE);
         setClubSeasonEndDate(settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE);
+        setAssessmentsEnabled(settings.assessmentsEnabled ?? false);
         setAssessmentRatingStyle(settings.assessmentRatingStyle ?? 'words');
         setAssessmentTemplate(settings.assessmentTemplate ?? 'balanced');
       }).catch((error) => {
@@ -504,6 +506,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleAssessmentsEnabledChange = async (enabled: boolean) => {
+    setAssessmentsEnabled(enabled);
+    try {
+      await updateAppSettings({ assessmentsEnabled: enabled }, userId);
+      queryClient.invalidateQueries({ queryKey: [...queryKeys.settings.detail(), userId] });
+    } catch (error) {
+      logger.error('Failed to save assessments setting:', error);
+      showToast(t('settingsModal.saveSettingError', 'Failed to save setting. Please try again.'), 'error');
+    }
+  };
+
   const handleAssessmentRatingStyleChange = async (style: AssessmentRatingStyle) => {
     setAssessmentRatingStyle(style);
     try {
@@ -659,6 +672,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <option value="fi">Suomi</option>
                 </select>
               </div>
+              {/* Player assessments: off by default (owner decision 2026-09-09).
+                  Ratings already recorded are kept; the style and metric
+                  choices below only matter while this is on. */}
+              <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-200">
+                    {t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {t('settingsModal.assessmentsEnabledHint', 'Rate players after each game on a set of qualities. Off by default. Ratings you have already made are kept either way.')}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="assessments-enabled-toggle"
+                  checked={assessmentsEnabled}
+                  onChange={(e) => handleAssessmentsEnabledChange(e.target.checked)}
+                  aria-label={t('settingsModal.assessmentsEnabledLabel', 'Player assessments')}
+                  className="w-5 h-5 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
+                />
+              </div>
+              {assessmentsEnabled && (<>
               {/* Assessment rating style */}
               <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
                 <div className="flex-1">
@@ -701,6 +736,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <option value="creative">{t('settingsModal.assessmentTemplateCreative', 'Creative-attacking (14)')}</option>
                 </select>
               </div>
+              </>)}
               {/* Default Team Name */}
               <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-md">
                 <div className="flex-1">

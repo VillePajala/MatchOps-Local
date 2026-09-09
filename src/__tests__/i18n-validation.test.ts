@@ -451,7 +451,9 @@ describe('Translation File Validation', () => {
       //     into the Kirjuri branch; the count below is the union.
       // +22 voiceNotesInfo.* (the page a coach sends to families), +3 aiSettings
       //     experimental tag, note and family-page link. Lands at 3118.
-      expect(enKeys.length).toBe(3118);
+      // +2: settingsModal.assessmentsEnabledLabel/Hint - the switch that keeps
+      //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
+      expect(enKeys.length).toBe(3120);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -595,7 +597,9 @@ describe('Translation File Validation', () => {
       //     into the Kirjuri branch; the count below is the union.
       // +22 voiceNotesInfo.* (the page a coach sends to families), +3 aiSettings
       //     experimental tag, note and family-page link. Lands at 3118.
-      expect(fiKeys.length).toBe(3118);
+      // +2: settingsModal.assessmentsEnabledLabel/Hint - the switch that keeps
+      //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
+      expect(fiKeys.length).toBe(3120);
     });
   });
 });

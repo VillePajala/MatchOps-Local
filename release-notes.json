@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-09",
+      "en": [
+        "Player assessments are now off by default. Rating children after every game is not what youth football is about, and almost nobody kept it up. Ratings you have already made are kept, and Settings has a switch to bring the feature back at any time."
+      ],
+      "fi": [
+        "Pelaaja-arviot ovat nyt oletuksena pois päältä. Lasten arvostelu jokaisen ottelun jälkeen ei ole sitä, mistä juniorijalkapallossa on kyse, eikä juuri kukaan jatkanut sitä. Jo tehdyt arviot säilyvät, ja asetuksista löytyy kytkin, jolla toiminnon saa takaisin milloin tahansa."
+      ]
+    },
+    {
       "date": "2026-09-08",
       "en": [
         "New: record voice notes during a match and turn them into your match report afterwards. Press once, speak, done - the phone stays a dictaphone during play. After the match you review every clip, and nothing is saved until you accept it.",

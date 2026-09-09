@@ -8,6 +8,7 @@ import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import GoalLogModal from '@/components/GoalLogModal';
 const GameSettingsModal = dynamic(() => import('@/components/GameSettingsModal'));
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
+import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 // Lazy-loaded modals: these pull in heavy dependencies (recharts, xlsx, etc.)
@@ -142,6 +143,7 @@ export interface ModalManagerProps {
 
 export function ModalManager({ state, data, handlers, ratingStyle = 'words', assessmentTemplate = 'balanced' }: ModalManagerProps) {
   const { t } = useTranslation();
+  const assessmentsEnabled = useAssessmentsEnabled();
 
   // Hardware-back contract (modal governance, audited in 3.1): MATCH-scope
   // modals sit ABOVE the page-level match entry ("back exits to Home") and must
@@ -224,7 +226,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
             gameType={data.gameSessionState.gameType}
           onOpenSettings={handlers.wrapUpToAppSettings}
           onOpenGameSettings={handlers.wrapUpToGameSettings}
-          onOpenAssessments={handlers.wrapUpToAssessments}
+          onOpenAssessments={assessmentsEnabled ? handlers.wrapUpToAssessments : undefined}
           onAddGoal={handlers.wrapUpToGoalLog}
         />
       )}
@@ -304,7 +306,7 @@ export function ModalManager({ state, data, handlers, ratingStyle = 'words', ass
         />
 
         <PlayerAssessmentModal
-          isOpen={state.isPlayerAssessmentModalOpen}
+          isOpen={assessmentsEnabled && state.isPlayerAssessmentModalOpen}
           onClose={handlers.closePlayerAssessmentModal}
           selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
           availablePlayers={data.availablePlayers}

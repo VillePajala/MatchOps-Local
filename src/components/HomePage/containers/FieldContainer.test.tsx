@@ -1,4 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+// The assessment setting is on here: these tests assert the handlers are wired.
+jest.mock('@/hooks/useAssessmentsEnabled', () => ({ useAssessmentsEnabled: () => true }));
 import type { ReactNode } from 'react';
 import { FieldContainer } from './FieldContainer';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';

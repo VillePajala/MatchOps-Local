@@ -13,6 +13,7 @@ import { useExportMetadata } from '@/hooks/useExportMetadata';
 import { usePlannedSubPrompts } from '@/hooks/usePlannedSubPrompts';
 import { isSidelinePosition } from '@/utils/positionLabels';
 import { useToast } from '@/contexts/ToastProvider';
+import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import type {
   Player,
   Team,
@@ -187,6 +188,7 @@ export function FieldContainer({
 }: FieldContainerProps) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
+  const assessmentsEnabled = useAssessmentsEnabled();
   const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
@@ -316,7 +318,7 @@ export function FieldContainer({
           plannedSubPrompt={plannedSubPrompt}
           onDismissPlannedSub={dismissPlannedSub}
           onToggleGoalLogModal={toggleGoalLogModal}
-          onOpenPlayerAssessmentModal={onOpenPlayerAssessmentModal}
+          onOpenPlayerAssessmentModal={assessmentsEnabled ? onOpenPlayerAssessmentModal : undefined}
           onFinishGame={onFinishGame}
           finishProgress={finishProgress}
           onRecordOpponentGoal={() => logOpponentGoal(tmTime)}

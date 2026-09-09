@@ -23,6 +23,7 @@ import type { GameType } from '@/types/game';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment, UpdateGameDetailsMutationVariables } from "@/types";
 import { setPlayerFairPlayCardStatus } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import { useRoster } from '@/hooks/useRoster';
 import { useGameDataManagement } from './useGameDataManagement';
 import { useGameSessionCoordination } from './useGameSessionCoordination';
@@ -223,6 +224,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
+  const assessmentsEnabled = useAssessmentsEnabled();
 
   // --- Game Session Coordination (Step 2.6.2) ---
   // Override initialState's gameType with pre-fetched value to prevent field color flash
@@ -1588,7 +1590,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       teamId: saved.teamId,
       playerPositions: gameSessionState.playerPositions,
       assessments: saved.assessments,
-    });
+    }, { assessmentsEnabled });
     if (!completeness.applicable) return null;
     return completenessProgress(completeness);
   }, [
@@ -1597,6 +1599,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameSessionState.gameNotes,
     gameSessionState.selectedPlayerIds,
     gameSessionState.playerPositions,
+    assessmentsEnabled,
   ]);
 
   /**

@@ -28,6 +28,13 @@ export interface AppSettings {
   hasSeenAppGuide?: boolean;
   useDemandCorrection?: boolean;
   isDrawingModeEnabled?: boolean;
+  /**
+   * Whether the player-assessment (rating) feature is shown at all. Off by
+   * default since 2026-09-09: rating children after every match is the wrong
+   * form for youth football, and nobody kept it up. Ratings already recorded
+   * are kept and reappear the moment this is switched on.
+   */
+  assessmentsEnabled?: boolean;
   /** Presentation/capture style for assessment ratings (default 'words'). */
   assessmentRatingStyle?: AssessmentRatingStyle;
   /** Which metric template the assessment card presents (default 'balanced'). */
@@ -56,6 +63,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
+  assessmentsEnabled: false,
   assessmentRatingStyle: 'words',
   assessmentTemplate: 'balanced',
   hasConfiguredSeasonDates: false,

@@ -166,3 +166,17 @@ describe('completenessProgress', () => {
     });
   });
 });
+
+describe('assessments setting', () => {
+  /** Off by default (owner, 2026-09-09): ratings must not hold a game hostage. */
+  it('reports 0/0 and stops gating enrichment when the feature is off', () => {
+    const rated: CompletenessGame = { ...base, gameNotes: 'Report', selectedPlayerIds: ['a', 'b'],
+      seasonId: 's', teamId: 't', playerPositions: { a: ['CM'] }, assessments: { a: {} } };
+    const on = computeGameCompleteness(rated);
+    const off = computeGameCompleteness(rated, { assessmentsEnabled: false });
+    expect(on.assessments).toEqual({ done: 1, total: 2 });
+    expect(off.assessments).toEqual({ done: 0, total: 0 });
+    expect(off.enriched).toBe(true);
+    expect(off.overall).toBe(on.overall);
+  });
+});
