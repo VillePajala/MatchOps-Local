@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "You can now write a note about a player in Finish this game, by typing it or by speaking it. Until now a note could only be dictated during the match. The checklist still shows how many players you have written about, but it no longer counts it: nobody owes an observation about every child in every match."
+      ],
+      "fi": [
+        "Voit nyt kirjoittaa muistiinpanon pelaajasta Viimeistele ottelu -näkymässä joko kirjoittamalla tai sanelemalla. Aiemmin muistiinpanon saattoi luoda vain sanelemalla ottelun aikana. Tarkistuslista näyttää edelleen, kuinka monesta pelaajasta olet kirjannut, mutta ei enää laske sitä mukaan: kenenkään ei tarvitse kirjata havaintoa jokaisesta lapsesta jokaisessa ottelussa."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "A player's statistics now offer Share player summary: games played out of the team's games, positions, goals and assists, and your dated notes from those matches, as one plain text you can copy or send to a head coach or a family. Only what was recorded, nothing rated."
       ],
       "fi": [

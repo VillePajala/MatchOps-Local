@@ -1,12 +1,12 @@
 {
-  "version": "89ddb5f3",
-  "date": "2026-07-03",
+  "version": "c23382ab",
+  "date": "2026-09-09",
   "notes": {
     "en": [
-      "Marketing site: added a \"Position Balance\" feature card - showing the season-long, per-player position spread and the develop-not-lock angle (spot who's been kept in one role), with EN/FI screenshots of the new stats view."
+      "You can now write a note about a player by hand, in Finish this game. Until now a note could only be dictated during the match, so the checklist asking how many players you had written about pointed at something most coaches had no way to do. That row is also clearer now, and tapping it takes you to the notes."
     ],
     "fi": [
-      "Markkinointisivusto: lisättiin \"Pelipaikkojen tasapaino\" -ominaisuuskortti - näyttää kauden mittaisen pelaajakohtaisen pelipaikkajakauman ja kehitä-älä-lukitse-näkökulman (huomaa ketkä ovat jääneet yhteen rooliin), EN/FI-kuvakaappauksin uudesta tilastonäkymästä."
+      "Voit nyt kirjoittaa muistiinpanon pelaajasta käsin Viimeistele ottelu -näkymässä. Aiemmin muistiinpanon saattoi luoda vain sanelemalla ottelun aikana, joten tarkistuslistan kohta pelaajista kirjatuista muistiinpanoista pyysi jotain, mihin useimmilla valmentajilla ei ollut keinoa. Kohta on myös aiempaa selkeämpi, ja sitä napauttamalla pääsee muistiinpanoihin."
     ]
   }
 }

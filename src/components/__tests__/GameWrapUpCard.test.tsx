@@ -30,6 +30,8 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     rerender(<GameWrapUpCard completeness={completeness} voiceClipCount={3} onOpenVoiceNotes={onOpenVoiceNotes} />);
     fireEvent.click(screen.getByText('3 voice notes to review'));
     expect(onOpenVoiceNotes).toHaveBeenCalledTimes(1);
+    // ...and it is a scored row now: unhandled audio is unfinished work.
+    expect(screen.getByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
   });
 
   it('report and positions rows scroll within the page instead of leaving it', () => {
@@ -47,7 +49,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
 
     // The number and the bar come from the same model the list does, so they
     // cannot disagree with the rows underneath.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/7$/);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/6$/);
     expect(screen.getByTestId('wrap-up-progress-bar')).toBeInTheDocument();
   });
 
@@ -81,7 +83,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.queryByTestId('wrap-up-status-assessments-todo')).not.toBeInTheDocument();
 
     // And the count agrees: nothing is amber, so the bar is full.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('7/7');
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('6/6');
   });
 
   it('shows an outstanding row in amber and leaves it out of the count', () => {
@@ -101,8 +103,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.getByTestId('wrap-up-status-assessments-todo')).toBeInTheDocument();
     // All squad positioned -> the solid tick, not the partial one.
     expect(screen.getByTestId('wrap-up-status-positions-done')).toBeInTheDocument();
-    // Two amber rows now (assessments, notes coverage), neither counted.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('5/7');
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('5/6');
   });
 
   it('does not call the game Complete while clips still wait', () => {
@@ -139,8 +140,8 @@ describe('rows match the counter', () => {
     render(<GameWrapUpCard completeness={c} />);
     expect(screen.getByTestId('wrap-up-status-roster-done')).toBeInTheDocument();
     const rows = screen.getAllByRole('listitem');
-    expect(rows).toHaveLength(6);
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('3/6');
+    expect(rows).toHaveLength(5);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('3/5');
   });
 });
 
@@ -177,9 +178,64 @@ describe('consistency rows', () => {
    */
   it('keeps the rows equal to the counter, with clips waiting', () => {
     render(<GameWrapUpCard completeness={game()} voiceClipCount={3} onOpenVoiceNotes={jest.fn()} />);
-    expect(screen.getByTestId('wrap-up-voice-notes')).toBeInTheDocument();
     const rows = screen.getAllByRole('listitem');
     const [, total] = (screen.getByTestId('wrap-up-progress-count').textContent ?? '').split('/');
     expect(rows).toHaveLength(Number(total));
+  });
+});
+
+describe('notes-coverage row', () => {
+  /** @critical - it pointed at the voice inbox, which does not exist without a clip. */
+  it('is a line, not a scored row, and leads to the notes step', () => {
+    const onOpenNotes = jest.fn();
+    const onOpenVoiceNotes = jest.fn();
+    const c = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+      teamId: '', playerPositions: {}, assessments: {}, gameEvents: [], homeScore: 0, awayScore: 0,
+    }, { assessmentsEnabled: false });
+    render(<GameWrapUpCard completeness={c} onOpenNotes={onOpenNotes} onOpenVoiceNotes={onOpenVoiceNotes} />);
+    const line = screen.getByTestId('wrap-up-notes-line');
+    expect(line).toHaveTextContent('0/1');
+    expect(line.tagName).toBe('BUTTON');
+    // Not one of the numbered rows, so it can never read as owed.
+    expect(line.closest('li')).toBeNull();
+    fireEvent.click(line);
+    expect(onOpenNotes).toHaveBeenCalledTimes(1);
+    expect(onOpenVoiceNotes).not.toHaveBeenCalled();
+  });
+
+  /** A button with nothing behind it invites a tap that does nothing. */
+  it('is plain text when no caller gave it somewhere to go', () => {
+    const c = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+      teamId: '', playerPositions: {}, assessments: {}, gameEvents: [], homeScore: 0, awayScore: 0,
+    }, { assessmentsEnabled: false });
+    render(<GameWrapUpCard completeness={c} />);
+    expect(screen.getByTestId('wrap-up-notes-line').tagName).toBe('DIV');
+  });
+});
+
+describe('the recordings row turns green', () => {
+  /** The coach sees the last clip written out, and the row go from amber to a tick. */
+  it('is amber while clips wait and done once they are written out', () => {
+    const withAudio = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+      teamId: '', playerPositions: {}, assessments: {}, homeScore: 0, awayScore: 0,
+      gameEvents: [{ type: 'note', entityId: 'a', source: 'dictation' }],
+    }, { assessmentsEnabled: false });
+    const { rerender } = render(<GameWrapUpCard completeness={withAudio} voiceClipCount={1} />);
+    expect(screen.getByTestId('wrap-up-status-voiceNotes-todo')).toBeInTheDocument();
+    rerender(<GameWrapUpCard completeness={withAudio} voiceClipCount={0} />);
+    expect(screen.getByTestId('wrap-up-status-voiceNotes-done')).toBeInTheDocument();
+    expect(screen.getByText('Voice notes written out')).toBeInTheDocument();
+  });
+
+  it('says nothing about recordings for a game that never had any', () => {
+    const noAudio = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+      teamId: '', playerPositions: {}, assessments: {}, homeScore: 0, awayScore: 0, gameEvents: [],
+    }, { assessmentsEnabled: false });
+    render(<GameWrapUpCard completeness={noAudio} voiceClipCount={0} />);
+    expect(screen.queryByTestId('wrap-up-status-voiceNotes-done')).not.toBeInTheDocument();
   });
 });

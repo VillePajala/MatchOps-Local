@@ -88,7 +88,7 @@ describe('completenessProgress', () => {
   it('counts the same items the checklist shows', () => {
     // Roster only: a squad is picked, nothing else recorded yet.
     // 2 of 7: the squad, and a 0-0 with an empty goal log is consistent.
-    expect(completenessProgress(computeGameCompleteness(base))).toEqual({ done: 2, total: 7 });
+    expect(completenessProgress(computeGameCompleteness(base))).toEqual({ done: 2, total: 6 });
   });
 
   /**
@@ -106,7 +106,7 @@ describe('completenessProgress', () => {
       assessments: { p1: { overall: 7, sliders: {} } } as never,
     });
 
-    expect(completenessProgress(partial)).toEqual({ done: 6, total: 7 });
+    expect(completenessProgress(partial)).toEqual({ done: 6, total: 6 });
     // ...and the rows say the same thing in their own words: started, not done.
     expect(countRowStatus(partial.positions)).toBe('partial');
     expect(countRowStatus(partial.assessments)).toBe('partial');
@@ -126,7 +126,7 @@ describe('completenessProgress', () => {
     });
     expect(countRowStatus(none.positions)).toBe('todo');
     expect(countRowStatus(none.assessments)).toBe('todo');
-    expect(completenessProgress(none)).toEqual({ done: 4, total: 7 });
+    expect(completenessProgress(none)).toEqual({ done: 4, total: 6 });
 
     const all = computeGameCompleteness({
       ...base,
@@ -138,8 +138,7 @@ describe('completenessProgress', () => {
     });
     expect(countRowStatus(all.positions)).toBe('done');
     expect(countRowStatus(all.assessments)).toBe('done');
-    // Notes coverage is the row still outstanding: nobody has been written about.
-    expect(completenessProgress(all)).toEqual({ done: 6, total: 7 });
+    expect(completenessProgress(all)).toEqual({ done: 6, total: 6 });
   });
 
   it('reports an empty squad as nothing recorded rather than all done', () => {
@@ -189,8 +188,8 @@ describe('assessments setting', () => {
   it('drops assessments from the progress count when the feature is off', () => {
     const finished: CompletenessGame = { ...base, gameNotes: 'Report', selectedPlayerIds: ['a'],
       seasonId: 's', teamId: 't', playerPositions: { a: ['CM'] }, assessments: {} };
-    expect(completenessProgress(computeGameCompleteness(finished))).toEqual({ done: 5, total: 7 });
-    expect(completenessProgress(computeGameCompleteness(finished, { assessmentsEnabled: false }))).toEqual({ done: 5, total: 6 });
+    expect(completenessProgress(computeGameCompleteness(finished))).toEqual({ done: 5, total: 6 });
+    expect(completenessProgress(computeGameCompleteness(finished, { assessmentsEnabled: false }))).toEqual({ done: 5, total: 5 });
   });
 });
 
@@ -234,12 +233,58 @@ describe('consistency checks', () => {
   });
 
   it('counts the new checks in the progress fraction, and skips the ones with nothing to check', () => {
-    // report, roster, competition+team, goal log, positions, notes coverage,
-    // assessments. No goals of ours, so no scorers item.
+    // report, roster, competition+team, goal log, positions, assessments. No
+    // goals of ours, so no scorers item - and notes are never an item.
     const empty = computeGameCompleteness({ ...base, homeScore: 0, awayScore: 0 });
-    expect(completenessProgress(empty).total).toBe(7);
+    expect(completenessProgress(empty).total).toBe(6);
     // Our goal adds the scorers item.
     const withGoals = computeGameCompleteness({ ...base, gameEvents: [ev('goal')], homeScore: 1, awayScore: 0 });
-    expect(completenessProgress(withGoals).total).toBe(8);
+    expect(completenessProgress(withGoals).total).toBe(7);
+  });
+});
+
+describe('notes coverage is shown, never scored', () => {
+  /**
+   * @critical - a meter that says "not complete" is a demand however it is
+   * worded. Nobody owes an observation about every child in every match; that
+   * is how the rating sliders filled up with "hyva peli".
+   */
+  it('does not change the fraction whether anyone has been written about or not', () => {
+    const g = (events: Array<{ type: string; entityId?: string }>) =>
+      computeGameCompleteness({ ...base, gameEvents: events, homeScore: 0, awayScore: 0 });
+    const none = completenessProgress(g([]));
+    const some = completenessProgress(g([{ type: 'note', entityId: 'p1' }]));
+    expect(some).toEqual(none);
+    // ...and the count is still there to read.
+    expect(g([{ type: 'note', entityId: 'p1' }]).notesCoverage).toEqual({ done: 1, total: 4 });
+  });
+});
+
+describe('unhandled recordings', () => {
+  const note = (source?: string) => ({ type: 'note', entityId: 'p1', source });
+
+  /**
+   * @critical - a clip is deleted after 30 days and the coach's words go with
+   * it, so audio nobody wrote out is real unfinished work.
+   */
+  it('counts pending clips only for a game that has audio, and turns done at zero', () => {
+    const plain = computeGameCompleteness(base);
+    // Never recorded: no item at all, so no free tick either.
+    expect(completenessProgress(plain, { voiceClipsPending: 0 })).toEqual(completenessProgress(plain));
+    // Clips waiting: one more item, not done.
+    const waiting = completenessProgress(plain, { voiceClipsPending: 2 });
+    expect(waiting.total).toBe(completenessProgress(plain).total + 1);
+    expect(waiting.done).toBe(completenessProgress(plain).done);
+    // Written out: the item stays, and is done.
+    const handled = computeGameCompleteness({ ...base, gameEvents: [note('dictation')] });
+    const after = completenessProgress(handled, { voiceClipsPending: 0 });
+    expect(after.total).toBe(completenessProgress(handled).total + 1);
+    expect(after.done).toBe(completenessProgress(handled).done + 1);
+  });
+
+  it('does not treat a typed note as proof of audio', () => {
+    const typed = computeGameCompleteness({ ...base, gameEvents: [note('manual')] });
+    expect(typed.dictatedNotes).toBe(0);
+    expect(completenessProgress(typed, { voiceClipsPending: 0 })).toEqual(completenessProgress(typed));
   });
 });
