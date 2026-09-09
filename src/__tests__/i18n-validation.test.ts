@@ -99,6 +99,30 @@ describe('Translation File Validation', () => {
    * in BOTH locales, which looks like a working screen and is a Finnish user
    * reading English. This is the only place that can catch it.
    */
+  /**
+   * @critical - the owner read "your own series" in the UI and did not know
+   * what it meant. The app's own word is League (EN) / Sarja (FI); Palloliitto's
+   * documents say "series", and anyone working from those sources will drift
+   * back. A commit claiming to have fixed this shipped with two strings still
+   * wrong on the same screen, because the component tests render Finnish
+   * fallbacks and can never see the English wording at all.
+   */
+  describe('Rules screen vocabulary', () => {
+    it('never says "series" in English; the app calls them Leagues', () => {
+      const rules = (en as { rulesDirectory?: Record<string, string> }).rulesDirectory ?? {};
+      const leaked = Object.entries(rules)
+        .filter(([, v]) => typeof v === 'string' && /\bseries\b/i.test(v))
+        .map(([k, v]) => `${k}: ${v}`);
+      expect(leaked).toEqual([]);
+    });
+
+    it('uses "sarja" in Finnish, which is the real word', () => {
+      const rules = (fi as { rulesDirectory?: Record<string, string> }).rulesDirectory ?? {};
+      const joined = Object.values(rules).join(' ').toLowerCase();
+      expect(joined).toContain('sarja');
+    });
+  });
+
   describe('Rule link translation keys', () => {
     it('every labelKey in ruleLinks.json exists in EN and FI', () => {
       const ruleLinks = JSON.parse(
@@ -505,7 +529,11 @@ describe('Translation File Validation', () => {
       //     turns the screen from a link list into an answer. Lands at 3189.
       // (+1 more on review: formatsFutsalOnly, since the table is futsal-only
       //     and most coaches here play football.) Lands at 3190.
-      expect(enKeys.length).toBe(3190);
+      // +5 rulesDirectory.*: the page now says WHERE each kind of rule lives
+      //     (intro, series section + help + link label, rulebooks heading),
+      //     because Palloliitto keeps them in three separate places and a
+      //     screen that hides that reads as half-finished. Lands at 3195.
+      expect(enKeys.length).toBe(3195);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -672,7 +700,8 @@ describe('Translation File Validation', () => {
       // +2 formations.4v4.* (see EN above). Lands at 3181.
       // +8 rulesDirectory.* game-formats table (see EN above). Lands at 3189.
       // (+1 more on review: formatsFutsalOnly - see EN above.) Lands at 3190.
-      expect(fiKeys.length).toBe(3190);
+      // +5 rulesDirectory.* the three-places map (see EN above). Lands at 3195.
+      expect(fiKeys.length).toBe(3195);
     });
   });
 });
