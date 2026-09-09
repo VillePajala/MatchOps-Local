@@ -137,6 +137,9 @@ export interface GameSettingsModalProps {
   /** Whether this game is a friendly / practice match (excluded from
    *  competitive stat totals by default). Persisted via mutateGameDetails. */
   isFriendly: boolean;
+  /** Who wore the armband this game; empty/undefined = no captain named.
+   *  Persisted via mutateGameDetails, like isFriendly. */
+  captainId?: string;
   wentToOvertime?: boolean;
   wentToPenalties?: boolean;
   onWentToOvertimeChange: (value: boolean) => void;
@@ -214,6 +217,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   isPlayed,
   onIsPlayedChange,
   isFriendly,
+  captainId,
   wentToOvertime = false,
   wentToPenalties = false,
   onWentToOvertimeChange,
@@ -459,6 +463,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   if (prevFriendlyGameId !== currentGameId) {
     setPrevFriendlyGameId(currentGameId);
     setIsFriendlyLocal(isFriendly);
+  }
+  // Same optimistic echo for the captain picker, and the same game-switch reset:
+  // keyed on currentGameId rather than the value, so moving to another game that
+  // happens to have the same captain still re-reads the persisted record.
+  const [captainIdLocal, setCaptainIdLocal] = useState(captainId ?? '');
+  const [prevCaptainGameId, setPrevCaptainGameId] = useState(currentGameId);
+  if (prevCaptainGameId !== currentGameId) {
+    setPrevCaptainGameId(currentGameId);
+    setCaptainIdLocal(captainId ?? '');
   }
   const [isShootoutModalOpen, setIsShootoutModalOpen] = useState(false);
 
@@ -1344,6 +1357,53 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 }}
                 title={t('gameSettingsModal.selectPersonnel', 'Select Personnel')}
               />
+
+              {/* Captain Section */}
+              <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+                <h3 className="text-lg font-semibold text-slate-200 mb-4">
+                  {t('gameSettingsModal.captainTitle', 'Captain')}
+                </h3>
+                <div className="space-y-3">
+                  <p className="text-slate-300 text-sm">
+                    {t('gameSettingsModal.captainDescription', 'Who wore the armband in this game. Recorded per game, so it can rotate.')}
+                  </p>
+                  <select
+                    value={captainIdLocal}
+                    data-testid="captain-select"
+                    aria-label={t('gameSettingsModal.captainTitle', 'Captain')}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setCaptainIdLocal(next);
+                      mutateGameDetails(
+                        { captainId: next },
+                        // No expectedState: captaincy is not carried in the
+                        // session reducer, so there is nothing to compare it
+                        // against. The sequence guard still orders the writes.
+                        { source: 'stateSync' },
+                        // The picker showed a name the record no longer has:
+                        // put it back rather than leave the two disagreeing.
+                        () => setCaptainIdLocal(captainId ?? ''),
+                      );
+                    }}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  >
+                    <option value="">{t('gameSettingsModal.noCaptain', '-- No captain --')}</option>
+                    {availablePlayers.filter(p => selectedPlayerIds.includes(p.id)).map((player) => (
+                      <option key={player.id} value={player.id}>
+                        {player.name}
+                      </option>
+                    ))}
+                    {/* A captain who was dropped from the squad afterwards is
+                        still on the record. Showing them keeps the picker and
+                        the game info from disagreeing about who led. */}
+                    {captainIdLocal && !selectedPlayerIds.includes(captainIdLocal) && (
+                      <option value={captainIdLocal}>
+                        {`${availablePlayers.find(p => p.id === captainIdLocal)?.name ?? t('gameSettingsModal.unknownPlayer', 'Unknown player')} (${t('gameSettingsModal.captainNotInSquad', 'not in the squad')})`}
+                      </option>
+                    )}
+                  </select>
+                </div>
+              </div>
 
               {/* Fair Play Card Section */}
               <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">

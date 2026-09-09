@@ -223,6 +223,10 @@ export function useGamePersistence({
       // from the persisted record - it is only ever set at creation or via the
       // reclassify toggle, both of which update savedGames first.
       isFriendly: savedGames[currentGameId ?? '']?.isFriendly ?? false,
+      // Same reasoning for the captain: it is set in Game Settings, never by
+      // the live session, so a full-overwrite autosave would drop the armband
+      // the coach had just recorded.
+      captainId: savedGames[currentGameId ?? '']?.captainId,
       assessments: playerAssessments,
 
       // From fieldCoordination

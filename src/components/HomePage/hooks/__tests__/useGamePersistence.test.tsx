@@ -299,6 +299,29 @@ describe('useGamePersistence', () => {
       );
     });
 
+    /**
+     * @critical - the armband is set in Game Settings and never enters the
+     * live session, so a full-overwrite autosave would erase it moments after
+     * the coach recorded it.
+     */
+    it('preserves captainId from the saved record', async () => {
+      const { saveGame } = jest.requireMock('@/utils/savedGames');
+      (saveGame as jest.Mock).mockClear();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: { game123: { captainId: 'p7' } as unknown as AppState },
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      expect((saveGame as jest.Mock).mock.calls[0][1]).toEqual(
+        expect.objectContaining({ captainId: 'p7' }),
+      );
+    });
+
     it('keeps the saved-games cache fresh via setQueryData, not invalidateQueries (no per-save refetch)', async () => {
       const params = createMockParams();
       const invalidateSpy = jest.spyOn(params.queryClient, 'invalidateQueries');

@@ -59,6 +59,41 @@ describe('calculatePlayerStats', () => {
     expect(stats.performanceByTournament['t1'].gamesPlayed).toBe(1);
   });
 
+  describe('game captains (captainId)', () => {
+    it('counts the games this player wore the armband, and nobody else’s', () => {
+      const games = {
+        g1: { ...game1, captainId: 'p1' } as AppState,
+        g2: { ...game2, captainId: 'p2' } as AppState,
+      };
+      expect(calculatePlayerStats(player, games, seasons, tournaments).totalCaptaincies).toBe(1);
+      expect(calculatePlayerStats(player, savedGames, seasons, tournaments).totalCaptaincies).toBe(0);
+    });
+
+    /**
+     * @edge-case - a captain id left behind after the player was dropped from
+     * the squad is a stale record, not a game they played.
+     */
+    it('does not count a game the player was no longer in the squad for', () => {
+      const dropped = { g1: { ...game1, selectedPlayerIds: ['p2'], captainId: 'p1' } as AppState };
+      expect(calculatePlayerStats(player, dropped, seasons, tournaments).totalCaptaincies).toBe(0);
+    });
+
+    /**
+     * @critical - the count must obey the same scope as every other number on
+     * the page, or the summary disagrees with the table above it.
+     */
+    it('respects the friendly and team scope the rest of the stats use', () => {
+      const friendly = {
+        gf: { ...game1, isFriendly: true, captainId: 'p1', gameDate: '2024-03-01' } as AppState,
+      };
+      expect(calculatePlayerStats(player, friendly, seasons, tournaments).totalCaptaincies).toBe(0);
+      expect(
+        calculatePlayerStats(player, friendly, seasons, tournaments, undefined, undefined, true)
+          .totalCaptaincies,
+      ).toBe(1);
+    });
+  });
+
   describe('friendly matches (isFriendly)', () => {
     // A friendly that ALSO carries a season tag - the edge case the plan doc
     // says the friendly flag must win: never counted in the season breakdown.

@@ -739,6 +739,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     (key, fallback) => t(key, fallback) as string,
   ), [teamName, opponentName, gameDate, gameLocation, homeScore, awayScore, homeOrAway, gameEvents, gameNotes, shootoutKicks, playerPositions, availablePlayers, t]);
 
+  /**
+   * Who wore the armband. Captaincy is game metadata rather than live session
+   * state (it is set in Game Settings, like the friendly flag), so it is read
+   * from the saved record instead of arriving as a prop.
+   */
+  const captainId = currentGameId ? savedGames?.[currentGameId]?.captainId : undefined;
+  const captainName = captainId
+    ? availablePlayers.find(p => p.id === captainId)?.name
+    : undefined;
+
   const tasoText = useMemo(() => {
     const r = buildTasoReport(
       {
@@ -749,6 +759,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         awayScore,
         gameEvents,
         selectedPlayerIds,
+        captainId,
         numberOfPeriods: numPeriods ?? 2,
         periodDurationMinutes: periodDurationMinutes ?? 0,
       },
@@ -756,7 +767,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       (key, fallback) => t(key, fallback) as string,
     );
     return `${r.lineup}\n\n${r.report}`;
-  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, numPeriods, periodDurationMinutes, availablePlayers, t]);
+  }, [teamName, opponentName, homeOrAway, homeScore, awayScore, gameEvents, selectedPlayerIds, captainId, numPeriods, periodDurationMinutes, availablePlayers, t]);
 
   // Completeness for the current game: live-editable fields from props over the
   // saved snapshot (which carries competition/team/assessments).
@@ -1339,6 +1350,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     periodDurationMinutes={periodDurationMinutes}
                     wentToOvertime={wentToOvertime}
                     wentToPenalties={wentToPenalties}
+                    captainName={captainName}
                     shootoutScore={shootoutKicks && shootoutKicks.length > 0 ? getShootoutTally(shootoutKicks) : undefined}
                   />
                   {currentGameCompleteness?.applicable && (                    <GameWrapUpCard
