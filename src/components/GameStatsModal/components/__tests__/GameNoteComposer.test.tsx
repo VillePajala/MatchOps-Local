@@ -139,6 +139,44 @@ describe('writing out the recording with the coach\'s own provider', () => {
     expect((screen.getByLabelText('Write a note') as HTMLTextAreaElement).value).toBe('');
   });
 
+  /**
+   * @critical - the clip was still claimed after a failed or key-less
+   * transcription, so the next note the coach TYPED was filed as dictation and
+   * deleted the recording they had just been told was safely waiting.
+   */
+  it('lets go of a clip it never wrote out, so typing next cannot delete it', async () => {
+    getTranscriptionEngine.mockReturnValue(null);
+    const onAdd = jest.fn(() => true);
+    const view = render(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} dictation={controls()} />);
+    fireEvent.click(screen.getByTestId('note-composer-record'));
+    view.rerender(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} dictation={controls({ lastClip: clip })} />);
+    await screen.findByTestId('note-composer-recorded');
+
+    // The coach ignores the hint and types the note instead.
+    fireEvent.change(screen.getByLabelText('Write a note'), { target: { value: 'Typed it out myself.' } });
+    fireEvent.click(screen.getByTestId('note-composer-save'));
+    await waitFor(() => expect(onAdd).toHaveBeenCalled());
+    expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ source: 'manual' }));
+    expect(deleteClip).not.toHaveBeenCalled();
+  });
+
+  it('saves once however fast the button is tapped', async () => {
+    const onAdd = jest.fn(() => true);
+    render(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} dictation={controls()} />);
+    fireEvent.change(screen.getByLabelText('Write a note'), { target: { value: 'One note.' } });
+    const button = screen.getByTestId('note-composer-save');
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not offer to stop a recording another card started', () => {
+    render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls({ isRecording: true })} />);
+    const button = screen.getByTestId('note-composer-record');
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Say it instead');
+  });
+
   it('says where the recording went when the provider refuses', async () => {
     transcribeFn.mockRejectedValue(new Error('nope'));
     const view = render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls()} />);

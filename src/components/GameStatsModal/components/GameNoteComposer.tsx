@@ -56,7 +56,16 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
   const [text, setText] = useState('');
   const [recorded, setRecorded] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [clipId, setClipId] = useState<string | null>(null);
+  /**
+   * Whether the recording in progress is this card's.
+   *
+   * One recorder serves the whole page, so without this the spoken-report
+   * card's recording would also turn this button red and invite the coach to
+   * stop something they did not start here.
+   */
+  const [startedHere, setStartedHere] = useState(false);
   const canRecord = !!dictation?.isSupported && !!dictation?.available;
 
   /**
@@ -75,6 +84,11 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
     if (!engine) {
       // No provider connected: the clip is safely in the voice notes, and the
       // hint below says so. Recording must never depend on a key.
+      //
+      // Let go of the clip: nothing here turned it into words, so it belongs to
+      // the inbox now. Holding on would make the next thing the coach TYPES
+      // count as dictation and delete a recording they were just told was safe.
+      setClipId(null);
       setRecorded(true);
       return;
     }
@@ -89,7 +103,11 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
       recordAiUsage('transcription', estimateTranscriptionUsd(durationMs));
       if (controller.signal.aborted) return;
       const capped = spoken.slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX);
-      setText((prev) => (prev.trim() ? `${prev.trim()}\n${capped}` : capped));
+      // Cap the WHOLE box, not just the new take: two takes back to back could
+      // otherwise show more on screen than the save would keep, silently.
+      setText((prev) =>
+        (prev.trim() ? `${prev.trim()}\n${capped}` : capped).slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX),
+      );
       setRecorded(false);
       // Keep the words with the recording, as the inbox does: without this a
       // transcript the coach already paid for is thrown away if they re-record
@@ -105,6 +123,9 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
       if (controller.signal.aborted) return;
       const kind = error instanceof TranscriptionError ? error.kind : 'network';
       logger.warn('[noteComposer] transcription failed', { kind });
+      // Same as the no-engine case: the words never got out of the clip, so
+      // this card does not own it and must not delete it on the next save.
+      setClipId(null);
       setRecorded(true);
       showToast(
         kind === 'unauthorized'
@@ -125,6 +146,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
     if (clip.id === claimedIdRef.current) return;
     miningRef.current = false;
     claimedIdRef.current = clip.id;
+    setStartedHere(false);
     setClipId(clip.id);
     void transcribe(clip.id, clip.durationMs);
   }, [dictation?.lastClip, dictation?.isRecording, transcribe]);
@@ -133,7 +155,18 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
 
   const save = async () => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    // Deleting the clip is awaited, and the button stays alive meanwhile: a
+    // second tap in that window used to save the same note twice.
+    if (!trimmed || busy) return;
+    setBusy(true);
+    try {
+      await commit(trimmed);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const commit = async (trimmed: string) => {
     const ok = onAdd({
       time: stamp.time,
       period: stamp.period,
@@ -198,6 +231,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
                     dictation.stop();
                   } else {
                     setRecorded(false);
+                    setStartedHere(true);
                     // Anything already stored is old news; only a clip written
                     // after this point belongs to the recording starting now.
                     claimedIdRef.current = dictation.lastClip?.id ?? null;
@@ -205,15 +239,17 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
                     dictation.start();
                   }
                 }}
-                disabled={transcribing}
+                // Someone else's recording (the spoken report is on this same
+                // page): say so by going quiet rather than offering to stop it.
+                disabled={transcribing || busy || (dictation.isRecording && !startedHere)}
                 data-testid="note-composer-record"
-                className={`w-full px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
-                  dictation.isRecording
+                className={`w-full px-4 py-2 rounded-md text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  dictation.isRecording && startedHere
                     ? 'bg-red-600 hover:bg-red-500 text-white'
                     : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
                 }`}
               >
-                {dictation.isRecording
+                {dictation.isRecording && startedHere
                   ? t('noteComposer.recordStop', 'Stop recording')
                   : t('noteComposer.record', 'Say it instead')}
               </button>
@@ -236,7 +272,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
       <button
         type="button"
         onClick={() => void save()}
-        disabled={!text.trim() || transcribing}
+        disabled={!text.trim() || transcribing || busy}
         data-testid="note-composer-save"
         className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
