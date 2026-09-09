@@ -94,7 +94,9 @@
     "resultLoss": "Loss",
     "resultDraw": "Draw",
     "onPenalties": "on penalties",
-    "unknownPlayer": "Unknown"
+    "unknownPlayer": "Unknown",
+    "staleEdits": "You have edited this text, so it did not change. Take the new version?",
+    "staleApply": "Rebuild"
   },
   "taso": {
     "button": "Match report for Taso",
@@ -114,19 +116,25 @@
   "evidence": {
     "button": "Share player summary",
     "title": "Player summary",
-    "subtitle": "What this player did in the games you tracked, with dates. Only what was recorded; nothing rated. Copy or share it with whoever should see it.",
     "games": "Games",
-    "teamGames": "team games",
-    "externalGames": "external games",
     "goals": "Goals",
     "assists": "assists",
     "points": "points",
     "positions": "Positions",
+    "competitions": "Leagues and tournaments",
     "notes": "Coach notes from the games",
     "gamesList": "Games",
     "goalsShort": "g",
     "assistsShort": "a",
-    "external": "external game"
+    "gamesCount_one": "{{count}} game",
+    "gamesCount_other": "{{count}} games",
+    "goalsCount_one": "{{count}} goal",
+    "goalsCount_other": "{{count}} goals",
+    "assistsCount_one": "{{count}} assist",
+    "assistsCount_other": "{{count}} assists",
+    "sectionTotals": "Totals",
+    "sectionNotes": "Notes",
+    "sectionGames": "Every game"
   },
   "playingPositions": {
     "gk": {
@@ -267,13 +275,13 @@
     "discardClipBody": "The recording is deleted for good. Anything you have not saved as a note goes with it."
   },
   "noteComposer": {
-    "title": "Write a note",
+    "title": "Add a note",
     "playerLabel": "About",
     "wholeMatch": "The match",
     "placeholder": "What did you see? One observation is enough.",
-    "save": "Save the note",
-    "record": "Say it instead",
-    "recordStop": "Stop recording",
+    "save": "Add the note",
+    "record": "Dictate a note",
+    "recordStop": "Stop dictating",
     "recordedHint": "Waiting in the voice notes above, where you write it out and choose the player.",
     "transcribing": "Writing out what you said."
   },
@@ -3634,10 +3642,10 @@
   },
   "spokenReport": {
     "title": "Say the report out loud",
-    "intro": "Record your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.",
-    "introNoProvider": "Record your account of the match. It stays as a recording in your voice notes, ready to write out later.",
-    "start": "Record the report",
-    "stop": "Stop recording",
+    "intro": "Dictate your account of the match and it is written out here. Keep it as your spoken summary and the AI draft treats it as your own words.",
+    "introNoProvider": "Dictate your account of the match. It stays as a recording in your voice notes, ready to write out later.",
+    "start": "Dictate the report",
+    "stop": "Stop dictating",
     "transcribing": "Writing out what you said...",
     "textLabel": "What you said",
     "editHint": "Fix anything the transcription got wrong before you keep it.",

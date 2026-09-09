@@ -4,6 +4,17 @@
     {
       "date": "2026-09-09",
       "en": [
+        "The player summary is shorter and says more. It now lists the leagues and tournaments the player appeared in with their goals and assists in each, counts every game the same way whether you tracked it live or entered it by hand, and lets you tick which parts to include - the game-by-game list is off unless you want it.",
+        "Adding a note is clearer too: an Add the note button and a microphone button that says Dictate a note. When a dictated note names a player, the app now offers that player as the subject, the same way the voice-note inbox does."
+      ],
+      "fi": [
+        "Pelaajakooste on lyhyempi ja kertoo enemmän. Se listaa nyt sarjat ja turnaukset, joissa pelaaja on ollut mukana, sekä maalit ja syötöt kussakin, laskee kaikki ottelut samalla tavalla riippumatta siitä seurasitko niitä itse vai kirjasitko käsin, ja antaa valita mitkä osat koosteeseen tulevat - ottelu ottelulta -lista on pois päältä ellet halua sitä.",
+        "Muistiinpanon lisääminen on myös selkeämpi: Lisää muistiinpano -painike ja mikrofonipainike, jossa lukee Sanele muistiinpano. Kun saneltu muistiinpano mainitsee pelaajan, sovellus ehdottaa nyt häntä kohteeksi, kuten äänimuistiinpanojen listassakin."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "You can now write a note about a player in Finish this game, by typing it or by speaking it. Until now a note could only be dictated during the match. The checklist still shows how many players you have written about, but it no longer counts it: nobody owes an observation about every child in every match."
       ],
       "fi": [
