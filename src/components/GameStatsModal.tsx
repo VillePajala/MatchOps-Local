@@ -978,6 +978,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             availablePlayers={availablePlayers}
             onDeleteNote={onDeleteGameEvent ? (id) => { void handleDeleteNote(id); } : undefined}
           />
+          {/* Both children render nothing when there is nothing, which left a
+              numbered step with no content in it at all. A step of the
+              checklist must always say what it is about. */}
+          {noteEvents.length === 0 && voiceClipCount === 0 && (
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="game-notes-empty">
+              <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
+              <p className="text-xs text-slate-400">
+                {t('gameStatsModal.spineNotesEmpty', 'Nothing noted from this match. Notes are recorded during the game with the microphone button and appear here afterwards.')}
+              </p>
+            </div>
+          )}
         </>
       ),
     });

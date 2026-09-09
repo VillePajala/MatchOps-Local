@@ -813,6 +813,7 @@
     "noGoals": "Ei kirjattuja maaleja.",
     "deleteEventFailed": "Tapahtuman poisto epäonnistui. Yritä uudelleen.",
     "spineStep": "Vaihe {{n}}/{{total}}",
+    "spineNotesEmpty": "Tästä ottelusta ei ole muistiinpanoja. Ne sanellaan ottelun aikana mikrofonipainikkeella ja näkyvät täällä ottelun jälkeen.",
     "spineAddGoal": "Lisää maali",
     "spineOpenAssessments": "Avaa pelaaja-arviot",
     "spineShareTitle": "Jaa ottelukooste",
