@@ -72,6 +72,18 @@ export function lawUrl(sport: RulesSport, law: number): string | null {
   return `${url}#page=${ref.page}`;
 }
 
+/**
+ * A deep link to a guidance section that is not a numbered law (sin bin).
+ *
+ * Same null discipline as lawUrl: without a rulebook URL this must produce
+ * nothing, never a bare "#page=10" that navigates to the app itself.
+ */
+export function guidanceUrl(sport: RulesSport, page: number): string | null {
+  const url = rulebookUrl(sport);
+  if (!url || !Number.isInteger(page) || page < 1) return null;
+  return `${url}#page=${page}`;
+}
+
 export function findLaw(sport: RulesSport, law: number | null): LawRef | null {
   if (law === null) return null;
   return RULES_SPORTS[sport]?.laws.find((l) => l.law === law) ?? null;
@@ -104,17 +116,20 @@ export function searchRules(sport: RulesSport, query: string, lang: 'fi' | 'en')
 
   const byLaw = new Map(laws.map((l) => [l.law, l]));
   const hits = new Map<string, RulesHit>();
+  // Namespaced so a topic id can never collide with a law number.
   const addLaw = (law: number, via: string | null) => {
     const ref = byLaw.get(law);
+    const key = `law:${law}`;
     // First match wins: a topic hit names the coach's word, which is more
     // useful than the bare title, and topics are matched first.
-    if (ref && !hits.has(String(law))) {
-      hits.set(String(law), { key: String(law), law, title: titleOf(ref), page: ref.page, via });
+    if (ref && !hits.has(key)) {
+      hits.set(key, { key, law, title: titleOf(ref), page: ref.page, via });
     }
   };
   const addGuidance = (t: RulesTopic) => {
-    if (t.page && !hits.has(t.id)) {
-      hits.set(t.id, { key: t.id, law: null, title: t[lang], page: t.page, via: null });
+    const key = `topic:${t.id}`;
+    if (t.page && !hits.has(key)) {
+      hits.set(key, { key, law: null, title: t[lang], page: t.page, via: null });
     }
   };
 

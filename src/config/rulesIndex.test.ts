@@ -12,6 +12,7 @@ import {
   RULES_SPORTS,
   RULES_TOPICS,
   findLaw,
+  guidanceUrl,
   lawUrl,
   rulebookUrl,
   searchRules,
@@ -91,10 +92,16 @@ describe('rules index shape', () => {
    * IFAB and FIFA explicitly reserve.
    */
   it('contains no rule prose, only citations', () => {
-    const data = JSON.parse(rawJson) as { topics: unknown[]; sports: Record<string, { laws: { title: string }[] }> };
+    const data = JSON.parse(rawJson) as {
+      topics: unknown[];
+      sports: Record<string, { laws: { title: string; titleEn: string }[] }>;
+    };
     // Law titles are short citations; a sentence of rule text would not be.
     for (const sport of Object.values(data.sports)) {
-      sport.laws.forEach((l) => expect(l.title.length).toBeLessThan(60));
+      sport.laws.forEach((l) => {
+        expect(l.title.length).toBeLessThan(60);
+        expect(l.titleEn.length).toBeLessThan(60);
+      });
     }
     // No rulebook sentence fragments: rule prose is full of these verbs.
     const prose = /\b(tulee olla|on tuomittava|erotuomarin on|shall be awarded|must be awarded)\b/i;
@@ -118,6 +125,20 @@ describe('deep links', () => {
   it('returns null for a law that does not exist rather than a broken link', () => {
     expect(lawUrl('football', 99)).toBeNull();
     expect(findLaw('futsal', 0)).toBeNull();
+  });
+
+  /**
+   * @critical - guidance sections are addressed by page, so they bypass the
+   * law lookup entirely. Without the same null discipline this produced a bare
+   * "#page=10", which navigates the app to itself instead of the rulebook.
+   */
+  it('builds guidance links with the same care as law links', () => {
+    expect(guidanceUrl('football', 10)).toContain('jalkapallosaannot-2026.pdf#page=10');
+    expect(guidanceUrl('football', 0)).toBeNull();
+    expect(guidanceUrl('football', -1)).toBeNull();
+    expect(guidanceUrl('football', 1.5)).toBeNull();
+    // Never a fragment with no document in front of it.
+    expect(guidanceUrl('football', 10)!.startsWith('#')).toBe(false);
   });
 });
 
@@ -176,6 +197,11 @@ describe('search', () => {
 
   it('finds a law by its number', () => {
     expect(searchRules('football', '14', 'fi').map((h) => h.law)).toEqual([14]);
+  });
+
+  it('keys laws and topics apart, so an id can never collide with a number', () => {
+    const hits = searchRules('football', '', 'fi');
+    expect(hits.every((h) => /^(law:\d+|topic:[a-z_]+)$/.test(h.key))).toBe(true);
   });
 
   it('lists each law once even when several topics point at it', () => {
