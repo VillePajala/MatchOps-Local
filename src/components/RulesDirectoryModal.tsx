@@ -138,13 +138,27 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                     </thead>
                     <tbody>
                       {GAME_FORMATS.map((f) => (
-                        <tr key={f.sourceLabel} className="border-t border-slate-700/60 align-top">
-                          <td className="py-1.5 pr-3 text-slate-200 whitespace-nowrap">{f.sourceLabel}</td>
-                          <td className="py-1.5 pr-3 text-yellow-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
-                          <td className="py-1.5 pr-3 text-slate-300">{f.playingTimeText}</td>
-                          <td className="py-1.5 pr-3 text-slate-300 whitespace-nowrap">{f.field}</td>
-                          <td className="py-1.5 text-slate-300 whitespace-nowrap">{f.ball}</td>
-                        </tr>
+                        <React.Fragment key={f.sourceLabel}>
+                          <tr className="border-t border-slate-700/60 align-top">
+                            <td className="py-1.5 pr-3 text-slate-200 whitespace-nowrap">{f.sourceLabel}</td>
+                            <td className="py-1.5 pr-3 text-yellow-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
+                            <td className="py-1.5 pr-3 text-slate-300">{f.playingTimeText}</td>
+                            <td className="py-1.5 pr-3 text-slate-300 whitespace-nowrap">{f.field}</td>
+                            <td className="py-1.5 text-slate-300 whitespace-nowrap">{f.ball}</td>
+                          </tr>
+                          {/* The source's "keskeiset sääntönostot" column, which is
+                              the most useful part for a coach: it is where the
+                              rules actually differ by age (back-pass, restarts).
+                              A spanning row rather than a sixth column, because a
+                              sixth column is unreadable on a phone. */}
+                          {f.notes.length > 0 && (
+                            <tr>
+                              <td colSpan={5} className="pb-2 text-slate-400 leading-relaxed">
+                                {f.notes.join(' · ')}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
