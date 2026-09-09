@@ -9,7 +9,8 @@
       "labelKey": "rulesDirectory.seriesRules",
       "fallbackLabel": "Oman sarjasi säännöt (Tulospalvelu)",
       "group": "series",
-      "noListingCheck": "Tulospalvelu is a single-page app: every path returns 200 and the series list is rendered client-side, so a URL-substring check against it would pass no matter what. Reachability only."
+      "noListingCheck": "Tulospalvelu is a single-page app: every path returns 200 and the series list is rendered client-side, so a URL-substring check against it would pass no matter what. Reachability only.",
+      "note": "Palloliitto's league list. Player count, playing time and pitch size are set per league and live under each league's Info > Säännöt tab, so this is the only route to the numbers that actually bind a given team. Not a document, which is why it has no year in its label."
     },
     {
       "id": "soccerRules",
