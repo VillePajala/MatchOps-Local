@@ -251,6 +251,49 @@ describe('RulesDirectoryModal', () => {
   });
 
   /**
+   * @critical - the reason this screen exists at all now. A coach on the
+   * touchline types the word they actually use and gets the law, without
+   * scrolling a 139-page PDF.
+   */
+  it('finds a law by a coach word and opens the official book at that page', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'kentältäpoisto' } });
+    const hits = screen.getByTestId('rules-hits');
+    expect(within(hits).getByText(/Sääntö 12/)).toBeInTheDocument();
+
+    fireEvent.click(within(hits).getByText(/Sääntö 12/).closest('button')!);
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      expect.stringContaining('#page=65'),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  });
+
+  it('switches book when the sport changes, and pages differ between them', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    fireEvent.click(screen.getByTestId('rules-sport-futsal'));
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: '12' } });
+    fireEvent.click(within(screen.getByTestId('rules-hits')).getByText(/Sääntö 12/).closest('button')!);
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      expect.stringContaining('futsalsaannot'),
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      expect.stringContaining('#page=41'),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  });
+
+  it('lists all 17 laws before anything is typed, and says so when nothing matches', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    expect(within(screen.getByTestId('rules-hits')).getAllByRole('button')).toHaveLength(17);
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'zzzznotarule' } });
+    expect(screen.getByTestId('rules-no-hits')).toBeInTheDocument();
+  });
+
+  /**
    * @critical - the page's job is to say WHERE each kind of rule lives. The
    * per-series numbers (players, playing time, pitch) are not in any document
    * the app can link, so a coach who does not learn they live in Tulospalvelu
@@ -284,10 +327,12 @@ describe('RulesDirectoryModal', () => {
   it('should use noopener,noreferrer for all external links', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
 
-    // Get all link buttons (4 total)
-    const allButtons = screen.getAllByRole('button');
-    // Filter to get only link buttons (not the Done button)
-    const linkButtons = allButtons.filter(btn => btn.getAttribute('aria-label') !== 'Done');
+    // Scoped by the LinkButton's own aria-label: the screen now also has
+    // sport toggles and law rows, and "every button opens a window" stopped
+    // being true when the page gained controls that are not links.
+    const linkButtons = screen
+      .getAllByRole('button')
+      .filter((btn) => /^Open .* in new window$/.test(btn.getAttribute('aria-label') ?? ''));
 
     expect(linkButtons).toHaveLength(ruleLinks.links.length);
 
