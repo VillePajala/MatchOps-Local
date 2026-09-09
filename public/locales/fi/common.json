@@ -117,6 +117,7 @@
     "subtitle": "Mitä pelaaja teki seuraamissasi otteluissa, päivämäärineen. Vain se, mitä kirjattiin; ei arvosanoja. Kopioi tai jaa sille, jonka pitäisi nähdä se.",
     "games": "Ottelut",
     "teamGames": "joukkueen ottelua",
+    "externalGames": "ulkopuolista ottelua",
     "goals": "Maalit",
     "assists": "syötöt",
     "points": "pisteet",

@@ -31,7 +31,7 @@ describe('buildPlayerEvidence', () => {
       'Onni Virtanen - Player summary',
       'Seurakausi 25/26',
       '',
-      'Games: 3 / 9 team games',
+      'Games: 2 / 9 team games, 1 external games',
       'Goals 3, assists 1, points 4',
       'Positions: CM 2, RB 1',
       '',

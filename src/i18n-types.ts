@@ -600,6 +600,7 @@ export type TranslationKey =
   | 'evidence.assistsShort'
   | 'evidence.button'
   | 'evidence.external'
+  | 'evidence.externalGames'
   | 'evidence.games'
   | 'evidence.gamesList'
   | 'evidence.goals'

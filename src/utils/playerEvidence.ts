@@ -57,7 +57,11 @@ const dayMonth = (iso: string): string => {
 export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate): string {
   const goals = input.stats.reduce((n, g) => n + g.goals, 0);
   const assists = input.stats.reduce((n, g) => n + g.assists, 0);
-  const played = input.stats.length;
+  // Only the app's own games can be a share of the team's games; external
+  // games (played for another team, entered by hand) are counted apart, so
+  // "2 / 9" is a fraction that actually composes.
+  const played = input.stats.filter((s) => !s.isExternal).length;
+  const external = input.stats.filter((s) => s.isExternal).length;
 
   const positionCounts = new Map<string, number>();
   input.games.forEach((g) => g.positions.forEach((p) => positionCounts.set(p, (positionCounts.get(p) ?? 0) + 1)));
@@ -95,7 +99,7 @@ export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate):
   const blocks: string[] = [];
   blocks.push([`${input.playerName} - ${t('evidence.title', 'Player summary')}`, input.periodLabel].join('\n'));
   blocks.push([
-    `${t('evidence.games', 'Games')}: ${played}${input.teamGamesInScope > 0 ? ` / ${input.teamGamesInScope} ${t('evidence.teamGames', 'team games')}` : ''}`,
+    `${t('evidence.games', 'Games')}: ${played}${input.teamGamesInScope > 0 ? ` / ${input.teamGamesInScope} ${t('evidence.teamGames', 'team games')}` : ''}${external ? `, ${external} ${t('evidence.externalGames', 'external games')}` : ''}`,
     `${t('evidence.goals', 'Goals')} ${goals}, ${t('evidence.assists', 'assists')} ${assists}, ${t('evidence.points', 'points')} ${goals + assists}`,
     ...(positionLine ? [`${t('evidence.positions', 'Positions')}: ${positionLine}`] : []),
   ].join('\n'));

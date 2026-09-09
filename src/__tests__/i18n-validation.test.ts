@@ -455,8 +455,8 @@ describe('Translation File Validation', () => {
       //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
       // +13 taso.* - the Taso helper: squad and match report in Taso's order.
       //     Lands at 3133.
-      // +14 evidence.* - the player match evidence report. Lands at 3147.
-      expect(enKeys.length).toBe(3147);
+      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3148.
+      expect(enKeys.length).toBe(3148);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -604,8 +604,8 @@ describe('Translation File Validation', () => {
       //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
       // +13 taso.* - the Taso helper: squad and match report in Taso's order.
       //     Lands at 3133.
-      // +14 evidence.* - the player match evidence report. Lands at 3147.
-      expect(fiKeys.length).toBe(3147);
+      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3148.
+      expect(fiKeys.length).toBe(3148);
     });
   });
 });
