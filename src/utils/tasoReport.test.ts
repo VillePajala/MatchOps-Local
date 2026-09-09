@@ -42,6 +42,20 @@ describe('buildTasoReport', () => {
     ]);
   });
 
+  /**
+   * Taso's lineup screen has a box for the keeper and a box for the captain,
+   * and one player can fill both.
+   */
+  it('marks the captain, alongside the keeper mark when it is the same player', () => {
+    expect(buildTasoReport({ ...base, captainId: 'p3' }, players, t)).toMatchObject({
+      lineup: expect.stringContaining('7 Noah Brown (C)'),
+    });
+    expect(buildTasoReport({ ...base, captainId: 'p2' }, players, t).lineup)
+      .toContain('1 Emma Jones (GK, C)');
+    // No captain named: no mark anywhere, and no stray brackets.
+    expect(buildTasoReport(base, players, t).lineup).not.toContain('(C)');
+  });
+
   it('writes the result home team first, with the half-time score from the first period end', () => {
     const game: TasoGame = {
       ...base,

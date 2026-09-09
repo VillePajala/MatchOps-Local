@@ -18,6 +18,8 @@ interface GameInfoCardProps {
   periodDurationMinutes?: number;
   wentToOvertime?: boolean;
   wentToPenalties?: boolean;
+  /** Who wore the armband. Absent when no captain was named for this game. */
+  captainName?: string;
   /** Penalty-shootout tally (home-away), if the game had a shootout. */
   shootoutScore?: { home: number; away: number };
 }
@@ -34,6 +36,7 @@ export function GameInfoCard({
   periodDurationMinutes,
   wentToOvertime,
   wentToPenalties,
+  captainName,
   shootoutScore,
 }: GameInfoCardProps) {
   const { t } = useTranslation();
@@ -92,6 +95,16 @@ export function GameInfoCard({
               {numPeriods} x {periodDurationMinutes} min
             </span>
           </div>
+          {/* The armband, only when one was named. Spans the row so it never
+              sits alone next to an empty half. */}
+          {captainName && (
+            <div className="col-span-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
+              <label className="block text-xs text-slate-400">
+                {t('gameSettingsModal.captainTitle', 'Captain')}
+              </label>
+              <span className="font-medium text-slate-200">{captainName}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
