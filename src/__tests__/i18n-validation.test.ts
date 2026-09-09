@@ -99,6 +99,30 @@ describe('Translation File Validation', () => {
    * in BOTH locales, which looks like a working screen and is a Finnish user
    * reading English. This is the only place that can catch it.
    */
+  /**
+   * @critical - the owner read "your own series" in the UI and did not know
+   * what it meant. The app's own word is League (EN) / Sarja (FI); Palloliitto's
+   * documents say "series", and anyone working from those sources will drift
+   * back. A commit claiming to have fixed this shipped with two strings still
+   * wrong on the same screen, because the component tests render Finnish
+   * fallbacks and can never see the English wording at all.
+   */
+  describe('Rules screen vocabulary', () => {
+    it('never says "series" in English; the app calls them Leagues', () => {
+      const rules = (en as { rulesDirectory?: Record<string, string> }).rulesDirectory ?? {};
+      const leaked = Object.entries(rules)
+        .filter(([, v]) => typeof v === 'string' && /\bseries\b/i.test(v))
+        .map(([k, v]) => `${k}: ${v}`);
+      expect(leaked).toEqual([]);
+    });
+
+    it('uses "sarja" in Finnish, which is the real word', () => {
+      const rules = (fi as { rulesDirectory?: Record<string, string> }).rulesDirectory ?? {};
+      const joined = Object.values(rules).join(' ').toLowerCase();
+      expect(joined).toContain('sarja');
+    });
+  });
+
   describe('Rule link translation keys', () => {
     it('every labelKey in ruleLinks.json exists in EN and FI', () => {
       const ruleLinks = JSON.parse(

@@ -34,7 +34,7 @@ instead of explaining it.
 | `src/config/gameFormats.json` | The transcribed formats data |
 | `src/config/gameFormats.source.txt` | Verbatim extraction, committed as evidence |
 | `src/config/gameFormats.ts` | Types + age-band lookup |
-| `src/config/ruleLinks.json` | The rulebook links, with their listing pages |
+| `src/config/ruleLinks.json` | The links (grouped `series` / `rulebooks`), with their listing pages |
 | `scripts/check-rule-links.mjs` | Weekly CI check (links + source hash) |
 
 ## Two rules that must not be broken
@@ -46,7 +46,14 @@ server, so the app cannot know them. Presenting a default as "your rules" would
 make the app confidently wrong for anyone whose league differs. There is a
 `@critical` test on the caveat text.
 
-**2. The table names its sport and season.**
+**2. The Kaikki Pelaa citation is from a DELISTED document.**
+The quote establishing that the per-age numbers moved to Tulospalvelu comes
+from `kaikki-pelaa-ohjelma-2025.pdf`, which Palloliitto has removed from its
+rules index. It is cited as the historical reason for the move, never as a
+current rule, and nothing in `gameFormats.json` is transcribed from it. If a
+newer programme document appears, re-check that the statement still holds.
+
+**3. The table names its sport and season.**
 It currently covers **futsal only**, and most users play football, so a generic
 "game formats" heading would invite a football coach to read futsal's 4v4 as
 their own. The heading comes from the data's own `source.title`, and a second
@@ -103,3 +110,11 @@ and the instruction to re-extract.
 Not in the settings gear: it is reference material a coach consults, not app
 configuration, and one entry point per screen (a test asserts the gear does not
 also offer it).
+
+## Vocabulary
+
+Say **league** (EN) / **sarja** (FI) - the app's own words, matching the Leagues
+and Sarjat labels elsewhere. Palloliitto's documents say "series", and anyone
+working from those sources drifts back to it; the owner was stopped by "your own
+series" on first read. An i18n test fails if any English string on this screen
+says "series".

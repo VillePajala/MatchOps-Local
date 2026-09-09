@@ -27,7 +27,7 @@ interface RulesDirectoryModalProps {
  */
 const RULE_LINKS = ruleLinks.links;
 const SERIES_LINKS = RULE_LINKS.filter((l) => l.group === 'series');
-const RULEBOOK_LINKS = RULE_LINKS.filter((l) => l.group !== 'series');
+const RULEBOOK_LINKS = RULE_LINKS.filter((l) => l.group === 'rulebooks');
 
 const openLink = (url: string) => {
   window.open(url, '_blank', 'noopener,noreferrer');
