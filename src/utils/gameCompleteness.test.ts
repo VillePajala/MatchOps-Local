@@ -1,4 +1,4 @@
-import { completenessProgress, computeGameCompleteness, countRowStatus, type CompletenessGame } from './gameCompleteness';
+import { completenessProgress, computeGameCompleteness, countRowStatus, goalLogStatus, type CompletenessGame } from './gameCompleteness';
 
 const base: CompletenessGame = {
   isPlayed: true,
@@ -87,7 +87,8 @@ describe('completenessProgress', () => {
 
   it('counts the same items the checklist shows', () => {
     // Roster only: a squad is picked, nothing else recorded yet.
-    expect(completenessProgress(computeGameCompleteness(base))).toEqual({ done: 1, total: 5 });
+    // 2 of 7: the squad, and a 0-0 with an empty goal log is consistent.
+    expect(completenessProgress(computeGameCompleteness(base))).toEqual({ done: 2, total: 7 });
   });
 
   /**
@@ -105,7 +106,7 @@ describe('completenessProgress', () => {
       assessments: { p1: { overall: 7, sliders: {} } } as never,
     });
 
-    expect(completenessProgress(partial)).toEqual({ done: 5, total: 5 });
+    expect(completenessProgress(partial)).toEqual({ done: 6, total: 7 });
     // ...and the rows say the same thing in their own words: started, not done.
     expect(countRowStatus(partial.positions)).toBe('partial');
     expect(countRowStatus(partial.assessments)).toBe('partial');
@@ -125,7 +126,7 @@ describe('completenessProgress', () => {
     });
     expect(countRowStatus(none.positions)).toBe('todo');
     expect(countRowStatus(none.assessments)).toBe('todo');
-    expect(completenessProgress(none)).toEqual({ done: 3, total: 5 });
+    expect(completenessProgress(none)).toEqual({ done: 4, total: 7 });
 
     const all = computeGameCompleteness({
       ...base,
@@ -137,7 +138,8 @@ describe('completenessProgress', () => {
     });
     expect(countRowStatus(all.positions)).toBe('done');
     expect(countRowStatus(all.assessments)).toBe('done');
-    expect(completenessProgress(all)).toEqual({ done: 5, total: 5 });
+    // Notes coverage is the row still outstanding: nobody has been written about.
+    expect(completenessProgress(all)).toEqual({ done: 6, total: 7 });
   });
 
   it('reports an empty squad as nothing recorded rather than all done', () => {
@@ -153,10 +155,10 @@ describe('completenessProgress', () => {
    */
   it('agrees with the checklist row that needs both a competition and a team', () => {
     const seasonOnly = computeGameCompleteness({ ...base, gameNotes: 'x', seasonId: 's1' });
-    expect(completenessProgress(seasonOnly).done).toBe(2);
+    expect(completenessProgress(seasonOnly).done).toBe(3);
 
     const both = computeGameCompleteness({ ...base, gameNotes: 'x', seasonId: 's1', teamId: 't1' });
-    expect(completenessProgress(both).done).toBe(3);
+    expect(completenessProgress(both).done).toBe(4);
   });
 
   it('reports nothing for a game that was never played', () => {
@@ -187,7 +189,57 @@ describe('assessments setting', () => {
   it('drops assessments from the progress count when the feature is off', () => {
     const finished: CompletenessGame = { ...base, gameNotes: 'Report', selectedPlayerIds: ['a'],
       seasonId: 's', teamId: 't', playerPositions: { a: ['CM'] }, assessments: {} };
-    expect(completenessProgress(computeGameCompleteness(finished))).toEqual({ done: 4, total: 5 });
-    expect(completenessProgress(computeGameCompleteness(finished, { assessmentsEnabled: false }))).toEqual({ done: 4, total: 4 });
+    expect(completenessProgress(computeGameCompleteness(finished))).toEqual({ done: 5, total: 7 });
+    expect(completenessProgress(computeGameCompleteness(finished, { assessmentsEnabled: false }))).toEqual({ done: 5, total: 6 });
+  });
+});
+
+describe('consistency checks', () => {
+  const ev = (type: string, extra: Record<string, unknown> = {}) => ({ type, ...extra });
+
+  /**
+   * @critical - the goal log against the scoreboard. A game whose log does not
+   * add up gives the player the wrong goals, the recap the wrong scorers and
+   * the Taso report a half-time score it has to withhold. 8 of 207 real games.
+   */
+  it('counts the goal log against both scores, and calls a surplus unfinished too', () => {
+    const g = (events: ReturnType<typeof ev>[], home: number, away: number): CompletenessGame =>
+      ({ ...base, gameEvents: events, homeScore: home, awayScore: away });
+    expect(computeGameCompleteness(g([ev('goal'), ev('opponentGoal')], 1, 1)).goalsLogged).toEqual({ done: 2, total: 2 });
+    expect(computeGameCompleteness(g([ev('goal')], 2, 1)).goalsLogged).toEqual({ done: 1, total: 3 });
+    // A real 0-0 with an empty log is consistent, not unfinished.
+    expect(goalLogStatus(computeGameCompleteness(g([], 0, 0)).goalsLogged)).toBe('done');
+    expect(goalLogStatus(computeGameCompleteness(g([ev('goal')], 2, 1)).goalsLogged)).toBe('partial');
+    expect(goalLogStatus(computeGameCompleteness(g([], 2, 1)).goalsLogged)).toBe('todo');
+    // More logged than scored is as wrong as fewer, so never 'done'.
+    expect(goalLogStatus(computeGameCompleteness(g([ev('goal'), ev('goal')], 1, 0)).goalsLogged)).toBe('partial');
+  });
+
+  it('counts our goals that name a scorer, and never asks it of opponent goals', () => {
+    const c = computeGameCompleteness({
+      ...base,
+      gameEvents: [ev('goal', { scorerId: 'p1' }), ev('goal'), ev('opponentGoal')],
+      homeScore: 2, awayScore: 1,
+    });
+    expect(c.goalsAttributed).toEqual({ done: 1, total: 2 });
+  });
+
+  it('counts squad members with a note about them, ignoring notes about the game', () => {
+    const c = computeGameCompleteness({
+      ...base,
+      selectedPlayerIds: ['p1', 'p2', 'p3'],
+      gameEvents: [ev('note', { entityId: 'p1' }), ev('note', { entityId: 'p1' }), ev('note'), ev('note', { entityId: 'gone' })],
+    });
+    expect(c.notesCoverage).toEqual({ done: 1, total: 3 });
+  });
+
+  it('counts the new checks in the progress fraction, and skips the ones with nothing to check', () => {
+    // report, roster, competition+team, goal log, positions, notes coverage,
+    // assessments. No goals of ours, so no scorers item.
+    const empty = computeGameCompleteness({ ...base, homeScore: 0, awayScore: 0 });
+    expect(completenessProgress(empty).total).toBe(7);
+    // Our goal adds the scorers item.
+    const withGoals = computeGameCompleteness({ ...base, gameEvents: [ev('goal')], homeScore: 1, awayScore: 0 });
+    expect(completenessProgress(withGoals).total).toBe(8);
   });
 });
