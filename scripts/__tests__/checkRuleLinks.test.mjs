@@ -4,7 +4,7 @@
  * tested without the network, or the safety net is itself unverified.
  */
 import { readFileSync } from 'node:fs';
-import { checkRuleLinks, pageLinksTo } from '../check-rule-links.mjs';
+import { checkRuleLinks, pageLinksTo, checkFormatsSource } from '../check-rule-links.mjs';
 
 const PDF = 'https://cdn.example.org/rules-2026.pdf';
 const INDEX = 'https://example.org/rules';
@@ -151,5 +151,42 @@ describe('ruleLinks.json', () => {
         expect(typeof link.listedOn).toBe('string');
       }
     }
+  });
+});
+
+/**
+ * @critical - the hash is the ONLY guard that can notice Palloliitto reissuing
+ * the formats table. Every unit test checks the transcription against our own
+ * evidence file, so all of them keep passing while the published numbers move.
+ */
+describe('checkFormatsSource', () => {
+  const PDF = 'https://cdn.example.org/formats.pdf';
+  const body = Buffer.from('the published table');
+  const sha = 'ad0dc1fd3ba53bf1e1e70bd8e0e13ea15f7f9bb0d4d5cdc7d09e0f6c8c8f4b64';
+  const cfg = (hash) => ({ source: { url: PDF, sha256: hash, sport: 'futsal', season: '2026-2027' } });
+  const ok = () => ({ ok: true, status: 200, arrayBuffer: async () => body });
+
+  it('passes when the published document is byte-identical to what we transcribed', async () => {
+    const { createHash } = await import('node:crypto');
+    const real = createHash('sha256').update(body).digest('hex');
+    const { problems } = await checkFormatsSource(cfg(real), async () => ok());
+    expect(problems).toEqual([]);
+  });
+
+  it('fails, and says to re-extract, when the source has been reissued', async () => {
+    const { problems } = await checkFormatsSource(cfg(sha), async () => ok());
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('reissued');
+    expect(problems[0]).toContain('Re-extract');
+  });
+
+  it('reports an unreachable source rather than passing quietly', async () => {
+    const { problems } = await checkFormatsSource(cfg(sha), async () => ({ ok: false, status: 404 }));
+    expect(problems.some((p) => p.includes('HTTP 404'))).toBe(true);
+  });
+
+  it('turns a thrown request into a problem, not a crash', async () => {
+    const { problems } = await checkFormatsSource(cfg(sha), async () => { throw new Error('ENOTFOUND'); });
+    expect(problems.some((p) => p.includes('ENOTFOUND'))).toBe(true);
   });
 });

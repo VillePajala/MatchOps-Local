@@ -102,11 +102,27 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                   service behind an API key the app does not have, so stating
                   these as "your rules" would be confidently wrong for anyone
                   whose league differs. */}
-              <Section title={t('rulesDirectory.formatsTitle', 'Viralliset pelimuodot')}>
+              {/* The title names the SPORT and SEASON from the data itself, not
+                  a generic "game formats". Most coaches here play football, and
+                  a football coach reading futsal's 4v4 as their own would be
+                  exactly the confidently-wrong answer this section exists to
+                  prevent. Football is absent because no extractable source
+                  exists yet (see the roadmap), and the caveat says so. */}
+              <Section
+                title={t('rulesDirectory.formatsTitle', 'Pelimuodot - futsal {{season}}', {
+                  season: GAME_FORMATS_SOURCE.season,
+                })}
+              >
                 <p className="text-xs text-slate-400 -mt-1">
                   {t(
                     'rulesDirectory.formatsCaveat',
                     'Palloliiton valtakunnalliset oletukset ikäluokittain. Sarja voi poiketa näistä - tarkista oman sarjasi tiedot.',
+                  )}
+                </p>
+                <p className="text-xs text-amber-300/90">
+                  {t(
+                    'rulesDirectory.formatsFutsalOnly',
+                    'Taulukko koskee vain futsalia. Jalkapallon pelimuodot eivät ole täällä; katso sarjasi tiedot.',
                   )}
                 </p>
                 <div className="overflow-x-auto -mx-1 px-1">

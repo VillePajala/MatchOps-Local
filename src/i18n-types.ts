@@ -2330,6 +2330,7 @@ export type TranslationKey =
   | 'rulesDirectory.colTime'
   | 'rulesDirectory.footer'
   | 'rulesDirectory.formatsCaveat'
+  | 'rulesDirectory.formatsFutsalOnly'
   | 'rulesDirectory.formatsSource'
   | 'rulesDirectory.formatsTitle'
   | 'rulesDirectory.futsalFormats'
