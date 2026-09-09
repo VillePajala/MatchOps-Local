@@ -469,7 +469,7 @@ describe('Translation File Validation', () => {
       // +6 net in evidence.*: the player summary lost teamGames/externalGames/
       //     external/subtitle and gained competitions, the three counted words
       //     in both plural forms, and three section labels. Lands at 3168.
-      expect(enKeys.length).toBe(3168);
+      expect(enKeys.length).toBe(3170);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -631,7 +631,7 @@ describe('Translation File Validation', () => {
       // +6 net in evidence.*: the player summary lost teamGames/externalGames/
       //     external/subtitle and gained competitions, the three counted words
       //     in both plural forms, and three section labels. Lands at 3168.
-      expect(fiKeys.length).toBe(3168);
+      expect(fiKeys.length).toBe(3170);
     });
   });
 });

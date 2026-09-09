@@ -509,6 +509,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         playerName: player.name,
         periodLabel,
         games,
+        // The same number the card above shows: one external entry can stand
+        // for several games, so the row count is not the game count.
+        gamesPlayed: playerStats.totalGames,
         stats: playerStats.gameByGameStats,
         competitions,
         notes: playerNotes.filter((n) => scopedIds.has(n.gameId)),

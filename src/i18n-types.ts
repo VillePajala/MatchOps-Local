@@ -2154,6 +2154,8 @@ export type TranslationKey =
   | 'recap.resultLoss'
   | 'recap.resultWin'
   | 'recap.share'
+  | 'recap.staleApply'
+  | 'recap.staleEdits'
   | 'recap.subtitle'
   | 'recap.title'
   | 'recap.unknownPlayer'
