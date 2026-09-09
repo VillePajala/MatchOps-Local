@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "The Rules screen is up to date again. The futsal rulebook now opens Palloliitto's current edition instead of an older one that still loaded, the football rules are labelled with the right year, and the Kaikki Pelaa link is replaced by the official futsal game formats for the 2026-2027 season. The screen also shows when the links were last checked."
+      ],
+      "fi": [
+        "Säännöt-näkymä on taas ajan tasalla. Futsalsäännöt avaavat nyt Palloliiton nykyisen version aiemman, yhä latautuneen tilalle, jalkapallosäännöissä lukee oikea vuosi, ja Kaikki Pelaa -linkin tilalla ovat futsalin viralliset pelimuodot kaudelle 2026-2027. Näkymä kertoo myös, milloin linkit on viimeksi tarkistettu."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "You can now record who wore the captain's armband, per game, in Game Settings. It shows in the game information, it is marked on the squad list you copy into Taso, and a player's statistics say how many games they led."
       ],
       "fi": [

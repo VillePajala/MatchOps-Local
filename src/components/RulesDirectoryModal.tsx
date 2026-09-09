@@ -4,6 +4,8 @@ import React from 'react';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
+import ruleLinks from '@/config/ruleLinks.json';
+import type { TranslationKey } from '@/i18n-types';
 
 interface RulesDirectoryModalProps {
   isOpen: boolean;
@@ -13,21 +15,16 @@ interface RulesDirectoryModalProps {
 /**
  * Official rule document links from Palloliitto.
  *
- * MAINTENANCE NOTE: PDF URLs contain year-specific identifiers and change annually
- * when new rule editions are published (typically each January/February for the new season).
- * Update these links when Palloliitto releases new rule documents.
- *
- * To verify links: Visit https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet
- * and update the PDF URLs from the "Lajisäännöt" section.
+ * The links themselves live in src/config/ruleLinks.json, because a weekly CI
+ * check (scripts/check-rule-links.mjs) reads the same file. Keeping one source
+ * is the point: Palloliitto re-issues a rulebook under a new asset id and keeps
+ * serving the old file, so the way these go wrong is not a broken link but a
+ * working link to a superseded edition. That is invisible to a human reader and
+ * obvious to a check that asks whether the URL is still listed on the index.
  *
  * @see https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet - Main rules page (stable URL)
  */
-const RULE_LINKS = {
-  soccerRules: 'https://www-assets.palloliitto.fi/62562/1767775686-jalkapallosaannot-2026.pdf',
-  futsalRules: 'https://www-assets.palloliitto.fi/62562/1760095939-futsalsaannot-2025-2026.pdf',
-  youthRules: 'https://www-assets.palloliitto.fi/62562/1737814984-1710753804-kaikki-pelaa-ohjelma-2025.pdf',
-  palloliitoAll: 'https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet',
-};
+const RULE_LINKS = ruleLinks.links;
 
 const openLink = (url: string) => {
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -89,27 +86,23 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
 
               {/* Palloliitto Section */}
               <Section title="Palloliitto">
-                <LinkButton
-                  url={RULE_LINKS.soccerRules}
-                  label={t('rulesDirectory.soccerRules', 'Jalkapallosäännöt 2026')}
-                />
-                <LinkButton
-                  url={RULE_LINKS.futsalRules}
-                  label={t('rulesDirectory.futsalRules', 'Futsalsäännöt 2025-2026')}
-                />
-                <LinkButton
-                  url={RULE_LINKS.youthRules}
-                  label={t('rulesDirectory.youthRules', 'Kaikki Pelaa 2025')}
-                />
-                <LinkButton
-                  url={RULE_LINKS.palloliitoAll}
-                  label={t('rulesDirectory.allRules', 'Kaikki säännöt ja määräykset')}
-                />
+                {RULE_LINKS.map((link) => (
+                  <LinkButton
+                    key={link.id}
+                    url={link.url}
+                    label={t(link.labelKey as TranslationKey, link.fallbackLabel)}
+                  />
+                ))}
               </Section>
 
-              {/* Footer info */}
+              {/* Footer info, with the date the links were last verified against
+                  Palloliitto's index - a superseded PDF still opens, so the age
+                  of the check is the only thing that tells a coach how much to
+                  trust what they are about to read. */}
               <p className="text-xs text-slate-500 text-center pt-2">
                 {t('rulesDirectory.footer', 'Linkit avautuvat selaimessa. Säännöt ylläpitää Palloliitto.')}
+                {' '}
+                {t('rulesDirectory.checkedOn', 'Linkit tarkistettu {{date}}.', { date: ruleLinks.checkedOn })}
               </p>
             </div>
           </div>

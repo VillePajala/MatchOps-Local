@@ -1,0 +1,38 @@
+name: Check Rule Links
+
+# The Säännöt modal links Palloliitto's official rulebooks. Palloliitto re-issues
+# them under new asset ids and keeps serving the old file, so the app can sit on
+# a superseded edition indefinitely while every link still works. This asks the
+# question a human will not think to ask: is the document we link still the one
+# Palloliitto publishes?
+#
+# Weekly rather than per-push: the answer only changes when Palloliitto issues a
+# document, and the check talks to someone else's site.
+
+on:
+  schedule:
+    # Mondays 06:00 UTC.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'src/config/ruleLinks.json'
+      - 'scripts/check-rule-links.mjs'
+      - '.github/workflows/check-rule-links.yml'
+
+jobs:
+  check-rule-links:
+    name: Verify Palloliitto rule links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No npm install: the script uses only Node built-ins, so a dependency
+      # problem can never be mistaken for a rules problem.
+      - name: Check rule links
+        run: node scripts/check-rule-links.mjs
