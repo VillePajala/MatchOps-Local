@@ -148,19 +148,26 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
       )}
       {/* Notes are shown, not scored: no tick, no amber, not in the fraction.
           A coach owes nobody an observation about every child in every match. */}
-      {completeness.notesCoverage.total > 0 && (
-        <button
-          type="button"
-          onClick={onOpenNotes}
-          data-testid="wrap-up-notes-line"
-          className="w-full mb-2 px-2 py-1.5 rounded-md text-left text-xs text-slate-400 hover:bg-slate-800/50 transition-colors"
-        >
-          {t('gameStatsModal.wrapUpNotes', 'Notes about players')}{' '}
-          <span className="text-slate-300 font-semibold tabular-nums">
-            {completeness.notesCoverage.done}/{completeness.notesCoverage.total}
-          </span>
-        </button>
-      )}
+      {completeness.notesCoverage.total > 0 && (() => {
+        // A button with nothing behind it invites a tap that does nothing, so
+        // it is only a button when a caller gave it somewhere to go - the same
+        // rule the rows below follow.
+        const Tag = onOpenNotes ? 'button' : 'div';
+        return (
+          <Tag
+            {...(onOpenNotes ? { type: 'button' as const, onClick: onOpenNotes } : {})}
+            data-testid="wrap-up-notes-line"
+            className={`w-full mb-2 px-2 py-1.5 rounded-md text-left text-xs text-slate-400 ${
+              onOpenNotes ? 'hover:bg-slate-800/50 transition-colors' : ''
+            }`}
+          >
+            {t('gameStatsModal.wrapUpNotes', 'Notes about players')}{' '}
+            <span className="text-slate-300 font-semibold tabular-nums">
+              {completeness.notesCoverage.done}/{completeness.notesCoverage.total}
+            </span>
+          </Tag>
+        );
+      })()}
       <ul className="space-y-0.5">
         {rows.map(row => {
           const Tag = row.onClick ? 'button' : 'div';
