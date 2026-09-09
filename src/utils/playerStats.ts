@@ -5,6 +5,27 @@ import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDi
 import { resolveGameResult } from '@/utils/gameResult';
 
 // Define a type for the processed stats
+/**
+ * Whether a game counts for a player's stats in the given scope: played,
+ * friendlies only when opted in, and the team filter ('legacy' = games that
+ * name no team). ONE rule, exported, because the player summary text must
+ * count the same games the stats table shows - a drifting copy of this is
+ * what once put another team's games in a team's totals.
+ */
+export function isGameInPlayerScope(
+  game: { isPlayed?: boolean; isFriendly?: boolean; teamId?: string },
+  teamId?: string | 'legacy',
+  includeFriendlies: boolean = false,
+): boolean {
+  if (game.isPlayed === false) return false;
+  // Friendly/practice games are excluded from a player's competitive career
+  // stats unless the caller opts in (mirrors the stats modal's toggle).
+  if (game.isFriendly === true && !includeFriendlies) return false;
+  if (teamId === 'legacy') return (game.teamId ?? '') === '';
+  if (teamId) return game.teamId === teamId;
+  return true;
+}
+
 export interface PlayerStats {
   totalGames: number;
   totalGoals: number;
@@ -61,22 +82,7 @@ export const calculatePlayerStats = (
   let totalFairPlayCards = 0;
 
   Object.entries(savedGames).forEach(([gameId, game]) => {
-    if (game.isPlayed === false) {
-      return;
-    }
-
-    // Friendly/practice games are excluded from a player's competitive career
-    // stats unless the caller opts in (mirrors the stats modal's toggle).
-    if (game.isFriendly === true && !includeFriendlies) {
-      return;
-    }
-
-    // Filter by team if specified
-    if (teamId === 'legacy') {
-      if ((game.teamId ?? '') !== '') return;
-    } else if (teamId && game.teamId !== teamId) {
-      return;
-    }
+    if (!isGameInPlayerScope(game, teamId, includeFriendlies)) return;
     
     // Check if the player was part of this game's roster
     if (game.selectedPlayerIds?.includes(player.id)) {

@@ -111,6 +111,23 @@
     "noNumber": "-",
     "unknownPlayer": "unknown"
   },
+  "evidence": {
+    "button": "Share player summary",
+    "title": "Player summary",
+    "subtitle": "What this player did in the games you tracked, with dates. Only what was recorded; nothing rated. Copy or share it with whoever should see it.",
+    "games": "Games",
+    "teamGames": "team games",
+    "externalGames": "external games",
+    "goals": "Goals",
+    "assists": "assists",
+    "points": "points",
+    "positions": "Positions",
+    "notes": "Coach notes from the games",
+    "gamesList": "Games",
+    "goalsShort": "g",
+    "assistsShort": "a",
+    "external": "external game"
+  },
   "playingPositions": {
     "gk": {
       "label": "Goalkeeper",
