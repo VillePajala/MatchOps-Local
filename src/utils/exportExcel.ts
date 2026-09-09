@@ -178,13 +178,19 @@ const calculateRecord = (
  * @param tournaments - All tournaments for tournament name resolution (optional)
  * @throws {Error} If Excel generation or download fails
  */
+/** Excel-only switches. `includeAssessments` follows the app setting: off means no ratings sheet, even for old data. */
+export interface ExcelExportOptions {
+  includeAssessments?: boolean;
+}
+
 export const exportCurrentGameExcel = (
   gameId: string,
   game: AppState,
   players: Player[],
   seasons: Season[] = [],
   tournaments: Tournament[] = [],
-  translate: TranslationFn = defaultTranslate
+  translate: TranslationFn = defaultTranslate,
+  options: ExcelExportOptions = {}
 ): void => {
   try {
     const workbook = XLSX.utils.book_new();
@@ -308,8 +314,9 @@ export const exportCurrentGameExcel = (
   const gameInfoSheet = XLSX.utils.json_to_sheet(gameInfo);
   XLSX.utils.book_append_sheet(workbook, gameInfoSheet, translate('export.sheetGameInfo', 'Game Info'));
 
-  // Sheet 4: Assessments (if available)
-  if (game.assessments && Object.keys(game.assessments).length > 0) {
+  // Sheet 4: Assessments (if available and the feature is on)
+  const includeAssessments = options.includeAssessments ?? true;
+  if (includeAssessments && game.assessments && Object.keys(game.assessments).length > 0) {
     const assessedPlayers = selectedPlayers.filter((p) => game.assessments && game.assessments[p.id]);
     const presentDefs = presentMetricDefs(assessedPlayers.map((p) => game.assessments![p.id]));
     const assessmentData = assessedPlayers
@@ -388,7 +395,8 @@ export const exportAggregateExcel = (
   externalAdjustments: PlayerStatAdjustment[] = [],
   contextType?: 'season' | 'tournament' | 'overall',
   contextId?: string,
-  translate: TranslationFn = defaultTranslate
+  translate: TranslationFn = defaultTranslate,
+  options: ExcelExportOptions = {}
 ): void => {
   try {
     const workbook = XLSX.utils.book_new();
@@ -664,7 +672,7 @@ export const exportAggregateExcel = (
     });
   });
 
-  if (assessmentMap.size > 0) {
+  if ((options.includeAssessments ?? true) && assessmentMap.size > 0) {
     const summaryPresentDefs = ASSESSMENT_METRICS.filter(({ id }) =>
       Array.from(assessmentMap.values()).some((s) => (s.metricCounts[id] ?? 0) > 0),
     );
@@ -763,7 +771,8 @@ export const exportPlayerExcel = (
   seasons: Season[] = [],
   tournaments: Tournament[] = [],
   externalAdjustments: PlayerStatAdjustment[] = [],
-  translate: TranslationFn = defaultTranslate
+  translate: TranslationFn = defaultTranslate,
+  options: ExcelExportOptions = {}
 ): void => {
   try {
     const workbook = XLSX.utils.book_new();
@@ -869,7 +878,7 @@ export const exportPlayerExcel = (
       };
     });
 
-  if (assessments.length > 0) {
+  if ((options.includeAssessments ?? true) && assessments.length > 0) {
     const assessmentSheet = XLSX.utils.json_to_sheet(assessments);
     setColumnAsText(assessmentSheet, notesHeader);
     XLSX.utils.book_append_sheet(workbook, assessmentSheet, translate('export.sheetAssessments', 'Assessments'));

@@ -31,12 +31,6 @@ const getScreenshots = (locale: string | undefined) => {
     roster: isEnglish
       ? '/screenshots/MatchOps_v2_roster_en.jpg'
       : '/screenshots/MatchOps_v2_roster_fi.jpg',
-    assessment: isEnglish
-      ? '/screenshots/MatchOps_v2_development_en.jpg'
-      : '/screenshots/MatchOps_v2_development_fi.jpg',
-    trends: isEnglish
-      ? '/screenshots/MatchOps_v2_trends_en.jpg'
-      : '/screenshots/MatchOps_v2_trends_fi.jpg',
     recap: isEnglish
       ? '/screenshots/MatchOps_v2_recap_en.jpg'
       : '/screenshots/MatchOps_v2_recap_fi.jpg',

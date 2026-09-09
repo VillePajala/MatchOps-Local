@@ -70,8 +70,9 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     count: completeness.positions,
     onClick: onOpenPositions,
   });
-  // 0/0 means the feature is off (see computeGameCompleteness): no row, rather
-  // than a permanently unfinished one pointing at a hidden editor.
+  // 0/0 means the feature is off (see computeGameCompleteness), or no squad
+  // yet, which the Squad row already says: no row, rather than a permanently
+  // unfinished one pointing at a hidden editor.
   if (completeness.assessments.total > 0) {
     rows.push({
       key: 'assessments',
