@@ -771,8 +771,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       teamId: saved.teamId,
       playerPositions,
       assessments: saved.assessments,
+      gameEvents,
+      homeScore,
+      awayScore,
     }, { assessmentsEnabled });
-  }, [currentGameId, savedGames, gameNotes, selectedPlayerIds, playerPositions, assessmentsEnabled]);
+  }, [currentGameId, savedGames, gameNotes, selectedPlayerIds, playerPositions, assessmentsEnabled, gameEvents, homeScore, awayScore]);
 
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {
@@ -1322,6 +1325,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       onOpenAssessments={onOpenAssessments}
                       voiceClipCount={voiceClipCount}
                       onOpenVoiceNotes={scrollToInbox}
+                      onAddGoal={onAddGoal}
                       onOpenReport={scrollToReport}
                       onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
                     />
