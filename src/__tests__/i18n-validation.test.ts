@@ -466,7 +466,10 @@ describe('Translation File Validation', () => {
       // +1: noteComposer.transcribing - writing out the recording on the spot.
       // +1: gameStatsModal.wrapUpVoiceNotesDone - the recordings row, once the
       //     clips are written out. Lands at 3162.
-      expect(enKeys.length).toBe(3162);
+      // +6 net in evidence.*: the player summary lost teamGames/externalGames/
+      //     external/subtitle and gained competitions, the three counted words
+      //     in both plural forms, and three section labels. Lands at 3168.
+      expect(enKeys.length).toBe(3170);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -625,7 +628,10 @@ describe('Translation File Validation', () => {
       // +1: noteComposer.transcribing - writing out the recording on the spot.
       // +1: gameStatsModal.wrapUpVoiceNotesDone - the recordings row, once the
       //     clips are written out. Lands at 3162.
-      expect(fiKeys.length).toBe(3162);
+      // +6 net in evidence.*: the player summary lost teamGames/externalGames/
+      //     external/subtitle and gained competitions, the three counted words
+      //     in both plural forms, and three section labels. Lands at 3168.
+      expect(fiKeys.length).toBe(3170);
     });
   });
 });

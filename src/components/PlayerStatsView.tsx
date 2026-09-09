@@ -26,7 +26,7 @@ import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber,
 import MetricTrendChart from './MetricTrendChart';
 import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar';
 import { exportPlayerDevelopmentCard, isCardExportSupported } from '@/utils/export/exportPlayerDevelopmentCard';
-import { buildPlayerEvidence } from '@/utils/playerEvidence';
+import { buildPlayerEvidence, DEFAULT_EVIDENCE_SECTIONS, type EvidenceSections } from '@/utils/playerEvidence';
 import GameRecapModal from '@/components/GameRecapModal';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
@@ -77,6 +77,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [recencyWeighted, setRecencyWeighted] = useState(true);
   const [scope, setScope] = useState<AssessmentScope>('all');
   const [showEvidence, setShowEvidence] = useState(false);
+  // What goes into the summary. The game list is off to begin with: a season of
+  // matches makes it longer than anyone reads, and it is the block a coach
+  // wants least often.
+  const [sections, setSections] = useState<EvidenceSections>(DEFAULT_EVIDENCE_SECTIONS);
   const [assessmentSeason, setAssessmentSeason] = useState<'all' | 'season'>('all');
   // Read live from the shared settings query (same source SettingsModal invalidates)
   // so a change to the rating style / metric template shows without an app reload.
@@ -491,18 +495,31 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         ? `${t('playerStats.periodLabel', 'Period')} ${selectedClubSeason}`
         : t('playerStats.allPeriods', 'All Periods'),
     ].filter(Boolean).join(' · ');
+    // Which leagues and tournaments this was, and what he did in each: the
+    // question a head coach asks straight after "how many games".
+    const competitions = [
+      ...Object.values(playerStats.performanceBySeason),
+      ...Object.values(playerStats.performanceByTournament),
+    ]
+      .filter((c) => c.gamesPlayed > 0)
+      .sort((a, b) => b.gamesPlayed - a.gamesPlayed || a.name.localeCompare(b.name))
+      .map((c) => ({ name: c.name, games: c.gamesPlayed, goals: c.goals, assists: c.assists }));
     return buildPlayerEvidence(
       {
         playerName: player.name,
         periodLabel,
         games,
-        teamGamesInScope: scopedIds.size,
+        // The same number the card above shows: one external entry can stand
+        // for several games, so the row count is not the game count.
+        gamesPlayed: playerStats.totalGames,
         stats: playerStats.gameByGameStats,
+        competitions,
         notes: playerNotes.filter((n) => scopedIds.has(n.gameId)),
+        sections,
       },
-      (key, fallback) => t(key as TranslationKey, fallback) as string,
+      (key, fallback, options) => t(key as TranslationKey, fallback, options) as string,
     );
-  }, [player, playerStats, filteredGamesByClubSeason, includeFriendlies, teamId, teams, selectedClubSeason, playerNotes, t]);
+  }, [player, playerStats, filteredGamesByClubSeason, includeFriendlies, teamId, teams, selectedClubSeason, playerNotes, sections, t]);
 
   // Calculate unfiltered stats to detect if empty state is due to filtering
   const unfilteredPlayerStats: PlayerStatsData | null = useMemo(() => {
@@ -611,7 +628,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           onClose={() => setShowEvidence(false)}
           recap={evidenceText}
           title={t('evidence.title', 'Player summary')}
-          subtitle={t('evidence.subtitle', 'What this player did in the games you tracked, with dates. Only what was recorded; nothing rated. Copy or share it with whoever should see it.')}
+          // The text says what it is; a paragraph above it only repeats itself.
+          subtitle={null}
+          sections={[
+            { key: 'totals', label: t('evidence.sectionTotals', 'Totals'), checked: sections.totals },
+            { key: 'competitions', label: t('evidence.competitions', 'Leagues and tournaments'), checked: sections.competitions },
+            { key: 'notes', label: t('evidence.sectionNotes', 'Notes'), checked: sections.notes },
+            { key: 'games', label: t('evidence.sectionGames', 'Every game'), checked: sections.games },
+          ]}
+          onToggleSection={(key) =>
+            setSections((prev) => ({ ...prev, [key]: !prev[key as keyof EvidenceSections] }))
+          }
         />
 
         {/* Positions played - this player's spread over the current scope */}

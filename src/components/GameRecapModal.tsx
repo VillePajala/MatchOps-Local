@@ -6,14 +6,29 @@ import { HiOutlineShare, HiOutlineClipboardCopy, HiOutlineCheck } from 'react-ic
 import { modalContainerStyle, ModalBackgroundEffects, CollapsibleModalHeader } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 
+/** One switch over what the text contains, for a caller that builds it in parts. */
+export interface RecapSection {
+  key: string;
+  label: string;
+  checked: boolean;
+}
+
 interface GameRecapModalProps {
   /** Header and subtitle; default to the recap's own. The Taso helper reuses this modal. */
   title?: string;
-  subtitle?: string;
+  /** Explicit null means no subtitle at all - some texts explain themselves. */
+  subtitle?: string | null;
   isOpen: boolean;
   onClose: () => void;
   /** The pre-built recap text (see buildGameRecap). */
   recap: string;
+  /**
+   * What the text is made of, when the caller can build it in parts. A season
+   * of matches makes a game list longer than anyone reads, so the coach picks
+   * what belongs in this particular copy.
+   */
+  sections?: RecapSection[];
+  onToggleSection?: (key: string) => void;
 }
 
 /**
@@ -22,15 +37,64 @@ interface GameRecapModalProps {
  * share sheet (no file allowlist issues), with clipboard copy as the fallback.
  * Full-screen, matching the app's other modals (navy theme, no dark backdrop).
  */
-const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap, title, subtitle }) => {
+const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap, title, subtitle, sections, onToggleSection }) => {
   const { t } = useTranslation();
   const heading = title ?? t('recap.title', 'Game recap');
-  const hint = subtitle ?? t('recap.subtitle', 'Ready to paste into the team chat. Edit if you like.');
+  const hint = subtitle === undefined
+    ? t('recap.subtitle', 'Ready to paste into the team chat. Edit if you like.')
+    : subtitle;
   const [text, setText] = useState(recap);
   const [copied, setCopied] = useState(false);
+  /** The generated text the box currently reflects; anything else is the coach's own edit. */
+  const appliedRef = React.useRef(recap);
+  const [stale, setStale] = useState(false);
 
-  // Keep the editable preview in sync when a different game's recap opens.
-  React.useEffect(() => { setText(recap); setCopied(false); }, [recap]);
+  /**
+   * Follow the generated text, unless the coach has written over it.
+   *
+   * Ticking a section rebuilds the text, and simply replacing the box would
+   * throw away whatever they had just written into it without a word. So an
+   * edited box keeps its edit and says the content has changed, with a button
+   * to take the new version when they are ready.
+   */
+  React.useEffect(() => {
+    setCopied(false);
+    setText((current) => {
+      if (current === appliedRef.current) {
+        appliedRef.current = recap;
+        setStale(false);
+        return recap;
+      }
+      setStale(recap !== appliedRef.current);
+      return current;
+    });
+  }, [recap]);
+
+  /**
+   * Opening is always a fresh start.
+   *
+   * The instance outlives one use: the coach can edit a summary, close it,
+   * switch to another player, and open it again. Keeping the edit across that
+   * showed one player's words under another player's name, which is worse than
+   * the lost edit this preservation was added to prevent. So an edit survives
+   * only while the modal stays open.
+   */
+  const wasOpenRef = React.useRef(isOpen);
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      appliedRef.current = recap;
+      setText(recap);
+      setStale(false);
+      setCopied(false);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, recap]);
+
+  const applyGenerated = () => {
+    appliedRef.current = recap;
+    setText(recap);
+    setStale(false);
+  };
 
   if (!isOpen) return null;
 
@@ -73,13 +137,46 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
             onClose={onClose}
             closeLabel={t('common.close', 'Close')}
           >
-            <p className="text-xs text-slate-400 px-6 pb-3 text-center">
-              {hint}
-            </p>
+            {hint && (
+              <p className="text-xs text-slate-400 px-6 pb-3 text-center">
+                {hint}
+              </p>
+            )}
           </CollapsibleModalHeader>
 
           {/* Editable preview with its Copy/Share actions inline beneath it. */}
           <div className="flex-1 min-h-0 px-4 sm:px-6 py-4 flex flex-col gap-3">
+            {sections && sections.length > 0 && (
+              <div className="flex flex-wrap gap-x-4 gap-y-2" data-testid="recap-sections">
+                {sections.map(section => (
+                  <label key={section.key} className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={section.checked}
+                      onChange={() => onToggleSection?.(section.key)}
+                      data-testid={`recap-section-${section.key}`}
+                      className="w-4 h-4 rounded border-slate-500 bg-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {section.label}
+                  </label>
+                ))}
+              </div>
+            )}
+            {stale && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs" data-testid="recap-stale">
+                <span className="flex-1">
+                  {t('recap.staleEdits', 'You have edited this text, so it did not change. Take the new version?')}
+                </span>
+                <button
+                  type="button"
+                  onClick={applyGenerated}
+                  data-testid="recap-apply-generated"
+                  className="shrink-0 px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 font-semibold"
+                >
+                  {t('recap.staleApply', 'Rebuild')}
+                </button>
+              </div>
+            )}
             <textarea
               value={text}
               onChange={e => setText(e.target.value)}

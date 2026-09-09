@@ -42,7 +42,7 @@ describe('GameNoteComposer', () => {
     const onAdd = jest.fn(() => true);
     render(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} />);
     fireEvent.change(screen.getByLabelText('About'), { target: { value: 'p2' } });
-    fireEvent.change(screen.getByLabelText('Write a note'), { target: { value: '  Won the ball back late on.  ' } });
+    fireEvent.change(screen.getByLabelText('Add a note'), { target: { value: '  Won the ball back late on.  ' } });
     fireEvent.click(screen.getByTestId('note-composer-save'));
     expect(onAdd).toHaveBeenCalledWith({
       time: 3000, period: 2, text: 'Won the ball back late on.', entityId: 'p2', source: 'manual',
@@ -52,7 +52,7 @@ describe('GameNoteComposer', () => {
   it('writes a note about the match when no player is chosen', () => {
     const onAdd = jest.fn(() => true);
     render(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} />);
-    fireEvent.change(screen.getByLabelText('Write a note'), { target: { value: 'Sloppy first half.' } });
+    fireEvent.change(screen.getByLabelText('Add a note'), { target: { value: 'Sloppy first half.' } });
     fireEvent.click(screen.getByTestId('note-composer-save'));
     expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ entityId: undefined }));
   });
@@ -61,7 +61,7 @@ describe('GameNoteComposer', () => {
     const onAdd = jest.fn(() => false);
     render(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} />);
     expect(screen.getByTestId('note-composer-save')).toBeDisabled();
-    const box = screen.getByLabelText('Write a note');
+    const box = screen.getByLabelText('Add a note');
     fireEvent.change(box, { target: { value: 'Kept it.' } });
     fireEvent.click(screen.getByTestId('note-composer-save'));
     // Refused by the host (no saved game): the coach's words stay on screen.
@@ -121,7 +121,7 @@ describe('writing out the recording with the coach\'s own provider', () => {
     expect(start).toHaveBeenCalled();
     // The recorder reports its clip after stopping.
     view.rerender(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} dictation={controls({ lastClip: clip })} />);
-    await waitFor(() => expect((screen.getByLabelText('Write a note') as HTMLTextAreaElement).value).toBe('Won the ball back late on.'));
+    await waitFor(() => expect((screen.getByLabelText('Add a note') as HTMLTextAreaElement).value).toBe('Won the ball back late on.'));
     expect(setClipTranscript).toHaveBeenCalledWith('c1', 'Won the ball back late on.', 'u1');
 
     fireEvent.click(screen.getByTestId('note-composer-save'));
@@ -130,13 +130,38 @@ describe('writing out the recording with the coach\'s own provider', () => {
     expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ source: 'dictation' }));
   });
 
+  /**
+   * @critical - the coach said the name out loud; making them find it in a
+   * list again is the friction dictation exists to remove. Same rule the voice
+   * note inbox guesses with, not a second one.
+   */
+  it('fills the picker with the player the words name, and never overrules a choice', async () => {
+    transcribeFn.mockResolvedValue('Emma won the ball back late on.');
+    const props = { players, stamp, onAdd: jest.fn(() => true) };
+    const view = render(<GameNoteComposer {...props} dictation={controls()} />);
+    fireEvent.click(screen.getByTestId('note-composer-record'));
+    view.rerender(<GameNoteComposer {...props} dictation={controls({ lastClip: clip })} />);
+    await waitFor(() => expect((screen.getByLabelText('About') as HTMLSelectElement).value).toBe('p2'));
+
+    // A coach who already picked keeps their pick, whatever the words say.
+    fireEvent.change(screen.getByLabelText('About'), { target: { value: 'p1' } });
+    transcribeFn.mockResolvedValue('Emma again.');
+    view.rerender(<GameNoteComposer {...props} dictation={controls()} />);
+    fireEvent.click(screen.getByTestId('note-composer-record'));
+    view.rerender(<GameNoteComposer {...props} dictation={controls({ lastClip: { id: 'c2', durationMs: 3000 } })} />);
+    await waitFor(() =>
+      expect((screen.getByLabelText('Add a note') as HTMLTextAreaElement).value).toContain('Emma again.'),
+    );
+    expect((screen.getByLabelText('About') as HTMLSelectElement).value).toBe('p1');
+  });
+
   it('leaves the clip in the voice notes when no provider is connected', async () => {
     getTranscriptionEngine.mockReturnValue(null);
     const view = render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls()} />);
     fireEvent.click(screen.getByTestId('note-composer-record'));
     view.rerender(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls({ lastClip: clip })} />);
     await screen.findByTestId('note-composer-recorded');
-    expect((screen.getByLabelText('Write a note') as HTMLTextAreaElement).value).toBe('');
+    expect((screen.getByLabelText('Add a note') as HTMLTextAreaElement).value).toBe('');
   });
 
   /**
@@ -153,7 +178,7 @@ describe('writing out the recording with the coach\'s own provider', () => {
     await screen.findByTestId('note-composer-recorded');
 
     // The coach ignores the hint and types the note instead.
-    fireEvent.change(screen.getByLabelText('Write a note'), { target: { value: 'Typed it out myself.' } });
+    fireEvent.change(screen.getByLabelText('Add a note'), { target: { value: 'Typed it out myself.' } });
     fireEvent.click(screen.getByTestId('note-composer-save'));
     await waitFor(() => expect(onAdd).toHaveBeenCalled());
     expect(onAdd).toHaveBeenCalledWith(expect.objectContaining({ source: 'manual' }));
@@ -163,7 +188,7 @@ describe('writing out the recording with the coach\'s own provider', () => {
   it('saves once however fast the button is tapped', async () => {
     const onAdd = jest.fn(() => true);
     render(<GameNoteComposer players={players} stamp={stamp} onAdd={onAdd} dictation={controls()} />);
-    fireEvent.change(screen.getByLabelText('Write a note'), { target: { value: 'One note.' } });
+    fireEvent.change(screen.getByLabelText('Add a note'), { target: { value: 'One note.' } });
     const button = screen.getByTestId('note-composer-save');
     fireEvent.click(button);
     fireEvent.click(button);
@@ -174,7 +199,7 @@ describe('writing out the recording with the coach\'s own provider', () => {
     render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls({ isRecording: true })} />);
     const button = screen.getByTestId('note-composer-record');
     expect(button).toBeDisabled();
-    expect(button).toHaveTextContent('Say it instead');
+    expect(button).toHaveTextContent('Dictate a note');
   });
 
   /**
@@ -188,10 +213,10 @@ describe('writing out the recording with the coach\'s own provider', () => {
     fireEvent.click(screen.getByTestId('note-composer-record'));
     // Recording starts...
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: true })} />);
-    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Stop recording');
+    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Stop dictating');
     // ...and ends with nothing kept: no clip is ever reported.
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: false })} />);
-    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Say it instead');
+    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Dictate a note');
 
     // Another card records. This one must neither offer to stop it...
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: true })} />);
