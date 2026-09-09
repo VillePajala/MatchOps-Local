@@ -21,6 +21,8 @@ interface GameWrapUpCardProps {
   voiceClipCount?: number;
   /** Opens the goal log, for the two goal rows. */
   onAddGoal?: () => void;
+  /** Opens the notes step, for the notes-coverage row. */
+  onOpenNotes?: () => void;
   onOpenVoiceNotes?: () => void;
 }
 
@@ -32,9 +34,9 @@ type RowStatus = CompletenessRowStatus;
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
-  const progress = completenessProgress(completeness);
+  const progress = completenessProgress(completeness, { voiceClipsPending: voiceClipCount });
 
   interface Row {
     key: string;
@@ -44,11 +46,21 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, completeness
     onClick?: () => void;
   }
 
-  // Voice clips are not part of the record's completeness (audio is transient)
-  // and the model does not know about them, so they are a banner above the
-  // list rather than a row: a row the counter cannot count is the mismatch
-  // this card has now produced twice.
   const rows: Row[] = [];
+  // Unhandled audio is real unfinished work: the clip is deleted after 30 days
+  // and the coach's words go with it. The row appears for a game that has
+  // audio or had some, so a coach who never records collects no free tick, and
+  // it turns green the moment the last clip is written out.
+  if (voiceClipCount > 0 || completeness.dictatedNotes > 0) {
+    rows.push({
+      key: 'voiceNotes',
+      label: voiceClipCount > 0
+        ? t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount })
+        : t('gameStatsModal.wrapUpVoiceNotesDone', 'Voice notes written out'),
+      status: voiceClipCount > 0 ? 'todo' : 'done',
+      onClick: onOpenVoiceNotes,
+    });
+  }
   // Always a row, done or not: the counter counts it, so the list must show
   // it. Hiding it when done left three rows under a "3/4" (owner, 2026-09-09).
   rows.push({
@@ -100,17 +112,6 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, completeness
       onClick: onOpenAssessments,
     });
   }
-  // Who has had nothing written about them. A count and a denominator, never
-  // a ranking: a name here is a fact about the record, not about the child.
-  if (completeness.notesCoverage.total > 0) {
-    rows.push({
-      key: 'notes',
-      label: t('gameStatsModal.wrapUpNotes', 'Players written about'),
-      status: countRowStatus(completeness.notesCoverage),
-      count: completeness.notesCoverage,
-      onClick: onOpenVoiceNotes,
-    });
-  }
   rows.push({
     key: 'competition',
     label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),
@@ -145,16 +146,28 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, completeness
           <ProgressBar current={progress.done} total={progress.total} />
         </div>
       )}
-      {voiceClipCount > 0 && (
-        <button
-          type="button"
-          onClick={onOpenVoiceNotes}
-          data-testid="wrap-up-voice-notes"
-          className="w-full mb-2 px-3 py-2 rounded-md text-left text-sm font-medium bg-amber-500/10 border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 transition-colors"
-        >
-          {t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount })}
-        </button>
-      )}
+      {/* Notes are shown, not scored: no tick, no amber, not in the fraction.
+          A coach owes nobody an observation about every child in every match. */}
+      {completeness.notesCoverage.total > 0 && (() => {
+        // A button with nothing behind it invites a tap that does nothing, so
+        // it is only a button when a caller gave it somewhere to go - the same
+        // rule the rows below follow.
+        const Tag = onOpenNotes ? 'button' : 'div';
+        return (
+          <Tag
+            {...(onOpenNotes ? { type: 'button' as const, onClick: onOpenNotes } : {})}
+            data-testid="wrap-up-notes-line"
+            className={`w-full mb-2 px-2 py-1.5 rounded-md text-left text-xs text-slate-400 ${
+              onOpenNotes ? 'hover:bg-slate-800/50 transition-colors' : ''
+            }`}
+          >
+            {t('gameStatsModal.wrapUpNotes', 'Notes about players')}{' '}
+            <span className="text-slate-300 font-semibold tabular-nums">
+              {completeness.notesCoverage.done}/{completeness.notesCoverage.total}
+            </span>
+          </Tag>
+        );
+      })()}
       <ul className="space-y-0.5">
         {rows.map(row => {
           const Tag = row.onClick ? 'button' : 'div';

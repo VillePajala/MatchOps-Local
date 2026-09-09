@@ -154,6 +154,7 @@ interface TestProps {
   onHomeScoreChange: jest.Mock;
   onAwayScoreChange: jest.Mock;
   onGameNotesChange: jest.Mock;
+  onAddGameNote?: jest.Mock;
   onPlayerPositionsChange?: jest.Mock;
   onAddGoal?: jest.Mock;
   onOpenAssessments?: jest.Mock;
@@ -1070,6 +1071,12 @@ describe('GameStatsModal', () => {
       const box = await screen.findByRole('textbox', { name: i18n.t('taso.title', 'For Taso') });
       expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.lineupTitle', 'Squad for Taso'));
       expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.reportTitle', 'Match report for Taso'));
+    });
+
+    it('offers a way to write a note about a player by hand', async () => {
+      renderComponent({ ...getDefaultProps(), onAddGameNote: jest.fn(() => true) });
+      await screen.findByTestId('finish-game-spine');
+      expect(screen.getByTestId('note-composer')).toBeInTheDocument();
     });
 
     it('omits the positions and assessments steps when their handlers are absent and renumbers', async () => {
