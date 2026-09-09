@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "New in Finish this game: Match report for Taso. The squad with shirt numbers, and the result, half-time score and every goal as minute, scorer and assist, in the order Taso's electronic match report asks for them. Copy and type, instead of recalling."
+      ],
+      "fi": [
+        "Uutta Viimeistele ottelu -näkymässä: Pöytäkirja Tasoon. Kokoonpano pelinumeroineen sekä tulos, puoliaikatulos ja jokainen maali minuutteineen, tekijöineen ja syöttäjineen siinä järjestyksessä kuin Tason sähköinen pöytäkirja ne kysyy. Kopioi ja kirjoita, muistelun sijaan."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "Finish this game: the checklist now always shows the squad row, ticked when done, so the rows and the count agree."
       ],
       "fi": [
