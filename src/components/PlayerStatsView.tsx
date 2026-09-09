@@ -26,6 +26,8 @@ import { ASSESSMENT_MAX, RATING_STYLE_MAX, ratingBandLevel, ratingDisplayNumber,
 import MetricTrendChart from './MetricTrendChart';
 import PlayerDevelopmentRadar, { type RadarAxis } from './PlayerDevelopmentRadar';
 import { exportPlayerDevelopmentCard, isCardExportSupported } from '@/utils/export/exportPlayerDevelopmentCard';
+import { buildPlayerEvidence } from '@/utils/playerEvidence';
+import GameRecapModal from '@/components/GameRecapModal';
 import MetricAreaChart from './MetricAreaChart';
 import { computePositionDiversity } from '@/utils/positionDiversity';
 import { POSITION_IDS } from '@/config/positions';
@@ -74,6 +76,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
   const [recencyWeighted, setRecencyWeighted] = useState(true);
   const [scope, setScope] = useState<AssessmentScope>('all');
+  const [showEvidence, setShowEvidence] = useState(false);
   const [assessmentSeason, setAssessmentSeason] = useState<'all' | 'season'>('all');
   // Read live from the shared settings query (same source SettingsModal invalidates)
   // so a change to the rating style / metric template shows without an app reload.
@@ -453,6 +456,55 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     );
   }, [player, filteredGamesByClubSeason]);
 
+  /**
+   * The match evidence text: this player, this scope, all fact. Built from the
+   * same stats and the same filtered games the view shows, so the page a coach
+   * hands over cannot disagree with the screen it came from.
+   */
+  const evidenceText = useMemo(() => {
+    if (!player || !playerStats) return '';
+    const inScope = (g: AppState) => {
+      if (g.isPlayed === false) return false;
+      if (!includeFriendlies && g.isFriendly) return false;
+      if (teamId === 'legacy') return !g.teamId;
+      if (teamId) return g.teamId === teamId;
+      return true;
+    };
+    const scopedIds = new Set(Object.entries(filteredGamesByClubSeason).filter(([, g]) => inScope(g)).map(([id]) => id));
+    const games = playerStats.gameByGameStats
+      .filter((s) => !s.isExternal && filteredGamesByClubSeason[s.gameId])
+      .map((s) => {
+        const g = filteredGamesByClubSeason[s.gameId];
+        return {
+          gameId: s.gameId,
+          gameDate: g.gameDate ?? '',
+          opponentName: g.opponentName ?? '',
+          homeOrAway: g.homeOrAway ?? 'home',
+          homeScore: g.homeScore ?? 0,
+          awayScore: g.awayScore ?? 0,
+          positions: g.playerPositions?.[player.id] ?? [],
+        };
+      });
+    const teamName = teamId && teamId !== 'legacy' ? teams.find((x) => x.id === teamId)?.name : undefined;
+    const periodLabel = [
+      teamName,
+      selectedClubSeason !== 'all'
+        ? `${t('playerStats.periodLabel', 'Period')} ${selectedClubSeason}`
+        : t('playerStats.allPeriods', 'All Periods'),
+    ].filter(Boolean).join(' · ');
+    return buildPlayerEvidence(
+      {
+        playerName: player.name,
+        periodLabel,
+        games,
+        teamGamesInScope: scopedIds.size,
+        stats: playerStats.gameByGameStats,
+        notes: playerNotes.filter((n) => scopedIds.has(n.gameId)),
+      },
+      (key, fallback) => t(key as TranslationKey, fallback) as string,
+    );
+  }, [player, playerStats, filteredGamesByClubSeason, includeFriendlies, teamId, teams, selectedClubSeason, playerNotes, t]);
+
   // Calculate unfiltered stats to detect if empty state is due to filtering
   const unfilteredPlayerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
@@ -543,7 +595,25 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <p className="text-xs text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
             </div>
           </div>
+          {/* The case file: what this player did, dated, for a coach who was
+              not there. Fact only, so it lives next to the numbers, not the
+              ratings. */}
+          <button
+            type="button"
+            onClick={() => setShowEvidence(true)}
+            data-testid="player-evidence"
+            className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-100"
+          >
+            {t('evidence.button', 'Match evidence to share')}
+          </button>
         </div>
+        <GameRecapModal
+          isOpen={showEvidence}
+          onClose={() => setShowEvidence(false)}
+          recap={evidenceText}
+          title={t('evidence.title', 'Match evidence')}
+          subtitle={t('evidence.subtitle', 'What this player did in the games you tracked, with dates. Only what was recorded; nothing rated. Copy or share it with whoever should see it.')}
+        />
 
         {/* Positions played - this player's spread over the current scope */}
         {positionSummary && (
