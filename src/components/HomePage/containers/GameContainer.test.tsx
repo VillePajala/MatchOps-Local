@@ -4,6 +4,8 @@
  * Validates GameContainer rendering paths and VM parity before extraction.
  */
 import { render, screen } from '@testing-library/react';
+// The assessment setting is on here: these tests assert the handlers are wired.
+jest.mock('@/hooks/useAssessmentsEnabled', () => ({ useAssessmentsEnabled: () => true }));
 import React from 'react';
 import { GameContainer } from './GameContainer';
 import { TestFixtures } from '../../../../tests/fixtures';

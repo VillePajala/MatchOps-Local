@@ -134,6 +134,25 @@ describe('<SettingsModal />', () => {
     }
   });
 
+  /**
+   * @critical - owner decision 2026-09-09: the rating feature is off by
+   * default and its two selects only appear once it is switched on.
+   */
+  test('player assessments are off by default and reveal their options when switched on', async () => {
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+    await waitFor(() => expect(document.getElementById('assessments-enabled-toggle')).toBeInTheDocument());
+    const toggle = document.getElementById('assessments-enabled-toggle') as HTMLInputElement;
+    expect(toggle).not.toBeChecked();
+    expect(document.getElementById('assessment-rating-style-select')).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(document.getElementById('assessment-rating-style-select')).toBeInTheDocument());
+    expect(document.getElementById('assessment-template-select')).toBeInTheDocument();
+  });
+
   test('renders when open', () => {
     render(
       <TestWrapper>

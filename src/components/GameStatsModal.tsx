@@ -331,6 +331,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const clubSeasonStartDate = settings?.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE;
   const clubSeasonEndDate = settings?.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE;
   const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
+  // Off by default (owner decision 2026-09-09). One value feeds the spine step,
+  // the checklist, the team card and the player view, so they cannot disagree.
+  const assessmentsEnabled = settings?.assessmentsEnabled ?? false;
 
   // Player pool for Player tab search: prefer full master roster; fall back to current game's available players
   const playerPool: Player[] = useMemo(() => {
@@ -563,6 +566,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Tab counter memoized for performance
   // Calculate team assessment averages (applying same filters as overallTeamStats)
   const teamAssessmentAverages = useMemo(() => {
+    // Nothing reads these while the feature is off; skip the walk over every game.
+    if (!assessmentsEnabled) return null;
     if (activeTab !== 'overall') return null;
     // Apply same filters as overallTeamStats for consistency
     const filteredGames: SavedGamesCollection = {};
@@ -586,7 +591,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       filteredGames[id] = game;
     });
     return calculateTeamAssessmentAverages(filteredGames);
-  }, [activeTab, savedGames, includeFriendlies, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, includeFriendlies, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, assessmentsEnabled]);
 
   // Sorted goals for current game
   const sortedGoals = useMemo(() => {
@@ -745,8 +750,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       teamId: saved.teamId,
       playerPositions,
       assessments: saved.assessments,
-    });
-  }, [currentGameId, savedGames, gameNotes, selectedPlayerIds, playerPositions]);
+    }, { assessmentsEnabled });
+  }, [currentGameId, savedGames, gameNotes, selectedPlayerIds, playerPositions, assessmentsEnabled]);
 
   // --- Handlers ---
   const handleSaveNotes = useCallback(() => {
@@ -1056,7 +1061,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         </>
       ),
     });
-    if (onOpenAssessments && currentGameCompleteness?.applicable) {
+    if (assessmentsEnabled && onOpenAssessments && currentGameCompleteness?.applicable) {
       spineSteps.push({
         key: 'assessments',
         content: (
@@ -1223,6 +1228,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 selectedGenderFilter={selectedGenderFilter}
                 includeFriendlies={includeFriendlies}
                 teams={teams}
+                assessmentsEnabled={assessmentsEnabled}
               />
             </div>
           ) : (
@@ -1323,7 +1329,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         goalsAgainst={overallTeamStats.goalsAgainst}
                         averageGoalsFor={overallTeamStats.averageGoalsFor}
                         averageGoalsAgainst={overallTeamStats.averageGoalsAgainst}
-                        teamAssessmentAverages={teamAssessmentAverages}
+                        teamAssessmentAverages={assessmentsEnabled ? teamAssessmentAverages : null}
                         ratingStyle={settings?.assessmentRatingStyle ?? 'words'}
                       />
                     )}

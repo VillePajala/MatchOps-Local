@@ -82,18 +82,27 @@ export function completenessProgress(c: GameCompleteness): { done: number; total
     // list underneath still showed the row outstanding.
     c.competition && c.team,
     countRowStatus(c.positions) !== 'todo',
-    countRowStatus(c.assessments) !== 'todo',
+    // 0/0 = the assessment feature is off (or no squad, which the roster item
+    // already counts): not an item, or the bar could never reach the end.
+    ...(c.assessments.total > 0 ? [countRowStatus(c.assessments) !== 'todo'] : []),
   ];
   return { done: items.filter(Boolean).length, total: items.length };
 }
 
-export function computeGameCompleteness(game: CompletenessGame): GameCompleteness {
+export interface CompletenessOptions {
+  /** When the assessment feature is off, assessments report 0/0 and never count
+      toward enrichment or progress - the wrap-up card then drops the row. */
+  assessmentsEnabled?: boolean;
+}
+
+export function computeGameCompleteness(game: CompletenessGame, options: CompletenessOptions = {}): GameCompleteness {
+  const assessmentsEnabled = options.assessmentsEnabled ?? true;
   const applicable = game.isPlayed !== false;
 
   const squad = game.selectedPlayerIds ?? [];
   const total = squad.length;
   const positionsDone = squad.filter(id => (game.playerPositions?.[id]?.length ?? 0) > 0).length;
-  const assessmentsDone = squad.filter(id => !!game.assessments?.[id]).length;
+  const assessmentsDone = assessmentsEnabled ? squad.filter(id => !!game.assessments?.[id]).length : 0;
 
   const report = nonEmpty(game.gameNotes);
   const roster = total > 0;
@@ -101,10 +110,10 @@ export function computeGameCompleteness(game: CompletenessGame): GameCompletenes
   const team = nonEmpty(game.teamId);
 
   const positions: CountCheck = { done: positionsDone, total };
-  const assessments: CountCheck = { done: assessmentsDone, total };
+  const assessments: CountCheck = assessmentsEnabled ? { done: assessmentsDone, total } : { done: 0, total: 0 };
 
   const coreComplete = report && roster;
-  const enriched = coreComplete && competition && team && positionsDone > 0 && assessmentsDone > 0;
+  const enriched = coreComplete && competition && team && positionsDone > 0 && (!assessmentsEnabled || assessmentsDone > 0);
 
   const anyProgress = report || competition || team || positionsDone > 0 || assessmentsDone > 0;
   const overall: GameCompleteness['overall'] = !applicable

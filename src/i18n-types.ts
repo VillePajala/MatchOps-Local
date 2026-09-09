@@ -2373,6 +2373,8 @@ export type TranslationKey =
   | 'settingsModal.assessmentTemplateHint'
   | 'settingsModal.assessmentTemplateLabel'
   | 'settingsModal.assessmentTemplateLight6'
+  | 'settingsModal.assessmentsEnabledHint'
+  | 'settingsModal.assessmentsEnabledLabel'
   | 'settingsModal.autoCalculated'
   | 'settingsModal.backupButton'
   | 'settingsModal.backupCardDesc'

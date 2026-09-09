@@ -354,6 +354,17 @@ describe('Excel Export Utilities', () => {
      * Tests handling games without assessments
      * @edge-case - Optional data handling
      */
+    /** Off in settings means no ratings sheet, even when old ratings exist. */
+    it('omits the Assessments sheet when includeAssessments is false', () => {
+      const rated = { ...mockGame, assessments: { player1: { overall: 7, sliders: {}, notes: '', minutesPlayed: 60, createdAt: 1, createdBy: 'c' } } } as unknown as typeof mockGame;
+      exportCurrentGameExcel(mockGameId, rated, mockPlayers, mockSeasons, mockTournaments);
+      const withSheet = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(withSheet.SheetNames).toContain('Assessments');
+      exportCurrentGameExcel(mockGameId, rated, mockPlayers, mockSeasons, mockTournaments, undefined, { includeAssessments: false });
+      const without = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(without.SheetNames).not.toContain('Assessments');
+    });
+
     it('should handle games without assessments gracefully', () => {
       const gameWithoutAssessments = { ...mockGame, assessments: undefined };
 
@@ -443,6 +454,17 @@ describe('Excel Export Utilities', () => {
      * Tests calculateRecord function excludes unplayed games
      * @critical - Validates isPlayed filtering logic
      */
+    /** Off in settings means no ratings sheet, even when old ratings exist. */
+    it('omits the Assessments Summary sheet when includeAssessments is false', () => {
+      const rated = { ...mockGames, game1: { ...mockGames.game1, availablePlayers: [{ id: 'player1', name: 'John Doe', jerseyNumber: '10' }], assessments: { player1: { overall: 7, sliders: {}, notes: '', minutesPlayed: 60, createdAt: 1, createdBy: 'c' } } } } as unknown as SavedGamesCollection;
+      exportAggregateExcel(rated, mockAggregateStats, [], [], []);
+      const withSheet = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(withSheet.SheetNames).toContain('Assessments Summary');
+      exportAggregateExcel(rated, mockAggregateStats, [], [], [], undefined, undefined, undefined, { includeAssessments: false });
+      const without = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(without.SheetNames).not.toContain('Assessments Summary');
+    });
+
     it('should exclude unplayed games from win/loss record', () => {
       exportAggregateExcel(mockGames, mockAggregateStats, [], [], []);
 
@@ -613,6 +635,17 @@ describe('Excel Export Utilities', () => {
      * NOT re-add the deltas, or the exported numbers double-count.
      * @edge-case
      */
+    /** Off in settings means no ratings sheet, even when old ratings exist. */
+    it('omits the Assessments sheet when includeAssessments is false', () => {
+      const rated = { ...mockGames, game1: { ...mockGames.game1, assessments: { player1: { overall: 7, sliders: {}, notes: '', minutesPlayed: 60, createdAt: 1, createdBy: 'c' } } } } as unknown as SavedGamesCollection;
+      exportPlayerExcel(mockPlayerId, mockPlayerData, rated, [], [], []);
+      const withSheet = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(withSheet.SheetNames).toContain('Assessments');
+      exportPlayerExcel(mockPlayerId, mockPlayerData, rated, [], [], [], undefined, { includeAssessments: false });
+      const without = (XLSX.utils.book_new as jest.Mock).mock.results.at(-1)!.value;
+      expect(without.SheetNames).not.toContain('Assessments');
+    });
+
     it('does not double-count external adjustments in the Player Summary', () => {
       const externalAdjustments: PlayerStatAdjustment[] = [{
         id: 'adj1',

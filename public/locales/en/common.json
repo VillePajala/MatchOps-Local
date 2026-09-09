@@ -1254,7 +1254,7 @@
     "clearDrawingsTip": "Clear drawings:",
     "closeToolsTip": "Exit tools:",
     "gameSettingsTip": "Edit match details",
-    "assessPlayersTip": "Finish the game: goals, notes, positions, match report and player assessments",
+    "assessPlayersTip": "Finish the game: match report, positions played and stats",
     "backHomeTip": "Return to the Home screen (Koti) — the phone back button does the same"
   },
   "seasonTournamentModal": {
@@ -1656,6 +1656,8 @@
     },
     "languageLabel": "Language",
     "defaultTeamNameLabel": "Default Team Name",
+    "assessmentsEnabledLabel": "Player assessments",
+    "assessmentsEnabledHint": "Rate players after each game on a set of qualities. Off by default. Ratings you have already made are kept either way.",
     "assessmentRatingStyleLabel": "Assessment rating style",
     "assessmentRatingStyleHint": "How player ratings are shown and entered. Switching is safe - existing ratings are kept.",
     "assessmentRatingStyleWords": "Words (5 levels)",

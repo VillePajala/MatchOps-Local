@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useAssessmentsEnabled } from '@/hooks/useAssessmentsEnabled';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import PlayerBar from '@/components/PlayerBar';
 import GameInfoBar from '@/components/GameInfoBar';
@@ -43,6 +44,7 @@ export function GameContainer({
   controlBarProps,
 }: GameContainerProps) {
   const { t } = useTranslation();
+  const assessmentsEnabled = useAssessmentsEnabled();
 
   return (
     <main className="flex flex-col h-full min-h-[100svh] bg-slate-900 text-slate-50" data-testid="home-page">
@@ -83,7 +85,10 @@ export function GameContainer({
       <div className={barStyle}>
         {/* 3.1: the planner entry left the match menu (reachability: it
             lives on Home/Pelit - it creates games). */}
-        <ControlBar {...controlBarProps} />
+        <ControlBar
+          {...controlBarProps}
+          onOpenPlayerAssessmentModal={assessmentsEnabled ? controlBarProps.onOpenPlayerAssessmentModal : undefined}
+        />
       </div>
 
       {/* Safe area bottom cover - rendered via portal to same stacking context as FormationPicker.

@@ -31,12 +31,6 @@ const getScreenshots = (locale: string | undefined) => {
     roster: isEnglish
       ? '/screenshots/MatchOps_v2_roster_en.jpg'
       : '/screenshots/MatchOps_v2_roster_fi.jpg',
-    assessment: isEnglish
-      ? '/screenshots/MatchOps_v2_development_en.jpg'
-      : '/screenshots/MatchOps_v2_development_fi.jpg',
-    trends: isEnglish
-      ? '/screenshots/MatchOps_v2_trends_en.jpg'
-      : '/screenshots/MatchOps_v2_trends_fi.jpg',
     recap: isEnglish
       ? '/screenshots/MatchOps_v2_recap_en.jpg'
       : '/screenshots/MatchOps_v2_recap_fi.jpg',
@@ -442,7 +436,6 @@ export default function HomePage() {
             {[
               { key: 'planner', screenshot: screenshots.planner },
               { key: 'positionBalance', screenshot: screenshots.positionBalance },
-              { key: 'development', screenshot: screenshots.assessment },
             ].map((s, i) => (
               <div
                 key={s.key}
@@ -483,7 +476,6 @@ export default function HomePage() {
                 { key: 'recap', screenshot: screenshots.recap },
               ] },
               { band: 'development', cards: [
-                { key: 'trends', screenshot: screenshots.trends },
                 { key: 'positions', screenshot: screenshots.positions },
                 { key: 'matchReport', screenshot: screenshots.matchReport },
               ] },
