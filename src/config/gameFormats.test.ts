@@ -48,7 +48,8 @@ describe('gameFormats data matches the published source', () => {
    */
   it('every value appears verbatim in the extracted source', () => {
     for (const f of GAME_FORMATS) {
-      const spaced = f.fieldSize.split('').join(' ').replace(/ v /, ' v ');
+      // The PDF's text layer spaces the format out ("3 v 3"); accept either.
+      const spaced = f.fieldSize.split('').join(' ');
       expect(
         evidenceText.includes(f.fieldSize) || evidenceText.includes(spaced),
       ).toBe(true);

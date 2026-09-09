@@ -204,6 +204,24 @@ describe('RulesDirectoryModal', () => {
   });
 
   /**
+   * @critical - the per-age rule notes are where the rules actually DIFFER by
+   * age (back-pass not in force, restarts by passing, keeper's release). A
+   * table of sizes without them looks complete while omitting the part a coach
+   * is most likely to get wrong.
+   */
+  it('shows the per-age rule notes, not just the measurements', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    const table = screen.getByTestId('formats-table');
+    const withNotes = GAME_FORMATS.filter((f) => f.notes.length > 0);
+    expect(withNotes.length).toBe(GAME_FORMATS.length);
+    for (const f of withNotes) {
+      expect(within(table).getAllByText(f.notes.join(' · ')).length).toBeGreaterThan(0);
+    }
+    // The one that catches people out: no back-pass rule in the young ages.
+    expect(within(table).getAllByText(/palautussääntö ei voimassa/).length).toBeGreaterThan(0);
+  });
+
+  /**
    * @critical - these are NATIONAL DEFAULTS. A series may deviate, and its own
    * rules are not available to the app. Dropping this sentence would turn a
    * helpful table into the app confidently stating the wrong period length.
