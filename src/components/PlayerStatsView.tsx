@@ -60,9 +60,11 @@ interface PlayerStatsViewProps {
    * way the app can tell it apart from a game played for somebody else.
    */
   teams?: Team[];
+  /** Off hides the development report even where ratings exist (default true for callers that predate the setting). */
+  assessmentsEnabled?: boolean;
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster, teams = [] }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all', includeFriendlies = false, masterRoster, teams = [] , assessmentsEnabled = true }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const { userId } = useDataStore();
@@ -1307,7 +1309,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         </div>
       </div>
 
-      {hasAnyAssessment && (
+      {assessmentsEnabled && hasAnyAssessment && (
         <div className="mt-6">
           <button
             type="button"

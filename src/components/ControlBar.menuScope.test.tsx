@@ -231,6 +231,16 @@ describe('finishing progress on the menu row', () => {
   });
 });
 
+describe('assessments setting', () => {
+  /** Off by default (owner, 2026-09-09): no handler from the host, no item in the menu. */
+  it('shows no Assess Players item when no handler is given', () => {
+    renderBar({ onOpenPlayerAssessmentModal: undefined });
+    fireEvent.click(screen.getByLabelText(/^Menu$/i));
+    expect(screen.queryByRole('button', { name: 'Assess Players' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Match details' })).toBeInTheDocument();
+  });
+});
+
 describe('formation wiring', () => {
   /**
    * @critical - Review #734: the tour-tracking bug shipped twice because

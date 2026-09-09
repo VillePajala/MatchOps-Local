@@ -112,3 +112,16 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.getByText('Needs finishing')).toBeInTheDocument();
   });
 });
+
+describe('assessments setting', () => {
+  /** A 0/0 row would sit forever unfinished, pointing at a hidden editor. */
+  it('drops the assessments row when the model reports 0/0', () => {
+    const off = computeGameCompleteness(
+      { isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '', teamId: '', playerPositions: {}, assessments: {} },
+      { assessmentsEnabled: false },
+    );
+    render(<GameWrapUpCard completeness={off} onOpenAssessments={jest.fn()} />);
+    expect(screen.queryByText('Player assessments')).not.toBeInTheDocument();
+    expect(screen.getByText('Positions played')).toBeInTheDocument();
+  });
+});

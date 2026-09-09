@@ -96,7 +96,8 @@ interface ControlBarProps {
   isGameLoaded: boolean;
   /** Finishing progress for the current game, or null when it does not apply. */
   finishProgress?: { done: number; total: number } | null;
-  onOpenPlayerAssessmentModal: () => void;
+  /** Absent when the assessment feature is switched off in settings. */
+  onOpenPlayerAssessmentModal?: () => void;
   /** W10 (menu watchpoint, restored on proven friction day one): quick
    *  access to the planner right after creating/entering a game. Opens the
    *  HOST planner over the match. */
@@ -566,13 +567,15 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
             >
               <HiOutlineAdjustmentsHorizontal className="w-5 h-5 mr-2" /> {t('controlBar.gameSettingsButton', 'Match details')}
             </button>
-            <button
-              onClick={wrapModal(onOpenPlayerAssessmentModal)}
-              className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              title={t('instructionsModal.controlBar.assessPlayers')}
-            >
-              <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
-            </button>
+            {onOpenPlayerAssessmentModal && (
+              <button
+                onClick={wrapModal(onOpenPlayerAssessmentModal)}
+                className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                title={t('instructionsModal.controlBar.assessPlayers')}
+              >
+                <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
+              </button>
+            )}
             <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineClipboardDocumentCheck className="w-5 h-5 mr-2" />
               {t('controlBar.gameReport', 'Finish this game')}
