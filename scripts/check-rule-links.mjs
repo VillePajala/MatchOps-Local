@@ -19,11 +19,13 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CONFIG = join(here, '..', 'src', 'config', 'ruleLinks.json');
+const FORMATS = join(here, '..', 'src', 'config', 'gameFormats.json');
 
 // Palloliitto's CDN and site both 403 a bare fetch; this is a plain desktop UA,
 // not an attempt to look like anything we are not.
@@ -127,20 +129,66 @@ export async function checkRuleLinks(config, fetchImpl = fetch) {
   return { problems, notes };
 }
 
+/**
+ * The game formats were transcribed from a specific revision of a PDF. If
+ * Palloliitto reissues it, the numbers in the app may now be wrong while every
+ * link still works and every test still passes - the transcription is checked
+ * against our own evidence file, not against the live document. Only the hash
+ * can notice that, which is why it is checked here rather than in a unit test.
+ */
+export async function checkFormatsSource(formats, fetchImpl = fetch) {
+  const problems = [];
+  const notes = [];
+  const { url, sha256, season, sport } = formats.source;
+  try {
+    const res = await fetchImpl(url, { redirect: 'follow', headers: { 'User-Agent': UA } });
+    if (!res.ok) {
+      problems.push(`game formats source returned HTTP ${res.status}: ${url}`);
+      return { problems, notes };
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    const digest = createHash('sha256').update(buf).digest('hex');
+    if (digest === sha256) {
+      notes.push(`game formats source unchanged (${sport} ${season})`);
+    } else {
+      problems.push(
+        `game formats source has been reissued: ${url}\n` +
+          `      recorded sha256 ${sha256}\n` +
+          `      current  sha256 ${digest}\n` +
+          `      The transcribed numbers in src/config/gameFormats.json may no longer match the ` +
+          `published table. Re-extract, update gameFormats.source.txt and the sha256, and re-run.`,
+      );
+    }
+  } catch (err) {
+    problems.push(`game formats source could not be fetched (${err.message}): ${url}`);
+  }
+  return { problems, notes };
+}
+
 async function main() {
   const config = JSON.parse(await readFile(CONFIG, 'utf8'));
-  const { problems, notes } = await checkRuleLinks(config);
+  const formats = JSON.parse(await readFile(FORMATS, 'utf8'));
+  const linkResult = await checkRuleLinks(config);
+  const formatResult = await checkFormatsSource(formats);
+  const problems = [...linkResult.problems, ...formatResult.problems];
+  const notes = [...linkResult.notes, ...formatResult.notes];
 
   for (const note of notes) console.log(`  ${note}`);
 
   if (problems.length === 0) {
-    console.log(`\nAll ${config.links.length} rule links are current (last human check: ${config.checkedOn}).`);
+    console.log(
+      `\nAll ${config.links.length} rule links are current and the game formats source is unchanged ` +
+        `(last human check: ${config.checkedOn}).`,
+    );
     process.exit(0);
   }
 
   console.error(`\n${problems.length} problem(s) with the rule links:\n`);
   for (const p of problems) console.error(`  - ${p}`);
-  console.error('\nFix by editing src/config/ruleLinks.json, then update its checkedOn date.\n');
+  console.error(
+    '\nFix by editing src/config/ruleLinks.json (and re-extracting gameFormats if the source ' +
+      'was reissued), then update the checkedOn date.\n',
+  );
   process.exit(1);
 }
 

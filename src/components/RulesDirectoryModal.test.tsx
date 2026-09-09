@@ -1,9 +1,10 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import RulesDirectoryModal from './RulesDirectoryModal';
 import ruleLinks from '@/config/ruleLinks.json';
+import { GAME_FORMATS, GAME_FORMATS_SOURCE } from '@/config/gameFormats';
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
@@ -183,6 +184,67 @@ describe('RulesDirectoryModal', () => {
       '_blank',
       'noopener,noreferrer'
     );
+  });
+
+  /**
+   * @critical - the screen exists to answer "what applies to my age group",
+   * and the numbers must be the transcribed ones, not a hand-typed copy that
+   * can drift from the source the test suite verifies.
+   */
+  it('shows every age band from the official formats table', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    const table = screen.getByTestId('formats-table');
+    for (const f of GAME_FORMATS) {
+      expect(within(table).getByText(f.sourceLabel)).toBeInTheDocument();
+      // getAllBy: several bands legitimately share a playing time.
+      expect(within(table).getAllByText(f.playingTimeText).length).toBeGreaterThan(0);
+    }
+    // The formats a coach is most likely to be surprised by this season.
+    expect(within(table).getAllByText('4v4').length).toBe(2);
+  });
+
+  /**
+   * @critical - the per-age rule notes are where the rules actually DIFFER by
+   * age (back-pass not in force, restarts by passing, keeper's release). A
+   * table of sizes without them looks complete while omitting the part a coach
+   * is most likely to get wrong.
+   */
+  it('shows the per-age rule notes, not just the measurements', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    const table = screen.getByTestId('formats-table');
+    const withNotes = GAME_FORMATS.filter((f) => f.notes.length > 0);
+    expect(withNotes.length).toBe(GAME_FORMATS.length);
+    for (const f of withNotes) {
+      expect(within(table).getAllByText(f.notes.join(' · ')).length).toBeGreaterThan(0);
+    }
+    // The one that catches people out: no back-pass rule in the young ages.
+    expect(within(table).getAllByText(/palautussääntö ei voimassa/).length).toBeGreaterThan(0);
+  });
+
+  /**
+   * @critical - these are NATIONAL DEFAULTS. A series may deviate, and its own
+   * rules are not available to the app. Dropping this sentence would turn a
+   * helpful table into the app confidently stating the wrong period length.
+   */
+  it('says the formats are national defaults that a series may differ from', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    // This modal's fallbacks are Finnish, like its title and footer.
+    expect(screen.getByText(/valtakunnalliset oletukset ikäluokittain/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sarja voi poiketa näistä/i)).toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the table is futsal-only and most coaches here play football.
+   * A generic "game formats" heading would invite a football coach to read
+   * futsal's 4v4 as their own, which is the same class of confidently-wrong
+   * answer the national-defaults caveat exists to prevent.
+   */
+  it('names the sport and season it covers, and says football is not included', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    // Heading names the sport and season, and is NOT identical to the link
+    // to the same PDF below it.
+    expect(screen.getByRole('heading', { name: `Pelimuodot - futsal ${GAME_FORMATS_SOURCE.season}` })).toBeInTheDocument();
+    expect(screen.getByText(/vain futsalia/i)).toBeInTheDocument();
   });
 
   /**

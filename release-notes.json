@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "The Rules screen now answers the question instead of just linking to it. It shows Palloliitto's official futsal formats for every age group: players per side, playing time, court size and ball, straight from the official table. The rulebook links are still there underneath. The formats are the national defaults, and the screen says so, because your own series is allowed to differ."
+      ],
+      "fi": [
+        "Säännöt-näkymä vastaa nyt kysymykseen sen sijaan että vain linkittäisi siihen. Se näyttää Palloliiton viralliset futsalin pelimuodot jokaiselle ikäluokalle: pelaajamäärän, peliajan, kentän koon ja pallon, suoraan virallisesta taulukosta. Sääntökirjojen linkit ovat edelleen alla. Pelimuodot ovat valtakunnallisia oletuksia, ja näkymä kertoo sen, koska oma sarjasi voi poiketa niistä."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "Rules moved out of the settings gear and onto the Club tab, next to Coaching Materials, so you can find it by looking rather than by remembering where it was."
       ],
       "fi": [
