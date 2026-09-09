@@ -442,7 +442,6 @@ export default function HomePage() {
             {[
               { key: 'planner', screenshot: screenshots.planner },
               { key: 'positionBalance', screenshot: screenshots.positionBalance },
-              { key: 'development', screenshot: screenshots.assessment },
             ].map((s, i) => (
               <div
                 key={s.key}
@@ -483,7 +482,6 @@ export default function HomePage() {
                 { key: 'recap', screenshot: screenshots.recap },
               ] },
               { band: 'development', cards: [
-                { key: 'trends', screenshot: screenshots.trends },
                 { key: 'positions', screenshot: screenshots.positions },
                 { key: 'matchReport', screenshot: screenshots.matchReport },
               ] },

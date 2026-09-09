@@ -70,13 +70,17 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     count: completeness.positions,
     onClick: onOpenPositions,
   });
-  rows.push({
-    key: 'assessments',
-    label: t('gameStatsModal.wrapUpAssessments', 'Player assessments'),
-    status: countRowStatus(completeness.assessments),
-    count: completeness.assessments,
-    onClick: onOpenAssessments,
-  });
+  // 0/0 means the feature is off (see computeGameCompleteness): no row, rather
+  // than a permanently unfinished one pointing at a hidden editor.
+  if (completeness.assessments.total > 0) {
+    rows.push({
+      key: 'assessments',
+      label: t('gameStatsModal.wrapUpAssessments', 'Player assessments'),
+      status: countRowStatus(completeness.assessments),
+      count: completeness.assessments,
+      onClick: onOpenAssessments,
+    });
+  }
   rows.push({
     key: 'competition',
     label: t('gameStatsModal.wrapUpCompetition', 'Competition & team'),

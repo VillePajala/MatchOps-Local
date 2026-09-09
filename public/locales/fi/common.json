@@ -1118,7 +1118,7 @@
     "clearDrawingsTip": "Poista piirrokset:",
     "closeToolsTip": "Poistu työkaluista:",
     "gameSettingsTip": "Muokkaa ottelun tietoja",
-    "assessPlayersTip": "Viimeistele ottelu: maalit, muistiinpanot, pelipaikat, otteluraportti ja pelaaja-arviot",
+    "assessPlayersTip": "Viimeistele ottelu: otteluraportti, pelipaikat ja tilastot",
     "backHomeTip": "Palaa kotinäkymään (Koti) — puhelimen takaisin-painike toimii samoin"
   },
   "seasonTournamentModal": {
@@ -1656,6 +1656,8 @@
     },
     "languageLabel": "Kieli",
     "defaultTeamNameLabel": "Oletusjoukkueen nimi",
+    "assessmentsEnabledLabel": "Pelaaja-arviot",
+    "assessmentsEnabledHint": "Arvioi pelaajat ottelun jälkeen ominaisuuksittain. Oletuksena pois päältä. Jo tehdyt arviot säilyvät joka tapauksessa.",
     "assessmentRatingStyleLabel": "Arvioinnin asteikko",
     "assessmentRatingStyleHint": "Miten pelaaja-arviot näytetään ja syötetään. Vaihtaminen on turvallista - aiemmat arviot säilyvät.",
     "assessmentRatingStyleWords": "Sanat (5 tasoa)",
