@@ -274,7 +274,8 @@
     "save": "Tallenna muistiinpano",
     "record": "Sanele sen sijaan",
     "recordStop": "Lopeta nauhoitus",
-    "recordedHint": "Odottaa yllä äänimuistiinpanoissa, jossa kirjoitat sen auki ja valitset pelaajan."
+    "recordedHint": "Odottaa yllä äänimuistiinpanoissa, jossa kirjoitat sen auki ja valitset pelaajan.",
+    "transcribing": "Kirjoitetaan sanomaasi auki."
   },
   "undoToast": {
     "goal": "Maali kirjattu",
@@ -756,6 +757,7 @@
     "playerStatsTitle": "Pelaajatilastot",
     "wrapUpTitle": "Tarkistuslista",
     "wrapUpVoiceNotes": "{{count}} äänimuistiinpanoa käsittelemättä",
+    "wrapUpVoiceNotesDone": "Äänimuistiinpanot kirjattu auki",
     "wrapUpComplete": "Valmis",
     "wrapUpPartial": "Vaatii viimeistelyä",
     "wrapUpReport": "Otteluraportti",

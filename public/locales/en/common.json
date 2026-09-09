@@ -274,7 +274,8 @@
     "save": "Save the note",
     "record": "Say it instead",
     "recordStop": "Stop recording",
-    "recordedHint": "Waiting in the voice notes above, where you write it out and choose the player."
+    "recordedHint": "Waiting in the voice notes above, where you write it out and choose the player.",
+    "transcribing": "Writing out what you said."
   },
   "undoToast": {
     "goal": "Goal logged",
@@ -542,6 +543,7 @@
     "playerStatsTitle": "Player Stats",
     "wrapUpTitle": "Checklist",
     "wrapUpVoiceNotes": "{{count}} voice notes to review",
+    "wrapUpVoiceNotesDone": "Voice notes written out",
     "wrapUpComplete": "Complete",
     "wrapUpPartial": "Needs finishing",
     "wrapUpReport": "Match report",

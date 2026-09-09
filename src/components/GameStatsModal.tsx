@@ -991,6 +991,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               stamp={draftStamp}
               onAdd={onAddGameNote}
               dictation={dictation}
+              vocabulary={dictationVocabulary}
+              language={i18n.language}
             />
           )}
           {noteEvents.length === 0 && voiceClipCount === 0 && (
