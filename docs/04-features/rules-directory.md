@@ -30,14 +30,14 @@ instead of explaining it.
 
 | File | Role |
 |------|------|
-| `src/components/RulesDirectoryModal.tsx` | The modal: formats table, then links |
+| `src/components/RulesDirectoryModal.tsx` | The modal: your league, then the formats table, then the rulebooks |
 | `src/config/gameFormats.json` | The transcribed formats data |
 | `src/config/gameFormats.source.txt` | Verbatim extraction, committed as evidence |
 | `src/config/gameFormats.ts` | Types + age-band lookup |
 | `src/config/ruleLinks.json` | The links (grouped `series` / `rulebooks`), with their listing pages |
 | `scripts/check-rule-links.mjs` | Weekly CI check (links + source hash) |
 
-## Two rules that must not be broken
+## Three rules that must not be broken
 
 **1. The formats are NATIONAL DEFAULTS, and the screen must say so.**
 A series may deviate. A series' own rules live in Palloliitto's results service
