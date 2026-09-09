@@ -94,7 +94,9 @@
     "resultLoss": "Tappio",
     "resultDraw": "Tasapeli",
     "onPenalties": "rangaistuslaukauksilla",
-    "unknownPlayer": "Tuntematon"
+    "unknownPlayer": "Tuntematon",
+    "staleEdits": "Olet muokannut tätä tekstiä, joten se ei muuttunut. Otetaanko uusi versio?",
+    "staleApply": "Rakenna uudelleen"
   },
   "taso": {
     "button": "Pöytäkirja Tasoon",

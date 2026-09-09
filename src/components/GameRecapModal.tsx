@@ -45,9 +45,36 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
     : subtitle;
   const [text, setText] = useState(recap);
   const [copied, setCopied] = useState(false);
+  /** The generated text the box currently reflects; anything else is the coach's own edit. */
+  const appliedRef = React.useRef(recap);
+  const [stale, setStale] = useState(false);
 
-  // Keep the editable preview in sync when a different game's recap opens.
-  React.useEffect(() => { setText(recap); setCopied(false); }, [recap]);
+  /**
+   * Follow the generated text, unless the coach has written over it.
+   *
+   * Ticking a section rebuilds the text, and simply replacing the box would
+   * throw away whatever they had just written into it without a word. So an
+   * edited box keeps its edit and says the content has changed, with a button
+   * to take the new version when they are ready.
+   */
+  React.useEffect(() => {
+    setCopied(false);
+    setText((current) => {
+      if (current === appliedRef.current) {
+        appliedRef.current = recap;
+        setStale(false);
+        return recap;
+      }
+      setStale(recap !== appliedRef.current);
+      return current;
+    });
+  }, [recap]);
+
+  const applyGenerated = () => {
+    appliedRef.current = recap;
+    setText(recap);
+    setStale(false);
+  };
 
   if (!isOpen) return null;
 
@@ -113,6 +140,21 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
                     {section.label}
                   </label>
                 ))}
+              </div>
+            )}
+            {stale && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs" data-testid="recap-stale">
+                <span className="flex-1">
+                  {t('recap.staleEdits', 'You have edited this text, so it did not change. Take the new version?')}
+                </span>
+                <button
+                  type="button"
+                  onClick={applyGenerated}
+                  data-testid="recap-apply-generated"
+                  className="shrink-0 px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 font-semibold"
+                >
+                  {t('recap.staleApply', 'Rebuild')}
+                </button>
               </div>
             )}
             <textarea

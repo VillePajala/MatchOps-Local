@@ -69,6 +69,15 @@ export interface EvidenceInput {
   periodLabel: string;
   /** Games in scope that the player took part in, with the player's positions. */
   games: EvidenceGame[];
+  /**
+   * Games played, from calculatePlayerStats.
+   *
+   * NOT stats.length: one external entry can stand for several games ("5 games
+   * for another team"), or for none at all when it only corrects goals. Taking
+   * the row count would put a smaller number in the summary than the same
+   * screen shows two inches above it.
+   */
+  gamesPlayed: number;
   /** Per-game lines from calculatePlayerStats, external games included. */
   stats: GameStats[];
   /** Leagues and tournaments in scope, each with this player's tally. */
@@ -140,7 +149,7 @@ export function buildPlayerEvidence(input: EvidenceInput, t: EvidenceTranslate):
   blocks.push([`${input.playerName} - ${t('evidence.title', 'Player summary')}`, input.periodLabel].join('\n'));
   if (input.sections.totals) {
     blocks.push([
-      `${t('evidence.games', 'Games')}: ${input.stats.length}`,
+      `${t('evidence.games', 'Games')}: ${input.gamesPlayed}`,
       `${t('evidence.goals', 'Goals')} ${goals}, ${t('evidence.assists', 'assists')} ${assists}, ${t('evidence.points', 'points')} ${goals + assists}`,
       ...(positionLine ? [`${t('evidence.positions', 'Positions')}: ${positionLine}`] : []),
     ].join('\n'));

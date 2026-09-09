@@ -94,7 +94,9 @@
     "resultLoss": "Loss",
     "resultDraw": "Draw",
     "onPenalties": "on penalties",
-    "unknownPlayer": "Unknown"
+    "unknownPlayer": "Unknown",
+    "staleEdits": "You have edited this text, so it did not change. Take the new version?",
+    "staleApply": "Rebuild"
   },
   "taso": {
     "button": "Match report for Taso",

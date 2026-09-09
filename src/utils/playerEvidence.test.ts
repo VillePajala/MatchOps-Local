@@ -21,6 +21,7 @@ const all: EvidenceSections = { totals: true, competitions: true, notes: true, g
 const input: EvidenceInput = {
   playerName: 'Onni Virtanen',
   periodLabel: 'Seurakausi 25/26',
+  gamesPlayed: 3,
   games: [
     { gameId: 'g1', gameDate: '2026-09-14', opponentName: 'PaU', homeOrAway: 'home', homeScore: 1, awayScore: 6, positions: ['cm'] },
     { gameId: 'g2', gameDate: '2026-09-21', opponentName: 'MP', homeOrAway: 'away', homeScore: 2, awayScore: 1, positions: ['cm', 'rb'] },
@@ -90,9 +91,19 @@ describe('buildPlayerEvidence', () => {
     expect(bare).toBe('Onni Virtanen - Player summary\nSeurakausi 25/26\n\nGames: 3\nGoals 3, assists 1, points 4\nPositions: CM 2, RB 1');
   });
 
+  /**
+   * @critical - one external entry can stand for five games or for none, so
+   * counting the rows put a smaller number in the summary than the card above
+   * it showed.
+   */
+  it('takes the game count as given, not as one per row', () => {
+    // 3 rows, but the external one was logged as five games for another team.
+    expect(buildPlayerEvidence({ ...input, gamesPlayed: 7 }, t)).toContain('Games: 7');
+  });
+
   it('leaves out blocks that have nothing in them', () => {
     const text = buildPlayerEvidence(
-      { ...input, notes: [], stats: [], games: [], competitions: [], sections: all },
+      { ...input, gamesPlayed: 0, notes: [], stats: [], games: [], competitions: [], sections: all },
       t,
     );
     expect(text).toBe('Onni Virtanen - Player summary\nSeurakausi 25/26\n\nGames: 0\nGoals 0, assists 0, points 0');
