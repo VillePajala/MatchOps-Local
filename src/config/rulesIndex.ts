@@ -28,8 +28,10 @@ export type RulesSport = 'football' | 'futsal';
 export interface LawRef {
   /** Law number, 1-17, the same numbering in both codes. */
   law: number;
-  /** The law's official title, used as a citation. */
+  /** The law's official Finnish title, used as a citation. */
   title: string;
+  /** The official English title of the same law. */
+  titleEn: string;
   /** Page the law starts on in that sport's official PDF. */
   page: number;
 }
@@ -38,11 +40,17 @@ export interface RulesTopic {
   id: string;
   fi: string;
   en: string;
-  law: number;
+  /** The law this belongs to, or null when it is not a law (see `page`). */
+  law: number | null;
+  /** Codes this applies to; absent means both. Time-out is futsal-only, sin
+   *  bin football-only - verified against both books, not assumed. */
+  sports?: RulesSport[];
+  /** For material that is guidance rather than a law, the page it starts on. */
+  page?: number;
 }
 
 export const RULES_SPORTS = raw.sports as Record<RulesSport, { linkId: string; laws: LawRef[] }>;
-export const RULES_TOPICS: RulesTopic[] = raw.topics;
+export const RULES_TOPICS = raw.topics as RulesTopic[];
 
 /** The official PDF for a sport, from the same link config the CI check watches. */
 export function rulebookUrl(sport: RulesSport): string | null {
@@ -64,7 +72,8 @@ export function lawUrl(sport: RulesSport, law: number): string | null {
   return `${url}#page=${ref.page}`;
 }
 
-export function findLaw(sport: RulesSport, law: number): LawRef | null {
+export function findLaw(sport: RulesSport, law: number | null): LawRef | null {
+  if (law === null) return null;
   return RULES_SPORTS[sport]?.laws.find((l) => l.law === law) ?? null;
 }
 
@@ -77,7 +86,10 @@ export function findLaw(sport: RulesSport, law: number): LawRef | null {
  * reference screen should be the full list, not nothing.
  */
 export interface RulesHit {
-  law: number;
+  /** Stable key: the law number, or the topic id for non-law guidance. */
+  key: string;
+  /** Null when the entry is guidance rather than a numbered law. */
+  law: number | null;
   title: string;
   page: number;
   /** The topic that matched, when it was a topic rather than the law title. */
@@ -86,21 +98,46 @@ export interface RulesHit {
 
 export function searchRules(sport: RulesSport, query: string, lang: 'fi' | 'en'): RulesHit[] {
   const laws = RULES_SPORTS[sport]?.laws ?? [];
+  const titleOf = (l: LawRef) => (lang === 'en' ? l.titleEn : l.title);
   const q = query.trim().toLowerCase();
-  if (!q) return laws.map((l) => ({ law: l.law, title: l.title, page: l.page, via: null }));
+  const forThisSport = RULES_TOPICS.filter((t) => !t.sports || t.sports.includes(sport));
 
-  const hits = new Map<number, RulesHit>();
-  const add = (law: number, via: string | null) => {
-    const ref = laws.find((l) => l.law === law);
-    if (!ref) return;
-    // First match wins: a topic hit is more informative than the bare title,
-    // and topics are checked first.
-    if (!hits.has(law)) hits.set(law, { law, title: ref.title, page: ref.page, via });
+  const byLaw = new Map(laws.map((l) => [l.law, l]));
+  const hits = new Map<string, RulesHit>();
+  const addLaw = (law: number, via: string | null) => {
+    const ref = byLaw.get(law);
+    // First match wins: a topic hit names the coach's word, which is more
+    // useful than the bare title, and topics are matched first.
+    if (ref && !hits.has(String(law))) {
+      hits.set(String(law), { key: String(law), law, title: titleOf(ref), page: ref.page, via });
+    }
+  };
+  const addGuidance = (t: RulesTopic) => {
+    if (t.page && !hits.has(t.id)) {
+      hits.set(t.id, { key: t.id, law: null, title: t[lang], page: t.page, via: null });
+    }
   };
 
-  RULES_TOPICS.filter((t) => t[lang].toLowerCase().includes(q) || t.fi.toLowerCase().includes(q) || t.en.toLowerCase().includes(q))
-    .forEach((t) => add(t.law, t[lang]));
-  laws.filter((l) => l.title.toLowerCase().includes(q) || String(l.law) === q).forEach((l) => add(l.law, null));
+  if (!q) {
+    laws.forEach((l) => addLaw(l.law, null));
+    forThisSport.filter((t) => t.law === null).forEach(addGuidance);
+  } else {
+    // Both languages are searched whatever the UI language: a Finnish coach
+    // may well type "offside", and refusing them the answer helps nobody.
+    const matches = forThisSport.filter(
+      (t) => t.fi.toLowerCase().includes(q) || t.en.toLowerCase().includes(q),
+    );
+    matches.forEach((t) => (t.law === null ? addGuidance(t) : addLaw(t.law, t[lang])));
+    laws
+      .filter(
+        (l) =>
+          l.title.toLowerCase().includes(q) ||
+          l.titleEn.toLowerCase().includes(q) ||
+          String(l.law) === q,
+      )
+      .forEach((l) => addLaw(l.law, null));
+  }
 
-  return [...hits.values()].sort((a, b) => a.law - b.law);
+  // Guidance sorts by page among the laws it sits between.
+  return [...hits.values()].sort((a, b) => a.page - b.page);
 }

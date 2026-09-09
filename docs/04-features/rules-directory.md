@@ -137,6 +137,20 @@ If you want the text in-app, it takes written permission:
 `lawenquiries@theifab.com` for football, FIFA for futsal, plus Palloliitto for
 their translations. Those are three independent asks.
 
+**Topic mappings were verified, not assumed.** Each topic was checked by
+searching the pages of each law in both books. That pass corrected three
+mistakes that all looked plausible:
+
+| Topic | Assumed | Actually |
+|---|---|---|
+| Time-out | both codes | futsal only (0 mentions in the football book) |
+| Sin bin | both codes, Law 12 | football only, and *guidance* at page 10, not a law |
+| Accumulated fouls | Law 12 | futsal Law 13 |
+
+A back-pass topic was **dropped** because its placement could not be verified.
+An unverified mapping is worse than a missing one: it sends a coach somewhere
+with confidence. Re-run that verification when adding a topic.
+
 **Page numbers are edition-specific.** They were verified against both PDFs
 (printed page == PDF page, checked at Law 1 and Law 12 in each). A new edition
 reflows the book, so re-extract whenever a rulebook link changes - the weekly

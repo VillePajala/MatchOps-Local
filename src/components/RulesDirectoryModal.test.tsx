@@ -288,7 +288,8 @@ describe('RulesDirectoryModal', () => {
 
   it('lists all 17 laws before anything is typed, and says so when nothing matches', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
-    expect(within(screen.getByTestId('rules-hits')).getAllByRole('button')).toHaveLength(17);
+    // 17 laws plus the football-only sin bin guidance entry.
+    expect(within(screen.getByTestId('rules-hits')).getAllByRole('button')).toHaveLength(18);
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'zzzznotarule' } });
     expect(screen.getByTestId('rules-no-hits')).toBeInTheDocument();
   });

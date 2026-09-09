@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 import ruleLinks from '@/config/ruleLinks.json';
 import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES } from '@/config/gameFormats';
-import { searchRules, lawUrl, type RulesSport } from '@/config/rulesIndex';
+import { searchRules, lawUrl, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
 import type { TranslationKey } from '@/i18n-types';
 
 interface RulesDirectoryModalProps {
@@ -141,18 +141,25 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                 ) : (
                   <ul className="space-y-1" data-testid="rules-hits">
                     {hits.map((h) => (
-                      <li key={h.law}>
+                      <li key={h.key}>
                         <button
                           type="button"
                           onClick={() => {
-                            const url = lawUrl(sport, h.law);
+                            // Guidance sections have no law number, so they are
+                            // addressed by page directly.
+                            const url =
+                              h.law === null
+                                ? `${rulebookUrl(sport) ?? ''}#page=${h.page}`
+                                : lawUrl(sport, h.law);
                             if (url) openLink(url);
                           }}
                           className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-slate-800/70 hover:bg-slate-700/70 text-left transition-colors"
                         >
                           <span className="min-w-0">
                             <span className="text-sm text-slate-200">
-                              {t('rulesDirectory.lawN', 'Sääntö {{n}}', { n: h.law })} - {h.title}
+                              {h.law === null
+                                ? h.title
+                                : `${t('rulesDirectory.lawN', 'Sääntö {{n}}', { n: h.law })} - ${h.title}`}
                             </span>
                             {h.via && <span className="block text-xs text-slate-400 truncate">{h.via}</span>}
                           </span>
