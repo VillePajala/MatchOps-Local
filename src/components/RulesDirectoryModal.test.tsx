@@ -1,9 +1,10 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import RulesDirectoryModal from './RulesDirectoryModal';
 import ruleLinks from '@/config/ruleLinks.json';
+import { GAME_FORMATS } from '@/config/gameFormats';
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
@@ -183,6 +184,35 @@ describe('RulesDirectoryModal', () => {
       '_blank',
       'noopener,noreferrer'
     );
+  });
+
+  /**
+   * @critical - the screen exists to answer "what applies to my age group",
+   * and the numbers must be the transcribed ones, not a hand-typed copy that
+   * can drift from the source the test suite verifies.
+   */
+  it('shows every age band from the official formats table', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    const table = screen.getByTestId('formats-table');
+    for (const f of GAME_FORMATS) {
+      expect(within(table).getByText(f.sourceLabel)).toBeInTheDocument();
+      // getAllBy: several bands legitimately share a playing time.
+      expect(within(table).getAllByText(f.playingTimeText).length).toBeGreaterThan(0);
+    }
+    // The formats a coach is most likely to be surprised by this season.
+    expect(within(table).getAllByText('4v4').length).toBe(2);
+  });
+
+  /**
+   * @critical - these are NATIONAL DEFAULTS. A series may deviate, and its own
+   * rules are not available to the app. Dropping this sentence would turn a
+   * helpful table into the app confidently stating the wrong period length.
+   */
+  it('says the formats are national defaults that a series may differ from', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    // This modal's fallbacks are Finnish, like its title and footer.
+    expect(screen.getByText(/valtakunnalliset oletukset ikäluokittain/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sarja voi poiketa näistä/i)).toBeInTheDocument();
   });
 
   /**
