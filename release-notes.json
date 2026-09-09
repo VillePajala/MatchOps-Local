@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "New in Finish this game: Match report for Taso. The squad with shirt numbers, and the result, half-time score and every goal as minute, scorer and assist, in the order Taso's electronic match report asks for them. Copy and type, instead of recalling."
+      ],
+      "fi": [
+        "Uutta Viimeistele ottelu -näkymässä: Pöytäkirja Tasoon. Kokoonpano pelinumeroineen sekä tulos, puoliaikatulos ja jokainen maali minuutteineen, tekijöineen ja syöttäjineen siinä järjestyksessä kuin Tason sähköinen pöytäkirja ne kysyy. Kopioi ja kirjoita, muistelun sijaan."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "Player assessments are now off by default. Rating children after every game is not what youth football is about, and almost nobody kept it up. Ratings you have already made are kept, and Settings has a switch to bring the feature back at any time."
       ],
       "fi": [
