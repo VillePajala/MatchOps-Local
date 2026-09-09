@@ -604,14 +604,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             data-testid="player-evidence"
             className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold bg-slate-700 hover:bg-slate-600 text-slate-100"
           >
-            {t('evidence.button', 'Match evidence to share')}
+            {t('evidence.button', 'Share player summary')}
           </button>
         </div>
         <GameRecapModal
           isOpen={showEvidence}
           onClose={() => setShowEvidence(false)}
           recap={evidenceText}
-          title={t('evidence.title', 'Match evidence')}
+          title={t('evidence.title', 'Player summary')}
           subtitle={t('evidence.subtitle', 'What this player did in the games you tracked, with dates. Only what was recorded; nothing rated. Copy or share it with whoever should see it.')}
         />
 
