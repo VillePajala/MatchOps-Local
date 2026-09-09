@@ -459,9 +459,10 @@ describe('Translation File Validation', () => {
       //     consistency checks in the finish-game checklist. Lands at 3136.
       // +1: gameStatsModal.spineNotesEmpty - a numbered step must never render
       //     empty. Lands at 3137.
+      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3152.
       // +5 noteComposer.* - writing a note about a player by hand, which had
-      //     no path at all before. Lands at 3142.
-      expect(enKeys.length).toBe(3142);
+      //     no path at all before. Lands at 3157.
+      expect(enKeys.length).toBe(3157);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -613,9 +614,10 @@ describe('Translation File Validation', () => {
       //     consistency checks in the finish-game checklist. Lands at 3136.
       // +1: gameStatsModal.spineNotesEmpty - a numbered step must never render
       //     empty. Lands at 3137.
+      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3152.
       // +5 noteComposer.* - writing a note about a player by hand, which had
-      //     no path at all before. Lands at 3142.
-      expect(fiKeys.length).toBe(3142);
+      //     no path at all before. Lands at 3157.
+      expect(fiKeys.length).toBe(3157);
     });
   });
 });

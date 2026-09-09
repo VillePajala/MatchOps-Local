@@ -1,4 +1,4 @@
-import { calculatePlayerStats } from './playerStats';
+import { isGameInPlayerScope, calculatePlayerStats } from './playerStats';
 import { Player, Season, Tournament, AppState, GameEvent, PlayerStatAdjustment } from '@/types';
 
 describe('calculatePlayerStats', () => {
@@ -496,5 +496,19 @@ describe('calculatePlayerStats - external games belong to the team they were pla
     );
     // The player really did play them; they just are not team A's.
     expect(stats.totalGames).toBe(3);
+  });
+});
+
+describe('isGameInPlayerScope', () => {
+  /** One rule for the stats table and the player summary text. */
+  it('applies played, friendlies opt-in, and the team filter including legacy', () => {
+    expect(isGameInPlayerScope({ isPlayed: false })).toBe(false);
+    expect(isGameInPlayerScope({ isFriendly: true })).toBe(false);
+    expect(isGameInPlayerScope({ isFriendly: true }, undefined, true)).toBe(true);
+    expect(isGameInPlayerScope({ teamId: 'a' }, 'a')).toBe(true);
+    expect(isGameInPlayerScope({ teamId: 'a' }, 'b')).toBe(false);
+    expect(isGameInPlayerScope({ teamId: '' }, 'legacy')).toBe(true);
+    expect(isGameInPlayerScope({ teamId: 'a' }, 'legacy')).toBe(false);
+    expect(isGameInPlayerScope({})).toBe(true);
   });
 });

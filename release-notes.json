@@ -13,6 +13,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "A player's statistics now offer Share player summary: games played out of the team's games, positions, goals and assists, and your dated notes from those matches, as one plain text you can copy or send to a head coach or a family. Only what was recorded, nothing rated."
+      ],
+      "fi": [
+        "Pelaajan tilastoista löytyy nyt Jaa pelaajakooste: pelatut ottelut suhteessa joukkueen otteluihin, pelipaikat, maalit ja syötöt sekä päivätyt merkintäsi noista otteluista yhtenä tekstinä, jonka voit kopioida tai lähettää päävalmentajalle tai perheelle. Vain se, mitä kirjattiin, ei arvosanoja."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "Finish this game: the notes step no longer shows an empty box on a match with no notes; it now says where notes come from."
       ],
       "fi": [

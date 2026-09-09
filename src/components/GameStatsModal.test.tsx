@@ -154,6 +154,7 @@ interface TestProps {
   onHomeScoreChange: jest.Mock;
   onAwayScoreChange: jest.Mock;
   onGameNotesChange: jest.Mock;
+  onAddGameNote?: jest.Mock;
   onPlayerPositionsChange?: jest.Mock;
   onAddGoal?: jest.Mock;
   onOpenAssessments?: jest.Mock;
