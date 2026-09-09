@@ -70,6 +70,26 @@ const GameRecapModal: React.FC<GameRecapModalProps> = ({ isOpen, onClose, recap,
     });
   }, [recap]);
 
+  /**
+   * Opening is always a fresh start.
+   *
+   * The instance outlives one use: the coach can edit a summary, close it,
+   * switch to another player, and open it again. Keeping the edit across that
+   * showed one player's words under another player's name, which is worse than
+   * the lost edit this preservation was added to prevent. So an edit survives
+   * only while the modal stays open.
+   */
+  const wasOpenRef = React.useRef(isOpen);
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      appliedRef.current = recap;
+      setText(recap);
+      setStale(false);
+      setCopied(false);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, recap]);
+
   const applyGenerated = () => {
     appliedRef.current = recap;
     setText(recap);
