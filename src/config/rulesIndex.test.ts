@@ -33,14 +33,56 @@ describe('rules index shape', () => {
     });
   });
 
-  it('every topic points at a law that exists in both codes', () => {
+  it('every topic resolves in the codes it claims to apply to', () => {
     expect(RULES_TOPICS.length).toBeGreaterThan(15);
     for (const t of RULES_TOPICS) {
-      expect(findLaw('football', t.law)).not.toBeNull();
-      expect(findLaw('futsal', t.law)).not.toBeNull();
       expect(t.fi.trim()).not.toBe('');
       expect(t.en.trim()).not.toBe('');
+      const sports = t.sports ?? (['football', 'futsal'] as const);
+      for (const sport of sports) {
+        if (t.law === null) {
+          // Guidance rather than a law: it must carry its own page instead.
+          expect(t.page).toBeGreaterThan(0);
+        } else {
+          expect(findLaw(sport, t.law)).not.toBeNull();
+        }
+      }
     }
+  });
+
+  /**
+   * @critical - these three were WRONG in the first version and only a search
+   * of each law's own pages found it. Time-out does not exist in football, sin
+   * bin does not exist in futsal, and accumulated fouls are futsal Law 13, not
+   * 12. Shipping a confident wrong law reference is the failure mode here.
+   */
+  it('scopes the topics that exist in only one code, at the verified law', () => {
+    const byId = Object.fromEntries(RULES_TOPICS.map((t) => [t.id, t]));
+
+    expect(byId.timeout.sports).toEqual(['futsal']);
+    expect(byId.timeout.law).toBe(7);
+
+    expect(byId.sinbin.sports).toEqual(['football']);
+    expect(byId.sinbin.law).toBeNull();
+    expect(byId.sinbin.page).toBe(10);
+
+    expect(byId.accumulated.sports).toEqual(['futsal']);
+    expect(byId.accumulated.law).toBe(13);
+
+    // Dropped rather than guessed: its placement could not be verified.
+    expect(byId.backpass).toBeUndefined();
+  });
+
+  it('gives every law an English title as well as the official Finnish one', () => {
+    for (const sport of ['football', 'futsal'] as const) {
+      for (const l of RULES_SPORTS[sport].laws) {
+        expect(l.titleEn.trim().length).toBeGreaterThan(2);
+        expect(l.titleEn).not.toBe(l.title);
+      }
+    }
+    // The restarts that genuinely differ between the codes.
+    expect(findLaw('football', 15)!.titleEn).toContain('Throw');
+    expect(findLaw('futsal', 15)!.titleEn).toContain('Kick-in');
   });
 
   /**
@@ -81,7 +123,8 @@ describe('deep links', () => {
 
 describe('search', () => {
   it('shows every law when nothing is typed', () => {
-    expect(searchRules('football', '', 'fi')).toHaveLength(17);
+    // 17 laws plus the football-only sin bin guidance.
+    expect(searchRules('football', '', 'fi')).toHaveLength(18);
     expect(searchRules('futsal', '   ', 'en')).toHaveLength(17);
   });
 
@@ -93,7 +136,33 @@ describe('search', () => {
   it('finds a law by the coach’s word, not just the official title', () => {
     const hits = searchRules('football', 'kentältäpoisto', 'fi');
     expect(hits.map((h) => h.law)).toContain(12);
-    expect(hits[0].via).toBeTruthy();
+    expect(hits.some((h) => h.via)).toBe(true);
+  });
+
+  /**
+   * @critical - a football coach must not be offered a futsal-only rule, and
+   * the reverse. This is the bug the verification pass caught.
+   */
+  it('never offers a topic from the other code', () => {
+    expect(searchRules('football', 'aikalisä', 'fi')).toEqual([]);
+    expect(searchRules('football', 'kumulatiivis', 'fi')).toEqual([]);
+    expect(searchRules('futsal', 'sin bin', 'en')).toEqual([]);
+
+    expect(searchRules('futsal', 'aikalisä', 'fi').map((h) => h.law)).toEqual([7]);
+    expect(searchRules('futsal', 'kumulatiivis', 'fi').map((h) => h.law)).toEqual([13]);
+  });
+
+  it('offers sin bin as guidance with its own page, not as a law', () => {
+    const hits = searchRules('football', 'sin bin', 'en');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].law).toBeNull();
+    expect(hits[0].page).toBe(10);
+  });
+
+  it('shows English law titles when the UI is English', () => {
+    const hits = searchRules('football', 'offside', 'en');
+    expect(hits[0].title).toBe('Offside');
+    expect(searchRules('football', 'paitsio', 'fi')[0].title).toBe('Paitsio');
   });
 
   it('finds the same thing in English', () => {
@@ -111,7 +180,7 @@ describe('search', () => {
 
   it('lists each law once even when several topics point at it', () => {
     const hits = searchRules('football', 'e', 'fi');
-    expect(new Set(hits.map((h) => h.law)).size).toBe(hits.length);
+    expect(new Set(hits.map((h) => h.key)).size).toBe(hits.length);
   });
 
   it('returns nothing for a word in neither the topics nor the titles', () => {

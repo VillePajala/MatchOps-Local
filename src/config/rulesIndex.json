@@ -1,5 +1,5 @@
 {
-  "_comment": "OUR OWN index of the Laws of the Game - deliberately NOT the rulebook text. IFAB (football) and FIFA (futsal) reserve all rights: their terms permit only accessing their content on their own sites, so bundling or quoting the laws would need written permission (lawenquiries@theifab.com). What is here is therefore only: topic names written by us in a coach's words, the official law NUMBERS and TITLES used as citations, and the PAGE each law starts on. That is factual reference, not reproduction. Never paste rule text into this file. Page numbers were verified against both PDFs (printed page == PDF page, checked at Law 1 and Law 12 in each); re-verify when a new edition is linked, because a reflow moves every page.",
+  "_comment": "OUR OWN index of the Laws of the Game - deliberately NOT the rulebook text. IFAB (football) and FIFA (futsal) reserve all rights: their terms permit only accessing their content on their own sites, so bundling or quoting the laws would need written permission (lawenquiries@theifab.com). What is here is therefore only: topic names written by us in a coach's words, the official law NUMBERS and TITLES used as citations, and the PAGE each law starts on. That is factual reference, not reproduction. Never paste rule text into this file. Page numbers were verified against both PDFs (printed page == PDF page, checked at Law 1 and Law 12 in each); re-verify when a new edition is linked, because a reflow moves every page. Topic->law mappings were VERIFIED by searching each law's own pages in both PDFs, not assumed: that pass found time-out is futsal-only, sin bin is football-only and is a guidance section (page 10) rather than a law, and accumulated fouls sit in futsal Law 13, not 12. A back-pass topic was dropped because its placement could not be verified - an unverified mapping is worse than a missing one.",
   "sports": {
     "football": {
       "linkId": "soccerRules",
@@ -7,87 +7,104 @@
         {
           "law": 1,
           "title": "Pelikenttä",
-          "page": 15
+          "page": 15,
+          "titleEn": "The Field of Play"
         },
         {
           "law": 2,
           "title": "Pallo",
-          "page": 23
+          "page": 23,
+          "titleEn": "The Ball"
         },
         {
           "law": 3,
           "title": "Pelaajat",
-          "page": 25
+          "page": 25,
+          "titleEn": "The Players"
         },
         {
           "law": 4,
           "title": "Pelaajien varusteet",
-          "page": 30
+          "page": 30,
+          "titleEn": "The Players' Equipment"
         },
         {
           "law": 5,
           "title": "Erotuomari",
-          "page": 34
+          "page": 34,
+          "titleEn": "The Referee"
         },
         {
           "law": 6,
           "title": "Muu erotuomaristo",
-          "page": 42
+          "page": 42,
+          "titleEn": "The Other Match Officials"
         },
         {
           "law": 7,
           "title": "Ottelun kesto",
-          "page": 49
+          "page": 49,
+          "titleEn": "The Duration of the Match"
         },
         {
           "law": 8,
           "title": "Pelin aloittaminen ja jatkaminen",
-          "page": 51
+          "page": 51,
+          "titleEn": "The Start and Restart of Play"
         },
         {
           "law": 9,
           "title": "Pallo pelissä ja poissa pelistä",
-          "page": 54
+          "page": 54,
+          "titleEn": "The Ball In and Out of Play"
         },
         {
           "law": 10,
           "title": "Ottelun lopputuloksen määrittäminen",
-          "page": 56
+          "page": 56,
+          "titleEn": "Determining the Outcome of a Match"
         },
         {
           "law": 11,
           "title": "Paitsio",
-          "page": 61
+          "page": 61,
+          "titleEn": "Offside"
         },
         {
           "law": 12,
           "title": "Kielletty peli ja sopimaton käytös",
-          "page": 65
+          "page": 65,
+          "titleEn": "Fouls and Misconduct"
         },
         {
           "law": 13,
           "title": "Vapaapotkut",
-          "page": 75
+          "page": 75,
+          "titleEn": "Free Kicks"
         },
         {
           "law": 14,
           "title": "Rangaistuspotku",
-          "page": 78
+          "page": 78,
+          "titleEn": "The Penalty Kick"
         },
         {
           "law": 15,
           "title": "Rajaheitto",
-          "page": 83
+          "page": 83,
+          "titleEn": "The Throw-in"
         },
         {
           "law": 16,
           "title": "Maalipotku",
-          "page": 85
+          "page": 85,
+          "titleEn": "The Goal Kick"
         },
         {
           "law": 17,
           "title": "Kulmapotku",
-          "page": 87
+          "page": 87,
+          "titleEn": "The Corner Kick"
         }
       ]
     },
@@ -97,87 +114,104 @@
         {
           "law": 1,
           "title": "Pelikenttä",
-          "page": 6
+          "page": 6,
+          "titleEn": "The Field of Play"
         },
         {
           "law": 2,
           "title": "Pallo",
-          "page": 15
+          "page": 15,
+          "titleEn": "The Ball"
         },
         {
           "law": 3,
           "title": "Pelaajat",
-          "page": 17
+          "page": 17,
+          "titleEn": "The Players"
         },
         {
           "law": 4,
           "title": "Pelaajien varusteet",
-          "page": 21
+          "page": 21,
+          "titleEn": "The Players' Equipment"
         },
         {
           "law": 5,
           "title": "Erotuomarit",
-          "page": 25
+          "page": 25,
+          "titleEn": "The Referee"
         },
         {
           "law": 6,
           "title": "Muu erotuomaristo",
-          "page": 29
+          "page": 29,
+          "titleEn": "The Other Match Officials"
         },
         {
           "law": 7,
           "title": "Ottelun kesto",
-          "page": 32
+          "page": 32,
+          "titleEn": "The Duration of the Match"
         },
         {
           "law": 8,
           "title": "Pelin aloittaminen ja jatkaminen",
-          "page": 34
+          "page": 34,
+          "titleEn": "The Start and Restart of Play"
         },
         {
           "law": 9,
           "title": "Pallo pelissä ja poissa pelistä",
-          "page": 36
+          "page": 36,
+          "titleEn": "The Ball In and Out of Play"
         },
         {
           "law": 10,
           "title": "Ottelun lopputuloksen määrittäminen",
-          "page": 37
+          "page": 37,
+          "titleEn": "Determining the Outcome of a Match"
         },
         {
           "law": 11,
           "title": "Paitsio",
-          "page": 40
+          "page": 40,
+          "titleEn": "Offside"
         },
         {
           "law": 12,
           "title": "Kielletty peli ja sopimaton käytös",
-          "page": 41
+          "page": 41,
+          "titleEn": "Fouls and Misconduct"
         },
         {
           "law": 13,
           "title": "Vapaapotkut",
-          "page": 53
+          "page": 53,
+          "titleEn": "Free Kicks"
         },
         {
           "law": 14,
           "title": "Rangaistuspotku",
-          "page": 60
+          "page": 60,
+          "titleEn": "The Penalty Kick"
         },
         {
           "law": 15,
           "title": "Rajapotku",
-          "page": 63
+          "page": 63,
+          "titleEn": "The Kick-in"
         },
         {
           "law": 16,
           "title": "Maaliheitto",
-          "page": 65
+          "page": 65,
+          "titleEn": "The Goal Clearance"
         },
         {
           "law": 17,
           "title": "Kulmapotku",
-          "page": 66
+          "page": 66,
+          "titleEn": "The Corner Kick"
         }
       ]
     }
@@ -229,7 +263,10 @@
       "id": "timeout",
       "fi": "Aikalisä",
       "en": "Time-out",
-      "law": 7
+      "law": 7,
+      "sports": [
+        "futsal"
+      ]
     },
     {
       "id": "kickoff",
@@ -277,19 +314,20 @@
       "id": "sinbin",
       "fi": "Väliaikainen kentältäpoisto (sin bin)",
       "en": "Temporary dismissal (sin bin)",
-      "law": 12
-    },
-    {
-      "id": "backpass",
-      "fi": "Maalivahdin palautussääntö",
-      "en": "Back-pass to the goalkeeper",
-      "law": 12
+      "law": null,
+      "sports": [
+        "football"
+      ],
+      "page": 10
     },
     {
       "id": "accumulated",
-      "fi": "Kertyvät rikkeet",
+      "fi": "Kumulatiiviset rikkomukset",
       "en": "Accumulated fouls",
-      "law": 12
+      "law": 13,
+      "sports": [
+        "futsal"
+      ]
     },
     {
       "id": "freekick",
