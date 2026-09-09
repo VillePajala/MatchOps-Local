@@ -2,7 +2,7 @@
  * Formation Preset Definitions
  *
  * Predefined formations for quick player placement on the field.
- * Organized by field size (3v3, 5v5, 8v8, 11v11).
+ * Organized by field size (3v3, 4v4, 5v5, 8v8, 11v11).
  *
  * Position coordinates use relative values:
  * - relX: 0.0 = left edge, 1.0 = right edge, 0.5 = center
@@ -19,7 +19,7 @@ import type { FieldPosition } from '@/utils/formations';
 /**
  * Field size categories for formations
  */
-export type FieldSize = '3v3' | '5v5' | '8v8' | '11v11';
+export type FieldSize = '3v3' | '4v4' | '5v5' | '8v8' | '11v11';
 
 /**
  * Formation preset definition
@@ -84,6 +84,41 @@ const FORMATIONS_3V3: FormationPreset[] = [
     fieldSize: '3v3',
     playerCount: 2,
     positions: row(2, 0.55, 0.25),  // Two midfielders side by side
+  },
+];
+
+/**
+ * 4v4 Formations (3 field players + GK = 4 total)
+ *
+ * Palloliitto moved P/T8-10 futsal to 4v4 from season 2026-27, and football
+ * follows for the youngest ages from season 2027. The app had 3v3 and 5v5 with
+ * nothing between them, so those teams had no shape that matched the game they
+ * were actually playing.
+ *
+ * @see https://www.palloliitto.fi/ajankohtaista/futsalin-uudet-pelimuodot-lapsuus-ja-nuoruusvaiheessa
+ */
+const FORMATIONS_4V4: FormationPreset[] = [
+  {
+    id: '4v4-1-2',
+    name: '1-2',
+    labelKey: 'formations.4v4.1-2',
+    fieldSize: '4v4',
+    playerCount: 3,
+    positions: [
+      { relX: 0.5, relY: 0.70 },      // Defender
+      ...row(2, 0.35, 0.25),          // Two forwards
+    ],
+  },
+  {
+    id: '4v4-2-1',
+    name: '2-1',
+    labelKey: 'formations.4v4.2-1',
+    fieldSize: '4v4',
+    playerCount: 3,
+    positions: [
+      ...row(2, 0.70, 0.25),          // Two defenders
+      { relX: 0.5, relY: 0.35 },      // Forward
+    ],
   },
 ];
 
@@ -267,6 +302,7 @@ const FORMATIONS_11V11: FormationPreset[] = [
  */
 export const FORMATION_PRESETS: FormationPreset[] = [
   ...FORMATIONS_3V3,
+  ...FORMATIONS_4V4,
   ...FORMATIONS_5V5,
   ...FORMATIONS_8V8,
   ...FORMATIONS_11V11,
@@ -294,13 +330,14 @@ export function getRecommendedFieldSize(playerCount: number): FieldSize {
   if (playerCount >= 11) return '11v11';
   if (playerCount >= 8) return '8v8';
   if (playerCount >= 5) return '5v5';
+  if (playerCount >= 4) return '4v4';
   return '3v3';
 }
 
 /**
  * Get all field sizes in order
  */
-export const FIELD_SIZES: FieldSize[] = ['3v3', '5v5', '8v8', '11v11'];
+export const FIELD_SIZES: FieldSize[] = ['3v3', '4v4', '5v5', '8v8', '11v11'];
 
 /**
  * Presets grouped by field size (pre-computed for performance)
@@ -320,6 +357,7 @@ export const PRESETS_BY_SIZE: Record<FieldSize, FormationPreset[]> = FIELD_SIZES
  */
 export const DEFAULT_PRESET_ID_BY_SIZE: Record<FieldSize, string> = {
   '3v3': '3v3-1-1',
+  '4v4': '4v4-1-2',
   '5v5': '5v5-1-2-1',
   '8v8': '8v8-2-1-2-1-1',
   '11v11': '11v11-4-3-3',

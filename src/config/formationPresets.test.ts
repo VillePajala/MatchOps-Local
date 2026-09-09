@@ -33,7 +33,10 @@ describe('FORMATION_PRESETS', () => {
     });
 
     it('all presets have valid field sizes', () => {
-      const validFieldSizes: FieldSize[] = ['3v3', '5v5', '8v8', '11v11'];
+      // Derived, not restated: a second hardcoded list of the sizes is one
+      // more thing to forget when a new format is added, and forgetting it
+      // fails here rather than where the mistake actually is.
+      const validFieldSizes: FieldSize[] = FIELD_SIZES;
       FORMATION_PRESETS.forEach(preset => {
         expect(validFieldSizes).toContain(preset.fieldSize);
       });
@@ -87,6 +90,11 @@ describe('FORMATION_PRESETS', () => {
       expect(presets.length).toBeGreaterThanOrEqual(1);
     });
 
+    it('has presets for 4v4', () => {
+      const presets = FORMATION_PRESETS.filter(p => p.fieldSize === '4v4');
+      expect(presets.length).toBeGreaterThanOrEqual(1);
+    });
+
     it('has presets for 5v5', () => {
       const presets = FORMATION_PRESETS.filter(p => p.fieldSize === '5v5');
       expect(presets.length).toBeGreaterThanOrEqual(1);
@@ -108,6 +116,13 @@ describe('FORMATION_PRESETS', () => {
       const presets = FORMATION_PRESETS.filter(p => p.fieldSize === '3v3');
       presets.forEach(preset => {
         expect(preset.playerCount).toBe(2);
+      });
+    });
+
+    it('4v4 presets have 3 field players (+ GK = 4)', () => {
+      const presets = FORMATION_PRESETS.filter(p => p.fieldSize === '4v4');
+      presets.forEach(preset => {
+        expect(preset.playerCount).toBe(3);
       });
     });
 
@@ -136,12 +151,12 @@ describe('FORMATION_PRESETS', () => {
 
 describe('FIELD_SIZES', () => {
   it('contains all expected field sizes in order', () => {
-    expect(FIELD_SIZES).toEqual(['3v3', '5v5', '8v8', '11v11']);
+    expect(FIELD_SIZES).toEqual(['3v3', '4v4', '5v5', '8v8', '11v11']);
   });
 
   it('is immutable (frozen array would be ideal but check structure)', () => {
     expect(Array.isArray(FIELD_SIZES)).toBe(true);
-    expect(FIELD_SIZES.length).toBe(4);
+    expect(FIELD_SIZES.length).toBe(5);
   });
 });
 
@@ -209,9 +224,15 @@ describe('getRecommendedFieldSize', () => {
     });
   });
 
-  describe('medium player counts (5v5)', () => {
-    it('returns 3v3 for 4 players (not enough for 5v5)', () => {
-      expect(getRecommendedFieldSize(4)).toBe('3v3');
+  describe('medium player counts (4v4 and 5v5)', () => {
+    /**
+     * @critical - Palloliitto made 4v4 an official youth format (futsal from
+     * season 2026-27, football from 2027). Four players used to fall back to
+     * 3v3, which meant a squad of exactly four was offered a shape one player
+     * short of the game they were playing.
+     */
+    it('returns 4v4 for 4 players', () => {
+      expect(getRecommendedFieldSize(4)).toBe('4v4');
     });
 
     it('returns 5v5 for 5 players', () => {

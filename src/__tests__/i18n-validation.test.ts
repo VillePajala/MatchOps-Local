@@ -495,7 +495,10 @@ describe('Translation File Validation', () => {
       //     and playerStats.captainGames in both plural forms. Lands at 3178.
       // +1 net in rulesDirectory.*: dropped youthRules (Palloliitto delisted the
       //     Kaikki Pelaa PDF), added futsalFormats and checkedOn. Lands at 3179.
-      expect(enKeys.length).toBe(3179);
+      // +2 formations.4v4.*: Palloliitto moved P/T8-10 futsal to 4v4 from
+      //     season 2026-27 and the app had nothing between 3v3 and 5v5.
+      //     Lands at 3181.
+      expect(enKeys.length).toBe(3181);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -659,7 +662,8 @@ describe('Translation File Validation', () => {
       //     in both plural forms, and three section labels. Lands at 3168.
       // +8 game captains (see EN above). Lands at 3178.
       // +1 net in rulesDirectory.* (see EN above). Lands at 3179.
-      expect(fiKeys.length).toBe(3179);
+      // +2 formations.4v4.* (see EN above). Lands at 3181.
+      expect(fiKeys.length).toBe(3181);
     });
   });
 });

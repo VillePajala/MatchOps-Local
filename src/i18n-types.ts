@@ -818,6 +818,8 @@ export type TranslationKey =
   | 'formations.11v11.4-4-2'
   | 'formations.3v3.1-1'
   | 'formations.3v3.2-0'
+  | 'formations.4v4.1-2'
+  | 'formations.4v4.2-1'
   | 'formations.5v5.1-2-1'
   | 'formations.5v5.2-1-1'
   | 'formations.5v5.2-2'
