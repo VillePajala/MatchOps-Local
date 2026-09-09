@@ -143,9 +143,14 @@ describe('ruleLinks.json', () => {
     readFileSync(new URL('../../src/config/ruleLinks.json', import.meta.url), 'utf8'),
   );
 
-  it('gives every link a listing page, except the index page itself', () => {
+  it('gives every link a listing page, or states in writing why it cannot have one', () => {
     for (const link of real.links) {
       if (link.url === real.indexPage) {
+        expect(link.listedOn).toBeUndefined();
+      } else if (link.noListingCheck) {
+        // An opt-out is allowed, but only as an explicit sentence someone can
+        // argue with - not as a missing field nobody notices.
+        expect(link.noListingCheck.length).toBeGreaterThan(40);
         expect(link.listedOn).toBeUndefined();
       } else {
         expect(typeof link.listedOn).toBe('string');

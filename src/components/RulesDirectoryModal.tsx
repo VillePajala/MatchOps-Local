@@ -26,6 +26,8 @@ interface RulesDirectoryModalProps {
  * @see https://www.palloliitto.fi/saannot-maaraykset-ja-ohjeet - Main rules page (stable URL)
  */
 const RULE_LINKS = ruleLinks.links;
+const SERIES_LINKS = RULE_LINKS.filter((l) => l.group === 'series');
+const RULEBOOK_LINKS = RULE_LINKS.filter((l) => l.group === 'rulebooks');
 
 const openLink = (url: string) => {
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -93,7 +95,36 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
           <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 space-y-6">
 
-              {/* The formats table, first: it answers the question a coach
+              {/* Palloliitto does not publish "the rules" in one place, and a
+                  screen that hides that fact is the reason this one felt
+                  half-finished: some futsal numbers, then four documents.
+                  There are three different kinds of rule and they live apart,
+                  so the page says which is which and puts the coach's OWN
+                  series first - that is the only one that is actually theirs. */}
+              <p className="text-xs text-slate-400">
+                {t(
+                  'rulesDirectory.intro',
+                  'Säännöt ovat kolmessa paikassa: oman sarjasi säännöt, ikäluokkien pelimuodot ja lajisäännöt.',
+                )}
+              </p>
+
+              <Section title={t('rulesDirectory.seriesTitle', 'Oman sarjasi säännöt')}>
+                <p className="text-xs text-slate-400 -mt-1">
+                  {t(
+                    'rulesDirectory.seriesHelp',
+                    'Pelaajamäärä, peliaika ja kentän koko ovat sarjakohtaisia. Valitse sarjasi ja avaa Info > Säännöt.',
+                  )}
+                </p>
+                {SERIES_LINKS.map((link) => (
+                  <LinkButton
+                    key={link.id}
+                    url={link.url}
+                    label={t(link.labelKey as TranslationKey, link.fallbackLabel)}
+                  />
+                ))}
+              </Section>
+
+              {/* The formats table, second: it answers the question a coach
                   actually has ("how long are our halves?") without opening a
                   document. The links below stay for the full text.
 
@@ -171,9 +202,10 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                 </p>
               </Section>
 
-              {/* Palloliitto Section */}
-              <Section title="Palloliitto">
-                {RULE_LINKS.map((link) => (
+              {/* The laws of the game: same for everyone, and the least
+                  likely thing a coach is actually looking for, so last. */}
+              <Section title={t('rulesDirectory.rulebooksTitle', 'Lajisäännöt')}>
+                {RULEBOOK_LINKS.map((link) => (
                   <LinkButton
                     key={link.id}
                     url={link.url}

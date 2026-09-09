@@ -5,29 +5,39 @@
 
 ## Overview
 
-One screen answering "what applies to my game", backed by Palloliitto's own
-published material. It has two halves, deliberately in this order:
+One screen answering "what applies to my game". The hard part is that
+**Palloliitto does not publish "the rules" in one place**, so the screen's job
+is to be a map, not a dump. Three kinds of rule live apart, and the page is
+ordered by how specific each is to the coach:
 
-1. **The official game formats table** - players per side, playing time, court,
-   goal and ball, per age band. This is the part that answers a question.
-2. **Links to the rulebooks** - for the full text, when the table is not enough.
+1. **Your league's rules** - player count, playing time and pitch size are set
+   **per league** (*sarja*; the app calls these Leagues / Sarjat) and live in
+   Tulospalvelu under each one's Info > Säännöt tab. This is the only one that
+   is actually *theirs*, so it comes first. The Kaikki Pelaa programme document
+   states this move in its opening line.
+   **Use the app's own word in UI copy**: EN "league", FI "sarja". Palloliitto's
+   docs say "series", and importing that vocabulary confused the owner on first
+   read - if it confused him it will confuse a coach.
+2. **Age-group formats** - the national defaults. Futsal has a published
+   one-page table, which the app carries in full. Football does not (see below).
+3. **Laws of the game** - the rulebooks, the same for everyone, so last.
 
-The links came first historically, and on their own they were weak: four
-documents running to hundreds of pages, none of which tells a coach how long
-their U10's halves are without a search.
+Before this structure the screen showed some futsal numbers and four document
+links, which reads as half-finished because it mirrored the publisher's mess
+instead of explaining it.
 
 ## Key components
 
 | File | Role |
 |------|------|
-| `src/components/RulesDirectoryModal.tsx` | The modal: formats table, then links |
+| `src/components/RulesDirectoryModal.tsx` | The modal: your league, then the formats table, then the rulebooks |
 | `src/config/gameFormats.json` | The transcribed formats data |
 | `src/config/gameFormats.source.txt` | Verbatim extraction, committed as evidence |
 | `src/config/gameFormats.ts` | Types + age-band lookup |
-| `src/config/ruleLinks.json` | The rulebook links, with their listing pages |
+| `src/config/ruleLinks.json` | The links (grouped `series` / `rulebooks`), with their listing pages |
 | `scripts/check-rule-links.mjs` | Weekly CI check (links + source hash) |
 
-## Two rules that must not be broken
+## Three rules that must not be broken
 
 **1. The formats are NATIONAL DEFAULTS, and the screen must say so.**
 A series may deviate. A series' own rules live in Palloliitto's results service
@@ -36,7 +46,14 @@ server, so the app cannot know them. Presenting a default as "your rules" would
 make the app confidently wrong for anyone whose league differs. There is a
 `@critical` test on the caveat text.
 
-**2. The table names its sport and season.**
+**2. The Kaikki Pelaa citation is from a DELISTED document.**
+The quote establishing that the per-age numbers moved to Tulospalvelu comes
+from `kaikki-pelaa-ohjelma-2025.pdf`, which Palloliitto has removed from its
+rules index. It is cited as the historical reason for the move, never as a
+current rule, and nothing in `gameFormats.json` is transcribed from it. If a
+newer programme document appears, re-check that the statement still holds.
+
+**3. The table names its sport and season.**
 It currently covers **futsal only**, and most users play football, so a generic
 "game formats" heading would invite a football coach to read futsal's 4v4 as
 their own. The heading comes from the data's own `source.title`, and a second
@@ -93,3 +110,11 @@ and the instruction to re-extract.
 Not in the settings gear: it is reference material a coach consults, not app
 configuration, and one entry point per screen (a test asserts the gear does not
 also offer it).
+
+## Vocabulary
+
+Say **league** (EN) / **sarja** (FI) - the app's own words, matching the Leagues
+and Sarjat labels elsewhere. Palloliitto's documents say "series", and anyone
+working from those sources drifts back to it; the owner was stopped by "your own
+series" on first read. An i18n test fails if any English string on this screen
+says "series".
