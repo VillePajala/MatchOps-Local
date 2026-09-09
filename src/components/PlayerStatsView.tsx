@@ -8,7 +8,7 @@ import type { TranslationKey } from '@/i18n-types';
 import { Player, Season, Tournament, Team } from '@/types';
 import { AppState } from '@/types';
 import type { GameType, Gender } from '@/types/game';
-import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/playerStats';
+import { calculatePlayerStats, PlayerStats as PlayerStatsData, isGameInPlayerScope } from '@/utils/playerStats';
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
 import { adjustmentInScope } from '@/utils/adjustmentScope';
 import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
@@ -463,14 +463,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
    */
   const evidenceText = useMemo(() => {
     if (!player || !playerStats) return '';
-    const inScope = (g: AppState) => {
-      if (g.isPlayed === false) return false;
-      if (!includeFriendlies && g.isFriendly) return false;
-      if (teamId === 'legacy') return !g.teamId;
-      if (teamId) return g.teamId === teamId;
-      return true;
-    };
-    const scopedIds = new Set(Object.entries(filteredGamesByClubSeason).filter(([, g]) => inScope(g)).map(([id]) => id));
+    // The same rule calculatePlayerStats applies, imported rather than copied,
+    // so the "of the team's games" denominator is the stats table's own scope.
+    const scopedIds = new Set(
+      Object.entries(filteredGamesByClubSeason)
+        .filter(([, g]) => isGameInPlayerScope(g, teamId, includeFriendlies))
+        .map(([id]) => id),
+    );
     const games = playerStats.gameByGameStats
       .filter((s) => !s.isExternal && filteredGamesByClubSeason[s.gameId])
       .map((s) => {
