@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "Finish this game now checks that the record agrees with itself: the goals in the log against the score on the board, that every goal names a scorer, and how many of the squad you have written something about. Those three are the mistakes that quietly make a player's statistics wrong."
+      ],
+      "fi": [
+        "Viimeistele ottelu tarkistaa nyt myös, ettei kirjanpito ole ristiriidassa itsensä kanssa: kirjatut maalit vasten tulostaulun tulosta, että jokaisella maalilla on tekijä, ja kuinka monesta pelaajasta olet kirjannut jotain. Juuri nämä kolme virhettä vääristävät pelaajan tilastot huomaamatta."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "New in Finish this game: Match report for Taso. The squad with shirt numbers, and the result, half-time score and every goal as minute, scorer and assist, in the order Taso's electronic match report asks for them. Copy and type, instead of recalling."
       ],
       "fi": [
