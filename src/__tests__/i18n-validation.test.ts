@@ -463,6 +463,9 @@ describe('Translation File Validation', () => {
       // +5 noteComposer.* - writing a note about a player by hand, which had
       //     no path at all before. Lands at 3157.
       // +3 noteComposer record keys: the composer can dictate too. Lands at 3160.
+      // +1: noteComposer.transcribing - writing out the recording on the spot.
+      // +1: gameStatsModal.wrapUpVoiceNotesDone - the recordings row, once the
+      //     clips are written out. Lands at 3162.
       expect(enKeys.length).toBe(3162);
     });
 
@@ -619,6 +622,9 @@ describe('Translation File Validation', () => {
       // +5 noteComposer.* - writing a note about a player by hand, which had
       //     no path at all before. Lands at 3157.
       // +3 noteComposer record keys: the composer can dictate too. Lands at 3160.
+      // +1: noteComposer.transcribing - writing out the recording on the spot.
+      // +1: gameStatsModal.wrapUpVoiceNotesDone - the recordings row, once the
+      //     clips are written out. Lands at 3162.
       expect(fiKeys.length).toBe(3162);
     });
   });
