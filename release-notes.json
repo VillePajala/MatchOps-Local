@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-10",
+      "en": [
+        "You can now look up a rule instead of hunting through a PDF. Type the word you actually use, like offside or sending off, pick football or futsal, and the app tells you which law it is and opens the official rulebook at that page."
+      ],
+      "fi": [
+        "Voit nyt etsiä säännön sen sijaan että selaisit PDF:ää. Kirjoita se sana jota oikeasti käytät, kuten paitsio tai kentältäpoisto, valitse jalkapallo tai futsal, ja sovellus kertoo mikä sääntö se on ja avaa virallisen sääntökirjan oikealta sivulta."
+      ]
+    },
+    {
       "date": "2026-09-09",
       "en": [
         "The Rules screen now tells you where each kind of rule actually lives. Your own league comes first, with a direct link to it, because player count, playing time and pitch size are set per league and are not in any rulebook. Then the age-group formats, then the laws of the game."

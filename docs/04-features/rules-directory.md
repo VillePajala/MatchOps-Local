@@ -10,6 +10,8 @@ One screen answering "what applies to my game". The hard part is that
 is to be a map, not a dump. Three kinds of rule live apart, and the page is
 ordered by how specific each is to the coach:
 
+0. **Find a rule** - type the word you actually use ("kentältäpoisto") and get
+   the law, then open the official book at that page. See the licence note below.
 1. **Your league's rules** - player count, playing time and pitch size are set
    **per league** (*sarja*; the app calls these Leagues / Sarjat) and live in
    Tulospalvelu under each one's Info > Säännöt tab. This is the only one that
@@ -110,6 +112,49 @@ and the instruction to re-extract.
 Not in the settings gear: it is reference material a coach consults, not app
 configuration, and one entry point per screen (a test asserts the gear does not
 also offer it).
+
+## The rule text is NOT ours to ship
+
+Investigated 2026-09-10. **IFAB** (football) and **FIFA** (futsal) reserve all
+rights. IFAB's terms grant only "a limited, revocable, non-exclusive licence to
+access and use the IFAB Websites" and state their content shall not be
+"reproduced, copied, distributed... republished" for any other purpose.
+Palloliitto's books are *translations*, so they cannot grant more than they hold.
+
+So the app carries an **index**, never the text:
+
+| Shipped | Not shipped |
+|---|---|
+| Topic names, written by us in a coach's words | Any rule prose |
+| Law numbers and official titles (citations) | Paragraphs, definitions, examples |
+| The page each law starts on | The PDF itself |
+
+Every result opens the **rights holder's own document** at that page, so the
+reader gets the authoritative text from the authoritative source. A test fails
+if rule prose ever appears in `rulesIndex.json`.
+
+If you want the text in-app, it takes written permission:
+`lawenquiries@theifab.com` for football, FIFA for futsal, plus Palloliitto for
+their translations. Those are three independent asks.
+
+**Topic mappings were verified, not assumed.** Each topic was checked by
+searching the pages of each law in both books. That pass corrected three
+mistakes that all looked plausible:
+
+| Topic | Assumed | Actually |
+|---|---|---|
+| Time-out | both codes | futsal only (0 mentions in the football book) |
+| Sin bin | both codes, Law 12 | football only, and *guidance* at page 10, not a law |
+| Accumulated fouls | Law 12 | futsal Law 13 |
+
+A back-pass topic was **dropped** because its placement could not be verified.
+An unverified mapping is worse than a missing one: it sends a coach somewhere
+with confidence. Re-run that verification when adding a topic.
+
+**Page numbers are edition-specific.** They were verified against both PDFs
+(printed page == PDF page, checked at Law 1 and Law 12 in each). A new edition
+reflows the book, so re-extract whenever a rulebook link changes - the weekly
+hash/listing check is what tells you it did.
 
 ## Vocabulary
 

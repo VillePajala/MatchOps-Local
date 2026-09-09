@@ -533,7 +533,9 @@ describe('Translation File Validation', () => {
       //     (intro, series section + help + link label, rulebooks heading),
       //     because Palloliitto keeps them in three separate places and a
       //     screen that hides that reads as half-finished. Lands at 3195.
-      expect(enKeys.length).toBe(3195);
+      // +8 rulesDirectory.*: the law lookup (title, two sport tabs,
+      //     placeholder, no-hits, law/page labels, rights note). Lands at 3203.
+      expect(enKeys.length).toBe(3203);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -701,7 +703,8 @@ describe('Translation File Validation', () => {
       // +8 rulesDirectory.* game-formats table (see EN above). Lands at 3189.
       // (+1 more on review: formatsFutsalOnly - see EN above.) Lands at 3190.
       // +5 rulesDirectory.* the three-places map (see EN above). Lands at 3195.
-      expect(fiKeys.length).toBe(3195);
+      // +8 rulesDirectory.* law lookup (see EN above). Lands at 3203.
+      expect(fiKeys.length).toBe(3203);
     });
   });
 });

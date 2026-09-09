@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 import ruleLinks from '@/config/ruleLinks.json';
 import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES } from '@/config/gameFormats';
+import { searchRules, lawUrl, guidanceUrl, type RulesSport } from '@/config/rulesIndex';
 import type { TranslationKey } from '@/i18n-types';
 
 interface RulesDirectoryModalProps {
@@ -63,6 +64,10 @@ const Section = ({
 
 const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClose }) => {
   const { t, i18n } = useTranslation();
+  const [sport, setSport] = React.useState<RulesSport>('football');
+  const [query, setQuery] = React.useState('');
+  const lang = i18n.language?.startsWith('en') ? 'en' : 'fi';
+  const hits = React.useMemo(() => searchRules(sport, query, lang), [sport, query, lang]);
 
   // The stored date is ISO so the config stays machine-readable; a Finnish
   // reader should still see 9.9.2026 rather than a raw config value.
@@ -94,6 +99,80 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 space-y-6">
+
+              {/* Look up a law without opening a 139-page PDF and scrolling.
+                  Deliberately an INDEX, not the rules: IFAB and FIFA reserve
+                  all rights and their terms allow using the text only on their
+                  own sites, so the app carries our topic wording plus the law
+                  numbers, titles and pages, and every result opens the rights
+                  holder's own document at that page. Never paste rule text. */}
+              <Section title={t('rulesDirectory.lookupTitle', 'Etsi sääntö')}>
+                <div className="flex gap-2">
+                  {(['football', 'futsal'] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSport(s)}
+                      aria-pressed={sport === s}
+                      data-testid={`rules-sport-${s}`}
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        sport === s ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {s === 'football'
+                        ? t('rulesDirectory.sportFootball', 'Jalkapallo')
+                        : t('rulesDirectory.sportFutsal', 'Futsal')}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  data-testid="rules-search"
+                  aria-label={t('rulesDirectory.lookupTitle', 'Etsi sääntö')}
+                  placeholder={t('rulesDirectory.searchPlaceholder', 'Esim. paitsio, kentältäpoisto, vaihdot')}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                {hits.length === 0 ? (
+                  <p className="text-xs text-slate-400" data-testid="rules-no-hits">
+                    {t('rulesDirectory.noHits', 'Ei osumia. Kokeile toista sanaa tai selaa sääntökirjaa.')}
+                  </p>
+                ) : (
+                  <ul className="space-y-1" data-testid="rules-hits">
+                    {hits.map((h) => (
+                      <li key={h.key}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Guidance sections have no law number, so they are
+                            // addressed by page directly.
+                            const url =
+                              h.law === null ? guidanceUrl(sport, h.page) : lawUrl(sport, h.law);
+                            if (url) openLink(url);
+                          }}
+                          className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-slate-800/70 hover:bg-slate-700/70 text-left transition-colors"
+                        >
+                          <span className="min-w-0">
+                            <span className="text-sm text-slate-200">
+                              {h.law === null
+                                ? h.title
+                                : `${t('rulesDirectory.lawN', 'Sääntö {{n}}', { n: h.law })} - ${h.title}`}
+                            </span>
+                            {h.via && <span className="block text-xs text-slate-400 truncate">{h.via}</span>}
+                          </span>
+                          <span className="shrink-0 text-xs text-slate-500">
+                            {t('rulesDirectory.pageN', 's. {{n}}', { n: h.page })}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-slate-500">
+                  {t('rulesDirectory.lookupNote', 'Avaa virallisen sääntökirjan oikealta sivulta. Säännöt julkaisee IFAB (jalkapallo) ja FIFA (futsal).')}
+                </p>
+              </Section>
 
               {/* Palloliitto does not publish "the rules" in one place, and a
                   screen that hides that fact is the reason this one felt
