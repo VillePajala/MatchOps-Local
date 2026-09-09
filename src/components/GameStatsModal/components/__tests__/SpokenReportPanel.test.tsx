@@ -170,7 +170,7 @@ describe('SpokenReportPanel - recording', () => {
     const view = renderPanel({ dictation: { isRecording: true } });
     const button = screen.getByTestId('spoken-report-toggle');
     expect(button).toBeDisabled();
-    expect(button).toHaveTextContent('Record the report');
+    expect(button).toHaveTextContent('Dictate the report');
     fireEvent.click(button);
     expect(view.dictation.stop).not.toHaveBeenCalled();
   });

@@ -285,7 +285,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
                 {dictation.isRecording && startedHere ? (
                   <>
                     <HiOutlineStop className="text-base" />
-                    {t('noteComposer.recordStop', 'Stop recording')}
+                    {t('noteComposer.recordStop', 'Stop dictating')}
                   </>
                 ) : (
                   <>

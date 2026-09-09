@@ -213,7 +213,7 @@ describe('writing out the recording with the coach\'s own provider', () => {
     fireEvent.click(screen.getByTestId('note-composer-record'));
     // Recording starts...
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: true })} />);
-    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Stop recording');
+    expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Stop dictating');
     // ...and ends with nothing kept: no clip is ever reported.
     view.rerender(<GameNoteComposer {...props} dictation={controls({ isRecording: false })} />);
     expect(screen.getByTestId('note-composer-record')).toHaveTextContent('Dictate a note');
