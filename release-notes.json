@@ -15,6 +15,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "Finish this game: the checklist now always shows the squad row, ticked when done, so the rows and the count agree."
+      ],
+      "fi": [
+        "Viimeistele ottelu: tarkistuslista näyttää nyt aina kokoonpanorivin, valmiina kun se on tehty, joten rivit ja laskuri täsmäävät."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "Player assessments are now off by default. Rating children after every game is not what youth football is about, and almost nobody kept it up. Ratings you have already made are kept, and Settings has a switch to bring the feature back at any time."
       ],
       "fi": [
