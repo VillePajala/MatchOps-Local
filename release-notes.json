@@ -4,10 +4,10 @@
     {
       "date": "2026-09-09",
       "en": [
-        "You can now write a note about a player by hand, in Finish this game. Until now a note could only be dictated during the match, so the checklist asking how many players you had written about pointed at something most coaches had no way to do. That row is also clearer now, and tapping it takes you to the notes."
+        "You can now write a note about a player in Finish this game, by typing it or by speaking it. Until now a note could only be dictated during the match. The checklist still shows how many players you have written about, but it no longer counts it: nobody owes an observation about every child in every match."
       ],
       "fi": [
-        "Voit nyt kirjoittaa muistiinpanon pelaajasta käsin Viimeistele ottelu -näkymässä. Aiemmin muistiinpanon saattoi luoda vain sanelemalla ottelun aikana, joten tarkistuslistan kohta pelaajista kirjatuista muistiinpanoista pyysi jotain, mihin useimmilla valmentajilla ei ollut keinoa. Kohta on myös aiempaa selkeämpi, ja sitä napauttamalla pääsee muistiinpanoihin."
+        "Voit nyt kirjoittaa muistiinpanon pelaajasta Viimeistele ottelu -näkymässä joko kirjoittamalla tai sanelemalla. Aiemmin muistiinpanon saattoi luoda vain sanelemalla ottelun aikana. Tarkistuslista näyttää edelleen, kuinka monesta pelaajasta olet kirjannut, mutta ei enää laske sitä mukaan: kenenkään ei tarvitse kirjata havaintoa jokaisesta lapsesta jokaisessa ottelussa."
       ]
     },
     {

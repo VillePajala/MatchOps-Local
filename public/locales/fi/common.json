@@ -271,7 +271,10 @@
     "playerLabel": "Kenestä",
     "wholeMatch": "Ottelusta",
     "placeholder": "Mitä näit? Yksi havainto riittää.",
-    "save": "Tallenna muistiinpano"
+    "save": "Tallenna muistiinpano",
+    "record": "Sanele sen sijaan",
+    "recordStop": "Lopeta nauhoitus",
+    "recordedHint": "Odottaa yllä äänimuistiinpanoissa, jossa kirjoitat sen auki ja valitset pelaajan."
   },
   "undoToast": {
     "goal": "Maali kirjattu",

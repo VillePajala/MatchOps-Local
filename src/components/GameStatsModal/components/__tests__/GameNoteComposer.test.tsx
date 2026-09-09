@@ -49,3 +49,33 @@ describe('GameNoteComposer', () => {
     expect((box as HTMLTextAreaElement).value).toBe('Kept it.');
   });
 });
+
+describe('speaking instead of typing', () => {
+  const controls = (over: Record<string, unknown> = {}) => ({
+    isSupported: true, available: true, permission: 'granted', isRecording: false, clipCount: 0,
+    needsIntro: false, lastClip: null, acknowledgeIntro: jest.fn(), start: jest.fn(), stop: jest.fn(), ...over,
+  }) as never;
+
+  it('records into the voice notes rather than a second transcription path', () => {
+    const d = controls();
+    const { rerender } = render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={d} />);
+    fireEvent.click(screen.getByTestId('note-composer-record'));
+    expect((d as unknown as { start: jest.Mock }).start).toHaveBeenCalled();
+    rerender(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls({ isRecording: true, start: (d as unknown as { start: jest.Mock }).start, stop: (d as unknown as { stop: jest.Mock }).stop })} />);
+    fireEvent.click(screen.getByTestId('note-composer-record'));
+    expect((d as unknown as { stop: jest.Mock }).stop).toHaveBeenCalled();
+  });
+
+  it('says nothing about recording when the device cannot', () => {
+    render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls({ available: false })} />);
+    expect(screen.queryByTestId('note-composer-record')).not.toBeInTheDocument();
+    // Typing still works, which is the whole point of the card.
+    expect(screen.getByTestId('note-composer-save')).toBeInTheDocument();
+  });
+
+  it('explains a refused microphone instead of offering a dead button', () => {
+    render(<GameNoteComposer players={players} stamp={stamp} onAdd={jest.fn(() => true)} dictation={controls({ permission: 'denied' })} />);
+    expect(screen.queryByTestId('note-composer-record')).not.toBeInTheDocument();
+    expect(screen.getByText(/Microphone access was denied/)).toBeInTheDocument();
+  });
+});

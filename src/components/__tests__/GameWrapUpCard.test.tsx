@@ -47,7 +47,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
 
     // The number and the bar come from the same model the list does, so they
     // cannot disagree with the rows underneath.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/7$/);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent(/^\d\/6$/);
     expect(screen.getByTestId('wrap-up-progress-bar')).toBeInTheDocument();
   });
 
@@ -81,7 +81,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.queryByTestId('wrap-up-status-assessments-todo')).not.toBeInTheDocument();
 
     // And the count agrees: nothing is amber, so the bar is full.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('7/7');
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('6/6');
   });
 
   it('shows an outstanding row in amber and leaves it out of the count', () => {
@@ -101,8 +101,7 @@ describe('GameWrapUpCard - Kirjuri voice notes row', () => {
     expect(screen.getByTestId('wrap-up-status-assessments-todo')).toBeInTheDocument();
     // All squad positioned -> the solid tick, not the partial one.
     expect(screen.getByTestId('wrap-up-status-positions-done')).toBeInTheDocument();
-    // Two amber rows now (assessments, notes coverage), neither counted.
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('5/7');
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('5/6');
   });
 
   it('does not call the game Complete while clips still wait', () => {
@@ -139,8 +138,8 @@ describe('rows match the counter', () => {
     render(<GameWrapUpCard completeness={c} />);
     expect(screen.getByTestId('wrap-up-status-roster-done')).toBeInTheDocument();
     const rows = screen.getAllByRole('listitem');
-    expect(rows).toHaveLength(6);
-    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('3/6');
+    expect(rows).toHaveLength(5);
+    expect(screen.getByTestId('wrap-up-progress-count')).toHaveTextContent('3/5');
   });
 });
 
@@ -186,7 +185,7 @@ describe('consistency rows', () => {
 
 describe('notes-coverage row', () => {
   /** @critical - it pointed at the voice inbox, which does not exist without a clip. */
-  it('routes to the notes step, where a note can actually be written', () => {
+  it('is a line, not a scored row, and leads to the notes step', () => {
     const onOpenNotes = jest.fn();
     const onOpenVoiceNotes = jest.fn();
     const c = computeGameCompleteness({
@@ -194,7 +193,11 @@ describe('notes-coverage row', () => {
       teamId: '', playerPositions: {}, assessments: {}, gameEvents: [], homeScore: 0, awayScore: 0,
     }, { assessmentsEnabled: false });
     render(<GameWrapUpCard completeness={c} onOpenNotes={onOpenNotes} onOpenVoiceNotes={onOpenVoiceNotes} />);
-    fireEvent.click(screen.getByText('Notes about players'));
+    const line = screen.getByTestId('wrap-up-notes-line');
+    expect(line).toHaveTextContent('0/1');
+    // Not one of the numbered rows, so it can never read as owed.
+    expect(line.closest('li')).toBeNull();
+    fireEvent.click(line);
     expect(onOpenNotes).toHaveBeenCalledTimes(1);
     expect(onOpenVoiceNotes).not.toHaveBeenCalled();
   });
