@@ -498,6 +498,8 @@ describe('Translation File Validation', () => {
       // +2 formations.4v4.*: Palloliitto moved P/T8-10 futsal to 4v4 from
       //     season 2026-27 and the app had nothing between 3v3 and 5v5.
       //     Lands at 3181.
+      // +-0: startScreen.gearRules renamed to rowRules when Rules moved out of
+      //     the gear sheet onto the Club tab. Still 3181.
       expect(enKeys.length).toBe(3181);
     });
 

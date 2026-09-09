@@ -688,15 +688,36 @@ describe('Home shell tab bar (two-level restructure PR 1.2)', () => {
     expect(screen.queryByRole('dialog', { name: 'App & account' })).not.toBeInTheDocument();
   });
 
-  it('gear sheet routes backup and rules to their openers', () => {
-    const props = { ...shellProps(), onOpenBackup: jest.fn(), onOpenRules: jest.fn() };
+  it('gear sheet routes backup to its opener', () => {
+    const props = { ...shellProps(), onOpenBackup: jest.fn() };
     render(<StartScreen {...props} />);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     fireEvent.click(screen.getByRole('button', { name: 'Backup & Restore' }));
     expect(props.onOpenBackup).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Rules' }));
+  });
+
+  /**
+   * Rules is reference material a coach consults, not app configuration, so it
+   * sits with the Coaching Materials link rather than under the gear - where
+   * someone scanning the tabs would never have met it.
+   */
+  it('Rules sits on the Club panel and opens the directory', () => {
+    const props = { ...shellProps(), onOpenRules: jest.fn() };
+    render(<StartScreen {...props} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Club' }));
+    fireEvent.click(screen.getByTestId('club-rules'));
     expect(props.onOpenRules).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * @critical - one modal, one entry point per screen. A leftover gear entry
+   * would drift from the Club row the moment either changed.
+   */
+  it('does not also offer Rules in the gear sheet', () => {
+    render(<StartScreen {...shellProps()} onOpenRules={jest.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    const sheet = screen.getByRole('dialog', { name: 'App & account' });
+    expect(within(sheet).queryByRole('button', { name: 'Rules' })).not.toBeInTheDocument();
   });
 
   it('the Taso link sits on the games front page (game-day workflow tool)', () => {

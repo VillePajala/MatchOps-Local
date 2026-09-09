@@ -486,6 +486,24 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     </span>
                   </button>
                 </div>
+                {/* Rules belongs with the coaching materials below it, by the
+                    same reasoning 3.1b applied there: reference a coach
+                    consults, not app configuration. It was the one such item
+                    still hiding under the gear, where a coach scanning the tabs
+                    would never meet it. A button, not a link with the
+                    leaving-the-app icon, because it opens the in-app directory. */}
+                {onOpenRules && (
+                  <button
+                    type="button"
+                    onClick={onOpenRules}
+                    data-testid="club-rules"
+                    className="w-full flex items-center justify-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                  >
+                    <span className="text-sm font-semibold text-white">
+                      {t('startScreen.rowRules', 'Rules')}
+                    </span>
+                  </button>
+                )}
                 {/* Training CONTENT scope: the coaching materials link lives
                     with the team, not under the gear. Solid row like its
                     siblings (3.1b - bare link text looked out of place);
@@ -859,11 +877,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   {t('startScreen.enableCloudSync', 'Enable Cloud Sync →')}
                 </button>
               ) : null}
-              {onOpenRules && (
-                <button type="button" onClick={() => { setShowGearSheet(false); onOpenRules(); }} className="w-full text-left px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
-                  {t('startScreen.gearRules', 'Rules')}
-                </button>
-              )}
+              {/* Rules moved to the Club tab (next to Coaching Materials).
+                  Deliberately NOT duplicated here: two entry points to one
+                  modal on one screen is noise, and the gear should keep
+                  shrinking toward genuine app settings. */}
               {/* Setup tracker (moved off the home tabs) - on-demand, shows N/4. */}
               {showSetupEntry && (
                 <button type="button" onClick={() => { setShowGearSheet(false); setShowSetupSheet(true); }} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm text-slate-100 hover:bg-slate-700/75 transition-colors">
