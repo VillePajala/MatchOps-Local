@@ -249,6 +249,13 @@
     "discardClipTitle": "Discard this recording?",
     "discardClipBody": "The recording is deleted for good. Anything you have not saved as a note goes with it."
   },
+  "noteComposer": {
+    "title": "Write a note",
+    "playerLabel": "About",
+    "wholeMatch": "The match",
+    "placeholder": "What did you see? One observation is enough.",
+    "save": "Save the note"
+  },
   "undoToast": {
     "goal": "Goal logged",
     "opponentGoal": "Opponent goal logged",
@@ -520,7 +527,7 @@
     "wrapUpReport": "Match report",
     "wrapUpGoals": "Goals logged",
     "wrapUpScorers": "Goal scorers named",
-    "wrapUpNotes": "Players written about",
+    "wrapUpNotes": "Notes about players",
     "wrapUpPositions": "Positions played",
     "wrapUpAssessments": "Player assessments",
     "wrapUpCompetition": "Competition & team",

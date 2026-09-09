@@ -1565,7 +1565,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       period: note.period,
       entityId: note.entityId,
       text,
-      source: 'dictation',
+      source: note.source ?? 'dictation',
       ...(note.tag ? { tag: note.tag } : {}),
     };
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: event });

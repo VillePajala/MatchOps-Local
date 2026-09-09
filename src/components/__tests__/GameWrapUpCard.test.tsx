@@ -183,3 +183,19 @@ describe('consistency rows', () => {
     expect(rows).toHaveLength(Number(total));
   });
 });
+
+describe('notes-coverage row', () => {
+  /** @critical - it pointed at the voice inbox, which does not exist without a clip. */
+  it('routes to the notes step, where a note can actually be written', () => {
+    const onOpenNotes = jest.fn();
+    const onOpenVoiceNotes = jest.fn();
+    const c = computeGameCompleteness({
+      isPlayed: true, gameNotes: 'x', selectedPlayerIds: ['a'], seasonId: '', tournamentId: '',
+      teamId: '', playerPositions: {}, assessments: {}, gameEvents: [], homeScore: 0, awayScore: 0,
+    }, { assessmentsEnabled: false });
+    render(<GameWrapUpCard completeness={c} onOpenNotes={onOpenNotes} onOpenVoiceNotes={onOpenVoiceNotes} />);
+    fireEvent.click(screen.getByText('Notes about players'));
+    expect(onOpenNotes).toHaveBeenCalledTimes(1);
+    expect(onOpenVoiceNotes).not.toHaveBeenCalled();
+  });
+});
