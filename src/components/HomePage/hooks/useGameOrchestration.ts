@@ -1590,6 +1590,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       teamId: saved.teamId,
       playerPositions: gameSessionState.playerPositions,
       assessments: saved.assessments,
+      gameEvents: gameSessionState.gameEvents,
+      homeScore: gameSessionState.homeScore,
+      awayScore: gameSessionState.awayScore,
     }, { assessmentsEnabled });
     if (!completeness.applicable) return null;
     return completenessProgress(completeness);
@@ -1599,6 +1602,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameSessionState.gameNotes,
     gameSessionState.selectedPlayerIds,
     gameSessionState.playerPositions,
+    gameSessionState.gameEvents,
+    gameSessionState.homeScore,
+    gameSessionState.awayScore,
     assessmentsEnabled,
   ]);
 

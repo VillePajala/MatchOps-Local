@@ -455,8 +455,10 @@ describe('Translation File Validation', () => {
       //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
       // +13 taso.* - the Taso helper: squad and match report in Taso's order.
       //     Lands at 3133.
-      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3148.
-      expect(enKeys.length).toBe(3148);
+      // +3: gameStatsModal.wrapUpGoals/wrapUpScorers/wrapUpNotes - the three
+      //     consistency checks in the finish-game checklist. Lands at 3136.
+      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3151.
+      expect(enKeys.length).toBe(3151);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -604,8 +606,10 @@ describe('Translation File Validation', () => {
       //     player assessments off by default (owner, 2026-09-09). Lands at 3120.
       // +13 taso.* - the Taso helper: squad and match report in Taso's order.
       //     Lands at 3133.
-      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3148.
-      expect(fiKeys.length).toBe(3148);
+      // +3: gameStatsModal.wrapUpGoals/wrapUpScorers/wrapUpNotes - the three
+      //     consistency checks in the finish-game checklist. Lands at 3136.
+      // +15 evidence.* - the player summary (Pelaajakooste). Lands at 3151.
+      expect(fiKeys.length).toBe(3151);
     });
   });
 });

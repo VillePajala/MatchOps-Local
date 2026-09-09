@@ -3,7 +3,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ProgressBar from '@/components/ProgressBar';
-import { completenessProgress, countRowStatus } from '@/utils/gameCompleteness';
+import { completenessProgress, countRowStatus, goalLogStatus } from '@/utils/gameCompleteness';
 import { HiCheckCircle, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiChevronRight } from 'react-icons/hi';
 import type { GameCompleteness, CountCheck, CompletenessRowStatus } from '@/utils/gameCompleteness';
 
@@ -17,8 +17,10 @@ interface GameWrapUpCardProps {
   onOpenPositions?: () => void;
   /** Routes the assessments row to the player-assessment editor. */
   onOpenAssessments?: () => void;
-  /** Kirjuri: recorded clips not yet turned into notes (0 = row hidden). */
+  /** Kirjuri: recorded clips not yet turned into notes (0 = banner hidden). */
   voiceClipCount?: number;
+  /** Opens the goal log, for the two goal rows. */
+  onAddGoal?: () => void;
   onOpenVoiceNotes?: () => void;
 }
 
@@ -30,7 +32,7 @@ type RowStatus = CompletenessRowStatus;
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
   const progress = completenessProgress(completeness);
 
@@ -42,18 +44,11 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     onClick?: () => void;
   }
 
+  // Voice clips are not part of the record's completeness (audio is transient)
+  // and the model does not know about them, so they are a banner above the
+  // list rather than a row: a row the counter cannot count is the mismatch
+  // this card has now produced twice.
   const rows: Row[] = [];
-  // Voice clips are not part of the record's completeness (audio is transient),
-  // so the count comes from the inbox, not the model; the row exists only while
-  // something waits.
-  if (voiceClipCount > 0) {
-    rows.push({
-      key: 'voiceNotes',
-      label: t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount }),
-      status: 'todo',
-      onClick: onOpenVoiceNotes,
-    });
-  }
   // Always a row, done or not: the counter counts it, so the list must show
   // it. Hiding it when done left three rows under a "3/4" (owner, 2026-09-09).
   rows.push({
@@ -62,6 +57,24 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
     status: completeness.roster ? 'done' : 'todo',
     onClick: onOpenSettings && (() => onOpenSettings('roster')),
   });
+  // The goal log against the scoreboard. Wrong here and the player's goals,
+  // the recap, the Taso report and the player summary are all wrong with it.
+  rows.push({
+    key: 'goals',
+    label: t('gameStatsModal.wrapUpGoals', 'Goals logged'),
+    status: goalLogStatus(completeness.goalsLogged),
+    count: completeness.goalsLogged,
+    onClick: onAddGoal,
+  });
+  if (completeness.goalsAttributed.total > 0) {
+    rows.push({
+      key: 'scorers',
+      label: t('gameStatsModal.wrapUpScorers', 'Goal scorers named'),
+      status: countRowStatus(completeness.goalsAttributed) === 'done' ? 'done' : 'partial',
+      count: completeness.goalsAttributed,
+      onClick: onAddGoal,
+    });
+  }
   rows.push({
     key: 'report',
     label: t('gameStatsModal.wrapUpReport', 'Match report'),
@@ -85,6 +98,17 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
       status: countRowStatus(completeness.assessments),
       count: completeness.assessments,
       onClick: onOpenAssessments,
+    });
+  }
+  // Who has had nothing written about them. A count and a denominator, never
+  // a ranking: a name here is a fact about the record, not about the child.
+  if (completeness.notesCoverage.total > 0) {
+    rows.push({
+      key: 'notes',
+      label: t('gameStatsModal.wrapUpNotes', 'Players written about'),
+      status: countRowStatus(completeness.notesCoverage),
+      count: completeness.notesCoverage,
+      onClick: onOpenVoiceNotes,
     });
   }
   rows.push({
@@ -120,6 +144,16 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ completeness, onOpenSet
         <div className="mb-3" data-testid="wrap-up-progress-bar">
           <ProgressBar current={progress.done} total={progress.total} />
         </div>
+      )}
+      {voiceClipCount > 0 && (
+        <button
+          type="button"
+          onClick={onOpenVoiceNotes}
+          data-testid="wrap-up-voice-notes"
+          className="w-full mb-2 px-3 py-2 rounded-md text-left text-sm font-medium bg-amber-500/10 border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 transition-colors"
+        >
+          {t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount })}
+        </button>
       )}
       <ul className="space-y-0.5">
         {rows.map(row => {
