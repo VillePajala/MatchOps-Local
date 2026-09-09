@@ -4,6 +4,15 @@
     {
       "date": "2026-09-09",
       "en": [
+        "You can now write a note about a player by hand, in Finish this game. Until now a note could only be dictated during the match, so the checklist asking how many players you had written about pointed at something most coaches had no way to do. That row is also clearer now, and tapping it takes you to the notes."
+      ],
+      "fi": [
+        "Voit nyt kirjoittaa muistiinpanon pelaajasta käsin Viimeistele ottelu -näkymässä. Aiemmin muistiinpanon saattoi luoda vain sanelemalla ottelun aikana, joten tarkistuslistan kohta pelaajista kirjatuista muistiinpanoista pyysi jotain, mihin useimmilla valmentajilla ei ollut keinoa. Kohta on myös aiempaa selkeämpi, ja sitä napauttamalla pääsee muistiinpanoihin."
+      ]
+    },
+    {
+      "date": "2026-09-09",
+      "en": [
         "Finish this game: the notes step no longer shows an empty box on a match with no notes; it now says where notes come from."
       ],
       "fi": [

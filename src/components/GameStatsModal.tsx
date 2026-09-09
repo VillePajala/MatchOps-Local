@@ -32,6 +32,7 @@ import PlayerPositionsEditor from './PlayerPositionsEditor';
 import type { AiMeta, GameNoteInput } from '@/types/game';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import GameRecapModal from './GameRecapModal';
+import GameNoteComposer from './GameStatsModal/components/GameNoteComposer';
 import { buildTasoReport } from '@/utils/tasoReport';
 import GameWrapUpCard from './GameWrapUpCard';
 import { buildGameRecap } from '@/utils/gameRecap';
@@ -984,6 +985,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {/* Both children render nothing when there is nothing, which left a
               numbered step with no content in it at all. A step of the
               checklist must always say what it is about. */}
+          {onAddGameNote && currentGameId && currentGameId !== DEFAULT_GAME_ID && (
+            <GameNoteComposer
+              players={availablePlayers.filter((p) => selectedPlayerIds.includes(p.id))}
+              stamp={draftStamp}
+              onAdd={onAddGameNote}
+            />
+          )}
           {noteEvents.length === 0 && voiceClipCount === 0 && (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="game-notes-empty">
               <h3 className="text-xl font-semibold text-slate-200 mb-1">{t('dictation.notesTitle', 'Notes')}</h3>
@@ -1337,6 +1345,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       voiceClipCount={voiceClipCount}
                       onOpenVoiceNotes={scrollToInbox}
                       onAddGoal={onAddGoal}
+                      onOpenNotes={() => scrollToId('game-notes-step')}
                       onOpenReport={scrollToReport}
                       onOpenPositions={onPlayerPositionsChange ? scrollToPositions : undefined}
                     />

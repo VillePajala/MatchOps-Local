@@ -1072,6 +1072,12 @@ describe('GameStatsModal', () => {
       expect((box as HTMLTextAreaElement).value).toContain(i18n.t('taso.reportTitle', 'Match report for Taso'));
     });
 
+    it('offers a way to write a note about a player by hand', async () => {
+      renderComponent({ ...getDefaultProps(), onAddGameNote: jest.fn(() => true) });
+      await screen.findByTestId('finish-game-spine');
+      expect(screen.getByTestId('note-composer')).toBeInTheDocument();
+    });
+
     it('omits the positions and assessments steps when their handlers are absent and renumbers', async () => {
       renderComponent(getDefaultProps());
       await tabReady();

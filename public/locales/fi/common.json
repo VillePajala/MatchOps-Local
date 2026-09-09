@@ -249,6 +249,13 @@
     "discardClipTitle": "Hylätäänkö tämä äänitys?",
     "discardClipBody": "Äänitys poistetaan lopullisesti. Kaikki mitä et ole tallentanut muistiinpanoksi katoaa sen mukana."
   },
+  "noteComposer": {
+    "title": "Kirjoita muistiinpano",
+    "playerLabel": "Kenestä",
+    "wholeMatch": "Ottelusta",
+    "placeholder": "Mitä näit? Yksi havainto riittää.",
+    "save": "Tallenna muistiinpano"
+  },
   "undoToast": {
     "goal": "Maali kirjattu",
     "opponentGoal": "Vastustajan maali kirjattu",
@@ -734,7 +741,7 @@
     "wrapUpReport": "Otteluraportti",
     "wrapUpGoals": "Maalit kirjattu",
     "wrapUpScorers": "Maalintekijät merkitty",
-    "wrapUpNotes": "Pelaajista kirjattu",
+    "wrapUpNotes": "Muistiinpanot pelaajista",
     "wrapUpPositions": "Toteutuneet pelipaikat",
     "wrapUpAssessments": "Pelaaja-arviot",
     "wrapUpCompetition": "Sarja ja joukkue",

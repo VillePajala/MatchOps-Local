@@ -21,6 +21,8 @@ interface GameWrapUpCardProps {
   voiceClipCount?: number;
   /** Opens the goal log, for the two goal rows. */
   onAddGoal?: () => void;
+  /** Opens the notes step, for the notes-coverage row. */
+  onOpenNotes?: () => void;
   onOpenVoiceNotes?: () => void;
 }
 
@@ -32,7 +34,7 @@ type RowStatus = CompletenessRowStatus;
  * (where it applies) taps into Game Settings. Reads the shared completeness
  * model, so it never disagrees with the badges.
  */
-const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
+const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
   const progress = completenessProgress(completeness);
 
@@ -105,10 +107,12 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, completeness
   if (completeness.notesCoverage.total > 0) {
     rows.push({
       key: 'notes',
-      label: t('gameStatsModal.wrapUpNotes', 'Players written about'),
+      label: t('gameStatsModal.wrapUpNotes', 'Notes about players'),
       status: countRowStatus(completeness.notesCoverage),
       count: completeness.notesCoverage,
-      onClick: onOpenVoiceNotes,
+      // The notes step, not the voice inbox: the inbox does not exist when no
+      // clip is waiting, so the row led nowhere for the coach who had none.
+      onClick: onOpenNotes,
     });
   }
   rows.push({

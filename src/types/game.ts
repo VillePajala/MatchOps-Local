@@ -93,6 +93,8 @@ export interface GameNoteInput {
   entityId?: string;
   /** Optional category, e.g. 'debrief' for the coach's spoken match summary. */
   tag?: GameNoteTag;
+  /** How it was made. Defaults to dictation, which is where notes began. */
+  source?: GameNoteSource;
 }
 
 export interface GameEvent {
