@@ -1,0 +1,325 @@
+{
+  "_comment": "OUR OWN index of the Laws of the Game - deliberately NOT the rulebook text. IFAB (football) and FIFA (futsal) reserve all rights: their terms permit only accessing their content on their own sites, so bundling or quoting the laws would need written permission (lawenquiries@theifab.com). What is here is therefore only: topic names written by us in a coach's words, the official law NUMBERS and TITLES used as citations, and the PAGE each law starts on. That is factual reference, not reproduction. Never paste rule text into this file. Page numbers were verified against both PDFs (printed page == PDF page, checked at Law 1 and Law 12 in each); re-verify when a new edition is linked, because a reflow moves every page.",
+  "sports": {
+    "football": {
+      "linkId": "soccerRules",
+      "laws": [
+        {
+          "law": 1,
+          "title": "Pelikenttä",
+          "page": 15
+        },
+        {
+          "law": 2,
+          "title": "Pallo",
+          "page": 23
+        },
+        {
+          "law": 3,
+          "title": "Pelaajat",
+          "page": 25
+        },
+        {
+          "law": 4,
+          "title": "Pelaajien varusteet",
+          "page": 30
+        },
+        {
+          "law": 5,
+          "title": "Erotuomari",
+          "page": 34
+        },
+        {
+          "law": 6,
+          "title": "Muu erotuomaristo",
+          "page": 42
+        },
+        {
+          "law": 7,
+          "title": "Ottelun kesto",
+          "page": 49
+        },
+        {
+          "law": 8,
+          "title": "Pelin aloittaminen ja jatkaminen",
+          "page": 51
+        },
+        {
+          "law": 9,
+          "title": "Pallo pelissä ja poissa pelistä",
+          "page": 54
+        },
+        {
+          "law": 10,
+          "title": "Ottelun lopputuloksen määrittäminen",
+          "page": 56
+        },
+        {
+          "law": 11,
+          "title": "Paitsio",
+          "page": 61
+        },
+        {
+          "law": 12,
+          "title": "Kielletty peli ja sopimaton käytös",
+          "page": 65
+        },
+        {
+          "law": 13,
+          "title": "Vapaapotkut",
+          "page": 75
+        },
+        {
+          "law": 14,
+          "title": "Rangaistuspotku",
+          "page": 78
+        },
+        {
+          "law": 15,
+          "title": "Rajaheitto",
+          "page": 83
+        },
+        {
+          "law": 16,
+          "title": "Maalipotku",
+          "page": 85
+        },
+        {
+          "law": 17,
+          "title": "Kulmapotku",
+          "page": 87
+        }
+      ]
+    },
+    "futsal": {
+      "linkId": "futsalRules",
+      "laws": [
+        {
+          "law": 1,
+          "title": "Pelikenttä",
+          "page": 6
+        },
+        {
+          "law": 2,
+          "title": "Pallo",
+          "page": 15
+        },
+        {
+          "law": 3,
+          "title": "Pelaajat",
+          "page": 17
+        },
+        {
+          "law": 4,
+          "title": "Pelaajien varusteet",
+          "page": 21
+        },
+        {
+          "law": 5,
+          "title": "Erotuomarit",
+          "page": 25
+        },
+        {
+          "law": 6,
+          "title": "Muu erotuomaristo",
+          "page": 29
+        },
+        {
+          "law": 7,
+          "title": "Ottelun kesto",
+          "page": 32
+        },
+        {
+          "law": 8,
+          "title": "Pelin aloittaminen ja jatkaminen",
+          "page": 34
+        },
+        {
+          "law": 9,
+          "title": "Pallo pelissä ja poissa pelistä",
+          "page": 36
+        },
+        {
+          "law": 10,
+          "title": "Ottelun lopputuloksen määrittäminen",
+          "page": 37
+        },
+        {
+          "law": 11,
+          "title": "Paitsio",
+          "page": 40
+        },
+        {
+          "law": 12,
+          "title": "Kielletty peli ja sopimaton käytös",
+          "page": 41
+        },
+        {
+          "law": 13,
+          "title": "Vapaapotkut",
+          "page": 53
+        },
+        {
+          "law": 14,
+          "title": "Rangaistuspotku",
+          "page": 60
+        },
+        {
+          "law": 15,
+          "title": "Rajapotku",
+          "page": 63
+        },
+        {
+          "law": 16,
+          "title": "Maaliheitto",
+          "page": 65
+        },
+        {
+          "law": 17,
+          "title": "Kulmapotku",
+          "page": 66
+        }
+      ]
+    }
+  },
+  "topics": [
+    {
+      "id": "pitch",
+      "fi": "Kentän koko ja merkinnät",
+      "en": "Pitch size and markings",
+      "law": 1
+    },
+    {
+      "id": "ball",
+      "fi": "Pallon koko",
+      "en": "Ball size",
+      "law": 2
+    },
+    {
+      "id": "players",
+      "fi": "Pelaajamäärä ja vaihdot",
+      "en": "Number of players and substitutions",
+      "law": 3
+    },
+    {
+      "id": "equipment",
+      "fi": "Varusteet, säärisuojat, korut",
+      "en": "Equipment, shin guards, jewellery",
+      "law": 4
+    },
+    {
+      "id": "referee",
+      "fi": "Erotuomarin valta ja velvollisuudet",
+      "en": "Referee's powers and duties",
+      "law": 5
+    },
+    {
+      "id": "otherofficials",
+      "fi": "Muu erotuomaristo",
+      "en": "Other match officials",
+      "law": 6
+    },
+    {
+      "id": "duration",
+      "fi": "Ottelun kesto, puoliaika, lisäaika",
+      "en": "Match duration, half-time, added time",
+      "law": 7
+    },
+    {
+      "id": "timeout",
+      "fi": "Aikalisä",
+      "en": "Time-out",
+      "law": 7
+    },
+    {
+      "id": "kickoff",
+      "fi": "Aloituspotku ja erotuomarin pallo",
+      "en": "Kick-off and dropped ball",
+      "law": 8
+    },
+    {
+      "id": "inplay",
+      "fi": "Milloin pallo on pelissä",
+      "en": "When the ball is in play",
+      "law": 9
+    },
+    {
+      "id": "goal",
+      "fi": "Milloin maali on maali",
+      "en": "When a goal counts",
+      "law": 10
+    },
+    {
+      "id": "shootout",
+      "fi": "Rangaistuspotkukilpailu",
+      "en": "Penalty shoot-out",
+      "law": 10
+    },
+    {
+      "id": "offside",
+      "fi": "Paitsio",
+      "en": "Offside",
+      "law": 11
+    },
+    {
+      "id": "fouls",
+      "fi": "Rikkeet, taklaukset, käsivirhe",
+      "en": "Fouls, tackles, handball",
+      "law": 12
+    },
+    {
+      "id": "cards",
+      "fi": "Varoitus ja kentältäpoisto",
+      "en": "Caution and sending off",
+      "law": 12
+    },
+    {
+      "id": "sinbin",
+      "fi": "Väliaikainen kentältäpoisto (sin bin)",
+      "en": "Temporary dismissal (sin bin)",
+      "law": 12
+    },
+    {
+      "id": "backpass",
+      "fi": "Maalivahdin palautussääntö",
+      "en": "Back-pass to the goalkeeper",
+      "law": 12
+    },
+    {
+      "id": "accumulated",
+      "fi": "Kertyvät rikkeet",
+      "en": "Accumulated fouls",
+      "law": 12
+    },
+    {
+      "id": "freekick",
+      "fi": "Vapaapotkut ja muuri",
+      "en": "Free kicks and the wall",
+      "law": 13
+    },
+    {
+      "id": "penalty",
+      "fi": "Rangaistuspotku",
+      "en": "Penalty kick",
+      "law": 14
+    },
+    {
+      "id": "restart_side",
+      "fi": "Sivurajan pelinjatkaminen",
+      "en": "Restart from the touchline",
+      "law": 15
+    },
+    {
+      "id": "restart_goal",
+      "fi": "Maalilta pelinjatkaminen",
+      "en": "Restart from the goal area",
+      "law": 16
+    },
+    {
+      "id": "corner",
+      "fi": "Kulmapotku",
+      "en": "Corner kick",
+      "law": 17
+    }
+  ]
+}
