@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Write a note about a player, by hand.
+ * Add a note about a player: write it, or say it.
  *
  * Until now the only way to create one was to dictate during the match and
  * accept the clip afterwards, or to let an AI draft one. So a coach who did
@@ -18,10 +18,16 @@
  * does the whole job. Without a provider the clip lands in the voice notes
  * above exactly as an in-match note does, so recording never depends on a key
  * and a coach who just spoke is never left wondering where it went.
+ *
+ * A written-out recording that names a player fills the picker with them, by
+ * the same rule the voice-note inbox guesses with. A coach who just said the
+ * name should not have to find it in a list; and it is a suggestion, so it
+ * never overrules a choice they made first.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HiOutlineMicrophone, HiOutlineStop } from 'react-icons/hi2';
 import type { Player } from '@/types';
 import type { DictationControls } from '@/hooks/useDictationCapture';
 import type { GameNoteInput } from '@/types/game';
@@ -32,6 +38,7 @@ import { recordAiUsage } from '@/utils/aiUsage';
 import { estimateTranscriptionUsd, getTranscriptionEngine, TranscriptionError } from '@/utils/transcription';
 import { useToast } from '@/contexts/ToastProvider';
 import WorkingIndicator from '@/components/WorkingIndicator';
+import { matchPlayerInText } from '@/utils/playerNameMatch';
 import logger from '@/utils/logger';
 
 interface GameNoteComposerProps {
@@ -108,6 +115,11 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
       setText((prev) =>
         (prev.trim() ? `${prev.trim()}\n${capped}` : capped).slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX),
       );
+      // "Onni voitti pallon" is a note about Onni. The inbox guesses the same
+      // way from the same rule; a coach who spoke a name should not have to
+      // find it in a list. Only a suggestion: it fills an untouched picker and
+      // never overrules a choice already made.
+      setEntityId((prev) => (prev ? prev : matchPlayerInText(capped, players)?.id ?? ''));
       setRecorded(false);
       // Keep the words with the recording, as the inbox does: without this a
       // transcript the coach already paid for is thrown away if they re-record
@@ -137,7 +149,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
       if (abortRef.current === controller) abortRef.current = null;
       if (!controller.signal.aborted) setTranscribing(false);
     }
-  }, [language, showToast, t, userId, vocabulary]);
+  }, [language, players, showToast, t, userId, vocabulary]);
 
   /**
    * Stop expecting a clip that is never coming.
@@ -214,7 +226,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
 
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner" data-testid="note-composer">
-      <h3 className="text-xl font-semibold text-slate-200 mb-3">{t('noteComposer.title', 'Write a note')}</h3>
+      <h3 className="text-xl font-semibold text-slate-200 mb-3">{t('noteComposer.title', 'Add a note')}</h3>
       <label className="block text-xs font-medium text-slate-400 mb-1" htmlFor="note-composer-player">
         {t('noteComposer.playerLabel', 'About')}
       </label>
@@ -233,7 +245,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         value={text}
         onChange={(e) => setText(e.target.value.slice(0, VALIDATION_LIMITS.GAME_NOTE_EVENT_TEXT_MAX))}
         rows={3}
-        aria-label={t('noteComposer.title', 'Write a note')}
+        aria-label={t('noteComposer.title', 'Add a note')}
         placeholder={t('noteComposer.placeholder', 'What did you see? One observation is enough.')}
         className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
       />
@@ -264,15 +276,23 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
                 // page): say so by going quiet rather than offering to stop it.
                 disabled={transcribing || busy || (dictation.isRecording && !startedHere)}
                 data-testid="note-composer-record"
-                className={`w-full px-4 py-2 rounded-md text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   dictation.isRecording && startedHere
                     ? 'bg-red-600 hover:bg-red-500 text-white'
                     : 'bg-slate-700 hover:bg-slate-600 text-slate-100'
                 }`}
               >
-                {dictation.isRecording && startedHere
-                  ? t('noteComposer.recordStop', 'Stop recording')
-                  : t('noteComposer.record', 'Say it instead')}
+                {dictation.isRecording && startedHere ? (
+                  <>
+                    <HiOutlineStop className="text-base" />
+                    {t('noteComposer.recordStop', 'Stop recording')}
+                  </>
+                ) : (
+                  <>
+                    <HiOutlineMicrophone className="text-base" />
+                    {t('noteComposer.record', 'Dictate a note')}
+                  </>
+                )}
               </button>
               {transcribing && (
                 <WorkingIndicator
@@ -297,7 +317,7 @@ const GameNoteComposer: React.FC<GameNoteComposerProps> = ({ players, stamp, onA
         data-testid="note-composer-save"
         className="mt-2 w-full px-4 py-2 rounded-md text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {t('noteComposer.save', 'Save the note')}
+        {t('noteComposer.save', 'Add the note')}
       </button>
     </div>
   );

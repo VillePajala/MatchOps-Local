@@ -273,12 +273,12 @@
     "discardClipBody": "Äänitys poistetaan lopullisesti. Kaikki mitä et ole tallentanut muistiinpanoksi katoaa sen mukana."
   },
   "noteComposer": {
-    "title": "Kirjoita muistiinpano",
+    "title": "Lisää muistiinpano",
     "playerLabel": "Kenestä",
     "wholeMatch": "Ottelusta",
     "placeholder": "Mitä näit? Yksi havainto riittää.",
-    "save": "Tallenna muistiinpano",
-    "record": "Sanele sen sijaan",
+    "save": "Lisää muistiinpano",
+    "record": "Sanele muistiinpano",
     "recordStop": "Lopeta nauhoitus",
     "recordedHint": "Odottaa yllä äänimuistiinpanoissa, jossa kirjoitat sen auki ja valitset pelaajan.",
     "transcribing": "Kirjoitetaan sanomaasi auki."
