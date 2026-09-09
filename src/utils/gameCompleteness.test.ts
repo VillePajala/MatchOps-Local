@@ -259,3 +259,32 @@ describe('notes coverage is shown, never scored', () => {
     expect(g([{ type: 'note', entityId: 'p1' }]).notesCoverage).toEqual({ done: 1, total: 4 });
   });
 });
+
+describe('unhandled recordings', () => {
+  const note = (source?: string) => ({ type: 'note', entityId: 'p1', source });
+
+  /**
+   * @critical - a clip is deleted after 30 days and the coach's words go with
+   * it, so audio nobody wrote out is real unfinished work.
+   */
+  it('counts pending clips only for a game that has audio, and turns done at zero', () => {
+    const plain = computeGameCompleteness(base);
+    // Never recorded: no item at all, so no free tick either.
+    expect(completenessProgress(plain, { voiceClipsPending: 0 })).toEqual(completenessProgress(plain));
+    // Clips waiting: one more item, not done.
+    const waiting = completenessProgress(plain, { voiceClipsPending: 2 });
+    expect(waiting.total).toBe(completenessProgress(plain).total + 1);
+    expect(waiting.done).toBe(completenessProgress(plain).done);
+    // Written out: the item stays, and is done.
+    const handled = computeGameCompleteness({ ...base, gameEvents: [note('dictation')] });
+    const after = completenessProgress(handled, { voiceClipsPending: 0 });
+    expect(after.total).toBe(completenessProgress(handled).total + 1);
+    expect(after.done).toBe(completenessProgress(handled).done + 1);
+  });
+
+  it('does not treat a typed note as proof of audio', () => {
+    const typed = computeGameCompleteness({ ...base, gameEvents: [note('manual')] });
+    expect(typed.dictatedNotes).toBe(0);
+    expect(completenessProgress(typed, { voiceClipsPending: 0 })).toEqual(completenessProgress(typed));
+  });
+});

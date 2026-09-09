@@ -463,7 +463,7 @@ describe('Translation File Validation', () => {
       // +5 noteComposer.* - writing a note about a player by hand, which had
       //     no path at all before. Lands at 3157.
       // +3 noteComposer record keys: the composer can dictate too. Lands at 3160.
-      expect(enKeys.length).toBe(3160);
+      expect(enKeys.length).toBe(3162);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -619,7 +619,7 @@ describe('Translation File Validation', () => {
       // +5 noteComposer.* - writing a note about a player by hand, which had
       //     no path at all before. Lands at 3157.
       // +3 noteComposer record keys: the composer can dictate too. Lands at 3160.
-      expect(fiKeys.length).toBe(3160);
+      expect(fiKeys.length).toBe(3162);
     });
   });
 });

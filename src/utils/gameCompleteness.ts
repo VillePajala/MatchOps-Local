@@ -29,7 +29,7 @@ export interface CompletenessGame {
   playerPositions?: Record<string, string[]>;
   assessments?: Record<string, unknown>;
   /** Goals and notes are read from here; only the fields this model needs. */
-  gameEvents?: Array<{ type: string; scorerId?: string; entityId?: string }>;
+  gameEvents?: Array<{ type: string; scorerId?: string; entityId?: string; source?: string }>;
   homeScore?: number;
   awayScore?: number;
 }
@@ -57,6 +57,8 @@ export interface GameCompleteness {
    * shown but never scored, so the checklist never demands a note per child.
    */
   notesCoverage: CountCheck;
+  /** Notes that came from a recording. Proof this game had audio at all. */
+  dictatedNotes: number;
   /** Report + Roster - the bar for `complete`. */
   coreComplete: boolean;
   /** coreComplete + competition + team + at least some positions & assessments. */
@@ -104,8 +106,28 @@ export function goalLogStatus(c: CountCheck): CompletenessRowStatus {
  * drifted apart. A bar, a menu badge and the list therefore cannot disagree
  * without the shared rule itself changing.
  */
-export function completenessProgress(c: GameCompleteness): { done: number; total: number } {
+export interface ProgressOptions {
+  /**
+   * Recordings from this match not yet turned into notes.
+   *
+   * Audio is device state, not part of the saved game, so the model cannot see
+   * it and a caller that cannot either (the menu badge, the saved-games list)
+   * leaves it out - the item then does not exist, rather than being guessed.
+   * Unhandled audio is real unfinished work: the clip is deleted after 30 days
+   * and the words are gone with it.
+   */
+  voiceClipsPending?: number;
+}
+
+export function completenessProgress(
+  c: GameCompleteness,
+  options: ProgressOptions = {},
+): { done: number; total: number } {
   if (!c.applicable) return { done: 0, total: 0 };
+  // Only for a game that has audio, or had some and dealt with it: a coach who
+  // never records should not collect a free tick for it.
+  const audioItem =
+    options.voiceClipsPending !== undefined && (options.voiceClipsPending > 0 || c.dictatedNotes > 0);
   const items = [
     c.report,
     c.roster,
@@ -119,6 +141,7 @@ export function completenessProgress(c: GameCompleteness): { done: number; total
     // this game (no goals to attribute, no squad): not an item, or the bar
     // could never reach the end.
     ...(c.goalsAttributed.total > 0 ? [countRowStatus(c.goalsAttributed) === 'done'] : []),
+    ...(audioItem ? [options.voiceClipsPending === 0] : []),
     // Notes coverage is NOT counted. A meter that says "not complete" is a
     // demand however it is worded, and nobody should owe an observation about
     // every child in every match - that is how the rating sliders filled up
@@ -163,6 +186,7 @@ export function computeGameCompleteness(game: CompletenessGame, options: Complet
   };
   const written = new Set(events.filter(e => e.type === 'note' && nonEmpty(e.entityId)).map(e => e.entityId));
   const notesCoverage: CountCheck = { done: squad.filter(id => written.has(id)).length, total };
+  const dictatedNotes = events.filter(e => e.type === 'note' && e.source === 'dictation').length;
 
   const coreComplete = report && roster;
   const enriched = coreComplete && competition && team && positionsDone > 0 && (!assessmentsEnabled || assessmentsDone > 0);
@@ -176,5 +200,5 @@ export function computeGameCompleteness(game: CompletenessGame, options: Complet
         ? 'partial'
         : 'empty';
 
-  return { applicable, report, roster, competition, team, positions, assessments, goalsLogged, goalsAttributed, notesCoverage, coreComplete, enriched, overall };
+  return { applicable, report, roster, competition, team, positions, assessments, goalsLogged, goalsAttributed, notesCoverage, dictatedNotes, coreComplete, enriched, overall };
 }

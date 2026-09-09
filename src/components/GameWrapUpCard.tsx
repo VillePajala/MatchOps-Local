@@ -36,7 +36,7 @@ type RowStatus = CompletenessRowStatus;
  */
 const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes, completeness, onOpenSettings, onOpenReport, onOpenPositions, onOpenAssessments, voiceClipCount = 0, onOpenVoiceNotes }) => {
   const { t } = useTranslation();
-  const progress = completenessProgress(completeness);
+  const progress = completenessProgress(completeness, { voiceClipsPending: voiceClipCount });
 
   interface Row {
     key: string;
@@ -46,11 +46,21 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
     onClick?: () => void;
   }
 
-  // Voice clips are not part of the record's completeness (audio is transient)
-  // and the model does not know about them, so they are a banner above the
-  // list rather than a row: a row the counter cannot count is the mismatch
-  // this card has now produced twice.
   const rows: Row[] = [];
+  // Unhandled audio is real unfinished work: the clip is deleted after 30 days
+  // and the coach's words go with it. The row appears for a game that has
+  // audio or had some, so a coach who never records collects no free tick, and
+  // it turns green the moment the last clip is written out.
+  if (voiceClipCount > 0 || completeness.dictatedNotes > 0) {
+    rows.push({
+      key: 'voiceNotes',
+      label: voiceClipCount > 0
+        ? t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount })
+        : t('gameStatsModal.wrapUpVoiceNotesDone', 'Voice notes written out'),
+      status: voiceClipCount > 0 ? 'todo' : 'done',
+      onClick: onOpenVoiceNotes,
+    });
+  }
   // Always a row, done or not: the counter counts it, so the list must show
   // it. Hiding it when done left three rows under a "3/4" (owner, 2026-09-09).
   rows.push({
@@ -135,16 +145,6 @@ const GameWrapUpCard: React.FC<GameWrapUpCardProps> = ({ onAddGoal, onOpenNotes,
         <div className="mb-3" data-testid="wrap-up-progress-bar">
           <ProgressBar current={progress.done} total={progress.total} />
         </div>
-      )}
-      {voiceClipCount > 0 && (
-        <button
-          type="button"
-          onClick={onOpenVoiceNotes}
-          data-testid="wrap-up-voice-notes"
-          className="w-full mb-2 px-3 py-2 rounded-md text-left text-sm font-medium bg-amber-500/10 border border-amber-500/30 text-amber-200 hover:bg-amber-500/15 transition-colors"
-        >
-          {t('gameStatsModal.wrapUpVoiceNotes', '{{count}} voice notes to review', { count: voiceClipCount })}
-        </button>
       )}
       {/* Notes are shown, not scored: no tick, no amber, not in the fraction.
           A coach owes nobody an observation about every child in every match. */}
