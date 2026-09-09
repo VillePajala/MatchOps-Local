@@ -1045,6 +1045,7 @@ export type TranslationKey =
   | 'gameStatsModal.seasonStats'
   | 'gameStatsModal.seriesFilterLabel'
   | 'gameStatsModal.spineAddGoal'
+  | 'gameStatsModal.spineNotesEmpty'
   | 'gameStatsModal.spineOpenAssessments'
   | 'gameStatsModal.spineShareTitle'
   | 'gameStatsModal.spineStep'
