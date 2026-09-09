@@ -11,6 +11,15 @@
       ]
     },
     {
+      "date": "2026-09-09",
+      "en": [
+        "Behind-the-scenes security update: the web framework the app runs on was updated to close a newly published vulnerability. Nothing changes in how the app looks or works."
+      ],
+      "fi": [
+        "Taustalla tehty tietoturvapäivitys: sovelluksen käyttämä verkkokehys päivitettiin sulkemaan juuri julkaistu haavoittuvuus. Sovelluksen ulkonäkö ja toiminta eivät muutu."
+      ]
+    },
+    {
       "date": "2026-09-08",
       "en": [
         "New: record voice notes during a match and turn them into your match report afterwards. Press once, speak, done - the phone stays a dictaphone during play. After the match you review every clip, and nothing is saved until you accept it.",
