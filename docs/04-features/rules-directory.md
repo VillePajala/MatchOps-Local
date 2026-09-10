@@ -11,11 +11,22 @@ is to be a map, not a dump. Three kinds of rule live apart, and the page is
 ordered by how specific each is to the coach:
 
 0. **Find a rule** - type the word you actually use ("kentältäpoisto") and get
-   the law, then open the official book at that page. See the licence note below.
-1. **Your league's rules** - player count, playing time and pitch size are set
+   the law and **its page number**. See the licence note below.
+   **The `#page=` jump is desktop-only.** It is a PDF open-parameter that
+   Chrome's desktop viewer honours; on Android the book opens in a viewer that
+   ignores the fragment and lands on page 1. So the page number is displayed
+   prominently and the screen says to navigate there yourself. Do not word this
+   as "opens at page N" - that promise is false on the platform most coaches
+   use. A real jump needs an in-app PDF renderer (the CDN does send permissive
+   CORS headers, so it is possible - it is a scope decision, not a blocker).
+1. **League-specific rules** - player count, playing time and pitch size are set
    **per league** (*sarja*; the app calls these Leagues / Sarjat) and live in
-   Tulospalvelu under each one's Info > Säännöt tab. This is the only one that
-   is actually *theirs*, so it comes first. The Kaikki Pelaa programme document
+   Tulospalvelu under each one's Info > Säännöt tab.
+   **The app cannot know which league a team is in.** MatchOps is not connected
+   to Palloliitto's system, and the league a coach types here is free text, not
+   an id in theirs. So this links to the league *list*, and the copy says so.
+   It was first written as "Your league's rules", which implied a personalised
+   link and left the owner asking how the app knew - it did not. The Kaikki Pelaa programme document
    states this move in its opening line.
    **Use the app's own word in UI copy**: EN "league", FI "sarja". Palloliitto's
    docs say "series", and importing that vocabulary confused the owner on first
