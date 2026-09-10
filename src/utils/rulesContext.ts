@@ -20,6 +20,7 @@
  */
 
 import type { AppState } from '@/types';
+import { ageGroupToNumber } from '@/config/gameFormats';
 import type { RulesSport } from '@/config/rulesIndex';
 
 export interface RulesContext {
@@ -60,10 +61,19 @@ export function preferredRulesContext(
   let ageGroup: string | undefined;
   let best = 0;
   for (const [age, n] of ages) {
-    // Ties break on the lower age group, so the answer is stable rather than
-    // dependent on object key order.
-    if (n > best || (n === best && ageGroup !== undefined && age.localeCompare(ageGroup) < 0)) {
+    if (n > best) {
       best = n;
+      ageGroup = age;
+      continue;
+    }
+    if (n !== best || ageGroup === undefined) continue;
+    // Ties break on the LOWER age group, compared numerically. Comparing the
+    // strings put U13 before U9, because '1' sorts before '9' - the opposite of
+    // what this comment promised, and invisible to a test that only checked the
+    // answer was stable rather than which answer it was.
+    const a = ageGroupToNumber(age);
+    const b = ageGroupToNumber(ageGroup);
+    if (a !== null && b !== null ? a < b : age.localeCompare(ageGroup) < 0) {
       ageGroup = age;
     }
   }

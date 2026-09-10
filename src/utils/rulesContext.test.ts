@@ -47,10 +47,22 @@ describe('preferredRulesContext', () => {
     expect(preferredRulesContext(games).ageGroup).toBe('U10');
   });
 
-  it('is stable on an age-group tie rather than depending on key order', () => {
+  /**
+   * @critical - the previous version of this test only asserted the answer was
+   * STABLE, not which answer it was, so it passed while the tie-break compared
+   * strings and picked U13 over U9 ('1' sorts before '9'). A test that checks
+   * consistency instead of correctness hides exactly this.
+   */
+  it('breaks an age-group tie on the LOWER age, numerically', () => {
     const one = { a: g({ ageGroup: 'U13' }), b: g({ ageGroup: 'U9' }) };
     const other = { a: g({ ageGroup: 'U9' }), b: g({ ageGroup: 'U13' }) };
-    expect(preferredRulesContext(one).ageGroup).toBe(preferredRulesContext(other).ageGroup);
+    expect(preferredRulesContext(one).ageGroup).toBe('U9');
+    expect(preferredRulesContext(other).ageGroup).toBe('U9');
+  });
+
+  it('still answers when an age group is not a U-number', () => {
+    const games = { a: g({ ageGroup: 'Senior' }), b: g({ ageGroup: 'U11' }) };
+    expect(['Senior', 'U11']).toContain(preferredRulesContext(games).ageGroup);
   });
 
   it('says nothing about age when no game records one', () => {
