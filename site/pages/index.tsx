@@ -96,12 +96,16 @@ const getScreenshots = (locale: string | undefined) => {
     voiceNotes: isEnglish
       ? '/screenshots/MatchOps_v2_voicenotes_en.jpg'
       : '/screenshots/MatchOps_v2_voicenotes_fi.jpg',
-    // Awaiting screenshots (owner). Until a file is named here the card renders
-    // text-only - deliberately, rather than borrowing a picture of another
-    // screen. Expected names once taken:
-    //   MatchOps_v2_tasoreport_{en,fi}.jpg
+    // The squad and the goals together: the squad alone could be any roster
+    // and the goals alone could be any match log, but the two in Taso's order
+    // are unmistakably the thing a coach would otherwise be retyping.
+    tasoReport: isEnglish
+      ? '/screenshots/MatchOps_v2_tasoreport_en.jpg'
+      : '/screenshots/MatchOps_v2_tasoreport_fi.jpg',
+    // Awaiting a screenshot (owner). Until a file is named here the card
+    // renders text-only - deliberately, rather than borrowing a picture of
+    // another screen. Expected name once taken:
     //   MatchOps_v2_guidedsetup_{en,fi}.jpg
-    tasoReport: undefined,
     guidedSetup: undefined,
   };
 };
