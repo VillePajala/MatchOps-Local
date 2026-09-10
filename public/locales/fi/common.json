@@ -720,6 +720,7 @@
     }
   },
   "ruleViewer": {
+    "canvasLabel": "{{title}}, sivu {{n}}",
     "subtitle": "Virallinen sääntökirja. Sivu {{n}}{{total}}.",
     "loading": "Ladataan sivua...",
     "error": "Sääntökirjaa ei saatu auki. Tarkista verkkoyhteys.",

@@ -242,7 +242,16 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
                     {t('ruleViewer.loading', 'Ladataan sivua...')}
                   </p>
                 )}
-                <canvas ref={canvasRef} data-testid="rule-viewer-canvas" className="max-w-full" />
+                {/* A canvas carries no text, so without a label a screen
+                    reader finds an unnamed graphic. It cannot read the page
+                    either, which is what the browser button beside it is for. */}
+                <canvas
+                  ref={canvasRef}
+                  data-testid="rule-viewer-canvas"
+                  role="img"
+                  aria-label={t('ruleViewer.canvasLabel', '{{title}}, sivu {{n}}', { title, n: current })}
+                  className="max-w-full"
+                />
               </>
             )}
           </div>

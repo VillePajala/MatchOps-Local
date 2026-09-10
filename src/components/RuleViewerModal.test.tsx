@@ -52,6 +52,8 @@ beforeEach(() => {
 
 const props = { onClose: jest.fn(), url: URL_FOOTBALL, page: 65, title: 'Sääntö 12 - Kielletty peli' };
 
+Object.defineProperty(window, 'open', { value: jest.fn(), writable: true });
+
 describe('RuleViewerModal', () => {
   it('renders nothing when closed, and never fetches', () => {
     const { container } = render(<RuleViewerModal {...props} isOpen={false} />);
@@ -214,6 +216,30 @@ describe('RuleViewerModal', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('names the rendered page for a screen reader', async () => {
+    render(<RuleViewerModal {...props} isOpen />);
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+    expect(screen.getByRole('img', { name: /Sääntö 12.*65/ })).toBeInTheDocument();
+  });
+
+  /**
+   * @edge-case - the browser fallback must follow the reader, not reopen at the
+   * law they started from.
+   */
+  it('opens the browser at the page currently being read', async () => {
+    render(<RuleViewerModal {...props} isOpen />);
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+    fireEvent.click(screen.getByTestId('rule-viewer-next'));
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(66));
+
+    fireEvent.click(screen.getAllByText(/Avaa selaimessa|Open in browser/)[0]);
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringContaining('#page=66'),
+      '_blank',
+      'noopener,noreferrer',
+    );
   });
 
   it('goes back to the requested law each time it is reopened', async () => {

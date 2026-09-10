@@ -837,6 +837,7 @@
     }
   },
   "ruleViewer": {
+    "canvasLabel": "{{title}}, page {{n}}",
     "subtitle": "Official rulebook. Page {{n}}{{total}}.",
     "loading": "Loading the page...",
     "error": "Could not open the rulebook. Check your connection.",

@@ -541,7 +541,9 @@ describe('Translation File Validation', () => {
       // +6 net for the in-app rule viewer: six ruleViewer.* keys, plus
       //     pageHint2 replacing pageHint (one in, one out), now that a law
       //     really does open at its own page. Lands at 3211.
-      expect(enKeys.length).toBe(3211);
+      // +1 ruleViewer.canvasLabel: a canvas is an unnamed graphic to a screen
+      //     reader without it. Lands at 3212.
+      expect(enKeys.length).toBe(3212);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -712,7 +714,8 @@ describe('Translation File Validation', () => {
       // +8 rulesDirectory.* law lookup (see EN above). Lands at 3203.
       // +2 rulesDirectory.* page-jump honesty (see EN above). Lands at 3205.
       // +6 net for the in-app rule viewer (see EN above). Lands at 3211.
-      expect(fiKeys.length).toBe(3211);
+      // +1 ruleViewer.canvasLabel (see EN above). Lands at 3212.
+      expect(fiKeys.length).toBe(3212);
     });
   });
 });
