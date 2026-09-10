@@ -2340,6 +2340,8 @@ export type TranslationKey =
   | 'rulesDirectory.lookupNote'
   | 'rulesDirectory.lookupTitle'
   | 'rulesDirectory.noHits'
+  | 'rulesDirectory.openAtPage'
+  | 'rulesDirectory.pageHint'
   | 'rulesDirectory.pageN'
   | 'rulesDirectory.rulebooksTitle'
   | 'rulesDirectory.searchPlaceholder'
