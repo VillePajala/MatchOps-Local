@@ -25,6 +25,15 @@ ordered by how specific each is to the coach:
    | CSP | the two Palloliitto asset hosts added to `connect-src` |
    | Offline | says so and offers the browser, rather than an empty sheet |
 
+   **Known constraint: `pdfjs-dist` declares `engines: node >=22.13 || >=24`,
+   and CI runs Node 20.** npm warns and installs; the build, the worker copy and
+   the tests all pass, because the engine requirement is about pdf.js's own
+   tooling and not the browser code the app ships. Left alone deliberately -
+   bumping Node across every workflow is a broader change than this feature
+   warrants. **Watch for:** a CI install that starts failing rather than warning
+   (engine-strict), or a pdfjs patch release that uses a Node 22 API in its
+   build. Either means bumping CI Node, not pinning pdfjs back.
+
    **This is still not a copy.** The file is fetched from the publisher's own
    public URL at the coach's request and never stored or served by us - the app
    is a reader, the way a browser is. Nothing is bundled; see the licence note.
