@@ -1,0 +1,61 @@
+Tactics board, stopwatch, notebook and statistics - in one app.
+
+MatchOps replaces a coach's scattered tools with a single app. Plan line-ups and playing time in advance, follow and record matches as they happen, and share a finished summary afterwards. Comprehensive statistics build up automatically.
+
+PLAN (a single match)
+• Place players on an interactive pitch in the formation you want
+• Build a line-up quickly with ready-made formations
+• Draw tactics and set plays on the tactics board
+
+PLAYING-TIME PLANNER (a set of matches)
+• Build line-ups for several matches at once, a whole tournament for example
+• The balance view shows minutes and positions per player across the whole set
+• Playing time is colour-coded per player, so you spot an uneven split at a glance
+• The app flags anyone left without minutes, sitting out a whole match, or playing only one position throughout
+• Create the matches straight from the plan, and apply the plan when the match starts
+• During the match the app reminds you of the substitutions you planned
+
+RECORD
+• Follow the match clock and substitution intervals
+• Log goals and assists
+• Log extra time and penalty shoot-outs
+• Draw tactics at half-time
+• The match log builds itself
+• Dictate a note during the match with one press
+
+AFTER THE MATCH
+• Record the positions each player actually played
+• Write the match report and share a finished summary
+• Finish the match step by step: line-up, league and team, goals and scorers, positions played, notes on players, and finally the summary to share
+• A checklist shows what is missing and takes you straight to the fix: it points out, for example, if the goals logged do not match the score, or a goal has no scorer
+• Copy the squad and match report already laid out for Palloliitto's Taso system: shirt numbers, goalkeeper, final score, half-time score and every goal with its minute
+• Write your voice notes up and attach them to the right player or to the match
+
+DEVELOP
+• Player, tournament, league, season and team statistics build up automatically
+• Share a player summary: matches, positions, goals and assists, and the notes you recorded
+• Follow how positions are shared across the team, and each player's matches across seasons and tournaments
+
+RULES
+• Browse or search the laws of the game and open the official rulebook straight at the right page
+• A link to Palloliitto's results service, where you can check the rules and regulations for your age group and league
+
+MANAGE
+• Create and manage several teams and squads
+• Organise leagues and tournaments
+• Browse your match history
+• Keep track of team staff
+
+CLOUD AND BACKUPS
+• Sign in and sync your data across devices
+• Your data is stored securely in the cloud
+• Back up and restore with files as well
+• Export statistics to Excel
+
+FOOTBALL AND FUTSAL
+• Separate pitch views for football and futsal
+• Every match tagged by sport for statistics and filtering
+• Available in Finnish and English
+• Formats from 3v3 to 11v11
+
+Who is it for? Football and futsal coaches at every level - from junior teams (U7-U21) to recreational and competitive sides - who want a simple way to run their matches and support their players' development.
