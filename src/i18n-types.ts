@@ -2320,6 +2320,7 @@ export type TranslationKey =
   | 'rosterSettingsModal.title'
   | 'rosterSettingsModal.totalPlayersShort'
   | 'rosterSettingsModal.unsetGoalie'
+  | 'ruleViewer.canvasLabel'
   | 'ruleViewer.error'
   | 'ruleViewer.loading'
   | 'ruleViewer.next'
