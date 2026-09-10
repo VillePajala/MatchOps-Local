@@ -875,7 +875,7 @@
     "colBall": "Ball",
     "formatsSource": "Source: {{title}}",
     "allRules": "All Rules & Regulations",
-    "footer": "Links open in browser. Rules maintained by Palloliitto.",
+    "footer": "Rulebook links open in your browser. Rules maintained by Palloliitto.",
     "checkedOn": "Links checked {{date}}."
   },
   "rosterSettingsModal": {

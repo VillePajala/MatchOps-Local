@@ -15,7 +15,7 @@
  * - Dedicated offline page for graceful offline experience
  */
 
-const CACHE_NAME = 'matchops-2026-09-10T05-36-22';
+const CACHE_NAME = 'matchops-2026-09-10T05-50-29';
 
 // Cache size limit - prevents unbounded growth from dynamically cached assets
 // Note: Entire cache is cleared on SW update, so this just limits runtime growth
@@ -232,4 +232,4 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ↑ CACHE_NAME and Build Timestamp are auto-updated by scripts/generate-manifest.mjs
-// Build Timestamp: 2026-09-10T05:36:22.380Z
+// Build Timestamp: 2026-09-10T05:50:29.552Z
