@@ -161,7 +161,12 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                             </span>
                             {h.via && <span className="block text-xs text-slate-400 truncate">{h.via}</span>}
                           </span>
-                          <span className="shrink-0 text-xs text-slate-500">
+                          {/* The page is the actionable part, so it is not a
+                              faint aside. "#page=" is a desktop PDF-viewer
+                              feature; on a phone the book opens at page 1 and
+                              the reader navigates themselves, so the number
+                              has to be readable at a glance. */}
+                          <span className="shrink-0 text-sm font-semibold text-yellow-400 tabular-nums">
                             {t('rulesDirectory.pageN', 's. {{n}}', { n: h.page })}
                           </span>
                         </button>
@@ -169,8 +174,11 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                     ))}
                   </ul>
                 )}
+                <p className="text-xs text-slate-400">
+                  {t('rulesDirectory.pageHint', 'Sääntökirja avautuu selaimeen. Puhelimessa siirry itse sivulle, joka lukee rivillä.')}
+                </p>
                 <p className="text-xs text-slate-500">
-                  {t('rulesDirectory.lookupNote', 'Avaa virallisen sääntökirjan oikealta sivulta. Säännöt julkaisee IFAB (jalkapallo) ja FIFA (futsal).')}
+                  {t('rulesDirectory.lookupNote', 'Säännöt julkaisee IFAB (jalkapallo) ja FIFA (futsal).')}
                 </p>
               </Section>
 
@@ -183,15 +191,15 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
               <p className="text-xs text-slate-400">
                 {t(
                   'rulesDirectory.intro',
-                  'Säännöt ovat kolmessa paikassa: oman sarjasi säännöt, ikäluokkien pelimuodot ja lajisäännöt.',
+                  'Säännöt ovat kolmessa paikassa: sarjakohtaiset säännöt, ikäluokkien pelimuodot ja lajisäännöt.',
                 )}
               </p>
 
-              <Section title={t('rulesDirectory.seriesTitle', 'Oman sarjasi säännöt')}>
+              <Section title={t('rulesDirectory.seriesTitle', 'Sarjakohtaiset säännöt')}>
                 <p className="text-xs text-slate-400 -mt-1">
                   {t(
                     'rulesDirectory.seriesHelp',
-                    'Pelaajamäärä, peliaika ja kentän koko ovat sarjakohtaisia. Valitse sarjasi ja avaa Info > Säännöt.',
+                    'Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - MatchOps ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.',
                   )}
                 </p>
                 {SERIES_LINKS.map((link) => (

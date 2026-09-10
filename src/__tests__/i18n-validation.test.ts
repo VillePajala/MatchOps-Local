@@ -535,7 +535,10 @@ describe('Translation File Validation', () => {
       //     screen that hides that reads as half-finished. Lands at 3195.
       // +8 rulesDirectory.*: the law lookup (title, two sport tabs,
       //     placeholder, no-hits, law/page labels, rights note). Lands at 3203.
-      expect(enKeys.length).toBe(3203);
+      // +2 rulesDirectory.*: openAtPage/pageHint - the page jump is a desktop
+      //     PDF-viewer feature, so the screen stops implying it works on a
+      //     phone and makes the page number the actionable thing. Lands at 3205.
+      expect(enKeys.length).toBe(3205);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -704,7 +707,8 @@ describe('Translation File Validation', () => {
       // (+1 more on review: formatsFutsalOnly - see EN above.) Lands at 3190.
       // +5 rulesDirectory.* the three-places map (see EN above). Lands at 3195.
       // +8 rulesDirectory.* law lookup (see EN above). Lands at 3203.
-      expect(fiKeys.length).toBe(3203);
+      // +2 rulesDirectory.* page-jump honesty (see EN above). Lands at 3205.
+      expect(fiKeys.length).toBe(3205);
     });
   });
 });
