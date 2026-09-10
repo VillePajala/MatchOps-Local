@@ -77,19 +77,17 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
   const { t, i18n } = useTranslation();
   const [sport, setSport] = React.useState<RulesSport>(defaultSport);
   // The age band the coach cares about. '' means show every band.
-  const [ageGroup, setAgeGroup] = React.useState<string>(defaultAgeGroup ?? '');
+  // Only adopt a default the picker can actually display; anything else would
+  // leave the select blank while the table showed one band, which is two
+  // surfaces disagreeing about what the coach asked for.
+  const [ageGroup, setAgeGroup] = React.useState<string>(
+    defaultAgeGroup && (AGE_GROUPS as readonly string[]).includes(defaultAgeGroup) ? defaultAgeGroup : '',
+  );
   const [showAllFormats, setShowAllFormats] = React.useState(false);
 
-  // Re-derive on each open: the coach may have added games since last time.
-  const [prevOpenCtx, setPrevOpenCtx] = React.useState(isOpen);
-  if (prevOpenCtx !== isOpen) {
-    setPrevOpenCtx(isOpen);
-    if (isOpen) {
-      setSport(defaultSport);
-      setAgeGroup(defaultAgeGroup ?? '');
-      setShowAllFormats(false);
-    }
-  }
+  // No open-transition reset: ClubModalsHost mounts this only while it is open,
+  // so every open is a fresh mount and the initial state above IS the re-derive.
+  // A reset here would be code that can never run.
   const [query, setQuery] = React.useState('');
   const lang = i18n.language?.startsWith('en') ? 'en' : 'fi';
   const hits = React.useMemo(() => searchRules(sport, query, lang), [sport, query, lang]);

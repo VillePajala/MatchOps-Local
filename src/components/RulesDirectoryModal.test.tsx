@@ -290,12 +290,28 @@ describe('RulesDirectoryModal', () => {
     expect(within(screen.getByTestId('formats-table')).getByText('P/T 14-16')).toBeInTheDocument();
   });
 
-  it('falls back to every band when the age group cannot be placed', () => {
+  /**
+   * @edge-case - an age group the picker cannot show must not leave the select
+   * blank while the table filters; that is two surfaces disagreeing about what
+   * the coach asked for.
+   */
+  it('ignores an age group the picker cannot display, and shows every band', () => {
     render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" defaultAgeGroup="Senior" />);
+    expect((screen.getByTestId('formats-age') as HTMLSelectElement).value).toBe('');
     const table = screen.getByTestId('formats-table');
     // An empty table would read as "no rules exist".
     expect(within(table).getByText('P/T 10')).toBeInTheDocument();
     expect(within(table).getByText('P/T 14-16')).toBeInTheDocument();
+  });
+
+  it('narrows the table when the coach picks an age group by hand', () => {
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
+    expect(within(screen.getByTestId('formats-table')).getByText('P/T 14-16')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('formats-age'), { target: { value: 'U10' } });
+    const table = screen.getByTestId('formats-table');
+    expect(within(table).getByText('P/T 10')).toBeInTheDocument();
+    expect(within(table).queryByText('P/T 14-16')).not.toBeInTheDocument();
   });
 
   /**
