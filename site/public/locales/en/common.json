@@ -70,7 +70,7 @@
   "seo": {
     "home": {
       "title": "MatchOps - Soccer & Futsal Coaching App",
-      "description": "Mobile coaching app for soccer and futsal. Manage teams, track games in real-time, build statistics and player development. Free with secure cloud sync — works offline at the field."
+      "description": "Mobile coaching app for football and futsal. Plan line-ups and playing time in advance, record matches as they happen, and share a finished summary. Free with secure cloud sync — works offline at the field."
     },
     "technical": {
       "title": "Technical Specifications - MatchOps",
@@ -235,13 +235,13 @@
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps?",
-      "description": "MatchOps replaces your clipboard, stopwatch, and notebook with one app. Before the game, plan your lineup, formation, and warm-up. During the match, log goals, assists, and substitution intervals with a tap. After the game, record who actually played where, write a match report, and share a ready recap. Follow each player's development over the season. Your statistics build automatically at individual, game, team, and competition level. A direct link to the Finnish FA's Taso system makes it easy to register lineups and submit results.",
+      "description": "MatchOps replaces a coach's scattered tools with a single app. Plan line-ups and playing time in advance, follow and record matches as they happen, and share a finished summary afterwards. Before the game, plan your line-up, formation, and warm-up. During the match, log goals, assists, and substitution intervals with a tap. After the game, record who actually played where, write a match report, and share a ready recap. Comprehensive statistics build automatically at individual, match, team, and competition level. The squad and match report can be copied already laid out for the Finnish FA's Taso system.",
       "oneLine": "Free with secure cloud sync across your devices. Track games and build statistics right at the field, even without internet."
     },
     "whoIsThisFor": {
       "title": "Who Is This For?",
-      "description": "MatchOps is for soccer coaches at any level — from recreational to competitive — who want a simple way to organize games and support every player's development without complex team management software or monthly subscriptions.",
-      "item1": "Youth team coaches (U8–U19)",
+      "description": "MatchOps is for football and futsal coaches at every level - from junior teams to recreational and competitive sides - who want a simple way to run their matches and support their players' development, without complex team management software or monthly subscriptions.",
+      "item1": "Youth team coaches (U7-U21)",
       "item2": "Recreational and competitive team coaches",
       "item3": "Coaches who value privacy and own their data"
     },
@@ -443,7 +443,7 @@
       "planner": {
         "eyebrow": "Playing-Time Planner",
         "title": "Plan your games ahead",
-        "desc": "Plan starting lineups and rotations for upcoming fixtures - a tournament, a run of games. See each player's accumulated playing time and their spread across positions. Adjust plans mid-series and see how the changes affect the whole."
+        "desc": "Plan starting line-ups and rotations for upcoming fixtures - a tournament, a run of games. Each player's accumulated playing time and spread across positions is colour-coded, so an uneven split shows at a glance. The app flags anyone left without minutes, sitting out a whole match, or playing only one position. Adjust plans mid-series and see how the changes affect the whole."
       },
       "development": {
         "eyebrow": "Player Development",
@@ -553,7 +553,7 @@
       "futsal": "Futsal",
       "futsalDesc": "Futsal court view and game labeling for accurate stats and filtering.",
       "officialRules": "Official Rules",
-      "officialRulesDesc": "Quick access to official soccer and futsal rules from the Finnish FA.",
+      "officialRulesDesc": "Search for a rule in the words you actually use, and open the official rulebook in the app at the right page. Includes the official futsal formats by age group.",
       "cloudSync": "Cloud Sync",
       "cloudSyncDesc": "Sign in to sync your data across devices. Your data stays safe in the cloud and syncs automatically.",
       "recap": "Game Recap",
@@ -569,7 +569,13 @@
       "friendlies": "Friendly matches",
       "friendliesDesc": "Track practice games and friendlies without skewing your competitive stats.",
       "dashboard": "Dashboard",
-      "dashboardDesc": "Open the app and instantly see a snapshot."
+      "dashboardDesc": "Open the app and instantly see a snapshot.",
+      "voiceNotes": "Voice notes",
+      "voiceNotesDesc": "Dictate a note during the match with one press. Notes wait in an inbox until you write them up and attach them to the right player or to the match.",
+      "tasoReport": "Match report for Taso",
+      "tasoReportDesc": "Copy the squad and match report already laid out for the Finnish FA's Taso system: shirt numbers, goalkeeper, final score, half-time score and every goal with its minute.",
+      "guidedSetup": "Guided setup",
+      "guidedSetupDesc": "Your first team, players and match format in about a minute. The app is ready to use before your first game."
     },
     "techCards": {
       "development": "DEVELOPMENT",

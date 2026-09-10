@@ -68,9 +68,13 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_v2_personnel_en.jpg'
       : '/screenshots/MatchOps_v2_personnel_fi.jpg',
     futsal: '/screenshots/MatchOps_v2_futsal_en_fi.jpg',
-    officialRules: isEnglish
-      ? '/screenshots/MatchOps_v2_rules_en.jpg'
-      : '/screenshots/MatchOps_v2_rules_fi.jpg',
+    // Blanked deliberately: the v2 rules screenshot shows "Jalkapallosäännöt
+    // 2025", "Futsalsäännöt 2025-2026" and "Kaikki Pelaa 2025" - the last of
+    // which Palloliitto has delisted entirely - in the old links-only layout
+    // that the search and in-app rulebook replaced. A picture of documents
+    // that no longer exist is a false claim, so the card runs text-only until
+    // MatchOps_v2_rules_{en,fi}.jpg is retaken.
+    officialRules: undefined,
     cloudSync: isEnglish
       ? '/screenshots/MatchOps_v2_cloudsync_en.jpg'
       : '/screenshots/MatchOps_v2_cloudsync_fi.jpg',
@@ -86,6 +90,15 @@ const getScreenshots = (locale: string | undefined) => {
     friendlies: isEnglish
       ? '/screenshots/MatchOps_v2_newgame_en.jpg'
       : '/screenshots/MatchOps_v2_newgame_fi.jpg',
+    // Awaiting screenshots (owner). Until a file is named here the card renders
+    // text-only - deliberately, rather than borrowing a picture of another
+    // screen. Expected names once taken:
+    //   MatchOps_v2_voicenotes_{en,fi}.jpg
+    //   MatchOps_v2_tasoreport_{en,fi}.jpg
+    //   MatchOps_v2_guidedsetup_{en,fi}.jpg
+    voiceNotes: undefined,
+    tasoReport: undefined,
+    guidedSetup: undefined,
   };
 };
 
@@ -471,6 +484,7 @@ export default function HomePage() {
               { band: 'gameDay', cards: [
                 { key: 'tacticalBoard', screenshot: screenshots.tacticalBoard },
                 { key: 'goalTimeline', screenshot: screenshots.goalTimeline },
+                { key: 'voiceNotes', screenshot: screenshots.voiceNotes },
                 { key: 'overtime', screenshot: screenshots.overtime },
                 { key: 'formations', screenshot: screenshots.formations },
                 { key: 'recap', screenshot: screenshots.recap },
@@ -478,8 +492,10 @@ export default function HomePage() {
               { band: 'development', cards: [
                 { key: 'positions', screenshot: screenshots.positions },
                 { key: 'matchReport', screenshot: screenshots.matchReport },
+                { key: 'tasoReport', screenshot: screenshots.tasoReport },
               ] },
               { band: 'club', cards: [
+                { key: 'guidedSetup', screenshot: screenshots.guidedSetup },
                 { key: 'roster', screenshot: screenshots.roster },
                 { key: 'teams', screenshot: screenshots.teams },
                 { key: 'personnel', screenshot: screenshots.personnel },
@@ -506,9 +522,15 @@ export default function HomePage() {
                       key={card.key}
                       className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-5 md:p-6 border border-slate-700/40 flex flex-col items-center text-center"
                     >
-                      <div className="flex justify-center mb-4">
-                        <PhoneMockup screenshot={card.screenshot} size="xl" zIndex={10} />
-                      </div>
+                      {/* A card whose screenshot has not been taken yet renders
+                          text-only rather than an empty phone frame or, worse,
+                          a picture of some other screen. Drop the image into
+                          getScreenshots() and the mockup appears. */}
+                      {card.screenshot && (
+                        <div className="flex justify-center mb-4">
+                          <PhoneMockup screenshot={card.screenshot} size="xl" zIndex={10} />
+                        </div>
+                      )}
                       <h3 className="text-white text-lg font-bold mb-2">
                         {t(`marketing.featureCards.${card.key}`)}
                       </h3>

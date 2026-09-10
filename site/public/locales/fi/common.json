@@ -70,7 +70,7 @@
   "seo": {
     "home": {
       "title": "MatchOps - Jalkapallovalmentajan sovellus",
-      "description": "Mobiilivalmennussovellus jalkapalloon ja futsaliin. Hallitse joukkueita, seuraa otteluita reaaliajassa, rakenna tilastot ja pelaajakehitys. Ilmainen ja turvallinen pilvisynkronointi — toimii kentällä ilman verkkoa."
+      "description": "Mobiilivalmennussovellus jalkapalloon ja futsaliin. Suunnittele kokoonpanot ja peluutus etukäteen, kirjaa ottelut reaaliajassa ja jaa valmis kooste. Ilmainen ja turvallinen pilvisynkronointi — toimii kentällä ilman verkkoa."
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps",
@@ -235,13 +235,13 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps?",
-      "description": "MatchOps on mobiilisovellus jalkapallon ja futsalin ottelutapahtumien hallinnoimiseen. Ennen peliä suunnittele kokoonpano, muodostelma ja alkulämmittely. Pelin aikana kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä. Pelin jälkeen merkitse toteutuneet pelipaikat, kirjaa otteluraportti ja jaa valmis ottelukooste. Seuraa jokaisen pelaajan kehitystä kauden mittaan. Tilastot kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailutasoilla. Suora linkki Palloliiton Taso-järjestelmään helpottaa virallisten pöytäkirjojen ja tulosten kirjaamista.",
+      "description": "MatchOps korvaa valmentajan irralliset työkalut yhdellä sovelluksella. Suunnittele kokoonpanot ja peluutus etukäteen, seuraa ja kirjaa ottelut reaaliajassa ja jaa valmis kooste pelin jälkeen. Ennen peliä suunnittele kokoonpano, muodostelma ja alkulämmittely. Pelin aikana kirjaa maalit ja syötöt napautuksella ja seuraa vaihtovälejä. Pelin jälkeen merkitse toteutuneet pelipaikat, kirjaa otteluraportti ja jaa valmis ottelukooste. Kattavat tilastot kertyvät automaattisesti yksilö-, ottelu-, joukkue- ja kilpailutasoilla. Kokoonpanon ja pöytäkirjan voi kopioida valmiiksi Palloliiton Taso-järjestelmän muodossa.",
       "oneLine": "Ilmainen, turvallinen pilvisynkronointi kaikilla laitteillasi. Seuraa otteluita ja rakenna tilastot kentällä, myös ilman internetiä."
     },
     "whoIsThisFor": {
       "title": "Kenelle tämä on tarkoitettu?",
-      "description": "MatchOps on jalkapallovalmentajille kaikilla tasoilla — harrastejoukkueista kilpajoukkueisiin — jotka haluavat yksinkertaisen tavan järjestää pelejä ja tukea jokaisen pelaajan kehitystä ilman monimutkaisia joukkueenhallintaohjelmistoja tai kuukausimaksuja.",
-      "item1": "Juniorijoukkueiden valmentajat (U8–U19)",
+      "description": "MatchOps on jalkapallo- ja futsalvalmentajille kaikilla tasoilla - juniorijoukkueista harraste- ja kilpajoukkueisiin - jotka haluavat yksinkertaisen tavan hallita ottelutapahtumia ja tukea pelaajien kehitystä ilman monimutkaisia joukkueenhallintaohjelmistoja tai kuukausimaksuja.",
+      "item1": "Juniorijoukkueiden valmentajat (U7-U21)",
       "item2": "Harraste- ja kilpajoukkueiden valmentajat",
       "item3": "Valmentajat, jotka arvostavat yksityisyyttä ja omistavat datansa"
     },
@@ -443,7 +443,7 @@
       "planner": {
         "eyebrow": "Peliaikasuunnittelija",
         "title": "Suunnittele pelisi etukäteen",
-        "desc": "Suunnittele aloituskokoonpanot ja rotaatiot tuleviin ottelukokonaisuuksiin, kuten turnauksiin. Näet pelaajakohtaiset peliaikakertymät ja pelipaikkajakauman. Voit muokata suunnitelmia kesken pelisarjan ja nähdä muutosten vaikutuksen kokonaisuuteen."
+        "desc": "Suunnittele aloituskokoonpanot ja rotaatiot tuleviin ottelukokonaisuuksiin, kuten turnauksiin. Näet pelaajakohtaiset peliaikakertymät ja pelipaikkajakauman värikoodattuna, jolloin havaitset epätasaisen jakauman yhdellä silmäyksellä. Sovellus huomauttaa, jos joku jää ilman peliaikaa, istuu penkillä kokonaisen pelin tai pelaa vain yhtä pelipaikkaa. Voit muokata suunnitelmia kesken pelisarjan ja nähdä muutosten vaikutuksen kokonaisuuteen."
       },
       "development": {
         "eyebrow": "Pelaajan kehitys",
@@ -553,7 +553,7 @@
       "futsal": "Futsal",
       "futsalDesc": "Futsal-kenttänäkymä ja -pelimuotomerkintä tilastointia ja suodatusta varten.",
       "officialRules": "Viralliset säännöt",
-      "officialRulesDesc": "Pikalinkit Palloliiton virallisiin jalkapallo- ja futsal-sääntöihin.",
+      "officialRulesDesc": "Etsi sääntö sillä sanalla jota itse käytät, ja avaa virallinen sääntökirja suoraan oikealta sivulta sovelluksessa. Mukana futsalin viralliset pelimuodot ikäluokittain.",
       "cloudSync": "Pilvisynkronointi",
       "cloudSyncDesc": "Kirjaudu sisään ja synkronoi tietosi laitteiden välillä. Tietosi pysyvät turvassa pilvessä ja synkronoituvat automaattisesti.",
       "recap": "Ottelukooste",
@@ -569,7 +569,13 @@
       "friendlies": "Harjoitusottelut",
       "friendliesDesc": "Seuraa harjoituspelejä ilman että ne vääristävät kilpailullisia tilastojasi.",
       "dashboard": "Hallintapaneeli",
-      "dashboardDesc": "Avaa sovellus ja näet heti tilannekuvan."
+      "dashboardDesc": "Avaa sovellus ja näet heti tilannekuvan.",
+      "voiceNotes": "Äänimuistiinpanot",
+      "voiceNotesDesc": "Sanele muistiinpano ottelun aikana yhdellä painalluksella. Muistiinpanot odottavat postilaatikossa, kunnes kirjoitat ne auki ja liität oikealle pelaajalle tai otteluun.",
+      "tasoReport": "Pöytäkirja Tasoon",
+      "tasoReportDesc": "Kopioi kokoonpano ja pöytäkirja valmiiksi Palloliiton Taso-järjestelmän muodossa: pelinumerot, maalivahti, lopputulos, puoliaikatilanne ja maalit minuutteineen.",
+      "guidedSetup": "Ohjattu käyttöönotto",
+      "guidedSetupDesc": "Ensimmäinen joukkue, pelaajat ja pelimuoto ohjatusti minuutissa. Sovellus on käyttövalmis ennen ensimmäistä peliä."
     },
     "techCards": {
       "development": "KEHITYS",
