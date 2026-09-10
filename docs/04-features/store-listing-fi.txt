@@ -1,0 +1,62 @@
+Taktiikkataulu, sekuntikello, muistivihko ja tilastot - yhdessä sovelluksessa.
+
+MatchOps korvaa ottelupäivän irralliset työkalut yhdellä sovelluksella. Suunnittele kokoonpano ennen peliä, seuraa ottelua reaaliajassa ja jaa valmis kooste pelin jälkeen. Tilastot kertyvät automaattisesti, ja seuraat jokaisen pelaajan kehitystä kauden mittaan.
+
+ALOITA MINUUTISSA
+• Ohjattu aloitus luo joukkueen, pelaajat ja pelimuodon kerralla
+• Ensimmäinen ottelu avautuu valmiilla muodostelmalla kentällä
+• Lyhyet esittelyt jokaisessa näkymässä, ja opastuskierros aina saatavilla
+
+SUUNNITTELE
+• Aseta pelaajat interaktiiviselle kentälle
+• Käytä pikamuodostelmia kokoonpanon rakentamiseen
+• Suunnittele peliajat ja vaihdot etukäteen, myös koko turnaukselle kerralla
+• Piirrä taktiikoita ja pelikuvioita taktiikkataululle
+• Lisää vastustajan kiekot taktiseen suunnitteluun
+
+KIRJAA
+• Seuraa pelikelloa ja vaihtovälejä
+• Kirjaa maalit ja syötöt muutamalla kosketuksella
+• Kirjaa jatkoaika ja rangaistuslaukaukset
+• Merkitse kapteeni ottelukohtaisesti
+• Piirrä taktiikoita puoliajalla
+• Otteluloki rakentuu automaattisesti
+
+PELIN JÄLKEEN
+• Viimeistele ottelu -tarkistuslista käy kirjaukset läpi ja huomauttaa, jos maalit eivät täsmää tulokseen tai maalilta puuttuu tekijä
+• Merkitse toteutuneet pelipaikat pelaajittain
+• Kirjoita otteluraportti ja jaa valmis ottelukooste
+• Kopioi kokoonpano ja pöytäkirja valmiiksi Palloliiton Taso-järjestelmän muodossa
+
+KEHITÄ
+• Pelaaja- ja joukkuetilastot kertyvät automaattisesti
+• Jaa pelaajakooste: ottelut, pelipaikat, maalit ja syötöt sekä päivätyt merkinnät yhtenä tekstinä
+• Seuraa pelipaikkojen tasapainoa joukkueessa ja jokaisen pelaajan otteluita kausien ja turnausten yli
+• Harjoitusottelut eivät vääristä kilpailullisia tilastoja
+• Vie tilastot Exceliin
+
+SÄÄNNÖT
+• Etsi sääntö omalla hakusanalla ja avaa virallinen sääntökirja suoraan oikealta sivulta
+• Katso ikäluokkasi viralliset pelimuodot: pelaajamäärä, peliaika, kenttä ja pallo
+
+HALLITSE
+• Luo ja hallitse useita joukkueita, ja valitse alkunäkymässä kumpaa katsot
+• Järjestä sarjat ja turnaukset
+• Selaa pelihistoriaa ja suodata joukkueen, vastustajan, sarjan tai turnauksen mukaan
+• Pidä kirjaa taustahenkilöistä
+
+PILVI JA VARMUUSKOPIOT
+• Kirjaudu sisään ja synkronoi tiedot laitteiden välillä
+• Datasi tallentuu turvallisesti pilveen
+• Varmuuskopioi ja palauta myös JSON-viennillä
+
+JALKAPALLO JA FUTSAL
+• Jalkapallo- ja futsalkenttänäkymät
+• Pelimuodot 3v3:sta 11v11:een
+• Pelimuotomerkintä tilastointia ja suodatusta varten
+• Saatavilla suomeksi ja englanniksi
+
+Kenelle sovellus on tarkoitettu?
+Jalkapallo- ja futsalvalmentajille kaikilla tasoilla - juniorijoukkueista (U7-U21) harraste- ja kilpajoukkueisiin - jotka haluavat yksinkertaisen tavan hallita ottelutapahtumia ja tukea pelaajien kehitystä.
+
+Keskity valmentamiseen, älä paperitöihin.

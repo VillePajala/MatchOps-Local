@@ -20,9 +20,13 @@ features, then big bets.
 
 Real issues affecting production users / exposure right now. Small, high-leverage.
 
-- [ ] **Play Store listing: stop advertising player assessments** 🔴 *owner priority, 2026-09-09* — the app (#797) and match-ops.com no longer sell "Player Development" / "Development Trends", but the Play Console description still does. Owner-only task (Play Console). Replacement paragraph, plain text:
-  - **EN:** Keep a real record of every match: goals and assists, positions played, a match report, and short voice notes you dictate on the sideline. See each player's games over a season, position balance across the team, and fair playing time with the planner.
-  - **FI:** Pidä jokaisesta ottelusta oikea kirjanpito: maalit ja syötöt, pelipaikat, otteluraportti ja lyhyet äänimuistiinpanot, jotka sanelet laidalta. Näe jokaisen pelaajan ottelut kauden aikana, pelipaikkojen tasapaino joukkueessa ja tasapuolinen peliaika suunnittelijalla.
+- [ ] **Play Store listing: refresh the description** 🔴 *owner priority, 2026-09-09; text rewritten 2026-09-10* — the app (#797) and match-ops.com no longer sell "Player Development" / "Development Trends", but the Play Console description still does. Owner-only task (Play Console).
+  - **The line that must go (FI):** "Kirjaa lyhyet havainnot ottelun jälkeen kymmenellä mittarilla" - that is the ten-metric assessment, disabled 2026-09-09.
+  - ⚠️ **The replacement paragraph previously stored here advertised Kirjuri** ("lyhyet äänimuistiinpanot, jotka sanelet laidalta"). Kirjuri stays UNANNOUNCED until the owner has used it in real matches, and it needs the coach's own OpenAI key. Do not reintroduce it into store copy without a separate decision and its own privacy wording. Removed 2026-09-10.
+  - **Full replacement FI listing (2995 chars, limit 4000): `docs/04-features/store-listing-fi.txt`.** Written by cross-checking every release note back to 2026-06 against the live text.
+  - **Added because they shipped and were unmentioned:** guided one-minute setup, Playing-Time Planner, per-game captain, the Finish-game checklist, the Taso match report, the Pelaajakooste, position balance, the friendly-match flag, the Rules screen (search + formats), team selection on Home, and formats from 3v3.
+  - **Corrected:** age range is U7-U21 (the app's own AGE_GROUPS), not U8-U19.
+  - **EN listing:** not yet written; mirror the FI file when the owner asks.
   - Also check the store screenshots: any development/trends shot should come out (the site plan's rule is never to delete files in the repo; the store listing is separate).
 
 - [x] **Store-listing accuracy** — ✅ **DONE 2026-06-18**. Live Play listing was already corrected by the user; aligned the stale repo copy: `store-description-en.md` no longer claims "no account / optional cloud / data stays on device" (now: free account required, secure cloud sync, works offline at the field). Added a README note that the Play build is cloud-only (the README's dual-mode description is otherwise accurate for the web/PWA version).
