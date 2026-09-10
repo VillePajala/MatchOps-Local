@@ -287,6 +287,19 @@ describe('RulesDirectoryModal', () => {
   });
 
   /**
+   * @critical - the page jump is a desktop PDF-viewer feature; on a phone the
+   * book opens at page 1. The screen must therefore show the page number
+   * legibly and say so, rather than implying a jump that will not happen.
+   */
+  it('shows the page number prominently and does not promise a jump', () => {
+    render(<RulesDirectoryModal {...defaultProps} />);
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'paitsio' } });
+    const hits = screen.getByTestId('rules-hits');
+    expect(within(hits).getByText('s. 61')).toBeInTheDocument();
+    expect(screen.getByText(/siirry itse sivulle/i)).toBeInTheDocument();
+  });
+
+  /**
    * @edge-case - sin bin is guidance, not a law, so it takes a different code
    * path to build its link. It shipped once with no test and no null-safety.
    */
@@ -321,10 +334,11 @@ describe('RulesDirectoryModal', () => {
    */
   it('sends the coach to their own series for the rules that are series-specific', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
-    expect(screen.getByText('Oman sarjasi säännöt')).toBeInTheDocument();
-    expect(screen.getByText(/sarjakohtaisia/i)).toBeInTheDocument();
+    expect(screen.getByText('Sarjakohtaiset säännöt')).toBeInTheDocument();
+    // Says plainly that the app cannot know which league you are in.
+    expect(screen.getByText(/ei ole yhteydessä Palloliiton järjestelmään/i)).toBeInTheDocument();
 
-    const seriesLink = screen.getByText('Oman sarjasi säännöt (Tulospalvelu)').closest('button');
+    const seriesLink = screen.getByText('Selaa sarjoja (Tulospalvelu)').closest('button');
     fireEvent.click(seriesLink!);
     expect(mockWindowOpen).toHaveBeenCalledWith(
       'https://tulospalvelu.palloliitto.fi/categories',
@@ -336,7 +350,7 @@ describe('RulesDirectoryModal', () => {
   it('names the three places rules live, so the page reads as a map not a dump', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     expect(screen.getByText(/kolmessa paikassa/i)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Oman sarjasi säännöt' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sarjakohtaiset säännöt' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Lajisäännöt' })).toBeInTheDocument();
   });
 
