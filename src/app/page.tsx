@@ -183,6 +183,20 @@ export default function Home() {
   const [postLoginCheckComplete, setPostLoginCheckComplete] = useState(false);
   const { showToast } = useToast();
   const { t } = useTranslation();
+  /**
+   * `t` is a NEW function on every language change, so anything that lists it
+   * as a dependency is rebuilt then too. That is fine for rendering and wrong
+   * for the data path: applyTeamScope depended on `t` purely to label two team
+   * pills, but checkAppState depends on applyTeamScope and an effect depends on
+   * checkAppState - so switching language re-ran the whole app-state check,
+   * re-reading the roster and every saved game behind a loading gate.
+   *
+   * Read translations through this ref inside callbacks that must stay stable.
+   * The labels are still correct, because a language change re-renders the
+   * consumers anyway and the next call reads the current `t`.
+   */
+  const tRef = useRef(t);
+  tRef.current = t;
   const isReturningDevice = useDeviceHasSignedIn();
   const { isAuthenticated, isLoading: isAuthLoading, mode, user, isSigningOut, initTimedOut, retryAuthInit, isAuthGracePeriod, signOut } = useAuth();
   // Note: usePremium is for local mode limits (legacy); cloud mode uses useSubscription
@@ -312,13 +326,15 @@ export default function Home() {
     teamScopeRef.current = scope;
     setTeamScope(scope);
     setTeamScopeOptions(buildHomeTeamScopeOptions(teamsList, seasonsList, tournamentsList, {
-      futsal: t('common.gameTypeFutsal', 'Futsal'),
-      level: (level) => t(`common.level${level}` as TranslationKey, level),
+      futsal: tRef.current('common.gameTypeFutsal', 'Futsal'),
+      level: (level) => tRef.current(`common.level${level}` as TranslationKey, level),
     }));
     const args: Parameters<typeof buildHomeSummary> = [games, { ...rest, teamFilter: scope }];
     homeSummaryInputsRef.current = args;
     publishHomeSummaries(args);
-  }, [t, publishHomeSummaries]);
+    // `t` is read through tRef so a language change cannot rebuild this
+    // callback - see the tRef declaration for what that used to cost.
+  }, [publishHomeSummaries]);
 
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);

@@ -72,10 +72,24 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
     utilGetLastHomeTeamName(userId).then((name) => setDefaultTeamNameSetting(name));
   }, [userId]);
 
-  useEffect(() => {
-    i18n.changeLanguage(appLanguage);
-    utilUpdateAppSettings({ language: appLanguage }).catch((error) => {
-      logger.warn('[useAppSettingsController] Failed to save language preference (non-critical)', { language: appLanguage, error });
+  /**
+   * Switching the language is an ACTION, not a state sync.
+   *
+   * As an effect keyed on `appLanguage` this ran on every mount of this
+   * controller - which ClubModalsHost mounts app-wide, not just while Settings
+   * is open - with the pre-adopt 'fi' still in its closure. So it emitted
+   * `languageChanged` (the event that fed the Home render loop, see
+   * StartScreen) AND wrote language:'fi' to app settings, a DataStore write
+   * that in cloud mode goes through the sync queue. A coach on English had
+   * their stored preference overwritten with Finnish on every mount, then
+   * corrected a beat later - two writes per mount to change nothing.
+   */
+  const changeAppLanguage = useCallback((next: string) => {
+    if (next === appLanguage) return;
+    setAppLanguage(next);
+    i18n.changeLanguage(next);
+    utilUpdateAppSettings({ language: next }).catch((error) => {
+      logger.warn('[useAppSettingsController] Failed to save language preference (non-critical)', { language: next, error });
     });
   }, [appLanguage]);
 
@@ -215,7 +229,10 @@ export function useAppSettingsController(): UseAppSettingsControllerReturn {
 
   return {
     appLanguage,
-    setAppLanguage,
+    // The exported name is unchanged; consumers still just "set the language".
+    // What changed is that setting it now does the work, instead of a state
+    // write that an effect reacted to on every mount.
+    setAppLanguage: changeAppLanguage,
     defaultTeamNameSetting,
     setDefaultTeamNameSetting,
     isResetting,

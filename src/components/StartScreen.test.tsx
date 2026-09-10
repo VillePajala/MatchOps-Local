@@ -39,7 +39,7 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
-import i18n from '@/i18n';
+import i18n, { saveLanguagePreference } from '@/i18n';
 import StartScreen from './StartScreen';
 import GuidedTourProvider from '@/contexts/GuidedTourProvider';
 
@@ -101,6 +101,43 @@ describe('StartScreen', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'FI' }));
     expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
+  });
+
+  /**
+   * @critical - owner-reported: switching language on Home made the screen
+   * flicker and reload forever.
+   *
+   * Mounting used to change the language. `language` starts at 'fi' (the
+   * SSR-safe default), and an effect keyed on it fired changeLanguage with
+   * that pre-adopt value still in its closure - so every mount reverted the
+   * coach's choice and emitted `languageChanged`. That event rebuilds `t`,
+   * which rebuilt applyTeamScope -> checkAppState in page.tsx, which re-ran
+   * the app-state check behind a loading gate, which unmounted this screen.
+   * Remounting fired the effect again.
+   *
+   * This asserts the half that lives here: mounting is not a language change.
+   * The i18n mock reports 'en' while the initial state is 'fi', which is
+   * exactly the mismatch that used to trigger the revert.
+   */
+  it('does not change the language just by mounting', () => {
+    render(
+      <StartScreen
+        onLoadGame={jest.fn()}
+        onGetStarted={jest.fn()}
+        onViewStats={jest.fn()}
+        onOpenSettings={jest.fn()}
+        hasSavedGames
+        isFirstTimeUser={false}
+      />,
+    );
+    expect(i18n.changeLanguage).not.toHaveBeenCalled();
+    expect(saveLanguagePreference).not.toHaveBeenCalled();
+
+    // A real click still does the work - this must not be fixed by making the
+    // switcher inert.
+    fireEvent.click(screen.getByRole('button', { name: 'FI' }));
+    expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
+    expect(saveLanguagePreference).toHaveBeenCalledWith('fi');
   });
 
   it('front page: no resume card without a resumable game; planner row only when wired', () => {
