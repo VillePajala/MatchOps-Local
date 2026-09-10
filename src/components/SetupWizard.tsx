@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n, { saveLanguagePreference } from '@/i18n';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
@@ -187,6 +188,33 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
 
   const skipLabel = t('setupWizard.skip', "Skip, I'll do this later");
 
+  /**
+   * The wizard is the FIRST screen a new coach sees, and it had no way to
+   * change language - so an English-speaking coach whose first sign-in landed
+   * here was stuck reading Finnish until they finished or skipped it. Every
+   * other entry point (start screen, login) offers the switch; this one, the
+   * one where it matters most, did not.
+   *
+   * SSR-safe initial value and a post-hydration adopt, like StartScreen: the
+   * server renders 'fi', so reading i18n.language here would diverge the
+   * toggle's conditional className and throw on removeChild
+   * (MATCHOPS-LOCAL-8K).
+   */
+  const [language, setLanguage] = useState<string>('fi');
+  useEffect(() => {
+    if (i18n.language !== language) setLanguage(i18n.language);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // An ACTION, never an effect keyed on `language` - that shape is what fed
+  // the Home render loop, because it re-fires on every mount with the
+  // pre-adopt value still in its closure.
+  const changeLanguage = (next: string) => {
+    if (next === language) return;
+    setLanguage(next);
+    i18n.changeLanguage(next);
+    saveLanguagePreference(next);
+  };
+
   return (
     <div
       data-testid="setup-wizard"
@@ -197,6 +225,35 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[20%] -right-[15%] w-[60%] h-[60%] bg-sky-500/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-[15%] -left-[10%] w-[55%] h-[55%] bg-sky-500/15 rounded-full blur-3xl" />
+      </div>
+
+      {/* Upper-right, the same place and the same pill as the start screen, so
+          a coach who meets it here finds it where they left it afterwards. */}
+      <div className="absolute top-4 right-4 z-20 flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => changeLanguage('en')}
+          data-testid="wizard-lang-en"
+          className={`px-3 py-1.5 text-xs font-bold transition-all ${
+            language === 'en'
+              ? 'bg-amber-500 text-slate-900'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+          }`}
+        >
+          EN
+        </button>
+        <button
+          type="button"
+          onClick={() => changeLanguage('fi')}
+          data-testid="wizard-lang-fi"
+          className={`px-3 py-1.5 text-xs font-bold transition-all ${
+            language === 'fi'
+              ? 'bg-amber-500 text-slate-900'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+          }`}
+        >
+          FI
+        </button>
       </div>
       <div className="w-full max-w-sm mx-auto flex flex-col flex-1 px-6 py-8">
         {/* Step 1 centers the WHOLE group (wordmark -> skip) like the landing

@@ -17,6 +17,12 @@ jest.mock('react-i18next', () => ({
   }),
 }));
 
+jest.mock('@/i18n', () => ({
+  __esModule: true,
+  default: { language: 'fi', changeLanguage: jest.fn(), isInitialized: true, on: jest.fn(), off: jest.fn() },
+  saveLanguagePreference: jest.fn(),
+}));
+
 const mockShowToast = jest.fn();
 jest.mock('@/contexts/ToastProvider', () => ({
   useToast: () => ({ showToast: mockShowToast }),
@@ -314,6 +320,25 @@ describe('SetupWizard', () => {
 
     render(<Probe />);
     expect(screen.getByTestId('probe')).toHaveTextContent('off');
+  });
+
+  /**
+   * @critical - owner-reported: the wizard is the FIRST screen a new coach
+   * sees and it offered no way to change language, so a coach who is not
+   * reading Finnish was stuck with it until they finished or skipped. Every
+   * other entry point has the switch; this one did not.
+   */
+  it('lets a new coach switch language before filling anything in', () => {
+    const i18nMock = jest.requireMock('@/i18n');
+    renderWizard();
+
+    // Mounting must not change the language - the shape that fed the Home
+    // render loop. Only a real press does.
+    expect(i18nMock.default.changeLanguage).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('wizard-lang-en'));
+    expect(i18nMock.default.changeLanguage).toHaveBeenCalledWith('en');
+    expect(i18nMock.saveLanguagePreference).toHaveBeenCalledWith('en');
   });
 });
 
