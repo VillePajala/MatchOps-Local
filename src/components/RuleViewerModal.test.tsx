@@ -135,6 +135,32 @@ describe('RuleViewerModal', () => {
     await waitFor(() => expect(destroy).toHaveBeenCalled());
   });
 
+  /**
+   * @critical - the same leak in its narrowest window. release() runs on close
+   * and finds nothing, because the document has not resolved yet; when it does,
+   * nothing holds it and nothing would ever destroy it.
+   */
+  it('destroys a document that arrives after the sheet was closed', async () => {
+    type Doc = { numPages: number; getPage: typeof getPage; destroy: typeof destroy };
+    let resolveDoc: (d: Doc) => void = () => {};
+    getDocument.mockReturnValue({
+      promise: new Promise<Doc>((res) => {
+        resolveDoc = res;
+      }),
+    });
+
+    const { rerender } = render(<RuleViewerModal {...props} isOpen />);
+    await waitFor(() => expect(getDocument).toHaveBeenCalled());
+
+    // Closed while the first fetch is still in flight.
+    rerender(<RuleViewerModal {...props} isOpen={false} />);
+    resolveDoc({ numPages: 139, getPage, destroy });
+
+    await waitFor(() => expect(destroy).toHaveBeenCalled());
+    // It must not have been rendered either.
+    expect(getPage).not.toHaveBeenCalled();
+  });
+
   it('destroys the document on unmount too', async () => {
     const { unmount } = render(<RuleViewerModal {...props} isOpen />);
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));

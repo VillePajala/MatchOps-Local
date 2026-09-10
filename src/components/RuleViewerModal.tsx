@@ -92,7 +92,13 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
             disableStream: false,
             disableAutoFetch: true,
           }).promise;
-          if (cancelled) return;
+          // Closing while the first fetch is in flight is the narrow version of
+          // the same leak: release() has already run and found nothing, so this
+          // document would never be reachable again and never destroyed.
+          if (cancelled) {
+            await (doc as unknown as { destroy?: () => Promise<void> }).destroy?.();
+            return;
+          }
           docRef.current = doc as unknown as typeof docRef.current;
           setTotal(doc.numPages);
         }
