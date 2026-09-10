@@ -1,12 +1,12 @@
 {
-  "version": "c23382ab",
-  "date": "2026-09-09",
+  "version": "6778b5b0",
+  "date": "2026-09-10",
   "notes": {
     "en": [
-      "You can now write a note about a player by hand, in Finish this game. Until now a note could only be dictated during the match, so the checklist asking how many players you had written about pointed at something most coaches had no way to do. That row is also clearer now, and tapping it takes you to the notes."
+      "Rules now open at the right page. Search for a rule, tap it, and the official rulebook opens in the app on that page instead of at page one. Only the pages you read are downloaded, so it works on mobile data at the pitch."
     ],
     "fi": [
-      "Voit nyt kirjoittaa muistiinpanon pelaajasta käsin Viimeistele ottelu -näkymässä. Aiemmin muistiinpanon saattoi luoda vain sanelemalla ottelun aikana, joten tarkistuslistan kohta pelaajista kirjatuista muistiinpanoista pyysi jotain, mihin useimmilla valmentajilla ei ollut keinoa. Kohta on myös aiempaa selkeämpi, ja sitä napauttamalla pääsee muistiinpanoihin."
+      "Säännöt avautuvat nyt oikealta sivulta. Etsi sääntö, napauta sitä, ja virallinen sääntökirja aukeaa sovelluksessa siltä sivulta eikä ensimmäiseltä. Vain lukemasi sivut ladataan, joten se toimii mobiiliyhteydellä kentän laidalla."
     ]
   }
 }

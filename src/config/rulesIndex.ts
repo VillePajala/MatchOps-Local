@@ -59,27 +59,14 @@ export function rulebookUrl(sport: RulesSport): string | null {
 }
 
 /**
- * A deep link to the page a law starts on.
+ * Append a page to a rulebook URL.
  *
- * `#page=` is the PDF open-parameter every mainstream viewer honours. A viewer
- * that ignores it simply opens page 1, which is no worse than the plain link
- * this replaces - so this can never be a regression, only a shortcut.
+ * ONE place builds this fragment. It is only a fallback now - the in-app viewer
+ * renders the page directly, because `#page=` is a PDF open-parameter that
+ * desktop viewers honour and Android ignores - but "open in browser" still owes
+ * the reader the right page where it can.
  */
-export function lawUrl(sport: RulesSport, law: number): string | null {
-  const url = rulebookUrl(sport);
-  const ref = RULES_SPORTS[sport]?.laws.find((l) => l.law === law);
-  if (!url || !ref) return null;
-  return `${url}#page=${ref.page}`;
-}
-
-/**
- * A deep link to a guidance section that is not a numbered law (sin bin).
- *
- * Same null discipline as lawUrl: without a rulebook URL this must produce
- * nothing, never a bare "#page=10" that navigates to the app itself.
- */
-export function guidanceUrl(sport: RulesSport, page: number): string | null {
-  const url = rulebookUrl(sport);
+export function withPage(url: string | null, page: number): string | null {
   if (!url || !Number.isInteger(page) || page < 1) return null;
   return `${url}#page=${page}`;
 }

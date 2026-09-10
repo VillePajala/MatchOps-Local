@@ -88,7 +88,17 @@ const securityHeaders = [
       "font-src 'self'",
       // api.openai.com: the coach's OWN AI provider (Kirjuri BYOK) - called only
       // with the coach's key, only on an explicit action. Allow-listed per provider.
-      `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com https://api.openai.com`,
+      //
+      // www-assets.palloliitto.fi serves the two official rulebooks. The app
+      // fetches them ONLY when a coach opens a specific law, and only by byte
+      // range, so it pulls a few pages rather than a 3MB book. Nothing is
+      // uploaded and nothing is stored on our side; this is the app acting as
+      // a reader against the publisher's own public URL.
+      //
+      // Deliberately NOT datocms-assets.com: the game-formats PDF there is only
+      // ever NAVIGATED to via a link, never fetched, so granting it connect-src
+      // would widen the policy for a capability nothing uses.
+      `connect-src 'self' ${supabaseConnectSrc} https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com https://api.openai.com https://www-assets.palloliitto.fi`,
       "worker-src 'self' blob:",  // blob: required for Supabase realtime-js heartbeat workers
       "media-src 'self' blob:", // blob: replays locally recorded voice clips (Kirjuri); audio never leaves the device
       "object-src 'none'", // Block Flash, Java applets, and other plugins
