@@ -836,6 +836,14 @@
       "point3": "Coaching Points"
     }
   },
+  "ruleViewer": {
+    "subtitle": "Official rulebook. Page {{n}}{{total}}.",
+    "loading": "Loading the page...",
+    "error": "Could not open the rulebook. Check your connection.",
+    "openInBrowser": "Open in browser",
+    "prev": "Previous",
+    "next": "Next"
+  },
   "rulesDirectory": {
     "title": "Rules",
     "buttonTitle": "View rules",
@@ -844,7 +852,7 @@
     "futsalFormats": "Official futsal formats 2026-2027",
     "intro": "Rules live in three places: league-specific rules, the age-group formats, and the laws of the game.",
     "openAtPage": "Open the rulebook - page {{n}}",
-    "pageHint": "The rulebook opens in your browser. On a phone, go to the page shown on the row yourself.",
+    "pageHint2": "The rule opens straight at the right page. Only the pages you read are downloaded.",
     "seriesTitle": "League-specific rules",
     "seriesHelp": "Player count, playing time and pitch size are set per league, and the app does not know which league your team plays in - MatchOps is not connected to Palloliitto's system. Find your league in the list and open Info > Rules.",
     "seriesRules": "Browse leagues (Tulospalvelu)",

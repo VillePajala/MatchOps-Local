@@ -12,13 +12,22 @@ ordered by how specific each is to the coach:
 
 0. **Find a rule** - type the word you actually use ("kentältäpoisto") and get
    the law and **its page number**. See the licence note below.
-   **The `#page=` jump is desktop-only.** It is a PDF open-parameter that
-   Chrome's desktop viewer honours; on Android the book opens in a viewer that
-   ignores the fragment and lands on page 1. So the page number is displayed
-   prominently and the screen says to navigate there yourself. Do not word this
-   as "opens at page N" - that promise is false on the platform most coaches
-   use. A real jump needs an in-app PDF renderer (the CDN does send permissive
-   CORS headers, so it is possible - it is a scope decision, not a blocker).
+   **It opens the book AT that page, in the app** (`RuleViewerModal`). The
+   obvious `...pdf#page=65` link does not work: that is a PDF open-parameter
+   which only desktop viewers honour, and on Android the book lands on page 1 -
+   which is exactly what the owner reported. So the app renders the page itself.
+
+   | Concern | How it is handled |
+   |---|---|
+   | Bundle | pdf.js (~450KB) is `import()`ed only when a law is opened |
+   | Data | byte-range requests (`disableAutoFetch`), so one law pulls a few pages, not a 3MB book |
+   | Worker | copied from the installed `pdfjs-dist` at build time into `public/pdfjs/`, because the CSP is `worker-src 'self'` and a worker from a different build than the library fails in ways that read as a corrupt PDF |
+   | CSP | the two Palloliitto asset hosts added to `connect-src` |
+   | Offline | says so and offers the browser, rather than an empty sheet |
+
+   **This is still not a copy.** The file is fetched from the publisher's own
+   public URL at the coach's request and never stored or served by us - the app
+   is a reader, the way a browser is. Nothing is bundled; see the licence note.
 1. **League-specific rules** - player count, playing time and pitch size are set
    **per league** (*sarja*; the app calls these Leagues / Sarjat) and live in
    Tulospalvelu under each one's Info > Säännöt tab.

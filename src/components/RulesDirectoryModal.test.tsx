@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import RulesDirectoryModal from './RulesDirectoryModal';
@@ -16,6 +16,25 @@ jest.mock('react-i18next', () => ({
     i18n: { language: 'fi' },
   }),
 }));
+
+// The viewer is rendered by this modal, so pdfjs must be mocked here too -
+// a component test may never reach Palloliitto's CDN.
+const getPage = jest.fn(async () => ({
+  getViewport: ({ scale }: { scale: number }) => ({ width: 600 * scale, height: 800 * scale }),
+  render: () => ({ promise: Promise.resolve(), cancel: jest.fn() }),
+}));
+const getDocument = jest.fn((_opts: unknown) => ({
+  promise: Promise.resolve({ numPages: 139, getPage }),
+}));
+jest.mock(
+  'pdfjs-dist',
+  () => ({
+    __esModule: true,
+    GlobalWorkerOptions: { workerSrc: '' },
+    getDocument: (opts: unknown) => getDocument(opts),
+  }),
+  { virtual: true },
+);
 
 // Mock window.open
 const mockWindowOpen = jest.fn();
@@ -255,34 +274,27 @@ describe('RulesDirectoryModal', () => {
    * touchline types the word they actually use and gets the law, without
    * scrolling a 139-page PDF.
    */
-  it('finds a law by a coach word and opens the official book at that page', () => {
+  it('finds a law by a coach word and opens the book AT that page, in the app', async () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'kentältäpoisto' } });
     const hits = screen.getByTestId('rules-hits');
     expect(within(hits).getByText(/Sääntö 12/)).toBeInTheDocument();
 
     fireEvent.click(within(hits).getByText(/Sääntö 12/).closest('button')!);
-    expect(mockWindowOpen).toHaveBeenCalledWith(
-      expect.stringContaining('#page=65'),
-      '_blank',
-      'noopener,noreferrer',
-    );
+    // Not window.open: a browser hand-off lands on page 1 on a phone.
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+    expect(mockWindowOpen).not.toHaveBeenCalled();
   });
 
-  it('switches book when the sport changes, and pages differ between them', () => {
+  it('switches book when the sport changes, and pages differ between them', async () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     fireEvent.click(screen.getByTestId('rules-sport-futsal'));
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: '12' } });
     fireEvent.click(within(screen.getByTestId('rules-hits')).getByText(/Sääntö 12/).closest('button')!);
-    expect(mockWindowOpen).toHaveBeenCalledWith(
-      expect.stringContaining('futsalsaannot'),
-      '_blank',
-      'noopener,noreferrer',
-    );
-    expect(mockWindowOpen).toHaveBeenCalledWith(
-      expect.stringContaining('#page=41'),
-      '_blank',
-      'noopener,noreferrer',
+    // Futsal's Law 12 is page 41, and it must come from the futsal book.
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(41));
+    expect(getDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ url: expect.stringContaining('futsalsaannot') }),
     );
   });
 
@@ -291,19 +303,19 @@ describe('RulesDirectoryModal', () => {
    * book opens at page 1. The screen must therefore show the page number
    * legibly and say so, rather than implying a jump that will not happen.
    */
-  it('shows the page number prominently and does not promise a jump', () => {
+  it('still shows the page number, which is now a promise it can keep', () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'paitsio' } });
     const hits = screen.getByTestId('rules-hits');
     expect(within(hits).getByText('s. 61')).toBeInTheDocument();
-    expect(screen.getByText(/siirry itse sivulle/i)).toBeInTheDocument();
+    expect(screen.getByText(/avautuu suoraan oikealta sivulta/i)).toBeInTheDocument();
   });
 
   /**
    * @edge-case - sin bin is guidance, not a law, so it takes a different code
    * path to build its link. It shipped once with no test and no null-safety.
    */
-  it('opens a guidance section at its own page, with no law number shown', () => {
+  it('opens a guidance section at its own page, with no law number shown', async () => {
     render(<RulesDirectoryModal {...defaultProps} />);
     fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'sin bin' } });
     const hits = screen.getByTestId('rules-hits');
@@ -311,11 +323,7 @@ describe('RulesDirectoryModal', () => {
     expect(row.textContent).not.toMatch(/Sääntö \d/);
 
     fireEvent.click(row);
-    expect(mockWindowOpen).toHaveBeenCalledWith(
-      expect.stringContaining('jalkapallosaannot-2026.pdf#page=10'),
-      '_blank',
-      'noopener,noreferrer',
-    );
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(10));
   });
 
   it('lists all 17 laws before anything is typed, and says so when nothing matches', () => {

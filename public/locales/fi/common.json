@@ -719,6 +719,14 @@
       "point3": "Valmennuspisteet"
     }
   },
+  "ruleViewer": {
+    "subtitle": "Virallinen sääntökirja. Sivu {{n}}{{total}}.",
+    "loading": "Ladataan sivua...",
+    "error": "Sääntökirjaa ei saatu auki. Tarkista verkkoyhteys.",
+    "openInBrowser": "Avaa selaimessa",
+    "prev": "Edellinen",
+    "next": "Seuraava"
+  },
   "rulesDirectory": {
     "title": "Säännöt",
     "buttonTitle": "Näytä säännöt",
@@ -727,7 +735,7 @@
     "futsalFormats": "Futsalin viralliset pelimuodot 2026-2027",
     "intro": "Säännöt ovat kolmessa paikassa: sarjakohtaiset säännöt, ikäluokkien pelimuodot ja lajisäännöt.",
     "openAtPage": "Avaa sääntökirja - sivu {{n}}",
-    "pageHint": "Sääntökirja avautuu selaimeen. Puhelimessa siirry itse sivulle, joka lukee rivillä.",
+    "pageHint2": "Sääntö avautuu suoraan oikealta sivulta. Vain luetut sivut ladataan.",
     "seriesTitle": "Sarjakohtaiset säännöt",
     "seriesHelp": "Pelaajamäärä, peliaika ja kentän koko määritellään sarjoittain, eikä sovellus tiedä missä sarjassa joukkueesi pelaa - MatchOps ei ole yhteydessä Palloliiton järjestelmään. Etsi sarjasi listasta ja avaa Info > Säännöt.",
     "seriesRules": "Selaa sarjoja (Tulospalvelu)",
