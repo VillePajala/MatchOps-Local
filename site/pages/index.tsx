@@ -102,11 +102,12 @@ const getScreenshots = (locale: string | undefined) => {
     tasoReport: isEnglish
       ? '/screenshots/MatchOps_v2_tasoreport_en.jpg'
       : '/screenshots/MatchOps_v2_tasoreport_fi.jpg',
-    // Awaiting a screenshot (owner). Until a file is named here the card
-    // renders text-only - deliberately, rather than borrowing a picture of
-    // another screen. Expected name once taken:
-    //   MatchOps_v2_guidedsetup_{en,fi}.jpg
-    guidedSetup: undefined,
+    // The wizard mid-use, with a name typed and the CTA live. The empty state
+    // renders Continue disabled, which on a card meant to say "you are set up
+    // in a minute" reads as a broken button.
+    guidedSetup: isEnglish
+      ? '/screenshots/MatchOps_v2_guidedsetup_en.jpg'
+      : '/screenshots/MatchOps_v2_guidedsetup_fi.jpg',
   };
 };
 
