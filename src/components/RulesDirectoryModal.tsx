@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 import ruleLinks from '@/config/ruleLinks.json';
 import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES } from '@/config/gameFormats';
-import { searchRules, lawUrl, guidanceUrl, type RulesSport } from '@/config/rulesIndex';
+import { searchRules, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
+import RuleViewerModal from '@/components/RuleViewerModal';
 import type { TranslationKey } from '@/i18n-types';
 
 interface RulesDirectoryModalProps {
@@ -68,6 +69,9 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
   const [query, setQuery] = React.useState('');
   const lang = i18n.language?.startsWith('en') ? 'en' : 'fi';
   const hits = React.useMemo(() => searchRules(sport, query, lang), [sport, query, lang]);
+  // What the coach tapped: the viewer opens the book at that page in the app,
+  // because the "#page=" fragment only works in a desktop PDF viewer.
+  const [viewing, setViewing] = React.useState<{ page: number; title: string } | null>(null);
 
   // The stored date is ISO so the config stays machine-readable; a Finnish
   // reader should still see 9.9.2026 rather than a raw config value.
@@ -144,13 +148,15 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                       <li key={h.key}>
                         <button
                           type="button"
-                          onClick={() => {
-                            // Guidance sections have no law number, so they are
-                            // addressed by page directly.
-                            const url =
-                              h.law === null ? guidanceUrl(sport, h.page) : lawUrl(sport, h.law);
-                            if (url) openLink(url);
-                          }}
+                          onClick={() =>
+                            setViewing({
+                              page: h.page,
+                              title:
+                                h.law === null
+                                  ? h.title
+                                  : `${t('rulesDirectory.lawN', 'Sääntö {{n}}', { n: h.law })} - ${h.title}`,
+                            })
+                          }
                           className="w-full flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-slate-800/70 hover:bg-slate-700/70 text-left transition-colors"
                         >
                           <span className="min-w-0">
@@ -175,7 +181,7 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                   </ul>
                 )}
                 <p className="text-xs text-slate-400">
-                  {t('rulesDirectory.pageHint', 'Sääntökirja avautuu selaimeen. Puhelimessa siirry itse sivulle, joka lukee rivillä.')}
+                  {t('rulesDirectory.pageHint2', 'Sääntö avautuu suoraan oikealta sivulta. Vain luetut sivut ladataan.')}
                 </p>
                 <p className="text-xs text-slate-500">
                   {t('rulesDirectory.lookupNote', 'Säännöt julkaisee IFAB (jalkapallo) ja FIFA (futsal).')}
@@ -315,6 +321,14 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
 
         </div>
       </div>
+
+      <RuleViewerModal
+        isOpen={viewing !== null}
+        onClose={() => setViewing(null)}
+        url={rulebookUrl(sport)}
+        page={viewing?.page ?? 1}
+        title={viewing?.title ?? ''}
+      />
     </div>
   );
 };
