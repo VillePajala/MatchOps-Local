@@ -169,6 +169,27 @@ describe('RuleViewerModal', () => {
     expect(getPage.mock.calls.map((c) => c[0])).not.toContain(66);
   });
 
+  /**
+   * @edge-case - a phone turned sideways otherwise keeps the page drawn at the
+   * old width until the reader pages away and back.
+   */
+  it('re-renders the page when the window resizes', async () => {
+    jest.useFakeTimers();
+    try {
+      render(<RuleViewerModal {...props} isOpen />);
+      await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+      getPage.mockClear();
+
+      window.dispatchEvent(new Event('resize'));
+      jest.advanceTimersByTime(200); // debounced
+      await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+      // Same document: a resize must not re-download the book.
+      expect(getDocument).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('goes back to the requested law each time it is reopened', async () => {
     const { rerender } = render(<RuleViewerModal {...props} isOpen />);
     await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
