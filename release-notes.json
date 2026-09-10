@@ -4,6 +4,15 @@
     {
       "date": "2026-09-10",
       "en": [
+        "The Rules screen now opens on what you actually coach. It picks football or futsal and your age group from your own games, so you see your band instead of eight. A football coach no longer gets a futsal table taking up the middle of the screen; it is one line you can open if you want it."
+      ],
+      "fi": [
+        "Säännöt-näkymä avautuu nyt siihen mitä oikeasti valmennat. Se valitsee jalkapallon tai futsalin ja ikäluokan omista otteluistasi, joten näet oman ikäluokkasi etkä kahdeksaa. Jalkapallovalmentajalle ei enää näytetä futsaltaulukkoa keskellä näkymää, vaan yksi rivi jonka voi avata halutessaan."
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "en": [
         "Rules now open at the right page. Search for a rule, tap it, and the official rulebook opens in the app on that page instead of at page one. Only the pages you read are downloaded, so it works on mobile data at the pitch."
       ],
       "fi": [

@@ -543,7 +543,10 @@ describe('Translation File Validation', () => {
       //     really does open at its own page. Lands at 3211.
       // +1 ruleViewer.canvasLabel: a canvas is an unnamed graphic to a screen
       //     reader without it. Lands at 3212.
-      expect(enKeys.length).toBe(3212);
+      // +3 net making the formats section contextual: four new keys
+      //     (formatsFootballNone/ShowFutsal/AgeLabel/AllAges) less
+      //     formatsFutsalOnly, whose job the heading now does. Lands at 3215.
+      expect(enKeys.length).toBe(3215);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -715,7 +718,8 @@ describe('Translation File Validation', () => {
       // +2 rulesDirectory.* page-jump honesty (see EN above). Lands at 3205.
       // +6 net for the in-app rule viewer (see EN above). Lands at 3211.
       // +1 ruleViewer.canvasLabel (see EN above). Lands at 3212.
-      expect(fiKeys.length).toBe(3212);
+      // +3 net for the contextual formats section (see EN above). Lands at 3215.
+      expect(fiKeys.length).toBe(3215);
     });
   });
 });

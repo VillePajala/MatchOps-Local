@@ -214,7 +214,7 @@ describe('RulesDirectoryModal', () => {
    * can drift from the source the test suite verifies.
    */
   it('shows every age band from the official formats table', () => {
-    render(<RulesDirectoryModal {...defaultProps} />);
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
     const table = screen.getByTestId('formats-table');
     for (const f of GAME_FORMATS) {
       expect(within(table).getByText(f.sourceLabel)).toBeInTheDocument();
@@ -232,7 +232,7 @@ describe('RulesDirectoryModal', () => {
    * is most likely to get wrong.
    */
   it('shows the per-age rule notes, not just the measurements', () => {
-    render(<RulesDirectoryModal {...defaultProps} />);
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
     const table = screen.getByTestId('formats-table');
     const withNotes = GAME_FORMATS.filter((f) => f.notes.length > 0);
     expect(withNotes.length).toBe(GAME_FORMATS.length);
@@ -249,10 +249,69 @@ describe('RulesDirectoryModal', () => {
    * helpful table into the app confidently stating the wrong period length.
    */
   it('says the formats are national defaults that a series may differ from', () => {
-    render(<RulesDirectoryModal {...defaultProps} />);
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
     // This modal's fallbacks are Finnish, like its title and footer.
     expect(screen.getByText(/valtakunnalliset oletukset ikäluokittain/i)).toBeInTheDocument();
     expect(screen.getByText(/Sarja voi poiketa näistä/i)).toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the table used to sit on screen for every coach whatever they
+   * played, which described what was available to build rather than anything
+   * they needed. A football coach gets one line, not a table to scroll past.
+   */
+  it('does not put a futsal table in front of a football coach', () => {
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="football" />);
+    expect(screen.queryByTestId('formats-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('formats-expand')).toBeInTheDocument();
+
+    // Still reachable for the coach who does want it.
+    fireEvent.click(screen.getByTestId('formats-expand'));
+    expect(screen.getByTestId('formats-table')).toBeInTheDocument();
+  });
+
+  it('shows the table straight away for a coach who plays futsal', () => {
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
+    expect(screen.getByTestId('formats-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('formats-expand')).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - the ten-teams problem. A coach should see their own age band,
+   * not scan eight of them.
+   */
+  it('opens on the coach’s own age group, and can widen to all of them', () => {
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" defaultAgeGroup="U10" />);
+    const table = screen.getByTestId('formats-table');
+    expect(within(table).getByText('P/T 10')).toBeInTheDocument();
+    expect(within(table).queryByText('P/T 14-16')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('formats-show-all'));
+    expect(within(screen.getByTestId('formats-table')).getByText('P/T 14-16')).toBeInTheDocument();
+  });
+
+  /**
+   * @edge-case - an age group the picker cannot show must not leave the select
+   * blank while the table filters; that is two surfaces disagreeing about what
+   * the coach asked for.
+   */
+  it('ignores an age group the picker cannot display, and shows every band', () => {
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" defaultAgeGroup="Senior" />);
+    expect((screen.getByTestId('formats-age') as HTMLSelectElement).value).toBe('');
+    const table = screen.getByTestId('formats-table');
+    // An empty table would read as "no rules exist".
+    expect(within(table).getByText('P/T 10')).toBeInTheDocument();
+    expect(within(table).getByText('P/T 14-16')).toBeInTheDocument();
+  });
+
+  it('narrows the table when the coach picks an age group by hand', () => {
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
+    expect(within(screen.getByTestId('formats-table')).getByText('P/T 14-16')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('formats-age'), { target: { value: 'U10' } });
+    const table = screen.getByTestId('formats-table');
+    expect(within(table).getByText('P/T 10')).toBeInTheDocument();
+    expect(within(table).queryByText('P/T 14-16')).not.toBeInTheDocument();
   });
 
   /**
@@ -261,12 +320,16 @@ describe('RulesDirectoryModal', () => {
    * futsal's 4v4 as their own, which is the same class of confidently-wrong
    * answer the national-defaults caveat exists to prevent.
    */
-  it('names the sport and season it covers, and says football is not included', () => {
-    render(<RulesDirectoryModal {...defaultProps} />);
-    // Heading names the sport and season, and is NOT identical to the link
-    // to the same PDF below it.
+  it('names the sport and season it covers, and tells a football coach why there is no table', () => {
+    // Heading names the sport and season, and is NOT identical to the link to
+    // the same PDF below it.
+    const { unmount } = render(<RulesDirectoryModal {...defaultProps} defaultSport="futsal" />);
     expect(screen.getByRole('heading', { name: `Pelimuodot - futsal ${GAME_FORMATS_SOURCE.season}` })).toBeInTheDocument();
-    expect(screen.getByText(/vain futsalia/i)).toBeInTheDocument();
+    unmount();
+
+    // A football coach is told why, rather than shown another sport's table.
+    render(<RulesDirectoryModal {...defaultProps} defaultSport="football" />);
+    expect(screen.getByText(/ei julkaista taulukkona/i)).toBeInTheDocument();
   });
 
   /**
