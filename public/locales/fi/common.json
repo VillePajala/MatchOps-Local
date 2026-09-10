@@ -101,7 +101,7 @@
   "taso": {
     "button": "Pöytäkirja Tasoon",
     "title": "Tasoon",
-    "subtitle": "Kokoonpano ja pöytäkirja siinä järjestyksessä kuin Taso ne kysyy. Kopioi ja kirjoita. Kortteja, vaihtoja, lisäaikaa ja katsojamäärää ei kirjata täällä; täytä ne Tasossa.",
+    "subtitle": "Pelidata Tasoon kirjaamista varten.",
     "lineupTitle": "Kokoonpano Tasoon",
     "reportTitle": "Pöytäkirja Tasoon",
     "halfTime": "puoliaika",

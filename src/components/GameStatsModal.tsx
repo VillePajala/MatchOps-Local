@@ -1574,7 +1574,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           onClose={() => setShowTaso(false)}
           recap={tasoText}
           title={t('taso.title', 'For Taso')}
-          subtitle={t('taso.subtitle', 'Squad and match report in the order Taso asks for them. Copy, then type. Cards, substitutions, added time and attendance are not recorded here; fill those in Taso.')}
+          subtitle={t('taso.subtitle', 'The match data you need to type into Taso.')}
         />
       </div>
     </div>
