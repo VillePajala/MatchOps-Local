@@ -54,6 +54,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
+import { preferredRulesContext } from '@/utils/rulesContext';
 import { useModalContext } from '@/contexts/ModalProvider';
 import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
@@ -151,6 +152,16 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     },
     onActiveGameDeleted,
   });
+
+  /**
+   * What the Rules screen should open on. Derived from the coach's own games:
+   * the futsal formats table used to sit on screen for everyone, which reflected
+   * what was available to build rather than what anyone plays.
+   */
+  const rulesContext = React.useMemo(
+    () => preferredRulesContext(loadGame.savedGames),
+    [loadGame.savedGames],
+  );
   const clubStats = useClubStatsController();
   const newGameSetup = useNewGameSetupController({
     flushLiveMatch,
@@ -278,7 +289,14 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
         <TrainingResourcesModal isOpen onClose={() => setIsTrainingResourcesOpen(false)} />
       )}
       {isRulesDirectoryOpen && (
-        <RulesDirectoryModal isOpen onClose={() => setIsRulesDirectoryOpen(false)} />
+        <RulesDirectoryModal
+          isOpen
+          onClose={() => setIsRulesDirectoryOpen(false)}
+          // Defaults from the coach's OWN games, not from what happened to be
+          // easiest to build. See utils/rulesContext.
+          defaultSport={rulesContext.sport}
+          defaultAgeGroup={rulesContext.ageGroup}
+        />
       )}
       {isInstructionsModalOpen && (
         <InstructionsModal isOpen onClose={() => setIsInstructionsModalOpen(false)} />

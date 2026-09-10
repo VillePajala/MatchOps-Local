@@ -185,6 +185,29 @@ with confidence. Re-run that verification when adding a topic.
 reflows the book, so re-extract whenever a rulebook link changes - the weekly
 hash/listing check is what tells you it did.
 
+## Defaults
+
+**A default comes from the coach's own data first, the population second, and
+never from what was convenient to build.**
+
+The futsal formats table was the clearest violation: it sat on screen for every
+coach whatever they played, because futsal is the only sport whose formats
+Palloliitto publishes as data. That is a fact about the source material, not
+about the coach.
+
+| Default | Where it comes from |
+|---|---|
+| Sport | The coach's own games; football on a tie or with no games, since that is the app's main use (prod: 191 football games / 19 coaches vs 16 futsal / 3) |
+| Age group | The age group the coach records most; all bands when unknown |
+| Region / area | **Never guessed.** Area filters default to `all` - when you cannot know, show everything and let them narrow it |
+
+`utils/rulesContext.ts` derives the first two. Legacy games carry no `gameType`
+and count as football, so one indoor game does not flip a football coach.
+
+**The region trap is worth naming.** A default of "Itäinen alue" is wrong for
+everyone outside it and invisible to whoever set it - it looks like the app
+knows something. The same applies to any default drawn from one person's setup.
+
 ## Vocabulary
 
 Say **league** (EN) / **sarja** (FI) - the app's own words, matching the Leagues
