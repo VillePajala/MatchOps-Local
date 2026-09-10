@@ -491,17 +491,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     consults, not app configuration. It was the one such item
                     still hiding under the gear, where a coach scanning the tabs
                     would never meet it. A button, not a link with the
-                    leaving-the-app icon, because it opens the in-app directory. */}
+                    leaving-the-app icon, because it opens the in-app directory.
+                    Full-width rows are left-aligned with a trailing affordance;
+                    only the half-width PAIRS above centre their label. This row
+                    was the one exception, and it read as a different kind of
+                    control than its neighbours. */}
                 {onOpenRules && (
                   <button
                     type="button"
                     onClick={onOpenRules}
                     data-testid="club-rules"
-                    className="w-full flex items-center justify-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
                   >
                     <span className="text-sm font-semibold text-white">
                       {t('startScreen.rowRules', 'Rules')}
                     </span>
+                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
                   </button>
                 )}
                 {/* Training CONTENT scope: the coaching materials link lives

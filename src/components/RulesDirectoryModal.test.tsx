@@ -1,8 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import RulesDirectoryModal from './RulesDirectoryModal';
+import { __resetModalHardwareBackForTests } from '@/hooks/useModalHardwareBack';
 import ruleLinks from '@/config/ruleLinks.json';
 import { GAME_FORMATS, GAME_FORMATS_SOURCE } from '@/config/gameFormats';
 
@@ -49,8 +50,48 @@ describe('RulesDirectoryModal', () => {
     onClose: jest.fn(),
   };
 
+  // jsdom's real history.back() fires an ASYNC popstate that would race the
+  // next test, the same guard ClubModalsHost.test and the planner test use.
+  let hwBackSpy: jest.SpyInstance;
   beforeEach(() => {
     jest.clearAllMocks();
+    __resetModalHardwareBackForTests();
+    hwBackSpy = jest.spyOn(window.history, 'back').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    hwBackSpy.mockRestore();
+  });
+
+  /**
+   * @critical - owner-reported: reading one law and pressing back threw the
+   * coach out of the Rules screen entirely instead of back to the list they
+   * had just searched. The viewer stacks on top of this modal, but registered
+   * no back guard of its own, so the press fell through and consumed the
+   * guard belonging to the modal underneath.
+   *
+   * The assertion that matters is the SECOND one: the directory must still be
+   * open. A test that only checked the viewer had closed would have passed
+   * against the broken build too, since the viewer did close - along with
+   * everything else.
+   */
+  it('hardware back closes the rulebook and returns to the list, not out of Rules', async () => {
+    const onClose = jest.fn();
+    render(<RulesDirectoryModal isOpen onClose={onClose} />);
+    fireEvent.change(screen.getByTestId('rules-search'), { target: { value: 'paitsio' } });
+    fireEvent.click(within(screen.getByTestId('rules-hits')).getByText(/Sääntö 11/).closest('button')!);
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(61));
+
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+
+    // The rulebook is gone...
+    await waitFor(() => expect(screen.queryByTestId('rule-viewer-next')).not.toBeInTheDocument());
+    // ...and the search that led there is still on screen, untouched.
+    expect(screen.getByTestId('rules-hits')).toBeInTheDocument();
+    expect((screen.getByTestId('rules-search') as HTMLInputElement).value).toBe('paitsio');
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   /**
