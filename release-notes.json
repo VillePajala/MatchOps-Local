@@ -4,6 +4,15 @@
     {
       "date": "2026-09-10",
       "en": [
+        "You can now switch between English and Finnish on the first-time setup screen. It was the one screen without the language toggle, which is awkward when it is the first thing you see."
+      ],
+      "fi": [
+        "Voit nyt vaihtaa kielen suomen ja englannin välillä käyttöönottonäkymässä. Se oli ainoa näkymä ilman kielivalintaa, mikä on hankalaa kun se on ensimmäinen näkymä jonka näet."
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "en": [
         "The Taso match report sheet now says what it is in one line, and its text no longer sits flush against the header."
       ],
       "fi": [
