@@ -5,7 +5,8 @@ import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 import ruleLinks from '@/config/ruleLinks.json';
-import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES } from '@/config/gameFormats';
+import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES, findFormatForAgeGroup } from '@/config/gameFormats';
+import { AGE_GROUPS } from '@/config/gameOptions';
 import { searchRules, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
 import RuleViewerModal from '@/components/RuleViewerModal';
 import type { TranslationKey } from '@/i18n-types';
@@ -13,6 +14,10 @@ import type { TranslationKey } from '@/i18n-types';
 interface RulesDirectoryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Sport to open on, derived from the coach's own games (see rulesContext). */
+  defaultSport?: RulesSport;
+  /** Age group to open on, likewise derived rather than assumed. */
+  defaultAgeGroup?: string;
 }
 
 /**
@@ -63,15 +68,43 @@ const Section = ({
   </div>
 );
 
-const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClose }) => {
+const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
+  isOpen,
+  onClose,
+  defaultSport = 'football',
+  defaultAgeGroup,
+}) => {
   const { t, i18n } = useTranslation();
-  const [sport, setSport] = React.useState<RulesSport>('football');
+  const [sport, setSport] = React.useState<RulesSport>(defaultSport);
+  // The age band the coach cares about. '' means show every band.
+  const [ageGroup, setAgeGroup] = React.useState<string>(defaultAgeGroup ?? '');
+  const [showAllFormats, setShowAllFormats] = React.useState(false);
+
+  // Re-derive on each open: the coach may have added games since last time.
+  const [prevOpenCtx, setPrevOpenCtx] = React.useState(isOpen);
+  if (prevOpenCtx !== isOpen) {
+    setPrevOpenCtx(isOpen);
+    if (isOpen) {
+      setSport(defaultSport);
+      setAgeGroup(defaultAgeGroup ?? '');
+      setShowAllFormats(false);
+    }
+  }
   const [query, setQuery] = React.useState('');
   const lang = i18n.language?.startsWith('en') ? 'en' : 'fi';
   const hits = React.useMemo(() => searchRules(sport, query, lang), [sport, query, lang]);
   // What the coach tapped: the viewer opens the book at that page in the app,
   // because the "#page=" fragment only works in a desktop PDF viewer.
   const [viewing, setViewing] = React.useState<{ page: number; title: string } | null>(null);
+
+  // One band when the coach has named an age group, all of them otherwise. An
+  // age we cannot place falls back to the whole table rather than showing
+  // nothing, since an empty table reads as "no rules exist".
+  const shownFormats = React.useMemo(() => {
+    if (!ageGroup) return GAME_FORMATS;
+    const band = findFormatForAgeGroup(ageGroup);
+    return band ? [band] : GAME_FORMATS;
+  }, [ageGroup]);
 
   // The stored date is ISO so the config stays machine-readable; a Finnish
   // reader should still see 9.9.2026 rather than a raw config value.
@@ -226,73 +259,107 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({ isOpen, onClo
                   service behind an API key the app does not have, so stating
                   these as "your rules" would be confidently wrong for anyone
                   whose league differs. */}
-              {/* The title names the SPORT and SEASON from the data itself, not
-                  a generic "game formats". Most coaches here play football, and
-                  a football coach reading futsal's 4v4 as their own would be
-                  exactly the confidently-wrong answer this section exists to
-                  prevent. Football is absent because no extractable source
-                  exists yet (see the roadmap), and the caveat says so. */}
+              {/* Contextual, not a permanent fixture. The table used to sit here
+                  for every coach whatever they played, which described what was
+                  available to build rather than anything they needed - futsal is
+                  simply the only sport whose formats Palloliitto publishes as
+                  data. Football coaches now get one line instead of a table they
+                  must scroll past, and futsal coaches get their own age band. */}
               <Section
                 title={t('rulesDirectory.formatsTitle', 'Pelimuodot - futsal {{season}}', {
                   season: GAME_FORMATS_SOURCE.season,
                 })}
               >
-                <p className="text-xs text-slate-400 -mt-1">
-                  {t(
-                    'rulesDirectory.formatsCaveat',
-                    'Palloliiton valtakunnalliset oletukset ikäluokittain. Sarja voi poiketa näistä - tarkista oman sarjasi tiedot.',
-                  )}
-                </p>
-                <p className="text-xs text-amber-300/90">
-                  {t(
-                    'rulesDirectory.formatsFutsalOnly',
-                    'Taulukko koskee vain futsalia. Jalkapallon pelimuodot eivät ole täällä; katso sarjasi tiedot.',
-                  )}
-                </p>
-                <div className="overflow-x-auto -mx-1 px-1">
-                  <table className="w-full text-left text-xs" data-testid="formats-table">
-                    <thead>
-                      <tr className="text-slate-400">
-                        <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colAge', 'Ikäluokka')}</th>
-                        <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colPlayers', 'Pelimuoto')}</th>
-                        <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colTime', 'Peliaika')}</th>
-                        <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colField', 'Kenttä')}</th>
-                        <th className="py-1.5 font-medium whitespace-nowrap">{t('rulesDirectory.colBall', 'Pallo')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {GAME_FORMATS.map((f) => (
-                        <React.Fragment key={f.sourceLabel}>
-                          <tr className="border-t border-slate-700/60 align-top">
-                            <td className="py-1.5 pr-3 text-slate-200 whitespace-nowrap">{f.sourceLabel}</td>
-                            <td className="py-1.5 pr-3 text-yellow-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
-                            <td className="py-1.5 pr-3 text-slate-300">{f.playingTimeText}</td>
-                            <td className="py-1.5 pr-3 text-slate-300 whitespace-nowrap">{f.field}</td>
-                            <td className="py-1.5 text-slate-300 whitespace-nowrap">{f.ball}</td>
-                          </tr>
-                          {/* The source's "keskeiset sääntönostot" column, which is
-                              the most useful part for a coach: it is where the
-                              rules actually differ by age (back-pass, restarts).
-                              A spanning row rather than a sixth column, because a
-                              sixth column is unreadable on a phone. */}
-                          {f.notes.length > 0 && (
-                            <tr>
-                              <td colSpan={5} className="pb-2 text-slate-400 leading-relaxed">
-                                {f.notes.join(' · ')}
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
+                {sport === 'football' && !showAllFormats ? (
+                  <>
+                    <p className="text-xs text-slate-400 -mt-1">
+                      {t(
+                        'rulesDirectory.formatsFootballNone',
+                        'Jalkapallon pelimuotoja ei julkaista taulukkona. Katso oman sarjasi tiedot yltä.',
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowAllFormats(true)}
+                      data-testid="formats-expand"
+                      className="w-full px-3 py-2 rounded-md text-sm font-medium bg-slate-700 hover:bg-slate-600 text-slate-100"
+                    >
+                      {t('rulesDirectory.formatsShowFutsal', 'Näytä futsalin pelimuodot')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-400 -mt-1">
+                      {t(
+                        'rulesDirectory.formatsCaveat',
+                        'Palloliiton valtakunnalliset oletukset ikäluokittain. Sarja voi poiketa näistä - tarkista oman sarjasi tiedot.',
+                      )}
+                    </p>
+                    <select
+                      value={ageGroup}
+                      onChange={(e) => setAgeGroup(e.target.value)}
+                      data-testid="formats-age"
+                      aria-label={t('rulesDirectory.formatsAgeLabel', 'Ikäluokka')}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">{t('rulesDirectory.formatsAllAges', 'Kaikki ikäluokat')}</option>
+                      {AGE_GROUPS.map((a) => (
+                        <option key={a} value={a}>
+                          {a}
+                        </option>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-                {GAME_FORMATS_GENERAL_NOTES.map((n) => (
-                  <p key={n} className="text-xs text-slate-400">{n}</p>
-                ))}
-                <p className="text-xs text-slate-500">
-                  {t('rulesDirectory.formatsSource', 'Lähde: {{title}}', { title: GAME_FORMATS_SOURCE.title })}
-                </p>
+                    </select>
+                    <div className="overflow-x-auto -mx-1 px-1">
+                      <table className="w-full text-left text-xs" data-testid="formats-table">
+                        <thead>
+                          <tr className="text-slate-400">
+                            <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colAge', 'Ikäluokka')}</th>
+                            <th className="py-1.5 pr-3 font-medium">{t('rulesDirectory.colPlayers', 'Pelimuoto')}</th>
+                            <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colTime', 'Peliaika')}</th>
+                            <th className="py-1.5 pr-3 font-medium whitespace-nowrap">{t('rulesDirectory.colField', 'Kenttä')}</th>
+                            <th className="py-1.5 font-medium whitespace-nowrap">{t('rulesDirectory.colBall', 'Pallo')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shownFormats.map((f) => (
+                            <React.Fragment key={f.sourceLabel}>
+                              <tr className="border-t border-slate-700/60 align-top">
+                                <td className="py-1.5 pr-3 text-slate-200 whitespace-nowrap">{f.sourceLabel}</td>
+                                <td className="py-1.5 pr-3 text-yellow-400 font-semibold whitespace-nowrap">{f.fieldSize}</td>
+                                <td className="py-1.5 pr-3 text-slate-300">{f.playingTimeText}</td>
+                                <td className="py-1.5 pr-3 text-slate-300 whitespace-nowrap">{f.field}</td>
+                                <td className="py-1.5 text-slate-300 whitespace-nowrap">{f.ball}</td>
+                              </tr>
+                              {f.notes.length > 0 && (
+                                <tr>
+                                  <td colSpan={5} className="pb-2 text-slate-400 leading-relaxed">
+                                    {f.notes.join(' · ')}
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {ageGroup && shownFormats.length < GAME_FORMATS.length && (
+                      <button
+                        type="button"
+                        onClick={() => setAgeGroup('')}
+                        data-testid="formats-show-all"
+                        className="text-xs text-slate-400 hover:text-slate-200 underline"
+                      >
+                        {t('rulesDirectory.formatsAllAges', 'Kaikki ikäluokat')}
+                      </button>
+                    )}
+                    {GAME_FORMATS_GENERAL_NOTES.map((n) => (
+                      <p key={n} className="text-xs text-slate-400">{n}</p>
+                    ))}
+                    <p className="text-xs text-slate-500">
+                      {t('rulesDirectory.formatsSource', 'Lähde: {{title}}', { title: GAME_FORMATS_SOURCE.title })}
+                    </p>
+                  </>
+                )}
               </Section>
 
               {/* The laws of the game: same for everyone, and the least
