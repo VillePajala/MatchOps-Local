@@ -4,6 +4,15 @@
     {
       "date": "2026-09-10",
       "en": [
+        "Fixed: switching the language on the home screen made the screen flicker and reload over and over. Changing the language now just changes the language."
+      ],
+      "fi": [
+        "Korjattu: kielen vaihtaminen alkunäkymässä sai näkymän välkkymään ja latautumaan uudelleen kerta toisensa jälkeen. Kielen vaihtaminen vaihtaa nyt vain kielen."
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "en": [
         "The back button now works properly inside the Rules screen. Opening a rulebook and pressing back takes you back to your search results instead of closing the whole Rules screen.",
         "The Rules row in the Club tab now looks like the rows around it."
       ],

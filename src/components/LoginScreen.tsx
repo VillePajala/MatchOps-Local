@@ -58,14 +58,23 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Save language preference when changed
-  useEffect(() => {
-    i18n.changeLanguage(language);
+  /**
+   * Switching the language is an ACTION, not a state sync. As an effect keyed
+   * on `language` this fired on every mount with the pre-adopt 'fi' still in
+   * its closure, reverting the choice and emitting `languageChanged`. On Home
+   * that fed a render loop (see StartScreen). Here it is only ever wrong
+   * rather than catastrophic, but it is the same mistake, so it gets the same
+   * fix rather than waiting to find out what it costs.
+   */
+  const handleChangeLanguage = (next: string) => {
+    if (next === language) return;
+    setLanguage(next);
+    i18n.changeLanguage(next);
     // Save to localStorage (i18n loads from here on init).
     // DO NOT call updateAppSettings here - LoginScreen is shown before login,
     // so there's no userId and it would cause DataStore initialization conflicts.
-    saveLanguagePreference(language);
-  }, [language]);
+    saveLanguagePreference(next);
+  };
 
   return (
     <div className="relative flex flex-col min-h-screen min-h-[100dvh] bg-slate-900 text-white overflow-hidden">
@@ -102,7 +111,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
               type="button"
-              onClick={() => setLanguage('en')}
+              onClick={() => handleChangeLanguage('en')}
               className={`px-3 py-1.5 text-xs font-bold transition-all ${
                 language === 'en'
                   ? 'bg-amber-500 text-slate-900'
@@ -113,7 +122,7 @@ export default function LoginScreen({ onBack, onUseLocalMode, allowRegistration 
             </button>
             <button
               type="button"
-              onClick={() => setLanguage('fi')}
+              onClick={() => handleChangeLanguage('fi')}
               className={`px-3 py-1.5 text-xs font-bold transition-all ${
                 language === 'fi'
                   ? 'bg-amber-500 text-slate-900'
