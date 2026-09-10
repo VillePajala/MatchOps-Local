@@ -4,6 +4,17 @@
     {
       "date": "2026-09-10",
       "en": [
+        "The back button now works properly inside the Rules screen. Opening a rulebook and pressing back takes you back to your search results instead of closing the whole Rules screen.",
+        "The Rules row in the Club tab now looks like the rows around it."
+      ],
+      "fi": [
+        "Takaisin-painike toimii nyt oikein Säännöt-näkymässä. Kun avaat sääntökirjan ja painat takaisin, palaat hakutuloksiin sen sijaan että koko Säännöt-näkymä sulkeutuisi.",
+        "Säännöt-rivi Seura-välilehdellä näyttää nyt samalta kuin sen ympärillä olevat rivit."
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "en": [
         "The Rules screen now opens on what you actually coach. It picks football or futsal and your age group from your own games, so you see your band instead of eight. A football coach no longer gets a futsal table taking up the middle of the screen; it is one line you can open if you want it."
       ],
       "fi": [
