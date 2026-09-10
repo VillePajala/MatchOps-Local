@@ -90,13 +90,17 @@ const getScreenshots = (locale: string | undefined) => {
     friendlies: isEnglish
       ? '/screenshots/MatchOps_v2_newgame_en.jpg'
       : '/screenshots/MatchOps_v2_newgame_fi.jpg',
+    // The inbox, not the recording moment: a button mid-press is just a button,
+    // while clips waiting with their period and clock show what the feature
+    // actually gives a coach.
+    voiceNotes: isEnglish
+      ? '/screenshots/MatchOps_v2_voicenotes_en.jpg'
+      : '/screenshots/MatchOps_v2_voicenotes_fi.jpg',
     // Awaiting screenshots (owner). Until a file is named here the card renders
     // text-only - deliberately, rather than borrowing a picture of another
     // screen. Expected names once taken:
-    //   MatchOps_v2_voicenotes_{en,fi}.jpg
     //   MatchOps_v2_tasoreport_{en,fi}.jpg
     //   MatchOps_v2_guidedsetup_{en,fi}.jpg
-    voiceNotes: undefined,
     tasoReport: undefined,
     guidedSetup: undefined,
   };
