@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/generate-changelog.mjs && node scripts/generate-manifest.mjs && next build",
+    "build": "node scripts/generate-changelog.mjs && node scripts/generate-manifest.mjs && node scripts/copy-pdf-worker.mjs && next build",
     "build:analyze": "ANALYZE=true npm run build && node scripts/bundle-analysis.mjs",
     "start": "next start",
     "lint": "eslint .",
@@ -34,7 +34,8 @@
     "e2e:debug": "playwright test --debug",
     "e2e:headed": "playwright test --headed",
     "e2e:install": "playwright install --with-deps",
-    "e2e:report": "playwright show-report"
+    "e2e:report": "playwright show-report",
+    "predev": "node scripts/copy-pdf-worker.mjs"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
@@ -45,6 +46,7 @@
     "i18next": "^25.7.1",
     "idb": "^8.0.3",
     "next": "^16.3.4",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-i18next": "^16.3.5",
