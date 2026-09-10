@@ -68,13 +68,12 @@ const getScreenshots = (locale: string | undefined) => {
       ? '/screenshots/MatchOps_v2_personnel_en.jpg'
       : '/screenshots/MatchOps_v2_personnel_fi.jpg',
     futsal: '/screenshots/MatchOps_v2_futsal_en_fi.jpg',
-    // Blanked deliberately: the v2 rules screenshot shows "Jalkapallosäännöt
+    // Retaken 2026-09-10 for FI: the previous shot showed "Jalkapallosäännöt
     // 2025", "Futsalsäännöt 2025-2026" and "Kaikki Pelaa 2025" - the last of
-    // which Palloliitto has delisted entirely - in the old links-only layout
-    // that the search and in-app rulebook replaced. A picture of documents
-    // that no longer exist is a false claim, so the card runs text-only until
-    // MatchOps_v2_rules_{en,fi}.jpg is retaken.
-    officialRules: undefined,
+    // which Palloliitto has delisted entirely - in the links-only layout that
+    // search replaced. English is still awaiting its shot and runs text-only
+    // rather than showing a Finnish screen to an English reader.
+    officialRules: isEnglish ? undefined : '/screenshots/MatchOps_v2_rules_fi.jpg',
     cloudSync: isEnglish
       ? '/screenshots/MatchOps_v2_cloudsync_en.jpg'
       : '/screenshots/MatchOps_v2_cloudsync_fi.jpg',
