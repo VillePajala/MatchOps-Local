@@ -9,6 +9,7 @@ import { GAME_FORMATS, GAME_FORMATS_SOURCE, GAME_FORMATS_GENERAL_NOTES, findForm
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { searchRules, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
 import RuleViewerModal from '@/components/RuleViewerModal';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import type { TranslationKey } from '@/i18n-types';
 
 interface RulesDirectoryModalProps {
@@ -94,6 +95,15 @@ const RulesDirectoryModal: React.FC<RulesDirectoryModalProps> = ({
   // What the coach tapped: the viewer opens the book at that page in the app,
   // because the "#page=" fragment only works in a desktop PDF viewer.
   const [viewing, setViewing] = React.useState<{ page: number; title: string } | null>(null);
+
+  // The viewer stacks ON TOP of this modal, which ClubModalsHost guards with a
+  // sub-guard of its own. Without a guard here the back press fell straight
+  // through to THAT guard, so reading one law and pressing back threw the coach
+  // out of the rules screen entirely instead of back to the list they searched.
+  // Preemptive, like every other sub-guard: re-arming after a pop is what fails
+  // on Android WebViews. Sub-guards are a stack, so this one is consumed first
+  // and the directory's stays intact underneath.
+  useHardwareBackSubLevel(viewing !== null, () => setViewing(null));
 
   // One band when the coach has named an age group, all of them otherwise. An
   // age we cannot place falls back to the whole table rather than showing
