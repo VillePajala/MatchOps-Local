@@ -538,9 +538,9 @@ describe('Translation File Validation', () => {
       // +2 rulesDirectory.*: openAtPage/pageHint - the page jump is a desktop
       //     PDF-viewer feature, so the screen stops implying it works on a
       //     phone and makes the page number the actionable thing. Lands at 3205.
-      // +7 net for the in-app rule viewer: six ruleViewer.* keys plus
-      //     pageHint2 replacing pageHint, now that a law really does open at
-      //     its own page instead of the reader navigating there. Lands at 3211.
+      // +6 net for the in-app rule viewer: six ruleViewer.* keys, plus
+      //     pageHint2 replacing pageHint (one in, one out), now that a law
+      //     really does open at its own page. Lands at 3211.
       expect(enKeys.length).toBe(3211);
     });
 
@@ -711,7 +711,7 @@ describe('Translation File Validation', () => {
       // +5 rulesDirectory.* the three-places map (see EN above). Lands at 3195.
       // +8 rulesDirectory.* law lookup (see EN above). Lands at 3203.
       // +2 rulesDirectory.* page-jump honesty (see EN above). Lands at 3205.
-      // +7 net for the in-app rule viewer (see EN above). Lands at 3211.
+      // +6 net for the in-app rule viewer (see EN above). Lands at 3211.
       expect(fiKeys.length).toBe(3211);
     });
   });

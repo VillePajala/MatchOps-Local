@@ -21,7 +21,10 @@ jest.mock('@/utils/logger', () => ({ __esModule: true, default: { warn: jest.fn(
 
 const renderPage = jest.fn();
 const getPage = jest.fn();
-const getDocument = jest.fn((_opts: unknown) => ({ promise: Promise.resolve({ numPages: 139, getPage }) }));
+const destroy = jest.fn(async () => {});
+const getDocument = jest.fn((_opts: unknown) => ({
+  promise: Promise.resolve({ numPages: 139, getPage, destroy }),
+}));
 
 jest.mock(
   'pdfjs-dist',
@@ -42,7 +45,7 @@ beforeEach(() => {
     getViewport: ({ scale }: { scale: number }) => ({ width: 600 * scale, height: 800 * scale }),
     render: renderPage,
   }));
-  getDocument.mockReturnValue({ promise: Promise.resolve({ numPages: 139, getPage }) });
+  getDocument.mockReturnValue({ promise: Promise.resolve({ numPages: 139, getPage, destroy }) });
   // jsdom has no canvas 2d context.
   HTMLCanvasElement.prototype.getContext = jest.fn(() => ({})) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 });
@@ -115,6 +118,55 @@ describe('RuleViewerModal', () => {
     render(<RuleViewerModal {...props} isOpen />);
     await waitFor(() => expect(getPage).toHaveBeenCalled());
     expect(screen.queryByText(/Tarkista verkkoyhteys/)).not.toBeInTheDocument();
+  });
+
+  /**
+   * @critical - pdf.js holds a worker and the fetched page data. Dropping the
+   * reference without destroy() leaves both alive, so opening a few laws on a
+   * phone accumulates workers - the exact cost this feature avoids everywhere
+   * else.
+   */
+  it('destroys the document when closed, so the worker does not leak', async () => {
+    const { rerender } = render(<RuleViewerModal {...props} isOpen />);
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+    expect(destroy).not.toHaveBeenCalled();
+
+    rerender(<RuleViewerModal {...props} isOpen={false} />);
+    await waitFor(() => expect(destroy).toHaveBeenCalled());
+  });
+
+  it('destroys the document on unmount too', async () => {
+    const { unmount } = render(<RuleViewerModal {...props} isOpen />);
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+    unmount();
+    await waitFor(() => expect(destroy).toHaveBeenCalled());
+  });
+
+  /**
+   * Reopening at a different law lands on that law, never on the page the
+   * reader left off at.
+   *
+   * NOTE ON WHAT THIS DOES AND DOES NOT PROVE: it passes with either the
+   * adjust-during-render reset or the older effect-based one, because the
+   * loading effect's `cancelled` guard already stops a stale fetch reaching
+   * getPage - the dynamic import gives the state update time to land first.
+   * The reset was still moved into render, since that never schedules the
+   * stale load at all rather than relying on a race resolving favourably. So
+   * this is a behaviour guard, not a regression test for that change.
+   */
+  it('lands on the requested law when reopened, not the page left off at', async () => {
+    const { rerender } = render(<RuleViewerModal {...props} isOpen />);
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(65));
+    fireEvent.click(screen.getByTestId('rule-viewer-next'));
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(66));
+
+    rerender(<RuleViewerModal {...props} isOpen={false} />);
+    getPage.mockClear();
+    rerender(<RuleViewerModal {...props} isOpen page={83} />);
+
+    await waitFor(() => expect(getPage).toHaveBeenCalledWith(83));
+    // 66 was where the reader left off; it must never be requested again.
+    expect(getPage.mock.calls.map((c) => c[0])).not.toContain(66);
   });
 
   it('goes back to the requested law each time it is reopened', async () => {

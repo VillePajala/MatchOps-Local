@@ -12,10 +12,9 @@ import {
   RULES_SPORTS,
   RULES_TOPICS,
   findLaw,
-  guidanceUrl,
-  lawUrl,
   rulebookUrl,
   searchRules,
+  withPage,
 } from './rulesIndex';
 
 const rawJson = fs.readFileSync(path.join(process.cwd(), 'src/config/rulesIndex.json'), 'utf8');
@@ -110,35 +109,33 @@ describe('rules index shape', () => {
 });
 
 describe('deep links', () => {
-  it('points at the same PDF the links config carries, at the law page', () => {
-    const url = lawUrl('football', 12);
-    expect(url).toContain('jalkapallosaannot-2026.pdf');
-    expect(url).toContain('#page=65');
-    expect(lawUrl('futsal', 12)).toContain('#page=41');
+  /**
+   * @critical - the page mapping is what sends a coach to the right law. It is
+   * asserted on the data itself, since the in-app viewer consumes the page
+   * number rather than a pre-built URL.
+   */
+  it('maps a law to the right page in each book', () => {
+    expect(findLaw('football', 12)!.page).toBe(65);
+    expect(findLaw('futsal', 12)!.page).toBe(41);
+    expect(findLaw('football', 99)).toBeNull();
   });
 
-  it('uses the sport’s own book, not one for both', () => {
+  it('uses the sport\u2019s own book, not one for both', () => {
     expect(rulebookUrl('football')).not.toBe(rulebookUrl('futsal'));
     expect(rulebookUrl('futsal')).toContain('futsal');
   });
 
-  it('returns null for a law that does not exist rather than a broken link', () => {
-    expect(lawUrl('football', 99)).toBeNull();
-    expect(findLaw('futsal', 0)).toBeNull();
-  });
-
   /**
-   * @critical - guidance sections are addressed by page, so they bypass the
-   * law lookup entirely. Without the same null discipline this produced a bare
-   * "#page=10", which navigates the app to itself instead of the rulebook.
+   * @edge-case - the browser fallback must never produce a bare fragment,
+   * which navigates the app to itself instead of the rulebook.
    */
-  it('builds guidance links with the same care as law links', () => {
-    expect(guidanceUrl('football', 10)).toContain('jalkapallosaannot-2026.pdf#page=10');
-    expect(guidanceUrl('football', 0)).toBeNull();
-    expect(guidanceUrl('football', -1)).toBeNull();
-    expect(guidanceUrl('football', 1.5)).toBeNull();
-    // Never a fragment with no document in front of it.
-    expect(guidanceUrl('football', 10)!.startsWith('#')).toBe(false);
+  it('builds the browser fallback safely or not at all', () => {
+    expect(withPage(rulebookUrl('football'), 65)).toContain('jalkapallosaannot-2026.pdf#page=65');
+    expect(withPage(null, 65)).toBeNull();
+    expect(withPage(rulebookUrl('football'), 0)).toBeNull();
+    expect(withPage(rulebookUrl('football'), -1)).toBeNull();
+    expect(withPage(rulebookUrl('football'), 1.5)).toBeNull();
+    expect(withPage(rulebookUrl('football'), 65)!.startsWith('#')).toBe(false);
   });
 });
 

@@ -1,12 +1,12 @@
 {
-  "version": "ebc8c905",
+  "version": "66caf771",
   "date": "2026-09-10",
   "notes": {
     "en": [
-      "Clearer wording on the Rules screen. The rule search now shows the page number prominently and tells you to go to it yourself, because opening a PDF at a given page only works on a computer, not on a phone. The league section no longer suggests the app knows which league you are in; it does not, so it links to the list."
+      "Rules now open at the right page. Search for a rule, tap it, and the official rulebook opens in the app on that page instead of at page one. Only the pages you read are downloaded, so it works on mobile data at the pitch."
     ],
     "fi": [
-      "Selkeämmät tekstit Säännöt-näkymässä. Sääntöhaku näyttää sivunumeron isommin ja kehottaa siirtymään sille itse, koska PDF:n avaaminen tietyltä sivulta toimii vain tietokoneella, ei puhelimessa. Sarjaosio ei enää anna ymmärtää että sovellus tietäisi sarjasi; se ei tiedä, joten se linkittää listaan."
+      "Säännöt avautuvat nyt oikealta sivulta. Etsi sääntö, napauta sitä, ja virallinen sääntökirja aukeaa sovelluksessa siltä sivulta eikä ensimmäiseltä. Vain lukemasi sivut ladataan, joten se toimii mobiiliyhteydellä kentän laidalla."
     ]
   }
 }

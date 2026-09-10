@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CollapsibleModalHeader, modalContainerStyle, ModalBackgroundEffects } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
+import { withPage } from '@/config/rulesIndex';
 
 /**
  * Reads one page of an official rulebook, in the app.
@@ -40,20 +41,34 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
   // The loaded document, kept so paging does not re-download it.
-  const docRef = React.useRef<{ numPages: number; getPage: (n: number) => Promise<unknown> } | null>(null);
+  const docRef = React.useRef<{
+    numPages: number;
+    getPage: (n: number) => Promise<unknown>;
+    destroy: () => Promise<void>;
+  } | null>(null);
   const renderTaskRef = React.useRef<{ cancel: () => void } | null>(null);
 
   const [status, setStatus] = React.useState<Status>('idle');
   const [current, setCurrent] = React.useState(page);
   const [total, setTotal] = React.useState(0);
+  /** Bumped on resize so the page re-renders at the new width. */
+  const [resizeTick, setResizeTick] = React.useState(0);
 
-  // A fresh open starts at the law the coach tapped, even if they paged away
-  // last time; the page is the whole point of opening it.
-  const wasOpen = React.useRef(isOpen);
-  React.useEffect(() => {
-    if (isOpen && !wasOpen.current) setCurrent(page);
-    wasOpen.current = isOpen;
-  }, [isOpen, page]);
+  /**
+   * A fresh open starts at the law the coach tapped, even if they paged away
+   * last time; the page is the whole point of opening it.
+   *
+   * Adjusted DURING render, not in an effect: an effect runs after the loading
+   * effect has already fired for the previous page, so the viewer would fetch
+   * and render the stale page and then correct itself - a visible flicker and a
+   * wasted range request on mobile data. (Sanctioned adjust-during-render, the
+   * same pattern the friendly toggle uses in GameSettingsModal.)
+   */
+  const [prevOpen, setPrevOpen] = React.useState(isOpen);
+  if (prevOpen !== isOpen) {
+    setPrevOpen(isOpen);
+    if (isOpen) setCurrent(page);
+  }
 
   React.useEffect(() => {
     if (!isOpen || !url) return;
@@ -127,27 +142,63 @@ const RuleViewerModal: React.FC<RuleViewerModalProps> = ({ isOpen, onClose, url,
     return () => {
       cancelled = true;
     };
-  }, [isOpen, url, current]);
+  }, [isOpen, url, current, resizeTick]);
 
-  // Drop the document when the sheet closes so switching sport or book does not
-  // render a page from the previous one.
+  /**
+   * Release the document when the sheet closes.
+   *
+   * destroy() is the part that matters: pdf.js holds a worker and the fetched
+   * page data, and dropping the reference alone leaves both alive. On a phone,
+   * opening a few laws would then accumulate workers - the exact resource cost
+   * this feature was careful to avoid everywhere else.
+   */
+  const release = React.useCallback(() => {
+    renderTaskRef.current?.cancel();
+    renderTaskRef.current = null;
+    const doc = docRef.current;
+    docRef.current = null;
+    doc?.destroy?.().catch(() => {
+      /* already gone; nothing to do */
+    });
+  }, []);
+
   React.useEffect(() => {
     if (!isOpen) {
-      renderTaskRef.current?.cancel();
-      renderTaskRef.current = null;
-      docRef.current = null;
+      release();
       setTotal(0);
       setStatus('idle');
     }
-  }, [isOpen]);
+  }, [isOpen, release]);
+
+  // A different book is a different document.
   React.useEffect(() => {
-    docRef.current = null;
-  }, [url]);
+    release();
+  }, [url, release]);
+
+  // Unmount must not leak either.
+  React.useEffect(() => () => release(), [release]);
+
+  // Orientation change on a phone otherwise leaves the page rendered at the old
+  // width until the reader pages away and back.
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let t: ReturnType<typeof setTimeout>;
+    const onResize = () => {
+      clearTimeout(t);
+      t = setTimeout(() => setResizeTick((n) => n + 1), 150);
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const openInBrowser = () => {
-    if (url) window.open(`${url}#page=${current}`, '_blank', 'noopener,noreferrer');
+    const href = withPage(url, current);
+    if (href) window.open(href, '_blank', 'noopener,noreferrer');
   };
 
   return (
