@@ -201,13 +201,31 @@ const StartScreen: React.FC<StartScreenProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    i18n.changeLanguage(language);
-    // Save to localStorage (i18n loads from here on init).
+  /**
+   * Switching the language is an ACTION, not a state sync.
+   *
+   * This used to be an effect keyed on `language`, and that effect fed a loop
+   * the owner hit in production: this component's `language` starts at 'fi'
+   * (the SSR-safe default above), so on every mount the effect fired
+   * changeLanguage('fi') with the pre-adopt value still in its closure - which
+   * silently reverted the coach's choice and emitted `languageChanged`. That
+   * event rebuilds `t`, which rebuilds applyTeamScope -> checkAppState in
+   * page.tsx, which re-runs the app-state check, which unmounts this screen
+   * behind a loading gate. Remounting fired the effect again. Home flickered
+   * between fi and en, re-reading the roster and every saved game each pass.
+   *
+   * Doing the work in the click handler makes that structurally impossible:
+   * nothing changes the language unless a coach asked for it.
+   */
+  const handleChangeLanguage = (next: string) => {
+    if (next === language) return;
+    setLanguage(next);
+    i18n.changeLanguage(next);
+    // localStorage, since i18n loads from here on init.
     // DO NOT call updateAppSettings here - StartScreen is shown in local mode,
     // so calling it could cause DataStore initialization conflicts if user switches modes.
-    saveLanguagePreference(language);
-  }, [language]);
+    saveLanguagePreference(next);
+  };
 
   return (
     <div className="relative flex flex-col h-screen h-[100dvh] bg-slate-900 text-white overflow-hidden">
@@ -259,7 +277,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           {/* Upper-right: language switcher (alone now). */}
           <div className="flex rounded-lg bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm overflow-hidden">
             <button
-              onClick={() => setLanguage('en')}
+              onClick={() => handleChangeLanguage('en')}
               className={`px-3 py-1.5 text-xs font-bold transition-all ${
                 language === 'en'
                   ? 'bg-amber-500 text-slate-900'
@@ -269,7 +287,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               EN
             </button>
             <button
-              onClick={() => setLanguage('fi')}
+              onClick={() => handleChangeLanguage('fi')}
               className={`px-3 py-1.5 text-xs font-bold transition-all ${
                 language === 'fi'
                   ? 'bg-amber-500 text-slate-900'
