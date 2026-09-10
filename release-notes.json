@@ -4,6 +4,15 @@
     {
       "date": "2026-09-10",
       "en": [
+        "The Taso match report sheet now says what it is in one line, and its text no longer sits flush against the header."
+      ],
+      "fi": [
+        "Pöytäkirja Tasoon -näkymä kertoo nyt yhdellä rivillä mistä on kyse, eikä teksti ole enää kiinni otsikossa."
+      ]
+    },
+    {
+      "date": "2026-09-10",
+      "en": [
         "Fixed: switching the language on the home screen made the screen flicker and reload over and over. Changing the language now just changes the language."
       ],
       "fi": [
