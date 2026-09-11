@@ -3780,6 +3780,7 @@
     "applying": "Nimetään…",
     "applied": "Nimetty {{count}} ottelussa.",
     "failed": "Nimeäminen ei onnistunut. Yritä uudelleen.",
-    "openLabel": "Tarkista joukkuenimet"
+    "openLabel": "Tarkista joukkuenimet",
+    "appliedListsOnly": "Nimetty sarjan joukkuelistassa."
   }
 }

@@ -1511,6 +1511,7 @@ export type TranslationKey =
   | 'opponentList.useExisting'
   | 'opponentSweep.allClean'
   | 'opponentSweep.applied'
+  | 'opponentSweep.appliedListsOnly'
   | 'opponentSweep.apply'
   | 'opponentSweep.applying'
   | 'opponentSweep.canonicalLabel'

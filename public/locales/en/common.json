@@ -3780,6 +3780,7 @@
     "applying": "Renaming…",
     "applied": "Renamed in {{count}} games.",
     "failed": "Could not rename. Please try again.",
-    "openLabel": "Check team names"
+    "openLabel": "Check team names",
+    "appliedListsOnly": "Renamed in the competition list."
   }
 }

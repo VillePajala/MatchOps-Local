@@ -89,17 +89,15 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           autoCorrect="off"
           autoCapitalize="words"
           spellCheck="true"
-          list={options.length > 0 ? 'opponentNameOptions' : undefined}
         />
-        {/* Datalist for typing, chips for tapping. The datalist alone is
-            undiscoverable on a phone; the chips alone lose keyboard filtering. */}
+        {/* Chips rather than a datalist. An <input list=...> takes the implicit
+            ARIA role COMBOBOX instead of textbox, which silently re-roles this
+            field for assistive tech and for anything querying it by role - it
+            broke existing tests the moment a competition had teams listed.
+            Chips are also the better phone affordance: one tap, and visible
+            without opening anything. */}
         {options.length > 0 && (
           <>
-            <datalist id="opponentNameOptions">
-              {options.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
             <div className="mt-2 flex flex-wrap gap-1.5" data-testid="opponent-options">
               {options.map((name) => {
                 const chosen = name === opponentName;
