@@ -4,6 +4,17 @@
     {
       "date": "2026-09-11",
       "en": [
+        "You can now list the teams in a league, and pick the opponent from that list when creating a game instead of typing the name every time. Typing is still allowed for a friendly or a one-off, and you can add a new team to the league straight from the game form.",
+        "New tool under Competitions: Check team names. It finds one team you have written several ways - IPS, Ips, IPS/Sininen - and settles them on one spelling across your games. It never merges two teams that differ by their colour."
+      ],
+      "fi": [
+        "Voit nyt listata sarjan joukkueet ja valita vastustajan listalta ottelua luodessa sen sijaan että kirjoittaisit nimen joka kerta. Käsin kirjoittaminen onnistuu edelleen harjoitusotteluun tai kertaluontoiseen peliin, ja voit lisätä uuden joukkueen sarjaan suoraan ottelulomakkeelta.",
+        "Uusi työkalu Kilpailut-näkymässä: Tarkista joukkuenimet. Se löytää joukkueen jonka olet kirjoittanut monella tavalla - IPS, Ips, IPS/Sininen - ja yhtenäistää kirjoitusasun kaikkiin otteluihin. Se ei koskaan yhdistä kahta joukkuetta jotka eroavat väriltään."
+      ]
+    },
+    {
+      "date": "2026-09-11",
+      "en": [
         "In the voice notes inbox, the option for a note about the match as a whole is now simply \"The match\", listed alongside the players instead of reading as a sentence fragment."
       ],
       "fi": [

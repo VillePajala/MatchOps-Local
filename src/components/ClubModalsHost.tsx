@@ -59,6 +59,7 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
+import { addOpponentToList } from '@/utils/opponentNames';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
 import { useLoadGameController } from '@/hooks/useLoadGameController';
@@ -171,6 +172,18 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
       onEnterMatch?.();
     },
   });
+
+  // Every opponent name this coach has used: the competition lists they
+  // curated, plus whatever they typed into past games. Derived, never stored -
+  // a global opponent list with an edit button is the first step back toward
+  // treating opponents as entities, which is what the design rejects.
+  const knownOpponents = React.useMemo(
+    () => [
+      ...seasonTournament.seasons.flatMap((s) => s.opponents ?? []),
+      ...Object.values(newGameSetup.savedGames ?? {}).map((g) => g?.opponentName ?? ''),
+    ].reduce<string[]>((kept, name) => addOpponentToList(kept, name), []),
+    [seasonTournament.seasons, newGameSetup.savedGames],
+  );
 
   // Cancel/close for NewGameSetup: reset the controller's slider state and
   // clear the shared prefill so the next open starts from modal defaults.
@@ -359,6 +372,18 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           teams={teams}
           personnel={personnelManager.personnel}
           savedGames={newGameSetup.savedGames}
+          /* Remember a newly typed opponent on the league, so the next game
+             can pick it from the list. Uses the mutation this host already
+             owns; the modal itself stays free of a QueryClient dependency. */
+          onAddOpponentToSeason={async (seasonId, opponentName) => {
+            const season = seasonTournament.seasons.find((s) => s.id === seasonId);
+            if (!season) return;
+            await seasonTournament.updateSeasonMutation.mutateAsync({
+              ...season,
+              opponents: addOpponentToList(season.opponents ?? [], opponentName),
+            });
+          }}
+          knownOpponents={knownOpponents}
         />
       )}
       <ConfirmationModal

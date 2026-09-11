@@ -69,11 +69,14 @@ jest.mock('@/components/PersonnelManagerModal', () => ({
     <div data-testid="personnel-modal"><button onClick={onClose}>close-personnel</button></div>
   ),
 }));
+const mockUpdateSeasonMutateAsync = jest.fn().mockResolvedValue(null);
 jest.mock('@/hooks/useSeasonTournamentManagement', () => ({
   __esModule: true,
   useSeasonTournamentManagement: () => ({
-    seasons: [], tournaments: [], masterRoster: [],
-    addSeasonMutation: {}, addTournamentMutation: {}, updateSeasonMutation: {},
+    seasons: [{ id: 's1', name: 'Ita P11', opponents: ['IPS'] }],
+    tournaments: [], masterRoster: [],
+    addSeasonMutation: {}, addTournamentMutation: {},
+    updateSeasonMutation: { mutateAsync: mockUpdateSeasonMutateAsync },
     deleteSeasonMutation: {}, updateTournamentMutation: {}, deleteTournamentMutation: {},
   }),
 }));
@@ -150,10 +153,16 @@ jest.mock('@/hooks/useLoadGameController', () => ({
 
 jest.mock('@/components/NewGameSetupModal', () => ({
   __esModule: true,
-  default: ({ onStart, onCancel }: { onStart: (...args: unknown[]) => void; onCancel: () => void }) => (
+  default: ({ onStart, onCancel, onAddOpponentToSeason }: {
+    onStart: (...args: unknown[]) => void;
+    onCancel: () => void;
+    onAddOpponentToSeason?: (seasonId: string, name: string) => Promise<void>;
+  }) => (
     <div data-testid="new-game-setup-modal">
       <button onClick={() => onStart(['p1'], 'Home', 'Away')}>confirm-new-game</button>
       <button onClick={onCancel}>cancel-new-game</button>
+      <button onClick={() => onAddOpponentToSeason?.('s1', 'KuPS')}>add-opponent</button>
+      <button onClick={() => onAddOpponentToSeason?.('nope', 'KuPS')}>add-opponent-bad-season</button>
     </div>
   ),
 }));
@@ -634,4 +643,36 @@ describe('ClubModalsHost (L.0a/L.0b)', () => {
     // Settings must stay open - no orphaned destructive dialog scenario.
     expect(screen.getByTestId('settings-modal')).toBeInTheDocument();
   });
+
+  /**
+   * The game form emits this rather than owning a QueryClient; the host holds
+   * the mutation. If the wiring is wrong the coach taps "add to this league"
+   * and nothing is remembered, with no error to tell them.
+   */
+  describe('remembering an opponent on the league', () => {
+    it('appends the name to the season it names', async () => {
+      renderHost();
+      await act(async () => {
+        fireEvent.click(screen.getByText('open-new-game'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText('add-opponent'));
+      });
+      expect(mockUpdateSeasonMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 's1', opponents: ['IPS', 'KuPS'] }),
+      );
+    });
+
+    it('does nothing for a season that no longer exists', async () => {
+      renderHost();
+      await act(async () => {
+        fireEvent.click(screen.getByText('open-new-game'));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText('add-opponent-bad-season'));
+      });
+      expect(mockUpdateSeasonMutateAsync).not.toHaveBeenCalled();
+    });
+  });
+
 });

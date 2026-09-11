@@ -1075,7 +1075,9 @@
     "prefillGameLabel": "Plan game",
     "prefillChooseGame": "Choose a game…",
     "prefillMissingPlayers_one": "{{count}} planned player is not in this roster and was skipped.",
-    "prefillMissingPlayers_other": "{{count}} planned players are not in this roster and were skipped."
+    "prefillMissingPlayers_other": "{{count}} planned players are not in this roster and were skipped.",
+    "addOpponentToSeason": "Add to this league",
+    "opponentAddFailed": "Could not add the team to the league."
   },
   "gameSettingsModal": {
     "formationApply": "Place players in a formation…",
@@ -3757,5 +3759,28 @@
     "scope_other": "Sends {{notes}} of your notes about this player, from {{count}} matches, to your AI provider. Nothing is saved or changed.",
     "omitted_one": "The oldest note is left out of this request.",
     "omitted_other": "The {{count}} oldest notes are left out of this request."
+  },
+  "opponentList": {
+    "addLabel": "Add a team",
+    "placeholder": "e.g. IPS Punainen",
+    "alreadyListed": "{{name}} is already on the list.",
+    "knownElsewhere": "You already write this as {{name}}.",
+    "useExisting": "Use {{name}}",
+    "empty": "No teams listed yet. You can always type an opponent by hand when creating a game.",
+    "remove": "Remove {{name}}",
+    "sectionTitle": "Teams in this league",
+    "sectionHint": "List the teams in this league and you can pick the opponent from a list when creating a game. Optional."
+  },
+  "opponentSweep": {
+    "title": "Check team names",
+    "subtitle": "One team written several ways counts as several opponents in your statistics.",
+    "allClean": "Every team is written the same way everywhere. Nothing to fix.",
+    "canonicalLabel": "Spelling to keep",
+    "apply": "Use this everywhere",
+    "applying": "Renaming…",
+    "applied": "Renamed in {{count}} games.",
+    "failed": "Could not rename. Please try again.",
+    "openLabel": "Check team names",
+    "appliedListsOnly": "Renamed in the competition list."
   }
 }
