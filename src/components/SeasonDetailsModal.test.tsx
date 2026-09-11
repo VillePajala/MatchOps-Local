@@ -16,6 +16,9 @@ const queryClient = new QueryClient({
 });
 
 // Mock useDataStore for user-scoped storage
+jest.mock('@/utils/seasons', () => ({ getSeasons: jest.fn().mockResolvedValue([]) }));
+jest.mock('@/utils/savedGames', () => ({ getSavedGames: jest.fn().mockResolvedValue({}) }));
+
 jest.mock('@/hooks/useDataStore', () => ({
   useDataStore: () => ({
     userId: 'test-user-123',
@@ -998,4 +1001,66 @@ describe('SeasonDetailsModal', () => {
       expect(leagueSelect.value).toBe('paikallissarja-2-pohjoinen');
     });
   });
+
+  /**
+   * @critical - the list is where this feature's data comes from. If the form
+   * does not load it, the coach silently loses their teams on the next save;
+   * if it does not save it, the whole feature is inert.
+   */
+  describe('opponent list', () => {
+    it('loads the league’s existing teams into the editor', async () => {
+      await act(async () => {
+        renderWithProviders({ season: { ...mockSeason, opponents: ['IPS', 'KuPS'] } });
+      });
+      const list = screen.getByTestId('opponent-list');
+      expect(list).toHaveTextContent('IPS');
+      expect(list).toHaveTextContent('KuPS');
+    });
+
+    it('saves an added team onto the season', async () => {
+      const updateSeasonMutation = mockMutation();
+      await act(async () => {
+        renderWithProviders({
+          season: { ...mockSeason, opponents: ['IPS'] },
+          updateSeasonMutation: updateSeasonMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+
+      await act(async () => {
+        await userEvent.type(screen.getByTestId('opponent-input'), 'KuPS');
+      });
+      await act(async () => {
+        await userEvent.click(screen.getByTestId('opponent-add'));
+      });
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: /save|tallenna/i }));
+      });
+
+      expect(updateSeasonMutation.mutate).toHaveBeenCalledWith(
+        expect.objectContaining({ opponents: ['IPS', 'KuPS'] }),
+        expect.anything(),
+      );
+    });
+
+    /**
+     * A league that never had a list must save an empty one rather than
+     * undefined, so it reads back the same way as one whose list was cleared.
+     */
+    it('saves an empty list for a league that has none', async () => {
+      const updateSeasonMutation = mockMutation();
+      await act(async () => {
+        renderWithProviders({
+          updateSeasonMutation: updateSeasonMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+      await act(async () => {
+        await userEvent.click(screen.getByRole('button', { name: /save|tallenna/i }));
+      });
+      expect(updateSeasonMutation.mutate).toHaveBeenCalledWith(
+        expect.objectContaining({ opponents: [] }),
+        expect.anything(),
+      );
+    });
+  });
+
 });

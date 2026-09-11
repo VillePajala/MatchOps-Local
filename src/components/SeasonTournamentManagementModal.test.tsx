@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SeasonTournamentManagementModal from './SeasonTournamentManagementModal';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -777,4 +777,23 @@ describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
     // Restore original mock
     usePremiumModule.useResourceLimit = originalUseResourceLimit;
   });
+
+  /**
+   * The sweep tool lives next to the lists it cleans. Cheap test, but it is
+   * the only thing standing between a wired modal and a dead button.
+   */
+  describe('team-name sweep', () => {
+    it('opens the sweep tool from the competitions manager', async () => {
+      renderWithProviders();
+      expect(screen.queryByTestId('opponent-sweep-clean')).not.toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('open-opponent-sweep'));
+      });
+      // Nothing to fix with the default fixtures, which is still the sweep
+      // modal rendering rather than the button doing nothing.
+      expect(await screen.findByTestId('opponent-sweep-clean')).toBeInTheDocument();
+    });
+  });
+
 });
