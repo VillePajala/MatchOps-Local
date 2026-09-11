@@ -173,6 +173,18 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
     },
   });
 
+  // Every opponent name this coach has used: the competition lists they
+  // curated, plus whatever they typed into past games. Derived, never stored -
+  // a global opponent list with an edit button is the first step back toward
+  // treating opponents as entities, which is what the design rejects.
+  const knownOpponents = React.useMemo(
+    () => [
+      ...seasonTournament.seasons.flatMap((s) => s.opponents ?? []),
+      ...Object.values(newGameSetup.savedGames ?? {}).map((g) => g?.opponentName ?? ''),
+    ].reduce<string[]>((kept, name) => addOpponentToList(kept, name), []),
+    [seasonTournament.seasons, newGameSetup.savedGames],
+  );
+
   // Cancel/close for NewGameSetup: reset the controller's slider state and
   // clear the shared prefill so the next open starts from modal defaults.
   const handleCloseNewGameSetup = () => {
@@ -371,6 +383,7 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
               opponents: addOpponentToList(season.opponents ?? [], opponentName),
             });
           }}
+          knownOpponents={knownOpponents}
         />
       )}
       <ConfirmationModal

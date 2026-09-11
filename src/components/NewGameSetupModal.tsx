@@ -25,7 +25,7 @@ import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalT
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
-import { findExistingSpelling } from '@/utils/opponentNames';
+import { addOpponentToList, findExistingSpelling } from '@/utils/opponentNames';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -88,6 +88,18 @@ interface NewGameSetupModalProps {
    * acquire a QueryClient dependency to write one field.
    */
   onAddOpponentToSeason?: (seasonId: string, opponentName: string) => Promise<void>;
+  /**
+   * Every opponent name this coach has used anywhere - other competitions and
+   * past games. Supplied by the host rather than queried here, so this modal
+   * keeps taking its data as props.
+   *
+   * WHY NOT JUST THE SELECTED COMPETITION'S LIST: the opponent field is the
+   * second thing on this form and the competition is picked a whole card
+   * later, so a coach has always typed the name before a competition-scoped
+   * suggestion could appear. Suggestions have to work from the first
+   * keystroke to be worth anything.
+   */
+  knownOpponents?: string[];
   tournaments: Tournament[];
   teams: Team[];
   personnel: Personnel[];
@@ -107,6 +119,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   masterRoster,
   seasons,
   onAddOpponentToSeason,
+  knownOpponents,
   tournaments,
   teams,
   personnel,
@@ -368,6 +381,17 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (!selectedSeasonId) return [];
     return seasons.find((s) => s.id === selectedSeasonId)?.opponents ?? [];
   }, [selectedSeasonId, seasons]);
+
+  // The competition's own teams lead, because those were curated for exactly
+  // this fixture; everything else the coach has ever typed follows, so the
+  // field is useful before a competition has been chosen at all.
+  const opponentOptions = useMemo<string[]>(
+    () => [...seasonOpponents, ...(knownOpponents ?? [])].reduce<string[]>(
+      (kept, name) => addOpponentToList(kept, name),
+      [],
+    ),
+    [seasonOpponents, knownOpponents],
+  );
 
   // A typed name that is not on the list yet. Offering to add it HERE rather
   // than sending the coach to the competition manager is the point: a detour
@@ -906,7 +930,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   onKeyDown={handleKeyDown}
                   teamError={homeTeamError}
                   opponentError={opponentError}
-                  opponentOptions={seasonOpponents}
+                  opponentOptions={opponentOptions}
                   opponentFooter={
                     opponentIsNew ? (
                       <button
