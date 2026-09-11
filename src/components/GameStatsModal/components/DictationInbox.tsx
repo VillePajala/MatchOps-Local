@@ -429,7 +429,7 @@ const DictationInbox: React.FC<DictationInboxProps> = ({
                   data-testid="dictation-player"
                   className="flex-1 min-w-0 rounded-md bg-slate-700 border border-slate-600 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
-                  <option value="">{t('dictation.gameNote', 'The game (no player)')}</option>
+                  <option value="">{t('dictation.gameNote', 'The match')}</option>
                   {sortedPlayers.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}{p.nickname ? ` (${p.nickname})` : ''}

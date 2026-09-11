@@ -2,6 +2,15 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-11",
+      "en": [
+        "In the voice notes inbox, the option for a note about the match as a whole is now simply \"The match\", listed alongside the players instead of reading as a sentence fragment."
+      ],
+      "fi": [
+        "Äänimuistiinpanojen postilaatikossa koko ottelua koskevan muistiinpanon vaihtoehto on nyt yksinkertaisesti \"Ottelu\", pelaajien rinnalla, eikä enää lauseen katkelmana."
+      ]
+    },
+    {
       "date": "2026-09-10",
       "en": [
         "You can now switch between English and Finnish on the first-time setup screen. It was the one screen without the language toggle, which is awkward when it is the first thing you see."
