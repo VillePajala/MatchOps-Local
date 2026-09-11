@@ -555,7 +555,9 @@ describe('Translation File Validation', () => {
       //     the competition manager is how the list stays empty. Lands at 3226.
       // +9 opponentSweep.*: the tool that settles one team written several
       //     ways. Lands at 3235.
-      expect(enKeys.length).toBe(3235);
+      // +1 opponentSweep.appliedListsOnly: a rename can touch only a league's
+      //     list, where "Renamed in 0 games" is true and useless. Lands at 3236.
+      expect(enKeys.length).toBe(3236);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -731,7 +733,8 @@ describe('Translation File Validation', () => {
       // +9 opponentList.* (see EN above). Lands at 3224.
       // +2 inline add on the game form (see EN above). Lands at 3226.
       // +9 opponentSweep.* (see EN above). Lands at 3235.
-      expect(fiKeys.length).toBe(3235);
+      // +1 appliedListsOnly (see EN above). Lands at 3236.
+      expect(fiKeys.length).toBe(3236);
     });
   });
 });

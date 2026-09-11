@@ -95,8 +95,13 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
         queryClient.invalidateQueries({ queryKey: queryKeys.seasons }),
       ]);
       setResolved((prev) => [...prev, key]);
+      // A stale spelling can live on a league's list while no current game uses
+      // it, in which case "Renamed in 0 games" is true and useless - the league
+      // list was the thing that changed.
       showToast(
-        t('opponentSweep.applied', 'Renamed in {{count}} games.', { count: plan.gameIds.length }),
+        plan.gameIds.length > 0
+          ? t('opponentSweep.applied', 'Renamed in {{count}} games.', { count: plan.gameIds.length })
+          : t('opponentSweep.appliedListsOnly', 'Renamed in the competition list.'),
         'success',
       );
     } catch (error) {
