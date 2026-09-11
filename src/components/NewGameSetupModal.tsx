@@ -914,7 +914,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         onClick={handleAddOpponentToSeason}
                         disabled={addingOpponent}
                         data-testid="opponent-add-to-season"
-                        className="mt-2 text-xs font-semibold text-indigo-300 hover:text-indigo-200 underline disabled:opacity-50"
+                        className="mt-2 px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-100 text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
                       >
                         {t('newGameSetupModal.addOpponentToSeason', 'Add to this league')}
                       </button>

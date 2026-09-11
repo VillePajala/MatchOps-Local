@@ -6,10 +6,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { useDataStore } from '@/hooks/useDataStore';
 import { useToast } from '@/contexts/ToastProvider';
-import { CollapsibleModalHeader, modalContainerStyle, ModalBackgroundEffects } from '@/styles/modalStyles';
+import { CollapsibleModalHeader, ModalContainer } from '@/styles/modalStyles';
 import { getSeasons, updateSeason } from '@/utils/seasons';
 import { getSavedGames, saveGame } from '@/utils/savedGames';
-import { groupOpponentVariants } from '@/utils/opponentNames';
+import { useOpponentVariantGroups } from '@/hooks/useOpponentVariantGroups';
 import { planOpponentRename, renameInOpponentList } from '@/utils/opponentRename';
 import logger from '@/utils/logger';
 import type { Season } from '@/types';
@@ -57,14 +57,13 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
   const [applying, setApplying] = useState<string | null>(null);
   const [resolved, setResolved] = useState<string[]>([]);
 
-  const groups = useMemo(() => {
-    // Every OCCURRENCE, not a deduplicated list: the repetition is what ranks
-    // the suggestion, so a spelling used in nine games outranks one used once.
-    const fromGames = Object.values(savedGames ?? {}).map((g) => g?.opponentName ?? '');
-    const fromSeasons = (seasons ?? []).flatMap((s) => s.opponents ?? []);
-    return groupOpponentVariants([...fromGames, ...fromSeasons])
-      .filter((group) => !resolved.includes(group.key));
-  }, [savedGames, seasons, resolved]);
+  // Shared with the badge on the competitions manager, so the two can never
+  // disagree about whether there is anything to fix.
+  const allGroups = useOpponentVariantGroups(isOpen);
+  const groups = useMemo(
+    () => allGroups.filter((group) => !resolved.includes(group.key)),
+    [allGroups, resolved],
+  );
 
   const apply = async (key: string, canonical: string) => {
     const plan = planOpponentRename(key, canonical, savedGames, seasons);
@@ -115,11 +114,11 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
-      <div className={modalContainerStyle}>
-        <ModalBackgroundEffects />
-        <div className="relative z-10 flex flex-col min-h-0 h-full">
-          <CollapsibleModalHeader
+    // ModalContainer, not a hand-rolled wrapper: it carries the h-full/w-full
+    // and the noise texture every other modal in the app has. Rolling my own
+    // produced a band of content floating in the middle of a black screen.
+    <ModalContainer aria-label={t('opponentSweep.title', 'Check team names')}>
+      <CollapsibleModalHeader
             title={t('opponentSweep.title', 'Check team names')}
             onClose={onClose}
             closeLabel={t('common.doneButton', 'Done')}
@@ -159,35 +158,35 @@ const OpponentNameSweepModal: React.FC<OpponentNameSweepModalProps> = ({ isOpen,
                     {/* A TEXT BOX, not a choice between the variants: sometimes
                         every spelling in the data is wrong and the coach needs
                         to type the one they actually want. */}
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={chosen}
-                        onChange={(e) => setChoices((prev) => ({ ...prev, [group.key]: e.target.value }))}
-                        aria-label={t('opponentSweep.canonicalLabel', 'Spelling to keep')}
-                        data-testid={`opponent-sweep-input-${group.key}`}
-                        className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => apply(group.key, chosen)}
-                        disabled={busy || !chosen.trim()}
-                        data-testid={`opponent-sweep-apply-${group.key}`}
-                        className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold disabled:opacity-50"
-                      >
-                        {busy
-                          ? t('opponentSweep.applying', 'Renaming…')
-                          : t('opponentSweep.apply', 'Use this everywhere')}
-                      </button>
-                    </div>
+                    {/* Stacked, not side by side: "Käytä tätä kaikkialla" is
+                        three words that wrapped onto three lines next to the
+                        field and dwarfed it. A full-width row is the app's own
+                        pattern for a primary action anyway. */}
+                    <input
+                      type="text"
+                      value={chosen}
+                      onChange={(e) => setChoices((prev) => ({ ...prev, [group.key]: e.target.value }))}
+                      aria-label={t('opponentSweep.canonicalLabel', 'Spelling to keep')}
+                      data-testid={`opponent-sweep-input-${group.key}`}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => apply(group.key, chosen)}
+                      disabled={busy || !chosen.trim()}
+                      data-testid={`opponent-sweep-apply-${group.key}`}
+                      className="w-full px-4 py-2.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold whitespace-nowrap disabled:opacity-50 transition-colors"
+                    >
+                      {busy
+                        ? t('opponentSweep.applying', 'Renaming…')
+                        : t('opponentSweep.apply', 'Use this everywhere')}
+                    </button>
                   </div>
                 );
               })
-            )}
-          </div>
-        </div>
+        )}
       </div>
-    </div>
+    </ModalContainer>
   );
 };
 

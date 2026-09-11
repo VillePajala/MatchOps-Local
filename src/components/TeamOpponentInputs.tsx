@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { normalizeOpponentName } from '@/utils/opponentNames';
 
 export interface TeamOpponentInputsProps {
   teamName: string;
@@ -45,7 +46,22 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   opponentOptions,
   opponentFooter,
 }) => {
-  const options = (opponentOptions ?? []).filter((name) => name.trim() !== '');
+  const allOptions = (opponentOptions ?? []).filter((name) => name.trim() !== '');
+
+  /**
+   * Chips narrow as the coach types - that IS the autocomplete. The datalist
+   * that used to do it was removed because <input list> re-roles the field to
+   * combobox, so the filtering has to live here instead.
+   *
+   * Once the text matches an option exactly the full list comes back, so
+   * having picked one team does not strand the coach with a single chip when
+   * they meant to pick another.
+   */
+  const typed = normalizeOpponentName(opponentName);
+  const exactlyChosen = allOptions.some((name) => normalizeOpponentName(name) === typed);
+  const options = !typed || exactlyChosen
+    ? allOptions
+    : allOptions.filter((name) => normalizeOpponentName(name).includes(typed));
   return (
     <>
       <div className="mb-4">
