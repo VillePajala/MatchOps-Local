@@ -1087,7 +1087,9 @@
     "prefillGameLabel": "Suunnitelman peli",
     "prefillChooseGame": "Valitse peli…",
     "prefillMissingPlayers_one": "{{count}} suunniteltu pelaaja ei ole tässä pelaajalistassa ja jätettiin pois.",
-    "prefillMissingPlayers_other": "{{count}} suunniteltua pelaajaa ei ole tässä pelaajalistassa ja jätettiin pois."
+    "prefillMissingPlayers_other": "{{count}} suunniteltua pelaajaa ei ole tässä pelaajalistassa ja jätettiin pois.",
+    "addOpponentToSeason": "Lisää sarjaan",
+    "opponentAddFailed": "Joukkuetta ei voitu lisätä sarjaan."
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Oivalla",
@@ -3757,5 +3759,27 @@
     "scope_other": "Lähettää {{notes}} muistiinpanoasi tästä pelaajasta {{count}} ottelusta AI-palveluusi. Mitään ei tallenneta eikä muuteta.",
     "omitted_one": "Vanhin muistiinpano jää tämän pyynnön ulkopuolelle.",
     "omitted_other": "{{count}} vanhinta muistiinpanoa jää tämän pyynnön ulkopuolelle."
+  },
+  "opponentList": {
+    "addLabel": "Lisää joukkue",
+    "placeholder": "esim. IPS Punainen",
+    "alreadyListed": "{{name}} on jo listalla.",
+    "knownElsewhere": "Kirjoitat tämän muualla muodossa {{name}}.",
+    "useExisting": "Käytä {{name}}",
+    "empty": "Ei joukkueita listalla. Voit aina kirjoittaa vastustajan käsin ottelua luodessa.",
+    "remove": "Poista {{name}}",
+    "sectionTitle": "Sarjan joukkueet",
+    "sectionHint": "Listaa sarjan joukkueet, niin voit valita vastustajan listalta ottelua luodessa. Vapaaehtoinen."
+  },
+  "opponentSweep": {
+    "title": "Tarkista joukkuenimet",
+    "subtitle": "Yksi joukkue monella eri tavalla kirjoitettuna on tilastoissa monta eri vastustajaa.",
+    "allClean": "Jokainen joukkue on kirjoitettu samalla tavalla kaikkialla. Ei korjattavaa.",
+    "canonicalLabel": "Säilytettävä kirjoitusasu",
+    "apply": "Käytä tätä kaikkialla",
+    "applying": "Nimetään…",
+    "applied": "Nimetty {{count}} ottelussa.",
+    "failed": "Nimeäminen ei onnistunut. Yritä uudelleen.",
+    "openLabel": "Tarkista joukkuenimet"
   }
 }

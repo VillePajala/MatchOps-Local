@@ -10,6 +10,8 @@ import { queryKeys } from '@/config/queryKeys';
 import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { useDataStore } from '@/hooks/useDataStore';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import OpponentListEditor from '@/components/OpponentListEditor';
+import { useOpponentSuggestions } from '@/hooks/useOpponentSuggestions';
 import {
   FINNISH_YOUTH_LEAGUES,
   CUSTOM_LEAGUE_ID,
@@ -65,6 +67,11 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [customLeagueName, setCustomLeagueName] = useState('');
   const [gameType, setGameType] = useState<GameType>('soccer');
   const [gender, setGender] = useState<Gender | undefined>(undefined);
+  // The teams this league is played against. String labels, not entities -
+  // see utils/opponentNames.ts for why that distinction is load-bearing.
+  const [opponents, setOpponents] = useState<string[]>([]);
+  // Spelling only - the authoritative list is this competition's own.
+  const opponentSuggestions = useOpponentSuggestions();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // League filter state
@@ -105,6 +112,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         // Reset form for create mode
         setName('');
         setLocation('');
+        setOpponents([]);
         setAgeGroup('');
         setPeriodCount(undefined);
         setPeriodDuration(undefined);
@@ -123,6 +131,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         // Load existing season data for edit mode
         setName(season.name || '');
         setLocation(season.location || '');
+        setOpponents(season.opponents ?? []);
         setAgeGroup(season.ageGroup || '');
         setPeriodCount(season.periodCount);
         setPeriodDuration(season.periodDuration);
@@ -187,6 +196,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? trimmedCustomLeague || undefined : undefined,
         gameType,
         gender,
+        opponents,
       };
 
       addSeasonMutation.mutate(newSeason, {
@@ -222,6 +232,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? trimmedCustomLeague || undefined : undefined,
         gameType,
         gender,
+        opponents,
       };
 
       updateSeasonMutation.mutate(updatedSeason, {
@@ -346,6 +357,22 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder={t('seasonDetailsModal.locationPlaceholder', 'Enter location')}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              {/* The teams in this league. Listed once here, then offered as a
+                  dropdown when creating a game - which is what stops "IPS" and
+                  "Ips" becoming two different opponents to every aggregation.
+                  Optional: free text on the game form never goes away. */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('opponentList.sectionTitle', 'Teams in this league')}
+                </label>
+                <OpponentListEditor
+                  value={opponents}
+                  onChange={setOpponents}
+                  suggestions={opponentSuggestions}
+                  hint={t('opponentList.sectionHint', 'List the teams in this league and you can pick the opponent from a list when creating a game. Optional.')}
                 />
               </div>
 

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
+import OpponentNameSweepModal from '@/components/OpponentNameSweepModal';
+import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { Season, Tournament, Player } from '@/types';
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -68,6 +70,10 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const [searchText, setSearchText] = useState('');
     const [showArchived, setShowArchived] = useState(false);
+    // Cleanup for names that got in before the competition lists existed.
+    const [showNameSweep, setShowNameSweep] = useState(false);
+    // Back closes the sweep first, leaving this manager open underneath.
+    useHardwareBackSubLevel(showNameSweep, () => setShowNameSweep(false));
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; type: 'season' | 'tournament' } | null>(null);
 
@@ -381,6 +387,16 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 ? t('seasonTournamentModal.addSeason', 'Add League')
                 : t('seasonTournamentModal.addTournament', 'Add Tournament')}
             </button>
+            {/* One team written several ways is several opponents to every
+                aggregation. Cleanup lives next to the lists it cleans. */}
+            <button
+              type="button"
+              onClick={() => setShowNameSweep(true)}
+              data-testid="open-opponent-sweep"
+              className="w-full mt-2 px-4 py-2 rounded-sm text-sm font-medium bg-slate-700 text-slate-100 hover:bg-slate-600 border border-slate-600/60 transition-colors"
+            >
+              {t('opponentSweep.openLabel', 'Check team names')}
+            </button>
           </div>
         </CollapsibleModalHeader>
 
@@ -488,6 +504,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
           }}
         />
       )}
+      <OpponentNameSweepModal isOpen={showNameSweep} onClose={() => setShowNameSweep(false)} />
     </div>
   );
 };
