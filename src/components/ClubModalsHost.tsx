@@ -59,6 +59,7 @@ import { useModalContext } from '@/contexts/ModalProvider';
 import { useModalHardwareBack, useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { useAppSettingsController } from '@/hooks/useAppSettingsController';
 import { useSeasonTournamentManagement } from '@/hooks/useSeasonTournamentManagement';
+import { addOpponentToList } from '@/utils/opponentNames';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useRosterSettingsController } from '@/hooks/useRosterSettingsController';
 import { useLoadGameController } from '@/hooks/useLoadGameController';
@@ -359,6 +360,17 @@ export default function ClubModalsHost({ onEnterMatch, onActiveGameDeleted }: Cl
           teams={teams}
           personnel={personnelManager.personnel}
           savedGames={newGameSetup.savedGames}
+          /* Remember a newly typed opponent on the league, so the next game
+             can pick it from the list. Uses the mutation this host already
+             owns; the modal itself stays free of a QueryClient dependency. */
+          onAddOpponentToSeason={async (seasonId, opponentName) => {
+            const season = seasonTournament.seasons.find((s) => s.id === seasonId);
+            if (!season) return;
+            await seasonTournament.updateSeasonMutation.mutateAsync({
+              ...season,
+              opponents: addOpponentToList(season.opponents ?? [], opponentName),
+            });
+          }}
         />
       )}
       <ConfirmationModal

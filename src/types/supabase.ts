@@ -714,6 +714,7 @@ export type Database = {
           location: string | null
           name: string
           notes: string | null
+          opponents: string[] | null
           period_count: number | null
           period_duration: number | null
           start_date: string | null
@@ -738,6 +739,7 @@ export type Database = {
           location?: string | null
           name: string
           notes?: string | null
+          opponents?: string[] | null
           period_count?: number | null
           period_duration?: number | null
           start_date?: string | null
@@ -762,6 +764,7 @@ export type Database = {
           location?: string | null
           name?: string
           notes?: string | null
+          opponents?: string[] | null
           period_count?: number | null
           period_duration?: number | null
           start_date?: string | null

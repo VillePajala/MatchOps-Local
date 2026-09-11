@@ -25,6 +25,7 @@ import { CollapsibleModalHeader, useCollapsingHeader, ModalStickyPrimary, ModalT
 import FirstVisitIntro from '@/components/FirstVisitIntro';
 import { FIELD_SIZES, PRESETS_BY_SIZE, getDefaultPresetIdForSize, getPresetById, getRecommendedFieldSize } from '@/config/formationPresets';
 import { getStoredSetupFormat, useOnboardingUserId } from '@/components/setupWizardActive';
+import { findExistingSpelling } from '@/utils/opponentNames';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -79,6 +80,14 @@ interface NewGameSetupModalProps {
   // Fresh data from React Query
   masterRoster: Player[];
   seasons: Season[];
+  /**
+   * Persist a newly typed opponent onto the competition, so the next game can
+   * pick it from the list. Optional: without it the "add to this league"
+   * affordance simply does not appear. A CALLBACK rather than a mutation in
+   * here on purpose - this modal receives its data as props and should not
+   * acquire a QueryClient dependency to write one field.
+   */
+  onAddOpponentToSeason?: (seasonId: string, opponentName: string) => Promise<void>;
   tournaments: Tournament[];
   teams: Team[];
   personnel: Personnel[];
@@ -97,6 +106,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   onAddPlayerToRoster,
   masterRoster,
   seasons,
+  onAddOpponentToSeason,
   tournaments,
   teams,
   personnel,
@@ -351,6 +361,39 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (!selectedTournamentId) return null;
     return tournaments.find(t => t.id === selectedTournamentId) || null;
   }, [tournaments, selectedTournamentId]);
+
+  // The teams listed on the competition this game belongs to. Offered as a
+  // dropdown; the field stays free text, so nothing here can block a game.
+  const seasonOpponents = useMemo<string[]>(() => {
+    if (!selectedSeasonId) return [];
+    return seasons.find((s) => s.id === selectedSeasonId)?.opponents ?? [];
+  }, [selectedSeasonId, seasons]);
+
+  // A typed name that is not on the list yet. Offering to add it HERE rather
+  // than sending the coach to the competition manager is the point: a detour
+  // mid-form is how the list stays empty forever.
+  const [addingOpponent, setAddingOpponent] = useState(false);
+  const opponentIsNew = useMemo(() => {
+    const trimmed = opponentName.trim();
+    if (!trimmed || !selectedSeasonId) return false;
+    if (!onAddOpponentToSeason) return false;
+    return !findExistingSpelling(trimmed, seasonOpponents);
+  }, [opponentName, selectedSeasonId, seasonOpponents, onAddOpponentToSeason]);
+
+  const handleAddOpponentToSeason = useCallback(async () => {
+    const trimmed = opponentName.trim();
+    if (!trimmed || !selectedSeasonId || !onAddOpponentToSeason) return;
+    setAddingOpponent(true);
+    try {
+      await onAddOpponentToSeason(selectedSeasonId, trimmed);
+    } catch {
+      // Non-fatal by design: failing to remember the name must never stop the
+      // coach creating the game they are in the middle of creating.
+      showToast(t('newGameSetupModal.opponentAddFailed', 'Could not add the team to the league.'), 'error');
+    } finally {
+      setAddingOpponent(false);
+    }
+  }, [opponentName, selectedSeasonId, onAddOpponentToSeason, showToast, t]);
 
   // Sort seasons by startDate (newest first), then by name for consistent dropdown order
   const sortedSeasons = useMemo(() => {
@@ -863,6 +906,20 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   onKeyDown={handleKeyDown}
                   teamError={homeTeamError}
                   opponentError={opponentError}
+                  opponentOptions={seasonOpponents}
+                  opponentFooter={
+                    opponentIsNew ? (
+                      <button
+                        type="button"
+                        onClick={handleAddOpponentToSeason}
+                        disabled={addingOpponent}
+                        data-testid="opponent-add-to-season"
+                        className="mt-2 text-xs font-semibold text-indigo-300 hover:text-indigo-200 underline disabled:opacity-50"
+                      >
+                        {t('newGameSetupModal.addOpponentToSeason', 'Add to this league')}
+                      </button>
+                    ) : null
+                  }
                 />
               </div>
 

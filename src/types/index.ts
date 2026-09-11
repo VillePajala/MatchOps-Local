@@ -105,6 +105,20 @@ export interface Season {
     [teamId: string]: TeamPlacementInfo;
   };
   /**
+   * The teams this league is played against, as coach-entered string labels.
+   *
+   * @remarks
+   * - Offered as a dropdown when creating a game; free text is ALWAYS still
+   *   allowed (a friendly, a cup tie, a team that joined mid-season).
+   * - **Labels, not entities.** No ids, no team data. "IPS Punainen" is a
+   *   stable string across competitions while the squad behind it is not, so
+   *   an id would let statistics silently merge two different squads. See
+   *   `utils/opponentNames.ts`.
+   * - Not to be confused with `teamPlacements`, which is keyed by the coach's
+   *   OWN team id and records where they finished.
+   */
+  opponents?: string[];
+  /**
    * Game type for this season - soccer (outdoor) or futsal (indoor).
    *
    * @remarks
