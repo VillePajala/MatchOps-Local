@@ -1519,6 +1519,45 @@ describe('NewGameSetupModal', () => {
     });
 
 
+
+    /**
+     * @critical - owner-reported, and the reason competition-scoped
+     * suggestions were not enough: the opponent field is the SECOND thing on
+     * this form and the competition is picked a whole card later. Scoping
+     * suggestions to the chosen competition meant they could never appear
+     * until after the coach had already typed the name.
+     */
+    it('suggests from every team the coach knows, before any competition is picked', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} knownOpponents={['HJK', 'KuPS']} />
+        </ToastProvider>,
+      );
+      // No competition selected, and the chips are already useful.
+      const options = await screen.findByTestId('opponent-options');
+      expect(options).toHaveTextContent('HJK');
+
+      await act(async () => {
+        fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+          target: { value: 'hj' },
+        });
+      });
+      expect(screen.getByTestId('opponent-options')).toHaveTextContent('HJK');
+      expect(screen.getByTestId('opponent-options')).not.toHaveTextContent('KuPS');
+    });
+
+    it('puts the chosen competition’s own teams first', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} knownOpponents={['HJK']} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      const chips = screen.getByTestId('opponent-options').textContent ?? '';
+      // season1 lists IPS and KuPS; HJK is merely known from elsewhere.
+      expect(chips.indexOf('IPS')).toBeLessThan(chips.indexOf('HJK'));
+    });
+
     /**
      * @critical - the owner typed "Ip" expecting the list to narrow to IPS and
      * nothing happened. Static chips are not autocomplete. The datalist that
