@@ -1518,6 +1518,74 @@ describe('NewGameSetupModal', () => {
       expect(screen.getByRole('textbox', { name: /Opponent Name/i })).toHaveValue('KuPS');
     });
 
+
+    /**
+     * @critical - the owner typed "Ip" expecting the list to narrow to IPS and
+     * nothing happened. Static chips are not autocomplete. The datalist that
+     * used to do this was removed (it re-roles the input to combobox), so the
+     * filtering has to live in the chips.
+     */
+    it('narrows the chips as the coach types', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+
+      await act(async () => {
+        fireEvent.change(opponentInput, { target: { value: 'Ip' } });
+      });
+      const options = screen.getByTestId('opponent-options');
+      expect(options).toHaveTextContent('IPS');
+      expect(options).not.toHaveTextContent('KuPS');
+
+      // Case is ignored, like everywhere else. Partial, because typing a name
+      // in FULL is an exact match and deliberately restores the whole list -
+      // see the test below.
+      await act(async () => {
+        fireEvent.change(opponentInput, { target: { value: 'kup' } });
+      });
+      expect(screen.getByTestId('opponent-options')).toHaveTextContent('KuPS');
+      expect(screen.getByTestId('opponent-options')).not.toHaveTextContent('IPS');
+    });
+
+    /**
+     * Having picked one team must not strand the coach with a single chip when
+     * they meant to pick a different one.
+     */
+    it('brings the full list back once a team is chosen exactly', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'IPS' }));
+      });
+      const options = screen.getByTestId('opponent-options');
+      expect(options).toHaveTextContent('IPS');
+      expect(options).toHaveTextContent('KuPS');
+    });
+
+    it('offers no chips for a name that matches none, leaving the add instead', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} onAddOpponentToSeason={jest.fn()} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      await act(async () => {
+        fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+          target: { value: 'HJK' },
+        });
+      });
+      expect(screen.queryByTestId('opponent-options')).not.toBeInTheDocument();
+      expect(screen.getByTestId('opponent-add-to-season')).toBeInTheDocument();
+    });
+
     it('offers to remember a newly typed team, and does not for one already listed', async () => {
       const onAddOpponentToSeason = jest.fn().mockResolvedValue(undefined);
       render(

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { CollapsibleModalHeader, useCollapsingHeader } from '@/styles/modalStyles';
 import OpponentNameSweepModal from '@/components/OpponentNameSweepModal';
+import { useOpponentVariantGroups } from '@/hooks/useOpponentVariantGroups';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import { Season, Tournament, Player } from '@/types';
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox } from 'react-icons/hi2';
@@ -74,6 +75,10 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const [showNameSweep, setShowNameSweep] = useState(false);
     // Back closes the sweep first, leaving this manager open underneath.
     useHardwareBackSubLevel(showNameSweep, () => setShowNameSweep(false));
+    // Nobody opens a cleanup tool speculatively. The count is what tells a
+    // coach there is anything to clean - the same groups the tool will show,
+    // from the same hook, so the badge cannot advertise work that is not there.
+    const nameConflicts = useOpponentVariantGroups(isOpen).length;
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; type: 'season' | 'tournament' } | null>(null);
 
@@ -393,9 +398,21 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
               type="button"
               onClick={() => setShowNameSweep(true)}
               data-testid="open-opponent-sweep"
-              className="w-full mt-2 px-4 py-2 rounded-sm text-sm font-medium bg-slate-700 text-slate-100 hover:bg-slate-600 border border-slate-600/60 transition-colors"
+              className={`w-full mt-2 px-4 py-2 rounded-sm text-sm font-medium border transition-colors flex items-center justify-center gap-2 ${
+                nameConflicts > 0
+                  ? 'bg-amber-500/15 text-amber-200 border-amber-400/40 hover:bg-amber-500/25'
+                  : 'bg-slate-700 text-slate-100 border-slate-600/60 hover:bg-slate-600'
+              }`}
             >
               {t('opponentSweep.openLabel', 'Check team names')}
+              {nameConflicts > 0 && (
+                <span
+                  data-testid="opponent-sweep-badge"
+                  className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-900 text-xs font-bold"
+                >
+                  {nameConflicts}
+                </span>
+              )}
             </button>
           </div>
         </CollapsibleModalHeader>
