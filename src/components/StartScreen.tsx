@@ -48,7 +48,7 @@ import {
 type RowIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
 
 const ROW_BASE =
-  'w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
+  'w-full flex items-center gap-3 p-3 [@media(min-height:720px)]:p-3.5 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
 const ROW_ON = 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90';
 const ROW_OFF = 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed';
 
@@ -346,7 +346,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* Scrolls when content exceeds the viewport (e.g. the dashboard's extra
           cards) so the lower action rows are never clipped; the bg glows above
           stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
-      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 pt-4 pb-6 pb-safe">
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 pt-3 pb-4 [@media(min-height:720px)]:pt-4 [@media(min-height:720px)]:pb-6 pb-safe">
 
         {/* === TOP: gear (upper-left) + language switcher (upper-right) ===
             Split to opposite corners (owner feedback: the gear looked cramped
@@ -417,7 +417,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(1.9rem,9vw,2.6rem)] [@media(min-height:720px)]:text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(2rem,9.5vw,2.9rem)] [@media(min-height:720px)]:text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
@@ -469,7 +469,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               unchanged. Phase 2 dissolves the modals into real tab content.
               Shown to everyone now - a brand-new coach learns the real Home
               from the start (no separate first-run mode). === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-3' : 'mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'mb-2 [@media(min-height:720px)]:mb-3' : 'mb-3 [@media(min-height:720px)]:mb-5'}`} role="tablist" aria-label={t('startScreen.homeTabs', 'Home sections')}>
               <div className="flex gap-1.5 rounded-xl bg-slate-800/70 border border-slate-700/60 backdrop-blur-sm p-1.5">
                 <button
                   type="button"
@@ -533,7 +533,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {/* === ACTION BUTTONS === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-2' : 'space-y-3'}`}>
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-1.5 [@media(min-height:720px)]:space-y-2' : 'space-y-2 [@media(min-height:720px)]:space-y-3'}`}>
             {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
