@@ -2,6 +2,17 @@
   "_comment": "User-facing release notes shown in the in-app update banner. EVERY merge to master ships a new build, so EVERY PR to master must add a NEW entry at the TOP of releases[] — no exceptions (CI's Release Notes Guard blocks PRs that don't). Newest entry = what users see. Write plain, user-friendly bullets (no commit-speak), in both EN and FI, describing what changed for the user.",
   "releases": [
     {
+      "date": "2026-09-12",
+      "en": [
+        "The home screen has been tidied up. It no longer wastes the top third of the screen on empty space, every row has an icon so you can find things without reading, and the Club and Games tabs are grouped so related items sit together.",
+        "The season bar now shows goal difference instead of two unlabelled goal totals, and the recent-games strip fades at the edge instead of cutting a card in half."
+      ],
+      "fi": [
+        "Alkunäkymä on siistitty. Se ei enää hukkaa näytön ylintä kolmannesta tyhjään tilaan, joka rivillä on kuvake jotta löydät asiat lukemattakin, ja Seura- ja Pelit-välilehdet on ryhmitelty niin että samaan kuuluvat asiat ovat yhdessä.",
+        "Kausipalkki näyttää nyt maalieron kahden selittämättömän maaliluvun sijaan, ja viimeisimmät ottelut häivytetään reunassa sen sijaan että kortti katkeaisi kesken."
+      ]
+    },
+    {
       "date": "2026-09-11",
       "en": [
         "In the voice notes inbox, the option for a note about the match as a whole is now simply \"The match\", listed alongside the players instead of reading as a sentence fragment."
