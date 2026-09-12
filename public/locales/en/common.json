@@ -1314,7 +1314,13 @@
     "groupCoaching": "Coaching",
     "groupTools": "Tools",
     "dashRecordTitle": "Wins - draws - losses",
-    "dashGoalDiffTitle": "Goal difference"
+    "dashGoalDiffTitle": "Goal difference",
+    "dashPlayersCount_one": "{{count}} player",
+    "dashPlayersCount_other": "{{count}} players",
+    "dashTeamsCount_one": "{{count}} team",
+    "dashTeamsCount_other": "{{count}} teams",
+    "dashPersonnelCount_one": "{{count}} staff",
+    "dashPersonnelCount_other": "{{count}} staff"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

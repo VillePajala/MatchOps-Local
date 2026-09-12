@@ -549,7 +549,10 @@ describe('Translation File Validation', () => {
       // +5 Home visual pass: three section labels (People / Coaching / Tools)
       //     that give each tab's stack of rows some structure, plus two
       //     tooltips naming what the season bar's numbers are. Lands at 3220.
-      expect(enKeys.length).toBe(3220);
+      // +6 pluralised Club-tab counts (_one/_other x3): the old form pasted a
+      //     number onto a fixed plural noun, so Finnish read "1 joukkuetta".
+      //     Lands at 3226.
+      expect(enKeys.length).toBe(3226);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -723,7 +726,8 @@ describe('Translation File Validation', () => {
       // +1 ruleViewer.canvasLabel (see EN above). Lands at 3212.
       // +3 net for the contextual formats section (see EN above). Lands at 3215.
       // +5 Home visual pass (see EN above). Lands at 3220.
-      expect(fiKeys.length).toBe(3220);
+      // +6 pluralised counts (see EN above). Lands at 3226.
+      expect(fiKeys.length).toBe(3226);
     });
   });
 });

@@ -5,11 +5,13 @@
       "date": "2026-09-12",
       "en": [
         "The home screen has been tidied up. It no longer wastes the top third of the screen on empty space, every row has an icon so you can find things without reading, and the Club and Games tabs are grouped so related items sit together.",
-        "The season bar now shows goal difference instead of two unlabelled goal totals, and the recent-games strip fades at the edge instead of cutting a card in half."
+        "The season bar now shows goal difference instead of two unlabelled goal totals, and the recent-games strip fades at the edge instead of cutting a card in half.",
+        "The resume card is now dark with an amber Continue button, so amber means one thing on the home screen: press this. Counts read \"1 team\" rather than \"1 teams\", and the top-scorer tile shows the goals as the number with the player's name beneath, so long names no longer overflow it."
       ],
       "fi": [
         "Alkunäkymä on siistitty. Se ei enää hukkaa näytön ylintä kolmannesta tyhjään tilaan, joka rivillä on kuvake jotta löydät asiat lukemattakin, ja Seura- ja Pelit-välilehdet on ryhmitelty niin että samaan kuuluvat asiat ovat yhdessä.",
-        "Kausipalkki näyttää nyt maalieron kahden selittämättömän maaliluvun sijaan, ja viimeisimmät ottelut häivytetään reunassa sen sijaan että kortti katkeaisi kesken."
+        "Kausipalkki näyttää nyt maalieron kahden selittämättömän maaliluvun sijaan, ja viimeisimmät ottelut häivytetään reunassa sen sijaan että kortti katkeaisi kesken.",
+        "Jatka-kortti on nyt tumma ja Jatka-painike oranssi, joten oranssi tarkoittaa alkunäkymässä yhtä asiaa: paina tästä. Lukumäärät lukevat \"1 joukkue\" eikä \"1 joukkuetta\", ja maalipörssikortti näyttää maalit numerona ja pelaajan nimen sen alla, joten pitkä nimi ei enää valu yli."
       ]
     },
     {

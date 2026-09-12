@@ -35,7 +35,17 @@ jest.mock('@/contexts/AuthProvider', () => ({
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
+    // Interpolates {{vars}} like the real t does. Without this the mock
+    // returned "{{count}} players" verbatim, so no assertion in this file
+    // could ever see an interpolated string - which made a pluralised count
+    // look like a regression when it was the mock that could not read it.
+    t: (key: string, fallback?: string, options?: Record<string, unknown>) => {
+      const text = fallback || key;
+      if (!options) return text;
+      return text.replace(/\{\{(\w+)\}\}/g, (_m: string, name: string) =>
+        String(options[name] ?? ''),
+      );
+    },
   }),
 }));
 
@@ -870,11 +880,16 @@ describe('Home dashboard view (opt-in)', () => {
     const scoped = { ...summary, vuosi: { ...summary.vuosi, gamesPlayed: 3, goalsFor: 4 }, topScorer: { name: 'Virta', goals: 2 } };
     render(<StartScreen {...dashProps({ teamScopeOptions: teams, teamScope: 'a', homeStatsSummary: scoped })} />);
     expect(screen.queryByTestId('home-team-scope')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Virta 2/)).not.toBeInTheDocument();
+    // The scorer tile shows the goals as the figure and the NAME as its label
+    // (a name set as the big number overflowed a third-width tile), so the two
+    // are asserted separately.
+    expect(screen.queryByText('Virta')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByTestId('home-team-scope')).toBeInTheDocument();
-    expect(screen.getByText(/Virta 2/)).toBeInTheDocument();
-    expect(screen.queryByText(/Aho 6/)).not.toBeInTheDocument();
+    expect(screen.getByText('Virta')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    // The club-wide scorer must not leak into the team-scoped tiles.
+    expect(screen.queryByText('Aho')).not.toBeInTheDocument();
   });
 
   it('gear sheet toggle flips the view via onSetHomeView', () => {
@@ -912,7 +927,9 @@ describe('Home dashboard view (opt-in)', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Stats' }));
     expect(screen.getByText('Results')).toBeInTheDocument();
     expect(screen.getByText('Goal diff')).toBeInTheDocument();
-    expect(screen.getByText(/Aho 6/)).toBeInTheDocument(); // top scorer tile
+    // Goals are the figure, the name is the label beneath it.
+    expect(screen.getByText('6')).toBeInTheDocument();
+    expect(screen.getByText('Aho')).toBeInTheDocument();
   });
 });
 

@@ -1174,7 +1174,13 @@
     "groupCoaching": "Valmennus",
     "groupTools": "Työkalut",
     "dashRecordTitle": "Voitot - tasapelit - häviöt",
-    "dashGoalDiffTitle": "Maaliero"
+    "dashGoalDiffTitle": "Maaliero",
+    "dashPlayersCount_one": "{{count}} pelaaja",
+    "dashPlayersCount_other": "{{count}} pelaajaa",
+    "dashTeamsCount_one": "{{count}} joukkue",
+    "dashTeamsCount_other": "{{count}} joukkuetta",
+    "dashPersonnelCount_one": "{{count}} toimihenkilö",
+    "dashPersonnelCount_other": "{{count}} toimihenkilöä"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
