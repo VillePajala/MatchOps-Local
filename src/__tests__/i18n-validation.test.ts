@@ -552,7 +552,10 @@ describe('Translation File Validation', () => {
       // +6 pluralised Club-tab counts (_one/_other x3): the old form pasted a
       //     number onto a fixed plural noun, so Finnish read "1 joukkuetta".
       //     Lands at 3226.
-      expect(enKeys.length).toBe(3226);
+      // +4 pluralised Kilpailut counts: the same concatenation bug the Club
+      //     tab had, missed because that card lives in another component -
+      //     Finnish read "1 sarjaa". Lands at 3230.
+      expect(enKeys.length).toBe(3230);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -727,7 +730,8 @@ describe('Translation File Validation', () => {
       // +3 net for the contextual formats section (see EN above). Lands at 3215.
       // +5 Home visual pass (see EN above). Lands at 3220.
       // +6 pluralised counts (see EN above). Lands at 3226.
-      expect(fiKeys.length).toBe(3226);
+      // +4 pluralised Kilpailut counts (see EN above). Lands at 3230.
+      expect(fiKeys.length).toBe(3230);
     });
   });
 });

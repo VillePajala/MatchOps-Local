@@ -1180,7 +1180,11 @@
     "dashTeamsCount_one": "{{count}} joukkue",
     "dashTeamsCount_other": "{{count}} joukkuetta",
     "dashPersonnelCount_one": "{{count}} toimihenkilö",
-    "dashPersonnelCount_other": "{{count}} toimihenkilöä"
+    "dashPersonnelCount_other": "{{count}} toimihenkilöä",
+    "dashSeasonsCount_one": "{{count}} sarja",
+    "dashSeasonsCount_other": "{{count}} sarjaa",
+    "dashTournamentsCount_one": "{{count}} turnaus",
+    "dashTournamentsCount_other": "{{count}} turnausta"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

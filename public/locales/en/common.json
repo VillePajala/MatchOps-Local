@@ -1320,7 +1320,11 @@
     "dashTeamsCount_one": "{{count}} team",
     "dashTeamsCount_other": "{{count}} teams",
     "dashPersonnelCount_one": "{{count}} staff",
-    "dashPersonnelCount_other": "{{count}} staff"
+    "dashPersonnelCount_other": "{{count}} staff",
+    "dashSeasonsCount_one": "{{count}} league",
+    "dashSeasonsCount_other": "{{count}} leagues",
+    "dashTournamentsCount_one": "{{count}} tournament",
+    "dashTournamentsCount_other": "{{count}} tournaments"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
