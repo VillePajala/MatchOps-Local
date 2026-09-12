@@ -81,7 +81,7 @@ function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi'
         }`}
         title={t('startScreen.dashGoalDiffTitle', 'Goal difference')}
       >
-        {vuosi.goalDifference > 0 ? '+' : ''}{vuosi.goalDifference}
+        {vuosi.goalDifference >= 0 ? '+' : ''}{vuosi.goalDifference}
       </span>
       <span className="ml-auto text-slate-500" aria-hidden="true">›</span>
     </button>
@@ -237,7 +237,7 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
       </div>
       <div className="flex items-baseline justify-between gap-3 mt-0.5">
         <span className="text-base font-extrabold text-white">
-          {vuosi ? `${t('startScreen.dashSeason', 'Season')} ${vuosi.label}` : t('seasonTournamentModal.title', 'Competitions')}
+          {vuosi ? vuosi.label : t('seasonTournamentModal.title', 'Competitions')}
         </span>
         {vuosi && (
           <span className="text-sm font-bold tabular-nums whitespace-nowrap">
@@ -248,7 +248,9 @@ export function HomeSeasonCard({ vuosi, counts, onOpen, t }: {
         )}
       </div>
       <div className="text-xs text-indigo-200/70 mt-1 tabular-nums">
-        {counts.seasons} {t('startScreen.dashSeasons', 'leagues')} · {counts.tournaments} {t('startScreen.dashTournaments', 'tournaments')}
+        {t('startScreen.dashSeasonsCount', '{{count}} leagues', { count: counts.seasons })}
+        {' · '}
+        {t('startScreen.dashTournamentsCount', '{{count}} tournaments', { count: counts.tournaments })}
       </div>
     </button>
   );
