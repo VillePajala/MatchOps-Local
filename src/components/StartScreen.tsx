@@ -48,7 +48,7 @@ import {
 type RowIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
 
 const ROW_BASE =
-  'w-full flex items-center gap-3 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
+  'w-full flex items-center gap-3 p-3.5 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
 const ROW_ON = 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90';
 const ROW_OFF = 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed';
 
@@ -346,7 +346,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* Scrolls when content exceeds the viewport (e.g. the dashboard's extra
           cards) so the lower action rows are never clipped; the bg glows above
           stay fixed. min-h-0 lets the flex child actually shrink to enable it. */}
-      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 py-8 pb-safe">
+      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex flex-col px-6 pt-4 pb-6 pb-safe">
 
         {/* === TOP: gear (upper-left) + language switcher (upper-right) ===
             Split to opposite corners (owner feedback: the gear looked cramped
@@ -407,7 +407,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
         <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1' : 'pt-3'}`}>
-          <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-4'}`}>
+          <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
@@ -533,7 +533,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {/* === ACTION BUTTONS === */}
-          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-2.5' : 'space-y-3'}`}>
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-2' : 'space-y-3'}`}>
             {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
@@ -812,7 +812,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500 bg-amber-500/15 border-amber-400/40 text-amber-100 hover:bg-amber-500/25 ${dashboardOn ? 'flex-1' : 'w-full'}`}
                     >
                       <HiOutlinePlusCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-                      <span className="text-sm font-bold">
+                      <span className="text-[13px] font-bold leading-tight">
                         {t('startScreen.newGame', 'New Game')}
                       </span>
                     </button>
@@ -823,7 +823,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                         className={`flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
                       >
                         <HiOutlineFolderOpen className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
-                        <span className="text-sm font-semibold text-white">
+                        <span className="text-[13px] font-semibold text-white leading-tight">
                           {t('startScreen.savedGames', 'Saved games')}
                         </span>
                       </button>
