@@ -51,13 +51,32 @@ function VuosiBar({ vuosi, onOpen, t }: { vuosi: NonNullable<HomeSummary['vuosi'
       <span className="text-slate-600" aria-hidden="true">·</span>
       <span className="text-slate-300 tabular-nums">{vuosi.gamesPlayed} {t('startScreen.dashGames', 'games')}</span>
       <span className="text-slate-600" aria-hidden="true">·</span>
-      <span className="tabular-nums whitespace-nowrap">
+      {/* Green-grey-red is the football convention for W-D-L, so the colours
+          label these without spending width on words. */}
+      <span
+        className="tabular-nums whitespace-nowrap"
+        title={t('startScreen.dashRecordTitle', 'Wins - draws - losses')}
+      >
         <span className="text-green-400 font-bold">{vuosi.wins}</span>
         <span className="text-slate-500">-{vuosi.ties}-</span>
         <span className="text-red-400 font-bold">{vuosi.losses}</span>
       </span>
       <span className="text-slate-600" aria-hidden="true">·</span>
-      <span className="text-slate-300 tabular-nums">{vuosi.goalsFor}–{vuosi.goalsAgainst}</span>
+      {/* Goal DIFFERENCE, not "117–154". The pair was two unlabelled numbers a
+          reader had to interpret; the difference is one number that says the
+          same thing, and its sign carries the meaning on its own. */}
+      <span
+        className={`tabular-nums font-bold ${
+          vuosi.goalDifference > 0
+            ? 'text-green-400'
+            : vuosi.goalDifference < 0
+              ? 'text-red-400'
+              : 'text-slate-300'
+        }`}
+        title={t('startScreen.dashGoalDiffTitle', 'Goal difference')}
+      >
+        {vuosi.goalDifference > 0 ? '+' : ''}{vuosi.goalDifference}
+      </span>
       <span className="ml-auto text-slate-500" aria-hidden="true">›</span>
     </button>
   );
@@ -104,10 +123,22 @@ export function HomeDashboard({
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 px-0.5">
             {t('startScreen.dashRecent', 'Recent')}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
-            {summary.recent.map((game) => (
-              <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
-            ))}
+          {/* The strip scrolls, and the card at the edge used to be cut clean
+              through its own border - which reads as a rendering fault, not as
+              an invitation to scroll. The gradient lets it dissolve instead.
+              pointer-events-none so it never eats a tap on the card beneath. */}
+          <div className="relative">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5" style={{ scrollbarWidth: 'none' }}>
+              {summary.recent.map((game) => (
+                <RecentCard key={game.id} game={game} onOpen={onOpenGame} />
+              ))}
+            </div>
+            {summary.recent.length > 2 && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-slate-900 to-transparent"
+              />
+            )}
           </div>
         </div>
       )}

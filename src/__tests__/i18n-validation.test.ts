@@ -546,7 +546,10 @@ describe('Translation File Validation', () => {
       // +3 net making the formats section contextual: four new keys
       //     (formatsFootballNone/ShowFutsal/AgeLabel/AllAges) less
       //     formatsFutsalOnly, whose job the heading now does. Lands at 3215.
-      expect(enKeys.length).toBe(3215);
+      // +5 Home visual pass: three section labels (People / Coaching / Tools)
+      //     that give each tab's stack of rows some structure, plus two
+      //     tooltips naming what the season bar's numbers are. Lands at 3220.
+      expect(enKeys.length).toBe(3220);
     });
 
     it('FI key count should match expected (update snapshot if intentional)', () => {
@@ -719,7 +722,8 @@ describe('Translation File Validation', () => {
       // +6 net for the in-app rule viewer (see EN above). Lands at 3211.
       // +1 ruleViewer.canvasLabel (see EN above). Lands at 3212.
       // +3 net for the contextual formats section (see EN above). Lands at 3215.
-      expect(fiKeys.length).toBe(3215);
+      // +5 Home visual pass (see EN above). Lands at 3220.
+      expect(fiKeys.length).toBe(3220);
     });
   });
 });

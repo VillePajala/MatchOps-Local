@@ -1169,7 +1169,12 @@
     "gearSetup": "Käyttöönotto ({{done}}/4)",
     "dashAllTeams": "Kaikki joukkueet",
     "dashTeamLabel": "Joukkue",
-    "dashTeamScope": "Mistä joukkueesta nämä luvut ovat"
+    "dashTeamScope": "Mistä joukkueesta nämä luvut ovat",
+    "groupPeople": "Ihmiset",
+    "groupCoaching": "Valmennus",
+    "groupTools": "Työkalut",
+    "dashRecordTitle": "Voitot - tasapelit - häviöt",
+    "dashGoalDiffTitle": "Maaliero"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",

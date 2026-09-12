@@ -12,7 +12,112 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { useGuidedTourOptional } from '@/contexts/GuidedTourProvider';
 import { FIRST_RUN_TOUR_ID, firstRunTourSteps } from '@/components/GuidedTour/firstRunTour';
 import { isAndroid } from '@/utils/platform';
-import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
+import {
+  HiOutlineArrowTopRightOnSquare,
+  HiOutlineUsers,
+  HiOutlineUserGroup,
+  HiOutlineIdentification,
+  HiOutlineClipboardDocumentList,
+  HiOutlineBookOpen,
+  HiOutlineAcademicCap,
+  HiOutlineCalendarDays,
+  HiOutlineTrophy,
+  HiOutlineChartBar,
+  HiOutlineUserCircle,
+  HiOutlineRectangleStack,
+  HiOutlinePlusCircle,
+  HiOutlineFolderOpen,
+  HiOutlineClipboard,
+} from 'react-icons/hi2';
+
+/**
+ * Home's entry vocabulary, in one place.
+ *
+ * Every tab used to render its own copy of the same slate row, which is how
+ * four different contexts - match day, the club, competitions, statistics -
+ * ended up reading as one undifferentiated list. These three shapes are the
+ * whole vocabulary now:
+ *
+ *   Row   - a full-width destination. Icon, label, trailing affordance.
+ *   Tile  - half-width, for two things of genuinely equal weight.
+ *   Label - a quiet section heading, so a stack of rows has structure.
+ *
+ * The icons are the point: on a phone they are what makes a list scannable
+ * without reading it, and they give each tab a recognisable silhouette.
+ */
+type RowIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
+
+const ROW_BASE =
+  'w-full flex items-center gap-3 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500';
+const ROW_ON = 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90';
+const ROW_OFF = 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed';
+
+const HomeSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-0.5 pt-1">
+    {children}
+  </div>
+);
+
+const HomeRow: React.FC<{
+  icon: RowIcon;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  testId?: string;
+  /** Trailing element: a chevron by default, or a custom node (a step badge). */
+  trailing?: React.ReactNode;
+}> = ({ icon: Icon, label, onClick, disabled, testId, trailing }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    data-testid={testId}
+    className={`${ROW_BASE} ${disabled ? ROW_OFF : ROW_ON}`}
+  >
+    <Icon className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
+    <span className="text-sm font-semibold text-white text-left flex-1 min-w-0 truncate">{label}</span>
+    {trailing ?? <span className="text-slate-500 flex-shrink-0" aria-hidden="true">&rsaquo;</span>}
+  </button>
+);
+
+/** Same row, for a destination outside the app. The corner icon is honest. */
+const HomeLinkRow: React.FC<{ icon: RowIcon; label: string; href: string }> = ({ icon: Icon, label, href }) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    className={`${ROW_BASE} ${ROW_ON}`}
+  >
+    <Icon className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
+    <span className="text-sm font-semibold text-white flex-1 min-w-0 truncate">{label}</span>
+    <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500 flex-shrink-0" aria-hidden="true" />
+  </a>
+);
+
+/**
+ * Half-width tile. Icon above the label, centred - deliberately a different
+ * shape from a Row, so a pair of equals does not look like two truncated rows.
+ */
+const HomeTile: React.FC<{
+  icon: RowIcon;
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  testId?: string;
+}> = ({ icon: Icon, label, onClick, disabled, testId }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    data-testid={testId}
+    className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-2 py-3.5 rounded-xl border text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${
+      disabled ? ROW_OFF : ROW_ON
+    }`}
+  >
+    <Icon className="w-5 h-5 text-slate-400" aria-hidden="true" />
+    <span className="text-sm font-semibold text-white leading-tight">{label}</span>
+  </button>
+);
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -301,7 +406,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className="flex-1 flex flex-col justify-start pt-[6vh]">
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1' : 'pt-[6vh]'}`}>
           <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-6'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
@@ -439,109 +544,58 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {homeSummary?.countsReady && homeSummary.counts.players === 0 && (
                   <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyTeam', 'Start by adding your players.')}</p>
                 )}
-                {/* 2-across tiles keep the Team tab from scrolling on small
-                    phones (owner feedback): the "who" pair on top, coaching
-                    items next, external materials full-width below. */}
+                {/* Two groups, because the Club tab holds two different
+                    kinds of thing: the PEOPLE in the club, and the MATERIAL a
+                    coach consults. Before this they were five identical rows
+                    with no indication that the boundary existed. */}
+                <HomeSectionLabel>{t('startScreen.groupPeople', 'People')}</HomeSectionLabel>
                 <div className="flex gap-2.5">
-                  <button
-                    type="button"
+                  <HomeTile
+                    icon={HiOutlineUsers}
+                    label={t('startScreen.rowPlayers', 'Players')}
                     onClick={onManageRoster}
                     disabled={!onManageRoster}
-                    data-testid="tour-players"
-                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
-                      onManageRoster
-                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <span className="text-sm font-semibold text-white">
-                      {t('startScreen.rowPlayers', 'Players')}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
+                    testId="tour-players"
+                  />
+                  <HomeTile
+                    icon={HiOutlineUserGroup}
+                    label={t('startScreen.rowTeams', 'Teams')}
                     onClick={onManageTeams}
                     disabled={!onManageTeams}
-                    data-testid="tour-teams"
-                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
-                      onManageTeams
-                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <span className="text-sm font-semibold text-white">
-                      {t('startScreen.rowTeams', 'Teams')}
-                    </span>
-                  </button>
+                    testId="tour-teams"
+                  />
                 </div>
-                <div className="flex gap-2.5">
-                  <button
-                    type="button"
-                    onClick={onManagePersonnel}
-                    disabled={!onManagePersonnel}
-                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
-                      onManagePersonnel
-                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <span className="text-sm font-semibold text-white">
-                      {t('startScreen.rowPersonnel', 'Personnel')}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onOpenTraining}
-                    disabled={!onOpenTraining}
-                    className={`flex-1 flex items-center justify-center p-4 rounded-xl border text-center transition-all ${
-                      onOpenTraining
-                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <span className="text-sm font-semibold text-white">
-                      {t('startScreen.rowTraining', 'Warmup Plan')}
-                    </span>
-                  </button>
-                </div>
-                {/* Rules belongs with the coaching materials below it, by the
-                    same reasoning 3.1b applied there: reference a coach
-                    consults, not app configuration. It was the one such item
-                    still hiding under the gear, where a coach scanning the tabs
-                    would never meet it. A button, not a link with the
-                    leaving-the-app icon, because it opens the in-app directory.
-                    Full-width rows are left-aligned with a trailing affordance;
-                    only the half-width PAIRS above centre their label. This row
-                    was the one exception, and it read as a different kind of
-                    control than its neighbours. */}
+                <HomeRow
+                  icon={HiOutlineIdentification}
+                  label={t('startScreen.rowPersonnel', 'Personnel')}
+                  onClick={onManagePersonnel}
+                  disabled={!onManagePersonnel}
+                />
+
+                <HomeSectionLabel>{t('startScreen.groupCoaching', 'Coaching')}</HomeSectionLabel>
+                <HomeRow
+                  icon={HiOutlineClipboardDocumentList}
+                  label={t('startScreen.rowTraining', 'Warmup Plan')}
+                  onClick={onOpenTraining}
+                  disabled={!onOpenTraining}
+                />
+                {/* Rules belongs with the coaching material, by the same
+                    reasoning 3.1b applied there: reference a coach consults,
+                    not app configuration. It was the one such item still
+                    hiding under the gear. */}
                 {onOpenRules && (
-                  <button
-                    type="button"
+                  <HomeRow
+                    icon={HiOutlineBookOpen}
+                    label={t('startScreen.rowRules', 'Rules')}
                     onClick={onOpenRules}
-                    data-testid="club-rules"
-                    className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                  >
-                    <span className="text-sm font-semibold text-white">
-                      {t('startScreen.rowRules', 'Rules')}
-                    </span>
-                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                  </button>
+                    testId="club-rules"
+                  />
                 )}
-                {/* Training CONTENT scope: the coaching materials link lives
-                    with the team, not under the gear. Solid row like its
-                    siblings (3.1b - bare link text looked out of place);
-                    the corner icon is honest about leaving the app. */}
-                <a
+                <HomeLinkRow
+                  icon={HiOutlineAcademicCap}
+                  label={t('controlBar.coachingMaterials', 'Coaching Materials')}
                   href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('controlBar.coachingMaterials', 'Coaching Materials')}
-                  </span>
-                  <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
-                </a>
+                />
               </>
             ) : activeTab === 'seasons' ? (
               /* Competitions panel: separate Kaudet and Turnaukset entries,
@@ -558,36 +612,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {homeSummary?.countsReady && homeSummary.counts.seasons === 0 && homeSummary.counts.tournaments === 0 && (
                   <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyCompetitions', 'Create a league or tournament to group your games.')}</p>
                 )}
-                <button
-                  type="button"
+                <HomeRow
+                  icon={HiOutlineCalendarDays}
+                  label={t('seasonTournamentModal.seasons', 'Leagues')}
                   onClick={onManageSeasons}
                   disabled={!onManageSeasons}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    onManageSeasons
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('seasonTournamentModal.seasons', 'Leagues')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
-                <button
-                  type="button"
+                />
+                <HomeRow
+                  icon={HiOutlineTrophy}
+                  label={t('seasonTournamentModal.tournaments', 'Tournaments')}
                   onClick={onManageTournaments}
                   disabled={!onManageTournaments}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                    onManageTournaments
-                      ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                      : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                  }`}
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('seasonTournamentModal.tournaments', 'Tournaments')}
-                  </span>
-                  <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                </button>
+                />
               </>
             ) : activeTab === 'stats' ? (
               /* Stats panel (W8): one row per aggregate stats tab - the rows
@@ -614,26 +650,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {!hasSavedGames && (
                   <p className="text-sm text-slate-400 px-1 pb-1 text-center">{t('startScreen.emptyStats', "Statistics appear once you've played games.")}</p>
                 )}
+                {/* Each scope gets the icon of the thing it aggregates, so the
+                    four are told apart at a glance rather than by reading four
+                    labels that all end in the same word. */}
                 {([
-                  ['season', t('startScreen.statsSeason', 'League stats')],
-                  ['tournament', t('startScreen.statsTournament', 'Tournament stats')],
-                  ['overall', t('startScreen.statsOverall', 'Overall stats')],
-                  ['player', t('startScreen.statsPlayer', 'Player stats')],
-                ] as const).map(([tab, label]) => (
-                  <button
+                  ['season', t('startScreen.statsSeason', 'League stats'), HiOutlineCalendarDays],
+                  ['tournament', t('startScreen.statsTournament', 'Tournament stats'), HiOutlineTrophy],
+                  ['overall', t('startScreen.statsOverall', 'Overall stats'), HiOutlineChartBar],
+                  ['player', t('startScreen.statsPlayer', 'Player stats'), HiOutlineUserCircle],
+                ] as const).map(([tab, label, icon]) => (
+                  <HomeRow
                     key={tab}
-                    type="button"
+                    icon={icon}
+                    label={label}
                     onClick={onViewStatsTab ? () => onViewStatsTab(tab) : onViewStats}
                     disabled={!hasSavedGames}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
-                      hasSavedGames
-                        ? 'bg-slate-800/90 border-slate-700/60 hover:bg-slate-700/90'
-                        : 'bg-slate-800/40 border-slate-700/40 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <span className="text-sm font-semibold text-white">{label}</span>
-                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                  </button>
+                  />
                 ))}
               </>
             ) : (
@@ -760,41 +792,40 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       {t('startScreen.newGame', 'New Game')}
                     </button>
                     {hasSavedGames && (
-                      <button
-                        type="button"
+                      <HomeRow
+                        icon={HiOutlineFolderOpen}
+                        label={t('startScreen.savedGames', 'Saved games')}
                         onClick={onLoadGame}
-                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                      >
-                        <span className="text-sm font-semibold text-white">
-                          {t('startScreen.savedGames', 'Saved games')}
-                        </span>
-                        <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                      </button>
+                      />
                     )}
                   </>
                 ) : (
+                  /* With a game to resume, the amber card above is the hero and
+                     these two step back. New Game still outranks the archive:
+                     starting a match is why the app exists, browsing old ones
+                     is occasional, and equal weight said otherwise. */
                   <div className={dashboardOn ? 'flex gap-2.5' : 'space-y-3'}>
                     <button
                       type="button"
                       onClick={onNewGame ?? onGetStarted}
                       data-testid="tour-new-game"
-                      className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                      className={`flex items-center justify-center gap-2 p-4 rounded-xl border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-amber-500 bg-amber-500/15 border-amber-400/40 text-amber-100 hover:bg-amber-500/25 ${dashboardOn ? 'flex-1' : 'w-full'}`}
                     >
-                      <span className="text-sm font-semibold text-white">
+                      <HiOutlinePlusCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+                      <span className="text-sm font-bold">
                         {t('startScreen.newGame', 'New Game')}
                       </span>
-                      {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
                     </button>
                     {hasSavedGames && (
                       <button
                         type="button"
                         onClick={onLoadGame}
-                        className={`flex items-center p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all ${dashboardOn ? 'flex-1 justify-center' : 'w-full justify-between'}`}
+                        className={`flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 ${dashboardOn ? 'flex-1' : 'w-full'}`}
                       >
+                        <HiOutlineFolderOpen className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
                         <span className="text-sm font-semibold text-white">
                           {t('startScreen.savedGames', 'Saved games')}
                         </span>
-                        {!dashboardOn && <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>}
                       </button>
                     )}
                   </div>
@@ -803,34 +834,30 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 {/* Side entries are DEFERRED while composing (owner round 4:
                     they pushed the onboarding screen past the fold and are
                     dead weight before the first game); back automatically
-                    once a game exists. */}
+                    once a game exists.
+
+                    Grouped under a label now: the planner and Taso are tools a
+                    coach reaches for around a match, not more ways to start
+                    one, and sitting flush under New Game implied otherwise. */}
+                {!composeOnboarding && (
+                  <HomeSectionLabel>{t('startScreen.groupTools', 'Tools')}</HomeSectionLabel>
+                )}
                 {!composeOnboarding && onOpenPlanner && (
-                  <button
-                    type="button"
+                  <HomeRow
+                    icon={HiOutlineClipboard}
+                    label={t('controlBar.planner', 'Match planner')}
                     onClick={onOpenPlanner}
-                    className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                  >
-                    <span className="text-sm font-semibold text-white">
-                      {t('controlBar.planner', 'Match planner')}
-                    </span>
-                    <span className="text-slate-500" aria-hidden="true">&rsaquo;</span>
-                  </button>
+                  />
                 )}
                 {/* Taso is a game-day workflow tool (submit the lineup before,
                     report the result after) - it earns a games-tab row, not a
-                    burial under the gear. Solid row like its siblings (3.1b). */}
+                    burial under the gear. */}
                 {!composeOnboarding && (
-                <a
-                  href="https://taso.palloliitto.fi"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700/90 transition-all"
-                >
-                  <span className="text-sm font-semibold text-white">
-                    {t('startScreen.tasoLink', 'Taso - lineups & results')}
-                  </span>
-                  <HiOutlineArrowTopRightOnSquare className="w-4 h-4 text-slate-500" aria-hidden="true" />
-                </a>
+                  <HomeLinkRow
+                    icon={HiOutlineRectangleStack}
+                    label={t('startScreen.tasoLink', 'Taso - lineups & results')}
+                    href="https://taso.palloliitto.fi"
+                  />
                 )}
               </>
             )}

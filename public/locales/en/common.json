@@ -1309,7 +1309,12 @@
     "gearSetup": "Setup checklist ({{done}}/4)",
     "dashAllTeams": "All teams",
     "dashTeamLabel": "Team",
-    "dashTeamScope": "Which team these numbers are about"
+    "dashTeamScope": "Which team these numbers are about",
+    "groupPeople": "People",
+    "groupCoaching": "Coaching",
+    "groupTools": "Tools",
+    "dashRecordTitle": "Wins - draws - losses",
+    "dashGoalDiffTitle": "Goal difference"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
