@@ -406,18 +406,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1' : 'pt-[6vh]'}`}>
-          <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-6'}`}>
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1' : 'pt-3'}`}>
+          <div className={`text-center ${dashboardOn ? 'mb-2' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
                 full-size on first-run / empty state). */}
-            <div className={`relative inline-block ${dashboardOn ? '' : 'mb-3'}`}>
+            <div className={`relative inline-block ${dashboardOn ? '' : 'mb-1.5'}`}>
               {/* Fluid logo: clamp(min, vw, max) scales the wordmark with the
                   screen width (bigger phones -> bigger logo) instead of a fixed
                   px size, bounded so it never gets silly on very small/large
                   screens. Dashboard mode is a touch larger now that the tighter
                   cards freed room. */}
-              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(3.25rem,14vw,5rem)]'}`}>
+              <h1 className={`relative font-bold tracking-tight ${dashboardOn || composeOnboarding ? 'text-[clamp(2.3rem,10.5vw,3.5rem)]' : 'text-[clamp(2.5rem,11vw,3.75rem)]'}`}>
                 <span className="text-amber-400">MatchOps</span>
               </h1>
             </div>
@@ -428,7 +428,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 the welcome strip + hero + step rows fit above the fold (owner
                 round 2: the strip pushed content off-screen). */}
             {!dashboardOn && !composeOnboarding && (
-              <p className="text-lg text-slate-400">
+              <p className="text-base text-slate-400 -mt-1">
                 {t('startScreen.tagline', 'Plan · Track · Discover')}
               </p>
             )}
