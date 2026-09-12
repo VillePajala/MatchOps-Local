@@ -406,7 +406,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* === HERO: App Name (top-anchored - the Home shell of the two-level
             restructure; the tab bar below is the club-level navigation) === */}
-        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1' : 'pt-3'}`}>
+        <div className={`flex-1 flex flex-col justify-start ${dashboardOn ? 'pt-1 [@media(min-height:720px)]:pt-12 [@media(min-height:820px)]:pt-16' : 'pt-3 [@media(min-height:720px)]:pt-6'}`}>
           <div className={`text-center ${dashboardOn ? 'mb-1' : 'mb-4'}`}>
             {/* App Name as Logo - shrinks to a compact wordmark in dashboard mode
                 so the reclaimed hero space becomes the dashboard (the hero stays
@@ -533,10 +533,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
 
           {/* === ACTION BUTTONS === */}
-          {/* flex-1 + flex-col so the Tools group below can take mt-auto and sit
-              against the bottom. Without the column actually owning the
-              leftover height there is no slack for it to push against. */}
-          <div className={`max-w-sm mx-auto w-full flex-1 flex flex-col ${dashboardOn ? 'space-y-1.5 [@media(min-height:720px)]:space-y-2' : 'space-y-2 [@media(min-height:720px)]:space-y-3'}`}>
+          <div className={`max-w-sm mx-auto w-full ${dashboardOn ? 'space-y-1.5 [@media(min-height:720px)]:space-y-2' : 'space-y-2 [@media(min-height:720px)]:space-y-3'}`}>
             {activeTab === 'team' ? (
               /* Team panel (restructure 1.3b): every club-people item gets a
                  Home entry - the rows open the EXISTING modals (strangler). */
@@ -843,9 +840,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     coach reaches for around a match, not more ways to start
                     one, and sitting flush under New Game implied otherwise. */}
                 {!composeOnboarding && (
-                  <div className="mt-auto pt-2">
-                    <HomeSectionLabel>{t('startScreen.groupTools', 'Tools')}</HomeSectionLabel>
-                  </div>
+                  <HomeSectionLabel>{t('startScreen.groupTools', 'Tools')}</HomeSectionLabel>
                 )}
                 {!composeOnboarding && onOpenPlanner && (
                   <HomeRow
