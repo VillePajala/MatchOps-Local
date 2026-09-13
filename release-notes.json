@@ -4,6 +4,17 @@
     {
       "date": "2026-09-13",
       "en": [
+        "You can now list the teams in a league, and pick the opponent from that list when creating a game instead of typing the name every time. Typing is still allowed for a friendly or a one-off, and you can add a new team to the league straight from the game form.",
+        "New tool under Competitions: Check team names. It finds one team you have written several ways - IPS, Ips, IPS/Sininen - and settles them on one spelling across your games. It never merges two teams that differ by their colour."
+      ],
+      "fi": [
+        "Voit nyt listata sarjan joukkueet ja valita vastustajan listalta ottelua luodessa sen sijaan että kirjoittaisit nimen joka kerta. Käsin kirjoittaminen onnistuu edelleen harjoitusotteluun tai kertaluontoiseen peliin, ja voit lisätä uuden joukkueen sarjaan suoraan ottelulomakkeelta.",
+        "Uusi työkalu Kilpailut-näkymässä: Tarkista joukkuenimet. Se löytää joukkueen jonka olet kirjoittanut monella tavalla - IPS, Ips, IPS/Sininen - ja yhtenäistää kirjoitusasun kaikkiin otteluihin. Se ei koskaan yhdistä kahta joukkuetta jotka eroavat väriltään."
+      ]
+    },
+    {
+      "date": "2026-09-13",
+      "en": [
         "The home screen has been tidied up. It no longer wastes the top third of the screen on empty space, every row has an icon so you can find things without reading, and the Club and Games tabs are grouped so related items sit together.",
         "The season bar now shows goal difference instead of two unlabelled goal totals, and the recent-games strip fades at the edge instead of cutting a card in half.",
         "The resume card is now dark with an amber Continue button, so amber means one thing on the home screen: press this. Counts read \"1 team\" rather than \"1 teams\", and the top-scorer tile shows the goals as the number with the player's name beneath, so long names no longer overflow it.",

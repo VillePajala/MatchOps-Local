@@ -101,7 +101,7 @@ describe('NewGameSetupModal', () => {
   const mockOnCancel = jest.fn();
 
   const mockSeasonsData = [
-    { id: 'season1', name: 'Spring 2024', leagueId: 'sm-sarja', customLeagueName: '', gameType: 'soccer' as const },
+    { id: 'season1', name: 'Spring 2024', leagueId: 'sm-sarja', customLeagueName: '', gameType: 'soccer' as const, opponents: ['IPS', 'KuPS'] },
     { id: 'season2', name: 'Summer 2024', leagueId: 'muu', customLeagueName: 'Custom Summer League', gameType: 'futsal' as const },
     { id: 'season3', name: 'Fall 2024' }, // No league or gameType set
   ];
@@ -1478,4 +1478,196 @@ describe('NewGameSetupModal', () => {
       expect(call[call.length - 3]).toBeUndefined(); // no prefill payload rode along
     });
   });
+
+  /**
+   * @critical - the wiring between the competition's opponent list and the one
+   * free-text field left on this form. The list existing is worthless if the
+   * form never offers it, and the inline add is what stops the list staying
+   * empty forever because adding a team meant leaving the form.
+   */
+  describe('opponents from the competition', () => {
+    const selectSeason = async (id: string) => {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /League/i }));
+      });
+      await waitFor(() => expect(document.getElementById('seasonSelect')).toBeInTheDocument());
+      await act(async () => {
+        fireEvent.change(document.getElementById('seasonSelect') as HTMLSelectElement, {
+          target: { value: id },
+        });
+      });
+    };
+
+    it('offers the league’s teams once a league is chosen, and fills one on tap', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>,
+      );
+      // Nothing to offer before a competition is chosen.
+      expect(screen.queryByTestId('opponent-options')).not.toBeInTheDocument();
+
+      await selectSeason('season1');
+      const options = await screen.findByTestId('opponent-options');
+      expect(options).toHaveTextContent('IPS');
+      expect(options).toHaveTextContent('KuPS');
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'KuPS' }));
+      });
+      expect(screen.getByRole('textbox', { name: /Opponent Name/i })).toHaveValue('KuPS');
+    });
+
+
+
+    /**
+     * @critical - owner-reported, and the reason competition-scoped
+     * suggestions were not enough: the opponent field is the SECOND thing on
+     * this form and the competition is picked a whole card later. Scoping
+     * suggestions to the chosen competition meant they could never appear
+     * until after the coach had already typed the name.
+     */
+    it('suggests from every team the coach knows, before any competition is picked', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} knownOpponents={['HJK', 'KuPS']} />
+        </ToastProvider>,
+      );
+      // No competition selected, and the chips are already useful.
+      const options = await screen.findByTestId('opponent-options');
+      expect(options).toHaveTextContent('HJK');
+
+      await act(async () => {
+        fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+          target: { value: 'hj' },
+        });
+      });
+      expect(screen.getByTestId('opponent-options')).toHaveTextContent('HJK');
+      expect(screen.getByTestId('opponent-options')).not.toHaveTextContent('KuPS');
+    });
+
+    it('puts the chosen competition’s own teams first', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} knownOpponents={['HJK']} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      const chips = screen.getByTestId('opponent-options').textContent ?? '';
+      // season1 lists IPS and KuPS; HJK is merely known from elsewhere.
+      expect(chips.indexOf('IPS')).toBeLessThan(chips.indexOf('HJK'));
+    });
+
+    /**
+     * @critical - the owner typed "Ip" expecting the list to narrow to IPS and
+     * nothing happened. Static chips are not autocomplete. The datalist that
+     * used to do this was removed (it re-roles the input to combobox), so the
+     * filtering has to live in the chips.
+     */
+    it('narrows the chips as the coach types', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+
+      await act(async () => {
+        fireEvent.change(opponentInput, { target: { value: 'Ip' } });
+      });
+      const options = screen.getByTestId('opponent-options');
+      expect(options).toHaveTextContent('IPS');
+      expect(options).not.toHaveTextContent('KuPS');
+
+      // Case is ignored, like everywhere else. Partial, because typing a name
+      // in FULL is an exact match and deliberately restores the whole list -
+      // see the test below.
+      await act(async () => {
+        fireEvent.change(opponentInput, { target: { value: 'kup' } });
+      });
+      expect(screen.getByTestId('opponent-options')).toHaveTextContent('KuPS');
+      expect(screen.getByTestId('opponent-options')).not.toHaveTextContent('IPS');
+    });
+
+    /**
+     * Having picked one team must not strand the coach with a single chip when
+     * they meant to pick a different one.
+     */
+    it('brings the full list back once a team is chosen exactly', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'IPS' }));
+      });
+      const options = screen.getByTestId('opponent-options');
+      expect(options).toHaveTextContent('IPS');
+      expect(options).toHaveTextContent('KuPS');
+    });
+
+    it('offers no chips for a name that matches none, leaving the add instead', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} onAddOpponentToSeason={jest.fn()} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      await act(async () => {
+        fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+          target: { value: 'HJK' },
+        });
+      });
+      expect(screen.queryByTestId('opponent-options')).not.toBeInTheDocument();
+      expect(screen.getByTestId('opponent-add-to-season')).toBeInTheDocument();
+    });
+
+    it('offers to remember a newly typed team, and does not for one already listed', async () => {
+      const onAddOpponentToSeason = jest.fn().mockResolvedValue(undefined);
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} onAddOpponentToSeason={onAddOpponentToSeason} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      await act(async () => {
+        fireEvent.change(opponentInput, { target: { value: 'HJK' } });
+      });
+      await act(async () => {
+        fireEvent.click(await screen.findByTestId('opponent-add-to-season'));
+      });
+      expect(onAddOpponentToSeason).toHaveBeenCalledWith('season1', 'HJK');
+
+      // A spelling of a team already on the list is not "new".
+      await act(async () => {
+        fireEvent.change(opponentInput, { target: { value: 'ips' } });
+      });
+      expect(screen.queryByTestId('opponent-add-to-season')).not.toBeInTheDocument();
+    });
+
+    /**
+     * The offer is wired to a callback, so a host that does not supply one
+     * must not show a button that would do nothing.
+     */
+    it('hides the offer entirely when the host cannot persist it', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>,
+      );
+      await selectSeason('season1');
+      await act(async () => {
+        fireEvent.change(screen.getByRole('textbox', { name: /Opponent Name/i }), {
+          target: { value: 'HJK' },
+        });
+      });
+      expect(screen.queryByTestId('opponent-add-to-season')).not.toBeInTheDocument();
+    });
+  });
+
 });

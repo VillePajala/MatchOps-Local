@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { normalizeOpponentName } from '@/utils/opponentNames';
 
 export interface TeamOpponentInputsProps {
   teamName: string;
@@ -17,6 +18,14 @@ export interface TeamOpponentInputsProps {
   disabled?: boolean;
   teamError?: string | null;
   opponentError?: string | null;
+  /**
+   * The teams listed on the competition, offered as tap-to-fill chips and a
+   * native datalist. A POSSIBILITY, never a gate: the field stays free text so
+   * a friendly, a cup tie or a team that joined mid-season can always be typed.
+   */
+  opponentOptions?: string[];
+  /** Rendered under the opponent field - used for "add this to the league". */
+  opponentFooter?: React.ReactNode;
 }
 
 const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
@@ -34,7 +43,25 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
   disabled,
   teamError,
   opponentError,
+  opponentOptions,
+  opponentFooter,
 }) => {
+  const allOptions = (opponentOptions ?? []).filter((name) => name.trim() !== '');
+
+  /**
+   * Chips narrow as the coach types - that IS the autocomplete. The datalist
+   * that used to do it was removed because <input list> re-roles the field to
+   * combobox, so the filtering has to live here instead.
+   *
+   * Once the text matches an option exactly the full list comes back, so
+   * having picked one team does not strand the coach with a single chip when
+   * they meant to pick another.
+   */
+  const typed = normalizeOpponentName(opponentName);
+  const exactlyChosen = allOptions.some((name) => normalizeOpponentName(name) === typed);
+  const options = !typed || exactlyChosen
+    ? allOptions
+    : allOptions.filter((name) => normalizeOpponentName(name).includes(typed));
   return (
     <>
       <div className="mb-4">
@@ -79,6 +106,37 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           autoCapitalize="words"
           spellCheck="true"
         />
+        {/* Chips rather than a datalist. An <input list=...> takes the implicit
+            ARIA role COMBOBOX instead of textbox, which silently re-roles this
+            field for assistive tech and for anything querying it by role - it
+            broke existing tests the moment a competition had teams listed.
+            Chips are also the better phone affordance: one tap, and visible
+            without opening anything. */}
+        {options.length > 0 && (
+          <>
+            <div className="mt-2 flex flex-wrap gap-1.5" data-testid="opponent-options">
+              {options.map((name) => {
+                const chosen = name === opponentName;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => onOpponentNameChange(name)}
+                    disabled={disabled}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      chosen
+                        ? 'bg-indigo-600 border-indigo-400/40 text-white'
+                        : 'bg-slate-700/70 border-slate-600/60 text-slate-200 hover:bg-slate-600/70'
+                    }`}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {opponentFooter}
         {opponentError && <p className="mt-1 text-sm text-red-400">{opponentError}</p>}
       </div>
     </>
