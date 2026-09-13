@@ -1131,6 +1131,40 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
       });
     }
 
+    // --- Draw Planned Ghosts ---
+    // Faint name markers on sideline slots a planned sub enters later but no
+    // disc is waiting at. Drawn AFTER the sub-slot circles (so the slot ring
+    // stays underneath) and BEFORE the players, so a real disc always wins.
+    if (!isTacticsBoardView && plannedGhosts && plannedGhosts.length > 0) {
+      plannedGhosts.forEach(ghost => {
+        const gx = ghost.relX * W;
+        const gy = ghost.relY * H;
+        context.save();
+        // A dashed ring inside the slot's own circle, with no fill:
+        // unmistakably not a player, and it echoes the dotted sub-slot
+        // circles already on the sideline rather than adding a new mark.
+        context.setLineDash([4, 4]);
+        context.lineWidth = 2;
+        context.strokeStyle = 'rgba(226, 232, 240, 0.45)';
+        context.beginPath();
+        context.arc(gx, gy, FIELD_PLAYER_RADIUS * 0.82, 0, Math.PI * 2);
+        context.stroke();
+        context.setLineDash([]);
+        // The name is the whole point of the marker, so it gets the same
+        // dark outline the position labels use - a sideline slot can sit on
+        // a light patch of pitch.
+        context.font = '600 11px Rajdhani, sans-serif';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        context.lineWidth = 2;
+        context.strokeText(ghost.name, gx, gy);
+        context.fillStyle = 'rgba(226, 232, 240, 0.75)';
+        context.fillText(ghost.name, gx, gy);
+        context.restore();
+      });
+    }
+
     // --- Draw Players ---
     const playerRadius = FIELD_PLAYER_RADIUS;
     if (!isTacticsBoardView) {
@@ -1267,7 +1301,7 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     }
 
     // --- End of draw ---
-  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints]);
+  }, [players, opponents, drawings, showPlayerNames, showPositionLabels, isTacticsBoardView, tacticalDiscs, tacticalBallPosition, ballImage, gameType, selectedPlayerForSwapId, subSlots, t, formationSnapPoints, plannedGhosts]);
 
   // Add the new ResizeObserver effect
   useEffect(() => {
