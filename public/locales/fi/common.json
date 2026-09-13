@@ -406,7 +406,11 @@
     "addHome": "Lisää koti",
     "addOpponent": "Lisää vast.",
     "clear": "Tyhjennä",
-    "reset": "Nollaa"
+    "reset": "Nollaa",
+    "togglePlannedSubs": "Näytä suunnitellut vaihdot",
+    "planViewLineup": "Vain kokoonpano",
+    "planViewGhosts": "Suunnitellut vaihdot",
+    "planViewChains": "Vaihdot ja minuutit"
   },
   "gameResult": {
     "overtime": "JA",

@@ -28,9 +28,20 @@ import type { SubSlot } from '@/utils/formations';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { HiOutlineSquares2X2 } from 'react-icons/hi2';
+import { HiOutlineSquares2X2, HiOutlineListBullet } from 'react-icons/hi2';
 import { usePlannedGhosts } from '@/hooks/usePlannedGhosts';
+import { usePlannedChains } from '@/hooks/usePlannedChains';
 
+
+/**
+ * Withheld collections for the chain view, which shows the plan on an empty
+ * pitch. Module-level so their identity is stable - a fresh `[]` each render
+ * would retrigger the field's memoised draw on every tick.
+ */
+const EMPTY_PLAYERS: Player[] = [];
+const EMPTY_OPPONENTS: AppState['opponents'] = [];
+const EMPTY_SUB_SLOTS: SubSlot[] = [];
+const EMPTY_SNAP_POINTS: Point[] = [];
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -268,8 +279,44 @@ export function FieldContainer({
    * for good, and a coach who never sees it again has no way to know it
    * existed.
    */
-  const [showGhosts, setShowGhosts] = useState(true);
-  const toggleGhosts = useCallback(() => setShowGhosts((prev) => !prev), []);
+  /**
+   * How much of the plan is on screen. One control, three steps:
+   *
+   *  lineup - the eleven and nothing else, for showing the team at kickoff.
+   *  ghosts - plus faint markers for entries no disc represents.
+   *  chains - the plan ALONE: every position with its full substitution
+   *           schedule and minutes. Not a layer on the others; it replaces
+   *           them, because the chains need the whole field to be readable.
+   *
+   * Not persisted, for the same reason the old two-state toggle wasn't:
+   * hiding the plan is a momentary thing - the team talk before kickoff - and
+   * a coach who never sees it again has no way to know it existed.
+   */
+  const [planView, setPlanView] = useState<'lineup' | 'ghosts' | 'chains'>('ghosts');
+  const plannedChains = usePlannedChains(
+    currentGameId === DEFAULT_GAME_ID ? null : currentGameId,
+    fieldVM.formationSnapPoints,
+    fcPlayersOnField,
+  );
+  const hasChainView = plannedChains.length > 0;
+  const cyclePlanView = useCallback(() => {
+    setPlanView((prev) => {
+      if (prev === 'lineup') return 'ghosts';
+      // Skip a chain view there is nothing to show in, rather than offering a
+      // blank field as one of the three steps.
+      if (prev === 'ghosts') return hasChainView ? 'chains' : 'lineup';
+      return 'lineup';
+    });
+  }, [hasChainView]);
+  const showingChains = planView === 'chains' && hasChainView;
+  // A cycling control has to say what it just became, or the second tap is a
+  // guess. The label doubles as the button's accessible name.
+  const planViewLabel =
+    planView === 'chains'
+      ? t('fieldTools.planViewChains', 'Substitutions and minutes')
+      : planView === 'ghosts'
+        ? t('fieldTools.planViewGhosts', 'Planned substitutions')
+        : t('fieldTools.planViewLineup', 'Lineup only');
   const fcOpponents = fieldVM.opponents;
   const fcDrawings = fieldVM.drawings;
   const fcIsTactics = fieldVM.isTacticsBoardView;
@@ -395,8 +442,8 @@ export function FieldContainer({
       >
         <SoccerField
           ref={fieldRef}
-          players={fcPlayersOnField}
-          opponents={fcOpponents}
+          players={showingChains ? EMPTY_PLAYERS : fcPlayersOnField}
+          opponents={showingChains ? EMPTY_OPPONENTS : fcOpponents}
           drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
           gameType={gameSessionState.gameType}
           onPlayerMove={players.move}
@@ -426,9 +473,10 @@ export function FieldContainer({
           onTacticalBallMove={tactical.ballMove}
           onTacticalBallMoveEnd={tactical.ballMoveEnd}
           isDrawingEnabled={fcIsDrawingEnabled}
-          formationSnapPoints={fieldVM.formationSnapPoints}
-          subSlots={fieldVM.subSlots}
-          plannedGhosts={showGhosts ? plannedGhosts : undefined}
+          formationSnapPoints={showingChains ? EMPTY_SNAP_POINTS : fieldVM.formationSnapPoints}
+          subSlots={showingChains ? EMPTY_SUB_SLOTS : fieldVM.subSlots}
+          plannedGhosts={planView === 'ghosts' ? plannedGhosts : undefined}
+          plannedChains={showingChains ? plannedChains : undefined}
         />
       </ErrorBoundary>
 
@@ -480,19 +528,34 @@ export function FieldContainer({
         {/* Planned-sub markers. Hidden entirely when the game has none, rather
             than shown dead: a control that cannot change anything is noise on
             the busiest screen in the app. */}
-        {plannedGhosts.length > 0 && (
+        {(plannedGhosts.length > 0 || hasChainView) && (
           <button
-            onClick={toggleGhosts}
+            onClick={cyclePlanView}
             data-testid="toggle-planned-ghosts"
             className="p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-            title={t('field.togglePlannedSubs', 'Show planned substitutions')}
-            aria-label={t('field.togglePlannedSubs', 'Show planned substitutions')}
-            aria-pressed={showGhosts}
+            title={planViewLabel}
+            aria-label={planViewLabel}
           >
-            <HiOutlineUserPlus className={`w-5 h-5 ${showGhosts ? 'text-white' : 'text-slate-400'}`} />
+            {showingChains ? (
+              <HiOutlineListBullet className="w-5 h-5 text-amber-400" />
+            ) : (
+              <HiOutlineUserPlus
+                className={`w-5 h-5 ${planView === 'ghosts' ? 'text-white' : 'text-slate-400'}`}
+              />
+            )}
           </button>
         )}
       </div>
+
+      {/* Which step of the plan cycle is showing. A three-way control needs to
+          name its state - the icon alone only tells the person who built it. */}
+      {(plannedGhosts.length > 0 || hasChainView) && planView !== 'lineup' && (
+        <div className="absolute top-16 right-4 z-20 pointer-events-none">
+          <span className="px-2 py-0.5 rounded-md bg-slate-900/75 text-[11px] font-medium text-slate-200 backdrop-blur-sm shadow">
+            {planViewLabel}
+          </span>
+        </div>
+      )}
 
       {/* First game setup guidance - dismissible overlay */}
       {tmInitialLoad &&
