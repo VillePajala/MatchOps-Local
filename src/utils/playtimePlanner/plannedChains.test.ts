@@ -51,10 +51,61 @@ describe('buildPlannedChains', () => {
     );
     const lm = chains.find((c) => c.positionLabel === 'LM')!;
     expect(lm.entries).toEqual([
-      { id: 'a', minute: 10, name: 'Tomppa' },
-      { id: 'b', minute: 20, name: 'Petja' },
-      { id: 'c', minute: 30, name: 'Tomppa' },
+      { id: 'a', minute: 10, name: 'Tomppa', waveIndex: 0 },
+      { id: 'b', minute: 20, name: 'Petja', waveIndex: 1 },
+      { id: 'c', minute: 30, name: 'Tomppa', waveIndex: 2 },
     ]);
+  });
+
+  /**
+   * @critical - the point of the wave index. Junior changes come in waves -
+   * three players on together at half-time - but the plan is read position by
+   * position, so a wave was only findable by matching numbers across eight
+   * pills by eye. Same minute anywhere on the pitch must share an index.
+   */
+  it('gives every change at the same minute the same wave, across positions', () => {
+    const chains = buildPlannedChains(
+      [
+        sub({ id: 'a', timeSeconds: 600, positionLabel: 'LM' }),
+        sub({ id: 'b', timeSeconds: 600, positionLabel: 'RM' }),
+        sub({ id: 'c', timeSeconds: 600, positionLabel: 'ST' }),
+      ],
+      points,
+      players,
+    );
+    const waves = chains.flatMap((c) => c.entries.map((e) => e.waveIndex));
+    expect(waves).toEqual([0, 0, 0]);
+  });
+
+  it('numbers waves by time, earliest first', () => {
+    const chains = buildPlannedChains(
+      [
+        sub({ id: 'late', timeSeconds: 1800, positionLabel: 'RM' }),
+        sub({ id: 'early', timeSeconds: 600, positionLabel: 'LM' }),
+        sub({ id: 'mid', timeSeconds: 1200, positionLabel: 'ST' }),
+      ],
+      points,
+      players,
+    );
+    const byId = new Map(chains.flatMap((c) => c.entries).map((e) => [e.id, e.waveIndex]));
+    expect(byId.get('early')).toBe(0);
+    expect(byId.get('mid')).toBe(1);
+    expect(byId.get('late')).toBe(2);
+  });
+
+  /** A change nobody can name is dropped, and must not consume a wave number. */
+  it('does not let a skipped change burn a wave index', () => {
+    const chains = buildPlannedChains(
+      [
+        sub({ id: 'ghost', timeSeconds: 300, positionLabel: 'LM', inPlayerId: 'nobody' }),
+        sub({ id: 'real', timeSeconds: 600, positionLabel: 'LM' }),
+      ],
+      points,
+      players,
+    );
+    const lm = chains.find((c) => c.positionLabel === 'LM')!;
+    expect(lm.entries).toHaveLength(1);
+    expect(lm.entries[0].waveIndex).toBe(0);
   });
 
   /** A settled position is information, not an omission. */

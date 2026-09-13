@@ -203,6 +203,24 @@ const CHAIN_ROW_H = 17;
 const CHAIN_PAD = 5;
 
 /**
+ * One hue per wave of substitutions, so every change happening at the same
+ * minute looks the same wherever it is on the pitch.
+ *
+ * Amber leads deliberately: a plan with a single substitution minute - the
+ * common case - looks exactly as it did before this existed, and amber goes on
+ * meaning "when". Later waves take hues that hold up on grass at a glance.
+ *
+ * Colour is an ACCELERATOR, never the information: the minute is printed on
+ * every row regardless, so a coach who cannot tell these hues apart loses
+ * speed and nothing else. Waves beyond the palette wrap, which is fine for the
+ * same reason - two distant minutes sharing a hue costs a second look, not a
+ * wrong substitution.
+ */
+const CHAIN_WAVE_COLORS = ['#F59E0B', '#38BDF8', '#A78BFA', '#34D399', '#FB7185'] as const;
+const waveColor = (i: number): string =>
+  CHAIN_WAVE_COLORS[((i % CHAIN_WAVE_COLORS.length) + CHAIN_WAVE_COLORS.length) % CHAIN_WAVE_COLORS.length];
+
+/**
  * Draw the full plan: one divided pill per position.
  *
  * The third state of the field's plan toggle, and the only one that stands
@@ -320,10 +338,21 @@ function drawPlannedChains(
       const row = cols === 1 ? i : Math.floor(i / cols);
       const ex = x + CHAIN_PAD + col * cellW;
       const ey = divY + CHAIN_ROW_H / 2 + row * CHAIN_ROW_H;
+      const hue = waveColor(entry.waveIndex);
+
+      // A wash of the wave's hue behind the row. The tag alone is a small mark
+      // to find across eight pills; a tinted band is visible without being
+      // read, which is what "who goes on together" needs to be.
+      roundedRectPath(ctx, ex - 2, ey - CHAIN_ROW_H / 2 + 1, cellW - 6, CHAIN_ROW_H - 2, 3);
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = hue;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
       // The minute carries the colour: on the touchline you scan for WHEN.
       // Right-aligned in its gutter so 5' and 30' share an edge.
       ctx.font = `700 11px Rajdhani, sans-serif`;
-      ctx.fillStyle = '#F59E0B';
+      ctx.fillStyle = hue;
       ctx.textAlign = 'right';
       ctx.fillText(`${entry.minute}'`, ex + gutter - 6, ey);
       ctx.textAlign = 'left';

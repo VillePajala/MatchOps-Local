@@ -772,9 +772,9 @@ describe('SoccerField Component - Interaction Testing', () => {
               relY: 0.52,
               starterName: 'Petja',
               entries: [
-                { id: 'a', minute: 10, name: 'Tomas' },
-                { id: 'b', minute: 20, name: 'Petja' },
-                { id: 'c', minute: 30, name: 'Tomas' },
+                { id: 'a', minute: 10, name: 'Tomas', waveIndex: 0 },
+                { id: 'b', minute: 20, name: 'Petja', waveIndex: 1 },
+                { id: 'c', minute: 30, name: 'Tomas', waveIndex: 2 },
               ],
             },
           ]}
@@ -801,8 +801,8 @@ describe('SoccerField Component - Interaction Testing', () => {
               relY: 0.5,
               starterName: 'Petja',
               entries: [
-                { id: 'a', minute: 5, name: 'Tomas' },
-                { id: 'b', minute: 30, name: 'Tiitus' },
+                { id: 'a', minute: 5, name: 'Tomas', waveIndex: 0 },
+                { id: 'b', minute: 30, name: 'Tiitus', waveIndex: 1 },
               ],
             },
           ]}
