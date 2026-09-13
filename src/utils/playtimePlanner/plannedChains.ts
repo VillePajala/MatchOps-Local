@@ -33,6 +33,20 @@ export interface PlannedChainEntry {
   /** Whole minutes from kickoff, which is how a coach says it ("10'"). */
   minute: number;
   name: string;
+  /**
+   * Which wave of changes this belongs to: 0 for the earliest minute in the
+   * game, 1 for the next, and so on. Every change at the SAME minute shares an
+   * index, wherever on the pitch it happens.
+   *
+   * Junior substitutions come in waves - three players go on together at
+   * half-time - but the plan is read position by position, so spotting a wave
+   * meant scanning eight pills and matching numbers by eye. The view colours by
+   * this index, which turns that into one glance.
+   *
+   * An index rather than a colour: which hues read on grass is the canvas's
+   * business, not this module's.
+   */
+  waveIndex: number;
 }
 
 /** One position's whole story: who starts it, and who follows. */
@@ -92,16 +106,32 @@ export function buildPlannedChains(
 
   const displayName = (p: Player): string => p.nickname?.trim() || p.name;
 
+  const nameById = new Map(players.map((p) => [p.id, displayName(p)]));
+  const usable = [...plannedSubs]
+    .filter((s) => s.positionLabel && nameById.has(s.inPlayerId))
+    .sort((a, b) => a.timeSeconds - b.timeSeconds);
+
+  // Waves, numbered across the WHOLE game before anything is grouped by
+  // position: every change at the same minute has to end up with the same
+  // index, or colouring by it would not group them.
+  const waveOf = new Map<number, number>();
+  for (const sub of usable) {
+    const minute = Math.round(sub.timeSeconds / 60);
+    if (!waveOf.has(minute)) waveOf.set(minute, waveOf.size);
+  }
+
   // Planned changes grouped by the position they happen at, earliest first.
   const byPosition = new Map<string, PlannedChainEntry[]>();
-  const nameById = new Map(players.map((p) => [p.id, displayName(p)]));
-  for (const sub of [...plannedSubs].sort((a, b) => a.timeSeconds - b.timeSeconds)) {
-    if (!sub.positionLabel) continue;
-    const name = nameById.get(sub.inPlayerId);
-    if (!name) continue;
-    const list = byPosition.get(sub.positionLabel) ?? [];
-    list.push({ id: sub.id, minute: Math.round(sub.timeSeconds / 60), name });
-    byPosition.set(sub.positionLabel, list);
+  for (const sub of usable) {
+    const minute = Math.round(sub.timeSeconds / 60);
+    const list = byPosition.get(sub.positionLabel!) ?? [];
+    list.push({
+      id: sub.id,
+      minute,
+      name: nameById.get(sub.inPlayerId)!,
+      waveIndex: waveOf.get(minute)!,
+    });
+    byPosition.set(sub.positionLabel!, list);
   }
 
   const chains: PlannedChain[] = [];
