@@ -438,9 +438,13 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
             seedHistory(wanted);
             setReplacingId(null);
             setHighlightPlayerIds([]);
+            // Always the Games tab: the coach asked for THIS match's plan, and
+            // 'plan' is the plan's settings (its roster), not a game. When the
+            // planned game is gone, editingGame falls back to the first game,
+            // so the Games tab is also the right landing place for a miss.
             const exists = wanted.games.some((g) => g.id === target.planGameId);
             setEditingGameId(exists ? target.planGameId : null);
-            setView(exists ? 'plan' : 'games');
+            setView('games');
             onTargetConsumedRef.current?.();
             return;
           }

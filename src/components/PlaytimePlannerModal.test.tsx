@@ -280,6 +280,83 @@ describe('PlaytimePlannerModal', () => {
     expect(sessionStorage.getItem('matchops_planner_active_plan')).toBeNull();
   });
 
+  /**
+   * @critical - the match-side "this game's plan" link. It shipped landing on
+   * the Settings tab (the plan's ROSTER), which is not a game at all, so the
+   * one thing the coach asked to see was the one thing not shown.
+   */
+  describe('arriving from a match via initialTarget', () => {
+    const twoGamePlan = {
+      ...existingPlan,
+      games: [
+        existingPlan.games[0],
+        { ...existingPlan.games[0], id: 'g2', label: 'Game 2' },
+      ],
+    };
+
+    it('opens the Games tab on the requested game', async () => {
+      mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+      render(
+        <PlaytimePlannerModal
+          isOpen
+          onClose={jest.fn()}
+          initialTarget={{ planId: 'existing', planGameId: 'g2' }}
+        />,
+      );
+
+      const nameInput = await screen.findByLabelText('Game name');
+      expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
+      expect(nameInput).toHaveValue('Game 2');
+    });
+
+    /** An explicit request beats wherever the coach happened to be last. */
+    it('wins over the session resume', async () => {
+      sessionStorage.setItem('matchops_planner_active_plan', 'existing');
+      mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+      render(
+        <PlaytimePlannerModal
+          isOpen
+          onClose={jest.fn()}
+          initialTarget={{ planId: 'existing', planGameId: 'g2' }}
+        />,
+      );
+
+      // Resume alone would open the plan on its FIRST game.
+      expect(await screen.findByLabelText('Game name')).toHaveValue('Game 2');
+    });
+
+    /** A deleted planned game must not strand the coach on the roster tab. */
+    it('falls back to the first game when the planned game is gone', async () => {
+      mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+      render(
+        <PlaytimePlannerModal
+          isOpen
+          onClose={jest.fn()}
+          initialTarget={{ planId: 'existing', planGameId: 'deleted' }}
+        />,
+      );
+
+      expect(await screen.findByLabelText('Game name')).toHaveValue('Game 1');
+      expect(screen.getByRole('tab', { name: 'Games' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('reports the target consumed so it is not replayed', async () => {
+      const onTargetConsumed = jest.fn();
+      mockGetPlans.mockResolvedValue({ existing: twoGamePlan });
+      render(
+        <PlaytimePlannerModal
+          isOpen
+          onClose={jest.fn()}
+          initialTarget={{ planId: 'existing', planGameId: 'g2' }}
+          onTargetConsumed={onTargetConsumed}
+        />,
+      );
+
+      await screen.findByLabelText('Game name');
+      expect(onTargetConsumed).toHaveBeenCalled();
+    });
+  });
+
   it('a background-resume remount still loads team data for the Settings tab', async () => {
     // The resume path used to early-return out of the load effect BEFORE the
     // team/season/tournament block, leaving those selectors empty for the rest
