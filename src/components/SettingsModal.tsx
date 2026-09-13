@@ -22,7 +22,7 @@ import { useDataStore } from '@/hooks/useDataStore';
 import AiSettingsCard from '@/components/AiSettingsCard';
 import CloudSyncSection from './CloudSyncSection';
 import TransitionOverlay from './TransitionOverlay';
-import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 
 /**
  * MarketingConsentToggle - Toggle for granting/withdrawing marketing consent.

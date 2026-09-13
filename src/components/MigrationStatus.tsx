@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { useMigrationStatus, MigrationProgress } from '@/hooks/useMigrationStatus';
 import { HiOutlineExclamationTriangle, HiOutlineCheckCircle, HiOutlineXMark } from 'react-icons/hi2';
-import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP_BLOCKING, Z_LAYER } from '@/styles/modalStyles';
 
 // Throttled progress component to prevent excessive re-renders
 const ThrottledProgress = React.memo(({ progress, t }: { progress: MigrationProgress | null; t: TFunction }) => {

@@ -11,7 +11,7 @@ import { searchRules, rulebookUrl, type RulesSport } from '@/config/rulesIndex';
 import RuleViewerModal from '@/components/RuleViewerModal';
 import { useHardwareBackSubLevel } from '@/hooks/useModalHardwareBack';
 import type { TranslationKey } from '@/i18n-types';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface RulesDirectoryModalProps {
   isOpen: boolean;

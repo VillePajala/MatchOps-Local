@@ -14,7 +14,7 @@ import ConfirmationModal from './ConfirmationModal';
 import { CollapsibleModalHeader } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import FirstVisitIntro from '@/components/FirstVisitIntro';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 // Re-export shared types for backward compatibility with test imports
 export type { GameEvent, GameEventType } from '@/types/game';

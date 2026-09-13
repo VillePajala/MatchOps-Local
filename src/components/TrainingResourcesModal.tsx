@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useWarmupPlan } from '@/hooks/useWarmupPlan';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import { FaChevronUp, FaChevronDown, FaPlus, FaTimes, FaPen, FaUndo } from 'react-icons/fa';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface TrainingResourcesModalProps {
   isOpen: boolean;

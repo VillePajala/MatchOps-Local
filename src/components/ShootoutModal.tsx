@@ -6,7 +6,7 @@ import type { Player } from '@/types';
 import type { ShootoutKick } from '@/types/game';
 import { getShootoutTally, getShootoutWinner } from '@/utils/shootout';
 import { CollapsibleModalHeader, ModalStickyPrimary, useCollapsingHeader } from '@/styles/modalStyles';
-import { MODAL_BACKDROP, Z_LAYER } from '@/config/modalStyles';
+import { MODAL_BACKDROP, Z_LAYER } from '@/styles/modalStyles';
 
 interface ShootoutModalProps {
   isOpen: boolean;
