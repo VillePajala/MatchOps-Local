@@ -117,6 +117,16 @@ interface PlaytimePlannerModalProps {
    * autosave would write the stale in-memory lineup back over the update).
    */
   onLinkedGamesUpdated?: (gameIds: string[]) => void;
+  /**
+   * Land directly on one planned game instead of the plan manager. Set when the
+   * coach arrives from a match via "this game's plan", so they do not have to
+   * find the plan and then the game inside it.
+   */
+  initialTarget?: { planId: string; planGameId: string } | null;
+  /** Consumed once: cleared so a later open lands on the manager as usual. */
+  onTargetConsumed?: () => void;
+  /** Open a real game created from the planned game. Absent = no jump offered. */
+  onOpenGame?: (gameId: string) => void;
 }
 
 const DEFAULT_FORMATION = '8v8-2-1-2-1-1';
@@ -137,6 +147,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   onClose,
   onFlushLiveGame,
   onLinkedGamesUpdated,
+  initialTarget,
+  onTargetConsumed,
+  onOpenGame,
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -151,6 +164,9 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Per-planned-game count of unplayed real games created from it (Phase 3.4 bulk
   // re-apply). Keyed by planned-game id.
   const [linkedCounts, setLinkedCounts] = useState<Record<string, number>>({});
+  // The real game to jump to per planned game (the most recent when several
+  // were created from it). Same source as linkedCounts - one scan, two uses.
+  const [linkedGameIds, setLinkedGameIds] = useState<Record<string, string>>({});
   // Confirm-dialog + roster-edit state, declared early because the Escape handler
   // (an early effect) must know whether a confirm is open before navigating.
   // bulkReapplyTarget: planned game pending the bulk "update linked games" confirm.
@@ -346,6 +362,12 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
   // Mirror of activePlan for effects that must READ it without re-running on
   // every edit (the load effect below).
   const activePlanRef = useRef<PlaytimePlan | null>(null);
+  // Refs, so the open effect does not re-run (and re-navigate) when the target
+  // or the callback identity changes underneath it.
+  const initialTargetRef = useRef(initialTarget);
+  initialTargetRef.current = initialTarget;
+  const onTargetConsumedRef = useRef(onTargetConsumed);
+  onTargetConsumedRef.current = onTargetConsumed;
   useEffect(() => {
     activePlanRef.current = activePlan;
   }, [activePlan]);
@@ -406,6 +428,26 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
         // used to exit the whole effect here, leaving those selectors empty
         // for the rest of the modal instance after every background remount.
         const decideView = () => {
+          // Arrived from a match via "this game's plan": land on that planned
+          // game directly. Checked FIRST, ahead of the session resume, because
+          // an explicit request beats where the coach happened to be last.
+          const target = initialTargetRef.current;
+          if (target && plans[target.planId]) {
+            const wanted = normalizePlanAbsences(plans[target.planId]);
+            setActivePlan(wanted);
+            seedHistory(wanted);
+            setReplacingId(null);
+            setHighlightPlayerIds([]);
+            // Always the Games tab: the coach asked for THIS match's plan, and
+            // 'plan' is the plan's settings (its roster), not a game. When the
+            // planned game is gone, editingGame falls back to the first game,
+            // so the Games tab is also the right landing place for a miss.
+            const exists = wanted.games.some((g) => g.id === target.planGameId);
+            setEditingGameId(exists ? target.planGameId : null);
+            setView('games');
+            onTargetConsumedRef.current?.();
+            return;
+          }
           // Re-run with a plan already open (auth/user refresh when the app
           // returns from the background): keep the user exactly where they were
           // instead of dumping them back on the manager.
@@ -868,9 +910,20 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
       try {
         const [games, links] = await Promise.all([getSavedGames(user?.id), getAllPlanLinks()]);
         setLinkedCounts(countReapplicableGames(games, links, planId));
+        // Same scan, second use: the game each planned game can jump to. Only
+        // games that still EXIST are offered - a link outliving its game would
+        // otherwise produce a row that opens nothing.
+        const jump: Record<string, string> = {};
+        for (const [gameId, link] of Object.entries(links)) {
+          if (link.planId !== planId) continue;
+          if (!games[gameId]) continue;
+          jump[link.planGameId] = gameId;
+        }
+        setLinkedGameIds(jump);
       } catch (err) {
         logger.error('[planner] Failed to count linked games (non-fatal)', err);
         setLinkedCounts({});
+        setLinkedGameIds({});
       }
     },
     [user],
@@ -886,7 +939,7 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
     let cancelled = false;
     void (async () => {
       if (!isOpen || !planId) {
-        if (!cancelled) setLinkedCounts({});
+        if (!cancelled) { setLinkedCounts({}); setLinkedGameIds({}); }
         return;
       }
       await refreshLinkedCounts(planId);
@@ -2291,6 +2344,18 @@ const PlaytimePlannerModal: React.FC<PlaytimePlannerModalProps> = ({
                           {t('playtimePlanner.overview.updateLinked', 'Update {{count}} games created from this', {
                             count: linkedCounts[game.id],
                           })}
+                        </button>
+                      )}
+                      {/* The other half of the round trip: a match can open its
+                          plan, so a plan should be able to open its match. */}
+                      {onOpenGame && linkedGameIds[game.id] && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenGame(linkedGameIds[game.id])}
+                          data-testid={`planner-open-game-${game.id}`}
+                          className={`${secondaryButtonStyle} w-full`}
+                        >
+                          {t('playtimePlanner.overview.openGame', 'Open the game')}
                         </button>
                       )}
                     </div>

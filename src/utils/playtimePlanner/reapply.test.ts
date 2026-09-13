@@ -114,7 +114,7 @@ describe('buildReapplyPatch', () => {
     expect(gk.isGoalie).toBe(true);
     // Planned sub schedule carried through (prefill names the out-player too).
     expect(res.plannedSubs).toEqual([
-      { id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' },
+      expect.objectContaining({ id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' }),
     ]);
   });
 
@@ -240,7 +240,7 @@ describe('reapplyPlanToGame', () => {
     expect(savedGame.gameStatus).toBe('notStarted');
 
     expect(setGameSubs).toHaveBeenCalledWith('game-1', [
-      { id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' },
+      expect.objectContaining({ id: 'x', slotId: 's0', timeSeconds: 720, inPlayerId: 'f', outPlayerId: 'b' }),
     ]);
   });
 

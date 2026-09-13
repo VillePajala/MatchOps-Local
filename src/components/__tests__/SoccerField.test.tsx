@@ -672,6 +672,67 @@ describe('SoccerField Component - Interaction Testing', () => {
       expect(exportCanvas).toBeInstanceOf(HTMLCanvasElement);
     });
   });
+
+  /**
+   * @critical - these markers are the only place a coach sees a planned entry
+   * at a position nobody is waiting at. They were originally wired into
+   * renderForExport ONLY, so the toggle appeared but the live field stayed
+   * blank - the export path is not what a coach looks at.
+   */
+  describe('Planned ghost markers', () => {
+    const GHOSTS = [
+      { id: 'g1', relX: 0.96, relY: 0.24, name: 'Tomas' },
+      { id: 'g2', relX: 0.96, relY: 0.68, name: 'Tiitus' },
+    ];
+
+    // jsdom reports a 0x0 canvas, and `draw` bails out on zero dimensions -
+    // without a real rect nothing is painted at all and every assertion here
+    // would pass or fail for the wrong reason.
+    const origGetBoundingClientRect = HTMLCanvasElement.prototype.getBoundingClientRect;
+
+    beforeEach(() => {
+      HTMLCanvasElement.prototype.getBoundingClientRect = jest.fn(() => ({
+        left: 0, top: 0, right: 800, bottom: 600,
+        width: 800, height: 600, x: 0, y: 0,
+        toJSON: () => ({}),
+      })) as unknown as typeof HTMLCanvasElement.prototype.getBoundingClientRect;
+    });
+
+    afterEach(() => {
+      HTMLCanvasElement.prototype.getBoundingClientRect = origGetBoundingClientRect;
+    });
+
+    const drawnTexts = (spy: jest.SpyInstance): string[] =>
+      spy.mock.calls.map((call) => String(call[0]));
+
+    it('paints each ghost name on the LIVE field, not just on export', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      render(<SoccerField {...defaultProps} plannedGhosts={GHOSTS} />);
+
+      // No renderForExport call here on purpose: mounting alone must paint them.
+      expect(drawnTexts(spy)).toEqual(expect.arrayContaining(['Tomas', 'Tiitus']));
+      spy.mockRestore();
+    });
+
+    it('paints nothing when there are no planned ghosts', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      render(<SoccerField {...defaultProps} />);
+
+      expect(drawnTexts(spy)).not.toContain('Tomas');
+      spy.mockRestore();
+    });
+
+    /** The tactics board is a clean slate - plan reminders do not belong there. */
+    it('stays out of the tactics board view', () => {
+      const spy = jest.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+      render(
+        <SoccerField {...defaultProps} isTacticsBoardView={true} plannedGhosts={GHOSTS} />,
+      );
+
+      expect(drawnTexts(spy)).not.toContain('Tomas');
+      spy.mockRestore();
+    });
+  });
 });
 
 // Import helper function and constant for direct testing
