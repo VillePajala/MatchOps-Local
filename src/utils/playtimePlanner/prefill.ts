@@ -106,12 +106,18 @@ export function buildPrefillFromPlan(
     if (occupantBySlot.get(sub.slotId) === sub.inPlayerId) continue;
     const outPlayerId = occupantBySlot.get(sub.slotId) ?? null;
     occupantBySlot.set(sub.slotId, sub.inPlayerId); // incoming player now holds the slot
+    const subSlot = slotById.get(sub.slotId);
     plannedSubs.push({
       id: sub.id,
       timeSeconds: sub.timeSeconds,
       slotId: sub.slotId,
       inPlayerId: sub.inPlayerId,
       outPlayerId,
+      // Resolved HERE because the formation is known here and nowhere later:
+      // the created game persists coordinates, not slot ids.
+      positionLabel: subSlot
+        ? getPositionLabelForFormationPosition(subSlot.relX, subSlot.relY).label
+        : undefined,
     });
   }
 
