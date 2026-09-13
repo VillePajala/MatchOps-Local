@@ -41,6 +41,7 @@ import { usePlannedChains } from '@/hooks/usePlannedChains';
 const EMPTY_PLAYERS: Player[] = [];
 const EMPTY_OPPONENTS: AppState['opponents'] = [];
 const EMPTY_SUB_SLOTS: SubSlot[] = [];
+const EMPTY_SNAP_POINTS: Point[] = [];
 
 /**
  * Player drag/drop handlers for moving roster members on the field.
@@ -472,7 +473,7 @@ export function FieldContainer({
           onTacticalBallMove={tactical.ballMove}
           onTacticalBallMoveEnd={tactical.ballMoveEnd}
           isDrawingEnabled={fcIsDrawingEnabled}
-          formationSnapPoints={fieldVM.formationSnapPoints}
+          formationSnapPoints={showingChains ? EMPTY_SNAP_POINTS : fieldVM.formationSnapPoints}
           subSlots={showingChains ? EMPTY_SUB_SLOTS : fieldVM.subSlots}
           plannedGhosts={planView === 'ghosts' ? plannedGhosts : undefined}
           plannedChains={showingChains ? plannedChains : undefined}
